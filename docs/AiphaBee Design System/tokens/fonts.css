@@ -1,0 +1,11 @@
+/* ============================================================
+   AiphaBee — Webfonts
+   The product ships Inter (next/font/google). We load Inter +
+   JetBrains Mono (data/tickers) + Noto Sans SC (Chinese copy)
+   from Google Fonts.
+   NOTE: fonts are loaded from the Google Fonts CDN rather than
+   self-hosted .woff2 — see README "Caveats" if you need an
+   offline / self-hosted build.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap");

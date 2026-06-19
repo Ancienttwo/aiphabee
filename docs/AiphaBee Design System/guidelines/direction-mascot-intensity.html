@@ -1,0 +1,178 @@
+<!-- @dsCard group="Brand" viewport="1000x1480" name="Mascot intensity" subtitle="Where the bee goes big vs. stays small — login/onboarding hero rule" -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AiphaBee · 吉祥物强度规则</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 44px 32px 72px; background: var(--surface-page); font-family: var(--font-sans); color: var(--text-primary); }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .pgttl { font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 800; letter-spacing: var(--tracking-tight); margin: 0 0 8px; }
+  .pgsub { font-size: var(--text-base); color: var(--text-muted); margin: 0 0 40px; max-width: 660px; line-height: var(--leading-relaxed); }
+
+  .sectlab { display: flex; align-items: center; gap: 9px; margin: 0 0 18px; }
+  .sectlab .hexbullet { width: 15px; height: 17px; background: var(--honey-500); clip-path: var(--clip-hex); flex-shrink: 0; }
+  .sectlab h2 { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; margin: 0; letter-spacing: var(--tracking-tight); }
+
+  /* ---- tier cards ---- */
+  .tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 52px; }
+  .tier { position: relative; overflow: hidden; background: var(--surface-card); border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); padding: 26px; }
+  .tier .badge { display: inline-flex; align-items: center; gap: 7px; font-size: var(--text-2xs); font-weight: 700;
+                 letter-spacing: var(--tracking-caps); text-transform: uppercase; padding: 5px 12px; border-radius: var(--radius-pill); margin-bottom: 18px; }
+  .tier.hero .badge { background: var(--honey-100); color: var(--honey-800); }
+  .tier.inline .badge { background: var(--neutral-100); color: var(--neutral-600); }
+  .tier h3 { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 800; margin: 0 0 4px; letter-spacing: var(--tracking-tight); }
+  .tier .px { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--honey-700); font-weight: 600; margin: 0 0 16px; }
+  .tier.inline .px { color: var(--neutral-500); }
+  .tier .where { font-size: var(--text-sm); line-height: var(--leading-relaxed); color: var(--text-body); margin: 0 0 18px; }
+  .tier .where b { color: var(--ink-800); }
+  .sample { display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 150px; border-radius: var(--radius-lg);
+            background: var(--surface-honey); border: 1px dashed var(--honey-200); padding: 18px; }
+
+  .heroBee { width: 132px; height: auto; filter: drop-shadow(0 10px 20px rgba(26,34,66,0.16)); }
+
+  /* inline samples */
+  .inlineRow { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .forage { display: inline-flex; align-items: center; gap: 9px; padding: 8px 14px 8px 9px; background: var(--ink-800); border-radius: var(--radius-pill); }
+  .forage img { height: 26px; width: auto; }
+  .forage .lab { font-size: var(--text-xs); font-weight: 600; color: #fff; }
+  .honeybar { width: 54px; height: 6px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.18); overflow: hidden; }
+  .honeyfill { height: 100%; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--honey-400), var(--honey-500));
+               animation: aiphabee-honey-fill 2.4s var(--ease-out) infinite; }
+  .hexvatar { width: 40px; height: 44px; background: var(--honey-500); clip-path: var(--clip-hex); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  .hexvatar img { width: 36px; margin-bottom: -1px; }
+  .avrow { display: flex; align-items: center; gap: 8px; }
+  .avrow span { font-size: var(--text-xs); color: var(--text-muted); }
+
+  /* ---- login / onboarding mock ---- */
+  .login { display: grid; grid-template-columns: 1.05fr 1fr; border-radius: var(--radius-xl); overflow: hidden;
+           box-shadow: var(--shadow-lg); border: 1px solid var(--border-subtle); margin-bottom: 14px; }
+  .login .brandside { position: relative; overflow: hidden; background: var(--ink-800); color: #fff; padding: 44px 40px; display: flex; flex-direction: column; }
+  .login .brandside::before { content: ""; position: absolute; inset: 0; background-image: var(--pattern-honeycomb); background-size: 150px auto;
+           opacity: 0.5; -webkit-mask-image: radial-gradient(120% 100% at 80% 20%, #000, transparent 70%); mask-image: radial-gradient(120% 100% at 80% 20%, #000, transparent 70%); }
+  .login .brandside > * { position: relative; }
+  .wordmark { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg); letter-spacing: var(--tracking-tight); }
+  .wordmark .dot { width: 14px; height: 16px; background: var(--honey-500); clip-path: var(--clip-hex); }
+  .heroStage { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .heroStage img { width: 190px; height: auto; animation: aiphabee-buzz 4.5s var(--ease-standard) infinite; filter: drop-shadow(0 16px 30px rgba(0,0,0,0.35)); }
+  .welcome { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 800; line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); margin: 0 0 10px; }
+  .welcome .hl { color: var(--honey-400); }
+  .blurb { font-size: var(--text-sm); line-height: var(--leading-relaxed); color: rgba(255,255,255,0.72); margin: 0; max-width: 320px; }
+
+  .formside { background: var(--surface-card); padding: 44px 40px; display: flex; flex-direction: column; justify-content: center; }
+  .formside h4 { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 700; margin: 0 0 4px; letter-spacing: var(--tracking-tight); }
+  .formside .sub { font-size: var(--text-sm); color: var(--text-muted); margin: 0 0 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: var(--text-xs); font-weight: 600; color: var(--text-body); margin-bottom: 6px; }
+  .field .inp { height: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--neutral-50);
+                display: flex; align-items: center; padding: 0 14px; font-size: var(--text-sm); color: var(--text-muted); }
+  .cta { height: 46px; border: none; border-radius: var(--radius-md); background: var(--honey-500); color: var(--ink-800);
+         font-family: var(--font-sans); font-weight: 700; font-size: var(--text-sm); box-shadow: var(--shadow-honey); cursor: pointer; margin-top: 8px; }
+  .alt { text-align: center; font-size: var(--text-xs); color: var(--text-subtle); margin: 18px 0 0; }
+  .alt a { color: var(--text-link); font-weight: 600; text-decoration: none; }
+  .caption { font-size: var(--text-xs); color: var(--text-subtle); margin: 0 0 52px; }
+
+  /* ---- rules ---- */
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .rule { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 20px; }
+  .rule.do { border-left: 3px solid var(--green-500); }
+  .rule.dont { border-left: 3px solid var(--red-500); }
+  .rule .k { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-caps);
+             text-transform: uppercase; margin-bottom: 8px; }
+  .rule.do .k { color: var(--green-600); }
+  .rule.dont .k { color: var(--red-600); }
+  .rule p { margin: 0; font-size: var(--text-sm); line-height: var(--leading-relaxed); color: var(--text-body); }
+  .rule p b { color: var(--ink-800); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="pgttl">吉祥物强度规则</h1>
+  <p class="pgsub">蜜蜂该多大、出现在哪,取决于场景。产品内保持"克制专业";只在登录、onboarding、空状态、里程碑成功这些"非数据时刻"放出 Hero 工蜂的性格。一句话:数据越密,蜜蜂越小。</p>
+
+  <!-- TIERS -->
+  <div class="sectlab"><span class="hexbullet"></span><h2>两档强度</h2></div>
+  <div class="tiers">
+    <div class="tier hero">
+      <span class="badge">Hero · 高强度</span>
+      <h3>Hero 工蜂</h3>
+      <p class="px">120 – 200 px · 一屏限一只</p>
+      <p class="where">用于 <b>登录 / Onboarding / 空状态 / 里程碑成功</b>。可带蜂巢背景、buzz 浮动动效,作为情绪主角占据视觉中心。</p>
+      <div class="sample">
+        <img class="heroBee" src="../assets/mascot/greeting.png" alt="Hero greeting bee" />
+      </div>
+    </div>
+    <div class="tier inline">
+      <span class="badge">Inline · 低强度</span>
+      <h3>Inline 工蜂</h3>
+      <p class="px">24 – 52 px · 可多处复用</p>
+      <p class="where">用于 <b>产品全程</b> —— 采集加载条、六边形头像、洞察块图标。功能性陪伴,不抢数据焦点。</p>
+      <div class="sample">
+        <div class="inlineRow">
+          <div class="forage">
+            <img src="../assets/mascot/forage.png" alt="forage" />
+            <span class="lab">采集市场情绪…</span>
+            <span class="honeybar"><span class="honeyfill"></span></span>
+          </div>
+          <div class="avrow">
+            <span class="hexvatar"><img src="../assets/mascot/avatar.png" alt="avatar" /></span>
+            <span>Hexvatar · 头像</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN / ONBOARDING HERO -->
+  <div class="sectlab"><span class="hexbullet"></span><h2>登录 / Onboarding · Hero 工蜂落地</h2></div>
+  <div class="login">
+    <div class="brandside">
+      <div class="wordmark"><span class="dot"></span>AiphaBee</div>
+      <div class="heroStage"><img src="../assets/mascot/greeting.png" alt="AiphaBee greeting" /></div>
+      <h3 class="welcome">嗨,我是<span class="hl">工蜂</span>,<br />来帮你采集 alpha。</h3>
+      <p class="blurb">每天替你扫遍在招港股,把信号、超额认购和风险钉进你的关注巢。</p>
+    </div>
+    <div class="formside">
+      <h4>欢迎回来</h4>
+      <p class="sub">登录,让工蜂继续为你搜罗。</p>
+      <div class="field">
+        <label>邮箱</label>
+        <div class="inp">you@fund.com</div>
+      </div>
+      <div class="field">
+        <label>密码</label>
+        <div class="inp">••••••••••</div>
+      </div>
+      <button class="cta">进入蜂巢</button>
+      <p class="alt">还没有账号? <a href="#">申请内测</a></p>
+    </div>
+  </div>
+  <p class="caption">这是 Hero 工蜂唯一被允许"放大"的典型场景:占据品牌侧、带蜂巢水印与 buzz 浮动,情绪拉满 —— 但仅此一屏,进入产品后立刻切回 Inline。</p>
+
+  <!-- RULES -->
+  <div class="sectlab"><span class="hexbullet"></span><h2>落地规则</h2></div>
+  <div class="rules">
+    <div class="rule do">
+      <span class="k">✓ Do</span>
+      <p>登录 / onboarding / 空状态 / 首次成功 —— 这些"非数据时刻"放 <b>Hero 工蜂</b>,带蜂巢背景与动效。</p>
+    </div>
+    <div class="rule do">
+      <span class="k">✓ Do</span>
+      <p>dashboard、信号卡、表格内全程用 <b>Inline 工蜂</b>(≤52px):采集条、Hexvatar、洞察块图标。</p>
+    </div>
+    <div class="rule dont">
+      <span class="k">✕ Don't</span>
+      <p>一屏出现 <b>两只以上 Hero 工蜂</b>。情绪主角只能有一个,否则页面失焦。</p>
+    </div>
+    <div class="rule dont">
+      <span class="k">✕ Don't</span>
+      <p>在 <b>数据密集区</b>(图表、价格、招股书明细)放 Hero 或加动效 —— 会削弱投研工具的可信度。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

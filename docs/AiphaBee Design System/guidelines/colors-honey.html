@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Honey scale" subtitle="Amber tint ramp, 50 → 900" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; padding:20px; background:var(--surface-page); font-family:var(--font-sans); }
+  .ramp { display:flex; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-subtle); box-shadow:var(--shadow-sm); }
+  .step { flex:1; height:72px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px;
+          font-family:var(--font-mono); font-size:10px; }
+  .lab { display:flex; margin-top:6px; }
+  .lab span { flex:1; text-align:center; font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+</style></head>
+<body>
+<div class="ramp">
+  <div class="step" style="background:var(--honey-50)"></div>
+  <div class="step" style="background:var(--honey-100)"></div>
+  <div class="step" style="background:var(--honey-200)"></div>
+  <div class="step" style="background:var(--honey-300)"></div>
+  <div class="step" style="background:var(--honey-400)"></div>
+  <div class="step" style="background:var(--honey-500);color:var(--ink-800)">500</div>
+  <div class="step" style="background:var(--honey-600)"></div>
+  <div class="step" style="background:var(--honey-700);color:#fff"></div>
+  <div class="step" style="background:var(--honey-800);color:#fff"></div>
+  <div class="step" style="background:var(--honey-900);color:#fff"></div>
+</div>
+<div class="lab"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span></div>
+</body></html>

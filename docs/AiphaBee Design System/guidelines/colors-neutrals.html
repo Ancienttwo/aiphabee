@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Neutrals" subtitle="Slate scale for text, borders & surfaces" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; padding:20px; background:var(--surface-page); font-family:var(--font-sans); }
+  .ramp { display:flex; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-subtle); box-shadow:var(--shadow-sm); }
+  .step { flex:1; height:72px; }
+  .lab { display:flex; margin-top:6px; }
+  .lab span { flex:1; text-align:center; font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+</style></head>
+<body>
+<div class="ramp">
+  <div class="step" style="background:var(--neutral-0);box-shadow:inset 0 0 0 1px var(--border-subtle)"></div>
+  <div class="step" style="background:var(--neutral-50)"></div>
+  <div class="step" style="background:var(--neutral-100)"></div>
+  <div class="step" style="background:var(--neutral-200)"></div>
+  <div class="step" style="background:var(--neutral-300)"></div>
+  <div class="step" style="background:var(--neutral-400)"></div>
+  <div class="step" style="background:var(--neutral-500)"></div>
+  <div class="step" style="background:var(--neutral-600)"></div>
+  <div class="step" style="background:var(--neutral-700)"></div>
+  <div class="step" style="background:var(--neutral-800)"></div>
+  <div class="step" style="background:var(--neutral-900)"></div>
+</div>
+<div class="lab"><span>0</span><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span></div>
+</body></html>

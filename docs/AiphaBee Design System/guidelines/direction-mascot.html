@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AiphaBee · 方向探索：吉祥物 + 勤劳</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px 32px 64px; background: var(--surface-page); font-family: var(--font-sans); color: var(--text-primary); }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .pgttl { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 800; letter-spacing: var(--tracking-tight); margin: 0 0 6px; }
+  .pgsub { font-size: var(--text-base); color: var(--text-muted); margin: 0 0 36px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .tag { display: inline-flex; align-items: center; gap: 7px; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; padding: 4px 11px; border-radius: var(--radius-pill); margin-bottom: 12px; }
+  .tag.before { background: var(--neutral-200); color: var(--neutral-600); }
+  .tag.after { background: var(--honey-100); color: var(--honey-800); }
+
+  /* generic card */
+  .card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 24px; }
+  .eyebrow { font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-subtle); margin: 0 0 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+  /* BEFORE pills */
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 600; }
+  .dotc { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* AFTER — honeycomb card */
+  .comb { position: relative; overflow: hidden; background: var(--surface-card);
+          border: 1px solid var(--honey-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 24px; }
+  .comb::before { content:""; position:absolute; inset:0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='56' viewBox='0 0 48 56'%3E%3Cg fill='none' stroke='%23FBCB0A' stroke-width='2' stroke-opacity='0.5'%3E%3Cpath d='M24 1 L47 14.5 L47 41.5 L24 55 L1 41.5 L1 14.5 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 30px 35px; opacity: 0.22; pointer-events: none;
+    -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 62%);
+            mask-image: linear-gradient(160deg, #000 0%, transparent 62%); }
+  .comb > * { position: relative; }
+  .combhead { display:flex; align-items:center; gap:9px; margin: 0 0 18px; }
+  .hexbullet { width: 16px; height: 18px; background: var(--honey-500);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); flex-shrink:0; }
+  .combhead .eyebrow { margin: 0; color: var(--honey-800); }
+
+  /* AFTER signal pill — hexagon dot, tone border, tinted track */
+  .sig { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 11px; border-radius: var(--radius-pill);
+         font-size: var(--text-sm); font-weight: 700; border: 1px solid; }
+  .hexdot { width: 11px; height: 12px; flex-shrink: 0; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+
+  /* worker-bee live chip */
+  .forage { display:inline-flex; align-items:center; gap:9px; margin-top:16px; padding:8px 14px 8px 10px;
+            background: var(--ink-800); border-radius: var(--radius-pill); }
+  .forage img { height: 26px; width:auto; }
+  .forage .lab { font-size: var(--text-xs); font-weight:600; color:#fff; }
+  .honeybar { width: 60px; height:6px; border-radius:var(--radius-pill); background: rgba(255,255,255,0.18); overflow:hidden; }
+  .honeyfill { height:100%; border-radius:var(--radius-pill); background: linear-gradient(90deg,var(--honey-400),var(--honey-500)); animation: fill 2.4s var(--ease-out) infinite; }
+  @keyframes fill { 0%{width:8%} 60%{width:100%} 100%{width:100%} }
+
+  /* BeeNote — mascot delivering a diligent insight */
+  .beenote { display:flex; gap:14px; margin-top:20px; padding:16px; border-radius:var(--radius-md);
+             background: var(--honey-50); border:1px solid var(--honey-200); }
+  .beehex { width:52px; height:58px; flex-shrink:0; background:var(--honey-500);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display:flex; align-items:flex-end; justify-content:center; overflow:hidden; }
+  .beehex img { width: 46px; margin-bottom:-2px; }
+  .beenote .who { font-size: var(--text-xs); font-weight:700; color: var(--honey-800); margin:0 0 3px; display:flex; align-items:center; gap:6px; }
+  .beenote p { margin:0; font-size: var(--text-sm); line-height:1.6; color: var(--ink-700); }
+  .note { margin-top: 14px; font-size: var(--text-xs); color: var(--text-subtle); }
+  .legend { margin-top:40px; }
+  .legend h3 { font-family:var(--font-display); font-size:var(--text-lg); margin:0 0 10px; }
+  .legend ul { margin:0; padding-left:18px; color:var(--text-body); font-size:var(--text-sm); line-height:1.9; }
+  .legend b { color: var(--ink-800); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="pgttl">方向探索 · 吉祥物感 + 勤劳工蜂</h1>
+  <p class="pgsub">同一张 Signals 卡：左边是现在的通用版，右边把蜂巢六边形、吉祥物和勤劳口吻织进了组件。</p>
+
+  <div class="cols">
+    <!-- BEFORE -->
+    <div>
+      <span class="tag before">Before · 通用 AI 感</span>
+      <div class="card">
+        <p class="eyebrow">Badges · Signals</p>
+        <div class="row">
+          <span class="pill" style="background:var(--green-50);color:var(--green-600)"><span class="dotc" style="background:var(--green-500)"></span>牛市 Bullish</span>
+          <span class="pill" style="background:#fff7ed;color:#b45309"><span class="dotc" style="background:var(--orange-500)"></span>谨慎乐观</span>
+          <span class="pill" style="background:var(--neutral-100);color:var(--neutral-600)"><span class="dotc" style="background:var(--neutral-500)"></span>中性 Neutral</span>
+          <span class="pill" style="background:var(--red-50);color:var(--red-600)"><span class="dotc" style="background:var(--red-500)"></span>熊市 Bearish</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div>
+      <span class="tag after">After · AiphaBee 性格</span>
+      <div class="comb">
+        <div class="combhead"><span class="hexbullet"></span><p class="eyebrow">蜂巢信号 · Signals</p></div>
+        <div class="row">
+          <span class="sig" style="background:var(--green-50);color:var(--green-600);border-color:var(--green-500)"><span class="hexdot" style="background:var(--green-500)"></span>牛市 Bullish</span>
+          <span class="sig" style="background:#fff7ed;color:#b45309;border-color:var(--orange-500)"><span class="hexdot" style="background:var(--orange-500)"></span>谨慎乐观</span>
+          <span class="sig" style="background:var(--neutral-100);color:var(--neutral-600);border-color:var(--neutral-400)"><span class="hexdot" style="background:var(--neutral-500)"></span>中性 Neutral</span>
+          <span class="sig" style="background:var(--red-50);color:var(--red-600);border-color:var(--red-500)"><span class="hexdot" style="background:var(--red-500)"></span>熊市 Bearish</span>
+        </div>
+
+        <div class="forage">
+          <img src="../assets/aiphabee-mascot.png" alt="工蜂" />
+          <span class="lab">工蜂正在采集市场情绪…</span>
+          <span class="honeybar"><span class="honeyfill"></span></span>
+        </div>
+
+        <div class="beenote">
+          <div class="beehex"><img src="../assets/aiphabee-mascot.png" alt="AiphaBee" /></div>
+          <div>
+            <p class="who">🐝 工蜂洞察 · 已为您勤劳搜罗</p>
+            <p>蜂巢扫描了 36 家在招港股：科技板块情绪转牛，<b>蜂巢智能 128× 超额认购</b>领跑。要我把它钉进关注巢吗？</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <h3>这版改了什么</h3>
+    <ul>
+      <li><b>六边形语言</b>：状态点从圆点 → 小六边形；标题前加蜂室项目符；卡片右上淡蜂巢水印。</li>
+      <li><b>吉祥物出场</b>：勤劳"采集中"加载条 + 六边形头像里的工蜂洞察块——蜜蜂真正成为向导。</li>
+      <li><b>勤劳口吻</b>：文案强调不停歇地"采集 / 搜罗 / 钉进关注巢"，配蜂蜜注入的填充动画。</li>
+      <li><b>更有性格的信号</b>：信号 pill 加同色描边、更扎实的字重，告别"千篇一律软胶囊"。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

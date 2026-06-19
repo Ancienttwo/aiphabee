@@ -1,0 +1,28 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Radius & shadow" subtitle="Corner radii + soft navy-tinted elevation" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; padding:22px; background:var(--surface-page); font-family:var(--font-sans); }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:center; }
+  .box { width:78px; height:60px; background:var(--surface-card); border:1px solid var(--border-subtle); display:flex; align-items:flex-end; justify-content:center; padding-bottom:5px; }
+  .lab { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+  .sec { font-size:var(--text-2xs); font-weight:700; letter-spacing:var(--tracking-caps); text-transform:uppercase; color:var(--text-subtle); width:100%; margin:0 0 10px; }
+  .grp { display:flex; gap:18px; flex-wrap:wrap; }
+</style></head>
+<body>
+<div class="row" style="margin-bottom:18px"><span class="sec">Radius</span>
+  <div class="box" style="border-radius:var(--radius-sm)"><span class="lab">sm·6</span></div>
+  <div class="box" style="border-radius:var(--radius-md)"><span class="lab">md·8</span></div>
+  <div class="box" style="border-radius:var(--radius-lg)"><span class="lab">lg·12</span></div>
+  <div class="box" style="border-radius:var(--radius-xl)"><span class="lab">xl·16</span></div>
+  <div class="box" style="border-radius:var(--radius-pill);width:60px"><span class="lab">pill</span></div>
+</div>
+<div class="row"><span class="sec">Elevation</span>
+  <div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-xs);border:none"><span class="lab">xs</span></div>
+  <div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);border:none"><span class="lab">sm</span></div>
+  <div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:none"><span class="lab">md</span></div>
+  <div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);border:none"><span class="lab">lg</span></div>
+  <div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-honey);border:none"><span class="lab">honey</span></div>
+</div>
+</body></html>

@@ -1,0 +1,71 @@
+<!-- @dsCard group="Components" viewport="700x520" name="Mascot · Hexvatar · BeeNote · Forage · State" subtitle="The worker bee woven into the system" -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface-page); font-family: var(--font-sans); }
+  .eyebrow { font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-subtle); margin: 0 0 12px; }
+  .row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+  .col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 26px; }
+  .panel { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+  const { Hexvatar, BeeNote, ForageLoader, MascotState, Button } = window.AiphaBeeDesignSystem_599c13;
+  const BP = "../../assets/mascot";
+  function Demo() {
+    return (
+      <div>
+        <p className="eyebrow">Hexvatar · 六边形头像/图标</p>
+        <div className="row">
+          <Hexvatar imgSrc={BP + "/avatar.png"} size={72} variant="soft" />
+          <Hexvatar imgSrc={BP + "/avatar.png"} size={64} variant="outline" />
+          <Hexvatar icon={<span style={{fontWeight:700}}>↗</span>} tone="green" variant="fill" size={48} />
+          <Hexvatar icon={<span style={{fontWeight:700}}>AI</span>} tone="violet" variant="fill" size={48} />
+          <Hexvatar icon={<span style={{fontWeight:700}}>!</span>} tone="red" variant="soft" size={48} />
+        </div>
+
+        <p className="eyebrow">BeeNote · 工蜂洞察块</p>
+        <div className="col">
+          <BeeNote basePath={BP} pose="insight" title="工蜂洞察 · 已为您勤劳搜罗">
+            科技板块情绪转牛，<b>蜂巢智能 128× 超额认购</b>领跑全场。要我钉进关注巢吗？
+          </BeeNote>
+          <BeeNote basePath={BP} pose="risk" tone="navy" title="风险提示">
+            该标的行业产能过剩、上市首日破发，多维评分全面偏弱，建议规避。
+          </BeeNote>
+        </div>
+
+        <p className="eyebrow">ForageLoader · 勤劳加载</p>
+        <div className="row">
+          <ForageLoader basePath={BP} label="工蜂正在采集市场情绪…" />
+        </div>
+
+        <p className="eyebrow">MascotState · 空 / 成功状态</p>
+        <div className="col">
+          <div className="panel">
+            <MascotState basePath={BP} pose="empty" title="关注巢还是空的"
+              description="让工蜂帮你盯紧港美股的新机会。">
+              <Button size="sm">添加第一个标的</Button>
+            </MascotState>
+          </div>
+          <div className="panel">
+            <MascotState basePath={BP} pose="success" comb={false} title="已加入关注巢！"
+              description="工蜂会持续为你采集它的最新信号。" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

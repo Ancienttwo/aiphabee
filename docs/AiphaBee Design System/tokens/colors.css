@@ -1,0 +1,131 @@
+/* ============================================================
+   AiphaBee — Color Tokens
+   Honey-and-navy palette lifted from the IPO Agent codebase
+   (apps/ipo-agent/app/globals.css). Base scales + semantic
+   aliases + the data-viz scales the product relies on.
+   ============================================================ */
+
+:root {
+  /* ---------- Brand base ---------- */
+  --honey-50:  #fef9e6;
+  --honey-100: #fdf0bf;
+  --honey-200: #fce587;
+  --honey-300: #fbd94d;
+  --honey-400: #fbcf24;
+  --honey-500: #fbcb0a;   /* Honey Yellow — primary brand */
+  --honey-600: #d9a800;   /* hover / pressed */
+  --honey-700: #a87f02;
+  --honey-800: #6b5200;
+  --honey-900: #3d2e00;
+
+  --ink-950: #0c1030;
+  --ink-900: #11163a;
+  --ink-800: #1a2242;     /* Deep Navy — brand ink / foreground */
+  --ink-700: #283163;
+  --ink-600: #3a4585;
+  --ink-500: #525da0;
+
+  /* ---------- Neutrals (slate) ---------- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  /* ---------- Functional hues ---------- */
+  --green-500:  #10b981;   /* Growth Green — profit / success / bullish */
+  --green-600:  #059669;
+  --green-50:   #ecfdf5;
+  --violet-500: #8b5cf6;   /* AI Violet — AI / tech features */
+  --violet-600: #7c3aed;
+  --violet-50:  #f5f3ff;
+  --red-500:    #ef4444;   /* Startup Red — risk / danger / bearish */
+  --red-600:    #dc2626;
+  --red-50:     #fef2f2;
+  --blue-500:   #3b82f6;
+  --blue-50:    #eff6ff;
+  --orange-500: #f59e0b;
+  --pink-500:   #ec4899;
+
+  /* ============================================================
+     Semantic aliases — reference these in product code
+     ============================================================ */
+
+  /* Surfaces */
+  --color-bg:        var(--neutral-50);
+  --surface-page:    var(--neutral-50);
+  --surface-card:    var(--neutral-0);
+  --surface-muted:   var(--neutral-100);
+  --surface-sunken:  var(--neutral-50);
+  --surface-ink:     var(--ink-800);    /* dark/navy surface */
+  --surface-honey:   var(--honey-50);   /* tinted brand wash */
+
+  /* Text */
+  --text-primary:  var(--ink-800);
+  --text-body:     var(--neutral-700);
+  --text-muted:    var(--neutral-500);
+  --text-subtle:   var(--neutral-400);
+  --text-inverse:  var(--neutral-0);
+  --text-on-honey: var(--ink-800);
+  --text-link:     var(--ink-700);
+
+  /* Brand */
+  --brand-primary:        var(--honey-500);
+  --brand-primary-hover:  var(--honey-600);
+  --brand-ink:            var(--ink-800);
+  --brand-ai:             var(--violet-500);
+
+  /* Borders & focus */
+  --border-subtle:  var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong:  var(--neutral-400);
+  --ring:           var(--honey-500);
+
+  /* Status */
+  --success: var(--green-500);
+  --info:    var(--blue-500);
+  --warning: var(--orange-500);
+  --danger:  var(--red-500);
+
+  /* ============================================================
+     Data-viz semantic scales (IPO research signals)
+     ============================================================ */
+
+  /* Market sentiment */
+  --sentiment-bullish:  var(--green-500);   /* 牛市 */
+  --sentiment-cautious: var(--honey-500);   /* 谨慎乐观 */
+  --sentiment-neutral:  var(--neutral-500); /* 中性 */
+  --sentiment-bearish:  var(--red-500);     /* 熊市 */
+
+  /* Demand level (oversubscription multiple) */
+  --demand-extreme:   #b91c1c;   /* >100x */
+  --demand-very-hot:  var(--orange-500);   /* 50–100x */
+  --demand-hot:       var(--green-500);     /* 10–50x */
+  --demand-normal:    var(--blue-500);      /* 5–10x */
+  --demand-cold:      var(--neutral-500);   /* <5x */
+
+  /* Institution rating (5-star) */
+  --rating-5: var(--honey-500);
+  --rating-4: var(--orange-500);
+  --rating-3: var(--neutral-500);
+  --rating-low: var(--neutral-300);
+
+  /* Market-cap tier */
+  --tier-small:  var(--violet-500);
+  --tier-medium: var(--blue-500);
+  --tier-large:  var(--green-500);
+
+  /* 6-dimension radar / chart palette */
+  --chart-1: var(--honey-500);   /* Chip distribution */
+  --chart-2: var(--blue-500);    /* Sponsor quality */
+  --chart-3: var(--violet-500);  /* Underwriter quality */
+  --chart-4: var(--green-500);   /* Sector momentum */
+  --chart-5: var(--orange-500);  /* Fundamentals */
+  --chart-6: var(--pink-500);    /* Cornerstone quality */
+}

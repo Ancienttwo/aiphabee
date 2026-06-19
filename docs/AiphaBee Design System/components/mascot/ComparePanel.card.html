@@ -1,0 +1,42 @@
+<!-- @dsCard group="Components" viewport="780x480" name="ComparePanel" subtitle="Head-to-head PK view — compare bee weighs two candidates" -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface-page); font-family: var(--font-sans); }
+  #root { max-width: 720px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+  const { ComparePanel, Badge } = window.AiphaBeeDesignSystem_599c13;
+  function Demo() {
+    return (
+      <ComparePanel
+        basePath="../../assets/mascot"
+        title="工蜂帮你称一称"
+        subtitle="两家在招港股放上蜂室天平，逐项 PK。"
+        left={{ name: '蜂巢智能', ticker: '02468.HK', color: 'var(--green-500)' }}
+        right={{ name: '某某科技', ticker: '08321.HK', color: 'var(--red-500)' }}
+        metrics={[
+          { label: '情绪信号', left: <Badge tone="bullish" dot>牛市</Badge>, right: <Badge tone="bearish" dot>熊市</Badge>, winner: 'left' },
+          { label: '超额认购', left: '128×', right: '6×', winner: 'left' },
+          { label: '招股区间', left: '12.4–14.0', right: '8.0–9.2' },
+          { label: '风险评级', left: '中', right: '高', winner: 'left' },
+        ]}
+        verdict={<>工蜂结论：<b>蜂巢智能</b> 更甜 — 情绪转牛、认购领先，风险也更可控。</>}
+      />
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>
