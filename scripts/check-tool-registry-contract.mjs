@@ -20,7 +20,8 @@ const scaffoldTools = [
   "resolve_security",
   "get_security_profile",
   "get_market_calendar",
-  "get_quote_snapshot"
+  "get_quote_snapshot",
+  "get_price_history"
 ];
 
 let contract;

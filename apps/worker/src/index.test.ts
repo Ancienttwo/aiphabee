@@ -181,6 +181,45 @@ interface QuoteSnapshotBody {
   };
 }
 
+interface PriceHistoryBody {
+  data: {
+    capability: {
+      adjustment_methodology: boolean;
+      cursor_pagination: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+      supported_adjustments: string[];
+    };
+    adjustment: string;
+    history: {
+      adjustment: string;
+      adjustmentMethodology: {
+        dividendReinvestment: boolean;
+        priceBasis: string;
+      };
+      nextCursor?: string;
+      qualityState: string;
+      rowCount: number;
+      rows: Array<{
+        date: string;
+        fields: Record<string, number>;
+      }>;
+      symbol: string;
+      totalRows: number;
+    };
+    liveDataAccess: boolean;
+    requestedFields: string[];
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -590,7 +629,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(4);
+    expect(body.data.handler_ready_tool_count).toBe(5);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -635,6 +674,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_quote_snapshot")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_price_history")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -1069,6 +1122,159 @@ describe("worker runtime", () => {
     expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
     expect(unavailable.status).toBe(422);
     expect(unavailableBody.error.code).toBe("POINT_IN_TIME_UNAVAILABLE");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns price history rows with adjustment metadata and cursor pagination", async () => {
+    const response = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        adjustment: "total_return_adjusted",
+        fields: ["close", "volume", "return"],
+        from: "2026-01-02",
+        instrument_id: "eq_hk_00700",
+        limit: 2,
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PriceHistoryBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_price_history");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.adjustment).toBe("total_return_adjusted");
+    expect(body.data.history).toMatchObject({
+      adjustment: "total_return_adjusted",
+      adjustmentMethodology: {
+        dividendReinvestment: true,
+        priceBasis: "close_to_close"
+      },
+      nextCursor: "offset:2",
+      qualityState: "PASS",
+      rowCount: 2,
+      symbol: "00700.HK",
+      totalRows: 4
+    });
+    expect(body.data.history.rows.map((row) => row.date)).toEqual([
+      "2026-01-02",
+      "2026-01-05"
+    ]);
+    expect(body.data.history.rows.map((row) => Object.keys(row.fields))).toEqual([
+      ["close", "volume", "return"],
+      ["close", "volume", "return"]
+    ]);
+    expect(body.data.capability).toMatchObject({
+      adjustment_methodology: true,
+      cursor_pagination: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_price_history_scaffold",
+      supported_adjustments: ["raw", "split_adjusted", "total_return_adjusted"]
+    });
+    expect(body.usage.rows).toBe(2);
+    expect(body.usage.credits).toBe(4);
+  });
+
+  it("returns standard errors for price history licensing, quality, range, row, and input failures", async () => {
+    const unlicensed = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        fields: ["close", "realTimeBidAsk"],
+        from: "2026-01-02",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-unlicensed"
+      },
+      method: "POST"
+    });
+    const qualityHold = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        instrument_id: "eq_hk_08001",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-quality"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        from: "2025-12-31",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-01"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-range"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        from: "2026-01-02",
+        instrument_id: "eq_hk_00700",
+        limit: 4,
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-too-many"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        from: "2026-01-02",
+        instrument_id: "eq_hk_missing",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-price-history", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-02"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-price-history-invalid"
+      },
+      method: "POST"
+    });
+    const unlicensedBody = (await unlicensed.json()) as ErrorBody;
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unlicensed.status).toBe(403);
+    expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
+    expect(tooManyRows.status).toBe(422);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
     expect(missing.status).toBe(404);
     expect(missingBody.error.code).toBe("NOT_FOUND");
     expect(invalid.status).toBe(400);

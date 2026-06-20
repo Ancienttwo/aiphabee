@@ -59,7 +59,7 @@ owner: "Planner / PM"
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
-| 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 5 / 12 | ☐ |
+| 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 6 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
@@ -231,7 +231,7 @@ owner: "Planner / PM"
 - [x] `get_security_profile` tool scaffold：`@aiphabee/security-tools` + `POST /tools/get-security-profile` + `deploy/tools/get-security-profile.contract.json` + `npm run check:security-tools`，支持 `instrument_id` synthetic fixture 返回公司/证券档案、上市状态、币种与覆盖 metadata，覆盖 listed/suspended/delisted/not_found（SEC-04、STK-01、MCP-04/08）
 - [x] `get_market_calendar` tool scaffold：`@aiphabee/market-calendar` + `POST /tools/get-market-calendar` + `deploy/tools/get-market-calendar.contract.json` + `npm run check:market-calendar`，支持 HK synthetic date range 返回 trading day / half-day / weather closure / holiday / weekend sessions，覆盖 unsupported market、OUT_OF_RANGE 与输入错误（PRD §10.2、MCP-04/08）
 - [x] `get_quote_snapshot` tool scaffold：`@aiphabee/market-data` + `POST /tools/get-quote-snapshot` + `deploy/tools/get-quote-snapshot.contract.json` + `npm run check:market-data`，支持 synthetic delayed/close quote snapshot、字段子集、延迟 metadata、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / POINT_IN_TIME_UNAVAILABLE 标准错误（STK-02、MCP-04/08）
-- [ ] `get_price_history`（OHLCV/回报序列，复权口径，游标，STK-02、§10.4）
+- [x] `get_price_history` tool scaffold：`@aiphabee/market-data` + `POST /tools/get-price-history` + `deploy/tools/get-price-history.contract.json` + `npm run check:market-data`，支持 synthetic OHLCV/return/drawdown history、复权口径 metadata、字段子集、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（STK-02、§10.4、MCP-04/08）
 - [ ] `get_corporate_actions`（分红/供配股/拆合股/回购，STK-05、DAT-04）
 - [ ] `get_financial_facts`（标准化财务事实，期间/币种/版本，STK-03、DAT-03）
 - [ ] `get_data_lineage` + `get_entitlements`（血缘与权益自查，DAT-09、US-M03）
@@ -622,7 +622,7 @@ owner: "Planner / PM"
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
-- [ ] Sprint 1.2 的 shared Tool Registry scaffold、`resolve_security`、`get_security_profile`、`get_market_calendar` 与 `get_quote_snapshot` no-live handlers 已建立；其余单个工具 handler、Evidence/Lineage service、工具 JSON Schema 细化、每工具 golden fixtures、MCP/API endpoint 尚未实现
+- [ ] Sprint 1.2 的 shared Tool Registry scaffold、`resolve_security`、`get_security_profile`、`get_market_calendar`、`get_quote_snapshot` 与 `get_price_history` no-live handlers 已建立；其余单个工具 handler、Evidence/Lineage service、工具 JSON Schema 细化、每工具 golden fixtures、MCP/API endpoint 尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -631,6 +631,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0aq | 完成 `get-price-history-tool-scaffold`：扩展 `@aiphabee/market-data`、新增 `POST /tools/get-price-history`、synthetic OHLCV/return/drawdown history rows、复权口径 metadata、limit/cursor、`deploy/tools/get-price-history.contract.json`，`/tools/runtime` handler-ready 变为 5；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 6/12 |
 | 2026-06-21 | 1.0ap | 完成 `get-quote-snapshot-tool-scaffold`：新增 `@aiphabee/market-data`、`POST /tools/get-quote-snapshot`、synthetic delayed/close quote fixture、字段子集、延迟 metadata、`deploy/tools/get-quote-snapshot.contract.json` 与 `npm run check:market-data`；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 5/12 |
 | 2026-06-21 | 1.0ao | 完成 `get-market-calendar-tool-scaffold`：新增 `@aiphabee/market-calendar`、`POST /tools/get-market-calendar`、HK synthetic trading/half-day/weather/holiday/weekend fixtures、`deploy/tools/get-market-calendar.contract.json` 与 `npm run check:market-calendar`；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 4/12 |
 | 2026-06-21 | 1.0an | 完成 `get-security-profile-tool-scaffold`：扩展 `@aiphabee/security-tools`、新增 `POST /tools/get-security-profile`、listed/suspended/delisted synthetic profile fixture、`deploy/tools/get-security-profile.contract.json`，`/tools/runtime` handler-ready 变为 2；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 3/12 |

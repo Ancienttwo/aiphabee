@@ -21,7 +21,10 @@ import {
   getMarketCalendarCapabilities
 } from "@aiphabee/market-calendar";
 import {
+  PriceHistoryInputError,
   QuoteSnapshotInputError,
+  getPriceHistory,
+  getPriceHistoryCapabilities,
   getQuoteSnapshot,
   getQuoteSnapshotCapabilities
 } from "@aiphabee/market-data";
@@ -1305,6 +1308,130 @@ app.post("/tools/get-quote-snapshot", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-price-history", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    adjustment?: unknown;
+    cursor?: unknown;
+    fields?: unknown;
+    from?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+    limit?: unknown;
+    to?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+  const fields = Array.isArray(body.fields)
+    ? body.fields.filter((field): field is string => typeof field === "string")
+    : undefined;
+
+  try {
+    const result = getPriceHistory({
+      adjustment: typeof body.adjustment === "string" ? body.adjustment : undefined,
+      cursor: typeof body.cursor === "string" ? body.cursor : undefined,
+      fields,
+      from: typeof body.from === "string" ? body.from : "",
+      instrumentId: rawInstrumentId,
+      limit: typeof body.limit === "number" ? body.limit : undefined,
+      to: typeof body.to === "string" ? body.to : ""
+    });
+    const meta = {
+      asOf: new Date().toISOString(),
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "not_found") {
+      return c.json(createErrorEnvelope("NOT_FOUND", "price history was not found", meta), 404);
+    }
+
+    if (result.status === "data_not_licensed") {
+      return c.json(
+        createErrorEnvelope(
+          "DATA_NOT_LICENSED",
+          "price history fields or adjustment are not licensed",
+          meta
+        ),
+        403
+      );
+    }
+
+    if (result.status === "data_quality_hold") {
+      return c.json(
+        createErrorEnvelope("DATA_QUALITY_HOLD", "price history is held by quality policy", meta),
+        409
+      );
+    }
+
+    if (result.status === "out_of_range") {
+      return c.json(
+        createErrorEnvelope("OUT_OF_RANGE", "price history range is out of synthetic coverage", meta),
+        422
+      );
+    }
+
+    if (result.status === "too_many_rows") {
+      return c.json(
+        createErrorEnvelope("TOO_MANY_ROWS", "price history request exceeds row limit", meta),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getPriceHistoryCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof PriceHistoryInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.get-price-history-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_price_history failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.get-price-history-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,

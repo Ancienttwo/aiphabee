@@ -114,17 +114,18 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return OHLCV and return series with adjustment methodology metadata.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_price_history",
     permissions: createPermissions("prices:read", ["price_history", "corporate_actions"]),
     schema: createSchema("get_price_history", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
       "OUT_OF_RANGE",
       "TOO_MANY_ROWS"
     ]),
-    status: "planned",
-    testing: createTesting("get_price_history"),
+    status: "scaffold",
+    testing: createTesting("get_price_history", true),
     version: "0.0.0"
   },
   {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  PriceHistoryInputError,
   QuoteSnapshotInputError,
+  getPriceHistory,
+  getPriceHistoryCapabilities,
   getQuoteSnapshot,
   getQuoteSnapshotCapabilities
 } from "./index";
@@ -102,6 +105,171 @@ describe("quote snapshot scaffold", () => {
       live_data_access: false,
       status: "get_quote_snapshot_scaffold",
       supported_modes: ["delayed", "close"]
+    });
+  });
+});
+
+describe("price history scaffold", () => {
+  it("returns synthetic OHLCV and return history with adjustment metadata", () => {
+    const result = getPriceHistory({
+      adjustment: "total_return_adjusted",
+      from: "2026-01-02",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07"
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_price_history");
+    expect(result.liveDataAccess).toBe(false);
+    expect(result.adjustment).toBe("total_return_adjusted");
+    expect(result.history).toMatchObject({
+      adjustment: "total_return_adjusted",
+      adjustmentMethodology: {
+        dividendReinvestment: true,
+        priceBasis: "close_to_close"
+      },
+      currency: "HKD",
+      instrumentId: "eq_hk_00700",
+      market: "HK",
+      qualityState: "PASS",
+      rowCount: 3,
+      symbol: "00700.HK",
+      totalRows: 4
+    });
+    expect(result.history?.rows[0]).toMatchObject({
+      date: "2026-01-02",
+      fields: {
+        close: 438.6,
+        return: 0,
+        volume: 23200000
+      }
+    });
+    expect(result.history?.nextCursor).toBe("offset:3");
+    expect(result.usage.rows).toBe(3);
+    expect(result.usage.credits).toBe(6);
+  });
+
+  it("supports field subsets and deterministic cursor pagination", () => {
+    const firstPage = getPriceHistory({
+      fields: ["close", "volume"],
+      from: "2026-01-02",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      to: "2026-01-07"
+    });
+    const secondPage = getPriceHistory({
+      cursor: firstPage.history?.nextCursor,
+      fields: ["close", "volume"],
+      from: "2026-01-02",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      to: "2026-01-07"
+    });
+
+    expect(firstPage.status).toBe("found");
+    expect(firstPage.history?.rows.map((row) => row.date)).toEqual([
+      "2026-01-02",
+      "2026-01-05"
+    ]);
+    expect(firstPage.history?.rows.map((row) => Object.keys(row.fields))).toEqual([
+      ["close", "volume"],
+      ["close", "volume"]
+    ]);
+    expect(firstPage.history?.nextCursor).toBe("offset:2");
+    expect(secondPage.history?.rows.map((row) => row.date)).toEqual([
+      "2026-01-06",
+      "2026-01-07"
+    ]);
+    expect(secondPage.history?.nextCursor).toBeUndefined();
+  });
+
+  it("returns data_not_licensed for unsupported fields and adjustments", () => {
+    const unsupportedField = getPriceHistory({
+      fields: ["close", "realTimeBidAsk"],
+      from: "2026-01-02",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07"
+    });
+    const unsupportedAdjustment = getPriceHistory({
+      adjustment: "vendor_factor",
+      from: "2026-01-02",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07"
+    });
+
+    expect(unsupportedField.status).toBe("data_not_licensed");
+    expect(unsupportedField.rejectedFields).toEqual(["realTimeBidAsk"]);
+    expect(unsupportedField.history).toBeUndefined();
+    expect(unsupportedAdjustment.status).toBe("data_not_licensed");
+    expect(unsupportedAdjustment.rejectedAdjustment).toBe("vendor_factor");
+  });
+
+  it("returns quality, range, missing, and row-limit states", () => {
+    expect(
+      getPriceHistory({
+        from: "2026-01-07",
+        instrumentId: "eq_hk_08001",
+        to: "2026-01-07"
+      }).status
+    ).toBe("data_quality_hold");
+    expect(
+      getPriceHistory({
+        from: "2025-12-31",
+        instrumentId: "eq_hk_00700",
+        to: "2026-01-01"
+      }).status
+    ).toBe("out_of_range");
+    expect(
+      getPriceHistory({
+        from: "2026-01-02",
+        instrumentId: "eq_hk_missing",
+        to: "2026-01-07"
+      }).status
+    ).toBe("not_found");
+    expect(
+      getPriceHistory({
+        from: "2026-01-02",
+        instrumentId: "eq_hk_00700",
+        limit: 4,
+        to: "2026-01-07"
+      }).status
+    ).toBe("too_many_rows");
+  });
+
+  it("requires valid price history inputs", () => {
+    expect(() =>
+      getPriceHistory({
+        from: "2026-01-02",
+        instrumentId: "  ",
+        to: "2026-01-07"
+      })
+    ).toThrow(PriceHistoryInputError);
+    expect(() =>
+      getPriceHistory({
+        from: "2026-01-07",
+        instrumentId: "eq_hk_00700",
+        to: "2026-01-02"
+      })
+    ).toThrow(PriceHistoryInputError);
+    expect(() =>
+      getPriceHistory({
+        cursor: "bad-cursor",
+        from: "2026-01-02",
+        instrumentId: "eq_hk_00700",
+        to: "2026-01-07"
+      })
+    ).toThrow(PriceHistoryInputError);
+  });
+
+  it("reports no-live price history capabilities", () => {
+    expect(getPriceHistoryCapabilities()).toMatchObject({
+      adjustment_methodology: true,
+      cursor_pagination: true,
+      handler_ready: true,
+      live_data_access: false,
+      max_rows_per_request: 3,
+      status: "get_price_history_scaffold",
+      supported_adjustments: ["raw", "split_adjusted", "total_return_adjusted"]
     });
   });
 });
