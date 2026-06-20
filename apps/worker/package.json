@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aiphabee/agent-runtime": "file:../../packages/agent-runtime",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
     "hono": "^4.12.26"
   },

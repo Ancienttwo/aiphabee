@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, and Cloudflare binding contract complete 10/18; frontend/agent/resource provisioning/persistence/observability/provider secrets remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, and Agent dry-run skeleton complete 11/18; frontend/model execution/resource provisioning/persistence/observability/provider secrets remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -80,9 +80,9 @@ recorded in `tasks/todos.md`:
 - External Gate 0 rights/regulatory approvals.
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
-- Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, Cloudflare
-  resource provisioning/smoke, Postgres/Hyperdrive, observability, provider
-  secret stores/rotation, and executable golden fixtures.
+- Remaining runtime surfaces: frontend app, model provider/streaming execution,
+  Cloudflare resource provisioning/smoke, Postgres/Hyperdrive, observability,
+  provider secret stores/rotation, and executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -137,7 +137,7 @@ Not completed:
 
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
-- AI SDK Agent Runtime, Cloudflare resource provisioning/smoke,
+- Model provider/streaming execution, Cloudflare resource provisioning/smoke,
   Postgres/Hyperdrive, OTel, executable golden fixtures, and provider secret
   stores/rotation.
 
@@ -212,6 +212,26 @@ Not completed:
 
 - Real Cloudflare resources, Wrangler resource binding IDs, and provider smoke
   tests remain absent.
+
+## Execution Update - 2026-06-20 14:47 +08
+
+`agent-runtime-scaffold` has been executed in
+`docs/governance/agent-runtime-scaffold.md`.
+
+Completed:
+
+- `packages/agent-runtime` added with AI SDK v7 beta target and `isStepCount`
+  stop condition boundary.
+- Worker routes `GET /agent/runtime` and `POST /agent/runs/dry-run` added.
+- Dry-run route validates prompt, step count, and registered tool allowlist.
+- Wrangler smoke verified capabilities, dry-run, and `SCOPE_DENIED` for an
+  unregistered tool.
+
+Not completed:
+
+- Real model provider / AI Gateway binding, streaming generation, registered
+  data tool execution, persistent run store, OTel, and Workflow handoff remain
+  absent.
 
 ## Closeout Decision
 

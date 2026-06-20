@@ -7,9 +7,12 @@ import {
 
 describe("data contracts", () => {
   it("keeps Gate 0 default-deny errors in the shared code list", () => {
+    expect(ERROR_CODES).toContain("AUTH_REQUIRED");
     expect(ERROR_CODES).toContain("DATA_NOT_LICENSED");
     expect(ERROR_CODES).toContain("SCOPE_DENIED");
     expect(ERROR_CODES).toContain("DATA_QUALITY_HOLD");
+    expect(ERROR_CODES).toContain("OUT_OF_RANGE");
+    expect(ERROR_CODES).toContain("UPSTREAM_STALE");
   });
 
   it("creates a provenance-bound success envelope", () => {

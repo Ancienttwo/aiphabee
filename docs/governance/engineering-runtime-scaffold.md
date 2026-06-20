@@ -122,7 +122,9 @@ Observed `/health` response:
 ## Residual Gaps
 
 - Frontend scaffold is intentionally absent and delegated to Claude.
-- AI SDK v7 Agent Runtime is not implemented.
+- AI SDK v7 dry-run Agent Runtime skeleton now exists in
+  `docs/governance/agent-runtime-scaffold.md`; real model provider execution
+  remains unimplemented.
 - Cloudflare binding contract now exists in
   `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
   tests remain unimplemented.
