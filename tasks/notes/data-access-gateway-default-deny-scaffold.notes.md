@@ -1,6 +1,6 @@
 # Notes: data-access-gateway-default-deny-scaffold
 
-> **Last Updated**: 2026-06-20 16:20 +08
+> **Last Updated**: 2026-06-20 17:10 +08
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/data-access-gateway-default-deny-scaffold.md`
@@ -12,6 +12,8 @@
   redaction logic without implying market-data rights.
 - Kept Worker `/gateway/access-check` default-deny for market-style fields.
 - Returned `DATA_QUALITY_HOLD` before rights serving when quality state is held.
+- Added `servingRead` planning to Gateway decisions, but kept blocked and held
+  plans at `liveRead=false`, `servedRows=0`, and `sqlEmitted=false`.
 - Added usage preview but not persistent ledger writes.
 
 ## Verification
@@ -27,7 +29,8 @@
 
 ## Residual Blockers
 
-- Serving Store schema exists, but released rows and live reads are absent.
+- Serving Store schema and read planner exist, but released rows and live reads
+  are absent.
 - Partner-signed field rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

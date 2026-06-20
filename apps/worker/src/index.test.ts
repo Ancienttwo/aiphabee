@@ -73,6 +73,16 @@ interface GatewayRuntimeBody {
     rights_policy_version: string;
     serving_store: {
       live_reads: boolean;
+      read_planner: {
+        blocks_default_deny: boolean;
+        blocks_quality_hold: boolean;
+        live_reads: boolean;
+        release_state_default: string;
+        sql_emitted: boolean;
+        status: string;
+        uses_quality_state: boolean;
+        uses_versioned_snapshots: boolean;
+      };
       release_state_default: string;
       status: string;
       tables: string[];
@@ -384,6 +394,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("plan_entitlement");
     expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
+    expect(body.data.guards).toContain("serving_read_default_deny");
     expect(body.data.limits.max_rows).toBe(500);
     expect(body.data.live_data_access).toBe(false);
     expect(body.data.market_data_surfaces).toBe(false);
@@ -391,6 +402,16 @@ describe("worker runtime", () => {
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
     expect(body.data.serving_store).toMatchObject({
       live_reads: false,
+      read_planner: {
+        blocks_default_deny: true,
+        blocks_quality_hold: true,
+        live_reads: false,
+        release_state_default: "held",
+        sql_emitted: false,
+        status: "read_planner_scaffold",
+        uses_quality_state: true,
+        uses_versioned_snapshots: true
+      },
       release_state_default: "held",
       status: "schema_scaffold",
       tables: [

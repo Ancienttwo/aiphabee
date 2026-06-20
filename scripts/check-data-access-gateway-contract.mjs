@@ -13,6 +13,7 @@ const requiredGuards = [
   "row_limit",
   "time_range_limit",
   "quality_hold",
+  "serving_read_default_deny",
   "cache_key_versioning",
   "provenance_required",
   "usage_preview"

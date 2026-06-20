@@ -1,7 +1,11 @@
 import type { AiphaBeeErrorCode, ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
+import {
+  createServingReadPlan,
+  type ServingReadPlan
+} from "@aiphabee/serving-store";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.field-entitlement-enforcement.v0";
+  "2026-06-20.phase1.serving-read-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -88,6 +92,7 @@ export interface DataAccessDecision {
   provenance: ProvenanceRef[];
   qualityState: DataQualityState;
   rightsPolicyVersion: string;
+  servingRead: ServingReadPlan;
   status: DataAccessDecisionStatus;
   usage: UsageSummary;
   warnings: string[];
@@ -126,10 +131,26 @@ export function evaluateDataAccessRequest(
   const error = qualityError ?? limitError ?? getRightsError(status);
   const finalStatus: DataAccessDecisionStatus =
     qualityError !== undefined ? "quality_hold" : error !== undefined ? "deny" : status;
+  const finalAllowedFields =
+    finalStatus === "quality_hold" ? [] : fieldDecision.allowedFields;
+  const servingRead = createServingReadPlan({
+    allowedFields: finalAllowedFields,
+    dataVersion: "gateway-scaffold-v0",
+    dataset: request.dataset,
+    errorCode: error?.code,
+    gatewayStatus: finalStatus,
+    maxRows: policy.maxRows,
+    methodologyVersion: policy.methodologyVersion,
+    qualityState: request.qualityState,
+    requestedFields,
+    requestedRows: request.requestedRows,
+    rightsPolicyVersion: policy.rightsPolicyVersion,
+    timeRange: request.timeRange
+  });
   const warnings = getWarnings(request.qualityState, fieldDecision.deniedFields);
 
   return {
-    allowedFields: finalStatus === "quality_hold" ? [] : fieldDecision.allowedFields,
+    allowedFields: finalAllowedFields,
     cacheKey: createDataAccessCacheKey(request, policy, fieldDecision.allowedFields),
     dataVersion: "gateway-scaffold-v0",
     deniedFields: fieldDecision.deniedFields,
@@ -152,6 +173,7 @@ export function evaluateDataAccessRequest(
     ],
     qualityState: request.qualityState,
     rightsPolicyVersion: policy.rightsPolicyVersion,
+    servingRead,
     status: finalStatus,
     usage: {
       cached: false,

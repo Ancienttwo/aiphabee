@@ -20,6 +20,7 @@ import {
   createConsoleTelemetrySink,
   recordTelemetryEvents
 } from "@aiphabee/observability";
+import { getServingStoreReadCapabilities } from "@aiphabee/serving-store";
 
 interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: unknown;
@@ -315,6 +316,7 @@ app.get("/gateway/runtime", (c) => {
           "row_limit",
           "time_range_limit",
           "quality_hold",
+          "serving_read_default_deny",
           "cache_key_versioning",
           "provenance_required",
           "usage_preview"
@@ -345,6 +347,7 @@ app.get("/gateway/runtime", (c) => {
         serving_store: {
           live_reads: false,
           release_state_default: "held",
+          read_planner: getServingStoreReadCapabilities(),
           status: "schema_scaffold",
           tables: [
             "core.serving_dataset",

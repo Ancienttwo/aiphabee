@@ -1,6 +1,6 @@
 # Notes: serving-store-schema-scaffold
 
-> **Last Updated**: 2026-06-20 16:45 +08
+> **Last Updated**: 2026-06-20 17:10 +08
 > **Plan**: `plans/plan-serving-store-schema-scaffold.md`
 > **Runtime Evidence**: `docs/governance/serving-store-schema-scaffold.md`
 
@@ -15,6 +15,8 @@
   to `HOLD` so severe anomalies cannot be mistaken for released Serving data.
 - Added `/data/runtime` and `/gateway/runtime` capability fields, not live
   reads.
+- Added a later read planner capability that targets the schema shape, but
+  still emits no SQL and reads no live records.
 
 ## Verification
 
@@ -30,6 +32,7 @@
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-approved data loading is absent.
-- Gateway does not read Serving Store records.
+- Gateway creates blocked/held Serving read plans, but does not read Serving
+  Store records.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

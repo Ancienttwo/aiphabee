@@ -26,6 +26,13 @@ describe("data access gateway", () => {
         reason: "channel_blocked"
       }
     ]);
+    expect(decision.servingRead).toMatchObject({
+      blockedReason: "DATA_NOT_LICENSED",
+      liveRead: false,
+      servedRows: 0,
+      sqlEmitted: false,
+      status: "blocked_by_gateway"
+    });
     expect(decision.usage.rows).toBe(0);
   });
 
@@ -62,6 +69,20 @@ describe("data access gateway", () => {
       "fields=synthetic_profile.company_name"
     );
     expect(decision.limits.timeWindowDays).toBe(31);
+    expect(decision.servingRead).toMatchObject({
+      allowedFields: ["synthetic_profile.company_name"],
+      liveRead: false,
+      requestedRows: 5,
+      releaseState: "held",
+      servedRows: 0,
+      sqlEmitted: false,
+      status: "read_planned"
+    });
+    expect(decision.servingRead.cacheKeyMaterial).toMatchObject({
+      dataVersion: "gateway-scaffold-v0",
+      fieldSet: ["synthetic_profile.company_name"],
+      rightsPolicyVersion: "synthetic-policy-v0"
+    });
     expect(decision.usage.rows).toBe(5);
   });
 
@@ -81,6 +102,13 @@ describe("data access gateway", () => {
     expect(decision.status).toBe("quality_hold");
     expect(decision.error?.code).toBe("DATA_QUALITY_HOLD");
     expect(decision.allowedFields).toEqual([]);
+    expect(decision.servingRead).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      liveRead: false,
+      servedRows: 0,
+      sqlEmitted: false,
+      status: "quality_hold"
+    });
     expect(decision.usage.credits).toBe(0);
   });
 

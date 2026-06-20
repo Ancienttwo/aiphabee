@@ -1,7 +1,7 @@
 # Data Access Gateway Default-Deny Scaffold
 
 > **Status**: Verified guarded scaffold
-> **Last Updated**: 2026-06-20 16:20 +08
+> **Last Updated**: 2026-06-20 17:10 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Task Contract**:
@@ -14,12 +14,13 @@ not read real market data or grant any partner rights.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key |
+| Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead` plan |
+| Serving read planner | `packages/serving-store` | Plans blocked/held Serving reads without SQL or live rows |
 | Gateway contract | `deploy/gateway/access.contract.json` | No-secret default-deny route/guard manifest |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
 | Worker runtime route | `GET /gateway/runtime` | Reports guard capabilities and no live data surface |
 | Worker access route | `POST /gateway/access-check` | Returns `DATA_NOT_LICENSED` by default or `DATA_QUALITY_HOLD` for held data |
-| Real Serving Store | Schema scaffold only | Serving projection tables exist, but no partner rows, live reads, live entitlements, or MCP redistribution |
+| Real Serving Store | Schema and read-planner scaffold only | Projection tables and blocked read plans exist, but no partner rows, live reads, live entitlements, or MCP redistribution |
 
 ## P2 Concrete Trace
 
@@ -30,13 +31,17 @@ Default-deny trace:
 2. Worker normalizes the request and calls `evaluateDataAccessRequest()`.
 3. The default policy has every channel at `default_deny`.
 4. Requested fields are denied with reason `channel_blocked`.
-5. Worker returns a standard error envelope with `DATA_NOT_LICENSED`.
+5. Gateway attaches `servingRead.status=blocked_by_gateway`,
+   `liveRead=false`, `servedRows=0`, and `sqlEmitted=false`.
+6. Worker returns a standard error envelope with `DATA_NOT_LICENSED`.
 
 Quality-hold trace:
 
 1. Client sends the same route with `quality_state=HOLD`.
 2. The evaluator returns `status=quality_hold` before serving any fields.
-3. Worker returns `DATA_QUALITY_HOLD` and zero usage rows/credits.
+3. Gateway attaches `servingRead.status=quality_hold`,
+   `liveRead=false`, `servedRows=0`, and `sqlEmitted=false`.
+4. Worker returns `DATA_QUALITY_HOLD` and zero usage rows/credits.
 
 Allowed synthetic unit-test trace:
 
@@ -52,8 +57,9 @@ Selected a guarded gateway scaffold instead of a real Serving Store integration.
 Reason:
 
 - Gate 0 rights matrix and partner field contract are not signed.
-- Schema scaffolds exist, including Serving Store projection tables, but no
-  partner rows or released Serving rows exist yet.
+- Schema scaffolds and read planner exist, including Serving Store projection
+  tables and blocked read plans, but no partner rows or released Serving rows
+  exist yet.
 - Exposing real data before rights enforcement would violate PRD default-deny.
 
 Tradeoff:
@@ -86,6 +92,8 @@ Observed `/gateway/runtime` fields:
   "live_data_access": false,
   "market_data_surfaces": false,
   "mcp_redistribution_surfaces": false,
+  "serving_store.read_planner.live_reads": false,
+  "serving_store.read_planner.sql_emitted": false,
   "rights_policy_version": "gate0-default-deny-v0"
 }
 ```
@@ -93,8 +101,8 @@ Observed `/gateway/runtime` fields:
 ## Residual Gaps
 
 - Securities master, raw snapshot, financial fact/restatement,
-  corporate-action/adjustment, and Serving Store schemas now exist, but no
-  released Serving rows or live reads exist.
+  corporate-action/adjustment, Serving Store schemas, and read planner now
+  exist, but no released Serving rows or live reads exist.
 - Partner-signed rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent
