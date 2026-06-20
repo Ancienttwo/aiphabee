@@ -28,6 +28,7 @@
 ## Residual Blockers
 
 - Hyperdrive and Supabase live database are not provisioned.
-- Partner corporate-action source samples and price bars are absent.
-- Adjustment computation and golden parity are not live.
+- Synthetic adjustment computation exists, but partner corporate-action source
+  samples and price bars are absent.
+- Partner/public benchmark parity is not live.
 - Serving Gateway and usage ledger remain unwired.

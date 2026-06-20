@@ -102,6 +102,17 @@ interface DataRuntimeBody {
     corporate_actions: {
       adjustment_types: string[];
       closed_open_intervals: boolean;
+      engine: {
+        direction: string;
+        golden_cases: {
+          passed: boolean;
+          sample_count: number;
+        };
+        live_partner_data: boolean;
+        status: string;
+        supported_action_types: readonly string[];
+        supported_adjustment_types: readonly string[];
+      };
       live_actions: boolean;
       quality_default_state: string;
       status: string;
@@ -423,6 +434,21 @@ describe("worker runtime", () => {
     expect(body.data.corporate_actions).toMatchObject({
       adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
       closed_open_intervals: true,
+      engine: {
+        direction: "backward_adjusted",
+        golden_cases: {
+          passed: true,
+          sample_count: 3
+        },
+        live_partner_data: false,
+        status: "engine_scaffold",
+        supported_action_types: ["split", "consolidation", "dividend"],
+        supported_adjustment_types: [
+          "raw",
+          "split_adjusted",
+          "total_return_adjusted"
+        ]
+      },
       live_actions: false,
       quality_default_state: "HOLD",
       status: "schema_scaffold",

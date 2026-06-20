@@ -21,6 +21,7 @@ not apply to a live database and does not load market data.
 | Corporate action | `core.corporate_action` | Action type, dates, ratio/cash terms, source, data version, methodology |
 | Adjustment methodology | `core.adjustment_methodology` | `raw`, `split_adjusted`, `total_return_adjusted`, direction, policy fields |
 | Adjustment factors | `core.price_adjustment_factor` | Closed-open factor intervals linked to methodology and source |
+| Engine scaffold | `packages/corporate-actions` | Synthetic deterministic engine exists, but no partner rows or adjusted series reads |
 | Live data | Absent | No partner rows, no Hyperdrive query, no adjusted series read |
 
 ## P2 Concrete Trace
@@ -57,13 +58,14 @@ Reason:
 
 - Gate 0 rights matrix and partner data contract are not signed.
 - Hyperdrive/Supabase live resources are still unprovisioned.
-- Adjustment parity needs partner price bars and corporate-action source samples;
-  computing from placeholders would weaken the evidence boundary.
+- Adjustment benchmark parity needs partner price bars and corporate-action
+  source samples; only synthetic engine cases are available.
 
 Tradeoff:
 
 - Sprint 1.1 now has concrete DAT-04 storage structures.
-- It still cannot serve adjusted price history or prove golden parity.
+- It still cannot serve adjusted price history or prove partner/public benchmark
+  parity.
 
 ## Verification
 
@@ -100,6 +102,7 @@ Observed `/data/runtime` fields:
 ## Residual Gaps
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
-- Partner corporate-action source samples and raw price bars are absent.
-- Live adjustment computation and golden parity are absent.
+- Synthetic adjustment computation exists, but partner corporate-action source
+  samples and raw price bars are absent.
+- Partner/public benchmark parity is absent.
 - Serving Gateway and live usage ledger writes are not wired to these tables.

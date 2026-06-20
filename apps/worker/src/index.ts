@@ -5,6 +5,7 @@ import {
   createAgentRunSkeleton,
   getAgentRuntimeCapabilities
 } from "@aiphabee/agent-runtime";
+import { getCorporateActionAdjustmentCapabilities } from "@aiphabee/corporate-actions";
 import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
@@ -146,6 +147,7 @@ app.get("/data/runtime", (c) => {
         corporate_actions: {
           adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
           closed_open_intervals: true,
+          engine: getCorporateActionAdjustmentCapabilities(),
           live_actions: false,
           quality_default_state: "HOLD",
           status: "schema_scaffold",
