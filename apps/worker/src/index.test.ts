@@ -19,6 +19,13 @@ interface AgentRuntimeBody {
       stop_condition: string;
       target_version: string;
     };
+    run_context: {
+      context_ready: boolean;
+      entitlement_policy_source: string;
+      live_entitlement_reads: boolean;
+      status: string;
+      tool_versions: boolean;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -729,9 +736,44 @@ interface ObservabilityRuntimeBody {
 interface AgentDryRunBody {
   data: {
     budget: {
+      max_credits: number;
+      max_rows: number;
       max_steps: number;
+      max_tokens: number;
     };
     request_id: string;
+    run_context: {
+      channel: string;
+      entitlements: {
+        data_rights_state: string;
+        live_policy_source: boolean;
+        policy_version: string;
+        required_scopes: string[];
+      };
+      model: {
+        model_calls: boolean;
+        tier: string;
+      };
+      subscription: {
+        plan: string;
+      };
+      toolset: {
+        tools: Array<{
+          input_schema_id: string;
+          name: string;
+          output_schema_id: string;
+          version: string;
+        }>;
+      };
+      user: {
+        source: string;
+        user_id: string;
+      };
+      workspace: {
+        source: string;
+        workspace_id: string;
+      };
+    };
     status: "dry_run";
     tool_policy: {
       allow_arbitrary_sql: boolean;
@@ -800,6 +842,13 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.ai_sdk.stop_condition).toBe("isStepCount");
     expect(body.data.ai_sdk.target_version).toBe("7.0.0-beta.182");
+    expect(body.data.run_context).toMatchObject({
+      context_ready: true,
+      entitlement_policy_source: "synthetic_default_deny",
+      live_entitlement_reads: false,
+      status: "agent_run_context_scaffold",
+      tool_versions: true
+    });
     expect(body.data.registered_tools).toHaveLength(9);
     expect(body.data.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -2637,9 +2686,18 @@ describe("worker runtime", () => {
   it("creates an agent dry-run skeleton", async () => {
     const response = await app.request("/agent/runs/dry-run", {
       body: JSON.stringify({
+        channel: "web",
+        entitlement_policy_version: "entitlement-policy-test-v0",
+        max_credits: 7,
+        max_rows: 99,
         max_steps: 4,
+        max_tokens: 1200,
+        model_tier: "dry_run",
+        plan: "internal_alpha",
         prompt: "Explain 00700.HK trend",
-        tools: ["resolve_security"]
+        tools: ["resolve_security", "get_financial_facts"],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
       }),
       headers: {
         "content-type": "application/json",
@@ -2658,8 +2716,52 @@ describe("worker runtime", () => {
     expect(body.data.status).toBe("dry_run");
     expect(body.data.request_id).toBe("req-agent-dry-run");
     expect(body.data.budget.max_steps).toBe(4);
-    expect(body.data.tool_policy.requested_tools).toEqual(["resolve_security"]);
+    expect(body.data.budget.max_credits).toBe(7);
+    expect(body.data.budget.max_rows).toBe(99);
+    expect(body.data.budget.max_tokens).toBe(1200);
+    expect(body.data.tool_policy.requested_tools).toEqual([
+      "resolve_security",
+      "get_financial_facts"
+    ]);
     expect(body.data.tool_policy.allow_arbitrary_sql).toBe(false);
+    expect(body.data.run_context).toMatchObject({
+      channel: "web",
+      entitlements: {
+        data_rights_state: "default_deny",
+        live_policy_source: false,
+        policy_version: "entitlement-policy-test-v0",
+        required_scopes: ["security:read", "financials:read"]
+      },
+      model: {
+        model_calls: false,
+        tier: "dry_run"
+      },
+      subscription: {
+        plan: "internal_alpha"
+      },
+      user: {
+        source: "request",
+        user_id: "user_internal_alpha"
+      },
+      workspace: {
+        source: "request",
+        workspace_id: "workspace_research"
+      }
+    });
+    expect(body.data.run_context.toolset.tools).toEqual([
+      expect.objectContaining({
+        input_schema_id: "tool.resolve_security.input.v0",
+        name: "resolve_security",
+        output_schema_id: "tool.resolve_security.output.v0",
+        version: "0.0.0"
+      }),
+      expect.objectContaining({
+        input_schema_id: "tool.get_financial_facts.input.v0",
+        name: "get_financial_facts",
+        output_schema_id: "tool.get_financial_facts.output.v0",
+        version: "0.0.0"
+      })
+    ]);
   });
 
   it("rejects unregistered dry-run tools", async () => {

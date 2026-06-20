@@ -1,0 +1,43 @@
+{
+  "version": "2026-06-21.phase1.agent-run-context-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/dry-run",
+  "runtime_route": "GET /agent/runtime",
+  "context_ready": true,
+  "model_calls": false,
+  "streaming": false,
+  "live_entitlement_reads": false,
+  "partner_rights_matrix_loaded": false,
+  "frontend": false,
+  "required_context_sections": [
+    "run",
+    "user",
+    "workspace",
+    "subscription",
+    "entitlements",
+    "toolset",
+    "budget",
+    "model"
+  ],
+  "required_run_fields": ["run_id", "request_id", "status", "mode", "runtime_version"],
+  "required_budget_dimensions": [
+    "max_steps",
+    "max_parallel_tools",
+    "max_tokens",
+    "max_rows",
+    "max_credits",
+    "max_wall_clock_ms"
+  ],
+  "required_tool_fields": [
+    "name",
+    "version",
+    "input_schema_id",
+    "output_schema_id",
+    "required_scope",
+    "live_data_access"
+  ],
+  "entitlement_policy_source": "synthetic_default_deny",
+  "model_tiers": ["dry_run"],
+  "allowed_channels": ["web", "mcp", "api"]
+}

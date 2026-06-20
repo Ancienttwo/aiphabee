@@ -60,7 +60,7 @@ owner: "Planner / PM"
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
-| 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
+| 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 1 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | ⬜ | 0 / 9 | ☐ |
@@ -244,7 +244,7 @@ owner: "Planner / PM"
 ### Sprint 1.3 — Web Agent Runtime + Ask + 证据卡片　⬜
 **目标：** AI SDK v7 多步工具循环 + 流式 + 预算/停止规则 + 证据优先答案。
 
-- [ ] Agent run 上下文齐全（run/user/workspace、套餐、权益、工具集与版本、预算、模型层级，§8.1）
+- [x] Agent run context scaffold：`@aiphabee/agent-runtime` dry-run `run_context` + `POST /agent/runs/dry-run` + `deploy/agent/run-context.contract.json` + `npm run check:agent-run-context`，覆盖 run/user/workspace、套餐、synthetic default-deny 权益、工具集与版本/schema/scope、预算维度、`dry_run` 模型层级；real model calls / streaming / live entitlement reads / frontend Ask 未启用（§8.1）
 - [ ] ToolLoopAgent 多步循环 + 流式工具进度（不暴露思维链，AGT-01）
 - [ ] 工具调用前完成证券/时间/币种/口径解析，关键歧义澄清或列假设（AGT-02）
 - [ ] 规划与停止规则：≤6–8 步、并行≤3 只读工具、连续 2 次同类错误停重试、预算到顶优雅停止（§8.2、AGT-03）
@@ -617,12 +617,14 @@ owner: "Planner / PM"
 - [x] Serving SQL text compiler scaffold 已建立：`docs/governance/serving-sql-text-compiler-scaffold.md`；Gateway decision `servingSqlText`、fixed SQL template、positional bindings、no execute / no live read，`/gateway/runtime` capability 已通过本地 smoke
 - [x] Serving execution adapter scaffold 已建立：`docs/governance/serving-execution-adapter-scaffold.md`；Gateway decision `servingExecution`、Hyperdrive adapter shape、`execution_deferred`、empty rows、no SQL execution / no live read，`/gateway/runtime` capability 已通过本地 smoke
 - [x] Serving result envelope scaffold 已建立：`docs/governance/serving-result-envelope-scaffold.md`；Gateway decision `servingResult`、blocked/deferred result status、standard envelope fields `as_of` / `market_status` / `provenance` / `usage`、empty rows/no live data/no SQL execution，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Agent run context scaffold 已建立：`docs/governance/agent-run-context-scaffold.md`；dry-run `run_context` 覆盖 run/user/workspace、套餐、synthetic default-deny 权益、工具版本/schema/scope、预算维度与 dry-run 模型层级，`/agent/runtime` 与 `/agent/runs/dry-run` 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract、每工具 synthetic golden fixtures 与 no-write Evidence/Lineage service scaffold 已建立；MCP protocol endpoint/runtime schema serving/live route replay/live DB writes/partner source rows 尚未实现
+- [ ] Sprint 1.3 的 Agent run context scaffold 已建立；ToolLoopAgent 多步循环/流式进度、调用前解析、预算停止策略细化、evidence-binding、答案结构、失败恢复、模型路由 live 审计与前端 Ask/证据卡片尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -631,6 +633,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0ax | 完成 `agent-run-context-scaffold`：扩展 `@aiphabee/agent-runtime` dry-run `run_context`，`POST /agent/runs/dry-run` 返回 run/user/workspace、套餐、synthetic default-deny 权益、工具版本/schema/scope、预算维度与 `dry_run` 模型层级，新增 `deploy/agent/run-context.contract.json` 与 `npm run check:agent-run-context`；real model calls/streaming/live entitlement reads/frontend Ask 未启用，Sprint 1.3 更新为 1/10 |
 | 2026-06-21 | 1.0aw | 完成 `evidence-lineage-service-scaffold`：扩展 `@aiphabee/evidence-lineage` no-write evidence record/source-ref/citation planner，新增 `GET /evidence/runtime`、`POST /evidence/records/plan`、`supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql`、`deploy/evidence/service.contract.json` 与 `npm run check:evidence-service`，支持 tool call ↔ source record/data version/methodology/user-visible citation 计划；live DB writes/partner source rows/MCP protocol endpoint/runtime schema serving/live route replay 未启用，Sprint 1.2 更新为 12/12 |
 | 2026-06-21 | 1.0av | 完成 `tool-golden-fixtures-scaffold`：新增 `tests/golden/tools/manifest.json` 与 9 个 tool expected-response fixtures，并扩展 `npm run test:golden` 校验 tool schema IDs、标准 envelope、provenance、usage、`toolName`/`status`/`liveDataAccess=false`；live route replay/partner-approved production corpus 未启用，Sprint 1.2 更新为 11/12 |
 | 2026-06-21 | 1.0au | 完成 `tool-schema-contract-scaffold`：新增 `deploy/tools/tool-schemas.contract.json` 与 `npm run check:tool-schemas`，覆盖 9 个 registered tools 的 input/output schema IDs、标准 response envelope fields、success data shape、error schema enum 与 no arbitrary SQL/URL input guard；runtime validator/MCP schema serving/golden response validation 未启用，Sprint 1.2 更新为 10/12 |
