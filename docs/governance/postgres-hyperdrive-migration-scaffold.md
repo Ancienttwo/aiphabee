@@ -9,11 +9,12 @@
 This slice creates the repo-local migration tooling for the future Supabase
 Postgres database reached through Cloudflare Hyperdrive. It has since been
 extended by `docs/governance/security-master-raw-snapshot-scaffold.md`,
-`docs/governance/financial-facts-restatement-scaffold.md`, and
-`docs/governance/corporate-action-adjustment-scaffold.md` with empty Sprint 1.1
-security-master/raw-snapshot, financial-fact, and corporate-action schemas. It
-does not provision a database, add a real Hyperdrive binding ID, or run remote
-DDL.
+`docs/governance/financial-facts-restatement-scaffold.md`,
+`docs/governance/corporate-action-adjustment-scaffold.md`, and
+`docs/governance/account-workspace-entitlement-scaffold.md` with empty Sprint
+1.1 security-master/raw-snapshot, financial-fact, corporate-action, and
+account/workspace entitlement schemas. It does not provision a database, add a
+real Hyperdrive binding ID, or run remote DDL.
 
 References checked:
 
@@ -35,6 +36,7 @@ References checked:
 | Security master scaffold | `20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty security master, raw snapshot, and data-version tables without loading market data |
 | Financial facts scaffold | `20260620083000_financial_facts_restatement_scaffold.sql` | Creates empty financial statement, fact, and restatement tables without loading market data |
 | Corporate action scaffold | `20260620084000_corporate_action_adjustment_scaffold.sql` | Creates empty corporate action, adjustment methodology, and factor tables without loading market data |
+| Account workspace scaffold | `20260620085000_account_workspace_entitlement_scaffold.sql` | Creates empty account, workspace, subscription, and entitlement tables without loading market data |
 | Database manifest | `deploy/database/migrations.contract.json` | Declares provider, Hyperdrive path, commands, migration inventory, and no-secret resource status |
 | Validator | `scripts/check-database-migrations-contract.mjs` | Checks manifest shape, migration file coverage, no destructive SQL, and no committed URLs/secrets |
 | Env names | `deploy/env/env.schema.json` | Adds Hyperdrive local connection env name with blank values in every template |
@@ -127,6 +129,6 @@ Observed `/database/runtime` response fields:
 - Wrangler `hyperdrive` binding is not attached because no real `id` exists.
 - Remote `supabase db push --dry-run` and apply were not executed.
 - Hyperdrive `SELECT 1` smoke remains pending.
-- Partner data loading, Serving Gateway, and usage ledger remain future Sprint
-  1.1 work; financial fact/restatement and corporate-action/adjustment schemas
-  are scaffolded but not live.
+- Partner data loading, Serving Gateway, field entitlement execution, and usage
+  ledger remain future Sprint 1.1 work; data and account/workspace entitlement
+  schemas are scaffolded but not live.

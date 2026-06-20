@@ -29,6 +29,7 @@
 - No Supabase project or Hyperdrive resource is provisioned.
 - No remote migration dry-run or apply has been executed.
 - No read-only `SELECT 1` through Hyperdrive has been executed.
-- Security master, raw snapshot, financial fact/restatement, and
-  corporate-action/adjustment schemas now exist, but ingestion, live data
-  gateway reads, and usage ledger remain absent.
+- Security master, raw snapshot, financial fact/restatement,
+  corporate-action/adjustment, and account/workspace entitlement schemas now
+  exist, but ingestion, live data gateway reads, field entitlement execution,
+  and usage ledger remain absent.

@@ -87,6 +87,23 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620085000_account_workspace_entitlement_scaffold.sql",
+      "purpose": "Create empty account, workspace, subscription, and entitlement scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.account",
+        "core.data_entitlement",
+        "core.subscription_plan",
+        "core.workspace",
+        "core.workspace_entitlement",
+        "core.workspace_membership",
+        "core.workspace_subscription",
+        "governance.account_workspace_entitlement_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

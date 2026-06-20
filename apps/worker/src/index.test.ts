@@ -46,6 +46,12 @@ interface DatabaseRuntimeBody {
 
 interface GatewayRuntimeBody {
   data: {
+    account_workspace_entitlements: {
+      live_enforcement: boolean;
+      status: string;
+      tables: string[];
+      workspace_isolation: boolean;
+    };
     channels: Record<string, string>;
     contract: string;
     default_rights_status: string;
@@ -65,6 +71,13 @@ interface GatewayRuntimeBody {
 
 interface DataRuntimeBody {
   data: {
+    account_workspace: {
+      default_entitlement_status: string;
+      live_enforcement: boolean;
+      status: string;
+      tables: string[];
+      workspace_isolation: boolean;
+    };
     corporate_actions: {
       adjustment_types: string[];
       closed_open_intervals: boolean;
@@ -281,6 +294,20 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
+    expect(body.data.account_workspace_entitlements).toMatchObject({
+      live_enforcement: false,
+      status: "schema_scaffold",
+      tables: [
+        "core.account",
+        "core.workspace",
+        "core.workspace_membership",
+        "core.subscription_plan",
+        "core.workspace_subscription",
+        "core.data_entitlement",
+        "core.workspace_entitlement"
+      ],
+      workspace_isolation: true
+    });
     expect(body.data.contract).toBe("deploy/gateway/access.contract.json");
     expect(body.data.default_rights_status).toBe("default_deny");
     expect(body.data.channels.mcp).toBe("default_deny");
@@ -306,6 +333,21 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
+    expect(body.data.account_workspace).toMatchObject({
+      default_entitlement_status: "default_deny",
+      live_enforcement: false,
+      status: "schema_scaffold",
+      tables: [
+        "core.account",
+        "core.workspace",
+        "core.workspace_membership",
+        "core.subscription_plan",
+        "core.workspace_subscription",
+        "core.data_entitlement",
+        "core.workspace_entitlement"
+      ],
+      workspace_isolation: true
+    });
     expect(body.data.corporate_actions).toMatchObject({
       adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
       closed_open_intervals: true,

@@ -128,6 +128,21 @@ app.get("/data/runtime", (c) => {
   return c.json(
     createSuccessEnvelope(
       {
+        account_workspace: {
+          default_entitlement_status: "default_deny",
+          live_enforcement: false,
+          status: "schema_scaffold",
+          tables: [
+            "core.account",
+            "core.workspace",
+            "core.workspace_membership",
+            "core.subscription_plan",
+            "core.workspace_subscription",
+            "core.data_entitlement",
+            "core.workspace_entitlement"
+          ],
+          workspace_isolation: true
+        },
         corporate_actions: {
           adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
           closed_open_intervals: true,
@@ -180,7 +195,7 @@ app.get("/data/runtime", (c) => {
       },
       {
         asOf: new Date().toISOString(),
-        methodologyVersion: "corporate-action-adjustment-scaffold-v0",
+        methodologyVersion: "account-workspace-entitlement-scaffold-v0",
         provenance: [
           {
             data_version: "security-master-raw-snapshot-scaffold-v0",
@@ -199,6 +214,12 @@ app.get("/data/runtime", (c) => {
             methodology_version: "corporate-action-adjustment-scaffold-v0",
             source: "database-migration-contract",
             source_record_id: "corporate-action-runtime-capabilities"
+          },
+          {
+            data_version: "account-workspace-entitlement-scaffold-v0",
+            methodology_version: "account-workspace-entitlement-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "account-workspace-runtime-capabilities"
           }
         ],
         requestId,
@@ -220,6 +241,20 @@ app.get("/gateway/runtime", (c) => {
   return c.json(
     createSuccessEnvelope(
       {
+        account_workspace_entitlements: {
+          live_enforcement: false,
+          status: "schema_scaffold",
+          tables: [
+            "core.account",
+            "core.workspace",
+            "core.workspace_membership",
+            "core.subscription_plan",
+            "core.workspace_subscription",
+            "core.data_entitlement",
+            "core.workspace_entitlement"
+          ],
+          workspace_isolation: true
+        },
         cache_key_fields: [
           "dataset",
           "channel",

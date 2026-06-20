@@ -29,5 +29,6 @@
 
 - Real securities master/Serving Store is absent.
 - Partner-signed field rights matrix is absent.
-- Persistent usage ledger and account/workspace/plan enforcement are absent.
+- Account/workspace/plan schemas now exist, but live enforcement and persistent
+  usage ledger are absent.
 - No MCP/API redistribution endpoint is enabled.

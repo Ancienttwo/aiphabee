@@ -39,7 +39,7 @@ Observed state:
 | 1 | Directory, package manager, monorepo, build, deploy topology | Harness directories and docs exist; no app monorepo or package manager | Missing runtime topology | Add package manager and workspace layout |
 | 2 | TanStack Start, Vite, Hono, AI SDK, Cloudflare versions | No dependency manifest | Missing version pinning | Create root manifest and runtime decision record |
 | 3 | `/`, `/app`, API route, SSR/SPA boundary | No app routes | Missing Web/API boundary | Add app route skeleton and route map |
-| 4 | Auth, user, Workspace, subscription, DB schema | No runtime schema | Missing domain model implementation | Add schema design then migrations after Gate 0 |
+| 4 | Auth, user, Workspace, subscription, DB schema | Account/workspace entitlement schema scaffold exists; no live auth or billing integration | Missing live domain enforcement | Wire identity, billing, and entitlement execution after Gate 0 |
 | 5 | Chat, messages, run, tool call, streaming | No Agent runtime | Missing run/message/tool loop model | Add run schema and worker route after tool registry baseline |
 | 6 | Tool definitions, Schema, errors, tests | No tool registry code | Missing shared tool registry | Add `packages/tool-registry` with schemas/errors/tests |
 | 7 | Partner adapter, cache, batch, data rights | Governance docs exist; no adapter/runtime | Missing adapter and Gateway enforcement | Add data contracts package and Gateway skeleton |

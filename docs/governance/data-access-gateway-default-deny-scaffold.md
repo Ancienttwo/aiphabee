@@ -19,7 +19,7 @@ not read real market data or grant any partner rights.
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
 | Worker runtime route | `GET /gateway/runtime` | Reports guard capabilities and no live data surface |
 | Worker access route | `POST /gateway/access-check` | Returns `DATA_NOT_LICENSED` by default or `DATA_QUALITY_HOLD` for held data |
-| Real Serving Store | Absent | No securities master, partner rows, live entitlements, or MCP redistribution |
+| Real Serving Store | Absent | Data schemas exist, but no partner rows, live entitlements, or MCP redistribution |
 
 ## P2 Concrete Trace
 
@@ -52,14 +52,14 @@ Selected a guarded gateway scaffold instead of a real Serving Store integration.
 Reason:
 
 - Gate 0 rights matrix and partner field contract are not signed.
-- No securities master tables or Serving Store rows exist yet.
+- Schema scaffolds exist, but no partner rows or Serving Store rows exist yet.
 - Exposing real data before rights enforcement would violate PRD default-deny.
 
 Tradeoff:
 
 - Sprint 1.1 now has executable gateway behavior and runtime smoke.
 - It still does not complete real data persistence, usage ledger accounting, or
-  account/workspace entitlement enforcement.
+  live account/workspace entitlement enforcement.
 
 ## Verification
 
@@ -94,5 +94,6 @@ Observed `/gateway/runtime` fields:
   corporate-action/adjustment schemas now exist, but real Serving Store is
   absent.
 - Partner-signed rights matrix is absent.
-- Persistent usage ledger and account/workspace/plan enforcement are absent.
+- Account/workspace/plan schemas now exist, but live enforcement and persistent
+  usage ledger are absent.
 - No external MCP/API redistribution surface is enabled.
