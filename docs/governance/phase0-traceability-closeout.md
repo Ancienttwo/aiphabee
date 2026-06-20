@@ -42,7 +42,7 @@ PRD §18.1 Phase 0 exit conditions:
 | Exit Condition | Current State | Blocking Evidence |
 |---|---|---|
 | P0 every field has an authorization state | Not met | Signed field-level rights matrix absent |
-| Core golden samples pass | Not met | Fixture files and CI runner absent |
+| Core golden samples pass | Not met | CI hook exists; fixture files and assertions absent |
 | Product boundary has written confirmation | Not met | Hong Kong legal/compliance written opinion absent |
 
 Tracker Sprint DoD status:
@@ -51,8 +51,8 @@ Tracker Sprint DoD status:
 |---|---|---|
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
-| 0.3 Golden/quality/commercial | Design baseline 9/9; executable CI and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold and P0 ledger complete 7/15; frontend/agent/bindings/persistence/observability/golden/env remain | Not green |
+| 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, and golden hook complete 8/16; frontend/agent/bindings/persistence/observability/env remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -82,7 +82,7 @@ recorded in `tasks/todos.md`:
 - Executable golden sample and quality-rule CI.
 - Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, full
   Cloudflare bindings, Postgres/Hyperdrive, observability, secrets management,
-  and golden regression.
+  and executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -138,7 +138,7 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - AI SDK Agent Runtime, full Cloudflare bindings, Postgres/Hyperdrive, OTel,
-  golden regression, and secrets management by environment.
+  executable golden fixtures, and secrets management by environment.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -157,6 +157,23 @@ Not completed:
 - External GitHub/Jira/Linear issue IDs are not created because no external
   tracker is selected.
 - Requirement implementation statuses in tracker §M remain unchanged.
+
+## Execution Update - 2026-06-20 14:45 +08
+
+`golden-regression-hook` has been executed in
+`docs/governance/golden-regression-hook.md`.
+
+Completed:
+
+- `npm run test:golden` added to root checks.
+- CI now includes a `Golden Regression Hook` step.
+- `scripts/check-golden-regression.mjs` validates `tests/golden/manifest.json`
+  when fixtures exist and reports `not_configured` when they do not.
+
+Not completed:
+
+- Golden fixture manifest, source samples, quality rule engine, and executable
+  regression assertions remain absent.
 
 ## Closeout Decision
 

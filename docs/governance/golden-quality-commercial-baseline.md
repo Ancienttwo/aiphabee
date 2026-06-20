@@ -13,12 +13,26 @@ credits model, unit economics model, and Free-tier abuse limits.
 It is a reviewable baseline. It does not claim that golden sample fixtures,
 quality-rule code, billing code, or partner-commercial approvals already exist.
 
+## Execution Update - 2026-06-20 14:45 +08
+
+`docs/governance/golden-regression-hook.md` installs the CI mount point for
+future golden sample regression:
+
+- `npm run test:golden`
+- `scripts/check-golden-regression.mjs`
+- `.github/workflows/ci.yml` `Golden Regression Hook`
+- `tests/golden/README.md`
+
+No real fixture manifest exists yet. The hook reports `not_configured` until
+`tests/golden/manifest.json` is committed.
+
 ## Current Decision State
 
 | Area | State | Remaining Gate |
 |---|---|---|
 | Golden sample categories | Baseline complete | Actual security/case IDs and fixture data pending |
-| Quality rule catalog | Baseline complete | Executable quality engine and CI fixtures pending |
+| Golden regression hook | CI hook complete | Fixture manifest and assertions pending |
+| Quality rule catalog | Baseline complete | Executable quality engine and fixture assertions pending |
 | Quality hold workflow | Baseline complete | Runtime Serving/Gateway implementation pending |
 | Data correction workflow | Baseline complete | Impact graph and notification implementation pending |
 | Package entitlement matrix | Baseline complete | Rights-cost validation and pricing approval pending |
