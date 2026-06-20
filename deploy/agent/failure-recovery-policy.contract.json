@@ -1,0 +1,64 @@
+{
+  "version": "2026-06-21.phase1.failure-recovery-policy-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "policy_status": "failure_recovery_policy_scaffold",
+  "partial_retry": true,
+  "retry_scope": "failed_tool_call_only",
+  "max_attempts_per_tool": 2,
+  "retry_billable": false,
+  "no_double_charge": true,
+  "charge_grain": "tool_call_success",
+  "usage_ledger_write": "planned",
+  "recovery_state": {
+    "state_store": "planned_run_state",
+    "durable_runtime": "planned",
+    "persisted": false,
+    "resume_token": "planned",
+    "idempotency_key": "planned"
+  },
+  "retryable_error_classes": [
+    "RATE_LIMITED",
+    "TOOL_TIMEOUT",
+    "UPSTREAM_5XX",
+    "NETWORK_RESET"
+  ],
+  "non_retryable_error_classes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "INVALID_INPUT",
+    "OUT_OF_RANGE",
+    "SCOPE_DENIED",
+    "TOO_MANY_ROWS"
+  ],
+  "stop_after_consecutive_same_error": 2,
+  "graceful_degradation": {
+    "single_tool_failure_does_not_drop_run": true,
+    "partial_answer_allowed": true,
+    "failed_tool_claim_label": "unknown",
+    "evidence_binding_required_for_reused_outputs": true,
+    "user_visible_recovery_state": true
+  },
+  "required_step_recovery_actions": [
+    "retry_failed_tool_call_only",
+    "preserve_completed_step",
+    "return_partial_response"
+  ],
+  "required_validation_rules": [
+    "preserve_completed_steps",
+    "retry_failed_tool_call_only",
+    "reuse_existing_evidence_records",
+    "do_not_rebill_retries",
+    "stop_after_two_same_errors",
+    "surface_partial_response"
+  ],
+  "linked_contracts": [
+    "deploy/agent/budget-stop-policy.contract.json",
+    "deploy/agent/tool-loop-planner.contract.json"
+  ]
+}

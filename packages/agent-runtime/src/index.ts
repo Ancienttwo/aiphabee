@@ -24,6 +24,8 @@ export const NUMERIC_SOURCE_GUARD_VERSION =
   "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
 export const ANSWER_EVIDENCE_CONTRACT_VERSION =
   "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
+export const FAILURE_RECOVERY_POLICY_VERSION =
+  "2026-06-21.phase1.failure-recovery-policy-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -88,6 +90,12 @@ export interface AgentRuntimeCapabilities {
     max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
     model_calls: false;
     planner_ready: true;
+    failure_recovery_policy: {
+      no_double_charge: true;
+      partial_retry: true;
+      retry_billable: false;
+      status: "failure_recovery_policy_scaffold";
+    };
     answer_evidence_contract: {
       evidence_card_payload: "planned";
       frontend_rendering: false;
@@ -439,6 +447,81 @@ export interface AgentAnswerEvidenceContract {
   version: typeof ANSWER_EVIDENCE_CONTRACT_VERSION;
 }
 
+export type AgentFailureRecoveryRetryableErrorClass =
+  | "NETWORK_RESET"
+  | "RATE_LIMITED"
+  | "TOOL_TIMEOUT"
+  | "UPSTREAM_5XX";
+export type AgentFailureRecoveryNonRetryableErrorClass =
+  | "DATA_NOT_LICENSED"
+  | "DATA_QUALITY_HOLD"
+  | "INVALID_INPUT"
+  | "OUT_OF_RANGE"
+  | "SCOPE_DENIED"
+  | "TOO_MANY_ROWS";
+export type AgentFailureRecoveryStepAction =
+  | "preserve_completed_step"
+  | "return_partial_response"
+  | "retry_failed_tool_call_only";
+
+export interface AgentFailureRecoveryPolicy {
+  actual_tool_execution: false;
+  billing: {
+    charge_grain: "tool_call_success";
+    failed_attempt_billable: false;
+    idempotency_key_required: true;
+    no_double_charge: true;
+    retry_attempt_billable: false;
+    usage_ledger_write: "planned";
+  };
+  error_classes: {
+    non_retryable: AgentFailureRecoveryNonRetryableErrorClass[];
+    retryable: AgentFailureRecoveryRetryableErrorClass[];
+    stop_after_consecutive_same_error: 2;
+  };
+  graceful_degradation: {
+    evidence_binding_required_for_reused_outputs: true;
+    failed_tool_claim_label: "unknown";
+    partial_answer_allowed: true;
+    single_tool_failure_does_not_drop_run: true;
+    user_visible_recovery_state: true;
+  };
+  model_calls: false;
+  partial_retry: {
+    enabled: true;
+    max_attempts_per_tool: 2;
+    preserves_completed_steps: true;
+    retry_after_supported: true;
+    retry_billable: false;
+    retry_scope: "failed_tool_call_only";
+    reuse_completed_evidence: true;
+  };
+  planned_step_recovery: Array<{
+    local_recovery_action: AgentFailureRecoveryStepAction;
+    phase: AgentToolLoopPhase;
+    preserves_existing_evidence: true;
+    retryable_tool_call_count: number;
+    step_id: string;
+  }>;
+  recovery_state: {
+    durable_runtime: "planned";
+    idempotency_key: "planned";
+    persisted: false;
+    resume_token: "planned";
+    state_store: "planned_run_state";
+  };
+  status: "failure_recovery_policy_scaffold";
+  validation_rules: readonly [
+    "preserve_completed_steps",
+    "retry_failed_tool_call_only",
+    "reuse_existing_evidence_records",
+    "do_not_rebill_retries",
+    "stop_after_two_same_errors",
+    "surface_partial_response"
+  ];
+  version: typeof FAILURE_RECOVERY_POLICY_VERSION;
+}
+
 export interface AgentToolLoopToolCallPlan {
   allow_arbitrary_sql: false;
   allow_arbitrary_url: false;
@@ -632,6 +715,7 @@ export interface AgentToolLoopPlan {
   budget: AgentRunBudget;
   budget_stop_policy: AgentBudgetStopPolicy;
   chain_of_thought_exposed: false;
+  failure_recovery_policy: AgentFailureRecoveryPolicy;
   max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
   model_calls: false;
   numeric_source_guard: AgentNumericSourceGuard;
@@ -745,6 +829,12 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       chain_of_thought_exposed: false,
       max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
       model_calls: false,
+      failure_recovery_policy: {
+        no_double_charge: true,
+        partial_retry: true,
+        retry_billable: false,
+        status: "failure_recovery_policy_scaffold"
+      },
       answer_evidence_contract: {
         evidence_card_payload: "planned",
         frontend_rendering: false,
@@ -961,6 +1051,10 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     budgetStopPolicy.decision.status === "stop_before_execution"
       ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
       : naturalSteps;
+  const failureRecoveryPolicy = createFailureRecoveryPolicy({
+    steps,
+    retryPolicy
+  });
 
   return {
     actual_tool_execution: false,
@@ -968,6 +1062,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     budget: skeleton.run_context.budget,
     budget_stop_policy: budgetStopPolicy,
     chain_of_thought_exposed: false,
+    failure_recovery_policy: failureRecoveryPolicy,
     max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
     model_calls: false,
     numeric_source_guard: numericSourceGuard,
@@ -1641,6 +1736,94 @@ function createToolEnforcementCheck(tool: AgentRunToolContext): AgentToolEnforce
     version: tool.version,
     versioned
   };
+}
+
+function createFailureRecoveryPolicy(input: {
+  retryPolicy: AgentToolLoopRetryPolicy;
+  steps: AgentToolLoopStepPlan[];
+}): AgentFailureRecoveryPolicy {
+  return {
+    actual_tool_execution: false,
+    billing: {
+      charge_grain: "tool_call_success",
+      failed_attempt_billable: false,
+      idempotency_key_required: true,
+      no_double_charge: true,
+      retry_attempt_billable: false,
+      usage_ledger_write: "planned"
+    },
+    error_classes: {
+      non_retryable: [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "INVALID_INPUT",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS"
+      ],
+      retryable: ["RATE_LIMITED", "TOOL_TIMEOUT", "UPSTREAM_5XX", "NETWORK_RESET"],
+      stop_after_consecutive_same_error: input.retryPolicy.consecutive_same_error_limit
+    },
+    graceful_degradation: {
+      evidence_binding_required_for_reused_outputs: true,
+      failed_tool_claim_label: "unknown",
+      partial_answer_allowed: true,
+      single_tool_failure_does_not_drop_run: true,
+      user_visible_recovery_state: true
+    },
+    model_calls: false,
+    partial_retry: {
+      enabled: true,
+      max_attempts_per_tool: input.retryPolicy.max_attempts_per_tool,
+      preserves_completed_steps: true,
+      retry_after_supported: true,
+      retry_billable: input.retryPolicy.retry_billable,
+      retry_scope: "failed_tool_call_only",
+      reuse_completed_evidence: true
+    },
+    planned_step_recovery: input.steps.map(createStepRecoveryPlan),
+    recovery_state: {
+      durable_runtime: "planned",
+      idempotency_key: "planned",
+      persisted: false,
+      resume_token: "planned",
+      state_store: "planned_run_state"
+    },
+    status: "failure_recovery_policy_scaffold",
+    validation_rules: [
+      "preserve_completed_steps",
+      "retry_failed_tool_call_only",
+      "reuse_existing_evidence_records",
+      "do_not_rebill_retries",
+      "stop_after_two_same_errors",
+      "surface_partial_response"
+    ],
+    version: FAILURE_RECOVERY_POLICY_VERSION
+  };
+}
+
+function createStepRecoveryPlan(
+  step: AgentToolLoopStepPlan
+): AgentFailureRecoveryPolicy["planned_step_recovery"][number] {
+  return {
+    local_recovery_action: createStepRecoveryAction(step),
+    phase: step.phase,
+    preserves_existing_evidence: true,
+    retryable_tool_call_count: step.tool_calls.length,
+    step_id: step.step_id
+  };
+}
+
+function createStepRecoveryAction(step: AgentToolLoopStepPlan): AgentFailureRecoveryStepAction {
+  if (step.tool_calls.length > 0) {
+    return "retry_failed_tool_call_only";
+  }
+
+  if (step.phase === "answer_contract") {
+    return "return_partial_response";
+  }
+
+  return "preserve_completed_step";
 }
 
 function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSourceGuard {

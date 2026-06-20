@@ -43,6 +43,12 @@ describe("agent runtime scaffold", () => {
       chain_of_thought_exposed: false,
       max_parallel_tools: 3,
       model_calls: false,
+      failure_recovery_policy: {
+        no_double_charge: true,
+        partial_retry: true,
+        retry_billable: false,
+        status: "failure_recovery_policy_scaffold"
+      },
       answer_evidence_contract: {
         evidence_card_payload: "planned",
         frontend_rendering: false,
@@ -269,6 +275,101 @@ describe("agent runtime scaffold", () => {
         })
       ])
     );
+    expect(plan.failure_recovery_policy).toMatchObject({
+      actual_tool_execution: false,
+      billing: {
+        charge_grain: "tool_call_success",
+        failed_attempt_billable: false,
+        idempotency_key_required: true,
+        no_double_charge: true,
+        retry_attempt_billable: false,
+        usage_ledger_write: "planned"
+      },
+      error_classes: {
+        non_retryable: [
+          "DATA_NOT_LICENSED",
+          "DATA_QUALITY_HOLD",
+          "INVALID_INPUT",
+          "OUT_OF_RANGE",
+          "SCOPE_DENIED",
+          "TOO_MANY_ROWS"
+        ],
+        retryable: ["RATE_LIMITED", "TOOL_TIMEOUT", "UPSTREAM_5XX", "NETWORK_RESET"],
+        stop_after_consecutive_same_error: 2
+      },
+      graceful_degradation: {
+        evidence_binding_required_for_reused_outputs: true,
+        failed_tool_claim_label: "unknown",
+        partial_answer_allowed: true,
+        single_tool_failure_does_not_drop_run: true,
+        user_visible_recovery_state: true
+      },
+      model_calls: false,
+      partial_retry: {
+        enabled: true,
+        max_attempts_per_tool: 2,
+        preserves_completed_steps: true,
+        retry_after_supported: true,
+        retry_billable: false,
+        retry_scope: "failed_tool_call_only",
+        reuse_completed_evidence: true
+      },
+      recovery_state: {
+        durable_runtime: "planned",
+        idempotency_key: "planned",
+        persisted: false,
+        resume_token: "planned",
+        state_store: "planned_run_state"
+      },
+      status: "failure_recovery_policy_scaffold",
+      version: "2026-06-21.phase1.failure-recovery-policy-scaffold.v0"
+    });
+    expect(plan.failure_recovery_policy.planned_step_recovery).toEqual([
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        phase: "security_resolution",
+        retryable_tool_call_count: 1,
+        step_id: "step_1"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        phase: "entitlement_gate",
+        retryable_tool_call_count: 1,
+        step_id: "step_2"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        phase: "data_fetch",
+        retryable_tool_call_count: 3,
+        step_id: "step_3"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        phase: "data_fetch",
+        retryable_tool_call_count: 1,
+        step_id: "step_4"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        phase: "evidence_binding",
+        retryable_tool_call_count: 1,
+        step_id: "step_5"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "return_partial_response",
+        phase: "answer_contract",
+        retryable_tool_call_count: 0,
+        step_id: "step_6"
+      })
+    ]);
+    expect(plan.failure_recovery_policy.validation_rules).toEqual([
+      "preserve_completed_steps",
+      "retry_failed_tool_call_only",
+      "reuse_existing_evidence_records",
+      "do_not_rebill_retries",
+      "stop_after_two_same_errors",
+      "surface_partial_response"
+    ]);
     expect(plan.answer_evidence_contract).toMatchObject({
       actual_tool_execution: false,
       answer_structure: {
@@ -555,6 +656,21 @@ describe("agent runtime scaffold", () => {
     });
     expect(plan.budget_stop_policy.graceful_stop.unfinished_step_ids).toContain("step_3");
     expect(plan.budget_stop_policy.planned_usage.steps).toBe(3);
+    expect(plan.failure_recovery_policy.planned_step_recovery).toEqual([
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        step_id: "step_1"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "retry_failed_tool_call_only",
+        step_id: "step_2"
+      }),
+      expect.objectContaining({
+        local_recovery_action: "return_partial_response",
+        phase: "answer_contract",
+        step_id: "step_3"
+      })
+    ]);
   });
 
   it("gracefully stops tool loop plans when credit budget is exhausted", () => {
