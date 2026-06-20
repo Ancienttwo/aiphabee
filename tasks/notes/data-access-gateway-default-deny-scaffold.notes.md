@@ -16,6 +16,8 @@
   plans at `liveRead=false`, `servedRows=0`, and `sqlEmitted=false`.
 - Added a later `serving_quality_release_isolation` runtime guard, but live
   Serving reads and writes remain disabled.
+- Added a later `usage_event_writer_scaffold` runtime guard, but persistent
+  usage writes and billing reconciliation remain disabled.
 - Added usage preview but not persistent ledger writes.
 
 ## Verification

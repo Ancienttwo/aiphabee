@@ -1,5 +1,5 @@
 {
-  "name": "@aiphabee/data-access-gateway",
+  "name": "@aiphabee/usage-ledger",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,10 +13,5 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@aiphabee/data-contracts": "file:../data-contracts",
-    "@aiphabee/serving-store": "file:../serving-store",
-    "@aiphabee/usage-ledger": "file:../usage-ledger"
   }
 }

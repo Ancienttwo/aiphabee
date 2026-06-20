@@ -34,6 +34,17 @@ describe("data access gateway", () => {
       status: "blocked_by_gateway"
     });
     expect(decision.usage.rows).toBe(0);
+    expect(decision.usageLedger).toMatchObject({
+      schemaReady: false,
+      sqlEmitted: false,
+      status: "write_blocked",
+      writeReady: false,
+      writeReason: "WORKSPACE_CONTEXT_MISSING"
+    });
+    expect(decision.usageLedger.ledgerEntry).toMatchObject({
+      billableState: "blocked",
+      creditDelta: 0
+    });
   });
 
   it("redacts unapproved fields when a synthetic channel is approved", () => {
@@ -84,6 +95,17 @@ describe("data access gateway", () => {
       rightsPolicyVersion: "synthetic-policy-v0"
     });
     expect(decision.usage.rows).toBe(5);
+    expect(decision.usageLedger).toMatchObject({
+      schemaReady: false,
+      sqlEmitted: false,
+      status: "write_blocked",
+      writeReady: false
+    });
+    expect(decision.usageLedger.event).toMatchObject({
+      meteredFields: 1,
+      meteredRows: 5,
+      workspaceId: "workspace_unresolved"
+    });
   });
 
   it("returns DATA_QUALITY_HOLD before serving held records", () => {
@@ -110,6 +132,15 @@ describe("data access gateway", () => {
       status: "quality_hold"
     });
     expect(decision.usage.credits).toBe(0);
+    expect(decision.usageLedger).toMatchObject({
+      schemaReady: false,
+      status: "write_blocked",
+      writeReady: false
+    });
+    expect(decision.usageLedger.ledgerEntry).toMatchObject({
+      billableState: "blocked",
+      creditDelta: 0
+    });
   });
 
   it("enforces row and date limits", () => {
@@ -157,6 +188,7 @@ describe("data access gateway", () => {
           "synthetic_profile.revenue"
         ],
         requestedRows: 2,
+        requestId: "req_workspace_allowed",
         timeRange: {
           from: "2024-01-01",
           to: "2024-01-31"
@@ -219,6 +251,24 @@ describe("data access gateway", () => {
     ]);
     expect(allowedWithRedaction.cacheKey).toContain("workspace=ws_synthetic_team");
     expect(allowedWithRedaction.cacheKey).toContain("export=false");
+    expect(allowedWithRedaction.usageLedger).toMatchObject({
+      schemaReady: true,
+      sqlEmitted: false,
+      status: "write_planned",
+      writeReady: false,
+      writeReason: "LIVE_USAGE_WRITES_DISABLED"
+    });
+    expect(allowedWithRedaction.usageLedger.event).toMatchObject({
+      meteredFields: 1,
+      meteredRows: 2,
+      requestId: "req_workspace_allowed",
+      workspaceId: "ws_synthetic_team"
+    });
+    expect(allowedWithRedaction.usageLedger.ledgerEntry).toMatchObject({
+      billableState: "preview",
+      creditDelta: 1,
+      meterRuleId: "meter_web_synthetic_profile_data_access_credit"
+    });
     expect(exportBlocked.deniedFields[0]?.reason).toBe("export_blocked");
     expect(planBlocked.deniedFields[0]?.reason).toBe("workspace_entitlement_default_deny");
     expect(timeBlocked.deniedFields[0]?.reason).toBe("time_range_blocked");

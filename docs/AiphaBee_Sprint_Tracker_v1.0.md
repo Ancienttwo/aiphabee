@@ -58,7 +58,7 @@ owner: "Planner / PM"
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
-| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 14 / 19 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 15 / 20 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
@@ -209,6 +209,7 @@ owner: "Planner / PM"
 - [x] 字段级权益执行 scaffold：Gateway evaluator 支持 workspace / plan / channel / dataset / field / time_range / export 维度裁剪，cache key 含 workspace/export，`/gateway/runtime` capability（DAT-05、§A2）
 - [ ] 字段级权益 live policy source：接入 partner rights matrix + DB entitlement rows（DAT-05、§A2）
 - [x] Usage ledger schema scaffold：`core.usage_meter_rule` / `core.usage_event` / `core.usage_reconciliation_batch` / `core.usage_ledger_entry` migration + `/gateway/runtime` capability，reconciliation target `<=5` 分钟（ACC-04、§15.3）
+- [x] Usage ledger event writer scaffold：`@aiphabee/usage-ledger` 将 Gateway decision 转成 usage event + ledger entry plan，workspace-scoped 正常调用为 `preview`，default-deny/quality-hold/missing workspace 为 `blocked`，不触发 live write/SQL/billing（ACC-04、§15.3）
 - [ ] **Usage ledger live writes + billing reconciliation**：加权 credits 记账，用量延迟 <5 分钟（ACC-04、§15.3）
 - [x] 账户/Workspace/订阅/数据权益分离 schema scaffold：`core.account` / `core.workspace` / `core.workspace_membership` / `core.subscription_plan` / `core.workspace_subscription` / `core.data_entitlement` / `core.workspace_entitlement` migration + `/data/runtime` + `/gateway/runtime` capability（ACC-02）
 - [x] 数据质量隔离 Gateway guard scaffold：`quality_state=HOLD` 在 `/gateway/access-check` 返回 `DATA_QUALITY_HOLD`，零 rows/credits（DAT-06）
@@ -599,6 +600,7 @@ owner: "Planner / PM"
 - [x] Corporate action adjustment engine golden scaffold 已建立：`docs/governance/corporate-action-adjustment-engine-golden-scaffold.md`；`@aiphabee/corporate-actions` 支持 split/consolidation/dividend backward-adjusted synthetic golden cases，`/data/runtime` engine capability 已通过本地 smoke
 - [x] Account / Workspace / entitlement schema scaffold 已建立：`docs/governance/account-workspace-entitlement-scaffold.md`；account/workspace/membership/subscription/data_entitlement/workspace_entitlement、workspace isolation、`npm run check:database` 与 `/data/runtime`、`/gateway/runtime` 已通过本地 smoke
 - [x] Usage ledger schema scaffold 已建立：`docs/governance/usage-ledger-scaffold.md`；usage_meter_rule/usage_event/usage_reconciliation_batch/usage_ledger_entry、weighted credits、5-minute reconciliation target、`npm run check:database` 与 `/gateway/runtime` 已通过本地 smoke
+- [x] Usage ledger event writer scaffold 已建立：`docs/governance/usage-ledger-event-writer-scaffold.md`；Gateway decision `usageLedger`、deterministic event/ledger IDs、preview/blocked billable states、no live writes/SQL/billing，`/gateway/runtime` capability 已通过本地 smoke
 - [x] Field entitlement enforcement scaffold 已建立：`docs/governance/field-entitlement-enforcement-scaffold.md`；Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export，default-deny live route 与 synthetic entitlement tests 已通过
 - [x] Serving Store schema scaffold 已建立：`docs/governance/serving-store-schema-scaffold.md`；serving_dataset/field/snapshot/record、versioned snapshots、quality/release/default-deny posture、`/data/runtime` 与 `/gateway/runtime` 已通过本地 smoke
 - [x] Serving read default-deny scaffold 已建立：`docs/governance/serving-read-scaffold-default-deny.md`；`@aiphabee/serving-store` read planner、Gateway `servingRead` decision、default-deny/quality-hold no SQL/no rows/no live read、`/gateway/runtime` capability 已通过本地 smoke
@@ -607,7 +609,7 @@ owner: "Planner / PM"
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
-- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger、Serving Store schema、Serving read planner、Serving quality release isolation planner、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving reads/writes / partner benchmark parity / DB entitlement rows / billing reconciliation
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving reads/writes / partner benchmark parity / DB entitlement rows / billing reconciliation
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -616,6 +618,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0ae | 完成 `usage-ledger-event-writer-scaffold`：新增 `@aiphabee/usage-ledger` event writer planner、Gateway decision `usageLedger`、Worker `/gateway/runtime` capability 与 `usage_event_writer_scaffold` contract guard；live SQL / billing reconciliation / quota UI 未启用，Sprint 1.1 更新为 15/20 |
 | 2026-06-20 | 1.0ad | 完成 `serving-quality-release-isolation-scaffold`：新增 `@aiphabee/serving-store` quality release planner、Worker `/data/runtime` 与 `/gateway/runtime` capability、`serving_quality_release_isolation` contract guard；live SQL / partner rows / Serving writes 未启用，Sprint 1.1 更新为 14/19 |
 | 2026-06-20 | 1.0ac | 完成 `serving-read-scaffold-default-deny`：新增 `@aiphabee/serving-store` read planner、Gateway `servingRead` decision、Worker `/gateway/runtime` read planner capability 与 `serving_read_default_deny` contract guard；live SQL / partner rows / served rows 未启用，Sprint 1.1 更新为 13/18 |
 | 2026-06-20 | 1.0ab | 完成 `financial-restatement-golden-engine-scaffold`：新增 `@aiphabee/financial-facts` deterministic restatement engine、版本保留/point-in-time/delta/identity synthetic golden cases、Worker `/data/runtime` capability；partner financial data 与 live Serving reads 未启用，Sprint 1.1 更新为 12/17 |

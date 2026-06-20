@@ -48,7 +48,7 @@ DoD.
 | ACC-01 登录/会话/设备 | AIP-P0-ACC-01 | Product Engineering / Identity | 1.4 | Auth session integration tests + device revoke test | Sprint 1.4 exit: internal accounts usable without permission bleed | Not started |
 | ACC-02 账户/Workspace/订阅/权益分离 | AIP-P0-ACC-02 | Product Engineering / Billing | 1.1 | Workspace entitlement model tests | Sprint 1.1 exit: Gateway and usage ledger do not cross workspace boundaries | Schema scaffold complete; live auth, billing, and enforcement pending |
 | ACC-03 套餐升降级/宽限期 | AIP-P0-ACC-03 | Billing Engineering | 2.4 | Subscription lifecycle and grace-period tests | Sprint 2.4 exit: billing actions are auditable | Not started |
-| ACC-04 Web/MCP 配额用量展示 | AIP-P0-ACC-04 | Billing Engineering / Platform | 1.1 / 1.4 / 2.4 | Usage ledger reconciliation tests | Sprint 2.4 exit: Web and MCP usage reconcile to billing | Schema scaffold complete; live writes and billing reconciliation pending |
+| ACC-04 Web/MCP 配额用量展示 | AIP-P0-ACC-04 | Billing Engineering / Platform | 1.1 / 1.4 / 2.4 | Usage ledger reconciliation tests | Sprint 2.4 exit: Web and MCP usage reconcile to billing | Schema and event-writer scaffolds complete; live writes, quota UI, and billing reconciliation pending |
 | ACC-06 MCP OAuth/Key 撤销 | AIP-P0-ACC-06 | Platform Engineering / Security | 2.3 / 2.4 | OAuth revoke + API key invalidation tests | Sprint 2.4 exit: revoked credentials fail new calls | Not started |
 
 ## Security Master

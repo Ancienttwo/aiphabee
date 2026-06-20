@@ -3,9 +3,13 @@ import {
   createServingReadPlan,
   type ServingReadPlan
 } from "@aiphabee/serving-store";
+import {
+  createUsageLedgerEventPlan,
+  type UsageLedgerEventPlan
+} from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.quality-release-isolation.v0";
+  "2026-06-20.phase1.usage-event-writer-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -55,13 +59,19 @@ export interface DataAccessPolicy {
 }
 
 export interface DataAccessRequest {
+  accountId?: string;
   channel: DataAccessChannel;
   dataset: string;
   exportRequested?: boolean;
+  membershipId?: string;
+  occurredAt?: string;
   plan: string;
   qualityState: DataQualityState;
+  requestId?: string;
   requestedFields: string[];
   requestedRows: number;
+  runId?: string;
+  subscriptionId?: string;
   timeRange?: {
     from: string;
     to: string;
@@ -95,6 +105,7 @@ export interface DataAccessDecision {
   servingRead: ServingReadPlan;
   status: DataAccessDecisionStatus;
   usage: UsageSummary;
+  usageLedger: UsageLedgerEventPlan;
   warnings: string[];
 }
 
@@ -148,6 +159,33 @@ export function evaluateDataAccessRequest(
     timeRange: request.timeRange
   });
   const warnings = getWarnings(request.qualityState, fieldDecision.deniedFields);
+  const usage: UsageSummary = {
+    cached: false,
+    credits: servedRows > 0 ? 1 : 0,
+    rows: servedRows
+  };
+  const usageLedger = createUsageLedgerEventPlan({
+    accountId: request.accountId,
+    cached: usage.cached,
+    channel: request.channel,
+    credits: usage.credits,
+    dataVersion: "gateway-scaffold-v0",
+    dataset: request.dataset,
+    errorCode: error?.code,
+    gatewayStatus: finalStatus,
+    membershipId: request.membershipId,
+    meteredFields: finalAllowedFields.length,
+    meteredRows: usage.rows,
+    methodologyVersion: policy.methodologyVersion,
+    occurredAt: request.occurredAt ?? "1970-01-01T00:00:00.000Z",
+    qualityState: request.qualityState,
+    requestId: request.requestId ?? "request_unattributed",
+    rightsPolicyVersion: policy.rightsPolicyVersion,
+    runId: request.runId,
+    sourceRecordId: "policy-evaluation",
+    subscriptionId: request.subscriptionId,
+    workspaceId: request.workspaceId
+  });
 
   return {
     allowedFields: finalAllowedFields,
@@ -175,11 +213,8 @@ export function evaluateDataAccessRequest(
     rightsPolicyVersion: policy.rightsPolicyVersion,
     servingRead,
     status: finalStatus,
-    usage: {
-      cached: false,
-      credits: servedRows > 0 ? 1 : 0,
-      rows: servedRows
-    },
+    usage,
+    usageLedger,
     warnings
   };
 }

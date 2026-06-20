@@ -1,14 +1,15 @@
 # Usage Ledger Scaffold
 
 > **Status**: Verified schema scaffold
-> **Last Updated**: 2026-06-20 16:27 +08
+> **Last Updated**: 2026-06-20 17:30 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-usage-ledger-scaffold.md`
 > **Task Contract**: `tasks/contracts/usage-ledger-scaffold.contract.md`
 
 This slice creates the empty schema foundation for Sprint 1.1 usage events,
-weighted credit metering, ledger entries, and reconciliation batches. It does
-not apply to a live database and does not enable live usage writes or billing
+weighted credit metering, ledger entries, and reconciliation batches. A later
+event-writer scaffold now targets this schema shape, but it still does not apply
+to a live database and does not enable live usage writes or billing
 reconciliation.
 
 ## P1 Architecture Map
@@ -18,11 +19,12 @@ reconciliation.
 | Migration | `supabase/migrations/20260620090000_usage_ledger_scaffold.sql` | Creates empty `core` usage tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Gateway runtime route | `GET /gateway/runtime` | Reports usage-ledger capability, no live writes |
+| Event writer | `packages/usage-ledger` | Plans usage events and ledger entries, no SQL emitted |
 | Meter rules | `core.usage_meter_rule` | Channel/dataset/operation unit and credit weight |
 | Events | `core.usage_event` | Request/run/workspace/account context and metered counts |
 | Reconciliation | `core.usage_reconciliation_batch` | Workspace period, target delay, status, total credits |
 | Ledger | `core.usage_ledger_entry` | Event-to-meter entries with billable state |
-| Live writes | Absent | No Serving writes, no billing integration, no invoice reconciliation |
+| Live writes | Absent | Event writer exists, but no SQL writes, billing integration, or invoice reconciliation |
 
 ## P2 Concrete Trace
 
@@ -44,6 +46,7 @@ Runtime capability trace:
 1. Client calls `GET /gateway/runtime`.
 2. Worker returns a standard success envelope with:
    - `usage_ledger.status=schema_scaffold`;
+   - `usage_ledger.event_writer.status=event_writer_scaffold`;
    - `weighted_credits=true`;
    - `reconciliation_target_delay_minutes=5`;
    - `live_writes=false`;
@@ -64,7 +67,8 @@ Reason:
 Tradeoff:
 
 - Sprint 1.1 now has concrete ACC-04 ledger structures.
-- It still cannot reconcile real Web/MCP usage to billing.
+- Sprint 1.1 now has executable per-call usage event planning.
+- It still cannot persist or reconcile real Web/MCP usage to billing.
 
 ## Verification
 
@@ -83,6 +87,12 @@ Observed `/gateway/runtime` fields:
 ```json
 {
   "usage_ledger": {
+    "event_writer": {
+      "status": "event_writer_scaffold",
+      "live_writes": false,
+      "live_billing_reconciliation": false,
+      "sql_emitted": false
+    },
     "live_writes": false,
     "reconciliation_target_delay_minutes": 5,
     "status": "schema_scaffold",
@@ -97,5 +107,6 @@ Observed `/gateway/runtime` fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Serving Store schema exists, but live Gateway reads and account identity
   context are absent.
-- Persistent usage writes are not wired to `/gateway/access-check`.
+- `/gateway/access-check` now plans usage events, but persistent usage writes
+  are absent.
 - Billing provider reconciliation and invoice export are absent.

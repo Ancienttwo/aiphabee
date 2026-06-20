@@ -102,6 +102,15 @@ interface GatewayRuntimeBody {
       uses_versioned_snapshots: boolean;
     };
     usage_ledger: {
+      event_writer: {
+        live_billing_reconciliation: boolean;
+        live_writes: boolean;
+        reconciliation_target_delay_minutes: number;
+        sql_emitted: boolean;
+        status: string;
+        usage_event_grain: string;
+        weighted_credits: boolean;
+      };
       live_writes: boolean;
       reconciliation_target_delay_minutes: number;
       status: string;
@@ -420,6 +429,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("quality_hold");
     expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_read_default_deny");
+    expect(body.data.guards).toContain("usage_event_writer_scaffold");
     expect(body.data.limits.max_rows).toBe(500);
     expect(body.data.live_data_access).toBe(false);
     expect(body.data.market_data_surfaces).toBe(false);
@@ -461,6 +471,15 @@ describe("worker runtime", () => {
       uses_versioned_snapshots: true
     });
     expect(body.data.usage_ledger).toMatchObject({
+      event_writer: {
+        live_billing_reconciliation: false,
+        live_writes: false,
+        reconciliation_target_delay_minutes: 5,
+        sql_emitted: false,
+        status: "event_writer_scaffold",
+        usage_event_grain: "request_operation_dataset_occurred_at",
+        weighted_credits: true
+      },
       live_writes: false,
       reconciliation_target_delay_minutes: 5,
       status: "schema_scaffold",

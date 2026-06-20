@@ -17,6 +17,7 @@ const requiredGuards = [
   "serving_read_default_deny",
   "cache_key_versioning",
   "provenance_required",
+  "usage_event_writer_scaffold",
   "usage_preview"
 ];
 const requiredErrorCodes = [

@@ -17,6 +17,7 @@ not read real market data or grant any partner rights.
 | Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead` plan |
 | Serving read planner | `packages/serving-store` | Plans blocked/held Serving reads without SQL or live rows |
 | Serving quality release planner | `packages/serving-store` | Plans `held/released/withdrawn` posture without SQL or live writes |
+| Usage event writer | `packages/usage-ledger` | Plans usage event and ledger entry previews without SQL or billing writes |
 | Gateway contract | `deploy/gateway/access.contract.json` | No-secret default-deny route/guard manifest |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
 | Worker runtime route | `GET /gateway/runtime` | Reports guard capabilities and no live data surface |
@@ -66,9 +67,9 @@ Reason:
 Tradeoff:
 
 - Sprint 1.1 now has executable gateway behavior and runtime smoke.
-- Usage ledger schemas and entitlement evaluator scaffold now exist, but it
-  still does not complete real data persistence, live usage writes, billing
-  reconciliation, or live database entitlement policy source.
+- Usage ledger schemas, usage event writer, and entitlement evaluator scaffold
+  now exist, but it still does not complete real data persistence, live usage
+  writes, billing reconciliation, or live database entitlement policy source.
 
 ## Verification
 
@@ -97,6 +98,8 @@ Observed `/gateway/runtime` fields:
   "serving_store.read_planner.sql_emitted": false,
   "serving_store.quality_release.live_writes": false,
   "serving_store.quality_release.sql_emitted": false,
+  "usage_ledger.event_writer.live_writes": false,
+  "usage_ledger.event_writer.sql_emitted": false,
   "rights_policy_version": "gate0-default-deny-v0"
 }
 ```
@@ -108,7 +111,8 @@ Observed `/gateway/runtime` fields:
   release isolation planner now exist, but no released Serving rows or live
   reads/writes exist.
 - Partner-signed rights matrix is absent.
-- Account/workspace/plan and usage ledger schemas now exist, and entitlement
-  enforcement has synthetic coverage, but live DB policy source, persistent
-  usage writes, and billing reconciliation are absent.
+- Account/workspace/plan and usage ledger schemas now exist, usage event writer
+  has synthetic coverage, and entitlement enforcement has synthetic coverage,
+  but live DB policy source, persistent usage writes, and billing reconciliation
+  are absent.
 - No external MCP/API redistribution surface is enabled.

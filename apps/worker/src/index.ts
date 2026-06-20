@@ -24,6 +24,7 @@ import {
   getServingStoreQualityReleaseCapabilities,
   getServingStoreReadCapabilities
 } from "@aiphabee/serving-store";
+import { getUsageLedgerEventWriterCapabilities } from "@aiphabee/usage-ledger";
 
 interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: unknown;
@@ -324,6 +325,7 @@ app.get("/gateway/runtime", (c) => {
           "serving_read_default_deny",
           "cache_key_versioning",
           "provenance_required",
+          "usage_event_writer_scaffold",
           "usage_preview"
         ],
         field_entitlement_enforcement: {
@@ -365,6 +367,7 @@ app.get("/gateway/runtime", (c) => {
           uses_versioned_snapshots: true
         },
         usage_ledger: {
+          event_writer: getUsageLedgerEventWriterCapabilities(),
           live_writes: false,
           reconciliation_target_delay_minutes: 5,
           status: "schema_scaffold",
@@ -410,9 +413,13 @@ app.post("/gateway/access-check", async (c) => {
     dataset?: unknown;
     fields?: unknown;
     export_requested?: unknown;
+    account_id?: unknown;
     plan?: unknown;
     quality_state?: unknown;
     requested_rows?: unknown;
+    run_id?: unknown;
+    membership_id?: unknown;
+    subscription_id?: unknown;
     time_range?: unknown;
     workspace_id?: unknown;
   };
@@ -424,10 +431,17 @@ app.post("/gateway/access-check", async (c) => {
     dataset: typeof body.dataset === "string" ? body.dataset : "hk_equity_quote",
     exportRequested:
       typeof body.export_requested === "boolean" ? body.export_requested : false,
+    accountId: typeof body.account_id === "string" ? body.account_id : undefined,
+    membershipId: typeof body.membership_id === "string" ? body.membership_id : undefined,
+    occurredAt: new Date().toISOString(),
     plan: typeof body.plan === "string" ? body.plan : "free",
     qualityState: isQualityState(body.quality_state) ? body.quality_state : "PASS",
+    requestId,
     requestedFields,
     requestedRows: typeof body.requested_rows === "number" ? body.requested_rows : 1,
+    runId: typeof body.run_id === "string" ? body.run_id : undefined,
+    subscriptionId:
+      typeof body.subscription_id === "string" ? body.subscription_id : undefined,
     timeRange: isTimeRange(body.time_range) ? body.time_range : undefined,
     workspaceId: typeof body.workspace_id === "string" ? body.workspace_id : undefined
   });

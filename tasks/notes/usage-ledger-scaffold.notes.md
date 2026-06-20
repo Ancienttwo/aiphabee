@@ -1,6 +1,6 @@
 # Notes: usage-ledger-scaffold
 
-> **Last Updated**: 2026-06-20 16:27 +08
+> **Last Updated**: 2026-06-20 17:30 +08
 > **Plan**: `plans/plan-usage-ledger-scaffold.md`
 > **Runtime Evidence**: `docs/governance/usage-ledger-scaffold.md`
 
@@ -14,6 +14,8 @@
 - Kept reconciliation target delay encoded as `<= 5` minutes while leaving live
   writes disabled in runtime capability.
 - Added `/gateway/runtime` capability fields, not live ledger writes.
+- Added a later event writer scaffold that targets the schema shape, but still
+  emits no SQL and writes no live ledger rows.
 
 ## Verification
 
@@ -29,7 +31,8 @@
 - Serving Store schema exists, but live Gateway reads and account identity
   context are absent.
 - Billing provider integration and invoice reconciliation are absent.
-- Persistent usage writes are not wired to `/gateway/access-check`.
+- `/gateway/access-check` now plans usage events, but persistent usage writes
+  are not wired.
 - Field-entitlement evaluator scaffold exists, but live DB policy source is not
   wired.
 - Hyperdrive and Supabase live database are not provisioned.

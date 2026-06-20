@@ -1,9 +1,9 @@
 {
-  "version": "2026-06-20.phase1.quality-release-isolation.v0",
+  "version": "2026-06-20.phase1.usage-event-writer-scaffold.v0",
   "status": "local_contract",
   "default_rights_status": "default_deny",
   "rights_policy_version": "gate0-default-deny-v0",
-  "methodology_version": "2026-06-20.phase1.quality-release-isolation.v0",
+  "methodology_version": "2026-06-20.phase1.usage-event-writer-scaffold.v0",
   "channels": [
     {
       "name": "web",
@@ -35,6 +35,7 @@
     "serving_read_default_deny",
     "cache_key_versioning",
     "provenance_required",
+    "usage_event_writer_scaffold",
     "usage_preview"
   ],
   "limits": {

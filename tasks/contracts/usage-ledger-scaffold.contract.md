@@ -82,7 +82,7 @@ exit_criteria:
 
 - This task completes an ACC-04 schema scaffold only.
 - Live usage writes, billing reconciliation, and UI quota display remain future
-  work.
+  work. Event writer planning now exists as a separate scaffold.
 
 ## Rollback Point
 
