@@ -13,6 +13,8 @@ export const AGENT_RUN_CONTEXT_VERSION =
   "2026-06-21.phase1.agent-run-context-scaffold.v0";
 export const TOOL_LOOP_AGENT_PLANNER_VERSION =
   "2026-06-21.phase1.tool-loop-agent-planner-scaffold.v0";
+export const PRE_TOOL_CALL_RESOLUTION_VERSION =
+  "2026-06-21.phase1.pre-tool-call-resolution-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -30,7 +32,9 @@ export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
 export type RegisteredAgentToolName = RegisteredToolName;
 
 export interface AgentRunSkeletonInput {
+  asOf?: string;
   channel?: string;
+  currency?: string;
   entitlementPolicyVersion?: string;
   maxCredits?: number;
   maxRows?: number;
@@ -38,10 +42,17 @@ export interface AgentRunSkeletonInput {
   maxTokens?: number;
   maxWallClockMs?: number;
   modelTier?: string;
+  methodology?: string;
   plan?: string;
   prompt: string;
   requestId: string;
   requestedTools?: string[];
+  securities?: string[];
+  securityQuery?: string;
+  timeRange?: {
+    end?: string;
+    start?: string;
+  };
   userId?: string;
   workspaceId?: string;
 }
@@ -54,6 +65,14 @@ export interface AgentRuntimeCapabilities {
   };
   limits: typeof AGENT_RUNTIME_LIMITS;
   model_provider: "not_configured";
+  pre_tool_call_resolution: {
+    actual_tool_execution: false;
+    clarification_supported: true;
+    currencies: readonly ["HKD", "USD", "CNY"];
+    model_calls: false;
+    required_dimensions: readonly ["security", "time", "currency", "methodology"];
+    status: "pre_tool_call_resolution_scaffold";
+  };
   tool_loop_agent: {
     actual_tool_execution: false;
     chain_of_thought_exposed: false;
@@ -193,6 +212,76 @@ export type AgentToolLoopProgressEvent =
   | "run.stopped";
 export type AgentToolLoopStatus = "planned_no_model";
 
+export type PreToolCallResolutionStatus =
+  | "needs_clarification"
+  | "ready"
+  | "ready_with_assumptions";
+export type PreToolCallDimensionStatus =
+  | "assumed"
+  | "needs_clarification"
+  | "resolved";
+
+export interface PreToolCallAssumption {
+  field: string;
+  reason: string;
+  source: "request" | "synthetic_default";
+  value: string;
+}
+
+export interface PreToolCallClarification {
+  blocking: true;
+  field: string;
+  question: string;
+  reason: string;
+}
+
+export interface PreToolCallResolution {
+  actual_tool_execution: false;
+  assumptions: PreToolCallAssumption[];
+  clarification_required: boolean;
+  clarifications: PreToolCallClarification[];
+  currency: {
+    currency: string;
+    status: PreToolCallDimensionStatus;
+  };
+  methodology: {
+    financial_facts_version: string;
+    price_adjustment: string;
+    status: PreToolCallDimensionStatus;
+  };
+  model_calls: false;
+  request_id: string;
+  security: {
+    ambiguous_candidates: Array<{
+      instrument_id: string;
+      market: string;
+      symbol: string;
+    }>;
+    query: string;
+    resolved: Array<{
+      currency: string;
+      instrument_id: string;
+      market: string;
+      symbol: string;
+    }>;
+    status: PreToolCallDimensionStatus;
+  };
+  status: PreToolCallResolutionStatus;
+  time: {
+    as_of: string;
+    status: PreToolCallDimensionStatus;
+    time_range?: {
+      end: string;
+      start: string;
+    };
+  };
+  tool_readiness: {
+    blocked_tools: RegisteredAgentToolName[];
+    can_plan_tools: boolean;
+  };
+  version: typeof PRE_TOOL_CALL_RESOLUTION_VERSION;
+}
+
 export interface AgentToolLoopToolCallPlan {
   execution: "planned_no_call";
   input_schema_id: string;
@@ -235,6 +324,7 @@ export interface AgentToolLoopPlan {
     transport: "planned";
   };
   request_id: string;
+  pre_tool_call_resolution: PreToolCallResolution;
   retry_policy: AgentToolLoopRetryPolicy;
   run_context: AgentRunContext;
   run_id: string;
@@ -315,6 +405,14 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     },
     limits: AGENT_RUNTIME_LIMITS,
     model_provider: "not_configured",
+    pre_tool_call_resolution: {
+      actual_tool_execution: false,
+      clarification_supported: true,
+      currencies: ["HKD", "USD", "CNY"],
+      model_calls: false,
+      required_dimensions: ["security", "time", "currency", "methodology"],
+      status: "pre_tool_call_resolution_scaffold"
+    },
     tool_loop_agent: {
       actual_tool_execution: false,
       chain_of_thought_exposed: false,
@@ -470,8 +568,21 @@ export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSk
 
 export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentToolLoopPlan {
   const skeleton = createAgentRunSkeleton(input);
+  const preToolCallResolution = createPreToolCallResolution(input);
   const retryPolicy = createRetryPolicy();
-  const steps = createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy);
+  const steps =
+    preToolCallResolution.clarification_required
+      ? [
+          createStep(
+            1,
+            "answer_contract",
+            "answer_contract",
+            "Request clarification before tool calls",
+            [],
+            retryPolicy
+          )
+        ]
+      : createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy);
 
   if (steps.length > skeleton.budget.max_steps) {
     throw new AgentRuntimeInputError(
@@ -506,6 +617,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
       transport: "planned"
     },
     request_id: skeleton.request_id,
+    pre_tool_call_resolution: preToolCallResolution,
     retry_policy: retryPolicy,
     run_context: skeleton.run_context,
     run_id: skeleton.run_id,
@@ -520,6 +632,345 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     ],
     version: TOOL_LOOP_AGENT_PLANNER_VERSION
   };
+}
+
+export function createPreToolCallResolution(
+  input: AgentRunSkeletonInput
+): PreToolCallResolution {
+  const prompt = input.prompt.trim();
+
+  if (prompt.length === 0) {
+    throw new AgentRuntimeInputError("PROMPT_REQUIRED", "prompt is required");
+  }
+
+  const requestedTools = input.requestedTools ?? [
+    "resolve_security",
+    "get_security_profile",
+    "get_data_lineage",
+    "get_entitlements"
+  ];
+  const toolValidation = validateRegisteredTools(requestedTools);
+
+  if (toolValidation.deniedTools.length > 0) {
+    throw new AgentRuntimeInputError(
+      "UNREGISTERED_TOOL",
+      "requested tools must be registered before use",
+      {
+        deniedTools: toolValidation.deniedTools
+      }
+    );
+  }
+
+  const assumptions: PreToolCallAssumption[] = [];
+  const clarifications: PreToolCallClarification[] = [];
+  const security = resolveSecurityContext(input, assumptions, clarifications);
+  const time = resolveTimeContext(input, assumptions);
+  const currency = resolveCurrencyContext(input, security.resolved, assumptions);
+  const methodology = resolveMethodologyContext(input, assumptions);
+
+  if (currency.status === "needs_clarification") {
+    clarifications.push({
+      blocking: true,
+      field: "currency",
+      question: "Which supported reporting currency should be used: HKD, USD, or CNY?",
+      reason: "currency must be resolved before tool planning"
+    });
+  }
+
+  const clarificationRequired = clarifications.length > 0;
+
+  return {
+    actual_tool_execution: false,
+    assumptions,
+    clarification_required: clarificationRequired,
+    clarifications,
+    currency,
+    methodology,
+    model_calls: false,
+    request_id: input.requestId,
+    security,
+    status: clarificationRequired
+      ? "needs_clarification"
+      : assumptions.length > 0
+        ? "ready_with_assumptions"
+        : "ready",
+    time,
+    tool_readiness: {
+      blocked_tools: clarificationRequired ? toolValidation.allowedTools : [],
+      can_plan_tools: !clarificationRequired
+    },
+    version: PRE_TOOL_CALL_RESOLUTION_VERSION
+  };
+}
+
+function resolveSecurityContext(
+  input: AgentRunSkeletonInput,
+  assumptions: PreToolCallAssumption[],
+  clarifications: PreToolCallClarification[]
+): PreToolCallResolution["security"] {
+  const query = normalizeOptionalText(input.securityQuery) ?? input.prompt.trim();
+  const securities = normalizeSecurityInputs(input.securities, query);
+  const resolved: PreToolCallResolution["security"]["resolved"] = [];
+  const ambiguousCandidates: PreToolCallResolution["security"]["ambiguous_candidates"] = [];
+
+  for (const security of securities) {
+    const normalized = security.toUpperCase();
+
+    if (normalized === "00700.HK" || normalized === "TENCENT" || normalized === "腾讯") {
+      resolved.push({
+        currency: "HKD",
+        instrument_id: "eq_hk_00700",
+        market: "HK",
+        symbol: "00700.HK"
+      });
+      continue;
+    }
+
+    if (normalized === "00001.HK") {
+      resolved.push({
+        currency: "HKD",
+        instrument_id: "eq_hk_00001",
+        market: "HK",
+        symbol: "00001.HK"
+      });
+      continue;
+    }
+
+    if (normalized === "08001.HK") {
+      resolved.push({
+        currency: "HKD",
+        instrument_id: "eq_hk_08001",
+        market: "HK",
+        symbol: "08001.HK"
+      });
+      continue;
+    }
+
+    if (normalized === "ABC") {
+      ambiguousCandidates.push(
+        {
+          instrument_id: "eq_hk_00001",
+          market: "HK",
+          symbol: "00001.HK"
+        },
+        {
+          instrument_id: "eq_hk_08001",
+          market: "HK",
+          symbol: "08001.HK"
+        }
+      );
+      continue;
+    }
+
+    clarifications.push({
+      blocking: true,
+      field: "security",
+      question: `Which listed security should be used for \"${security}\"?`,
+      reason: "security identifier could not be resolved before tool planning"
+    });
+  }
+
+  if (securities.length === 0) {
+    clarifications.push({
+      blocking: true,
+      field: "security",
+      question: "Which security should AiphaBee analyze before calling tools?",
+      reason: "no security identifier or company name was found in the prompt"
+    });
+  }
+
+  if (ambiguousCandidates.length > 0) {
+    clarifications.push({
+      blocking: true,
+      field: "security",
+      question: "Which candidate security should be used for ABC?",
+      reason: "security identifier is ambiguous and cannot be silently selected"
+    });
+  }
+
+  if (resolved.length === 0 && ambiguousCandidates.length === 0 && securities.length > 0) {
+    clarifications.push({
+      blocking: true,
+      field: "security",
+      question: "Provide a supported symbol such as 00700.HK before tool calls.",
+      reason: "no supported security fixture matched the request"
+    });
+  }
+
+  if (resolved.length > 0 && input.securities === undefined) {
+    assumptions.push({
+      field: "security",
+      reason: "security was inferred from the prompt before tool planning",
+      source: "synthetic_default",
+      value: resolved.map((security) => security.symbol).join(",")
+    });
+  }
+
+  return {
+    ambiguous_candidates: ambiguousCandidates,
+    query,
+    resolved,
+    status:
+      clarifications.some((clarification) => clarification.field === "security")
+        ? "needs_clarification"
+        : input.securities === undefined
+          ? "assumed"
+          : "resolved"
+  };
+}
+
+function resolveTimeContext(
+  input: AgentRunSkeletonInput,
+  assumptions: PreToolCallAssumption[]
+): PreToolCallResolution["time"] {
+  const asOf = normalizeOptionalText(input.asOf);
+  const start = normalizeOptionalText(input.timeRange?.start);
+  const end = normalizeOptionalText(input.timeRange?.end);
+
+  if (asOf !== undefined) {
+    return {
+      as_of: asOf,
+      status: "resolved",
+      ...(start !== undefined && end !== undefined
+        ? {
+            time_range: {
+              end,
+              start
+            }
+          }
+        : {})
+    };
+  }
+
+  assumptions.push({
+    field: "time.as_of",
+    reason: "no as_of was supplied, so the planner uses the latest available snapshot",
+    source: "synthetic_default",
+    value: "latest_available"
+  });
+
+  return {
+    as_of: "latest_available",
+    status: "assumed",
+    ...(start !== undefined && end !== undefined
+      ? {
+          time_range: {
+            end,
+            start
+          }
+        }
+      : {})
+  };
+}
+
+function resolveCurrencyContext(
+  input: AgentRunSkeletonInput,
+  securities: PreToolCallResolution["security"]["resolved"],
+  assumptions: PreToolCallAssumption[],
+): PreToolCallResolution["currency"] {
+  const currency = normalizeOptionalText(input.currency)?.toUpperCase();
+
+  if (currency !== undefined) {
+    if (currency === "HKD" || currency === "USD" || currency === "CNY") {
+      return {
+        currency,
+        status: "resolved"
+      };
+    }
+
+    return {
+      currency,
+      status: "needs_clarification"
+    };
+  }
+
+  const inferred = securities[0]?.currency ?? "HKD";
+
+  assumptions.push({
+    field: "currency",
+    reason: "no currency was supplied, so the planner uses the primary security currency",
+    source: "synthetic_default",
+    value: inferred
+  });
+
+  return {
+    currency: inferred,
+    status: "assumed"
+  };
+}
+
+function resolveMethodologyContext(
+  input: AgentRunSkeletonInput,
+  assumptions: PreToolCallAssumption[]
+): PreToolCallResolution["methodology"] {
+  const methodology = normalizeOptionalText(input.methodology);
+
+  if (methodology !== undefined) {
+    return {
+      financial_facts_version: methodology,
+      price_adjustment: methodology,
+      status: "resolved"
+    };
+  }
+
+  assumptions.push(
+    {
+      field: "methodology.price_adjustment",
+      reason: "no price methodology was supplied before planning",
+      source: "synthetic_default",
+      value: "split_adjusted"
+    },
+    {
+      field: "methodology.financial_facts_version",
+      reason: "no financial-facts methodology was supplied before planning",
+      source: "synthetic_default",
+      value: "latest_reported"
+    }
+  );
+
+  return {
+    financial_facts_version: "latest_reported",
+    price_adjustment: "split_adjusted",
+    status: "assumed"
+  };
+}
+
+function normalizeSecurityInputs(
+  explicitSecurities: string[] | undefined,
+  query: string
+): string[] {
+  if (explicitSecurities !== undefined) {
+    return explicitSecurities
+      .map((security) => security.trim())
+      .filter((security) => security.length > 0);
+  }
+
+  const matches = new Set<string>();
+  const prompt = query.trim();
+  const symbolMatches = prompt.match(/\b(?:\d{5}|[A-Z]{1,5})\.HK\b/giu) ?? [];
+
+  for (const match of symbolMatches) {
+    matches.add(match.toUpperCase());
+  }
+
+  if (/tencent/iu.test(prompt) || /腾讯/u.test(prompt)) {
+    matches.add("00700.HK");
+  }
+
+  if (/\bABC\b/u.test(prompt)) {
+    matches.add("ABC");
+  }
+
+  return [...matches];
+}
+
+function normalizeOptionalText(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function createAgentRunBudget(input: {

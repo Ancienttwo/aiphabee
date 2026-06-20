@@ -3,6 +3,7 @@ import {
   AgentRuntimeInputError,
   createAgentRunSkeleton,
   createAiSdkStopCondition,
+  createPreToolCallResolution,
   createToolLoopAgentPlan,
   getAgentRuntimeCapabilities
 } from "./index";
@@ -24,6 +25,13 @@ describe("agent runtime scaffold", () => {
       live_entitlement_reads: false,
       status: "agent_run_context_scaffold",
       tool_versions: true
+    });
+    expect(capabilities.pre_tool_call_resolution).toMatchObject({
+      actual_tool_execution: false,
+      clarification_supported: true,
+      model_calls: false,
+      required_dimensions: ["security", "time", "currency", "methodology"],
+      status: "pre_tool_call_resolution_scaffold"
     });
     expect(capabilities.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
@@ -156,6 +164,14 @@ describe("agent runtime scaffold", () => {
       transport: "planned"
     });
     expect(plan.stop_conditions).toContain("two_consecutive_same_error");
+    expect(plan.pre_tool_call_resolution).toMatchObject({
+      clarification_required: false,
+      status: "ready_with_assumptions"
+    });
+    expect(plan.pre_tool_call_resolution.security.resolved[0]).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
     expect(plan.retry_policy).toMatchObject({
       consecutive_same_error_limit: 2,
       max_attempts_per_tool: 2,
@@ -199,6 +215,80 @@ describe("agent runtime scaffold", () => {
         ]
       })
     ).toThrow(AgentRuntimeInputError);
+  });
+
+  it("resolves pre-tool-call security, time, currency, and methodology context", () => {
+    const preflight = createPreToolCallResolution({
+      asOf: "2024-03-31",
+      currency: "HKD",
+      methodology: "split_adjusted",
+      prompt: "Explain Tencent revenue",
+      requestId: "req-preflight-1",
+      securities: ["00700.HK"],
+      timeRange: {
+        end: "2024-03-31",
+        start: "2023-04-01"
+      }
+    });
+
+    expect(preflight.status).toBe("ready");
+    expect(preflight.clarification_required).toBe(false);
+    expect(preflight.security).toMatchObject({
+      status: "resolved",
+      resolved: [
+        expect.objectContaining({
+          currency: "HKD",
+          instrument_id: "eq_hk_00700",
+          market: "HK",
+          symbol: "00700.HK"
+        })
+      ]
+    });
+    expect(preflight.time).toMatchObject({
+      as_of: "2024-03-31",
+      status: "resolved",
+      time_range: {
+        end: "2024-03-31",
+        start: "2023-04-01"
+      }
+    });
+    expect(preflight.currency).toMatchObject({
+      currency: "HKD",
+      status: "resolved"
+    });
+    expect(preflight.methodology).toMatchObject({
+      price_adjustment: "split_adjusted",
+      status: "resolved"
+    });
+    expect(preflight.tool_readiness.can_plan_tools).toBe(true);
+  });
+
+  it("requires clarification for ambiguous securities before tool calls", () => {
+    const preflight = createPreToolCallResolution({
+      prompt: "Explain ABC revenue",
+      requestId: "req-preflight-ambiguous",
+      requestedTools: ["resolve_security", "get_financial_facts"]
+    });
+
+    expect(preflight.status).toBe("needs_clarification");
+    expect(preflight.clarification_required).toBe(true);
+    expect(preflight.security.status).toBe("needs_clarification");
+    expect(preflight.security.ambiguous_candidates).toEqual([
+      expect.objectContaining({
+        instrument_id: "eq_hk_00001"
+      }),
+      expect.objectContaining({
+        instrument_id: "eq_hk_08001"
+      })
+    ]);
+    expect(preflight.clarifications[0]).toMatchObject({
+      blocking: true,
+      field: "security"
+    });
+    expect(preflight.tool_readiness).toMatchObject({
+      blocked_tools: ["resolve_security", "get_financial_facts"],
+      can_plan_tools: false
+    });
   });
 
   it("creates an AI SDK stop condition function", () => {

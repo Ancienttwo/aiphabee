@@ -3,8 +3,10 @@ import {
   AgentRuntimeInputError,
   AGENT_RUNTIME_LIMITS,
   createAgentRunSkeleton,
+  createPreToolCallResolution,
   createToolLoopAgentPlan,
-  getAgentRuntimeCapabilities
+  getAgentRuntimeCapabilities,
+  type AgentRunSkeletonInput
 } from "@aiphabee/agent-runtime";
 import {
   CorporateActionsInputError,
@@ -83,6 +85,35 @@ interface WorkerBindings {
   APP_VERSION?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
   OTLP_EXPORTER_OTLP_HEADERS?: string;
+}
+
+interface AgentRunRequestBody {
+  as_of?: unknown;
+  asOf?: unknown;
+  channel?: unknown;
+  currency?: unknown;
+  entitlement_policy_version?: unknown;
+  entitlementPolicyVersion?: unknown;
+  max_credits?: unknown;
+  max_rows?: unknown;
+  max_steps?: unknown;
+  max_tokens?: unknown;
+  max_wall_clock_ms?: unknown;
+  methodology?: unknown;
+  model_tier?: unknown;
+  modelTier?: unknown;
+  plan?: unknown;
+  prompt?: unknown;
+  securities?: unknown;
+  security_query?: unknown;
+  securityQuery?: unknown;
+  time_range?: unknown;
+  timeRange?: unknown;
+  tools?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  workspace_id?: unknown;
+  workspaceId?: unknown;
 }
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
@@ -978,6 +1009,72 @@ app.post("/agent/runs/dry-run", async (c) => {
   }
 });
 
+app.post("/agent/runs/preflight", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json()) as AgentRunRequestBody;
+    const preflight = createPreToolCallResolution(createAgentRunInput(body, requestId));
+
+    return c.json(
+      createSuccessEnvelope(preflight, {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "pre-tool-call-resolution-scaffold-v0",
+        provenance: [
+          {
+            data_version: "pre-tool-call-resolution-scaffold-v0",
+            methodology_version: "pre-tool-call-resolution-scaffold-v0",
+            source: "agent-runtime",
+            source_record_id: "pre-tool-call-resolution"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: preflight.security.resolved.length
+        }
+      })
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "pre-tool-call-resolution-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "agent preflight resolution failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "pre-tool-call-resolution-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
 app.post("/agent/runs/plan", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
@@ -986,25 +1083,7 @@ app.post("/agent/runs/plan", async (c) => {
   c.header("Cache-Control", "no-store");
 
   try {
-    const body = (await c.req.json()) as {
-      channel?: unknown;
-      entitlement_policy_version?: unknown;
-      entitlementPolicyVersion?: unknown;
-      max_credits?: unknown;
-      max_rows?: unknown;
-      max_steps?: unknown;
-      max_tokens?: unknown;
-      max_wall_clock_ms?: unknown;
-      model_tier?: unknown;
-      modelTier?: unknown;
-      plan?: unknown;
-      prompt?: unknown;
-      tools?: unknown;
-      user_id?: unknown;
-      userId?: unknown;
-      workspace_id?: unknown;
-      workspaceId?: unknown;
-    };
+    const body = (await c.req.json()) as AgentRunRequestBody;
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -1013,43 +1092,7 @@ app.post("/agent/runs/plan", async (c) => {
     maxStepsForTelemetry =
       typeof body.max_steps === "number" ? body.max_steps : AGENT_RUNTIME_LIMITS.maxSteps;
 
-    const plan = createToolLoopAgentPlan({
-      channel: typeof body.channel === "string" ? body.channel : undefined,
-      entitlementPolicyVersion:
-        typeof body.entitlement_policy_version === "string"
-          ? body.entitlement_policy_version
-          : typeof body.entitlementPolicyVersion === "string"
-            ? body.entitlementPolicyVersion
-            : undefined,
-      maxCredits: typeof body.max_credits === "number" ? body.max_credits : undefined,
-      maxRows: typeof body.max_rows === "number" ? body.max_rows : undefined,
-      maxSteps: maxStepsForTelemetry,
-      maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : undefined,
-      maxWallClockMs:
-        typeof body.max_wall_clock_ms === "number" ? body.max_wall_clock_ms : undefined,
-      modelTier:
-        typeof body.model_tier === "string"
-          ? body.model_tier
-          : typeof body.modelTier === "string"
-            ? body.modelTier
-            : undefined,
-      plan: typeof body.plan === "string" ? body.plan : undefined,
-      prompt: typeof body.prompt === "string" ? body.prompt : "",
-      requestedTools,
-      requestId,
-      userId:
-        typeof body.user_id === "string"
-          ? body.user_id
-          : typeof body.userId === "string"
-            ? body.userId
-            : undefined,
-      workspaceId:
-        typeof body.workspace_id === "string"
-          ? body.workspace_id
-          : typeof body.workspaceId === "string"
-            ? body.workspaceId
-            : undefined
-    });
+    const plan = createToolLoopAgentPlan(createAgentRunInput(body, requestId));
     const telemetryEvents = createAgentDryRunTelemetry({
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: plan.budget.max_steps,
@@ -2439,6 +2482,97 @@ app.post("/evidence/records/plan", async (c) => {
 });
 
 export default app;
+
+function createAgentRunInput(
+  body: AgentRunRequestBody,
+  requestId: string
+): AgentRunSkeletonInput {
+  return {
+    asOf:
+      typeof body.as_of === "string"
+        ? body.as_of
+        : typeof body.asOf === "string"
+          ? body.asOf
+          : undefined,
+    channel: typeof body.channel === "string" ? body.channel : undefined,
+    currency: typeof body.currency === "string" ? body.currency : undefined,
+    entitlementPolicyVersion:
+      typeof body.entitlement_policy_version === "string"
+        ? body.entitlement_policy_version
+        : typeof body.entitlementPolicyVersion === "string"
+          ? body.entitlementPolicyVersion
+          : undefined,
+    maxCredits: typeof body.max_credits === "number" ? body.max_credits : undefined,
+    maxRows: typeof body.max_rows === "number" ? body.max_rows : undefined,
+    maxSteps:
+      typeof body.max_steps === "number" ? body.max_steps : AGENT_RUNTIME_LIMITS.maxSteps,
+    maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : undefined,
+    maxWallClockMs:
+      typeof body.max_wall_clock_ms === "number" ? body.max_wall_clock_ms : undefined,
+    methodology: typeof body.methodology === "string" ? body.methodology : undefined,
+    modelTier:
+      typeof body.model_tier === "string"
+        ? body.model_tier
+        : typeof body.modelTier === "string"
+          ? body.modelTier
+          : undefined,
+    plan: typeof body.plan === "string" ? body.plan : undefined,
+    prompt: typeof body.prompt === "string" ? body.prompt : "",
+    requestedTools: Array.isArray(body.tools)
+      ? body.tools.filter((tool): tool is string => typeof tool === "string")
+      : undefined,
+    requestId,
+    securities: Array.isArray(body.securities)
+      ? body.securities.filter((security): security is string => typeof security === "string")
+      : undefined,
+    securityQuery:
+      typeof body.security_query === "string"
+        ? body.security_query
+        : typeof body.securityQuery === "string"
+          ? body.securityQuery
+          : undefined,
+    timeRange: normalizeAgentTimeRange(body.time_range ?? body.timeRange),
+    userId:
+      typeof body.user_id === "string"
+        ? body.user_id
+        : typeof body.userId === "string"
+          ? body.userId
+          : undefined,
+    workspaceId:
+      typeof body.workspace_id === "string"
+        ? body.workspace_id
+        : typeof body.workspaceId === "string"
+          ? body.workspaceId
+          : undefined
+  };
+}
+
+function normalizeAgentTimeRange(value: unknown): AgentRunSkeletonInput["timeRange"] {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const start =
+    typeof record.start === "string"
+      ? record.start
+      : typeof record.from === "string"
+        ? record.from
+        : undefined;
+  const end =
+    typeof record.end === "string"
+      ? record.end
+      : typeof record.to === "string"
+        ? record.to
+        : undefined;
+
+  return start !== undefined || end !== undefined
+    ? {
+        end,
+        start
+      }
+    : undefined;
+}
 
 function isDataAccessChannel(value: unknown): value is "api" | "export" | "mcp" | "web" {
   return value === "api" || value === "export" || value === "mcp" || value === "web";

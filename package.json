@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run check:database && npm run check:data-gateway && npm run check:tool-registry && npm run check:tool-schemas && npm run check:security-tools && npm run check:market-calendar && npm run check:market-data && npm run check:corporate-actions && npm run check:financial-facts && npm run check:evidence-lineage && npm run check:evidence-service && npm run check:agent-run-context && npm run check:tool-loop-agent && npm run check:model-provider && npm run check:observability && npm run check:secrets && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run check:database && npm run check:data-gateway && npm run check:tool-registry && npm run check:tool-schemas && npm run check:security-tools && npm run check:market-calendar && npm run check:market-data && npm run check:corporate-actions && npm run check:financial-facts && npm run check:evidence-lineage && npm run check:evidence-service && npm run check:agent-run-context && npm run check:tool-loop-agent && npm run check:pre-tool-call-resolution && npm run check:model-provider && npm run check:observability && npm run check:secrets && npm run build",
     "check:agent-run-context": "node scripts/check-agent-run-context-contract.mjs",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
     "check:database": "node scripts/check-database-migrations-contract.mjs",
@@ -27,6 +27,7 @@
     "check:market-data": "node scripts/check-market-data-contract.mjs",
     "check:model-provider": "node scripts/check-model-provider-contract.mjs",
     "check:observability": "node scripts/check-observability-contract.mjs",
+    "check:pre-tool-call-resolution": "node scripts/check-pre-tool-call-resolution-contract.mjs",
     "check:secrets": "node scripts/check-secret-stores-contract.mjs",
     "check:security-tools": "node scripts/check-security-tools-contract.mjs",
     "check:tool-schemas": "node scripts/check-tool-schemas-contract.mjs",

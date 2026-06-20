@@ -26,6 +26,13 @@ interface AgentRuntimeBody {
       status: string;
       tool_versions: boolean;
     };
+    pre_tool_call_resolution: {
+      actual_tool_execution: boolean;
+      clarification_supported: boolean;
+      model_calls: boolean;
+      required_dimensions: string[];
+      status: string;
+    };
     tool_loop_agent: {
       actual_tool_execution: boolean;
       chain_of_thought_exposed: boolean;
@@ -799,6 +806,16 @@ interface AgentToolLoopPlanBody {
     max_parallel_tools: number;
     model_calls: boolean;
     planned_step_count: number;
+    pre_tool_call_resolution: {
+      clarification_required: boolean;
+      security: {
+        resolved: Array<{
+          instrument_id: string;
+          symbol: string;
+        }>;
+      };
+      status: string;
+    };
     progress_stream: {
       exposes_chain_of_thought: boolean;
       tool_progress_public: boolean;
@@ -835,6 +852,48 @@ interface AgentToolLoopPlanBody {
   usage: {
     rows: number;
   };
+}
+
+interface AgentPreflightBody {
+  data: {
+    assumptions: Array<{
+      field: string;
+      value: string;
+    }>;
+    clarification_required: boolean;
+    clarifications: Array<{
+      field: string;
+      question: string;
+    }>;
+    currency: {
+      currency: string;
+      status: string;
+    };
+    methodology: {
+      price_adjustment: string;
+      status: string;
+    };
+    security: {
+      ambiguous_candidates: Array<{
+        instrument_id: string;
+      }>;
+      resolved: Array<{
+        instrument_id: string;
+        symbol: string;
+      }>;
+      status: string;
+    };
+    status: string;
+    time: {
+      as_of: string;
+      status: string;
+    };
+    tool_readiness: {
+      blocked_tools: string[];
+      can_plan_tools: boolean;
+    };
+  };
+  ok: true;
 }
 
 interface ErrorBody {
@@ -902,6 +961,13 @@ describe("worker runtime", () => {
       live_entitlement_reads: false,
       status: "agent_run_context_scaffold",
       tool_versions: true
+    });
+    expect(body.data.pre_tool_call_resolution).toMatchObject({
+      actual_tool_execution: false,
+      clarification_supported: true,
+      model_calls: false,
+      required_dimensions: ["security", "time", "currency", "methodology"],
+      status: "pre_tool_call_resolution_scaffold"
     });
     expect(body.data.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
@@ -2884,6 +2950,14 @@ describe("worker runtime", () => {
     expect(body.data.chain_of_thought_exposed).toBe(false);
     expect(body.data.max_parallel_tools).toBe(3);
     expect(body.data.planned_step_count).toBe(6);
+    expect(body.data.pre_tool_call_resolution).toMatchObject({
+      clarification_required: false,
+      status: "ready_with_assumptions"
+    });
+    expect(body.data.pre_tool_call_resolution.security.resolved[0]).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
     expect(body.data.progress_stream).toMatchObject({
       exposes_chain_of_thought: false,
       tool_progress_public: true,
@@ -2946,5 +3020,92 @@ describe("worker runtime", () => {
     expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("OUT_OF_RANGE");
+  });
+
+  it("resolves pre-tool-call context before tool planning", async () => {
+    const response = await app.request("/agent/runs/preflight", {
+      body: JSON.stringify({
+        as_of: "2024-03-31",
+        currency: "HKD",
+        methodology: "split_adjusted",
+        prompt: "Explain Tencent revenue",
+        securities: ["00700.HK"],
+        time_range: {
+          end: "2024-03-31",
+          start: "2023-04-01"
+        },
+        tools: ["resolve_security", "get_financial_facts"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-preflight"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentPreflightBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("ready");
+    expect(body.data.clarification_required).toBe(false);
+    expect(body.data.security).toMatchObject({
+      status: "resolved",
+      resolved: [
+        expect.objectContaining({
+          instrument_id: "eq_hk_00700",
+          symbol: "00700.HK"
+        })
+      ]
+    });
+    expect(body.data.time).toMatchObject({
+      as_of: "2024-03-31",
+      status: "resolved"
+    });
+    expect(body.data.currency).toMatchObject({
+      currency: "HKD",
+      status: "resolved"
+    });
+    expect(body.data.methodology).toMatchObject({
+      price_adjustment: "split_adjusted",
+      status: "resolved"
+    });
+    expect(body.data.tool_readiness.can_plan_tools).toBe(true);
+  });
+
+  it("asks for clarification when pre-tool-call security is ambiguous", async () => {
+    const response = await app.request("/agent/runs/preflight", {
+      body: JSON.stringify({
+        prompt: "Explain ABC revenue",
+        tools: ["resolve_security", "get_financial_facts"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-preflight-ambiguous"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentPreflightBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("needs_clarification");
+    expect(body.data.clarification_required).toBe(true);
+    expect(body.data.security.status).toBe("needs_clarification");
+    expect(body.data.security.ambiguous_candidates).toEqual([
+      expect.objectContaining({
+        instrument_id: "eq_hk_00001"
+      }),
+      expect.objectContaining({
+        instrument_id: "eq_hk_08001"
+      })
+    ]);
+    expect(body.data.clarifications[0]).toMatchObject({
+      field: "security"
+    });
+    expect(body.data.tool_readiness).toMatchObject({
+      blocked_tools: ["resolve_security", "get_financial_facts"],
+      can_plan_tools: false
+    });
   });
 });
