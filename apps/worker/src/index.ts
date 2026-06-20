@@ -120,6 +120,63 @@ app.get("/database/runtime", (c) => {
   );
 });
 
+app.get("/data/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        data_version_batches: {
+          table: "core.data_version_batch",
+          status: "schema_scaffold",
+          live_batches: false
+        },
+        default_rights_status: "default_deny",
+        live_queries: false,
+        market_data_loaded: false,
+        raw_snapshots: {
+          immutable: true,
+          quality_default_state: "HOLD",
+          table: "core.raw_snapshot"
+        },
+        security_master: {
+          tables: [
+            "core.company",
+            "core.instrument",
+            "core.listing",
+            "core.identifier_history"
+          ],
+          status: "schema_scaffold"
+        },
+        source_batches: {
+          rights_default_state: "default_deny",
+          table: "core.raw_source_batch"
+        }
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "security-master-raw-snapshot-scaffold-v0",
+        provenance: [
+          {
+            data_version: "security-master-raw-snapshot-scaffold-v0",
+            methodology_version: "security-master-raw-snapshot-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "security-master-runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
 app.get("/gateway/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 

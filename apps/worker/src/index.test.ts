@@ -63,6 +63,32 @@ interface GatewayRuntimeBody {
   ok: true;
 }
 
+interface DataRuntimeBody {
+  data: {
+    data_version_batches: {
+      live_batches: boolean;
+      table: string;
+    };
+    default_rights_status: string;
+    live_queries: boolean;
+    market_data_loaded: boolean;
+    raw_snapshots: {
+      immutable: boolean;
+      quality_default_state: string;
+      table: string;
+    };
+    security_master: {
+      status: string;
+      tables: string[];
+    };
+    source_batches: {
+      rights_default_state: string;
+      table: string;
+    };
+  };
+  ok: true;
+}
+
 interface SecretsRuntimeBody {
   data: {
     emergency_revocation_sla_minutes: number;
@@ -252,6 +278,36 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+  });
+
+  it("serves data runtime schema capabilities without live market data", async () => {
+    const response = await app.request("/data/runtime", {
+      headers: {
+        "x-request-id": "req-data-runtime"
+      }
+    });
+    const body = (await response.json()) as DataRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.default_rights_status).toBe("default_deny");
+    expect(body.data.live_queries).toBe(false);
+    expect(body.data.market_data_loaded).toBe(false);
+    expect(body.data.security_master.status).toBe("schema_scaffold");
+    expect(body.data.security_master.tables).toEqual([
+      "core.company",
+      "core.instrument",
+      "core.listing",
+      "core.identifier_history"
+    ]);
+    expect(body.data.raw_snapshots).toMatchObject({
+      immutable: true,
+      quality_default_state: "HOLD",
+      table: "core.raw_snapshot"
+    });
+    expect(body.data.source_batches.rights_default_state).toBe("default_deny");
+    expect(body.data.data_version_batches.live_batches).toBe(false);
   });
 
   it("denies gateway access checks by default", async () => {

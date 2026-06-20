@@ -1,14 +1,16 @@
 # Postgres Hyperdrive Migration Scaffold
 
 > **Status**: Verified repo-local migration scaffold
-> **Last Updated**: 2026-06-20 15:10 +08
+> **Last Updated**: 2026-06-20 16:45 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-postgres-hyperdrive-migration-scaffold.md`
 > **Task Contract**: `tasks/contracts/postgres-hyperdrive-migration-scaffold.contract.md`
 
 This slice creates the repo-local migration tooling for the future Supabase
-Postgres database reached through Cloudflare Hyperdrive. It does not provision a
-database, add a real Hyperdrive binding ID, or run remote DDL.
+Postgres database reached through Cloudflare Hyperdrive. It has since been
+extended by `docs/governance/security-master-raw-snapshot-scaffold.md` with the
+first empty Sprint 1.1 security-master/raw-snapshot schema. It does not
+provision a database, add a real Hyperdrive binding ID, or run remote DDL.
 
 References checked:
 
@@ -27,6 +29,7 @@ References checked:
 |---|---|---|
 | Migration directory | `supabase/migrations` | Supabase-compatible SQL file naming; no live project link |
 | First migration | `20260620071000_phase0_foundation.sql` | Creates `audit`, `core`, `governance` schemas and default-deny governance tables only |
+| Security master scaffold | `20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty security master, raw snapshot, and data-version tables without loading market data |
 | Database manifest | `deploy/database/migrations.contract.json` | Declares provider, Hyperdrive path, commands, migration inventory, and no-secret resource status |
 | Validator | `scripts/check-database-migrations-contract.mjs` | Checks manifest shape, migration file coverage, no destructive SQL, and no committed URLs/secrets |
 | Env names | `deploy/env/env.schema.json` | Adds Hyperdrive local connection env name with blank values in every template |
@@ -78,9 +81,11 @@ Reason:
 
 Tradeoff:
 
-- This completes the Sprint 0.4 migration-toolchain scaffold leaf.
+- This completes the Sprint 0.4 migration-toolchain scaffold leaf and now
+  supports the Sprint 1.1 schema scaffold inventory.
 - It does not complete live Hyperdrive provisioning, remote migration dry-run,
-  `SELECT 1` smoke, market-data schemas, ingestion, or Gateway behavior.
+  `SELECT 1` smoke, partner data loading, ingestion, or Serving Gateway
+  behavior.
 
 ## Verification
 
@@ -117,5 +122,5 @@ Observed `/database/runtime` response fields:
 - Wrangler `hyperdrive` binding is not attached because no real `id` exists.
 - Remote `supabase db push --dry-run` and apply were not executed.
 - Hyperdrive `SELECT 1` smoke remains pending.
-- Market-data tables, ingestion, Data Access Gateway, and usage ledger remain
-  future Sprint 1.1 work.
+- Partner data loading, financial fact/corporate-action schemas, Serving
+  Gateway, and usage ledger remain future Sprint 1.1 work.
