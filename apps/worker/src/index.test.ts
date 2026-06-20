@@ -151,6 +151,90 @@ interface UsageQuotaPlanBody {
   };
 }
 
+interface WorkbenchRuntimeBody {
+  data: {
+    actual_tool_execution: boolean;
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    route: string;
+    runtime_route: string;
+    sections: string[];
+    sql_emitted: boolean;
+    status: string;
+    unsupported_sections: {
+      announcements: string;
+      derived_valuation_metrics: string;
+    };
+  };
+  ok: true;
+}
+
+interface WorkbenchStockSnapshotBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      status: string;
+    };
+    corporate_actions: {
+      status: string;
+      timeline?: {
+        rowCount: number;
+      };
+    };
+    data_quality: {
+      blocking_statuses: string[];
+      section_statuses: Record<string, string>;
+    };
+    evidence: {
+      provenance_count: number;
+      source_record_ids: string[];
+    };
+    financial_facts: {
+      facts?: {
+        rowCount: number;
+      };
+      status: string;
+    };
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    price_history: {
+      history?: {
+        adjustment: string;
+        rowCount: number;
+      };
+      status: string;
+    };
+    quote_snapshot: {
+      quote?: {
+        symbol: string;
+      };
+      status: string;
+    };
+    resolve_security?: {
+      status: string;
+    };
+    security_profile: {
+      profile?: {
+        instrumentId: string;
+        symbol: string;
+      };
+      status: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    unsupported_sections: {
+      announcements: string;
+      derived_valuation_metrics: string;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface AgentRuntimeBody {
   data: {
     ai_sdk: {
@@ -1573,6 +1657,101 @@ describe("worker runtime", () => {
       plan_code: "developer"
     });
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("serves stock workbench aggregate capabilities without frontend rendering", async () => {
+    const response = await app.request("/workbench/runtime", {
+      headers: {
+        "x-request-id": "req-workbench-runtime"
+      }
+    });
+    const body = (await response.json()) as WorkbenchRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: true,
+      frontend_rendering: false,
+      live_data_access: false,
+      route: "POST /workbench/stock/snapshot",
+      runtime_route: "GET /workbench/runtime",
+      sql_emitted: false,
+      status: "stock_workbench_aggregate_scaffold"
+    });
+    expect(body.data.sections).toEqual([
+      "security_profile",
+      "quote_snapshot",
+      "price_history",
+      "financial_facts",
+      "corporate_actions"
+    ]);
+    expect(body.data.unsupported_sections).toEqual({
+      announcements: "planned",
+      derived_valuation_metrics: "planned"
+    });
+  });
+
+  it("aggregates a stock workbench snapshot from existing synthetic tool surfaces", async () => {
+    const response = await app.request("/workbench/stock/snapshot", {
+      body: JSON.stringify({
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-workbench-snapshot"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WorkbenchStockSnapshotBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: true,
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      sql_emitted: false,
+      status: "ready"
+    });
+    expect(body.data.data_quality.section_statuses).toEqual({
+      corporate_actions: "found",
+      financial_facts: "found",
+      price_history: "found",
+      quote_snapshot: "found",
+      security_profile: "found"
+    });
+    expect(body.data.security_profile.profile).toMatchObject({
+      instrumentId: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(body.data.quote_snapshot.quote?.symbol).toBe("00700.HK");
+    expect(body.data.price_history.history?.adjustment).toBe("total_return_adjusted");
+    expect(body.data.financial_facts.facts?.rowCount).toBe(4);
+    expect(body.data.corporate_actions.timeline?.rowCount).toBe(3);
+    expect(body.usage.rows).toBeGreaterThan(0);
+    expect(body.usage.credits).toBeGreaterThan(0);
+  });
+
+  it("does not silently choose an ambiguous workbench security", async () => {
+    const response = await app.request("/workbench/stock/snapshot", {
+      body: JSON.stringify({
+        security_query: "ABC"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-workbench-ambiguous"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WorkbenchStockSnapshotBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_resolution");
+    expect(body.data.resolve_security?.status).toBe("ambiguous");
+    expect(body.data.instrument_id).toBeUndefined();
   });
 
   it("serves agent runtime capabilities without model calls", async () => {

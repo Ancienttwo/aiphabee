@@ -1,0 +1,54 @@
+{
+  "version": "2026-06-21.phase1.stock-workbench-aggregate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/workbench",
+  "runtime_route": "GET /workbench/runtime",
+  "route": "POST /workbench/stock/snapshot",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "actual_tool_execution": true,
+  "covered_sprint_1_4_items": [
+    "STK-01",
+    "STK-02",
+    "STK-03",
+    "STK-05"
+  ],
+  "sections": [
+    "security_profile",
+    "quote_snapshot",
+    "price_history",
+    "financial_facts",
+    "corporate_actions"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_financial_facts",
+    "get_corporate_actions"
+  ],
+  "unsupported_sections": [
+    "derived_valuation_metrics",
+    "announcements"
+  ],
+  "required_output_fields": [
+    "security_profile",
+    "quote_snapshot",
+    "price_history",
+    "financial_facts",
+    "corporate_actions",
+    "data_quality",
+    "evidence",
+    "unsupported_sections"
+  ],
+  "linked_contracts": [
+    "deploy/tools/get-security-profile.contract.json",
+    "deploy/tools/get-quote-snapshot.contract.json",
+    "deploy/tools/get-price-history.contract.json",
+    "deploy/tools/get-financial-facts.contract.json",
+    "deploy/tools/get-corporate-actions.contract.json"
+  ]
+}

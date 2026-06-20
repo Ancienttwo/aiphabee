@@ -60,7 +60,9 @@ import {
   getPriceHistory,
   getPriceHistoryCapabilities,
   getQuoteSnapshot,
-  getQuoteSnapshotCapabilities
+  getQuoteSnapshotCapabilities,
+  type PriceHistoryAdjustment,
+  type QuoteSnapshotMode
 } from "@aiphabee/market-data";
 import {
   EVAL_STORE_SCHEMA_VERSION,
@@ -100,6 +102,10 @@ import {
   type UsageQuotaChannel,
   type UsageQuotaPlanCode
 } from "@aiphabee/usage-ledger";
+import {
+  createStockWorkbenchSnapshot,
+  getStockWorkbenchCapabilities
+} from "@aiphabee/workbench";
 
 interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: unknown;
@@ -664,6 +670,97 @@ app.post("/usage/quota/plan", async (c) => {
           cached: false,
           credits: 0,
           rows: plan.status === "planned_no_write" ? 1 : 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/workbench/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getStockWorkbenchCapabilities(), {
+      asOf: new Date().toISOString(),
+      methodologyVersion: "stock-workbench-aggregate-scaffold-v0",
+      provenance: [
+        {
+          data_version: "stock-workbench-aggregate-scaffold-v0",
+          methodology_version: "stock-workbench-aggregate-scaffold-v0",
+          source: "workbench-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/workbench/stock/snapshot", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const snapshot = createStockWorkbenchSnapshot({
+    adjustment: normalizeWorkbenchAdjustment(body.adjustment),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    corporateActionsFrom: normalizeString(
+      body.corporate_actions_from ?? body.corporateActionsFrom
+    ),
+    corporateActionsTo: normalizeString(body.corporate_actions_to ?? body.corporateActionsTo),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    priceFrom: normalizeString(body.price_from ?? body.priceFrom),
+    priceTo: normalizeString(body.price_to ?? body.priceTo),
+    quoteMode: normalizeQuoteSnapshotMode(body.quote_mode ?? body.quoteMode),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery)
+  });
+  const rows =
+    snapshot.security_profile.usage.rows +
+    snapshot.quote_snapshot.usage.rows +
+    snapshot.price_history.usage.rows +
+    snapshot.financial_facts.usage.rows +
+    snapshot.corporate_actions.usage.rows;
+  const credits =
+    snapshot.security_profile.usage.credits +
+    snapshot.quote_snapshot.usage.credits +
+    snapshot.price_history.usage.credits +
+    snapshot.financial_facts.usage.credits +
+    snapshot.corporate_actions.usage.credits;
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...snapshot,
+        capability: getStockWorkbenchCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: snapshot.version,
+        methodologyVersion: snapshot.version,
+        provenance: [
+          {
+            data_version: snapshot.version,
+            methodology_version: snapshot.version,
+            source: "workbench-stock-snapshot",
+            source_record_id: "stock-workbench-snapshot"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits,
+          rows
         }
       }
     )
@@ -2918,6 +3015,16 @@ function normalizeUsageQuotaChannel(value: unknown): UsageQuotaChannel | undefin
 function normalizeUsageQuotaPlanCode(value: unknown): UsageQuotaPlanCode | undefined {
   return USAGE_QUOTA_PLAN_CODES.includes(value as UsageQuotaPlanCode)
     ? (value as UsageQuotaPlanCode)
+    : undefined;
+}
+
+function normalizeQuoteSnapshotMode(value: unknown): QuoteSnapshotMode | undefined {
+  return value === "close" || value === "delayed" ? value : undefined;
+}
+
+function normalizeWorkbenchAdjustment(value: unknown): PriceHistoryAdjustment | undefined {
+  return value === "raw" || value === "split_adjusted" || value === "total_return_adjusted"
+    ? value
     : undefined;
 }
 
