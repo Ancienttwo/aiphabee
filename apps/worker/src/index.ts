@@ -128,6 +128,18 @@ app.get("/data/runtime", (c) => {
   return c.json(
     createSuccessEnvelope(
       {
+        corporate_actions: {
+          adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
+          closed_open_intervals: true,
+          live_actions: false,
+          quality_default_state: "HOLD",
+          status: "schema_scaffold",
+          tables: [
+            "core.corporate_action",
+            "core.adjustment_methodology",
+            "core.price_adjustment_factor"
+          ]
+        },
         data_version_batches: {
           table: "core.data_version_batch",
           status: "schema_scaffold",
@@ -168,7 +180,7 @@ app.get("/data/runtime", (c) => {
       },
       {
         asOf: new Date().toISOString(),
-        methodologyVersion: "financial-facts-restatement-scaffold-v0",
+        methodologyVersion: "corporate-action-adjustment-scaffold-v0",
         provenance: [
           {
             data_version: "security-master-raw-snapshot-scaffold-v0",
@@ -181,6 +193,12 @@ app.get("/data/runtime", (c) => {
             methodology_version: "financial-facts-restatement-scaffold-v0",
             source: "database-migration-contract",
             source_record_id: "financial-facts-runtime-capabilities"
+          },
+          {
+            data_version: "corporate-action-adjustment-scaffold-v0",
+            methodology_version: "corporate-action-adjustment-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "corporate-action-runtime-capabilities"
           }
         ],
         requestId,

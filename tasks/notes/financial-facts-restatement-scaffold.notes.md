@@ -28,5 +28,6 @@
 
 - Hyperdrive and Supabase live database are not provisioned.
 - Partner-signed statement taxonomy and field contract are absent.
-- Corporate actions are not modeled yet.
+- Corporate-action/adjustment schemas now exist, but live adjustment computation
+  and golden parity remain absent.
 - Serving Gateway and usage ledger remain unwired.

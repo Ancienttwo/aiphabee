@@ -102,5 +102,7 @@ Observed `/data/runtime` fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-signed statement taxonomy, field dictionary, and source samples are
   absent.
-- Corporate action schemas remain absent.
+- Corporate-action/adjustment schemas now exist in
+  `docs/governance/corporate-action-adjustment-scaffold.md`, but the live
+  adjustment engine is absent.
 - Serving Gateway and persistent usage ledger are not wired to these tables.

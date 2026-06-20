@@ -42,8 +42,9 @@
   snapshot tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Add `/data/runtime` to report schema capability without live queries.
-- Keep financial facts, corporate actions, real data loading, and Hyperdrive
-  live smoke out of scope.
+- Financial fact/restatement and corporate-action/adjustment schemas now exist
+  in later slices; real data loading and Hyperdrive live smoke remain out of
+  scope for this slice.
 
 ## Task Breakdown
 

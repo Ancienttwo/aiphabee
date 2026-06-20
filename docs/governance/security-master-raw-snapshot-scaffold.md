@@ -93,7 +93,7 @@ Observed `/data/runtime` fields:
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-signed source samples and field dictionary are absent.
-- Financial fact/restatement schemas now exist in
-  `docs/governance/financial-facts-restatement-scaffold.md`; corporate action
-  schemas remain absent.
+- Financial fact/restatement and corporate-action/adjustment schemas now exist
+  in `docs/governance/financial-facts-restatement-scaffold.md` and
+  `docs/governance/corporate-action-adjustment-scaffold.md`, but are not live.
 - Serving Gateway and persistent usage ledger are not wired to these tables.

@@ -74,6 +74,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620084000_corporate_action_adjustment_scaffold.sql",
+      "purpose": "Create empty corporate action and price adjustment scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.adjustment_methodology",
+        "core.corporate_action",
+        "core.price_adjustment_factor",
+        "governance.corporate_action_adjustment_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -65,6 +65,14 @@ interface GatewayRuntimeBody {
 
 interface DataRuntimeBody {
   data: {
+    corporate_actions: {
+      adjustment_types: string[];
+      closed_open_intervals: boolean;
+      live_actions: boolean;
+      quality_default_state: string;
+      status: string;
+      tables: string[];
+    };
     data_version_batches: {
       live_batches: boolean;
       table: string;
@@ -298,6 +306,18 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
+    expect(body.data.corporate_actions).toMatchObject({
+      adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
+      closed_open_intervals: true,
+      live_actions: false,
+      quality_default_state: "HOLD",
+      status: "schema_scaffold",
+      tables: [
+        "core.corporate_action",
+        "core.adjustment_methodology",
+        "core.price_adjustment_factor"
+      ]
+    });
     expect(body.data.default_rights_status).toBe("default_deny");
     expect(body.data.financial_facts).toMatchObject({
       live_facts: false,

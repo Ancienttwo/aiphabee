@@ -26,5 +26,6 @@
 
 - Hyperdrive and Supabase live database are not provisioned.
 - Partner-signed source samples and field contract are absent.
-- Financial facts and corporate actions are not modeled yet.
+- Financial fact/restatement and corporate-action/adjustment schemas now exist,
+  but live data loading and Serving reads remain absent.
 - Serving Gateway and usage ledger remain unwired.

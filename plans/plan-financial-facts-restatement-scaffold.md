@@ -44,8 +44,8 @@
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` to report financial-fact schema capability without
   live facts or database queries.
-- Keep corporate actions, real data loading, Serving reads, usage ledger, and
-  frontend out of scope.
+- Corporate-action/adjustment schemas now exist in a later slice; real data
+  loading, Serving reads, usage ledger, and frontend remain out of scope.
 
 ## Task Breakdown
 
