@@ -3,9 +3,11 @@ import {
   createServingReadPlan,
   createServingQueryPlan,
   createServingQualityReleasePlan,
+  createServingSqlDescriptor,
   getServingStoreQualityReleaseCapabilities,
   getServingStoreQueryPlannerCapabilities,
-  getServingStoreReadCapabilities
+  getServingStoreReadCapabilities,
+  getServingStoreSqlDescriptorCapabilities
 } from "./index";
 
 describe("serving store read planner", () => {
@@ -247,6 +249,105 @@ describe("serving store read planner", () => {
       status: "query_planner_scaffold",
       uses_release_state: true,
       uses_row_limit: true
+    });
+  });
+
+  it("creates a parameterized SQL descriptor without SQL text or execution", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: ["synthetic_profile.company_name"],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "synthetic_profile",
+      gatewayStatus: "allow",
+      maxRows: 10,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["synthetic_profile.company_name"],
+      requestedRows: 3,
+      rightsPolicyVersion: "synthetic-policy-v0",
+      timeRange: {
+        from: "2024-01-01",
+        to: "2024-01-31"
+      }
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 8,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+
+    expect(descriptor).toMatchObject({
+      bindings: {
+        fieldSet: ["synthetic_profile.company_name"],
+        limit: 3,
+        servingSnapshotId: "snapshot-released-v0",
+        timeFrom: "2024-01-01",
+        timeTo: "2024-01-31"
+      },
+      executionReady: false,
+      from: "core.serving_record",
+      liveRead: false,
+      selectedFieldPaths: ["synthetic_profile.company_name"],
+      sqlEmitted: false,
+      sqlTextEmitted: false,
+      statementId: "serving_record_projection_by_snapshot_v0",
+      status: "descriptor_planned"
+    });
+    expect(descriptor).not.toHaveProperty("sqlText");
+  });
+
+  it("blocks SQL descriptors for blocked query plans", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: [],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "hk_equity_quote",
+      errorCode: "DATA_NOT_LICENSED",
+      gatewayStatus: "deny",
+      maxRows: 500,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["quote.close"],
+      requestedRows: 1,
+      rightsPolicyVersion: "gate0-default-deny-v0"
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 10,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+
+    expect(descriptor).toMatchObject({
+      bindings: {
+        fieldSet: [],
+        limit: 0,
+        servingSnapshotId: "snapshot-released-v0"
+      },
+      blockedReason: "DATA_NOT_LICENSED",
+      executionReady: false,
+      selectedFieldPaths: [],
+      sqlEmitted: false,
+      sqlTextEmitted: false,
+      status: "descriptor_blocked"
+    });
+  });
+
+  it("reports a no-execute SQL descriptor capability", () => {
+    expect(getServingStoreSqlDescriptorCapabilities()).toMatchObject({
+      blocks_unplanned_queries: true,
+      execution_ready: false,
+      live_reads: false,
+      parameterized_bindings: true,
+      sql_emitted: false,
+      sql_text_emitted: false,
+      status: "sql_descriptor_scaffold",
+      uses_allowed_field_set: true,
+      uses_row_limit: true,
+      uses_snapshot_binding: true
     });
   });
 

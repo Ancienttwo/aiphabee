@@ -24,7 +24,8 @@ import {
 import {
   getServingStoreQueryPlannerCapabilities,
   getServingStoreQualityReleaseCapabilities,
-  getServingStoreReadCapabilities
+  getServingStoreReadCapabilities,
+  getServingStoreSqlDescriptorCapabilities
 } from "@aiphabee/serving-store";
 import { getUsageLedgerEventWriterCapabilities } from "@aiphabee/usage-ledger";
 
@@ -329,6 +330,7 @@ app.get("/gateway/runtime", (c) => {
           "serving_quality_release_isolation",
           "serving_query_planner_scaffold",
           "serving_read_default_deny",
+          "serving_sql_descriptor_scaffold",
           "cache_key_versioning",
           "provenance_required",
           "usage_event_writer_scaffold",
@@ -364,6 +366,7 @@ app.get("/gateway/runtime", (c) => {
           query_planner: getServingStoreQueryPlannerCapabilities(),
           release_state_default: "held",
           read_planner: getServingStoreReadCapabilities(),
+          sql_descriptor: getServingStoreSqlDescriptorCapabilities(),
           status: "schema_scaffold",
           tables: [
             "core.serving_dataset",

@@ -1,6 +1,6 @@
 # Notes: live-serving-query-planner-scaffold
 
-> **Last Updated**: 2026-06-20 17:46 +08
+> **Last Updated**: 2026-06-20 17:56 +08
 > **Plan**: `plans/plan-live-serving-query-planner-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/live-serving-query-planner-scaffold.md`
@@ -17,6 +17,8 @@
   `serving_store.query_planner`.
 - Extended access contract cache material with `serving_snapshot_id` and
   `release_state`.
+- Added a later SQL descriptor scaffold that converts planned queries into
+  allow-listed statement id and bindings without SQL text or execution.
 
 ## Verification
 
@@ -30,7 +32,7 @@
 
 ## Residual Blockers
 
-- Live Serving SQL is absent.
+- SQL text generation and live Serving SQL execution are absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.
 - Persistent usage writes and billing reconciliation are absent.

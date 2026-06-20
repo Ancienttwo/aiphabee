@@ -1,7 +1,7 @@
 # Serving Read Scaffold Default-Deny
 
 > **Status**: Verified read planner scaffold
-> **Last Updated**: 2026-06-20 17:46 +08
+> **Last Updated**: 2026-06-20 17:56 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-serving-read-scaffold-default-deny.md`
 > **Task Contract**:
@@ -18,7 +18,8 @@ partner data, or enable frontend surfaces.
 | Read planner | `packages/serving-store` | Builds Serving read plans from Gateway status, fields, quality state, and version material |
 | Quality release planner | `packages/serving-store` | Maps quality state to `held`, `released`, or `withdrawn` before future live reads |
 | Query planner | `packages/serving-store` | Converts approved read plans plus released snapshot metadata into no-SQL query plans |
-| Gateway evaluator | `packages/data-access-gateway` | Adds `servingRead` and `servingQuery` to every decision after rights, field, row, time, and quality guards |
+| SQL descriptor planner | `packages/serving-store` | Converts planned queries into no-execute statement descriptors |
+| Gateway evaluator | `packages/data-access-gateway` | Adds `servingRead`, `servingQuery`, and `servingSqlDescriptor` to every decision after rights, field, row, time, and quality guards |
 | Gateway contract | `deploy/gateway/access.contract.json` | Adds `serving_read_default_deny` to required guards |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates the read guard remains in the manifest |
 | Worker runtime route | `GET /gateway/runtime` | Reports read-planner capability, no live reads, no SQL |
@@ -61,6 +62,7 @@ Runtime capability trace:
 2. Worker reports `serving_store.read_planner.status=read_planner_scaffold`,
    `serving_store.quality_release.status=quality_release_isolation_scaffold`,
    `serving_store.query_planner.status=query_planner_scaffold`,
+   `serving_store.sql_descriptor.status=sql_descriptor_scaffold`,
    `live_reads=false`, `sql_emitted=false`, `blocks_default_deny=true`, and
    `blocks_quality_hold=true`.
 
@@ -84,6 +86,8 @@ Tradeoff:
   released, or withdrawn before live reads.
 - Serving query plans now prove released snapshot gating and cache material
   without executing SQL.
+- SQL descriptors now prove statement id and binding material without emitting
+  SQL text.
 - The system still cannot return real licensed market data.
 
 ## Verification
@@ -122,6 +126,12 @@ Observed `/gateway/runtime` read-planner fields:
     "live_reads": false,
     "sql_emitted": false,
     "requires_release_state": "released"
+  },
+  "sql_descriptor": {
+    "status": "sql_descriptor_scaffold",
+    "execution_ready": false,
+    "sql_text_emitted": false,
+    "live_reads": false
   }
 }
 ```
@@ -131,6 +141,7 @@ Observed `/gateway/runtime` read-planner fields:
 - Live Supabase/Hyperdrive Serving reads are absent.
 - Partner-approved data loading is absent.
 - Persistent quality-release jobs and Serving snapshot mutation are absent.
-- Query planning exists, but live Serving SQL execution is absent.
+- Query planning and SQL descriptor planning exist, but SQL text generation and
+  live Serving SQL execution are absent.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

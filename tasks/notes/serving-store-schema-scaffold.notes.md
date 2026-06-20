@@ -1,6 +1,6 @@
 # Notes: serving-store-schema-scaffold
 
-> **Last Updated**: 2026-06-20 17:46 +08
+> **Last Updated**: 2026-06-20 17:56 +08
 > **Plan**: `plans/plan-serving-store-schema-scaffold.md`
 > **Runtime Evidence**: `docs/governance/serving-store-schema-scaffold.md`
 
@@ -21,6 +21,8 @@
   `held`, `released`, or `withdrawn`, but still writes no live records.
 - Added a later query planner capability that plans released snapshot query
   material, but still emits no SQL and reads no live records.
+- Added a later SQL descriptor capability that plans statement id and
+  parameter bindings, but still emits no SQL text and executes no SQL.
 
 ## Verification
 
@@ -36,7 +38,8 @@
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-approved data loading is absent.
-- Gateway creates blocked/held Serving read plans, quality release plans, and
-  no-SQL query plans, but does not read or write Serving Store records.
+- Gateway creates blocked/held Serving read plans, quality release plans,
+  no-SQL query plans, and no-execute SQL descriptors, but does not read or
+  write Serving Store records.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

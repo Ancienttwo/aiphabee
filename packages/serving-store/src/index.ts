@@ -4,6 +4,8 @@ export const SERVING_STORE_QUALITY_RELEASE_VERSION =
   "2026-06-20.phase1.quality-release-isolation.v0";
 export const SERVING_STORE_QUERY_PLAN_VERSION =
   "2026-06-20.phase1.live-serving-query-planner-scaffold.v0";
+export const SERVING_STORE_SQL_DESCRIPTOR_VERSION =
+  "2026-06-20.phase1.serving-sql-descriptor-scaffold.v0";
 
 export type ServingQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type ServingReleaseState = "held" | "released" | "withdrawn";
@@ -17,6 +19,9 @@ export type ServingReadPlanStatus =
   | "quality_hold"
   | "read_planned";
 export type ServingQueryPlanStatus = "query_blocked" | "query_planned";
+export type ServingSqlDescriptorStatus =
+  | "descriptor_blocked"
+  | "descriptor_planned";
 export type ServingQualityScope = "field" | "record" | "snapshot";
 
 export interface ServingReadPlanInput {
@@ -61,6 +66,10 @@ export interface ServingQueryPlanInput {
   rowCount: number;
   servingSnapshotId: string;
   snapshotQualityState: ServingQualityState;
+}
+
+export interface ServingSqlDescriptorInput {
+  queryPlan: ServingQueryPlan;
 }
 
 export interface ServingReadPlan {
@@ -135,6 +144,46 @@ export interface ServingQueryPlan {
     "core.serving_record"
   ];
   version: typeof SERVING_STORE_QUERY_PLAN_VERSION;
+}
+
+export interface ServingSqlDescriptor {
+  bindings: {
+    fieldSet: string[];
+    limit: number;
+    servingSnapshotId: string;
+    timeFrom?: string;
+    timeTo?: string;
+  };
+  blockedReason?: string;
+  dataset: string;
+  executionReady: false;
+  from: "core.serving_record";
+  liveRead: false;
+  orderBy: readonly [
+    {
+      direction: "asc";
+      field: "core.serving_record.entity_id";
+    }
+  ];
+  selectedFieldPaths: string[];
+  sqlEmitted: false;
+  sqlTextEmitted: false;
+  statementId: "serving_record_projection_by_snapshot_v0";
+  status: ServingSqlDescriptorStatus;
+  tables: readonly [
+    "core.serving_dataset",
+    "core.serving_field",
+    "core.serving_snapshot",
+    "core.serving_record"
+  ];
+  where: {
+    servingSnapshotId: string;
+    timeRange?: {
+      from: string;
+      to: string;
+    };
+  };
+  version: typeof SERVING_STORE_SQL_DESCRIPTOR_VERSION;
 }
 
 export interface ServingQualityReleasePlan {
@@ -295,6 +344,58 @@ export function createServingQueryPlan(input: ServingQueryPlanInput): ServingQue
   };
 }
 
+export function createServingSqlDescriptor(
+  input: ServingSqlDescriptorInput
+): ServingSqlDescriptor {
+  const queryPlan = input.queryPlan;
+  const blockedReason =
+    queryPlan.status === "query_planned"
+      ? undefined
+      : queryPlan.blockedReason ?? "SERVING_QUERY_NOT_PLANNED";
+  const status: ServingSqlDescriptorStatus =
+    blockedReason === undefined ? "descriptor_planned" : "descriptor_blocked";
+  const selectedFieldPaths =
+    status === "descriptor_planned" ? queryPlan.allowedFields : [];
+  const timeRange = queryPlan.cacheKeyMaterial.timeRange;
+
+  return {
+    bindings: {
+      fieldSet: selectedFieldPaths,
+      limit: status === "descriptor_planned" ? queryPlan.plannedRows : 0,
+      servingSnapshotId: queryPlan.cacheKeyMaterial.servingSnapshotId,
+      timeFrom: timeRange?.from,
+      timeTo: timeRange?.to
+    },
+    blockedReason,
+    dataset: queryPlan.dataset,
+    executionReady: false,
+    from: "core.serving_record",
+    liveRead: false,
+    orderBy: [
+      {
+        direction: "asc",
+        field: "core.serving_record.entity_id"
+      }
+    ],
+    selectedFieldPaths,
+    sqlEmitted: false,
+    sqlTextEmitted: false,
+    statementId: "serving_record_projection_by_snapshot_v0",
+    status,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ],
+    where: {
+      servingSnapshotId: queryPlan.cacheKeyMaterial.servingSnapshotId,
+      timeRange
+    },
+    version: SERVING_STORE_SQL_DESCRIPTOR_VERSION
+  };
+}
+
 export function getServingStoreReadCapabilities() {
   return {
     blocks_default_deny: true,
@@ -319,6 +420,29 @@ export function getServingStoreReadCapabilities() {
     ] as const,
     uses_quality_state: true,
     uses_versioned_snapshots: true
+  };
+}
+
+export function getServingStoreSqlDescriptorCapabilities() {
+  return {
+    blocks_unplanned_queries: true,
+    execution_ready: false,
+    live_reads: false,
+    parameterized_bindings: true,
+    sql_emitted: false,
+    sql_text_emitted: false,
+    statement_ids: ["serving_record_projection_by_snapshot_v0"] as const,
+    status: "sql_descriptor_scaffold" as const,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ] as const,
+    uses_allowed_field_set: true,
+    uses_row_limit: true,
+    uses_snapshot_binding: true,
+    version: SERVING_STORE_SQL_DESCRIPTOR_VERSION
   };
 }
 

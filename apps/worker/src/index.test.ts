@@ -113,6 +113,18 @@ interface GatewayRuntimeBody {
         uses_versioned_snapshots: boolean;
       };
       release_state_default: string;
+      sql_descriptor: {
+        blocks_unplanned_queries: boolean;
+        execution_ready: boolean;
+        live_reads: boolean;
+        parameterized_bindings: boolean;
+        sql_emitted: boolean;
+        sql_text_emitted: boolean;
+        status: string;
+        uses_allowed_field_set: boolean;
+        uses_row_limit: boolean;
+        uses_snapshot_binding: boolean;
+      };
       status: string;
       tables: string[];
       uses_quality_state: boolean;
@@ -456,6 +468,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_query_planner_scaffold");
     expect(body.data.guards).toContain("serving_read_default_deny");
+    expect(body.data.guards).toContain("serving_sql_descriptor_scaffold");
     expect(body.data.guards).toContain("usage_event_writer_scaffold");
     expect(body.data.limits.max_rows).toBe(500);
     expect(body.data.live_data_access).toBe(false);
@@ -496,6 +509,18 @@ describe("worker runtime", () => {
         uses_versioned_snapshots: true
       },
       release_state_default: "held",
+      sql_descriptor: {
+        blocks_unplanned_queries: true,
+        execution_ready: false,
+        live_reads: false,
+        parameterized_bindings: true,
+        sql_emitted: false,
+        sql_text_emitted: false,
+        status: "sql_descriptor_scaffold",
+        uses_allowed_field_set: true,
+        uses_row_limit: true,
+        uses_snapshot_binding: true
+      },
       status: "schema_scaffold",
       tables: [
         "core.serving_dataset",
