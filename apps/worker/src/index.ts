@@ -7,15 +7,20 @@ import {
 } from "@aiphabee/agent-runtime";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import {
+  EVAL_STORE_SCHEMA_VERSION,
+  OBSERVABILITY_EVENT_VERSION,
   createAgentDryRunTelemetry,
   createConsoleTelemetrySink,
   recordTelemetryEvents
 } from "@aiphabee/observability";
 
 interface WorkerBindings {
+  AIPHABEE_EVAL_STORE?: unknown;
   AIPHABEE_HYPERDRIVE?: unknown;
   APP_ENV?: string;
   APP_VERSION?: string;
+  OTLP_EXPORTER_OTLP_ENDPOINT?: string;
+  OTLP_EXPORTER_OTLP_HEADERS?: string;
 }
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
@@ -145,6 +150,87 @@ app.get("/secrets/runtime", (c) => {
             data_version: "secret-stores-scaffold-v0",
             methodology_version: "secret-stores-scaffold-v0",
             source: "secret-stores-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/observability/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const otlpEndpointConfigured =
+    typeof c.env?.OTLP_EXPORTER_OTLP_ENDPOINT === "string" &&
+    c.env.OTLP_EXPORTER_OTLP_ENDPOINT.length > 0;
+  const otlpHeadersConfigured =
+    typeof c.env?.OTLP_EXPORTER_OTLP_HEADERS === "string" &&
+    c.env.OTLP_EXPORTER_OTLP_HEADERS.length > 0;
+  const evalStoreBindingConfigured = Boolean(c.env?.AIPHABEE_EVAL_STORE);
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        eval_store: {
+          binding_configured: evalStoreBindingConfigured,
+          binding_name: "AIPHABEE_EVAL_STORE",
+          binding_type: "d1",
+          persistent: true,
+          schema_version: EVAL_STORE_SCHEMA_VERSION,
+          status: evalStoreBindingConfigured ? "binding_detected" : "planned",
+          writes_enabled: false
+        },
+        event_contract: "deploy/observability/events.contract.json",
+        event_types: ["run.audit", "run.eval"],
+        event_version: OBSERVABILITY_EVENT_VERSION,
+        forbidden_payloads: ["prompt", "api_key", "token", "secret", "password"],
+        otlp_destination: {
+          endpoint_configured: otlpEndpointConfigured,
+          headers_configured: otlpHeadersConfigured,
+          live_export_enabled: false,
+          required_env: ["OTLP_EXPORTER_OTLP_ENDPOINT", "OTLP_EXPORTER_OTLP_HEADERS"],
+          status:
+            otlpEndpointConfigured && otlpHeadersConfigured
+              ? "configuration_detected"
+              : "planned"
+        },
+        sinks: [
+          {
+            live_export_enabled: false,
+            name: "worker_console",
+            status: "wired"
+          },
+          {
+            live_export_enabled: false,
+            name: "eval_store",
+            status: evalStoreBindingConfigured ? "binding_detected" : "planned"
+          },
+          {
+            live_export_enabled: false,
+            name: "otlp_destination",
+            status:
+              otlpEndpointConfigured && otlpHeadersConfigured
+                ? "configuration_detected"
+                : "planned"
+          }
+        ]
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "observability-persistent-store-scaffold-v0",
+        provenance: [
+          {
+            data_version: "observability-persistent-store-scaffold-v0",
+            methodology_version: "observability-persistent-store-scaffold-v0",
+            source: "observability-contract",
             source_record_id: "runtime-capabilities"
           }
         ],

@@ -43,17 +43,29 @@
     {
       "name": "worker_console",
       "status": "wired",
-      "purpose": "Local structured JSON log sink collected by Workers Logs when enabled."
+      "purpose": "Local structured JSON log sink collected by Workers Logs when enabled.",
+      "live_export_enabled": false
     },
     {
       "name": "eval_store",
       "status": "planned",
-      "purpose": "Future persistent evaluation store for run quality and regression analytics."
+      "purpose": "Future persistent evaluation store for run quality and regression analytics.",
+      "binding_name": "AIPHABEE_EVAL_STORE",
+      "binding_type": "d1",
+      "schema_version": "2026-06-20.phase0.eval-store.v0",
+      "persistent": true,
+      "writes_enabled": false
     },
     {
       "name": "otlp_destination",
       "status": "planned",
-      "purpose": "Future OpenTelemetry export destination configured outside repo secrets."
+      "purpose": "Future OpenTelemetry export destination configured outside repo secrets.",
+      "protocol": "otlp_http",
+      "required_env": [
+        "OTLP_EXPORTER_OTLP_ENDPOINT",
+        "OTLP_EXPORTER_OTLP_HEADERS"
+      ],
+      "live_export_enabled": false
     }
   ]
 }

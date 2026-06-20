@@ -1,4 +1,5 @@
 export const OBSERVABILITY_EVENT_VERSION = "2026-06-20.phase0.observability.v0";
+export const EVAL_STORE_SCHEMA_VERSION = "2026-06-20.phase0.eval-store.v0";
 
 export type TelemetryEventType = "run.audit" | "run.eval";
 export type TelemetryOutcome = "success" | "rejected" | "error";
@@ -57,6 +58,28 @@ export interface AgentDryRunTelemetryInput {
 
 export interface TelemetrySink {
   record(event: TelemetryEvent): Promise<void> | void;
+}
+
+export interface EvalStoreRecord {
+  check_count: number;
+  checks: EvalTelemetryEvent["eval"]["checks"];
+  emitted_at: string;
+  environment: string;
+  event_id: string;
+  event_version: typeof OBSERVABILITY_EVENT_VERSION;
+  evidence_binding: EvalTelemetryEvent["eval"]["evidence_binding"];
+  failed_check_count: number;
+  outcome: TelemetryOutcome;
+  request_id: string;
+  result: EvalTelemetryEvent["eval"]["result"];
+  route: string;
+  run_id: string;
+  schema_version: typeof EVAL_STORE_SCHEMA_VERSION;
+  service: "aiphabee-worker";
+}
+
+export interface EvalStore {
+  write(record: EvalStoreRecord): Promise<void> | void;
 }
 
 export interface TelemetryLogger {
@@ -154,6 +177,53 @@ export function createInMemoryTelemetrySink() {
         events.push(event);
       }
     } satisfies TelemetrySink
+  };
+}
+
+export function createEvalStoreRecord(event: EvalTelemetryEvent): EvalStoreRecord {
+  const failedChecks = event.eval.checks.filter((check) => check.status === "fail");
+
+  return {
+    check_count: event.eval.checks.length,
+    checks: event.eval.checks,
+    emitted_at: event.emitted_at,
+    environment: event.environment,
+    event_id: event.event_id,
+    event_version: event.event_version,
+    evidence_binding: event.eval.evidence_binding,
+    failed_check_count: failedChecks.length,
+    outcome: event.outcome,
+    request_id: event.request_id,
+    result: event.eval.result,
+    route: event.route,
+    run_id: event.run_id,
+    schema_version: EVAL_STORE_SCHEMA_VERSION,
+    service: event.service
+  };
+}
+
+export function createEvalStoreTelemetrySink(store: EvalStore): TelemetrySink {
+  return {
+    async record(event) {
+      if (event.event_type !== "run.eval") {
+        return;
+      }
+
+      await store.write(createEvalStoreRecord(event));
+    }
+  };
+}
+
+export function createInMemoryEvalStore() {
+  const records: EvalStoreRecord[] = [];
+
+  return {
+    records,
+    store: {
+      write(record: EvalStoreRecord) {
+        records.push(record);
+      }
+    } satisfies EvalStore
   };
 }
 

@@ -82,6 +82,34 @@ interface ModelProviderBody {
   ok: true;
 }
 
+interface ObservabilityRuntimeBody {
+  data: {
+    eval_store: {
+      binding_configured: boolean;
+      binding_name: string;
+      binding_type: string;
+      persistent: boolean;
+      status: string;
+      writes_enabled: boolean;
+    };
+    event_types: string[];
+    forbidden_payloads: string[];
+    otlp_destination: {
+      endpoint_configured: boolean;
+      headers_configured: boolean;
+      live_export_enabled: boolean;
+      required_env: string[];
+      status: string;
+    };
+    sinks: Array<{
+      live_export_enabled: boolean;
+      name: string;
+      status: string;
+    }>;
+  };
+  ok: true;
+}
+
 interface AgentDryRunBody {
   data: {
     budget: {
@@ -235,6 +263,37 @@ describe("worker runtime", () => {
         model_calls: false,
         status: "guarded"
       }
+    );
+  });
+
+  it("serves observability runtime capabilities without live export", async () => {
+    const response = await app.request("/observability/runtime", {
+      headers: {
+        "x-request-id": "req-observability-runtime"
+      }
+    });
+    const body = (await response.json()) as ObservabilityRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.event_types).toEqual(["run.audit", "run.eval"]);
+    expect(body.data.forbidden_payloads).toContain("prompt");
+    expect(body.data.eval_store.binding_name).toBe("AIPHABEE_EVAL_STORE");
+    expect(body.data.eval_store.binding_type).toBe("d1");
+    expect(body.data.eval_store.binding_configured).toBe(false);
+    expect(body.data.eval_store.persistent).toBe(true);
+    expect(body.data.eval_store.writes_enabled).toBe(false);
+    expect(body.data.eval_store.status).toBe("planned");
+    expect(body.data.otlp_destination.endpoint_configured).toBe(false);
+    expect(body.data.otlp_destination.headers_configured).toBe(false);
+    expect(body.data.otlp_destination.live_export_enabled).toBe(false);
+    expect(body.data.otlp_destination.required_env).toEqual([
+      "OTLP_EXPORTER_OTLP_ENDPOINT",
+      "OTLP_EXPORTER_OTLP_HEADERS"
+    ]);
+    expect(body.data.sinks.every((sink) => sink.live_export_enabled === false)).toBe(
+      true
     );
   });
 

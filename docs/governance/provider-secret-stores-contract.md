@@ -1,14 +1,15 @@
 # Provider Secret Stores Contract
 
 > **Status**: Verified no-secret contract
-> **Last Updated**: 2026-06-20 15:20 +08
+> **Last Updated**: 2026-06-20 16:00 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-provider-secret-stores-contract.md`
 > **Task Contract**: `tasks/contracts/provider-secret-stores-contract.contract.md`
 
 This slice creates the repo-local contract for provider secret stores,
-rotation, and emergency revocation. It does not set, list, delete, or rotate any
-live provider secret.
+rotation, and emergency revocation. The later observability persistent-store
+scaffold adds `OTLP_EXPORTER_OTLP_HEADERS` to the same no-secret contract. It
+does not set, list, delete, or rotate any live provider secret.
 
 References checked:
 
@@ -27,7 +28,7 @@ References checked:
 
 | Surface | State | Boundary |
 |---|---|---|
-| Env secret names | `deploy/env/env.schema.json` | Four secret variables; templates remain blank |
+| Env secret names | `deploy/env/env.schema.json` | Five secret variables; templates remain blank |
 | Store contract | `deploy/secrets/stores.contract.json` | Cloudflare Workers, GitHub Actions, Supabase planned stores |
 | Runbook | `deploy/runbooks/secret-rotation-emergency-revocation.md` | Operator path for normal rotation and emergency revocation |
 | Validator | `scripts/check-secret-stores-contract.mjs` | Ensures provider coverage, env-secret parity, cadence/SLA, and no secret-like values |

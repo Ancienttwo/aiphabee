@@ -1,25 +1,26 @@
 # Observability Eval Scaffold
 
-> **Status**: Verified local event contract
-> **Last Updated**: 2026-06-20 14:57 +08
+> **Status**: Verified local event contract; persistent scaffold added
+> **Last Updated**: 2026-06-20 16:00 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-observability-eval-scaffold.md`
 > **Task Contract**: `tasks/contracts/observability-eval-scaffold.contract.md`
 
 This slice adds a local observability/eval scaffold for the Worker Agent Runtime
-dry-run route. It does not provision an external telemetry destination or
-persistent eval store.
+dry-run route. It is now extended by
+`docs/governance/observability-persistent-eval-store-scaffold.md`, which adds
+the no-secret OTLP/eval-store destination scaffold.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
 | Wrangler observability | `apps/worker/wrangler.jsonc` enables Workers Logs and traces | Local/runtime config only; no destination IDs or secrets |
-| Observability package | `packages/observability` | Builds `run.audit` and `run.eval` events plus console/in-memory sinks |
-| Event contract | `deploy/observability/events.contract.json` | Names event types, required fields, forbidden prompt/secret fields, and sink status |
-| Contract check | `scripts/check-observability-contract.mjs` | Validates manifest shape and required event/sink coverage |
+| Observability package | `packages/observability` | Builds `run.audit` and `run.eval` events plus console/in-memory/eval-store sinks |
+| Event contract | `deploy/observability/events.contract.json` | Names event types, required fields, forbidden prompt/secret fields, sink status, OTLP env names, and eval-store binding |
+| Contract check | `scripts/check-observability-contract.mjs` | Validates manifest shape, env schema, Cloudflare binding, and required event/sink coverage |
 | Worker route | `POST /agent/runs/dry-run` | Emits structured events for success, validation rejection, and unexpected errors |
-| External sinks | Planned only | No OTLP endpoint, eval DB, Logpush destination, or dashboard is configured |
+| External sinks | Guarded scaffold | OTLP endpoint and D1 eval store are named, but live export/write remains disabled |
 
 ## P2 Concrete Trace
 
@@ -94,8 +95,8 @@ x-aiphabee-telemetry-run-id: dry_req-smoke-otel
 
 ## Residual Gaps
 
-- OTLP destination and credentials are not configured.
-- Persistent eval store and retention policy are not implemented.
+- Live OTLP destination and credentials are not configured.
+- Persistent eval store write/read smoke and retention policy are not implemented.
 - Real model token/cost/latency metrics remain blocked until model execution
   exists.
 - Dashboarding, alerting, and production log routing remain unimplemented.

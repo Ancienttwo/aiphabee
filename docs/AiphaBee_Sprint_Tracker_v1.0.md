@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 16 / 22 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
@@ -172,7 +172,8 @@ owner: "Planner / PM"
 - [x] 黄金样本回归挂载点：`npm run test:golden` + CI `Golden Regression Hook`（§A4）
 - [x] 黄金样本可执行 fixtures 与质量规则断言：8 个 synthetic samples、12 条 deterministic quality rules、`DATA_QUALITY_HOLD` hold 断言、strict `npm run test:golden`（§A4）
 - [x] OTel/log/eval event contract：Workers Logs + traces enabled，`run.audit` / `run.eval` 结构化事件，console sink，`npm run check:observability`（§11.3、§12.3）
-- [ ] OTLP destination + persistent eval store 接线（§11.3、§12.3）
+- [x] OTLP destination + persistent eval store scaffold：planned D1 `AIPHABEE_EVAL_STORE`、OTLP names-only env、eval-store record schema、`/observability/runtime` guard、`npm run check:observability`（§11.3、§12.3）
+- [ ] OTLP destination + persistent eval store live smoke：真实 OTLP export + persistent eval write/read + retention/dashboard evidence（§11.3、§12.3）
 - [x] 环境变量 names-only template：`deploy/env/.env.example`
 - [x] Env/secrets contract：dev/staging/prod names-only templates + schema + `npm run check:env`
 - [x] Provider secret stores / rotation / emergency revocation contract：Cloudflare/GitHub/Supabase planned stores、90-day cadence、30-min revocation SLA、`npm run check:secrets`（Cloudflare/GitHub/Supabase）
@@ -577,12 +578,13 @@ owner: "Planner / PM"
 - [x] Model provider / streaming scaffold 已建立：`docs/governance/model-provider-streaming-scaffold.md`；Cloudflare AI Gateway planned contract、AI SDK v7 execution APIs、`/agent/model-provider` 与 guarded `/agent/runs/stream` 已通过本地 smoke
 - [x] Golden fixtures / quality-rule gate 已建立：`docs/governance/golden-quality-rule-fixtures.md`；8 个 synthetic fixtures、12 条 deterministic rules、5 pass / 1 warn / 2 hold、strict `npm run test:golden` 已通过
 - [x] Observability/eval scaffold 已建立：`docs/governance/observability-eval-scaffold.md`；Workers Logs/traces、`run.audit`/`run.eval` 事件、console sink、CI contract check 与 dry-run telemetry headers 已通过本地 smoke
+- [x] Observability persistent eval store scaffold 已建立：`docs/governance/observability-persistent-eval-store-scaffold.md`；planned D1 eval-store binding、OTLP names-only env、eval-store record schema、`/observability/runtime` guard 已通过本地 smoke
 - [x] Postgres/Hyperdrive migration scaffold 已建立：`docs/governance/postgres-hyperdrive-migration-scaffold.md`；Supabase-compatible migration、Hyperdrive contract、default-deny governance schema、`npm run check:database` 与 `/database/runtime` 已通过本地 smoke
 - [x] Provider secret stores contract 已建立：`docs/governance/provider-secret-stores-contract.md`；Cloudflare/GitHub/Supabase planned stores、rotation/revocation runbook、`npm run check:secrets` 与 `/secrets/runtime` 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
-- [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP destination + persistent eval store、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
+- [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -591,6 +593,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0r | 完成 `observability-persistent-eval-store-scaffold`：新增 eval-store record schema/sink、planned D1 `AIPHABEE_EVAL_STORE` binding、OTLP names-only env、`/observability/runtime` guard，并扩展 `check:observability`；真实 OTLP export 与 persistent write/read smoke 仍未完成，Sprint 0.4 更新为 17/23 |
 | 2026-06-20 | 1.0q | 完成 `golden-quality-rule-fixtures`：`npm run test:golden` 改为 strict fixture gate，新增 8 个 synthetic golden samples、12 条 deterministic quality rules、`DATA_QUALITY_HOLD` hold 断言；production partner corpus 与商业成本评审仍未完成，Sprint 0.4 更新为 16/22 |
 | 2026-06-20 | 1.0p | 完成 `model-provider-streaming-scaffold`：新增 model provider / AI Gateway contract、`npm run check:model-provider`、`MODEL_PROVIDER_NOT_CONFIGURED`、Worker `/agent/model-provider` 与 guarded `/agent/runs/stream`；真实 AI Gateway / `streamText` / token logs 仍未完成，Sprint 0.4 更新为 15/22 |
 | 2026-06-20 | 1.0o | 完成 `provider-secret-stores-contract`：新增 Cloudflare/GitHub/Supabase secret stores contract、rotation/revocation runbook、`npm run check:secrets`、Worker `/secrets/runtime`；真实 provider store provisioning/rotation smoke 仍未完成，Sprint 0.4 更新为 14/21 |

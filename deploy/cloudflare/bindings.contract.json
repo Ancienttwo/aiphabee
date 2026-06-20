@@ -59,6 +59,14 @@
       "provisioned": false
     },
     {
+      "name": "AIPHABEE_EVAL_STORE",
+      "type": "d1",
+      "purpose": "Future persistent eval event store for run quality, regression analytics, and review dashboards.",
+      "required_by_sprint": "0.4",
+      "smoke_test": "Write and read a synthetic run.eval record without prompt or secret fields.",
+      "provisioned": false
+    },
+    {
       "name": "AIPHABEE_AI_GATEWAY",
       "type": "ai_gateway",
       "purpose": "Future model logging, cost tracking, limits, caching, and fallback routing.",

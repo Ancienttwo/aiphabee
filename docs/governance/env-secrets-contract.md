@@ -1,7 +1,7 @@
 # Environment And Secrets Contract
 
 > **Status**: Verified repo-local contract
-> **Last Updated**: 2026-06-20 15:20 +08
+> **Last Updated**: 2026-06-20 16:00 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-env-secrets-contract.md`
 > **Task Contract**: `tasks/contracts/env-secrets-contract.contract.md`
@@ -29,6 +29,7 @@ The schema marks these variables as secret:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `HYPERDRIVE_DATABASE_URL`
 - `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE`
+- `OTLP_EXPORTER_OTLP_HEADERS`
 
 They must not be committed with values. Provider-specific storage is defined in
 `docs/governance/provider-secret-stores-contract.md`, but live provisioning

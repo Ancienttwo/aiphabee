@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; synthetic executable fixtures/rules pass; production corpus and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook and executable fixture gate, env contract, Cloudflare binding contract, Agent dry-run skeleton, model-provider/streaming guard, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 16/22; frontend/live model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook and executable fixture gate, env contract, Cloudflare binding contract, Agent dry-run skeleton, model-provider/streaming guard, local observability/eval event contract, persistent eval-store/OTLP guard scaffold, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 17/23; frontend/live model execution/resource provisioning/live DB smoke/live OTLP export/provider secret live smoke remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -81,9 +81,9 @@ recorded in `tasks/todos.md`:
 - Partner-signed data contract and real field/SLA samples.
 - Production partner golden corpus and cost-reviewed quality/commercial gate.
 - Remaining runtime surfaces: frontend app, live model provider/streaming execution,
-  Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, OTLP
-  destination plus persistent eval store, and provider secret-store provisioning
-  plus rotation smoke.
+  Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, live
+  OTLP export plus persistent eval write/read, and provider secret-store
+  provisioning plus rotation smoke.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -139,7 +139,7 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - Live model provider/streaming execution, Cloudflare resource provisioning/smoke,
-  live Hyperdrive `SELECT 1`, persistent observability/eval store, production
+  live Hyperdrive `SELECT 1`, live observability/eval store smoke, production
   golden corpus / Serving quality-hold runtime, and live provider secret-store
   smoke.
 
@@ -296,6 +296,28 @@ Not completed:
 
 - OTLP destination, persistent eval store, dashboarding, alerting, and real
   model token/cost/latency telemetry remain absent.
+
+## Execution Update - 2026-06-20 16:00 +08
+
+`observability-persistent-eval-store-scaffold` has been executed in
+`docs/governance/observability-persistent-eval-store-scaffold.md`.
+
+Completed:
+
+- `packages/observability` now projects `run.eval` into prompt-free eval-store
+  records and provides an eval-store sink interface.
+- `deploy/cloudflare/bindings.contract.json` now includes planned D1 binding
+  `AIPHABEE_EVAL_STORE`.
+- `deploy/env/*` now includes names-only OTLP endpoint/header variables.
+- `scripts/check-observability-contract.mjs` validates OTLP env names and the
+  eval-store binding contract.
+- Worker `GET /observability/runtime` reports planned store/export status with
+  writes and live export disabled.
+
+Not completed:
+
+- Real OTLP export, D1 eval-store provisioning, persistent write/read smoke,
+  dashboards, alerting, and real model token/cost/latency metrics remain absent.
 
 ## Execution Update - 2026-06-20 15:10 +08
 

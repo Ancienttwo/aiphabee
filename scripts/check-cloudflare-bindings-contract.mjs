@@ -11,6 +11,7 @@ const requiredTypes = [
   "durable_object",
   "r2",
   "kv",
+  "d1",
   "ai_gateway",
   "hyperdrive"
 ];
