@@ -49,6 +49,15 @@ describe("agent runtime scaffold", () => {
         retry_billable: false,
         status: "failure_recovery_policy_scaffold"
       },
+      model_routing_audit: {
+        ai_gateway_provider: "cloudflare_ai_gateway",
+        audit_required: true,
+        fallback: "planned",
+        live_model_routing: false,
+        model_calls: false,
+        records_model_change: true,
+        status: "model_routing_audit_scaffold"
+      },
       answer_evidence_contract: {
         evidence_card_payload: "planned",
         frontend_rendering: false,
@@ -370,6 +379,105 @@ describe("agent runtime scaffold", () => {
       "stop_after_two_same_errors",
       "surface_partial_response"
     ]);
+    expect(plan.model_routing_audit).toMatchObject({
+      actual_tool_execution: false,
+      audit_contract: {
+        cost_latency_required: true,
+        product_analytics_separate: true,
+        prompt_version_required: true,
+        redact_sensitive_content: true
+      },
+      cache_policy: {
+        non_sensitive_only: true,
+        safe_reusable_results_only: true,
+        user_private_prompt_content_cacheable: false
+      },
+      fallback_policy: {
+        fallback_model_status: "planned",
+        max_fallbacks_per_run: 1,
+        records_model_change: true,
+        strategy: "switch_to_backup_model",
+        triggers: ["MODEL_TIMEOUT", "RATE_LIMITED", "UPSTREAM_5XX"]
+      },
+      gateway: {
+        gateway_id: "default",
+        provider: "cloudflare_ai_gateway",
+        required_env: ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"],
+        status: "planned",
+        unified_billing: true
+      },
+      linked_policy_versions: {
+        answer_evidence_contract: "2026-06-21.phase1.answer-evidence-contract-scaffold.v0",
+        failure_recovery_policy: "2026-06-21.phase1.failure-recovery-policy-scaffold.v0",
+        numeric_source_guard: "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
+      },
+      live_model_routing: false,
+      model_calls: false,
+      run_context_model_tier: "dry_run",
+      status: "model_routing_audit_scaffold",
+      version: "2026-06-21.phase1.model-routing-audit-scaffold.v0"
+    });
+    expect(plan.model_routing_audit.audit_contract.required_fields).toEqual([
+      "user_id",
+      "workspace_id",
+      "token_client_id",
+      "ip_risk_summary",
+      "tool_name",
+      "tool_version",
+      "input_summary_hash",
+      "authorization_policy_version",
+      "dataset",
+      "data_version",
+      "source_record_id",
+      "cache_hit",
+      "model_provider",
+      "model_id",
+      "model_version",
+      "prompt_version",
+      "input_tokens",
+      "output_tokens",
+      "estimated_cost",
+      "latency_ms",
+      "output_hash",
+      "error_code",
+      "retry_count",
+      "fallback_from_model",
+      "fallback_to_model",
+      "human_intervention"
+    ]);
+    expect(plan.model_routing_audit.routing_tiers).toEqual([
+      expect.objectContaining({
+        model_calls: false,
+        status: "planned",
+        task_layer: "lightweight",
+        tasks: [
+          "intent_detection",
+          "security_resolution_assist",
+          "simple_formatting",
+          "summary_draft"
+        ]
+      }),
+      expect.objectContaining({
+        model_calls: false,
+        status: "planned",
+        task_layer: "main",
+        tasks: ["research_planning", "evidence_synthesis", "cross_document_explanation"]
+      }),
+      expect.objectContaining({
+        model_calls: false,
+        status: "wired_no_model",
+        task_layer: "deterministic_code",
+        tasks: ["financial_calculation", "screening", "structured_transform"]
+      })
+    ]);
+    expect(plan.model_routing_audit.validation_rules).toEqual([
+      "require_ai_gateway_logs",
+      "require_model_change_audit",
+      "require_budget_ledger_link",
+      "block_arbitrary_model_id",
+      "keep_deterministic_financial_calculations_out_of_model",
+      "redact_sensitive_audit_payloads"
+    ]);
     expect(plan.answer_evidence_contract).toMatchObject({
       actual_tool_execution: false,
       answer_structure: {
@@ -656,6 +764,11 @@ describe("agent runtime scaffold", () => {
     });
     expect(plan.budget_stop_policy.graceful_stop.unfinished_step_ids).toContain("step_3");
     expect(plan.budget_stop_policy.planned_usage.steps).toBe(3);
+    expect(plan.model_routing_audit).toMatchObject({
+      live_model_routing: false,
+      model_calls: false,
+      status: "model_routing_audit_scaffold"
+    });
     expect(plan.failure_recovery_policy.planned_step_recovery).toEqual([
       expect.objectContaining({
         local_recovery_action: "retry_failed_tool_call_only",

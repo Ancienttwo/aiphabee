@@ -26,6 +26,8 @@ export const ANSWER_EVIDENCE_CONTRACT_VERSION =
   "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
 export const FAILURE_RECOVERY_POLICY_VERSION =
   "2026-06-21.phase1.failure-recovery-policy-scaffold.v0";
+export const MODEL_ROUTING_AUDIT_VERSION =
+  "2026-06-21.phase1.model-routing-audit-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -95,6 +97,15 @@ export interface AgentRuntimeCapabilities {
       partial_retry: true;
       retry_billable: false;
       status: "failure_recovery_policy_scaffold";
+    };
+    model_routing_audit: {
+      ai_gateway_provider: "cloudflare_ai_gateway";
+      audit_required: true;
+      fallback: "planned";
+      live_model_routing: false;
+      model_calls: false;
+      records_model_change: true;
+      status: "model_routing_audit_scaffold";
     };
     answer_evidence_contract: {
       evidence_card_payload: "planned";
@@ -522,6 +533,113 @@ export interface AgentFailureRecoveryPolicy {
   version: typeof FAILURE_RECOVERY_POLICY_VERSION;
 }
 
+export type AgentModelRoutingTierId = "deterministic_code" | "lightweight" | "main";
+export type AgentModelRoutingTask =
+  | "cross_document_explanation"
+  | "evidence_synthesis"
+  | "financial_calculation"
+  | "intent_detection"
+  | "research_planning"
+  | "screening"
+  | "security_resolution_assist"
+  | "simple_formatting"
+  | "structured_transform"
+  | "summary_draft";
+export type AgentModelRoutingFallbackTrigger =
+  | "MODEL_TIMEOUT"
+  | "RATE_LIMITED"
+  | "UPSTREAM_5XX";
+export type AgentModelRoutingAuditField =
+  | "authorization_policy_version"
+  | "cache_hit"
+  | "dataset"
+  | "data_version"
+  | "error_code"
+  | "estimated_cost"
+  | "fallback_from_model"
+  | "fallback_to_model"
+  | "human_intervention"
+  | "input_summary_hash"
+  | "input_tokens"
+  | "ip_risk_summary"
+  | "latency_ms"
+  | "model_id"
+  | "model_provider"
+  | "model_version"
+  | "output_hash"
+  | "output_tokens"
+  | "prompt_version"
+  | "retry_count"
+  | "source_record_id"
+  | "token_client_id"
+  | "tool_name"
+  | "tool_version"
+  | "user_id"
+  | "workspace_id";
+
+export interface AgentModelRoutingAuditPolicy {
+  actual_tool_execution: false;
+  audit_contract: {
+    cost_latency_required: true;
+    product_analytics_separate: true;
+    prompt_version_required: true;
+    redact_sensitive_content: true;
+    required_fields: AgentModelRoutingAuditField[];
+  };
+  cache_policy: {
+    cache_key_material: readonly [
+      "workspace_id",
+      "task_layer",
+      "model_id",
+      "prompt_version",
+      "input_summary_hash",
+      "data_version"
+    ];
+    non_sensitive_only: true;
+    safe_reusable_results_only: true;
+    user_private_prompt_content_cacheable: false;
+  };
+  fallback_policy: {
+    fallback_model_status: "planned";
+    max_fallbacks_per_run: 1;
+    records_model_change: true;
+    strategy: "switch_to_backup_model";
+    triggers: AgentModelRoutingFallbackTrigger[];
+  };
+  gateway: {
+    features: readonly ["logging", "caching", "rate_limiting", "fallback", "guardrails"];
+    gateway_id: "default";
+    provider: "cloudflare_ai_gateway";
+    required_env: readonly ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"];
+    status: "planned";
+    unified_billing: true;
+  };
+  linked_policy_versions: {
+    answer_evidence_contract: typeof ANSWER_EVIDENCE_CONTRACT_VERSION;
+    failure_recovery_policy: typeof FAILURE_RECOVERY_POLICY_VERSION;
+    numeric_source_guard: typeof NUMERIC_SOURCE_GUARD_VERSION;
+  };
+  live_model_routing: false;
+  model_calls: false;
+  run_context_model_tier: "dry_run";
+  routing_tiers: Array<{
+    model_calls: false;
+    status: "planned" | "wired_no_model";
+    task_layer: AgentModelRoutingTierId;
+    tasks: AgentModelRoutingTask[];
+  }>;
+  status: "model_routing_audit_scaffold";
+  validation_rules: readonly [
+    "require_ai_gateway_logs",
+    "require_model_change_audit",
+    "require_budget_ledger_link",
+    "block_arbitrary_model_id",
+    "keep_deterministic_financial_calculations_out_of_model",
+    "redact_sensitive_audit_payloads"
+  ];
+  version: typeof MODEL_ROUTING_AUDIT_VERSION;
+}
+
 export interface AgentToolLoopToolCallPlan {
   allow_arbitrary_sql: false;
   allow_arbitrary_url: false;
@@ -717,6 +835,7 @@ export interface AgentToolLoopPlan {
   chain_of_thought_exposed: false;
   failure_recovery_policy: AgentFailureRecoveryPolicy;
   max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
+  model_routing_audit: AgentModelRoutingAuditPolicy;
   model_calls: false;
   numeric_source_guard: AgentNumericSourceGuard;
   planned_step_count: number;
@@ -834,6 +953,15 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         partial_retry: true,
         retry_billable: false,
         status: "failure_recovery_policy_scaffold"
+      },
+      model_routing_audit: {
+        ai_gateway_provider: "cloudflare_ai_gateway",
+        audit_required: true,
+        fallback: "planned",
+        live_model_routing: false,
+        model_calls: false,
+        records_model_change: true,
+        status: "model_routing_audit_scaffold"
       },
       answer_evidence_contract: {
         evidence_card_payload: "planned",
@@ -1055,6 +1183,10 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     steps,
     retryPolicy
   });
+  const modelRoutingAudit = createModelRoutingAuditPolicy({
+    failureRecoveryPolicy,
+    runContext: skeleton.run_context
+  });
 
   return {
     actual_tool_execution: false,
@@ -1064,6 +1196,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     chain_of_thought_exposed: false,
     failure_recovery_policy: failureRecoveryPolicy,
     max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
+    model_routing_audit: modelRoutingAudit,
     model_calls: false,
     numeric_source_guard: numericSourceGuard,
     planned_step_count: steps.length,
@@ -1824,6 +1957,120 @@ function createStepRecoveryAction(step: AgentToolLoopStepPlan): AgentFailureReco
   }
 
   return "preserve_completed_step";
+}
+
+function createModelRoutingAuditPolicy(input: {
+  failureRecoveryPolicy: AgentFailureRecoveryPolicy;
+  runContext: AgentRunContext;
+}): AgentModelRoutingAuditPolicy {
+  return {
+    actual_tool_execution: false,
+    audit_contract: {
+      cost_latency_required: true,
+      product_analytics_separate: true,
+      prompt_version_required: true,
+      redact_sensitive_content: true,
+      required_fields: [
+        "user_id",
+        "workspace_id",
+        "token_client_id",
+        "ip_risk_summary",
+        "tool_name",
+        "tool_version",
+        "input_summary_hash",
+        "authorization_policy_version",
+        "dataset",
+        "data_version",
+        "source_record_id",
+        "cache_hit",
+        "model_provider",
+        "model_id",
+        "model_version",
+        "prompt_version",
+        "input_tokens",
+        "output_tokens",
+        "estimated_cost",
+        "latency_ms",
+        "output_hash",
+        "error_code",
+        "retry_count",
+        "fallback_from_model",
+        "fallback_to_model",
+        "human_intervention"
+      ]
+    },
+    cache_policy: {
+      cache_key_material: [
+        "workspace_id",
+        "task_layer",
+        "model_id",
+        "prompt_version",
+        "input_summary_hash",
+        "data_version"
+      ],
+      non_sensitive_only: true,
+      safe_reusable_results_only: true,
+      user_private_prompt_content_cacheable: false
+    },
+    fallback_policy: {
+      fallback_model_status: "planned",
+      max_fallbacks_per_run: 1,
+      records_model_change: true,
+      strategy: "switch_to_backup_model",
+      triggers: ["MODEL_TIMEOUT", "RATE_LIMITED", "UPSTREAM_5XX"]
+    },
+    gateway: {
+      features: ["logging", "caching", "rate_limiting", "fallback", "guardrails"],
+      gateway_id: "default",
+      provider: "cloudflare_ai_gateway",
+      required_env: ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"],
+      status: "planned",
+      unified_billing: true
+    },
+    linked_policy_versions: {
+      answer_evidence_contract: ANSWER_EVIDENCE_CONTRACT_VERSION,
+      failure_recovery_policy: input.failureRecoveryPolicy.version,
+      numeric_source_guard: NUMERIC_SOURCE_GUARD_VERSION
+    },
+    live_model_routing: false,
+    model_calls: false,
+    run_context_model_tier: input.runContext.model.tier,
+    routing_tiers: [
+      {
+        model_calls: false,
+        status: "planned",
+        task_layer: "lightweight",
+        tasks: [
+          "intent_detection",
+          "security_resolution_assist",
+          "simple_formatting",
+          "summary_draft"
+        ]
+      },
+      {
+        model_calls: false,
+        status: "planned",
+        task_layer: "main",
+        tasks: ["research_planning", "evidence_synthesis", "cross_document_explanation"]
+      },
+      {
+        model_calls: false,
+        status: "wired_no_model",
+        task_layer: "deterministic_code",
+        tasks: ["financial_calculation", "screening", "structured_transform"]
+      }
+    ],
+    status: "model_routing_audit_scaffold",
+    validation_rules: [
+      "require_ai_gateway_logs",
+      "require_model_change_audit",
+      "require_budget_ledger_link",
+      "block_arbitrary_model_id",
+      "keep_deterministic_financial_calculations_out_of_model",
+      "redact_sensitive_audit_payloads"
+    ],
+    version: MODEL_ROUTING_AUDIT_VERSION
+  };
 }
 
 function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSourceGuard {

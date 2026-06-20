@@ -1,0 +1,115 @@
+{
+  "version": "2026-06-21.phase1.model-routing-audit-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "provider_route": "GET /agent/model-provider",
+  "provider_contract": "deploy/model-providers/providers.contract.json",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "policy_status": "model_routing_audit_scaffold",
+  "live_model_routing": false,
+  "ai_gateway": {
+    "provider": "cloudflare_ai_gateway",
+    "status": "planned",
+    "gateway_id": "default",
+    "features": ["logging", "caching", "rate_limiting", "fallback", "guardrails"],
+    "required_env": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"],
+    "unified_billing": true
+  },
+  "routing_tiers": [
+    {
+      "task_layer": "lightweight",
+      "status": "planned",
+      "model_calls": false,
+      "tasks": [
+        "intent_detection",
+        "security_resolution_assist",
+        "simple_formatting",
+        "summary_draft"
+      ]
+    },
+    {
+      "task_layer": "main",
+      "status": "planned",
+      "model_calls": false,
+      "tasks": ["research_planning", "evidence_synthesis", "cross_document_explanation"]
+    },
+    {
+      "task_layer": "deterministic_code",
+      "status": "wired_no_model",
+      "model_calls": false,
+      "tasks": ["financial_calculation", "screening", "structured_transform"]
+    }
+  ],
+  "fallback_policy": {
+    "strategy": "switch_to_backup_model",
+    "fallback_model_status": "planned",
+    "max_fallbacks_per_run": 1,
+    "records_model_change": true,
+    "triggers": ["MODEL_TIMEOUT", "RATE_LIMITED", "UPSTREAM_5XX"]
+  },
+  "audit_contract": {
+    "redact_sensitive_content": true,
+    "product_analytics_separate": true,
+    "prompt_version_required": true,
+    "cost_latency_required": true,
+    "required_fields": [
+      "user_id",
+      "workspace_id",
+      "token_client_id",
+      "ip_risk_summary",
+      "tool_name",
+      "tool_version",
+      "input_summary_hash",
+      "authorization_policy_version",
+      "dataset",
+      "data_version",
+      "source_record_id",
+      "cache_hit",
+      "model_provider",
+      "model_id",
+      "model_version",
+      "prompt_version",
+      "input_tokens",
+      "output_tokens",
+      "estimated_cost",
+      "latency_ms",
+      "output_hash",
+      "error_code",
+      "retry_count",
+      "fallback_from_model",
+      "fallback_to_model",
+      "human_intervention"
+    ]
+  },
+  "cache_policy": {
+    "safe_reusable_results_only": true,
+    "non_sensitive_only": true,
+    "user_private_prompt_content_cacheable": false,
+    "cache_key_material": [
+      "workspace_id",
+      "task_layer",
+      "model_id",
+      "prompt_version",
+      "input_summary_hash",
+      "data_version"
+    ]
+  },
+  "required_validation_rules": [
+    "require_ai_gateway_logs",
+    "require_model_change_audit",
+    "require_budget_ledger_link",
+    "block_arbitrary_model_id",
+    "keep_deterministic_financial_calculations_out_of_model",
+    "redact_sensitive_audit_payloads"
+  ],
+  "linked_contracts": [
+    "deploy/agent/failure-recovery-policy.contract.json",
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/agent/numeric-source-guard.contract.json",
+    "deploy/model-providers/providers.contract.json"
+  ]
+}
