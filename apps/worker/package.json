@@ -20,6 +20,7 @@
     "@aiphabee/financial-facts": "file:../../packages/financial-facts",
     "@aiphabee/observability": "file:../../packages/observability",
     "@aiphabee/serving-store": "file:../../packages/serving-store",
+    "@aiphabee/tool-registry": "file:../../packages/tool-registry",
     "@aiphabee/usage-ledger": "file:../../packages/usage-ledger",
     "hono": "^4.12.26"
   },

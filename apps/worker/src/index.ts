@@ -30,6 +30,7 @@ import {
   getServingStoreSqlDescriptorCapabilities,
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
+import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import { getUsageLedgerEventWriterCapabilities } from "@aiphabee/usage-ledger";
 
 interface WorkerBindings {
@@ -887,6 +888,34 @@ app.post("/agent/runs/dry-run", async (c) => {
       500
     );
   }
+});
+
+app.get("/tools/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getToolRegistryCapabilities(), {
+      asOf: new Date().toISOString(),
+      methodologyVersion: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
+      provenance: [
+        {
+          data_version: "tool-registry-scaffold-v0",
+          methodology_version:
+            "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
+          source: "tool-registry",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
 });
 
 export default app;

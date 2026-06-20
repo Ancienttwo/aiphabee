@@ -1,7 +1,7 @@
 # Agent Runtime Scaffold
 
 > **Status**: Verified dry-run scaffold
-> **Last Updated**: 2026-06-20 15:25 +08
+> **Last Updated**: 2026-06-21 00:30 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-agent-runtime-scaffold.md`
 > **Task Contract**: `tasks/contracts/agent-runtime-scaffold.contract.md`
@@ -13,7 +13,8 @@ surface without configuring a real model provider or making model calls.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Agent runtime package | `packages/agent-runtime` | Provider-agnostic dry-run runtime, registered tool policy, AI SDK stop condition |
+| Agent runtime package | `packages/agent-runtime` | Provider-agnostic dry-run runtime, shared registry-backed tool policy, AI SDK stop condition |
+| Shared Tool Registry | `packages/tool-registry` | Owns planned tool names, schemas, permissions, execution posture, and fixture requirements |
 | AI SDK dependency | `ai@7.0.0-beta.182` | Pinned to current v7 beta because npm latest is v6 |
 | Worker route | `GET /agent/runtime` | Returns capabilities, limits, registered tools, and no-call surfaces |
 | Worker route | `POST /agent/runs/dry-run` | Validates prompt/tool policy and returns dry-run skeleton |
@@ -27,6 +28,7 @@ Capability trace:
 
 1. `GET /agent/runtime` enters the Hono Worker.
 2. Worker calls `getAgentRuntimeCapabilities()` from `@aiphabee/agent-runtime`.
+   The package reads registered tools from `@aiphabee/tool-registry`.
 3. The response envelope reports:
    - `ai_sdk.package_name=ai`
    - `ai_sdk.target_version=7.0.0-beta.182`
@@ -83,6 +85,7 @@ Passed:
 - Model provider / streaming contract now exists in
   `docs/governance/model-provider-streaming-scaffold.md`; real AI Gateway
   request, `streamText`, and `generateText` execution remain unimplemented.
-- Registered tools are planned policy entries; they do not execute market data.
+- Registered tools now come from the shared Tool Registry scaffold; they remain
+  planned policy entries and do not execute market data.
 - Usage ledger, persistent run store, OTel spans, and Workflow handoff are not
   implemented.

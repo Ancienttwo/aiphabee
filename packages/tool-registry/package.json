@@ -1,5 +1,5 @@
 {
-  "name": "@aiphabee/agent-runtime",
+  "name": "@aiphabee/tool-registry",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,9 +13,5 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@aiphabee/tool-registry": "file:../tool-registry",
-    "ai": "7.0.0-beta.182"
   }
 }

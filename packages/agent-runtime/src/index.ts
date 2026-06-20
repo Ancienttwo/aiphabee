@@ -1,4 +1,10 @@
 import { isStepCount } from "ai";
+import {
+  REGISTERED_TOOLS,
+  getRegisteredToolNames,
+  validateRegisteredTools,
+  type RegisteredToolName
+} from "@aiphabee/tool-registry";
 
 export const AGENT_RUNTIME_VERSION = "agent-runtime-scaffold-v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
@@ -10,38 +16,8 @@ export const AGENT_RUNTIME_LIMITS = {
   supportedMaxSteps: 8
 } as const;
 
-export const REGISTERED_AGENT_TOOLS = [
-  {
-    channel: "web",
-    name: "resolve_security",
-    requiredScope: "security:read",
-    status: "planned",
-    version: "0.0.0"
-  },
-  {
-    channel: "web",
-    name: "get_security_profile",
-    requiredScope: "security:read",
-    status: "planned",
-    version: "0.0.0"
-  },
-  {
-    channel: "web",
-    name: "get_data_lineage",
-    requiredScope: "lineage:read",
-    status: "planned",
-    version: "0.0.0"
-  },
-  {
-    channel: "web",
-    name: "get_entitlements",
-    requiredScope: "entitlements:read",
-    status: "planned",
-    version: "0.0.0"
-  }
-] as const;
-
-export type RegisteredAgentToolName = (typeof REGISTERED_AGENT_TOOLS)[number]["name"];
+export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
+export type RegisteredAgentToolName = RegisteredToolName;
 
 export interface AgentRunSkeletonInput {
   maxSteps?: number;
@@ -157,10 +133,9 @@ export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSk
     "get_data_lineage",
     "get_entitlements"
   ];
-  const registeredTools = REGISTERED_AGENT_TOOLS.map((tool) => tool.name);
-  const deniedTools = requestedTools.filter(
-    (tool) => !registeredTools.includes(tool as RegisteredAgentToolName)
-  );
+  const registeredTools = getRegisteredToolNames();
+  const toolValidation = validateRegisteredTools(requestedTools);
+  const deniedTools = toolValidation.deniedTools;
 
   if (deniedTools.length > 0) {
     throw new AgentRuntimeInputError(

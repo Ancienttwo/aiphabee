@@ -19,11 +19,46 @@ interface AgentRuntimeBody {
       stop_condition: string;
       target_version: string;
     };
+    registered_tools: Array<{
+      name: string;
+      schema: {
+        standardResponseEnvelope: boolean;
+      };
+    }>;
     surfaces: {
       market_data: boolean;
       mcp_redistribution: boolean;
       model_calls: boolean;
     };
+  };
+  ok: true;
+}
+
+interface ToolRuntimeBody {
+  data: {
+    allow_arbitrary_sql: boolean;
+    allow_arbitrary_url: boolean;
+    execution_ready: boolean;
+    golden_fixtures_ready: boolean;
+    registry_status: string;
+    rights_aware: boolean;
+    schema_ready: boolean;
+    standard_response_envelope: boolean;
+    status: string;
+    tool_count: number;
+    tools: Array<{
+      execution: {
+        handlerReady: boolean;
+        liveDataAccess: boolean;
+      };
+      name: string;
+      permissions: {
+        rightsAware: boolean;
+      };
+      schema: {
+        standardResponseEnvelope: boolean;
+      };
+    }>;
   };
   ok: true;
 }
@@ -408,9 +443,43 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.ai_sdk.stop_condition).toBe("isStepCount");
     expect(body.data.ai_sdk.target_version).toBe("7.0.0-beta.182");
+    expect(body.data.registered_tools).toHaveLength(9);
+    expect(body.data.registered_tools[0]).toMatchObject({
+      name: "resolve_security",
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
     expect(body.data.surfaces.model_calls).toBe(false);
     expect(body.data.surfaces.market_data).toBe(false);
     expect(body.data.surfaces.mcp_redistribution).toBe(false);
+  });
+
+  it("serves shared tool registry capabilities without tool execution", async () => {
+    const response = await app.request("/tools/runtime", {
+      headers: {
+        "x-request-id": "req-tools-runtime"
+      }
+    });
+    const body = (await response.json()) as ToolRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("shared_tool_registry_scaffold");
+    expect(body.data.tool_count).toBe(9);
+    expect(body.data.schema_ready).toBe(true);
+    expect(body.data.rights_aware).toBe(true);
+    expect(body.data.standard_response_envelope).toBe(true);
+    expect(body.data.execution_ready).toBe(false);
+    expect(body.data.allow_arbitrary_sql).toBe(false);
+    expect(body.data.allow_arbitrary_url).toBe(false);
+    expect(body.data.tools.every((tool) => tool.execution.handlerReady === false)).toBe(
+      true
+    );
+    expect(body.data.tools.every((tool) => tool.execution.liveDataAccess === false)).toBe(
+      true
+    );
   });
 
   it("serves database runtime capabilities without live queries", async () => {

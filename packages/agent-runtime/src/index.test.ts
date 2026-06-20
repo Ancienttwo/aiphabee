@@ -17,7 +17,13 @@ describe("agent runtime scaffold", () => {
     });
     expect(capabilities.surfaces.model_calls).toBe(false);
     expect(capabilities.surfaces.market_data).toBe(false);
-    expect(capabilities.registered_tools).toHaveLength(4);
+    expect(capabilities.registered_tools).toHaveLength(9);
+    expect(capabilities.registered_tools[0]).toMatchObject({
+      name: "resolve_security",
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
   });
 
   it("creates a dry-run skeleton with registered tool policy", () => {
@@ -32,6 +38,7 @@ describe("agent runtime scaffold", () => {
     expect(skeleton.tool_policy.allow_arbitrary_sql).toBe(false);
     expect(skeleton.tool_policy.allow_arbitrary_url).toBe(false);
     expect(skeleton.tool_policy.requested_tools).toContain("resolve_security");
+    expect(skeleton.tool_policy.registered_tools).toContain("get_quote_snapshot");
   });
 
   it("rejects unregistered tools", () => {
