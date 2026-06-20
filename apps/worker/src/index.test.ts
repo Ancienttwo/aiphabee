@@ -377,6 +377,49 @@ interface EntitlementsBody {
   };
 }
 
+interface EvidenceRuntimeBody {
+  data: {
+    citation_planner: boolean;
+    durable_schema_ready: boolean;
+    live_db_writes: boolean;
+    source_record_linking: boolean;
+    status: string;
+    tables: string[];
+    tool_call_linking: boolean;
+    user_visible_citations: boolean;
+  };
+  ok: true;
+}
+
+interface EvidenceRecordPlanBody {
+  data: {
+    citation: {
+      label: string;
+      sourceRecordIds: string[];
+      visibility: string;
+    };
+    evidenceRecord: {
+      evidenceRecordId: string;
+      outputSchemaId?: string;
+      requestId: string;
+      rightsState: string;
+      toolName: string;
+    };
+    liveDbWrites: boolean;
+    sourceRefs: Array<{
+      evidenceRecordId: string;
+      sourceRecordId: string;
+    }>;
+    sqlEmitted: boolean;
+    status: string;
+    tables: string[];
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -2020,6 +2063,98 @@ describe("worker runtime", () => {
     expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
     expect(invalid.status).toBe(400);
     expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("serves evidence runtime capabilities without live writes", async () => {
+    const response = await app.request("/evidence/runtime", {
+      headers: {
+        "x-request-id": "req-evidence-runtime"
+      }
+    });
+    const body = (await response.json()) as EvidenceRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      citation_planner: true,
+      durable_schema_ready: true,
+      live_db_writes: false,
+      source_record_linking: true,
+      status: "evidence_lineage_service_scaffold",
+      tool_call_linking: true,
+      user_visible_citations: true
+    });
+    expect(body.data.tables).toEqual(["core.evidence_record", "core.evidence_source_ref"]);
+  });
+
+  it("plans evidence records with source refs and user-visible citation metadata", async () => {
+    const response = await app.request("/evidence/records/plan", {
+      body: JSON.stringify({
+        data_version: "financial-facts-synthetic-v0",
+        methodology_version: "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+        output_schema_id: "tool.get_financial_facts.output.v0",
+        request_id: "req-financial-facts",
+        source_records: [
+          {
+            data_version: "financial-facts-synthetic-v0",
+            methodology_version: "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+            source: "synthetic.financial_facts.statement",
+            source_record_id: "financial-facts:eq_hk_00700:2023-12-31:v1"
+          }
+        ],
+        tool_name: "get_financial_facts",
+        user_visible_label: "FY2023 financial facts"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-evidence-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EvidenceRecordPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("planned_no_write");
+    expect(body.data.liveDbWrites).toBe(false);
+    expect(body.data.sqlEmitted).toBe(false);
+    expect(body.data.evidenceRecord).toMatchObject({
+      outputSchemaId: "tool.get_financial_facts.output.v0",
+      requestId: "req-financial-facts",
+      rightsState: "default_deny",
+      toolName: "get_financial_facts"
+    });
+    expect(body.data.sourceRefs[0]).toMatchObject({
+      evidenceRecordId: body.data.evidenceRecord.evidenceRecordId,
+      sourceRecordId: "financial-facts:eq_hk_00700:2023-12-31:v1"
+    });
+    expect(body.data.citation).toMatchObject({
+      label: "FY2023 financial facts",
+      visibility: "user_visible"
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("rejects invalid evidence record plans with standard errors", async () => {
+    const response = await app.request("/evidence/records/plan", {
+      body: JSON.stringify({
+        data_version: "financial-facts-synthetic-v0",
+        methodology_version: "methodology-v0",
+        source_records: [],
+        tool_name: "get_financial_facts"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-evidence-plan-invalid"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
   });
 
   it("serves database runtime capabilities without live queries", async () => {

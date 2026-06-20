@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-20.phase1.serving-store.v0",
+  "version": "2026-06-21.phase1.evidence-lineage-service.v0",
   "status": "local_contract",
   "provider": "supabase_postgres",
   "connection_path": "cloudflare_hyperdrive",
@@ -129,6 +129,18 @@
         "core.serving_record",
         "core.serving_snapshot",
         "governance.serving_store_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql",
+      "purpose": "Create empty Evidence and Lineage service scaffolds for Sprint 1.2 without enabling live DB writes or loading partner source records.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.evidence_record",
+        "core.evidence_source_ref",
+        "governance.evidence_lineage_service_contract"
       ],
       "market_data": false,
       "default_rights_status": "default_deny"

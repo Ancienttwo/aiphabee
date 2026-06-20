@@ -15,8 +15,11 @@ import {
 
 export const EVIDENCE_LINEAGE_TOOLS_VERSION =
   "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0";
+export const EVIDENCE_LINEAGE_SERVICE_VERSION =
+  "2026-06-21.phase1.evidence-lineage-service-scaffold.v0";
 export const DATA_LINEAGE_DATA_VERSION = "data-lineage-synthetic-v0";
 export const ENTITLEMENTS_DATA_VERSION = "entitlements-synthetic-v0";
+export const EVIDENCE_SERVICE_DATA_VERSION = "evidence-lineage-service-scaffold-v0";
 
 export type DataLineageInputErrorCode = "LOOKUP_REQUIRED" | "INVALID_AS_OF";
 export type DataLineageStatus = "data_quality_hold" | "found" | "not_found";
@@ -34,6 +37,11 @@ export type EntitlementsStatus =
   | "out_of_range"
   | "scope_denied"
   | "too_many_rows";
+export type EvidenceServiceInputErrorCode =
+  | "INVALID_AS_OF"
+  | "SOURCE_RECORD_REQUIRED"
+  | "TOOL_NAME_REQUIRED";
+export type EvidenceRecordPlanStatus = "planned_no_write";
 
 export interface GetDataLineageInput {
   asOf?: string;
@@ -153,6 +161,65 @@ export interface GetEntitlementsResult {
   workspaceId: string;
 }
 
+export interface EvidenceSourceRecordInput {
+  dataVersion: string;
+  methodologyVersion?: string;
+  source: string;
+  sourceRecordId: string;
+}
+
+export interface CreateEvidenceRecordPlanInput {
+  asOf?: string;
+  dataVersion: string;
+  inputSchemaId?: string;
+  methodologyVersion: string;
+  outputSchemaId?: string;
+  requestId: string;
+  sourceRecords: EvidenceSourceRecordInput[];
+  toolName: string;
+  toolVersion?: string;
+  userVisibleLabel?: string;
+}
+
+export interface EvidenceSourceRefPlan {
+  dataVersion: string;
+  evidenceRecordId: string;
+  evidenceSourceRefId: string;
+  methodologyVersion?: string;
+  source: string;
+  sourceRecordId: string;
+}
+
+export interface EvidenceRecordPlan {
+  asOf: string;
+  citation: {
+    label: string;
+    sourceRecordIds: string[];
+    visibility: "user_visible";
+  };
+  dataVersion: string;
+  evidenceRecord: {
+    dataVersion: string;
+    evidenceRecordId: string;
+    inputSchemaId?: string;
+    methodologyVersion: string;
+    outputSchemaId?: string;
+    requestId: string;
+    rightsState: "default_deny";
+    toolName: string;
+    toolVersion: string;
+  };
+  liveDbWrites: false;
+  methodologyVersion: typeof EVIDENCE_LINEAGE_SERVICE_VERSION;
+  provenance: ProvenanceRef[];
+  sourceRefs: EvidenceSourceRefPlan[];
+  sqlEmitted: false;
+  status: EvidenceRecordPlanStatus;
+  tables: readonly ["core.evidence_record", "core.evidence_source_ref"];
+  usage: UsageSummary;
+  version: typeof EVIDENCE_LINEAGE_SERVICE_VERSION;
+}
+
 interface SyntheticLineageRecord {
   createdAt: string;
   dataVersion: string;
@@ -185,6 +252,15 @@ export class EntitlementsInputError extends Error {
   readonly code: EntitlementsInputErrorCode;
 
   constructor(code: EntitlementsInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export class EvidenceServiceInputError extends Error {
+  readonly code: EvidenceServiceInputErrorCode;
+
+  constructor(code: EvidenceServiceInputErrorCode, message: string) {
     super(message);
     this.code = code;
   }
@@ -602,6 +678,107 @@ export function getEvidenceLineageCapabilities() {
   };
 }
 
+export function createEvidenceRecordPlan(
+  input: CreateEvidenceRecordPlanInput
+): EvidenceRecordPlan {
+  const asOf = normalizeEvidenceServiceAsOf(input.asOf);
+  const toolName = normalizeEvidenceServiceText(input.toolName);
+  const requestId = normalizeEvidenceServiceText(input.requestId);
+  const dataVersion = normalizeEvidenceServiceText(input.dataVersion);
+  const methodologyVersion = normalizeEvidenceServiceText(input.methodologyVersion);
+
+  if (toolName === undefined || requestId === undefined) {
+    throw new EvidenceServiceInputError(
+      "TOOL_NAME_REQUIRED",
+      "toolName and requestId are required"
+    );
+  }
+
+  if (dataVersion === undefined || methodologyVersion === undefined) {
+    throw new EvidenceServiceInputError(
+      "SOURCE_RECORD_REQUIRED",
+      "dataVersion and methodologyVersion are required"
+    );
+  }
+
+  const sourceRecords = normalizeEvidenceSourceRecords(input.sourceRecords);
+  const evidenceRecordId = `evidence_${hashEvidenceKey(
+    [toolName, requestId, dataVersion, methodologyVersion, asOf].join("|")
+  )}`;
+  const toolVersion = input.toolVersion ?? "0.0.0";
+  const sourceRefs = sourceRecords.map((sourceRecord, index) => ({
+    dataVersion: sourceRecord.dataVersion,
+    evidenceRecordId,
+    evidenceSourceRefId: `${evidenceRecordId}_src_${index + 1}`,
+    methodologyVersion: sourceRecord.methodologyVersion,
+    source: sourceRecord.source,
+    sourceRecordId: sourceRecord.sourceRecordId
+  }));
+  const label =
+    normalizeEvidenceServiceText(input.userVisibleLabel) ??
+    `${toolName} evidence for ${sourceRecords[0]?.sourceRecordId ?? requestId}`;
+
+  return {
+    asOf,
+    citation: {
+      label,
+      sourceRecordIds: sourceRefs.map((sourceRef) => sourceRef.sourceRecordId),
+      visibility: "user_visible"
+    },
+    dataVersion: EVIDENCE_SERVICE_DATA_VERSION,
+    evidenceRecord: {
+      dataVersion,
+      evidenceRecordId,
+      inputSchemaId: normalizeEvidenceServiceText(input.inputSchemaId),
+      methodologyVersion,
+      outputSchemaId: normalizeEvidenceServiceText(input.outputSchemaId),
+      requestId,
+      rightsState: "default_deny",
+      toolName,
+      toolVersion
+    },
+    liveDbWrites: false,
+    methodologyVersion: EVIDENCE_LINEAGE_SERVICE_VERSION,
+    provenance: [
+      {
+        data_version: EVIDENCE_SERVICE_DATA_VERSION,
+        methodology_version: EVIDENCE_LINEAGE_SERVICE_VERSION,
+        source: "evidence-lineage-service",
+        source_record_id: evidenceRecordId
+      },
+      ...sourceRefs.map((sourceRef) => ({
+        data_version: sourceRef.dataVersion,
+        methodology_version: sourceRef.methodologyVersion,
+        source: sourceRef.source,
+        source_record_id: sourceRef.sourceRecordId
+      }))
+    ],
+    sourceRefs,
+    sqlEmitted: false,
+    status: "planned_no_write",
+    tables: ["core.evidence_record", "core.evidence_source_ref"],
+    usage: createUsage(sourceRefs.length, 1),
+    version: EVIDENCE_LINEAGE_SERVICE_VERSION
+  };
+}
+
+export function getEvidenceServiceCapabilities() {
+  return {
+    citation_planner: true,
+    default_rights_status: "default_deny" as const,
+    durable_schema_ready: true,
+    handler_ready: true,
+    live_db_writes: false,
+    no_sql_execution: true,
+    source_record_linking: true,
+    status: "evidence_lineage_service_scaffold" as const,
+    tables: ["core.evidence_record", "core.evidence_source_ref"] as const,
+    tool_call_linking: true,
+    user_visible_citations: true,
+    version: EVIDENCE_LINEAGE_SERVICE_VERSION
+  };
+}
+
 function createDataEntitlement(
   entitlementId: string,
   channel: DataAccessChannel,
@@ -979,6 +1156,68 @@ function createEntitlementsProvenance(
       source_record_id: "createPolicyFromEntitlementRows"
     }
   ];
+}
+
+function normalizeEvidenceServiceAsOf(value: string | undefined): string {
+  const normalized = normalizeEvidenceServiceText(value) ?? DEFAULT_AS_OF;
+
+  if (Number.isNaN(Date.parse(normalized))) {
+    throw new EvidenceServiceInputError("INVALID_AS_OF", "asOf must be an ISO timestamp");
+  }
+
+  return normalized;
+}
+
+function normalizeEvidenceSourceRecords(
+  sourceRecords: EvidenceSourceRecordInput[]
+): EvidenceSourceRecordInput[] {
+  if (!Array.isArray(sourceRecords) || sourceRecords.length === 0) {
+    throw new EvidenceServiceInputError(
+      "SOURCE_RECORD_REQUIRED",
+      "at least one source record is required"
+    );
+  }
+
+  return sourceRecords.map((sourceRecord) => {
+    const source = normalizeEvidenceServiceText(sourceRecord.source);
+    const sourceRecordId = normalizeEvidenceServiceText(sourceRecord.sourceRecordId);
+    const dataVersion = normalizeEvidenceServiceText(sourceRecord.dataVersion);
+
+    if (source === undefined || sourceRecordId === undefined || dataVersion === undefined) {
+      throw new EvidenceServiceInputError(
+        "SOURCE_RECORD_REQUIRED",
+        "source records require source, sourceRecordId, and dataVersion"
+      );
+    }
+
+    return {
+      dataVersion,
+      methodologyVersion: normalizeEvidenceServiceText(sourceRecord.methodologyVersion),
+      source,
+      sourceRecordId
+    };
+  });
+}
+
+function normalizeEvidenceServiceText(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function hashEvidenceKey(value: string): string {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 function createUsage(rows: number, credits: number): UsageSummary {

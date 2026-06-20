@@ -22,10 +22,13 @@ import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contr
 import {
   DataLineageInputError,
   EntitlementsInputError,
+  EvidenceServiceInputError,
+  createEvidenceRecordPlan,
   getDataLineage,
   getDataLineageCapabilities,
   getEntitlements,
-  getEntitlementsCapabilities
+  getEntitlementsCapabilities,
+  getEvidenceServiceCapabilities
 } from "@aiphabee/evidence-lineage";
 import {
   FinancialFactsInputError,
@@ -2006,6 +2009,198 @@ app.post("/tools/get-entitlements", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.get("/evidence/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getEvidenceServiceCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "evidence-lineage-service-scaffold-v0",
+      methodologyVersion:
+        "2026-06-21.phase1.evidence-lineage-service-scaffold.v0",
+      provenance: [
+        {
+          data_version: "evidence-lineage-service-scaffold-v0",
+          methodology_version:
+            "2026-06-21.phase1.evidence-lineage-service-scaffold.v0",
+          source: "evidence-lineage-service",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/evidence/records/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    asOf?: unknown;
+    data_version?: unknown;
+    dataVersion?: unknown;
+    input_schema_id?: unknown;
+    inputSchemaId?: unknown;
+    methodology_version?: unknown;
+    methodologyVersion?: unknown;
+    output_schema_id?: unknown;
+    outputSchemaId?: unknown;
+    request_id?: unknown;
+    requestId?: unknown;
+    source_records?: unknown;
+    sourceRecords?: unknown;
+    tool_name?: unknown;
+    toolName?: unknown;
+    tool_version?: unknown;
+    toolVersion?: unknown;
+    user_visible_label?: unknown;
+    userVisibleLabel?: unknown;
+  };
+  const rawSourceRecords = Array.isArray(body.source_records)
+    ? body.source_records
+    : Array.isArray(body.sourceRecords)
+      ? body.sourceRecords
+      : [];
+  const sourceRecords = rawSourceRecords
+    .filter((sourceRecord): sourceRecord is Record<string, unknown> =>
+      typeof sourceRecord === "object" && sourceRecord !== null && !Array.isArray(sourceRecord)
+    )
+    .map((sourceRecord) => ({
+      dataVersion:
+        typeof sourceRecord.data_version === "string"
+          ? sourceRecord.data_version
+          : typeof sourceRecord.dataVersion === "string"
+            ? sourceRecord.dataVersion
+            : "",
+      methodologyVersion:
+        typeof sourceRecord.methodology_version === "string"
+          ? sourceRecord.methodology_version
+          : typeof sourceRecord.methodologyVersion === "string"
+            ? sourceRecord.methodologyVersion
+            : undefined,
+      source: typeof sourceRecord.source === "string" ? sourceRecord.source : "",
+      sourceRecordId:
+        typeof sourceRecord.source_record_id === "string"
+          ? sourceRecord.source_record_id
+          : typeof sourceRecord.sourceRecordId === "string"
+            ? sourceRecord.sourceRecordId
+            : ""
+    }));
+
+  try {
+    const result = createEvidenceRecordPlan({
+      asOf:
+        typeof body.as_of === "string"
+          ? body.as_of
+          : typeof body.asOf === "string"
+            ? body.asOf
+            : undefined,
+      dataVersion:
+        typeof body.data_version === "string"
+          ? body.data_version
+          : typeof body.dataVersion === "string"
+            ? body.dataVersion
+            : "",
+      inputSchemaId:
+        typeof body.input_schema_id === "string"
+          ? body.input_schema_id
+          : typeof body.inputSchemaId === "string"
+            ? body.inputSchemaId
+            : undefined,
+      methodologyVersion:
+        typeof body.methodology_version === "string"
+          ? body.methodology_version
+          : typeof body.methodologyVersion === "string"
+            ? body.methodologyVersion
+            : "",
+      outputSchemaId:
+        typeof body.output_schema_id === "string"
+          ? body.output_schema_id
+          : typeof body.outputSchemaId === "string"
+            ? body.outputSchemaId
+            : undefined,
+      requestId:
+        typeof body.request_id === "string"
+          ? body.request_id
+          : typeof body.requestId === "string"
+            ? body.requestId
+            : requestId,
+      sourceRecords,
+      toolName:
+        typeof body.tool_name === "string"
+          ? body.tool_name
+          : typeof body.toolName === "string"
+            ? body.toolName
+            : "",
+      toolVersion:
+        typeof body.tool_version === "string"
+          ? body.tool_version
+          : typeof body.toolVersion === "string"
+            ? body.toolVersion
+            : undefined,
+      userVisibleLabel:
+        typeof body.user_visible_label === "string"
+          ? body.user_visible_label
+          : typeof body.userVisibleLabel === "string"
+            ? body.userVisibleLabel
+            : undefined
+    });
+
+    return c.json(
+      createSuccessEnvelope(result, {
+        asOf: result.asOf,
+        dataVersion: result.dataVersion,
+        methodologyVersion: result.methodologyVersion,
+        provenance: result.provenance,
+        requestId,
+        usage: result.usage
+      })
+    );
+  } catch (error) {
+    if (error instanceof EvidenceServiceInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.evidence-lineage-service-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "evidence record plan failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.evidence-lineage-service-scaffold.v0",
         requestId,
         usage: {
           cached: false,

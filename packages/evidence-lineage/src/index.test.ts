@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  EvidenceServiceInputError,
+  createEvidenceRecordPlan,
   DataLineageInputError,
   EntitlementsInputError,
   getDataLineage,
   getDataLineageCapabilities,
   getEntitlements,
   getEntitlementsCapabilities,
+  getEvidenceServiceCapabilities,
   getEvidenceLineageCapabilities
 } from "./index";
 
@@ -201,6 +204,85 @@ describe("evidence-lineage tool scaffolds", () => {
       handler_ready_tool_count: 2,
       live_data_access: false,
       status: "evidence_lineage_tools_scaffold"
+    });
+  });
+
+  it("creates no-write evidence record plans with user-visible citations", () => {
+    const plan = createEvidenceRecordPlan({
+      dataVersion: "financial-facts-synthetic-v0",
+      inputSchemaId: "tool.get_financial_facts.input.v0",
+      methodologyVersion: "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+      outputSchemaId: "tool.get_financial_facts.output.v0",
+      requestId: "req-financial-facts",
+      sourceRecords: [
+        {
+          dataVersion: "financial-facts-synthetic-v0",
+          methodologyVersion: "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+          source: "synthetic.financial_facts.statement",
+          sourceRecordId: "financial-facts:eq_hk_00700:2023-12-31:v1"
+        }
+      ],
+      toolName: "get_financial_facts",
+      userVisibleLabel: "FY2023 financial facts"
+    });
+
+    expect(plan.status).toBe("planned_no_write");
+    expect(plan.liveDbWrites).toBe(false);
+    expect(plan.sqlEmitted).toBe(false);
+    expect(plan.tables).toEqual(["core.evidence_record", "core.evidence_source_ref"]);
+    expect(plan.evidenceRecord).toMatchObject({
+      inputSchemaId: "tool.get_financial_facts.input.v0",
+      outputSchemaId: "tool.get_financial_facts.output.v0",
+      requestId: "req-financial-facts",
+      rightsState: "default_deny",
+      toolName: "get_financial_facts"
+    });
+    expect(plan.sourceRefs[0]).toMatchObject({
+      evidenceRecordId: plan.evidenceRecord.evidenceRecordId,
+      source: "synthetic.financial_facts.statement",
+      sourceRecordId: "financial-facts:eq_hk_00700:2023-12-31:v1"
+    });
+    expect(plan.citation).toMatchObject({
+      label: "FY2023 financial facts",
+      visibility: "user_visible"
+    });
+    expect(plan.provenance.map((source) => source.source_record_id)).toContain(
+      "financial-facts:eq_hk_00700:2023-12-31:v1"
+    );
+  });
+
+  it("validates evidence service planner input and reports capabilities", () => {
+    expect(() =>
+      createEvidenceRecordPlan({
+        dataVersion: "financial-facts-synthetic-v0",
+        methodologyVersion: "methodology-v0",
+        requestId: "req-missing-source",
+        sourceRecords: [],
+        toolName: "get_financial_facts"
+      })
+    ).toThrow(EvidenceServiceInputError);
+    expect(() =>
+      createEvidenceRecordPlan({
+        dataVersion: "financial-facts-synthetic-v0",
+        methodologyVersion: "methodology-v0",
+        requestId: "req-bad-as-of",
+        asOf: "not-a-date",
+        sourceRecords: [
+          {
+            dataVersion: "financial-facts-synthetic-v0",
+            source: "synthetic",
+            sourceRecordId: "record-1"
+          }
+        ],
+        toolName: "get_financial_facts"
+      })
+    ).toThrow(EvidenceServiceInputError);
+    expect(getEvidenceServiceCapabilities()).toMatchObject({
+      durable_schema_ready: true,
+      live_db_writes: false,
+      source_record_linking: true,
+      status: "evidence_lineage_service_scaffold",
+      user_visible_citations: true
     });
   });
 });
