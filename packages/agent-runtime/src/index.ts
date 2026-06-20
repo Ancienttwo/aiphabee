@@ -22,6 +22,8 @@ export const BUDGET_STOP_POLICY_VERSION =
 export const TOOL_ENFORCEMENT_VERSION = "2026-06-21.phase1.tool-enforcement-scaffold.v0";
 export const NUMERIC_SOURCE_GUARD_VERSION =
   "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
+export const ANSWER_EVIDENCE_CONTRACT_VERSION =
+  "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -86,6 +88,22 @@ export interface AgentRuntimeCapabilities {
     max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
     model_calls: false;
     planner_ready: true;
+    answer_evidence_contract: {
+      evidence_card_payload: "planned";
+      frontend_rendering: false;
+      ordered_sections: readonly [
+        "direct_answer",
+        "data_status",
+        "key_evidence",
+        "explanation",
+        "counter_evidence_risks",
+        "sources_methods",
+        "next_steps",
+        "disclaimer"
+      ];
+      required_claim_labels: readonly ["fact", "calculation", "inference", "unknown"];
+      status: "answer_evidence_contract_scaffold";
+    };
     numeric_source_guard: {
       allowed_sources: readonly ["tool_result", "deterministic_calculation"];
       concrete_numbers_allowed_without_sources: false;
@@ -332,6 +350,95 @@ export interface AgentNumericSourceGuard {
   version: typeof NUMERIC_SOURCE_GUARD_VERSION;
 }
 
+export type AgentAnswerSectionId =
+  | "counter_evidence_risks"
+  | "data_status"
+  | "direct_answer"
+  | "disclaimer"
+  | "explanation"
+  | "key_evidence"
+  | "next_steps"
+  | "sources_methods";
+export type AgentAnswerClaimLabel = "calculation" | "fact" | "inference" | "unknown";
+export type AgentEvidenceStrength = "medium" | "strong" | "unknown" | "weak";
+export type AgentEvidenceCardType = "data_point" | "lineage" | "methodology" | "profile";
+export type AgentEvidenceCardRequiredField =
+  | "as_of"
+  | "card_id"
+  | "claim_id"
+  | "currency"
+  | "data_point"
+  | "data_version"
+  | "document_location"
+  | "evidence_strength"
+  | "label"
+  | "methodology_version"
+  | "source_record_id"
+  | "unit"
+  | "warnings";
+
+export interface AgentAnswerEvidenceContract {
+  actual_tool_execution: false;
+  answer_structure: {
+    disclaimer_boundary: "not_a_substitute_for_runtime_controls";
+    key_evidence_items: {
+      max: 6;
+      min: 3;
+    };
+    max_direct_answer_sentences: 5;
+    max_next_steps: 3;
+    min_direct_answer_sentences: 2;
+    ordered_sections: Array<{
+      order: number;
+      required: true;
+      section_id: AgentAnswerSectionId;
+      source: "prd_8_3";
+    }>;
+  };
+  claim_labels: {
+    calculation_requires_calculation_ref: true;
+    fact_requires_evidence_card: true;
+    inference_requires_evidence_strength: true;
+    required_labels: AgentAnswerClaimLabel[];
+    text_labels_required: true;
+    ui_labels_required: true;
+    unknown_requires_missing_reason: true;
+  };
+  evidence_cards: {
+    clickable_payload_contract: true;
+    frontend_rendering: false;
+    planned_card_sources: Array<{
+      as_of_required: true;
+      card_type: AgentEvidenceCardType;
+      data_classes: string[];
+      data_version_required: true;
+      methodology_version_required: true;
+      output_schema_id: string;
+      source_record_required: true;
+      tool_name: RegisteredAgentToolName;
+      version: string;
+    }>;
+    required_fields: AgentEvidenceCardRequiredField[];
+  };
+  evidence_strength: {
+    allowed_values: AgentEvidenceStrength[];
+    confidence_score_display: false;
+  };
+  frontend_rendering: false;
+  model_calls: false;
+  numeric_source_guard_version: typeof NUMERIC_SOURCE_GUARD_VERSION;
+  status: "answer_evidence_contract_scaffold";
+  validation_rules: readonly [
+    "require_ordered_answer_sections",
+    "require_layer_label_per_claim",
+    "require_evidence_card_ref_for_fact",
+    "require_calculation_ref_for_calculation",
+    "label_missing_data_unknown",
+    "block_unsourced_specific_numbers"
+  ];
+  version: typeof ANSWER_EVIDENCE_CONTRACT_VERSION;
+}
+
 export interface AgentToolLoopToolCallPlan {
   allow_arbitrary_sql: false;
   allow_arbitrary_url: false;
@@ -521,6 +628,7 @@ export interface AgentToolLoopStepPlan {
 
 export interface AgentToolLoopPlan {
   actual_tool_execution: false;
+  answer_evidence_contract: AgentAnswerEvidenceContract;
   budget: AgentRunBudget;
   budget_stop_policy: AgentBudgetStopPolicy;
   chain_of_thought_exposed: false;
@@ -637,6 +745,22 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       chain_of_thought_exposed: false,
       max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
       model_calls: false,
+      answer_evidence_contract: {
+        evidence_card_payload: "planned",
+        frontend_rendering: false,
+        ordered_sections: [
+          "direct_answer",
+          "data_status",
+          "key_evidence",
+          "explanation",
+          "counter_evidence_risks",
+          "sources_methods",
+          "next_steps",
+          "disclaimer"
+        ],
+        required_claim_labels: ["fact", "calculation", "inference", "unknown"],
+        status: "answer_evidence_contract_scaffold"
+      },
       numeric_source_guard: {
         allowed_sources: ["tool_result", "deterministic_calculation"],
         concrete_numbers_allowed_without_sources: false,
@@ -829,6 +953,10 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     tools: skeleton.run_context.toolset.tools
   });
   const numericSourceGuard = createNumericSourceGuard(skeleton.run_context.toolset.tools);
+  const answerEvidenceContract = createAnswerEvidenceContract({
+    numericSourceGuard,
+    tools: skeleton.run_context.toolset.tools
+  });
   const steps =
     budgetStopPolicy.decision.status === "stop_before_execution"
       ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
@@ -836,6 +964,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
 
   return {
     actual_tool_execution: false,
+    answer_evidence_contract: answerEvidenceContract,
     budget: skeleton.run_context.budget,
     budget_stop_policy: budgetStopPolicy,
     chain_of_thought_exposed: false,
@@ -1550,6 +1679,135 @@ function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSou
     ],
     version: NUMERIC_SOURCE_GUARD_VERSION
   };
+}
+
+function createAnswerEvidenceContract(input: {
+  numericSourceGuard: AgentNumericSourceGuard;
+  tools: AgentRunToolContext[];
+}): AgentAnswerEvidenceContract {
+  return {
+    actual_tool_execution: false,
+    answer_structure: {
+      disclaimer_boundary: "not_a_substitute_for_runtime_controls",
+      key_evidence_items: {
+        max: 6,
+        min: 3
+      },
+      max_direct_answer_sentences: 5,
+      max_next_steps: 3,
+      min_direct_answer_sentences: 2,
+      ordered_sections: createOrderedAnswerSections()
+    },
+    claim_labels: {
+      calculation_requires_calculation_ref: true,
+      fact_requires_evidence_card: true,
+      inference_requires_evidence_strength: true,
+      required_labels: ["fact", "calculation", "inference", "unknown"],
+      text_labels_required: true,
+      ui_labels_required: true,
+      unknown_requires_missing_reason: true
+    },
+    evidence_cards: {
+      clickable_payload_contract: true,
+      frontend_rendering: false,
+      planned_card_sources: input.tools
+        .filter(isEvidenceCardSourceTool)
+        .map(createPlannedEvidenceCardSource),
+      required_fields: [
+        "card_id",
+        "claim_id",
+        "label",
+        "source_record_id",
+        "data_point",
+        "document_location",
+        "as_of",
+        "data_version",
+        "methodology_version",
+        "currency",
+        "unit",
+        "evidence_strength",
+        "warnings"
+      ]
+    },
+    evidence_strength: {
+      allowed_values: ["strong", "medium", "weak", "unknown"],
+      confidence_score_display: false
+    },
+    frontend_rendering: false,
+    model_calls: false,
+    numeric_source_guard_version: input.numericSourceGuard.version,
+    status: "answer_evidence_contract_scaffold",
+    validation_rules: [
+      "require_ordered_answer_sections",
+      "require_layer_label_per_claim",
+      "require_evidence_card_ref_for_fact",
+      "require_calculation_ref_for_calculation",
+      "label_missing_data_unknown",
+      "block_unsourced_specific_numbers"
+    ],
+    version: ANSWER_EVIDENCE_CONTRACT_VERSION
+  };
+}
+
+function createOrderedAnswerSections(): AgentAnswerEvidenceContract["answer_structure"]["ordered_sections"] {
+  return [
+    "direct_answer",
+    "data_status",
+    "key_evidence",
+    "explanation",
+    "counter_evidence_risks",
+    "sources_methods",
+    "next_steps",
+    "disclaimer"
+  ].map((sectionId, index) => ({
+    order: index + 1,
+    required: true,
+    section_id: sectionId as AgentAnswerSectionId,
+    source: "prd_8_3"
+  }));
+}
+
+function isEvidenceCardSourceTool(tool: AgentRunToolContext): boolean {
+  return [
+    "get_corporate_actions",
+    "get_data_lineage",
+    "get_financial_facts",
+    "get_price_history",
+    "get_quote_snapshot",
+    "get_security_profile"
+  ].includes(tool.name);
+}
+
+function createPlannedEvidenceCardSource(
+  tool: AgentRunToolContext
+): AgentAnswerEvidenceContract["evidence_cards"]["planned_card_sources"][number] {
+  return {
+    as_of_required: true,
+    card_type: createEvidenceCardType(tool),
+    data_classes: tool.data_classes,
+    data_version_required: true,
+    methodology_version_required: true,
+    output_schema_id: tool.output_schema_id,
+    source_record_required: true,
+    tool_name: tool.name,
+    version: tool.version
+  };
+}
+
+function createEvidenceCardType(tool: AgentRunToolContext): AgentEvidenceCardType {
+  if (tool.name === "get_data_lineage") {
+    return "lineage";
+  }
+
+  if (tool.name === "get_security_profile") {
+    return "profile";
+  }
+
+  if (tool.data_classes.includes("market_calendar")) {
+    return "methodology";
+  }
+
+  return "data_point";
 }
 
 function isNumericSourceTool(tool: AgentRunToolContext): boolean {

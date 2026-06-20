@@ -43,6 +43,22 @@ describe("agent runtime scaffold", () => {
       chain_of_thought_exposed: false,
       max_parallel_tools: 3,
       model_calls: false,
+      answer_evidence_contract: {
+        evidence_card_payload: "planned",
+        frontend_rendering: false,
+        ordered_sections: [
+          "direct_answer",
+          "data_status",
+          "key_evidence",
+          "explanation",
+          "counter_evidence_risks",
+          "sources_methods",
+          "next_steps",
+          "disclaimer"
+        ],
+        required_claim_labels: ["fact", "calculation", "inference", "unknown"],
+        status: "answer_evidence_contract_scaffold"
+      },
       numeric_source_guard: {
         allowed_sources: ["tool_result", "deterministic_calculation"],
         concrete_numbers_allowed_without_sources: false,
@@ -253,6 +269,103 @@ describe("agent runtime scaffold", () => {
         })
       ])
     );
+    expect(plan.answer_evidence_contract).toMatchObject({
+      actual_tool_execution: false,
+      answer_structure: {
+        disclaimer_boundary: "not_a_substitute_for_runtime_controls",
+        key_evidence_items: {
+          max: 6,
+          min: 3
+        },
+        max_direct_answer_sentences: 5,
+        max_next_steps: 3,
+        min_direct_answer_sentences: 2
+      },
+      claim_labels: {
+        calculation_requires_calculation_ref: true,
+        fact_requires_evidence_card: true,
+        inference_requires_evidence_strength: true,
+        required_labels: ["fact", "calculation", "inference", "unknown"],
+        text_labels_required: true,
+        ui_labels_required: true,
+        unknown_requires_missing_reason: true
+      },
+      evidence_cards: {
+        clickable_payload_contract: true,
+        frontend_rendering: false
+      },
+      evidence_strength: {
+        allowed_values: ["strong", "medium", "weak", "unknown"],
+        confidence_score_display: false
+      },
+      frontend_rendering: false,
+      model_calls: false,
+      numeric_source_guard_version: "2026-06-21.phase1.numeric-source-guard-scaffold.v0",
+      status: "answer_evidence_contract_scaffold",
+      version: "2026-06-21.phase1.answer-evidence-contract-scaffold.v0"
+    });
+    expect(plan.answer_evidence_contract.answer_structure.ordered_sections).toEqual([
+      expect.objectContaining({ order: 1, section_id: "direct_answer", source: "prd_8_3" }),
+      expect.objectContaining({ order: 2, section_id: "data_status", source: "prd_8_3" }),
+      expect.objectContaining({ order: 3, section_id: "key_evidence", source: "prd_8_3" }),
+      expect.objectContaining({ order: 4, section_id: "explanation", source: "prd_8_3" }),
+      expect.objectContaining({
+        order: 5,
+        section_id: "counter_evidence_risks",
+        source: "prd_8_3"
+      }),
+      expect.objectContaining({ order: 6, section_id: "sources_methods", source: "prd_8_3" }),
+      expect.objectContaining({ order: 7, section_id: "next_steps", source: "prd_8_3" }),
+      expect.objectContaining({ order: 8, section_id: "disclaimer", source: "prd_8_3" })
+    ]);
+    expect(plan.answer_evidence_contract.evidence_cards.required_fields).toEqual([
+      "card_id",
+      "claim_id",
+      "label",
+      "source_record_id",
+      "data_point",
+      "document_location",
+      "as_of",
+      "data_version",
+      "methodology_version",
+      "currency",
+      "unit",
+      "evidence_strength",
+      "warnings"
+    ]);
+    expect(plan.answer_evidence_contract.evidence_cards.planned_card_sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          card_type: "data_point",
+          output_schema_id: "tool.get_quote_snapshot.output.v0",
+          source_record_required: true,
+          tool_name: "get_quote_snapshot",
+          version: "0.0.0"
+        }),
+        expect.objectContaining({
+          card_type: "data_point",
+          output_schema_id: "tool.get_financial_facts.output.v0",
+          source_record_required: true,
+          tool_name: "get_financial_facts",
+          version: "0.0.0"
+        }),
+        expect.objectContaining({
+          card_type: "lineage",
+          output_schema_id: "tool.get_data_lineage.output.v0",
+          source_record_required: true,
+          tool_name: "get_data_lineage",
+          version: "0.0.0"
+        })
+      ])
+    );
+    expect(plan.answer_evidence_contract.validation_rules).toEqual([
+      "require_ordered_answer_sections",
+      "require_layer_label_per_claim",
+      "require_evidence_card_ref_for_fact",
+      "require_calculation_ref_for_calculation",
+      "label_missing_data_unknown",
+      "block_unsourced_specific_numbers"
+    ]);
     expect(plan.numeric_source_guard).toMatchObject({
       actual_tool_execution: false,
       allowed_sources: ["tool_result", "deterministic_calculation"],
