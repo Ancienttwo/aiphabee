@@ -1,0 +1,156 @@
+{
+  "version": "golden-fixtures-version=2026-06-20.phase0.v0",
+  "quality_rules_version": "quality_rules_v0",
+  "samples": [
+    {
+      "sample_id": "hk_price_bar_pass_001",
+      "sample_type": "price_history",
+      "methodology_version": "price-quality-v0",
+      "quality_expectation": "pass",
+      "fixture_path": "tests/golden/fixtures/hk_price_bar_pass_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_price_bar_pass_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "pass",
+        "failed_rule_ids": []
+      }
+    },
+    {
+      "sample_id": "hk_price_bar_hold_ohlc_001",
+      "sample_type": "price_history",
+      "methodology_version": "price-quality-v0",
+      "quality_expectation": "hold",
+      "fixture_path": "tests/golden/fixtures/hk_price_bar_hold_ohlc_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_price_bar_hold_ohlc_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "hold",
+        "failed_rule_ids": ["QP-001"],
+        "error_code": "DATA_QUALITY_HOLD"
+      }
+    },
+    {
+      "sample_id": "hk_corporate_action_split_pass_001",
+      "sample_type": "corporate_action",
+      "methodology_version": "corporate-action-quality-v0",
+      "quality_expectation": "pass",
+      "fixture_path": "tests/golden/fixtures/hk_corporate_action_split_pass_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_corporate_action_split_pass_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "pass",
+        "failed_rule_ids": []
+      }
+    },
+    {
+      "sample_id": "hk_financial_restatement_pass_001",
+      "sample_type": "financial_restatement",
+      "methodology_version": "financial-quality-v0",
+      "quality_expectation": "pass",
+      "fixture_path": "tests/golden/fixtures/hk_financial_restatement_pass_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_financial_restatement_pass_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "pass",
+        "failed_rule_ids": []
+      }
+    },
+    {
+      "sample_id": "hk_financial_identity_hold_001",
+      "sample_type": "financial_restatement",
+      "methodology_version": "financial-quality-v0",
+      "quality_expectation": "hold",
+      "fixture_path": "tests/golden/fixtures/hk_financial_identity_hold_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_financial_identity_hold_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "hold",
+        "failed_rule_ids": ["QF-001"],
+        "error_code": "DATA_QUALITY_HOLD"
+      }
+    },
+    {
+      "sample_id": "hk_identifier_change_pit_pass_001",
+      "sample_type": "identifier_change",
+      "methodology_version": "security-master-quality-v0",
+      "quality_expectation": "pass",
+      "fixture_path": "tests/golden/fixtures/hk_identifier_change_pit_pass_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_identifier_change_pit_pass_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "pass",
+        "failed_rule_ids": [],
+        "user_as_of": "2010-01-01T00:00:00Z",
+        "expected_visible_record_ids": ["id_hist_001_old"]
+      }
+    },
+    {
+      "sample_id": "hk_dual_listing_warn_001",
+      "sample_type": "multi_currency_dual_listing",
+      "methodology_version": "security-master-quality-v0",
+      "quality_expectation": "warn",
+      "fixture_path": "tests/golden/fixtures/hk_dual_listing_warn_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_dual_listing_warn_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "warn",
+        "failed_rule_ids": ["QE-002"]
+      }
+    },
+    {
+      "sample_id": "hk_index_constituent_pit_pass_001",
+      "sample_type": "index_constituent",
+      "methodology_version": "benchmark-quality-v0",
+      "quality_expectation": "pass",
+      "fixture_path": "tests/golden/fixtures/hk_index_constituent_pit_pass_001.json",
+      "source_records": [
+        {
+          "source": "synthetic_golden_fixture",
+          "source_record_id": "src_hk_index_constituent_pit_pass_001",
+          "data_version": "golden-fixtures-v0"
+        }
+      ],
+      "expected_outputs": {
+        "quality_state": "pass",
+        "failed_rule_ids": [],
+        "user_as_of": "2021-12-31T23:59:59Z",
+        "expected_visible_record_ids": ["idx_hsi_2021_member_001"]
+      }
+    }
+  ]
+}

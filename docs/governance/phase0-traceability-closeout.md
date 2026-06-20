@@ -22,7 +22,7 @@ runtime scaffold work remain open.
 | Phase 0 sprint | `plans/sprints/20260620-1307-phase0-gate0-foundation.sprint.md` | Complete after this closeout | First sprint backlog closed at program layer |
 | Gate 0 rights/regulatory packet | `docs/governance/gate0-rights-regulatory-decision-pack.md` | Baseline complete, approvals pending | Gate remains blocked |
 | Data contract/methodology baseline | `docs/governance/data-contract-methodology-baseline.md` | Design baseline complete, partner signature pending | Sprint 0.2 DoD remains open |
-| Golden/quality/commercial baseline | `docs/governance/golden-quality-commercial-baseline.md` | Design baseline complete, executable fixtures and cost review pending | Sprint 0.3 DoD remains open |
+| Golden/quality/commercial baseline | `docs/governance/golden-quality-commercial-baseline.md` | Design baseline complete; synthetic executable fixtures pass; production corpus and cost review pending | Sprint 0.3 DoD remains open |
 | Engineering foundation audit | `docs/governance/engineering-foundation-audit.md` | Audit complete, scaffold pending | Sprint 0.4 DoD remains open |
 
 ## Sprint Backlog Trace
@@ -42,7 +42,7 @@ PRD §18.1 Phase 0 exit conditions:
 | Exit Condition | Current State | Blocking Evidence |
 |---|---|---|
 | P0 every field has an authorization state | Not met | Signed field-level rights matrix absent |
-| Core golden samples pass | Not met | CI hook exists; fixture files and assertions absent |
+| Core golden samples pass | Partially met | Synthetic v0 fixture gate passes; partner-approved production corpus absent |
 | Product boundary has written confirmation | Not met | Hong Kong legal/compliance written opinion absent |
 
 Tracker Sprint DoD status:
@@ -51,8 +51,8 @@ Tracker Sprint DoD status:
 |---|---|---|
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
-| 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, model-provider/streaming guard, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 15/22; frontend/live model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
+| 0.3 Golden/quality/commercial | Design baseline 9/9; synthetic executable fixtures/rules pass; production corpus and cost review missing | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook and executable fixture gate, env contract, Cloudflare binding contract, Agent dry-run skeleton, model-provider/streaming guard, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 16/22; frontend/live model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -79,11 +79,11 @@ recorded in `tasks/todos.md`:
 
 - External Gate 0 rights/regulatory approvals.
 - Partner-signed data contract and real field/SLA samples.
-- Executable golden sample and quality-rule CI.
+- Production partner golden corpus and cost-reviewed quality/commercial gate.
 - Remaining runtime surfaces: frontend app, live model provider/streaming execution,
   Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, OTLP
-  destination plus persistent eval store, provider secret-store provisioning
-  plus rotation smoke, and executable golden fixtures.
+  destination plus persistent eval store, and provider secret-store provisioning
+  plus rotation smoke.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -139,8 +139,9 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - Live model provider/streaming execution, Cloudflare resource provisioning/smoke,
-  live Hyperdrive `SELECT 1`, persistent observability/eval store, executable
-  golden fixtures, and live provider secret-store smoke.
+  live Hyperdrive `SELECT 1`, persistent observability/eval store, production
+  golden corpus / Serving quality-hold runtime, and live provider secret-store
+  smoke.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -169,13 +170,32 @@ Completed:
 
 - `npm run test:golden` added to root checks.
 - CI now includes a `Golden Regression Hook` step.
-- `scripts/check-golden-regression.mjs` validates `tests/golden/manifest.json`
-  when fixtures exist and reports `not_configured` when they do not.
+- `scripts/check-golden-regression.mjs` validated `tests/golden/manifest.json`
+  when fixtures existed and reported `not_configured` when they did not.
 
 Not completed:
 
 - Golden fixture manifest, source samples, quality rule engine, and executable
-  regression assertions remain absent.
+  regression assertions were absent in this hook-only slice. They are now
+  covered by the 15:45 update below.
+
+## Execution Update - 2026-06-20 15:45 +08
+
+`golden-quality-rule-fixtures` has been executed in
+`docs/governance/golden-quality-rule-fixtures.md`.
+
+Completed:
+
+- `tests/golden/manifest.json` and 8 synthetic fixture samples added.
+- `scripts/check-golden-regression.mjs` now runs 12 deterministic quality rules.
+- `npm run test:golden` now requires fixtures.
+- Golden gate verifies 5 pass / 1 warn / 2 hold and `DATA_QUALITY_HOLD`.
+
+Not completed:
+
+- Partner-approved production golden corpus, PRD §10.7 sample volume, Serving
+  Store / Gateway quality-hold runtime behavior, and commercial cost review
+  remain absent.
 
 ## Execution Update - 2026-06-20 14:58 +08
 

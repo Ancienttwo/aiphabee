@@ -1,0 +1,37 @@
+{
+  "sample_id": "hk_corporate_action_split_pass_001",
+  "records": [
+    {
+      "record_id": "corp_action_split_01234_2016_05_09",
+      "record_type": "corporate_action",
+      "source_record_id": "src_hk_corporate_action_split_pass_001",
+      "instrument_id": "eq_01234",
+      "action_type": "split",
+      "effective_at": "2016-05-09",
+      "published_at": "2016-04-20T08:00:00Z",
+      "ingested_at": "2016-04-20T08:02:00Z",
+      "split_factor": 2,
+      "pre_action_close": 24.0,
+      "expected_adjusted_close": 12.0,
+      "tolerance": 0.0001
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QA-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

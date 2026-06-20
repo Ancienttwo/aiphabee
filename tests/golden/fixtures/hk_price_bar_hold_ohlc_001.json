@@ -1,0 +1,44 @@
+{
+  "sample_id": "hk_price_bar_hold_ohlc_001",
+  "records": [
+    {
+      "record_id": "price_bar_00005_2024_02_01",
+      "record_type": "price_bar",
+      "source_record_id": "src_hk_price_bar_hold_ohlc_001",
+      "listing_id": "xhk_00005",
+      "trading_date": "2024-02-01",
+      "published_at": "2024-02-01T09:20:00Z",
+      "ingested_at": "2024-02-01T09:21:00Z",
+      "currency": "HKD",
+      "open": 61.2,
+      "high": 60.4,
+      "low": 58.9,
+      "close": 60.8,
+      "volume": 21400000,
+      "turnover": 1290000000,
+      "exchange_status": "open"
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QP-001",
+      "expected_state": "hold"
+    },
+    {
+      "rule_id": "QP-002",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

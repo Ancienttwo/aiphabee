@@ -1,0 +1,52 @@
+{
+  "sample_id": "hk_identifier_change_pit_pass_001",
+  "records": [
+    {
+      "record_id": "id_hist_001_old",
+      "record_type": "identifier_history",
+      "source_record_id": "src_hk_identifier_change_pit_pass_001",
+      "company_id": "co_synthetic_001",
+      "instrument_id": "eq_synthetic_001",
+      "exchange": "XHKG",
+      "symbol": "0999",
+      "valid_from": "2004-06-16",
+      "valid_to": "2017-11-19",
+      "published_at": "2004-06-16T00:00:00Z",
+      "ingested_at": "2004-06-16T00:10:00Z"
+    },
+    {
+      "record_id": "id_hist_001_new",
+      "record_type": "identifier_history",
+      "source_record_id": "src_hk_identifier_change_pit_pass_001",
+      "company_id": "co_synthetic_001",
+      "instrument_id": "eq_synthetic_001",
+      "exchange": "XHKG",
+      "symbol": "1999",
+      "valid_from": "2017-11-20",
+      "published_at": "2017-11-20T00:00:00Z",
+      "ingested_at": "2017-11-20T00:10:00Z"
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-002",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QE-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

@@ -1,13 +1,14 @@
 # Golden Regression Hook
 
-> **Status**: Verified hook; fixtures pending
-> **Last Updated**: 2026-06-20 14:45 +08
+> **Status**: Superseded by executable fixtures
+> **Last Updated**: 2026-06-20 15:45 +08
 > **Source Baseline**: `docs/governance/golden-quality-commercial-baseline.md`
 > **Plan**: `plans/plan-golden-regression-hook.md`
 > **Task Contract**: `tasks/contracts/golden-regression-hook.contract.md`
 
-This slice installs the CI mount point for future golden sample regression. It
-does not create or approve fixture data.
+This slice installed the CI mount point for golden sample regression. It has
+now been extended by `docs/governance/golden-quality-rule-fixtures.md`, which
+adds strict executable fixtures and deterministic quality-rule assertions.
 
 ## Boundary
 
@@ -19,23 +20,23 @@ Completed:
 - Added `tests/golden/README.md` with manifest shape.
 - Added the hook to root `npm run check`.
 
-Not completed:
+Not completed in this earlier slice:
 
-- No `tests/golden/manifest.json` fixture corpus exists.
-- No real securities, corporate actions, restatements, identifier changes,
-  multi-currency cases, or index-history fixtures are committed.
-- Sprint 0.3 exit gates for executable golden samples and quality rules remain
-  not green.
+- The fixture corpus and quality-rule engine were not part of this hook-only
+  slice; they are now covered by `golden-quality-rule-fixtures`.
+- Partner-approved production golden samples and commercial cost review remain
+  outside both slices.
 
 ## Runtime Behavior
 
-Default command:
+Current strict command:
 
 ```bash
 npm run test:golden
 ```
 
-If `tests/golden/manifest.json` is absent, the command prints:
+`npm run test:golden` now requires `tests/golden/manifest.json` and fixture
+files. The old non-strict behavior was:
 
 ```json
 {
@@ -48,7 +49,7 @@ If `tests/golden/manifest.json` is absent, the command prints:
 and exits successfully. This keeps CI honest: the hook is verified, but fixtures
 are still explicitly missing.
 
-Future strict command:
+Direct strict command:
 
 ```bash
 node scripts/check-golden-regression.mjs --require-fixtures
@@ -66,7 +67,7 @@ Passed:
 
 ## Residual Gaps
 
-- Real fixture manifest and source data.
-- Golden regression assertions against actual data tools.
-- Quality rule engine and `DATA_QUALITY_HOLD` runtime behavior.
+- Partner-approved production fixture corpus.
+- Golden regression assertions against future actual data tools.
+- Serving Store / Gateway `DATA_QUALITY_HOLD` runtime behavior.
 - Commercial cost review with real partner/LLM/cloud costs.

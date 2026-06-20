@@ -24,7 +24,7 @@
     "dev:worker": "npm run dev --workspace @aiphabee/worker",
     "lint": "npm run lint --workspaces --if-present",
     "test": "vitest run",
-    "test:golden": "node scripts/check-golden-regression.mjs",
+    "test:golden": "node scripts/check-golden-regression.mjs --require-fixtures",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {

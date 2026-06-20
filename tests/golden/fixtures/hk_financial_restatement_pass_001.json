@@ -1,0 +1,72 @@
+{
+  "sample_id": "hk_financial_restatement_pass_001",
+  "records": [
+    {
+      "record_id": "financial_stmt_00001_2022_original",
+      "record_type": "financial_statement",
+      "source_record_id": "src_hk_financial_restatement_pass_001",
+      "company_id": "co_00001",
+      "period_end": "2022-12-31",
+      "published_at": "2023-03-15T08:00:00Z",
+      "ingested_at": "2023-03-15T08:10:00Z",
+      "currency": "HKD",
+      "unit": "million",
+      "scale": 1000000,
+      "accounting_standard": "HKFRS",
+      "facts": {
+        "assets": 1000,
+        "liabilities": 620,
+        "equity": 380
+      },
+      "tolerance": 0.001
+    },
+    {
+      "record_id": "financial_stmt_00001_2022_restatement_1",
+      "record_type": "financial_statement",
+      "source_record_id": "src_hk_financial_restatement_pass_001",
+      "company_id": "co_00001",
+      "period_end": "2022-12-31",
+      "published_at": "2023-08-01T08:00:00Z",
+      "ingested_at": "2023-08-01T08:15:00Z",
+      "currency": "HKD",
+      "unit": "million",
+      "scale": 1000000,
+      "accounting_standard": "HKFRS",
+      "is_restatement": true,
+      "prior_version_id": "financial_stmt_00001_2022_original",
+      "restatement_reason": "partner correction to liability classification",
+      "facts": {
+        "assets": 1000,
+        "liabilities": 600,
+        "equity": 400
+      },
+      "tolerance": 0.001
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QU-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QF-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QF-002",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

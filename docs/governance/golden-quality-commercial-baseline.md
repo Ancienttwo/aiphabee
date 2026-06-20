@@ -23,16 +23,32 @@ future golden sample regression:
 - `.github/workflows/ci.yml` `Golden Regression Hook`
 - `tests/golden/README.md`
 
-No real fixture manifest exists yet. The hook reports `not_configured` until
-`tests/golden/manifest.json` is committed.
+At the time of this hook-only slice, no real fixture manifest existed yet. The
+hook reported `not_configured` until `tests/golden/manifest.json` was committed.
+The later 15:45 update below supersedes that state with strict executable
+fixtures.
+
+## Execution Update - 2026-06-20 15:45 +08
+
+`docs/governance/golden-quality-rule-fixtures.md` adds an executable synthetic
+v0 fixture corpus and deterministic quality-rule gate:
+
+- `tests/golden/manifest.json`;
+- 8 synthetic fixture samples under `tests/golden/fixtures`;
+- 12 deterministic quality rules in `scripts/check-golden-regression.mjs`;
+- strict `npm run test:golden` with 5 pass / 1 warn / 2 hold;
+- `DATA_QUALITY_HOLD` assertions for held records.
+
+This is not a partner-approved production golden corpus and does not satisfy
+the PRD §10.7 target volume. Commercial cost review remains pending.
 
 ## Current Decision State
 
 | Area | State | Remaining Gate |
 |---|---|---|
 | Golden sample categories | Baseline complete | Actual security/case IDs and fixture data pending |
-| Golden regression hook | CI hook complete | Fixture manifest and assertions pending |
-| Quality rule catalog | Baseline complete | Executable quality engine and fixture assertions pending |
+| Golden regression hook | CI hook complete and strict fixture gate active | Production partner corpus pending |
+| Quality rule catalog | Baseline complete; 12-rule synthetic executable gate active | Serving/Gateway runtime quality-hold implementation pending |
 | Quality hold workflow | Baseline complete | Runtime Serving/Gateway implementation pending |
 | Data correction workflow | Baseline complete | Impact graph and notification implementation pending |
 | Package entitlement matrix | Baseline complete | Rights-cost validation and pricing approval pending |

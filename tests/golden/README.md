@@ -5,12 +5,15 @@ This directory is the CI mount point for PRD §10.7 golden samples.
 Current state:
 
 - `npm run test:golden` is wired into root `npm run check` and GitHub Actions.
-- The hook validates `tests/golden/manifest.json` when the manifest exists.
-- Until real fixture data is committed, the hook reports `not_configured` and
-  exits successfully so CI can verify the mount point without pretending golden
-  samples passed.
+- `tests/golden/manifest.json` is committed and required.
+- The hook executes a synthetic v0 fixture corpus covering price OHLC,
+  corporate action reconciliation, financial identity/restatement, identifier
+  point-in-time behavior, dual-listing review, and index constituent
+  point-in-time behavior.
+- This is an executable smoke corpus, not a partner-approved production golden
+  sample set.
 
-Future fixture manifest shape:
+Fixture manifest shape:
 
 ```json
 {
@@ -28,5 +31,5 @@ Future fixture manifest shape:
 }
 ```
 
-Use `node scripts/check-golden-regression.mjs --require-fixtures` when fixtures
-must be present.
+`npm run test:golden` runs in strict mode and fails when the manifest or fixture
+files are absent.
