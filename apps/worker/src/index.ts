@@ -1,5 +1,15 @@
 import { Hono } from "hono";
 import {
+  ACCOUNT_LOGIN_METHODS,
+  ACCOUNT_PLAN_CODES,
+  createAccountSessionPlan,
+  getAccountRuntimeCapabilities,
+  type AccountLoginMethod,
+  type AccountPlanCode,
+  type AccountRole,
+  type AccountSessionAction
+} from "@aiphabee/account-runtime";
+import {
   AgentRuntimeInputError,
   AGENT_RUNTIME_LIMITS,
   createAgentRunSkeleton,
@@ -163,6 +173,81 @@ app.get("/", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/account/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getAccountRuntimeCapabilities(), {
+      asOf: new Date().toISOString(),
+      methodologyVersion: "internal-account-session-manual-plan-scaffold-v0",
+      provenance: [
+        {
+          data_version: "internal-account-session-manual-plan-scaffold-v0",
+          methodology_version: "internal-account-session-manual-plan-scaffold-v0",
+          source: "account-runtime-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/account/session/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createAccountSessionPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    action: normalizeAccountSessionAction(body.action),
+    deviceId: normalizeString(body.device_id ?? body.deviceId),
+    emailHash: normalizeString(body.email_hash ?? body.emailHash),
+    loginMethod: normalizeAccountLoginMethod(body.login_method ?? body.loginMethod),
+    planCode: normalizeAccountPlanCode(body.plan_code ?? body.planCode),
+    requestId,
+    role: normalizeAccountRole(body.role),
+    sessionId: normalizeString(body.session_id ?? body.sessionId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAccountRuntimeCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "account-runtime",
+            source_record_id: "account-session-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? 1 : 0
         }
       }
     )
@@ -2704,6 +2789,42 @@ function normalizeOptionalNumber(value: unknown): number | undefined {
 
 function normalizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeAccountLoginMethod(value: unknown): AccountLoginMethod | undefined {
+  return ACCOUNT_LOGIN_METHODS.includes(value as AccountLoginMethod)
+    ? (value as AccountLoginMethod)
+    : undefined;
+}
+
+function normalizeAccountPlanCode(value: unknown): AccountPlanCode | undefined {
+  return ACCOUNT_PLAN_CODES.includes(value as AccountPlanCode)
+    ? (value as AccountPlanCode)
+    : undefined;
+}
+
+function normalizeAccountRole(value: unknown): AccountRole | undefined {
+  return value === "admin" ||
+    value === "billing" ||
+    value === "member" ||
+    value === "owner" ||
+    value === "viewer"
+    ? value
+    : undefined;
+}
+
+function normalizeAccountSessionAction(value: unknown): AccountSessionAction | undefined {
+  return value === "login" ||
+    value === "logout" ||
+    value === "refresh" ||
+    value === "revoke_device" ||
+    value === "revoke_session"
+    ? value
+    : undefined;
 }
 
 function isDataAccessChannel(value: unknown): value is "api" | "export" | "mcp" | "web" {

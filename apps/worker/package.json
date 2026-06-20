@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aiphabee/account-runtime": "file:../../packages/account-runtime",
     "@aiphabee/agent-runtime": "file:../../packages/agent-runtime",
     "@aiphabee/corporate-actions": "file:../../packages/corporate-actions",
     "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",

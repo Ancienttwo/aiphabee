@@ -13,6 +13,86 @@ interface RootRouteBody {
   };
 }
 
+interface AccountRuntimeBody {
+  data: {
+    auth_provider_calls: boolean;
+    device_management: {
+      revoke_supported: boolean;
+      status: string;
+    };
+    forbidden_payloads: string[];
+    frontend: boolean;
+    login_methods: string[];
+    manual_plan_assignment: {
+      allowed_plan_codes: string[];
+      billing_provider_calls: boolean;
+      status: string;
+    };
+    persistent_writes: boolean;
+    route: string;
+    runtime_route: string;
+    session_management: {
+      cookie_issued: boolean;
+      revoke_supported: boolean;
+      status: string;
+    };
+    status: string;
+    tables: string[];
+  };
+  ok: true;
+}
+
+interface AccountSessionPlanBody {
+  data: {
+    account: {
+      account_id: string;
+      email_hash_provided: boolean;
+      status: string;
+      table: string;
+    };
+    auth_provider_calls: boolean;
+    capability: {
+      status: string;
+    };
+    device: {
+      device_binding_status: string;
+      device_id: string;
+      revoke_supported: boolean;
+    };
+    manual_plan: {
+      assignment_status: string;
+      billing_provider_calls: boolean;
+      plan_code?: string;
+      subscription_id?: string;
+    };
+    persistent_writes: boolean;
+    session: {
+      action: string;
+      cookie_issued: boolean;
+      login_method: string;
+      session_id: string;
+      session_write_status: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      required_context_present: boolean;
+      requires_email_hash_not_raw_email: boolean;
+      unsupported_payload_fields: string[];
+    };
+    workspace: {
+      membership_id: string;
+      role: string;
+      workspace_id: string;
+      workspace_status: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface AgentRuntimeBody {
   data: {
     ai_sdk: {
@@ -1283,6 +1363,88 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.usage.credits).toBe(0);
+  });
+
+  it("serves account runtime capabilities without auth provider calls", async () => {
+    const response = await app.request("/account/runtime", {
+      headers: {
+        "x-request-id": "req-account-runtime"
+      }
+    });
+    const body = (await response.json()) as AccountRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      auth_provider_calls: false,
+      frontend: false,
+      persistent_writes: false,
+      route: "POST /account/session/plan",
+      runtime_route: "GET /account/runtime",
+      status: "internal_account_session_manual_plan_scaffold"
+    });
+    expect(body.data.login_methods).toEqual([
+      "email_passwordless",
+      "social_google",
+      "social_github"
+    ]);
+    expect(body.data.manual_plan_assignment.allowed_plan_codes).toContain("developer");
+    expect(body.data.session_management).toMatchObject({
+      cookie_issued: false,
+      revoke_supported: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("plans an internal account session and manual plan without writes", async () => {
+    const response = await app.request("/account/session/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        device_id: "device_macbook_001",
+        email_hash: "sha256:internal-user-hash",
+        login_method: "email_passwordless",
+        plan_code: "developer",
+        role: "owner",
+        session_id: "sess_internal_001",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-account-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountSessionPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      auth_provider_calls: false,
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.account).toMatchObject({
+      account_id: "acct_internal_001",
+      email_hash_provided: true,
+      table: "core.account"
+    });
+    expect(body.data.session).toMatchObject({
+      cookie_issued: false,
+      login_method: "email_passwordless",
+      session_id: "sess_internal_001",
+      session_write_status: "planned_no_write"
+    });
+    expect(body.data.manual_plan).toMatchObject({
+      assignment_status: "planned_no_write",
+      billing_provider_calls: false,
+      plan_code: "developer",
+      subscription_id: "sub_ws_internal_alpha_developer"
+    });
+    expect(body.data.validation.unsupported_payload_fields).toContain("raw_email");
+    expect(body.usage.rows).toBe(1);
   });
 
   it("serves agent runtime capabilities without model calls", async () => {
