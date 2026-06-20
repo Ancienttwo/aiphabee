@@ -17,7 +17,7 @@ import {
 } from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.serving-execution-adapter-scaffold.v0";
+  "2026-06-20.phase1.serving-result-envelope-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -35,6 +35,9 @@ export type DataAccessDeniedReason =
   | "workspace_entitlement_default_deny";
 export type DataAccessFieldStatus = "approved" | "blocked" | "default_deny";
 export type DataQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
+export type DataAccessServingResultStatus =
+  | "result_blocked"
+  | "result_deferred";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -172,11 +175,40 @@ export interface DataAccessDecision {
   servingExecution: ServingExecutionAdapterPlan;
   servingQuery: ServingQueryPlan;
   servingRead: ServingReadPlan;
+  servingResult: DataAccessServingResult;
   servingSqlDescriptor: ServingSqlDescriptor;
   servingSqlText: ServingSqlTextPlan;
   status: DataAccessDecisionStatus;
   usage: UsageSummary;
   usageLedger: UsageLedgerEventPlan;
+  warnings: string[];
+}
+
+export interface DataAccessServingResult {
+  allowedFields: string[];
+  blockedReason?: string;
+  cacheKey: string;
+  dataVersion: string;
+  dataset: string;
+  deferredReason?: ServingExecutionAdapterPlan["deferredReason"];
+  deniedFields: DataAccessDecision["deniedFields"];
+  envelopeFields: readonly ["as_of", "market_status", "provenance", "usage"];
+  executionStatus: ServingExecutionAdapterPlan["status"];
+  liveDataAccess: false;
+  liveRead: false;
+  marketStatus: "not_applicable";
+  methodologyVersion: string;
+  provenance: ProvenanceRef[];
+  requestedFields: string[];
+  rightsPolicyVersion: string;
+  rows: [];
+  rowCount: 0;
+  servedRows: 0;
+  sqlExecuted: false;
+  sqlTextAccepted: boolean;
+  statementId: ServingExecutionAdapterPlan["statementId"];
+  status: DataAccessServingResultStatus;
+  usage: UsageSummary;
   warnings: string[];
 }
 
@@ -254,6 +286,15 @@ export function evaluateDataAccessRequest(
     credits: servedRows > 0 ? 1 : 0,
     rows: servedRows
   };
+  const cacheKey = createDataAccessCacheKey(request, policy, fieldDecision.allowedFields);
+  const provenance: ProvenanceRef[] = [
+    {
+      data_version: "gateway-scaffold-v0",
+      methodology_version: policy.methodologyVersion,
+      source: "data-access-gateway",
+      source_record_id: "policy-evaluation"
+    }
+  ];
   const usageLedger = createUsageLedgerEventPlan({
     accountId: request.accountId,
     cached: usage.cached,
@@ -279,7 +320,7 @@ export function evaluateDataAccessRequest(
 
   return {
     allowedFields: finalAllowedFields,
-    cacheKey: createDataAccessCacheKey(request, policy, fieldDecision.allowedFields),
+    cacheKey,
     dataVersion: "gateway-scaffold-v0",
     deniedFields: fieldDecision.deniedFields,
     error,
@@ -291,25 +332,80 @@ export function evaluateDataAccessRequest(
       timeWindowDays
     },
     methodologyVersion: policy.methodologyVersion,
-    provenance: [
-      {
-        data_version: "gateway-scaffold-v0",
-        methodology_version: policy.methodologyVersion,
-        source: "data-access-gateway",
-        source_record_id: "policy-evaluation"
-      }
-    ],
+    provenance,
     qualityState: request.qualityState,
     rightsPolicyVersion: policy.rightsPolicyVersion,
     servingExecution,
     servingQuery,
     servingRead,
+    servingResult: createDataAccessServingResult({
+      allowedFields: finalAllowedFields,
+      cacheKey,
+      dataVersion: "gateway-scaffold-v0",
+      dataset: request.dataset,
+      deniedFields: fieldDecision.deniedFields,
+      methodologyVersion: policy.methodologyVersion,
+      provenance,
+      requestedFields,
+      rightsPolicyVersion: policy.rightsPolicyVersion,
+      servingExecution,
+      usage,
+      warnings
+    }),
     servingSqlDescriptor,
     servingSqlText,
     status: finalStatus,
     usage,
     usageLedger,
     warnings
+  };
+}
+
+export function createDataAccessServingResult(input: {
+  allowedFields: string[];
+  cacheKey: string;
+  dataVersion: string;
+  dataset: string;
+  deniedFields: DataAccessDecision["deniedFields"];
+  methodologyVersion: string;
+  provenance: ProvenanceRef[];
+  requestedFields: string[];
+  rightsPolicyVersion: string;
+  servingExecution: ServingExecutionAdapterPlan;
+  usage: UsageSummary;
+  warnings: string[];
+}): DataAccessServingResult {
+  const status: DataAccessServingResultStatus =
+    input.servingExecution.status === "execution_deferred"
+      ? "result_deferred"
+      : "result_blocked";
+
+  return {
+    allowedFields: input.allowedFields,
+    blockedReason: input.servingExecution.blockedReason,
+    cacheKey: input.cacheKey,
+    dataVersion: input.dataVersion,
+    dataset: input.dataset,
+    deferredReason: input.servingExecution.deferredReason,
+    deniedFields: input.deniedFields,
+    envelopeFields: ["as_of", "market_status", "provenance", "usage"],
+    executionStatus: input.servingExecution.status,
+    liveDataAccess: false,
+    liveRead: false,
+    marketStatus: "not_applicable",
+    methodologyVersion: input.methodologyVersion,
+    provenance: input.provenance,
+    requestedFields: input.requestedFields,
+    rightsPolicyVersion: input.rightsPolicyVersion,
+    rows: [],
+    rowCount: 0,
+    servedRows: 0,
+    sqlExecuted: false,
+    sqlTextAccepted: input.servingExecution.sqlTextAccepted,
+    statementId: input.servingExecution.statementId,
+    status,
+    usage: input.usage,
+    warnings: input.warnings
   };
 }
 
@@ -489,6 +585,18 @@ export function getEntitlementPolicySourceCapabilities() {
     ] as const,
     sql_emitted: false,
     status: "policy_source_scaffold" as const,
+    version: DATA_ACCESS_GATEWAY_VERSION
+  };
+}
+
+export function getServingResultEnvelopeCapabilities() {
+  return {
+    envelope_fields: ["as_of", "market_status", "provenance", "usage"] as const,
+    live_data_access: false,
+    market_status: "not_applicable" as const,
+    rows_returned: false,
+    shared_envelope: true,
+    status: "serving_result_envelope_scaffold" as const,
     version: DATA_ACCESS_GATEWAY_VERSION
   };
 }

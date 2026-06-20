@@ -1,6 +1,6 @@
 # Notes: serving-execution-adapter-scaffold
 
-> **Last Updated**: 2026-06-20 18:14 +08
+> **Last Updated**: 2026-06-20 18:25 +08
 > **Plan**: `plans/plan-serving-execution-adapter-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/serving-execution-adapter-scaffold.md`
@@ -18,6 +18,8 @@
   `servingSqlText`.
 - Extended `/gateway/runtime` with `serving_execution_adapter_scaffold` and
   `serving_store.execution_adapter`.
+- Added a later result-envelope scaffold that binds blocked/deferred execution
+  to shared envelope fields and empty rows.
 
 ## Verification
 
@@ -34,4 +36,5 @@
 - SQL execution is absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.
+- API/MCP tool routes do not yet consume the result envelope.
 - Persistent usage writes and billing reconciliation are absent.

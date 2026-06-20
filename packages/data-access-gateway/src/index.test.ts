@@ -5,7 +5,8 @@ import {
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest,
-  getEntitlementPolicySourceCapabilities
+  getEntitlementPolicySourceCapabilities,
+  getServingResultEnvelopeCapabilities
 } from "./index";
 
 describe("data access gateway", () => {
@@ -70,6 +71,22 @@ describe("data access gateway", () => {
       sqlExecuted: false,
       sqlTextAccepted: false,
       status: "execution_blocked"
+    });
+    expect(decision.servingResult).toMatchObject({
+      blockedReason: "DATA_NOT_LICENSED",
+      dataset: "hk_equity_quote",
+      envelopeFields: ["as_of", "market_status", "provenance", "usage"],
+      executionStatus: "execution_blocked",
+      liveDataAccess: false,
+      liveRead: false,
+      marketStatus: "not_applicable",
+      requestedFields: ["quote.close"],
+      rows: [],
+      rowCount: 0,
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: false,
+      status: "result_blocked"
     });
     expect(decision.usage.rows).toBe(0);
     expect(decision.usageLedger).toMatchObject({
@@ -189,6 +206,31 @@ describe("data access gateway", () => {
       sqlTextAccepted: true,
       status: "execution_deferred"
     });
+    expect(decision.servingResult).toMatchObject({
+      allowedFields: ["synthetic_profile.company_name"],
+      deferredReason: "LIVE_SERVING_EXECUTION_DISABLED",
+      deniedFields: [
+        {
+          field: "synthetic_quote.close",
+          reason: "field_default_deny"
+        }
+      ],
+      executionStatus: "execution_deferred",
+      liveDataAccess: false,
+      liveRead: false,
+      marketStatus: "not_applicable",
+      rows: [],
+      rowCount: 0,
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: true,
+      status: "result_deferred",
+      usage: {
+        cached: false,
+        credits: 1,
+        rows: 5
+      }
+    });
     expect(decision.usage.rows).toBe(5);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -257,6 +299,16 @@ describe("data access gateway", () => {
       servedRows: 0,
       sqlExecuted: false,
       status: "execution_blocked"
+    });
+    expect(decision.servingResult).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      executionStatus: "execution_blocked",
+      liveDataAccess: false,
+      rows: [],
+      rowCount: 0,
+      servedRows: 0,
+      sqlExecuted: false,
+      status: "result_blocked"
     });
     expect(decision.usage.credits).toBe(0);
     expect(decision.usageLedger).toMatchObject({
@@ -581,6 +633,17 @@ describe("data access gateway", () => {
       partner_rights_matrix_loaded: false,
       sql_emitted: false,
       status: "policy_source_scaffold"
+    });
+  });
+
+  it("reports the serving result envelope capability", () => {
+    expect(getServingResultEnvelopeCapabilities()).toMatchObject({
+      envelope_fields: ["as_of", "market_status", "provenance", "usage"],
+      live_data_access: false,
+      market_status: "not_applicable",
+      rows_returned: false,
+      shared_envelope: true,
+      status: "serving_result_envelope_scaffold"
     });
   });
 });

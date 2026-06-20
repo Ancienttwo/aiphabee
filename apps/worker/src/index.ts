@@ -10,7 +10,8 @@ import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
   evaluateDataAccessRequest,
-  getEntitlementPolicySourceCapabilities
+  getEntitlementPolicySourceCapabilities,
+  getServingResultEnvelopeCapabilities
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import { getFinancialRestatementCapabilities } from "@aiphabee/financial-facts";
@@ -333,6 +334,7 @@ app.get("/gateway/runtime", (c) => {
           "serving_quality_release_isolation",
           "serving_query_planner_scaffold",
           "serving_read_default_deny",
+          "serving_result_envelope_scaffold",
           "serving_sql_descriptor_scaffold",
           "serving_sql_text_compiler_scaffold",
           "cache_key_versioning",
@@ -364,6 +366,7 @@ app.get("/gateway/runtime", (c) => {
         methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
         mcp_redistribution_surfaces: false,
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+        serving_result_envelope: getServingResultEnvelopeCapabilities(),
         serving_store: {
           execution_adapter: getServingStoreExecutionAdapterCapabilities(),
           live_reads: false,

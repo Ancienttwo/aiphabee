@@ -1,6 +1,6 @@
 # Notes: data-access-gateway-default-deny-scaffold
 
-> **Last Updated**: 2026-06-20 18:14 +08
+> **Last Updated**: 2026-06-20 18:25 +08
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/data-access-gateway-default-deny-scaffold.md`
@@ -28,6 +28,9 @@
   `servingSqlText` decision, but SQL execution remains disabled.
 - Added a later `serving_execution_adapter_scaffold` runtime guard and
   `servingExecution` decision, but live execution and live rows remain disabled.
+- Added a later `serving_result_envelope_scaffold` runtime guard and
+  `servingResult` decision payload, but API/MCP tools and live rows remain
+  disabled.
 - Added usage preview but not persistent ledger writes.
 
 ## Verification
@@ -44,8 +47,8 @@
 ## Residual Blockers
 
 - Serving Store schema, read planner, quality release isolation planner, query
-  planner, SQL descriptor, SQL text compiler, and execution adapter exist, but
-  live execution, live reads, and live writes are absent.
+  planner, SQL descriptor, SQL text compiler, execution adapter, and result
+  envelope exist, but live execution, live reads, and live writes are absent.
 - Partner-signed field rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

@@ -18,6 +18,7 @@ const requiredGuards = [
   "serving_quality_release_isolation",
   "serving_query_planner_scaffold",
   "serving_read_default_deny",
+  "serving_result_envelope_scaffold",
   "serving_sql_descriptor_scaffold",
   "serving_sql_text_compiler_scaffold",
   "cache_key_versioning",

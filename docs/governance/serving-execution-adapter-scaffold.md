@@ -1,7 +1,7 @@
 # Serving Execution Adapter Scaffold
 
 > **Status**: Verified execution adapter scaffold
-> **Last Updated**: 2026-06-20 18:14 +08
+> **Last Updated**: 2026-06-20 18:25 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-serving-execution-adapter-scaffold.md`
@@ -10,7 +10,9 @@
 
 This slice adds a no-live execution adapter boundary after the Serving SQL text
 compiler. It accepts SQL text and bindings, but does not execute SQL, read
-Hyperdrive/Supabase, load partner rows, or enable frontend access.
+Hyperdrive/Supabase, load partner rows, or enable frontend access. A later
+result-envelope scaffold now binds deferred/blocked execution plans to empty
+rows and shared envelope metadata.
 
 ## P1 Architecture Map
 
@@ -20,7 +22,7 @@ Hyperdrive/Supabase, load partner rows, or enable frontend access.
 | Gateway evaluator | `packages/data-access-gateway` | Attaches `servingExecution` after `servingSqlText` |
 | Worker runtime route | `GET /gateway/runtime` | Reports `serving_execution_adapter_scaffold`, no execution |
 | Access contract | `deploy/gateway/access.contract.json` | Requires execution adapter guard |
-| Live Serving SQL | Absent | Adapter exists, but execution, Hyperdrive read, partner row, and Serving response body remain absent |
+| Live Serving SQL | Absent | Adapter and result envelope exist, but execution, Hyperdrive read, partner row, and API/MCP response route remain absent |
 
 ## P2 Concrete Trace
 
@@ -102,4 +104,5 @@ Observed `/gateway/runtime` fields:
 - SQL execution is absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.
+- API/MCP tool routes do not yet consume the result envelope.
 - Persistent usage writes and billing reconciliation are absent.

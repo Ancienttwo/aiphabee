@@ -1,7 +1,7 @@
 # Data Access Gateway Default-Deny Scaffold
 
 > **Status**: Verified guarded scaffold
-> **Last Updated**: 2026-06-20 18:14 +08
+> **Last Updated**: 2026-06-20 18:25 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Task Contract**:
@@ -14,7 +14,7 @@ not read real market data or grant any partner rights.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead`, `servingQuery`, `servingSqlDescriptor`, `servingSqlText`, and `servingExecution` plans |
+| Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead`, `servingQuery`, `servingSqlDescriptor`, `servingSqlText`, `servingExecution`, and `servingResult` plans |
 | Entitlement policy source | `packages/data-access-gateway` | Compiles account/workspace entitlement row snapshots into Gateway policy without SQL |
 | Serving read planner | `packages/serving-store` | Plans blocked/held Serving reads without SQL or live rows |
 | Serving quality release planner | `packages/serving-store` | Plans `held/released/withdrawn` posture without SQL or live writes |
@@ -22,6 +22,7 @@ not read real market data or grant any partner rights.
 | Serving SQL descriptor planner | `packages/serving-store` | Plans statement id and bindings without SQL text or execution |
 | Serving SQL text compiler | `packages/serving-store` | Compiles allow-listed descriptor into fixed SQL text without execution |
 | Serving execution adapter | `packages/serving-store` | Accepts SQL text and returns deferred empty-row execution plan |
+| Serving result envelope | `packages/data-access-gateway` | Binds blocked/deferred execution to standard envelope fields and empty rows |
 | Usage event writer | `packages/usage-ledger` | Plans usage event and ledger entry previews without SQL or billing writes |
 | Gateway contract | `deploy/gateway/access.contract.json` | No-secret default-deny route/guard manifest |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
@@ -74,8 +75,9 @@ Reason:
 - Gate 0 rights matrix and partner field contract are not signed.
 - Schema scaffolds and planners exist, including Serving Store projection
   tables, blocked read plans, release/isolation plans, no-SQL query plans,
-  no-execute SQL descriptors, fixed SQL text plans, and deferred execution
-  plans, but no partner rows or live Serving SQL execution exists yet.
+  no-execute SQL descriptors, fixed SQL text plans, deferred execution plans,
+  and no-live result envelopes, but no partner rows or live Serving SQL
+  execution exists yet.
 - Exposing real data before rights enforcement would violate PRD default-deny.
 
 Tradeoff:
@@ -120,6 +122,8 @@ Observed `/gateway/runtime` fields:
   "serving_store.sql_text_compiler.sql_executed": false,
   "serving_store.execution_adapter.execution_ready": false,
   "serving_store.execution_adapter.rows_returned": false,
+  "serving_result_envelope.rows_returned": false,
+  "serving_result_envelope.shared_envelope": true,
   "field_entitlement_enforcement.policy_source.live_db_reads": false,
   "field_entitlement_enforcement.policy_source.sql_emitted": false,
   "usage_ledger.event_writer.live_writes": false,
@@ -132,9 +136,9 @@ Observed `/gateway/runtime` fields:
 
 - Securities master, raw snapshot, financial fact/restatement,
   corporate-action/adjustment, Serving Store schemas, read planner, and quality
-  release isolation/query planners, SQL descriptors, SQL text plans, and
-  deferred execution adapter plans now exist, but no live execution or live
-  reads/writes exist.
+  release isolation/query planners, SQL descriptors, SQL text plans, deferred
+  execution adapter plans, and no-live result envelopes now exist, but no live
+  execution or live reads/writes exist.
 - Partner-signed rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, usage event writer
   has synthetic coverage, and entitlement enforcement has synthetic coverage,

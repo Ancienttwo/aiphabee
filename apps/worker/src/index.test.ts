@@ -79,6 +79,14 @@ interface GatewayRuntimeBody {
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
     rights_policy_version: string;
+    serving_result_envelope: {
+      envelope_fields: readonly string[];
+      live_data_access: boolean;
+      market_status: string;
+      rows_returned: boolean;
+      shared_envelope: boolean;
+      status: string;
+    };
     serving_store: {
       execution_adapter: {
         adapter: string;
@@ -488,6 +496,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_query_planner_scaffold");
     expect(body.data.guards).toContain("serving_read_default_deny");
+    expect(body.data.guards).toContain("serving_result_envelope_scaffold");
     expect(body.data.guards).toContain("serving_sql_descriptor_scaffold");
     expect(body.data.guards).toContain("serving_sql_text_compiler_scaffold");
     expect(body.data.guards).toContain("usage_event_writer_scaffold");
@@ -496,6 +505,14 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+    expect(body.data.serving_result_envelope).toMatchObject({
+      envelope_fields: ["as_of", "market_status", "provenance", "usage"],
+      live_data_access: false,
+      market_status: "not_applicable",
+      rows_returned: false,
+      shared_envelope: true,
+      status: "serving_result_envelope_scaffold"
+    });
     expect(body.data.serving_store).toMatchObject({
       execution_adapter: {
         adapter: "hyperdrive",
