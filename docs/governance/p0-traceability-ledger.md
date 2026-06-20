@@ -55,9 +55,9 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| SEC-01 多形式证券解析 | AIP-P0-SEC-01 | Data Engineering | 1.2 | `resolve_security` golden cases for code/name/history aliases | Sprint 1.2 exit: ambiguous securities return candidates | Not started |
+| SEC-01 多形式证券解析 | AIP-P0-SEC-01 | Data Engineering | 1.2 | `resolve_security` golden cases for code/name/history aliases | Sprint 1.2 exit: ambiguous securities return candidates | `resolve_security` no-live scaffold complete for synthetic code/name/history aliases; live security master reads pending |
 | SEC-02 代码与实体分离 | AIP-P0-SEC-02 | Data Engineering | 0.2 / 1.1 | Security master schema and migration tests | Sprint 1.1 exit: company/instrument/listing history is persisted | Design baseline complete; runtime pending |
-| SEC-03 歧义返回候选 | AIP-P0-SEC-03 | Data Engineering / Product | 1.2 | Ambiguous lookup contract tests | Sprint 1.2 exit: no silent guessing in tool responses | Not started |
+| SEC-03 歧义返回候选 | AIP-P0-SEC-03 | Data Engineering / Product | 1.2 | Ambiguous lookup contract tests | Sprint 1.2 exit: no silent guessing in tool responses | `resolve_security` no-live scaffold returns candidates without selected instrument for ambiguous synthetic lookups |
 | SEC-04 上市状态/币种/覆盖 | AIP-P0-SEC-04 | Data Engineering | 1.2 | Profile fixture tests for listed/suspended/delisted coverage | Sprint 1.2 exit: profile tool exposes status/currency/coverage | Not started |
 
 ## Agent Runtime

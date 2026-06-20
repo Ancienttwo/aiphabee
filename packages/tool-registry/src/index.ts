@@ -2,8 +2,8 @@ export const TOOL_REGISTRY_VERSION =
   "2026-06-21.phase1.shared-tool-registry-scaffold.v0";
 
 export type ToolRegistryStatus = "registry_scaffold";
-export type RegisteredToolStatus = "planned";
-export type RegisteredToolExecutionMode = "read_only_planned";
+export type RegisteredToolStatus = "planned" | "scaffold";
+export type RegisteredToolExecutionMode = "read_only_planned" | "read_only_scaffold";
 export type RegisteredToolChannel = "api" | "mcp" | "web";
 export type RegisteredToolRiskLevel = "low" | "medium";
 
@@ -24,7 +24,7 @@ export interface RegisteredToolDefinition {
   execution: {
     allowArbitrarySql: false;
     allowArbitraryUrl: false;
-    handlerReady: false;
+    handlerReady: boolean;
     liveDataAccess: false;
     mode: RegisteredToolExecutionMode;
   };
@@ -42,7 +42,7 @@ export interface RegisteredToolDefinition {
   };
   status: RegisteredToolStatus;
   testing: {
-    goldenFixtureReady: false;
+    goldenFixtureReady: boolean;
     requiredGoldenFixture: string;
   };
   version: string;
@@ -52,7 +52,7 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Resolve code, name, or historical identifier to candidate instruments.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "resolve_security",
     permissions: createPermissions("security:read", ["security_master"]),
     schema: createSchema("resolve_security", [
@@ -60,8 +60,8 @@ export const REGISTERED_TOOLS = [
       "SYMBOL_AMBIGUOUS",
       "NOT_FOUND"
     ]),
-    status: "planned",
-    testing: createTesting("resolve_security"),
+    status: "scaffold",
+    testing: createTesting("resolve_security", true),
     version: "0.0.0"
   },
   {
@@ -188,6 +188,9 @@ export function getToolRegistryCapabilities() {
     channels: ["web", "mcp", "api"] as const,
     execution_ready: false,
     golden_fixtures_ready: false,
+    handler_ready_tool_count: REGISTERED_TOOLS.filter(
+      (tool) => tool.execution.handlerReady
+    ).length,
     registry_status: "registry_scaffold" as ToolRegistryStatus,
     rights_aware: true,
     schema_ready: true,
@@ -234,6 +237,16 @@ function createPlannedReadOnlyExecution(): RegisteredToolDefinition["execution"]
   };
 }
 
+function createScaffoldReadOnlyExecution(): RegisteredToolDefinition["execution"] {
+  return {
+    allowArbitrarySql: false,
+    allowArbitraryUrl: false,
+    handlerReady: true,
+    liveDataAccess: false,
+    mode: "read_only_scaffold"
+  };
+}
+
 function createPermissions(
   requiredScope: string,
   dataClasses: readonly string[]
@@ -257,9 +270,12 @@ function createSchema(
   };
 }
 
-function createTesting(toolName: RegisteredToolName): RegisteredToolDefinition["testing"] {
+function createTesting(
+  toolName: RegisteredToolName,
+  goldenFixtureReady: boolean = false
+): RegisteredToolDefinition["testing"] {
   return {
-    goldenFixtureReady: false,
+    goldenFixtureReady,
     requiredGoldenFixture: `tests/golden/tools/${toolName}.json`
   };
 }

@@ -21,6 +21,7 @@
     "get_data_lineage",
     "get_entitlements"
   ],
+  "scaffold_tools": ["resolve_security"],
   "required_tool_fields": [
     "name",
     "version",

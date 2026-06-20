@@ -40,6 +40,7 @@ interface ToolRuntimeBody {
     allow_arbitrary_url: boolean;
     execution_ready: boolean;
     golden_fixtures_ready: boolean;
+    handler_ready_tool_count: number;
     registry_status: string;
     rights_aware: boolean;
     schema_ready: boolean;
@@ -61,6 +62,31 @@ interface ToolRuntimeBody {
     }>;
   };
   ok: true;
+}
+
+interface ResolveSecurityBody {
+  data: {
+    capability: {
+      handler_ready: boolean;
+      live_data_access: boolean;
+      no_silent_guessing: boolean;
+      status: string;
+    };
+    candidates: Array<{
+      instrumentId: string;
+      market: string;
+      status: string;
+      symbol: string;
+    }>;
+    liveDataAccess: boolean;
+    selectedInstrumentId?: string;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface DatabaseRuntimeBody {
@@ -472,14 +498,110 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
+    expect(body.data.handler_ready_tool_count).toBe(1);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
-    expect(body.data.tools.every((tool) => tool.execution.handlerReady === false)).toBe(
-      true
-    );
+    expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
     expect(body.data.tools.every((tool) => tool.execution.liveDataAccess === false)).toBe(
       true
     );
+  });
+
+  it("resolves security identifiers without live data access", async () => {
+    const response = await app.request("/tools/resolve-security", {
+      body: JSON.stringify({
+        query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-resolve-security"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ResolveSecurityBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("resolve_security");
+    expect(body.data.status).toBe("resolved");
+    expect(body.data.selectedInstrumentId).toBe("eq_hk_00700");
+    expect(body.data.candidates[0]).toMatchObject({
+      market: "HK",
+      status: "listed",
+      symbol: "00700.HK"
+    });
+    expect(body.data.capability).toMatchObject({
+      handler_ready: true,
+      live_data_access: false,
+      no_silent_guessing: true,
+      status: "resolve_security_scaffold"
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("returns ambiguity candidates without silently selecting a security", async () => {
+    const response = await app.request("/tools/resolve-security", {
+      body: JSON.stringify({
+        query: "ABC"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-resolve-security-ambiguous"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ResolveSecurityBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("ambiguous");
+    expect(body.data.selectedInstrumentId).toBeUndefined();
+    expect(body.data.candidates.map((candidate) => candidate.instrumentId)).toEqual([
+      "eq_hk_00001",
+      "eq_hk_08001"
+    ]);
+  });
+
+  it("returns standard errors for unresolved or invalid security lookups", async () => {
+    const notFound = await app.request("/tools/resolve-security", {
+      body: JSON.stringify({
+        query: "UNKNOWN"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-resolve-security-not-found"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/resolve-security", {
+      body: JSON.stringify({
+        query: "   "
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-resolve-security-invalid"
+      },
+      method: "POST"
+    });
+    const notFoundBody = (await notFound.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(notFound.status).toBe(404);
+    expect(notFoundBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
   });
 
   it("serves database runtime capabilities without live queries", async () => {

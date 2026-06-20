@@ -30,6 +30,11 @@ import {
   getServingStoreSqlDescriptorCapabilities,
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
+import {
+  ResolveSecurityInputError,
+  getResolveSecurityCapabilities,
+  resolveSecurity
+} from "@aiphabee/security-tools";
 import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import { getUsageLedgerEventWriterCapabilities } from "@aiphabee/usage-ledger";
 
@@ -916,6 +921,89 @@ app.get("/tools/runtime", (c) => {
       }
     })
   );
+});
+
+app.post("/tools/resolve-security", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    market?: unknown;
+    query?: unknown;
+  };
+
+  try {
+    const result = resolveSecurity({
+      asOf: typeof body.as_of === "string" ? body.as_of : undefined,
+      market: typeof body.market === "string" ? body.market : undefined,
+      query: typeof body.query === "string" ? body.query : ""
+    });
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "security identifier was not found", {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }),
+        404
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getResolveSecurityCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof ResolveSecurityInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.resolve-security-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "resolve_security failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.resolve-security-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
 });
 
 export default app;

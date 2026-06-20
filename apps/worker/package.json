@@ -19,6 +19,7 @@
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
     "@aiphabee/financial-facts": "file:../../packages/financial-facts",
     "@aiphabee/observability": "file:../../packages/observability",
+    "@aiphabee/security-tools": "file:../../packages/security-tools",
     "@aiphabee/serving-store": "file:../../packages/serving-store",
     "@aiphabee/tool-registry": "file:../../packages/tool-registry",
     "@aiphabee/usage-ledger": "file:../../packages/usage-ledger",

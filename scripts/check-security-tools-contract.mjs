@@ -2,21 +2,31 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const contractPath = "deploy/tools/registry.contract.json";
-const requiredTools = [
-  "resolve_security",
-  "get_security_profile",
-  "get_market_calendar",
-  "get_quote_snapshot",
-  "get_price_history",
-  "get_corporate_actions",
-  "get_financial_facts",
-  "get_data_lineage",
-  "get_entitlements"
+const contractPath = "deploy/tools/resolve-security.contract.json";
+const requiredLookupForms = ["code", "symbol", "name", "historical_name"];
+const requiredStatuses = ["resolved", "ambiguous", "not_found"];
+const requiredCandidateFields = [
+  "instrumentId",
+  "listingId",
+  "symbol",
+  "market",
+  "exchange",
+  "currency",
+  "status",
+  "name",
+  "validFrom",
+  "matchReason"
 ];
-const requiredRoutes = ["GET /tools/runtime", "GET /agent/runtime"];
-const requiredChannels = ["web", "mcp", "api"];
-const scaffoldTools = ["resolve_security"];
+const requiredErrorCodes = ["NOT_FOUND", "SCOPE_DENIED"];
+const requiredFixtureCases = [
+  "code_variant",
+  "symbol_variant",
+  "zh_name",
+  "en_name",
+  "historical_name",
+  "ambiguous",
+  "not_found"
+];
 
 let contract;
 
@@ -48,9 +58,10 @@ if (errors.length > 0) {
 
 emit(
   {
-    routes: contract.runtime_routes.length,
+    fixtures: contract.fixture_cases.length,
+    route: contract.route,
     status: "ok",
-    tools: contract.required_tools.length
+    tool: contract.tool_name
   },
   0
 );
@@ -67,15 +78,19 @@ function validateContract(value) {
   }
 
   if (value.status !== "local_contract") {
-    errors.push("status must be local_contract until tool execution exists");
+    errors.push("status must be local_contract until live tool data exists");
   }
 
-  if (value.registry_status !== "registry_scaffold") {
-    errors.push("registry_status must be registry_scaffold");
+  if (value.tool_name !== "resolve_security") {
+    errors.push("tool_name must be resolve_security");
   }
 
-  if (value.execution_ready !== false) {
-    errors.push("execution_ready must be false in this scaffold");
+  if (value.route !== "POST /tools/resolve-security") {
+    errors.push("route must be POST /tools/resolve-security");
+  }
+
+  if (value.handler_ready !== true) {
+    errors.push("handler_ready must be true for this scaffold");
   }
 
   if (value.live_data_access !== false) {
@@ -94,47 +109,37 @@ function validateContract(value) {
     errors.push("standard_response_envelope must be true");
   }
 
-  if (value.rights_aware !== true) {
-    errors.push("rights_aware must be true");
+  if (value.no_silent_guessing !== true) {
+    errors.push("no_silent_guessing must be true");
   }
 
-  errors.push(...validateStringArray(value.channels, requiredChannels, "channels"));
-  errors.push(...validateStringArray(value.runtime_routes, requiredRoutes, "runtime_routes"));
-  errors.push(...validateStringArray(value.required_tools, requiredTools, "required_tools"));
-  errors.push(...validateStringArray(value.scaffold_tools, scaffoldTools, "scaffold_tools"));
-  errors.push(...validateStringArray(value.required_tool_fields, [
-    "name",
-    "version",
-    "description",
-    "channels",
-    "permissions",
-    "schema",
-    "execution",
-    "testing",
-    "status"
-  ], "required_tool_fields"));
-  errors.push(...validateStringArray(value.required_schema_fields, [
-    "inputSchemaId",
-    "outputSchemaId",
-    "standardErrorCodes",
-    "standardResponseEnvelope"
-  ], "required_schema_fields"));
-  errors.push(...validateStringArray(value.required_permission_fields, [
-    "requiredScope",
-    "dataClasses",
-    "rightsAware"
-  ], "required_permission_fields"));
-  errors.push(...validateStringArray(value.required_execution_fields, [
-    "mode",
-    "handlerReady",
-    "liveDataAccess",
-    "allowArbitrarySql",
-    "allowArbitraryUrl"
-  ], "required_execution_fields"));
-  errors.push(...validateStringArray(value.required_testing_fields, [
-    "goldenFixtureReady",
-    "requiredGoldenFixture"
-  ], "required_testing_fields"));
+  if (value.ambiguity_candidates !== true) {
+    errors.push("ambiguity_candidates must be true");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.supported_lookup_forms,
+      requiredLookupForms,
+      "supported_lookup_forms"
+    )
+  );
+  errors.push(
+    ...validateStringArray(value.required_statuses, requiredStatuses, "required_statuses")
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_candidate_fields,
+      requiredCandidateFields,
+      "required_candidate_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(value.required_error_codes, requiredErrorCodes, "required_error_codes")
+  );
+  errors.push(
+    ...validateStringArray(value.fixture_cases, requiredFixtureCases, "fixture_cases")
+  );
   errors.push(...validateNoSecretLikeValues(value));
 
   return errors;

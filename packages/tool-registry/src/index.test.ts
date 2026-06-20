@@ -15,9 +15,17 @@ describe("tool registry scaffold", () => {
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
     expect(capabilities.standard_response_envelope).toBe(true);
-    expect(capabilities.tools.every((tool) => tool.execution.handlerReady === false)).toBe(
-      true
-    );
+    expect(capabilities.handler_ready_tool_count).toBe(1);
+    expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
+      execution: {
+        handlerReady: true,
+        mode: "read_only_scaffold"
+      },
+      status: "scaffold",
+      testing: {
+        goldenFixtureReady: true
+      }
+    });
     expect(capabilities.tools.every((tool) => tool.schema.standardResponseEnvelope)).toBe(
       true
     );

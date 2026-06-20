@@ -1,16 +1,17 @@
 # Shared Tool Registry Scaffold
 
 > **Status**: Verified shared registry scaffold
-> **Last Updated**: 2026-06-21 00:30 +08
+> **Last Updated**: 2026-06-21 00:40 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-shared-tool-registry-scaffold.md`
 > **Task Contract**:
 > `tasks/contracts/shared-tool-registry-scaffold.contract.md`
 
-This slice creates a shared Tool Registry metadata source for Sprint 1.2. It
-does not implement any tool handler, MCP/API endpoint, live Serving read,
-partner row access, or frontend surface.
+This slice creates a shared Tool Registry metadata source for Sprint 1.2. A
+later `resolve_security` scaffold now marks one tool handler as available for
+synthetic no-live lookup. MCP/API endpoints, live Serving reads, partner row
+access, and frontend surfaces remain absent.
 
 ## P1 Architecture Map
 
@@ -21,7 +22,7 @@ partner row access, or frontend surface.
 | Worker runtime route | `GET /tools/runtime` | Reports registry capability and disabled execution |
 | Registry contract | `deploy/tools/registry.contract.json` | Requires 9 planned tools and no arbitrary SQL/URL |
 | Contract checker | `scripts/check-tool-registry-contract.mjs` | Validates registry contract and no secret-like values |
-| Tool handlers | Absent | Registry metadata exists, but handlers and live data access remain absent |
+| Tool handlers | One no-live scaffold | `resolve_security` has a synthetic handler; other handlers and live data access remain absent |
 
 ## P2 Concrete Trace
 
@@ -29,11 +30,12 @@ Registry capability trace:
 
 1. Client calls `GET /tools/runtime`.
 2. Worker calls `getToolRegistryCapabilities()`.
-3. Registry returns 9 planned read-only tools with schema, permission,
+3. Registry returns 9 read-only tool entries with schema, permission,
    execution, and testing metadata.
 4. The capability reports `schema_ready=true`, `rights_aware=true`,
    `standard_response_envelope=true`, `execution_ready=false`,
-   `allow_arbitrary_sql=false`, and `allow_arbitrary_url=false`.
+   `handler_ready_tool_count=1`, `allow_arbitrary_sql=false`, and
+   `allow_arbitrary_url=false`.
 
 Agent policy trace:
 
@@ -64,7 +66,7 @@ Reason:
 Tradeoff:
 
 - The system now has a single source of planned tool metadata.
-- Tool handlers, precise JSON Schema bodies, golden fixtures, and
+- Most tool handlers, precise JSON Schema bodies, full golden fixtures, and
   Evidence/Lineage integration remain incomplete.
 
 ## Verification
@@ -89,6 +91,7 @@ Observed `/tools/runtime` fields:
   "schema_ready": true,
   "rights_aware": true,
   "standard_response_envelope": true,
+  "handler_ready_tool_count": 1,
   "execution_ready": false,
   "allow_arbitrary_sql": false,
   "allow_arbitrary_url": false
@@ -97,7 +100,8 @@ Observed `/tools/runtime` fields:
 
 ## Residual Gaps
 
-- Individual tool handlers are absent.
+- Only `resolve_security` has a no-live synthetic handler.
+- Other individual tool handlers are absent.
 - MCP/API endpoints are absent.
 - Tool JSON Schema bodies and golden fixtures are not implemented.
 - Evidence/Lineage service is absent.
