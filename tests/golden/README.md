@@ -10,6 +10,10 @@ Current state:
   corporate action reconciliation, financial identity/restatement, identifier
   point-in-time behavior, dual-listing review, and index constituent
   point-in-time behavior.
+- `tests/golden/tools/manifest.json` adds one tool golden sample for each
+  registered Sprint 1.2 tool. The hook validates tool schema IDs, standard
+  response envelope fields, provenance, usage, `toolName`, `status`, and
+  `liveDataAccess=false`.
 - This is an executable smoke corpus, not a partner-approved production golden
   sample set.
 

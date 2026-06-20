@@ -1,0 +1,35 @@
+{
+  "sample_id": "tool_get_corporate_actions_001",
+  "tool_name": "get_corporate_actions",
+  "input_schema_id": "tool.get_corporate_actions.input.v0",
+  "output_schema_id": "tool.get_corporate_actions.output.v0",
+  "request": {
+    "instrument_id": "eq_hk_00700",
+    "from": "2026-01-03",
+    "to": "2026-01-07"
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-corporate-actions",
+    "as_of": "2026-01-07T16:15:00+08:00",
+    "market_status": "not_applicable",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "corporate-actions:eq_hk_00700:2026-01-03:2026-01-07",
+        "data_version": "corporate-actions-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 4,
+      "rows": 2
+    },
+    "data": {
+      "toolName": "get_corporate_actions",
+      "status": "found",
+      "liveDataAccess": false,
+      "instrumentId": "eq_hk_00700"
+    }
+  }
+}

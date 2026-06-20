@@ -59,7 +59,7 @@ owner: "Planner / PM"
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
-| 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 10 / 12 | ☐ |
+| 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 11 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
@@ -237,7 +237,7 @@ owner: "Planner / PM"
 - [x] `get_data_lineage` + `get_entitlements` tool scaffold：`@aiphabee/evidence-lineage` + `POST /tools/get-data-lineage` + `POST /tools/get-entitlements` + `deploy/tools/evidence-lineage.contract.json` + `npm run check:evidence-lineage`，支持 synthetic evidence/source record lineage、source batch/data version/methodology/formula/upstream metadata、quality hold/not found 标准错误，以及 workspace/channel/tool/dataset/field entitlement scope 自查、Gateway policy compiler/evaluator redaction、SCOPE_DENIED / DATA_NOT_LICENSED / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（DAT-09、US-M03、MCP-04/08）
 - [ ] **Evidence & Lineage Service**：工具调用 ↔ 来源记录/数据版本/方法论/用户可见引用（§11.1、§A1）
 - [x] 所有工具输入/输出 JSON Schema + 标准响应信封 + 标准错误码：`deploy/tools/tool-schemas.contract.json` + `npm run check:tool-schemas`，覆盖 9 个 registered tools 的 `tool.<name>.input.v0` / `tool.<name>.output.v0`、标准 envelope 字段、success `data` shape、error schema enum、no arbitrary SQL/URL input property guard；runtime validator / MCP schema serving 未启用（MCP-04/08、§9.5–§9.6）
-- [ ] 每个工具黄金样本回归用例（§A4）
+- [x] 每个工具黄金样本回归用例：`tests/golden/tools/manifest.json` + 9 个 `tests/golden/tools/fixtures/*.json` + `npm run test:golden` 扩展，覆盖每个 registered tool 的 schema IDs、expected request/response envelope、provenance、usage、`toolName`/`status`/`liveDataAccess=false`；live route replay / partner-approved production corpus 未启用（§A4）
 
 **退出门槛 DoD：** ☐ 6–8 工具黄金样本一致　☐ 每条响应带 provenance　☐ 未注册工具/任意 SQL 被拒（AGT-04）
 
@@ -622,7 +622,7 @@ owner: "Planner / PM"
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
-- [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers 与本地 tool schema contract 已建立；durable Evidence/Lineage service、每工具 golden fixtures、MCP protocol endpoint/runtime schema serving 尚未实现
+- [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract 与每工具 synthetic golden fixtures 已建立；durable Evidence/Lineage service、MCP protocol endpoint/runtime schema serving/live route replay 尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -631,6 +631,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0av | 完成 `tool-golden-fixtures-scaffold`：新增 `tests/golden/tools/manifest.json` 与 9 个 tool expected-response fixtures，并扩展 `npm run test:golden` 校验 tool schema IDs、标准 envelope、provenance、usage、`toolName`/`status`/`liveDataAccess=false`；live route replay/partner-approved production corpus 未启用，Sprint 1.2 更新为 11/12 |
 | 2026-06-21 | 1.0au | 完成 `tool-schema-contract-scaffold`：新增 `deploy/tools/tool-schemas.contract.json` 与 `npm run check:tool-schemas`，覆盖 9 个 registered tools 的 input/output schema IDs、标准 response envelope fields、success data shape、error schema enum 与 no arbitrary SQL/URL input guard；runtime validator/MCP schema serving/golden response validation 未启用，Sprint 1.2 更新为 10/12 |
 | 2026-06-21 | 1.0at | 完成 `evidence-lineage-tools-scaffold`：新增 `@aiphabee/evidence-lineage`、`POST /tools/get-data-lineage`、`POST /tools/get-entitlements`、synthetic evidence/source lineage、source batch/data version/methodology/formula/upstream metadata、Gateway entitlement policy compiler/evaluator scope 自查、`deploy/tools/evidence-lineage.contract.json` 与 `npm run check:evidence-lineage`，`/tools/runtime` handler-ready 变为 9；durable Evidence/Lineage service/live DB entitlement reads/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 9/12 |
 | 2026-06-21 | 1.0as | 完成 `get-financial-facts-tool-scaffold`：扩展 `@aiphabee/financial-facts`、新增 `POST /tools/get-financial-facts`、synthetic standardized fact rows、period/currency/unit/accounting-standard/scale/restatement-version/as_of metadata、metric/statement-type subsets、limit/cursor、`deploy/tools/get-financial-facts.contract.json` 与 `npm run check:financial-facts`，`/tools/runtime` handler-ready 变为 7；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 8/12 |

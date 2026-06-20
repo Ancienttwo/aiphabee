@@ -1,0 +1,140 @@
+{
+  "version": "tool-golden-fixtures-version=2026-06-21.phase1.v0",
+  "samples": [
+    {
+      "sample_id": "tool_resolve_security_001",
+      "tool_name": "resolve_security",
+      "fixture_path": "tests/golden/tools/fixtures/tool_resolve_security_001.json",
+      "input_schema_id": "tool.resolve_security.input.v0",
+      "output_schema_id": "tool.resolve_security.output.v0",
+      "expected_status": "resolved",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "security:resolver:00700",
+          "data_version": "security-tools-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_security_profile_001",
+      "tool_name": "get_security_profile",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_security_profile_001.json",
+      "input_schema_id": "tool.get_security_profile.input.v0",
+      "output_schema_id": "tool.get_security_profile.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "security-profile:eq_hk_00700",
+          "data_version": "security-profile-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_market_calendar_001",
+      "tool_name": "get_market_calendar",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_market_calendar_001.json",
+      "input_schema_id": "tool.get_market_calendar.input.v0",
+      "output_schema_id": "tool.get_market_calendar.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "market-calendar:HK:2026-01-05:2026-01-07",
+          "data_version": "market-calendar-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_quote_snapshot_001",
+      "tool_name": "get_quote_snapshot",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_quote_snapshot_001.json",
+      "input_schema_id": "tool.get_quote_snapshot.input.v0",
+      "output_schema_id": "tool.get_quote_snapshot.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "quote-snapshot:eq_hk_00700:2026-01-07:delayed",
+          "data_version": "quote-snapshot-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_price_history_001",
+      "tool_name": "get_price_history",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_price_history_001.json",
+      "input_schema_id": "tool.get_price_history.input.v0",
+      "output_schema_id": "tool.get_price_history.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "price-history:eq_hk_00700:2026-01-05:2026-01-07:raw",
+          "data_version": "price-history-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_corporate_actions_001",
+      "tool_name": "get_corporate_actions",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_corporate_actions_001.json",
+      "input_schema_id": "tool.get_corporate_actions.input.v0",
+      "output_schema_id": "tool.get_corporate_actions.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "corporate-actions:eq_hk_00700:2026-01-03:2026-01-07",
+          "data_version": "corporate-actions-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_financial_facts_001",
+      "tool_name": "get_financial_facts",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_financial_facts_001.json",
+      "input_schema_id": "tool.get_financial_facts.input.v0",
+      "output_schema_id": "tool.get_financial_facts.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
+          "data_version": "financial-facts-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_data_lineage_001",
+      "tool_name": "get_data_lineage",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_data_lineage_001.json",
+      "input_schema_id": "tool.get_data_lineage.input.v0",
+      "output_schema_id": "tool.get_data_lineage.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
+          "data_version": "data-lineage-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_entitlements_001",
+      "tool_name": "get_entitlements",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_entitlements_001.json",
+      "input_schema_id": "tool.get_entitlements.input.v0",
+      "output_schema_id": "tool.get_entitlements.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "data-entitlement:ent_financial_facts_web_revenue",
+          "data_version": "entitlements-synthetic-v0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "sample_id": "tool_get_quote_snapshot_001",
+  "tool_name": "get_quote_snapshot",
+  "input_schema_id": "tool.get_quote_snapshot.input.v0",
+  "output_schema_id": "tool.get_quote_snapshot.output.v0",
+  "request": {
+    "instrument_id": "eq_hk_00700",
+    "mode": "delayed"
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-quote-snapshot",
+    "as_of": "2026-01-07T16:15:00+08:00",
+    "market_status": "post_close",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "quote-snapshot:eq_hk_00700:2026-01-07:delayed",
+        "data_version": "quote-snapshot-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 2,
+      "rows": 1
+    },
+    "data": {
+      "toolName": "get_quote_snapshot",
+      "status": "found",
+      "liveDataAccess": false,
+      "mode": "delayed"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "sample_id": "tool_get_security_profile_001",
+  "tool_name": "get_security_profile",
+  "input_schema_id": "tool.get_security_profile.input.v0",
+  "output_schema_id": "tool.get_security_profile.output.v0",
+  "request": {
+    "instrument_id": "eq_hk_00700"
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-security-profile",
+    "as_of": "2026-01-07T16:15:00+08:00",
+    "market_status": "not_applicable",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "security-profile:eq_hk_00700",
+        "data_version": "security-profile-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 1,
+      "rows": 1
+    },
+    "data": {
+      "toolName": "get_security_profile",
+      "status": "found",
+      "liveDataAccess": false,
+      "instrumentId": "eq_hk_00700"
+    }
+  }
+}

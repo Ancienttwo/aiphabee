@@ -3,9 +3,23 @@ import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
 const manifestRelativePath = "tests/golden/manifest.json";
+const toolManifestRelativePath = "tests/golden/tools/manifest.json";
 const manifestPath = resolve(process.cwd(), manifestRelativePath);
+const toolManifestPath = resolve(process.cwd(), toolManifestRelativePath);
 const goldenRoot = resolve(process.cwd(), "tests/golden");
+const toolGoldenRoot = resolve(process.cwd(), "tests/golden/tools");
 const requireFixtures = process.argv.includes("--require-fixtures");
+const REQUIRED_TOOL_GOLDEN_TOOLS = [
+  "resolve_security",
+  "get_security_profile",
+  "get_market_calendar",
+  "get_quote_snapshot",
+  "get_price_history",
+  "get_corporate_actions",
+  "get_financial_facts",
+  "get_data_lineage",
+  "get_entitlements"
+];
 
 const QUALITY_RULES = [
   {
@@ -98,11 +112,12 @@ if (manifestErrors.length > 0) {
 }
 
 const fixtureResults = validateAndRunFixtures(manifest);
+const toolFixtureResults = validateToolGoldenFixtures();
 
-if (fixtureResults.errors.length > 0) {
+if (fixtureResults.errors.length > 0 || toolFixtureResults.errors.length > 0) {
   emit(
     {
-      errors: fixtureResults.errors,
+      errors: [...fixtureResults.errors, ...toolFixtureResults.errors],
       manifest: manifestRelativePath,
       status: "invalid_fixtures"
     },
@@ -116,10 +131,243 @@ emit(
     quality_rule_count: QUALITY_RULES.length,
     sample_count: manifest.samples.length,
     states: countStates(fixtureResults.samples),
+    tool_sample_count: toolFixtureResults.samples.length,
+    tool_tools: toolFixtureResults.samples.map((sample) => sample.tool_name).sort(),
     status: "ok"
   },
   0
 );
+
+function validateToolGoldenFixtures() {
+  const errors = [];
+  const samples = [];
+
+  if (!existsSync(toolManifestPath)) {
+    if (requireFixtures) {
+      errors.push(`${toolManifestRelativePath}: tool golden manifest is required`);
+    }
+
+    return { errors, samples };
+  }
+
+  const manifestResult = readJsonFile(toolManifestPath, toolManifestRelativePath);
+
+  if (!manifestResult.ok) {
+    return {
+      errors: [`${toolManifestRelativePath}: ${manifestResult.error}`],
+      samples
+    };
+  }
+
+  const toolManifest = manifestResult.value;
+  errors.push(...validateToolManifest(toolManifest));
+
+  if (errors.length > 0) {
+    return { errors, samples };
+  }
+
+  toolManifest.samples.forEach((sample, index) => {
+    const samplePrefix = `tool_samples[${index}] ${sample.sample_id}`;
+    const fixturePath = resolve(process.cwd(), sample.fixture_path);
+
+    if (!isPathInside(toolGoldenRoot, fixturePath)) {
+      errors.push(`${samplePrefix}: fixture_path must stay under tests/golden/tools`);
+      return;
+    }
+
+    if (!existsSync(fixturePath)) {
+      errors.push(`${samplePrefix}: fixture_path does not exist`);
+      return;
+    }
+
+    const fixtureResult = readJsonFile(fixturePath, sample.fixture_path);
+
+    if (!fixtureResult.ok) {
+      errors.push(`${samplePrefix}: invalid fixture JSON: ${fixtureResult.error}`);
+      return;
+    }
+
+    errors.push(...validateToolFixture(sample, fixtureResult.value, samplePrefix));
+
+    samples.push({
+      sample_id: sample.sample_id,
+      tool_name: sample.tool_name
+    });
+  });
+
+  return { errors, samples };
+}
+
+function validateToolManifest(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["tool golden manifest must be an object"];
+  }
+
+  if (typeof value.version !== "string" || value.version.length === 0) {
+    errors.push("tool golden manifest version must be a non-empty string");
+  }
+
+  if (!Array.isArray(value.samples) || value.samples.length === 0) {
+    errors.push("tool golden manifest samples must be a non-empty array");
+    return errors;
+  }
+
+  const seenIds = new Set();
+  const toolNames = new Set();
+
+  value.samples.forEach((sample, index) => {
+    if (!isRecord(sample)) {
+      errors.push(`tool_samples[${index}] must be an object`);
+      return;
+    }
+
+    for (const field of [
+      "sample_id",
+      "tool_name",
+      "fixture_path",
+      "input_schema_id",
+      "output_schema_id",
+      "expected_status"
+    ]) {
+      if (typeof sample[field] !== "string" || sample[field].length === 0) {
+        errors.push(`tool_samples[${index}].${field} must be a non-empty string`);
+      }
+    }
+
+    if (!Array.isArray(sample.source_records) || sample.source_records.length === 0) {
+      errors.push(`tool_samples[${index}].source_records must be a non-empty array`);
+    }
+
+    if (typeof sample.sample_id === "string") {
+      if (seenIds.has(sample.sample_id)) {
+        errors.push(`tool_samples[${index}].sample_id is duplicated`);
+      }
+
+      seenIds.add(sample.sample_id);
+    }
+
+    if (typeof sample.tool_name === "string") {
+      toolNames.add(sample.tool_name);
+
+      if (sample.input_schema_id !== `tool.${sample.tool_name}.input.v0`) {
+        errors.push(`tool_samples[${index}].input_schema_id must match tool name`);
+      }
+
+      if (sample.output_schema_id !== `tool.${sample.tool_name}.output.v0`) {
+        errors.push(`tool_samples[${index}].output_schema_id must match tool name`);
+      }
+    }
+  });
+
+  for (const toolName of REQUIRED_TOOL_GOLDEN_TOOLS) {
+    if (!toolNames.has(toolName)) {
+      errors.push(`tool golden manifest must include ${toolName}`);
+    }
+  }
+
+  return errors;
+}
+
+function validateToolFixture(sample, fixture, samplePrefix) {
+  const errors = [];
+
+  if (!isRecord(fixture)) {
+    return [`${samplePrefix}: fixture must be an object`];
+  }
+
+  if (fixture.sample_id !== sample.sample_id) {
+    errors.push(`${samplePrefix}: fixture sample_id must match manifest`);
+  }
+
+  if (fixture.tool_name !== sample.tool_name) {
+    errors.push(`${samplePrefix}: fixture tool_name must match manifest`);
+  }
+
+  if (fixture.input_schema_id !== sample.input_schema_id) {
+    errors.push(`${samplePrefix}: input_schema_id must match manifest`);
+  }
+
+  if (fixture.output_schema_id !== sample.output_schema_id) {
+    errors.push(`${samplePrefix}: output_schema_id must match manifest`);
+  }
+
+  if (!isRecord(fixture.request)) {
+    errors.push(`${samplePrefix}: request must be an object`);
+  }
+
+  const response = fixture.expected_response;
+
+  if (!isRecord(response)) {
+    errors.push(`${samplePrefix}: expected_response must be an object`);
+    return errors;
+  }
+
+  for (const field of [
+    "ok",
+    "request_id",
+    "as_of",
+    "market_status",
+    "provenance",
+    "usage",
+    "data"
+  ]) {
+    if (!(field in response)) {
+      errors.push(`${samplePrefix}: expected_response.${field} is required`);
+    }
+  }
+
+  if (response.ok !== true) {
+    errors.push(`${samplePrefix}: expected_response.ok must be true`);
+  }
+
+  if (!Array.isArray(response.provenance) || response.provenance.length === 0) {
+    errors.push(`${samplePrefix}: expected_response.provenance must be non-empty`);
+  }
+
+  if (!isRecord(response.usage)) {
+    errors.push(`${samplePrefix}: expected_response.usage must be an object`);
+  }
+
+  if (!isRecord(response.data)) {
+    errors.push(`${samplePrefix}: expected_response.data must be an object`);
+    return errors;
+  }
+
+  if (response.data.toolName !== sample.tool_name) {
+    errors.push(`${samplePrefix}: expected_response.data.toolName must match tool`);
+  }
+
+  if (response.data.status !== sample.expected_status) {
+    errors.push(`${samplePrefix}: expected_response.data.status must match expected_status`);
+  }
+
+  if (response.data.liveDataAccess !== false) {
+    errors.push(`${samplePrefix}: expected_response.data.liveDataAccess must be false`);
+  }
+
+  const manifestSourceRecordIds = new Set(
+    sample.source_records
+      .filter(isRecord)
+      .map((record) => record.source_record_id)
+      .filter((value) => typeof value === "string")
+  );
+  const responseSourceRecordIds = new Set(
+    response.provenance
+      .filter(isRecord)
+      .map((record) => record.source_record_id)
+      .filter((value) => typeof value === "string")
+  );
+
+  for (const sourceRecordId of manifestSourceRecordIds) {
+    if (!responseSourceRecordIds.has(sourceRecordId)) {
+      errors.push(`${samplePrefix}: response provenance missing ${sourceRecordId}`);
+    }
+  }
+
+  return errors;
+}
 
 function validateManifest(value) {
   const errors = [];
