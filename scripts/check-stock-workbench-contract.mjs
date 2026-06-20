@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const contractPath = "deploy/workbench/stock-workbench.contract.json";
-const requiredItems = ["STK-01", "STK-02", "STK-03", "STK-05"];
+const requiredItems = ["STK-01", "STK-02", "STK-03", "STK-04", "STK-05"];
 const requiredSections = [
   "security_profile",
   "quote_snapshot",
   "price_history",
   "financial_facts",
+  "derived_metrics",
   "corporate_actions"
 ];
 const requiredTools = [
@@ -19,16 +20,32 @@ const requiredTools = [
   "get_financial_facts",
   "get_corporate_actions"
 ];
-const requiredUnsupported = ["derived_valuation_metrics", "announcements"];
+const requiredUnsupported = ["announcements"];
 const requiredOutputFields = [
   "security_profile",
   "quote_snapshot",
   "price_history",
   "financial_facts",
+  "derived_metrics",
   "corporate_actions",
   "data_quality",
   "evidence",
   "unsupported_sections"
+];
+const requiredComputedMetrics = [
+  "net_margin",
+  "return_on_assets",
+  "return_on_equity",
+  "asset_turnover",
+  "equity_multiplier"
+];
+const requiredBlockedMetrics = ["price_to_earnings", "price_to_sales", "price_to_book"];
+const requiredAnomalyHandling = [
+  "missing_input",
+  "zero_denominator",
+  "negative_denominator",
+  "quality_hold",
+  "market_cap_unavailable"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
@@ -84,7 +101,7 @@ function validateContract(value) {
     return ["contract must be an object"];
   }
 
-  if (value.version !== "2026-06-21.phase1.stock-workbench-aggregate-scaffold.v0") {
+  if (value.version !== "2026-06-21.phase1.stock-workbench-derived-metrics-scaffold.v0") {
     errors.push("version must match stock workbench scaffold version");
   }
 
@@ -141,7 +158,55 @@ function validateContract(value) {
       "required_output_fields"
     )
   );
+  errors.push(...validateDerivedMetricContract(value.derived_metric_contract));
   errors.push(...validateNoSecrets(value));
+
+  return errors;
+}
+
+function validateDerivedMetricContract(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["derived_metric_contract must be an object"];
+  }
+
+  if (value.formula_version !== "stock-workbench-derived-metrics-v0") {
+    errors.push("derived_metric_contract.formula_version must be stock-workbench-derived-metrics-v0");
+  }
+
+  if (value.valuation_blocked_without_market_cap !== true) {
+    errors.push("derived_metric_contract.valuation_blocked_without_market_cap must be true");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.source_tools,
+      ["get_financial_facts", "get_quote_snapshot"],
+      "derived_metric_contract.source_tools"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.computed_metrics,
+      requiredComputedMetrics,
+      "derived_metric_contract.computed_metrics"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.blocked_metrics,
+      requiredBlockedMetrics,
+      "derived_metric_contract.blocked_metrics"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.anomaly_handling,
+      requiredAnomalyHandling,
+      "derived_metric_contract.anomaly_handling"
+    )
+  );
 
   return errors;
 }

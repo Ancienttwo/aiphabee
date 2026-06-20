@@ -9,6 +9,8 @@
 - [x] Add `@aiphabee/workbench` backend aggregate package.
 - [x] Reuse existing synthetic tool surfaces for profile, quote, price history,
   financial facts, and corporate actions.
+- [x] Add deterministic STK-04 derived metric definitions, profitability
+  calculations, and valuation blocked reasons.
 - [x] Add Worker runtime and snapshot routes.
 - [x] Add local contract checker and root check wiring.
 - [x] Add package and Worker tests.
@@ -16,9 +18,10 @@
 
 ## Scope
 
-This slice covers backend aggregation for STK-01, STK-02, STK-03, and STK-05.
-It does not render frontend UI, add valuation-derived metrics, or implement
-announcement/document search.
+This slice covers backend aggregation for STK-01, STK-02, STK-03, STK-04, and
+STK-05. It does not render frontend UI or implement announcement/document
+search. Valuation values remain blocked until market cap/share-count authority
+exists.
 
 ## Verification
 

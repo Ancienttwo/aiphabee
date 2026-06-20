@@ -730,12 +730,14 @@ app.post("/workbench/stock/snapshot", async (c) => {
     snapshot.quote_snapshot.usage.rows +
     snapshot.price_history.usage.rows +
     snapshot.financial_facts.usage.rows +
+    snapshot.derived_metrics.usage.rows +
     snapshot.corporate_actions.usage.rows;
   const credits =
     snapshot.security_profile.usage.credits +
     snapshot.quote_snapshot.usage.credits +
     snapshot.price_history.usage.credits +
     snapshot.financial_facts.usage.credits +
+    snapshot.derived_metrics.usage.credits +
     snapshot.corporate_actions.usage.credits;
 
   return c.json(

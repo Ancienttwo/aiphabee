@@ -163,7 +163,6 @@ interface WorkbenchRuntimeBody {
     status: string;
     unsupported_sections: {
       announcements: string;
-      derived_valuation_metrics: string;
     };
   };
   ok: true;
@@ -188,6 +187,21 @@ interface WorkbenchStockSnapshotBody {
     evidence: {
       provenance_count: number;
       source_record_ids: string[];
+    };
+    derived_metrics: {
+      definitions: Array<{
+        formula: string;
+        formula_version: string;
+        metric_id: string;
+      }>;
+      metrics: Array<{
+        blocked_reason?: string;
+        category: string;
+        metric_id: string;
+        status: string;
+        value?: number;
+      }>;
+      status: string;
     };
     financial_facts: {
       facts?: {
@@ -225,7 +239,6 @@ interface WorkbenchStockSnapshotBody {
     status: string;
     unsupported_sections: {
       announcements: string;
-      derived_valuation_metrics: string;
     };
   };
   ok: true;
@@ -1684,11 +1697,11 @@ describe("worker runtime", () => {
       "quote_snapshot",
       "price_history",
       "financial_facts",
+      "derived_metrics",
       "corporate_actions"
     ]);
     expect(body.data.unsupported_sections).toEqual({
-      announcements: "planned",
-      derived_valuation_metrics: "planned"
+      announcements: "planned"
     });
   });
 
@@ -1717,6 +1730,7 @@ describe("worker runtime", () => {
     });
     expect(body.data.data_quality.section_statuses).toEqual({
       corporate_actions: "found",
+      derived_metrics: "found",
       financial_facts: "found",
       price_history: "found",
       quote_snapshot: "found",
@@ -1729,6 +1743,31 @@ describe("worker runtime", () => {
     expect(body.data.quote_snapshot.quote?.symbol).toBe("00700.HK");
     expect(body.data.price_history.history?.adjustment).toBe("total_return_adjusted");
     expect(body.data.financial_facts.facts?.rowCount).toBe(4);
+    expect(
+      body.data.derived_metrics.metrics
+        .filter((metric) => metric.status === "computed")
+        .map((metric) => [metric.metric_id, metric.value])
+    ).toEqual([
+      ["net_margin", 0.189184],
+      ["return_on_assets", 0.073386],
+      ["return_on_equity", 0.13915],
+      ["asset_turnover", 0.387908],
+      ["equity_multiplier", 1.896135]
+    ]);
+    expect(
+      body.data.derived_metrics.metrics
+        .filter((metric) => metric.category === "valuation")
+        .map((metric) => [metric.metric_id, metric.blocked_reason])
+    ).toEqual([
+      ["price_to_earnings", "market_cap_unavailable"],
+      ["price_to_sales", "market_cap_unavailable"],
+      ["price_to_book", "market_cap_unavailable"]
+    ]);
+    expect(body.data.derived_metrics.definitions[0]).toMatchObject({
+      formula: "net_income / revenue",
+      formula_version: "stock-workbench-derived-metrics-v0",
+      metric_id: "net_margin"
+    });
     expect(body.data.corporate_actions.timeline?.rowCount).toBe(3);
     expect(body.usage.rows).toBeGreaterThan(0);
     expect(body.usage.credits).toBeGreaterThan(0);

@@ -1,16 +1,17 @@
 # Stock Workbench Aggregate Scaffold
 
 > **Status**: Verified backend scaffold
-> **Last Updated**: 2026-06-21 05:25 +08
+> **Last Updated**: 2026-06-21 05:29 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-stock-workbench-aggregate-scaffold.md`
 > **Task Contract**:
 > `tasks/contracts/stock-workbench-aggregate-scaffold.contract.md`
 
 This slice completes the backend-only stock workbench aggregate scaffold for
-Sprint 1.4 STK-01, STK-02, STK-03, and STK-05. It composes existing synthetic
-tool handlers into one snapshot surface without frontend rendering, live market
-data access, SQL, derived valuation metrics, or announcement/document search.
+Sprint 1.4 STK-01, STK-02, STK-03, STK-04, and STK-05. It composes existing
+synthetic tool handlers into one snapshot surface and adds deterministic
+derived-metric definitions/results without frontend rendering, live market data
+access, SQL, or announcement/document search.
 
 ## P1 Architecture Map
 
@@ -19,6 +20,7 @@ data access, SQL, derived valuation metrics, or announcement/document search.
 | Package | `@aiphabee/workbench` | Owns stock workbench aggregate planner |
 | Runtime route | `GET /workbench/runtime` | Reports sections, source tools, unsupported sections, and no-live posture |
 | Snapshot route | `POST /workbench/stock/snapshot` | Aggregates existing tool package outputs into a standard envelope |
+| Derived metrics | `derived_metrics` section | Computes profitability ratios and blocks valuation multiples when market cap is unavailable |
 | Source tools | `security-tools`, `market-data`, `financial-facts`, `corporate-actions` | Existing synthetic handlers remain authoritative for facts |
 | Contract | `deploy/workbench/stock-workbench.contract.json` | Guards route, covered STK rows, no frontend, no live data, no SQL |
 | Frontend | Out of scope | User delegated frontend work to Claude |
@@ -35,7 +37,12 @@ data access, SQL, derived valuation metrics, or announcement/document search.
    - `get_price_history`
    - `get_financial_facts`
    - `get_corporate_actions`
-5. The aggregate returns section statuses, provenance/source-record summary,
+5. Workbench derives STK-04 metrics from returned facts:
+   - computed: `net_margin`, `return_on_assets`, `return_on_equity`,
+     `asset_turnover`, `equity_multiplier`
+   - blocked with explicit reason: `price_to_earnings`, `price_to_sales`,
+     `price_to_book` when `market_cap` is unavailable
+6. The aggregate returns section statuses, provenance/source-record summary,
    and the original handler results inside a shared success envelope.
 
 ## P3 Design Decision
@@ -47,14 +54,17 @@ Reason:
 - Existing tool packages already encode security/profile/quote/history/facts
   and corporate-action contracts.
 - Frontend rendering is explicitly delegated.
-- STK-04 derived valuation metrics and STK-06 announcement search need separate
-  source contracts and should not be faked from missing data.
+- Valuation multiples require market cap/share-count authority; this scaffold
+  exposes the formula and blocks those metrics instead of fabricating inputs.
+- STK-06 announcement search needs a separate document/source contract.
 
 Tradeoff:
 
-- The workbench now has a stable backend snapshot surface for four STK rows.
+- The workbench now has a stable backend snapshot surface for five STK rows.
 - The user still cannot see a frontend workbench until Claude integrates UI.
-- Valuation-derived metrics and announcements remain open.
+- Valuation formulas are inspectable, but valuation values remain blocked until
+  market cap/share-count source data exists.
+- Announcements remain open.
 
 ## Verification
 
@@ -82,6 +92,7 @@ Observed runtime fields:
       "quote_snapshot",
       "price_history",
       "financial_facts",
+      "derived_metrics",
       "corporate_actions"
     ],
     "status": "stock_workbench_aggregate_scaffold"
@@ -90,6 +101,7 @@ Observed runtime fields:
     "instrument_id": "eq_hk_00700",
     "section_statuses": {
       "corporate_actions": "found",
+      "derived_metrics": "found",
       "financial_facts": "found",
       "price_history": "found",
       "quote_snapshot": "found",
@@ -100,9 +112,30 @@ Observed runtime fields:
 }
 ```
 
+Derived metric behavior:
+
+```json
+{
+  "computed": [
+    "net_margin",
+    "return_on_assets",
+    "return_on_equity",
+    "asset_turnover",
+    "equity_multiplier"
+  ],
+  "blocked": {
+    "price_to_earnings": "market_cap_unavailable",
+    "price_to_sales": "market_cap_unavailable",
+    "price_to_book": "market_cap_unavailable"
+  },
+  "formula_version": "stock-workbench-derived-metrics-v0"
+}
+```
+
 ## Residual Gaps
 
-- STK-04 valuation/profitability derived metrics are not implemented.
 - STK-06 announcement/document search is not implemented.
+- Valuation multiples remain blocked until a market cap/share-count source is
+  added.
 - Frontend workbench rendering remains delegated.
 - Live partner data and live Serving reads remain absent.

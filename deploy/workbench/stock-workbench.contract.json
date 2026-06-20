@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-21.phase1.stock-workbench-aggregate-scaffold.v0",
+  "version": "2026-06-21.phase1.stock-workbench-derived-metrics-scaffold.v0",
   "status": "local_contract",
   "package": "@aiphabee/workbench",
   "runtime_route": "GET /workbench/runtime",
@@ -13,6 +13,7 @@
     "STK-01",
     "STK-02",
     "STK-03",
+    "STK-04",
     "STK-05"
   ],
   "sections": [
@@ -20,6 +21,7 @@
     "quote_snapshot",
     "price_history",
     "financial_facts",
+    "derived_metrics",
     "corporate_actions"
   ],
   "source_tools": [
@@ -31,14 +33,41 @@
     "get_corporate_actions"
   ],
   "unsupported_sections": [
-    "derived_valuation_metrics",
     "announcements"
   ],
+  "derived_metric_contract": {
+    "formula_version": "stock-workbench-derived-metrics-v0",
+    "source_tools": [
+      "get_financial_facts",
+      "get_quote_snapshot"
+    ],
+    "computed_metrics": [
+      "net_margin",
+      "return_on_assets",
+      "return_on_equity",
+      "asset_turnover",
+      "equity_multiplier"
+    ],
+    "blocked_metrics": [
+      "price_to_earnings",
+      "price_to_sales",
+      "price_to_book"
+    ],
+    "anomaly_handling": [
+      "missing_input",
+      "zero_denominator",
+      "negative_denominator",
+      "quality_hold",
+      "market_cap_unavailable"
+    ],
+    "valuation_blocked_without_market_cap": true
+  },
   "required_output_fields": [
     "security_profile",
     "quote_snapshot",
     "price_history",
     "financial_facts",
+    "derived_metrics",
     "corporate_actions",
     "data_quality",
     "evidence",

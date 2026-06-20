@@ -3,7 +3,7 @@
 ## Summary
 
 Implemented the Sprint 1.4 backend stock workbench aggregate scaffold for
-STK-01, STK-02, STK-03, and STK-05.
+STK-01, STK-02, STK-03, STK-04, and STK-05.
 
 ## Current State
 
@@ -17,8 +17,13 @@ STK-01, STK-02, STK-03, and STK-05.
 - `GET /workbench/runtime` reports aggregate capability, supported sections,
   unsupported sections, and no-live/no-frontend posture.
 - `POST /workbench/stock/snapshot` returns a standard envelope with profile,
-  quote, price history, financial facts, corporate actions, data-quality section
-  statuses, and evidence summary.
+  quote, price history, financial facts, derived metrics, corporate actions,
+  data-quality section statuses, and evidence summary.
+- `derived_metrics` exposes formula definitions and anomaly handling:
+  - computed profitability: `net_margin`, `return_on_assets`,
+    `return_on_equity`, `asset_turnover`, `equity_multiplier`
+  - blocked valuation: `price_to_earnings`, `price_to_sales`, `price_to_book`
+    with `market_cap_unavailable`
 - Ambiguous security resolution returns `blocked_resolution` rather than
   silently choosing a candidate.
 
@@ -27,7 +32,8 @@ STK-01, STK-02, STK-03, and STK-05.
 - No frontend workbench UI.
 - No live market data access.
 - No SQL execution.
-- No valuation-derived metric surface.
+- No fabricated valuation values when market cap/share-count authority is
+  absent.
 - No announcement/document search.
 
 ## Verification
@@ -44,7 +50,8 @@ Passed:
 - `GET /workbench/runtime` smoke:
   - `ok=true`
   - `status=stock_workbench_aggregate_scaffold`
-  - sections: profile, quote, price history, financial facts, corporate actions
+  - sections: profile, quote, price history, financial facts, derived metrics,
+    corporate actions
   - `live_data_access=false`
   - `frontend_rendering=false`
 - `POST /workbench/stock/snapshot` smoke for `00700.HK`:
@@ -54,6 +61,8 @@ Passed:
   - all five covered sections `found`
   - `price_history.history.adjustment=total_return_adjusted`
   - `financial_facts.facts.rowCount=4`
+  - `derived_metrics.metrics` computes 5 profitability metrics
+  - valuation metrics are blocked with `market_cap_unavailable`
   - `corporate_actions.timeline.rowCount=3`
   - `live_data_access=false`
   - `frontend_rendering=false`
