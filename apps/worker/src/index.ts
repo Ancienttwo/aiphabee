@@ -3,6 +3,7 @@ import {
   AgentRuntimeInputError,
   AGENT_RUNTIME_LIMITS,
   createAgentRunSkeleton,
+  createToolLoopAgentPlan,
   getAgentRuntimeCapabilities
 } from "@aiphabee/agent-runtime";
 import {
@@ -965,6 +966,185 @@ app.post("/agent/runs/dry-run", async (c) => {
       createErrorEnvelope("INTERNAL_ERROR", "agent dry run failed", {
         asOf: new Date().toISOString(),
         methodologyVersion: "agent-runtime-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/agent/runs/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  let requestedToolsForTelemetry: string[] = [];
+  let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json()) as {
+      channel?: unknown;
+      entitlement_policy_version?: unknown;
+      entitlementPolicyVersion?: unknown;
+      max_credits?: unknown;
+      max_rows?: unknown;
+      max_steps?: unknown;
+      max_tokens?: unknown;
+      max_wall_clock_ms?: unknown;
+      model_tier?: unknown;
+      modelTier?: unknown;
+      plan?: unknown;
+      prompt?: unknown;
+      tools?: unknown;
+      user_id?: unknown;
+      userId?: unknown;
+      workspace_id?: unknown;
+      workspaceId?: unknown;
+    };
+    const requestedTools = Array.isArray(body.tools)
+      ? body.tools.filter((tool): tool is string => typeof tool === "string")
+      : undefined;
+
+    requestedToolsForTelemetry = requestedTools ?? [];
+    maxStepsForTelemetry =
+      typeof body.max_steps === "number" ? body.max_steps : AGENT_RUNTIME_LIMITS.maxSteps;
+
+    const plan = createToolLoopAgentPlan({
+      channel: typeof body.channel === "string" ? body.channel : undefined,
+      entitlementPolicyVersion:
+        typeof body.entitlement_policy_version === "string"
+          ? body.entitlement_policy_version
+          : typeof body.entitlementPolicyVersion === "string"
+            ? body.entitlementPolicyVersion
+            : undefined,
+      maxCredits: typeof body.max_credits === "number" ? body.max_credits : undefined,
+      maxRows: typeof body.max_rows === "number" ? body.max_rows : undefined,
+      maxSteps: maxStepsForTelemetry,
+      maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : undefined,
+      maxWallClockMs:
+        typeof body.max_wall_clock_ms === "number" ? body.max_wall_clock_ms : undefined,
+      modelTier:
+        typeof body.model_tier === "string"
+          ? body.model_tier
+          : typeof body.modelTier === "string"
+            ? body.modelTier
+            : undefined,
+      plan: typeof body.plan === "string" ? body.plan : undefined,
+      prompt: typeof body.prompt === "string" ? body.prompt : "",
+      requestedTools,
+      requestId,
+      userId:
+        typeof body.user_id === "string"
+          ? body.user_id
+          : typeof body.userId === "string"
+            ? body.userId
+            : undefined,
+      workspaceId:
+        typeof body.workspace_id === "string"
+          ? body.workspace_id
+          : typeof body.workspaceId === "string"
+            ? body.workspaceId
+            : undefined
+    });
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: plan.budget.max_steps,
+      outcome: "success",
+      requestId,
+      requestedTools: plan.run_context.entitlements.allowed_tools,
+      route: "/agent/runs/plan",
+      runId: plan.run_id
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", plan.run_id);
+
+    return c.json(
+      createSuccessEnvelope(plan, {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "tool-loop-agent-planner-scaffold-v0",
+        provenance: [
+          {
+            data_version: "tool-loop-agent-planner-scaffold-v0",
+            methodology_version: "tool-loop-agent-planner-scaffold-v0",
+            source: "agent-runtime",
+            source_record_id: "tool-loop-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.planned_step_count
+        }
+      })
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+      const deniedTools = Array.isArray(error.details.deniedTools)
+        ? error.details.deniedTools.filter((tool): tool is string => typeof tool === "string")
+        : [];
+      const runId = `dry_${requestId}`;
+      const telemetryEvents = createAgentDryRunTelemetry({
+        deniedTools,
+        environment: c.env?.APP_ENV ?? "local",
+        maxSteps: maxStepsForTelemetry,
+        outcome: "rejected",
+        requestId,
+        requestedTools: requestedToolsForTelemetry,
+        route: "/agent/runs/plan",
+        runId
+      });
+
+      await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+      c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+      c.header("x-aiphabee-telemetry-run-id", runId);
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "tool-loop-agent-planner-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    const runId = `dry_${requestId}`;
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: maxStepsForTelemetry,
+      outcome: "error",
+      requestId,
+      requestedTools: requestedToolsForTelemetry,
+      route: "/agent/runs/plan",
+      runId
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", runId);
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "agent tool loop planning failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "tool-loop-agent-planner-scaffold-v0",
         requestId,
         usage: {
           cached: false,

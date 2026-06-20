@@ -3,6 +3,7 @@ import {
   AgentRuntimeInputError,
   createAgentRunSkeleton,
   createAiSdkStopCondition,
+  createToolLoopAgentPlan,
   getAgentRuntimeCapabilities
 } from "./index";
 
@@ -23,6 +24,15 @@ describe("agent runtime scaffold", () => {
       live_entitlement_reads: false,
       status: "agent_run_context_scaffold",
       tool_versions: true
+    });
+    expect(capabilities.tool_loop_agent).toMatchObject({
+      actual_tool_execution: false,
+      chain_of_thought_exposed: false,
+      max_parallel_tools: 3,
+      model_calls: false,
+      planner_ready: true,
+      status: "tool_loop_agent_planner_scaffold",
+      streaming_transport: "planned"
     });
     expect(capabilities.registered_tools).toHaveLength(9);
     expect(capabilities.registered_tools[0]).toMatchObject({
@@ -112,6 +122,81 @@ describe("agent runtime scaffold", () => {
         maxSteps: 99,
         prompt: "Explain 00700.HK",
         requestId: "req-agent-3"
+      })
+    ).toThrow(AgentRuntimeInputError);
+  });
+
+  it("plans no-model tool loop steps with public progress and stop rules", () => {
+    const plan = createToolLoopAgentPlan({
+      maxSteps: 6,
+      prompt: "Explain 00700.HK revenue and price trend",
+      requestId: "req-agent-plan-1",
+      requestedTools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ],
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan.status).toBe("planned_no_model");
+    expect(plan.model_calls).toBe(false);
+    expect(plan.actual_tool_execution).toBe(false);
+    expect(plan.chain_of_thought_exposed).toBe(false);
+    expect(plan.max_parallel_tools).toBe(3);
+    expect(plan.planned_step_count).toBe(6);
+    expect(plan.progress_stream).toMatchObject({
+      exposes_chain_of_thought: false,
+      tool_progress_public: true,
+      transport: "planned"
+    });
+    expect(plan.stop_conditions).toContain("two_consecutive_same_error");
+    expect(plan.retry_policy).toMatchObject({
+      consecutive_same_error_limit: 2,
+      max_attempts_per_tool: 2,
+      retry_billable: false
+    });
+    expect(plan.steps.map((step) => step.phase)).toEqual([
+      "security_resolution",
+      "entitlement_gate",
+      "data_fetch",
+      "data_fetch",
+      "evidence_binding",
+      "answer_contract"
+    ]);
+    expect(plan.steps.find((step) => step.phase === "data_fetch")?.tool_calls).toHaveLength(3);
+    expect(plan.steps.every((step) => step.tool_calls.length <= 3)).toBe(true);
+    expect(plan.steps.flatMap((step) => step.tool_calls).map((tool) => tool.name)).toEqual([
+      "resolve_security",
+      "get_entitlements",
+      "get_security_profile",
+      "get_quote_snapshot",
+      "get_price_history",
+      "get_financial_facts",
+      "get_data_lineage"
+    ]);
+  });
+
+  it("rejects tool loop plans that exceed the requested step budget", () => {
+    expect(() =>
+      createToolLoopAgentPlan({
+        maxSteps: 3,
+        prompt: "Explain 00700.HK revenue and price trend",
+        requestId: "req-agent-plan-budget",
+        requestedTools: [
+          "resolve_security",
+          "get_entitlements",
+          "get_security_profile",
+          "get_quote_snapshot",
+          "get_price_history",
+          "get_financial_facts",
+          "get_data_lineage"
+        ]
       })
     ).toThrow(AgentRuntimeInputError);
   });

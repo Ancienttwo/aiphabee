@@ -11,6 +11,8 @@ import {
 export const AGENT_RUNTIME_VERSION = "agent-runtime-scaffold-v0";
 export const AGENT_RUN_CONTEXT_VERSION =
   "2026-06-21.phase1.agent-run-context-scaffold.v0";
+export const TOOL_LOOP_AGENT_PLANNER_VERSION =
+  "2026-06-21.phase1.tool-loop-agent-planner-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -52,6 +54,31 @@ export interface AgentRuntimeCapabilities {
   };
   limits: typeof AGENT_RUNTIME_LIMITS;
   model_provider: "not_configured";
+  tool_loop_agent: {
+    actual_tool_execution: false;
+    chain_of_thought_exposed: false;
+    max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
+    model_calls: false;
+    planner_ready: true;
+    progress_events: readonly [
+      "run.started",
+      "tool.step.planned",
+      "tool.call.started",
+      "tool.call.completed",
+      "tool.call.failed",
+      "run.completed",
+      "run.stopped"
+    ];
+    status: "tool_loop_agent_planner_scaffold";
+    stop_conditions: readonly [
+      "max_steps",
+      "budget_exhausted",
+      "two_consecutive_same_error",
+      "tool_scope_denied",
+      "all_planned_tools_completed"
+    ];
+    streaming_transport: "planned";
+  };
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -149,6 +176,80 @@ export interface AgentRunToolContext {
   version: string;
 }
 
+export type AgentToolLoopStepKind = "answer_contract" | "tool_calls";
+export type AgentToolLoopPhase =
+  | "answer_contract"
+  | "data_fetch"
+  | "entitlement_gate"
+  | "evidence_binding"
+  | "security_resolution";
+export type AgentToolLoopProgressEvent =
+  | "run.started"
+  | "tool.call.completed"
+  | "tool.call.failed"
+  | "tool.call.started"
+  | "tool.step.planned"
+  | "run.completed"
+  | "run.stopped";
+export type AgentToolLoopStatus = "planned_no_model";
+
+export interface AgentToolLoopToolCallPlan {
+  execution: "planned_no_call";
+  input_schema_id: string;
+  live_data_access: false;
+  name: RegisteredAgentToolName;
+  output_schema_id: string;
+  required_scope: string;
+  version: string;
+}
+
+export interface AgentToolLoopRetryPolicy {
+  consecutive_same_error_limit: 2;
+  max_attempts_per_tool: 2;
+  retry_billable: false;
+}
+
+export interface AgentToolLoopStepPlan {
+  index: number;
+  kind: AgentToolLoopStepKind;
+  phase: AgentToolLoopPhase;
+  progress_events: AgentToolLoopProgressEvent[];
+  public_label: string;
+  retry_policy: AgentToolLoopRetryPolicy;
+  step_id: string;
+  stop_on_error: true;
+  tool_calls: AgentToolLoopToolCallPlan[];
+}
+
+export interface AgentToolLoopPlan {
+  actual_tool_execution: false;
+  budget: AgentRunBudget;
+  chain_of_thought_exposed: false;
+  max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
+  model_calls: false;
+  planned_step_count: number;
+  progress_stream: {
+    events: AgentToolLoopProgressEvent[];
+    exposes_chain_of_thought: false;
+    tool_progress_public: true;
+    transport: "planned";
+  };
+  request_id: string;
+  retry_policy: AgentToolLoopRetryPolicy;
+  run_context: AgentRunContext;
+  run_id: string;
+  status: AgentToolLoopStatus;
+  steps: AgentToolLoopStepPlan[];
+  stop_conditions: Array<
+    | "all_planned_tools_completed"
+    | "budget_exhausted"
+    | "max_steps"
+    | "tool_scope_denied"
+    | "two_consecutive_same_error"
+  >;
+  version: typeof TOOL_LOOP_AGENT_PLANNER_VERSION;
+}
+
 export interface AgentRunSkeleton {
   ai_sdk: {
     package_name: "ai";
@@ -214,6 +315,31 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     },
     limits: AGENT_RUNTIME_LIMITS,
     model_provider: "not_configured",
+    tool_loop_agent: {
+      actual_tool_execution: false,
+      chain_of_thought_exposed: false,
+      max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
+      model_calls: false,
+      planner_ready: true,
+      progress_events: [
+        "run.started",
+        "tool.step.planned",
+        "tool.call.started",
+        "tool.call.completed",
+        "tool.call.failed",
+        "run.completed",
+        "run.stopped"
+      ],
+      status: "tool_loop_agent_planner_scaffold",
+      stop_conditions: [
+        "max_steps",
+        "budget_exhausted",
+        "two_consecutive_same_error",
+        "tool_scope_denied",
+        "all_planned_tools_completed"
+      ],
+      streaming_transport: "planned"
+    },
     run_context: {
       budget_dimensions: [
         "steps",
@@ -342,6 +468,60 @@ export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSk
   };
 }
 
+export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentToolLoopPlan {
+  const skeleton = createAgentRunSkeleton(input);
+  const retryPolicy = createRetryPolicy();
+  const steps = createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy);
+
+  if (steps.length > skeleton.budget.max_steps) {
+    throw new AgentRuntimeInputError(
+      "STEP_LIMIT_OUT_OF_RANGE",
+      `planned step count ${steps.length} exceeds maxSteps ${skeleton.budget.max_steps}`,
+      {
+        maxSteps: skeleton.budget.max_steps,
+        plannedStepCount: steps.length
+      }
+    );
+  }
+
+  return {
+    actual_tool_execution: false,
+    budget: skeleton.run_context.budget,
+    chain_of_thought_exposed: false,
+    max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
+    model_calls: false,
+    planned_step_count: steps.length,
+    progress_stream: {
+      events: [
+        "run.started",
+        "tool.step.planned",
+        "tool.call.started",
+        "tool.call.completed",
+        "tool.call.failed",
+        "run.completed",
+        "run.stopped"
+      ],
+      exposes_chain_of_thought: false,
+      tool_progress_public: true,
+      transport: "planned"
+    },
+    request_id: skeleton.request_id,
+    retry_policy: retryPolicy,
+    run_context: skeleton.run_context,
+    run_id: skeleton.run_id,
+    status: "planned_no_model",
+    steps,
+    stop_conditions: [
+      "max_steps",
+      "budget_exhausted",
+      "two_consecutive_same_error",
+      "tool_scope_denied",
+      "all_planned_tools_completed"
+    ],
+    version: TOOL_LOOP_AGENT_PLANNER_VERSION
+  };
+}
+
 function createAgentRunBudget(input: {
   maxCredits?: number;
   maxRows?: number;
@@ -369,6 +549,107 @@ function createAgentRunBudget(input: {
       "maxWallClockMs"
     )
   };
+}
+
+function createToolLoopSteps(
+  tools: AgentRunToolContext[],
+  retryPolicy: AgentToolLoopRetryPolicy
+): AgentToolLoopStepPlan[] {
+  const steps: AgentToolLoopStepPlan[] = [];
+  const resolverTools = tools.filter((tool) => tool.name === "resolve_security");
+  const entitlementTools = tools.filter((tool) => tool.name === "get_entitlements");
+  const evidenceTools = tools.filter((tool) => tool.name === "get_data_lineage");
+  const dataTools = tools.filter(
+    (tool) =>
+      tool.name !== "resolve_security" &&
+      tool.name !== "get_entitlements" &&
+      tool.name !== "get_data_lineage"
+  );
+
+  pushToolStep(steps, "security_resolution", "Resolve security and time context", resolverTools, retryPolicy);
+  pushToolStep(steps, "entitlement_gate", "Check workspace entitlement scope", entitlementTools, retryPolicy);
+
+  for (const chunk of chunkTools(dataTools, AGENT_RUNTIME_LIMITS.maxParallelTools)) {
+    pushToolStep(steps, "data_fetch", "Fetch read-only tool data", chunk, retryPolicy);
+  }
+
+  pushToolStep(steps, "evidence_binding", "Bind source lineage and evidence", evidenceTools, retryPolicy);
+  steps.push(
+    createStep(
+      steps.length + 1,
+      "answer_contract",
+      "answer_contract",
+      "Prepare evidence-bound answer contract",
+      [],
+      retryPolicy
+    )
+  );
+
+  return steps;
+}
+
+function pushToolStep(
+  steps: AgentToolLoopStepPlan[],
+  phase: AgentToolLoopPhase,
+  label: string,
+  tools: AgentRunToolContext[],
+  retryPolicy: AgentToolLoopRetryPolicy
+) {
+  if (tools.length === 0) {
+    return;
+  }
+
+  steps.push(createStep(steps.length + 1, "tool_calls", phase, label, tools, retryPolicy));
+}
+
+function createStep(
+  index: number,
+  kind: AgentToolLoopStepKind,
+  phase: AgentToolLoopPhase,
+  label: string,
+  tools: AgentRunToolContext[],
+  retryPolicy: AgentToolLoopRetryPolicy
+): AgentToolLoopStepPlan {
+  return {
+    index,
+    kind,
+    phase,
+    progress_events:
+      kind === "tool_calls"
+        ? ["tool.step.planned", "tool.call.started", "tool.call.completed", "tool.call.failed"]
+        : ["tool.step.planned", "run.completed", "run.stopped"],
+    public_label: label,
+    retry_policy: retryPolicy,
+    step_id: `step_${index}`,
+    stop_on_error: true,
+    tool_calls: tools.map((tool) => ({
+      execution: "planned_no_call",
+      input_schema_id: tool.input_schema_id,
+      live_data_access: tool.live_data_access,
+      name: tool.name,
+      output_schema_id: tool.output_schema_id,
+      required_scope: tool.required_scope,
+      version: tool.version
+    }))
+  };
+}
+
+function createRetryPolicy(): AgentToolLoopRetryPolicy {
+  return {
+    consecutive_same_error_limit: 2,
+    max_attempts_per_tool: 2,
+    retry_billable: false
+  };
+}
+
+function chunkTools<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
 }
 
 function createAgentRunContext(input: {

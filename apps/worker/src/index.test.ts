@@ -26,6 +26,15 @@ interface AgentRuntimeBody {
       status: string;
       tool_versions: boolean;
     };
+    tool_loop_agent: {
+      actual_tool_execution: boolean;
+      chain_of_thought_exposed: boolean;
+      max_parallel_tools: number;
+      model_calls: boolean;
+      planner_ready: boolean;
+      status: string;
+      streaming_transport: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -783,6 +792,51 @@ interface AgentDryRunBody {
   ok: true;
 }
 
+interface AgentToolLoopPlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    chain_of_thought_exposed: boolean;
+    max_parallel_tools: number;
+    model_calls: boolean;
+    planned_step_count: number;
+    progress_stream: {
+      exposes_chain_of_thought: boolean;
+      tool_progress_public: boolean;
+      transport: string;
+    };
+    retry_policy: {
+      consecutive_same_error_limit: number;
+      max_attempts_per_tool: number;
+      retry_billable: boolean;
+    };
+    run_context: {
+      entitlements: {
+        data_rights_state: string;
+      };
+      model: {
+        model_calls: boolean;
+      };
+    };
+    status: string;
+    steps: Array<{
+      phase: string;
+      progress_events: string[];
+      public_label: string;
+      tool_calls: Array<{
+        execution: string;
+        live_data_access: boolean;
+        name: string;
+        version: string;
+      }>;
+    }>;
+    stop_conditions: string[];
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface ErrorBody {
   error: {
     code: string;
@@ -848,6 +902,15 @@ describe("worker runtime", () => {
       live_entitlement_reads: false,
       status: "agent_run_context_scaffold",
       tool_versions: true
+    });
+    expect(body.data.tool_loop_agent).toMatchObject({
+      actual_tool_execution: false,
+      chain_of_thought_exposed: false,
+      max_parallel_tools: 3,
+      model_calls: false,
+      planner_ready: true,
+      status: "tool_loop_agent_planner_scaffold",
+      streaming_transport: "planned"
     });
     expect(body.data.registered_tools).toHaveLength(9);
     expect(body.data.registered_tools[0]).toMatchObject({
@@ -2785,5 +2848,103 @@ describe("worker runtime", () => {
     );
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("plans a no-model ToolLoopAgent sequence with public tool progress", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        max_steps: 6,
+        prompt: "Explain 00700.HK revenue and price trend",
+        tools: [
+          "resolve_security",
+          "get_entitlements",
+          "get_security_profile",
+          "get_quote_snapshot",
+          "get_price_history",
+          "get_financial_facts",
+          "get_data_lineage"
+        ],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-tool-loop-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentToolLoopPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("planned_no_model");
+    expect(body.data.model_calls).toBe(false);
+    expect(body.data.actual_tool_execution).toBe(false);
+    expect(body.data.chain_of_thought_exposed).toBe(false);
+    expect(body.data.max_parallel_tools).toBe(3);
+    expect(body.data.planned_step_count).toBe(6);
+    expect(body.data.progress_stream).toMatchObject({
+      exposes_chain_of_thought: false,
+      tool_progress_public: true,
+      transport: "planned"
+    });
+    expect(body.data.stop_conditions).toContain("two_consecutive_same_error");
+    expect(body.data.retry_policy).toMatchObject({
+      consecutive_same_error_limit: 2,
+      max_attempts_per_tool: 2,
+      retry_billable: false
+    });
+    expect(body.data.run_context.entitlements.data_rights_state).toBe("default_deny");
+    expect(body.data.run_context.model.model_calls).toBe(false);
+    expect(body.data.steps.map((step) => step.phase)).toEqual([
+      "security_resolution",
+      "entitlement_gate",
+      "data_fetch",
+      "data_fetch",
+      "evidence_binding",
+      "answer_contract"
+    ]);
+    expect(body.data.steps.every((step) => step.tool_calls.length <= 3)).toBe(true);
+    expect(body.data.steps[0].progress_events).toContain("tool.call.started");
+    expect(body.data.steps.flatMap((step) => step.tool_calls).map((tool) => tool.name)).toEqual([
+      "resolve_security",
+      "get_entitlements",
+      "get_security_profile",
+      "get_quote_snapshot",
+      "get_price_history",
+      "get_financial_facts",
+      "get_data_lineage"
+    ]);
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("rejects ToolLoopAgent plans beyond the requested step budget", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        max_steps: 3,
+        prompt: "Explain 00700.HK revenue and price trend",
+        tools: [
+          "resolve_security",
+          "get_entitlements",
+          "get_security_profile",
+          "get_quote_snapshot",
+          "get_price_history",
+          "get_financial_facts",
+          "get_data_lineage"
+        ]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-tool-loop-plan-budget"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("OUT_OF_RANGE");
   });
 });
