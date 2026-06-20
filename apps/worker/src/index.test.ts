@@ -45,6 +45,16 @@ interface AgentRuntimeBody {
       model_calls: boolean;
       planner_ready: boolean;
       status: string;
+      tool_enforcement: {
+        allow_arbitrary_sql: boolean;
+        allow_arbitrary_url: boolean;
+        denied_tool_behavior: string;
+        permission_aware: boolean;
+        registered_tools_only: boolean;
+        schema_bound: boolean;
+        status: string;
+        versioned_tools: boolean;
+      };
       streaming_transport: string;
     };
     registered_tools: Array<{
@@ -873,13 +883,56 @@ interface AgentToolLoopPlanBody {
       progress_events: string[];
       public_label: string;
       tool_calls: Array<{
+        allow_arbitrary_sql: boolean;
+        allow_arbitrary_url: boolean;
+        data_classes: string[];
         execution: string;
+        execution_mode: string;
+        handler_ready: boolean;
+        input_schema_id: string;
         live_data_access: boolean;
         name: string;
+        output_schema_id: string;
+        required_scope: string;
+        rights_aware: boolean;
+        standard_response_envelope: boolean;
+        status: string;
         version: string;
       }>;
     }>;
     stop_conditions: string[];
+    tool_enforcement: {
+      allow_arbitrary_sql: boolean;
+      allow_arbitrary_url: boolean;
+      all_checks_passed: boolean;
+      denied_tools: string[];
+      model_calls: boolean;
+      permission_aware: boolean;
+      registered_tool_count: number;
+      registry_version: string;
+      requested_tools: string[];
+      required_checks: string[];
+      schema_bound: boolean;
+      status: string;
+      tool_checks: Array<{
+        allow_arbitrary_sql: boolean;
+        allow_arbitrary_url: boolean;
+        input_schema_id: string;
+        live_data_access: boolean;
+        name: string;
+        output_schema_id: string;
+        permission_scope: string;
+        registered: boolean;
+        rights_aware: boolean;
+        schema_bound: boolean;
+        standard_response_envelope: boolean;
+        status: string;
+        version: string;
+        versioned: boolean;
+      }>;
+      version: string;
+      versioned_tools: boolean;
+    };
   };
   ok: true;
   usage: {
@@ -1014,6 +1067,16 @@ describe("worker runtime", () => {
       model_calls: false,
       planner_ready: true,
       status: "tool_loop_agent_planner_scaffold",
+      tool_enforcement: {
+        allow_arbitrary_sql: false,
+        allow_arbitrary_url: false,
+        denied_tool_behavior: "reject_request",
+        permission_aware: true,
+        registered_tools_only: true,
+        schema_bound: true,
+        status: "tool_enforcement_scaffold",
+        versioned_tools: true
+      },
       streaming_transport: "planned"
     });
     expect(body.data.registered_tools).toHaveLength(9);
@@ -2931,11 +2994,11 @@ describe("worker runtime", () => {
     ]);
   });
 
-  it("rejects unregistered dry-run tools", async () => {
+  it("rejects unregistered SQL/URL dry-run tools", async () => {
     const response = await app.request("/agent/runs/dry-run", {
       body: JSON.stringify({
-        prompt: "Run arbitrary SQL",
-        tools: ["sql.query"]
+        prompt: "Run arbitrary SQL and fetch an arbitrary URL",
+        tools: ["sql.query", "http.fetch"]
       }),
       headers: {
         "content-type": "application/json",
@@ -3006,6 +3069,59 @@ describe("worker runtime", () => {
         unfinished_step_ids: []
       }
     });
+    expect(body.data.tool_enforcement).toMatchObject({
+      allow_arbitrary_sql: false,
+      allow_arbitrary_url: false,
+      all_checks_passed: true,
+      denied_tools: [],
+      model_calls: false,
+      permission_aware: true,
+      registered_tool_count: 9,
+      registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
+      requested_tools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ],
+      schema_bound: true,
+      status: "allowed",
+      version: "2026-06-21.phase1.tool-enforcement-scaffold.v0",
+      versioned_tools: true
+    });
+    expect(body.data.tool_enforcement.required_checks).toEqual([
+      "registered",
+      "versioned",
+      "schema_bound",
+      "permission_scope",
+      "rights_aware",
+      "no_arbitrary_sql",
+      "no_arbitrary_url",
+      "read_only_no_live_data"
+    ]);
+    expect(body.data.tool_enforcement.tool_checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          allow_arbitrary_sql: false,
+          allow_arbitrary_url: false,
+          input_schema_id: "tool.get_financial_facts.input.v0",
+          live_data_access: false,
+          name: "get_financial_facts",
+          output_schema_id: "tool.get_financial_facts.output.v0",
+          permission_scope: "financials:read",
+          registered: true,
+          rights_aware: true,
+          schema_bound: true,
+          standard_response_envelope: true,
+          status: "allowed",
+          version: "0.0.0",
+          versioned: true
+        })
+      ])
+    );
     expect(body.data.progress_stream).toMatchObject({
       exposes_chain_of_thought: false,
       tool_progress_public: true,
@@ -3038,6 +3154,20 @@ describe("worker runtime", () => {
       "get_financial_facts",
       "get_data_lineage"
     ]);
+    expect(
+      body.data.steps
+        .flatMap((step) => step.tool_calls)
+        .every(
+          (tool) =>
+            !tool.allow_arbitrary_sql &&
+            !tool.allow_arbitrary_url &&
+            tool.rights_aware &&
+            tool.standard_response_envelope &&
+            tool.input_schema_id.length > 0 &&
+            tool.output_schema_id.length > 0 &&
+            tool.version.length > 0
+        )
+    ).toBe(true);
     expect(body.usage.rows).toBe(6);
   });
 

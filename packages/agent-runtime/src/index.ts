@@ -5,7 +5,9 @@ import {
   getRegisteredToolNames,
   validateRegisteredTools,
   type RegisteredToolDefinition,
-  type RegisteredToolName
+  type RegisteredToolExecutionMode,
+  type RegisteredToolName,
+  type RegisteredToolStatus
 } from "@aiphabee/tool-registry";
 
 export const AGENT_RUNTIME_VERSION = "agent-runtime-scaffold-v0";
@@ -17,6 +19,7 @@ export const PRE_TOOL_CALL_RESOLUTION_VERSION =
   "2026-06-21.phase1.pre-tool-call-resolution-scaffold.v0";
 export const BUDGET_STOP_POLICY_VERSION =
   "2026-06-21.phase1.budget-stop-policy-scaffold.v0";
+export const TOOL_ENFORCEMENT_VERSION = "2026-06-21.phase1.tool-enforcement-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -81,6 +84,16 @@ export interface AgentRuntimeCapabilities {
     max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
     model_calls: false;
     planner_ready: true;
+    tool_enforcement: {
+      allow_arbitrary_sql: false;
+      allow_arbitrary_url: false;
+      denied_tool_behavior: "reject_request";
+      permission_aware: true;
+      registered_tools_only: true;
+      schema_bound: true;
+      status: "tool_enforcement_scaffold";
+      versioned_tools: true;
+    };
     budget_stop_policy: {
       budget_dimensions: readonly ["steps", "credits", "rows", "tokens", "wall_clock_ms"];
       graceful_stop: true;
@@ -196,11 +209,89 @@ export interface AgentRunContext {
 }
 
 export interface AgentRunToolContext {
+  allow_arbitrary_sql: false;
+  allow_arbitrary_url: false;
+  data_classes: string[];
+  execution_mode: RegisteredToolExecutionMode;
+  handler_ready: boolean;
   input_schema_id: string;
   live_data_access: false;
   name: RegisteredAgentToolName;
   output_schema_id: string;
   required_scope: string;
+  rights_aware: true;
+  standard_response_envelope: true;
+  status: RegisteredToolStatus;
+  version: string;
+}
+
+export type AgentToolEnforcementCheckStatus = "allowed" | "blocked";
+export type AgentToolEnforcementRequiredCheck =
+  | "no_arbitrary_sql"
+  | "no_arbitrary_url"
+  | "permission_scope"
+  | "read_only_no_live_data"
+  | "registered"
+  | "rights_aware"
+  | "schema_bound"
+  | "versioned";
+
+export interface AgentToolEnforcementCheck {
+  allow_arbitrary_sql: false;
+  allow_arbitrary_url: false;
+  data_classes: string[];
+  execution: "planned_no_call";
+  execution_mode: RegisteredToolExecutionMode;
+  handler_ready: boolean;
+  input_schema_id: string;
+  live_data_access: false;
+  name: RegisteredAgentToolName;
+  output_schema_id: string;
+  permission_scope: string;
+  registered: boolean;
+  rights_aware: boolean;
+  schema_bound: boolean;
+  standard_response_envelope: boolean;
+  status: AgentToolEnforcementCheckStatus;
+  version: string;
+  versioned: boolean;
+}
+
+export interface AgentToolEnforcement {
+  actual_tool_execution: false;
+  allow_arbitrary_sql: false;
+  allow_arbitrary_url: false;
+  all_checks_passed: boolean;
+  denied_tools: string[];
+  enforcement_ready: true;
+  model_calls: false;
+  permission_aware: true;
+  registered_tool_count: number;
+  registry_version: typeof TOOL_REGISTRY_VERSION;
+  requested_tools: string[];
+  required_checks: AgentToolEnforcementRequiredCheck[];
+  schema_bound: true;
+  status: "allowed" | "blocked";
+  tool_checks: AgentToolEnforcementCheck[];
+  version: typeof TOOL_ENFORCEMENT_VERSION;
+  versioned_tools: true;
+}
+
+export interface AgentToolLoopToolCallPlan {
+  allow_arbitrary_sql: false;
+  allow_arbitrary_url: false;
+  data_classes: string[];
+  execution: "planned_no_call";
+  execution_mode: RegisteredToolExecutionMode;
+  handler_ready: boolean;
+  input_schema_id: string;
+  live_data_access: false;
+  name: RegisteredAgentToolName;
+  output_schema_id: string;
+  required_scope: string;
+  rights_aware: true;
+  standard_response_envelope: true;
+  status: RegisteredToolStatus;
   version: string;
 }
 
@@ -401,6 +492,7 @@ export interface AgentToolLoopPlan {
     | "tool_scope_denied"
     | "two_consecutive_same_error"
   >;
+  tool_enforcement: AgentToolEnforcement;
   version: typeof TOOL_LOOP_AGENT_PLANNER_VERSION;
 }
 
@@ -490,6 +582,16 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
       model_calls: false,
       planner_ready: true,
+      tool_enforcement: {
+        allow_arbitrary_sql: false,
+        allow_arbitrary_url: false,
+        denied_tool_behavior: "reject_request",
+        permission_aware: true,
+        registered_tools_only: true,
+        schema_bound: true,
+        status: "tool_enforcement_scaffold",
+        versioned_tools: true
+      },
       progress_events: [
         "run.started",
         "tool.step.planned",
@@ -659,6 +761,10 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     retryPolicy,
     steps: naturalSteps
   });
+  const toolEnforcement = createToolEnforcement({
+    requestedTools: skeleton.tool_policy.requested_tools,
+    tools: skeleton.run_context.toolset.tools
+  });
   const steps =
     budgetStopPolicy.decision.status === "stop_before_execution"
       ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
@@ -703,6 +809,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
       "tool_scope_denied",
       "all_planned_tools_completed"
     ],
+    tool_enforcement: toolEnforcement,
     version: TOOL_LOOP_AGENT_PLANNER_VERSION
   };
 }
@@ -1231,14 +1338,114 @@ function createStep(
     step_id: `step_${index}`,
     stop_on_error: true,
     tool_calls: tools.map((tool) => ({
+      allow_arbitrary_sql: tool.allow_arbitrary_sql,
+      allow_arbitrary_url: tool.allow_arbitrary_url,
+      data_classes: tool.data_classes,
       execution: "planned_no_call",
+      execution_mode: tool.execution_mode,
+      handler_ready: tool.handler_ready,
       input_schema_id: tool.input_schema_id,
       live_data_access: tool.live_data_access,
       name: tool.name,
       output_schema_id: tool.output_schema_id,
       required_scope: tool.required_scope,
+      rights_aware: tool.rights_aware,
+      standard_response_envelope: tool.standard_response_envelope,
+      status: tool.status,
       version: tool.version
     }))
+  };
+}
+
+function createToolEnforcement(input: {
+  requestedTools: string[];
+  tools: AgentRunToolContext[];
+}): AgentToolEnforcement {
+  const registeredToolNames = getRegisteredToolNames();
+  const registeredToolNameSet = new Set<string>(registeredToolNames);
+  const deniedTools = input.requestedTools.filter((toolName) => !registeredToolNameSet.has(toolName));
+  const toolChecks = input.tools.map(createToolEnforcementCheck);
+  const allChecksPassed =
+    deniedTools.length === 0 && toolChecks.every((check) => check.status === "allowed");
+
+  if (!allChecksPassed) {
+    throw new AgentRuntimeInputError(
+      "UNREGISTERED_TOOL",
+      "requested tools must be registered, versioned, schema-bound, permission-aware, and no-arbitrary-SQL/URL",
+      {
+        deniedTools,
+        failedTools: toolChecks
+          .filter((check) => check.status === "blocked")
+          .map((check) => check.name)
+      }
+    );
+  }
+
+  return {
+    actual_tool_execution: false,
+    allow_arbitrary_sql: false,
+    allow_arbitrary_url: false,
+    all_checks_passed: true,
+    denied_tools: deniedTools,
+    enforcement_ready: true,
+    model_calls: false,
+    permission_aware: true,
+    registered_tool_count: registeredToolNames.length,
+    registry_version: TOOL_REGISTRY_VERSION,
+    requested_tools: [...input.requestedTools],
+    required_checks: [
+      "registered",
+      "versioned",
+      "schema_bound",
+      "permission_scope",
+      "rights_aware",
+      "no_arbitrary_sql",
+      "no_arbitrary_url",
+      "read_only_no_live_data"
+    ],
+    schema_bound: true,
+    status: "allowed",
+    tool_checks: toolChecks,
+    version: TOOL_ENFORCEMENT_VERSION,
+    versioned_tools: true
+  };
+}
+
+function createToolEnforcementCheck(tool: AgentRunToolContext): AgentToolEnforcementCheck {
+  const registered = getRegisteredToolNames().includes(tool.name);
+  const versioned = tool.version.trim().length > 0;
+  const schemaBound =
+    tool.input_schema_id.trim().length > 0 &&
+    tool.output_schema_id.trim().length > 0 &&
+    tool.standard_response_envelope;
+  const permissionAware =
+    tool.required_scope.trim().length > 0 &&
+    tool.rights_aware &&
+    tool.data_classes.length > 0;
+  const noArbitraryAccess = !tool.allow_arbitrary_sql && !tool.allow_arbitrary_url;
+  const readOnlyNoLiveData = !tool.live_data_access;
+  const allowed =
+    registered && versioned && schemaBound && permissionAware && noArbitraryAccess && readOnlyNoLiveData;
+
+  return {
+    allow_arbitrary_sql: false,
+    allow_arbitrary_url: false,
+    data_classes: tool.data_classes,
+    execution: "planned_no_call",
+    execution_mode: tool.execution_mode,
+    handler_ready: tool.handler_ready,
+    input_schema_id: tool.input_schema_id,
+    live_data_access: false,
+    name: tool.name,
+    output_schema_id: tool.output_schema_id,
+    permission_scope: tool.required_scope,
+    registered,
+    rights_aware: tool.rights_aware,
+    schema_bound: schemaBound,
+    standard_response_envelope: tool.standard_response_envelope,
+    status: allowed ? "allowed" : "blocked",
+    version: tool.version,
+    versioned
   };
 }
 
@@ -1523,11 +1730,19 @@ function createAgentRunContext(input: {
     toolset: {
       registry_version: TOOL_REGISTRY_VERSION,
       tools: toolDefinitions.map((tool) => ({
+        allow_arbitrary_sql: tool.execution.allowArbitrarySql,
+        allow_arbitrary_url: tool.execution.allowArbitraryUrl,
+        data_classes: [...tool.permissions.dataClasses],
+        execution_mode: tool.execution.mode,
+        handler_ready: tool.execution.handlerReady,
         input_schema_id: tool.schema.inputSchemaId,
         live_data_access: tool.execution.liveDataAccess,
         name: tool.name,
         output_schema_id: tool.schema.outputSchemaId,
         required_scope: tool.permissions.requiredScope,
+        rights_aware: tool.permissions.rightsAware,
+        standard_response_envelope: tool.schema.standardResponseEnvelope,
+        status: tool.status,
         version: tool.version
       }))
     },

@@ -60,7 +60,7 @@ owner: "Planner / PM"
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
-| 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 4 / 10 | ☐ |
+| 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 5 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | ⬜ | 0 / 9 | ☐ |
@@ -248,7 +248,7 @@ owner: "Planner / PM"
 - [x] ToolLoopAgent no-model planner scaffold：`@aiphabee/agent-runtime` `createToolLoopAgentPlan()` + `POST /agent/runs/plan` + `deploy/agent/tool-loop-planner.contract.json` + `npm run check:tool-loop-agent`，规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，多步计划限制 ≤6–8 steps、每步并行 ≤3 只读工具，输出 public progress event contract 且 `chain_of_thought_exposed=false`；actual tool execution / live streaming transport / real model calls / frontend Ask 未启用（AGT-01）
 - [x] Pre-tool-call resolution scaffold：`@aiphabee/agent-runtime` `createPreToolCallResolution()` + `POST /agent/runs/preflight` + `POST /agent/runs/plan` embedding + `deploy/agent/pre-tool-call-resolution.contract.json` + `npm run check:pre-tool-call-resolution`，在工具规划前解析 security / time / currency / methodology，显式 `00700.HK` 与 Tencent fixture 可解析，ABC 歧义返回 blocking clarification + candidates，不静默选择；缺省时间/币种/口径返回显式 assumptions；real NLP resolver / actual tool calls / frontend clarification UI 未启用（AGT-02）
 - [x] Budget/stop policy scaffold：`@aiphabee/agent-runtime` `budget_stop_policy` + `POST /agent/runs/plan` `stopped_budget` + `deploy/agent/budget-stop-policy.contract.json` + `npm run check:budget-stop-policy`，覆盖 steps/credits/rows/tokens/wall_clock_ms deterministic estimate、limit status、continue cost、partial graceful stop response、连续 2 次同类错误停止自动重试且不计费；actual tool execution / live usage ledger / model-cost accounting / frontend budget confirmation UI 未启用（§8.2、AGT-03）
-- [ ] 仅调用注册/版本化/权限感知工具（AGT-04）
+- [x] Tool enforcement scaffold：`@aiphabee/agent-runtime` `tool_enforcement` + planned tool-call enforcement metadata + `deploy/agent/tool-enforcement.contract.json` + `npm run check:tool-enforcement`，覆盖 registered/versioned/schema-bound/permission-scope/rights-aware/no-arbitrary-SQL/no-arbitrary-URL/read-only-no-live-data checks，`sql.query` / `http.fetch` 等未注册任意 SQL/URL 工具返回 `SCOPE_DENIED`；actual tool execution / runtime schema serving / MCP protocol endpoint / live entitlement DB reads 未启用（AGT-04）
 - [ ] 金融数字只来自工具结果或确定性计算（AGT-05、§8.5 禁止行为）
 - [ ] 答案结构：直接回答→数据状态→证据→解释→反证→来源→下一步→免责（§8.3）
 - [ ] 事实/计算/推断/未知分层标签（AGT-06）+ 证据卡片可点开（AGT-07）
@@ -621,13 +621,14 @@ owner: "Planner / PM"
 - [x] ToolLoopAgent no-model planner scaffold 已建立：`docs/governance/tool-loop-agent-planner-scaffold.md`；`/agent/runs/plan` 规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，限制每步并行≤3只读工具，输出 public progress event contract 且不暴露 chain-of-thought
 - [x] Pre-tool-call resolution scaffold 已建立：`docs/governance/pre-tool-call-resolution-scaffold.md`；`/agent/runs/preflight` 解析 security/time/currency/methodology，ABC 歧义返回 blocking clarification + candidates，`/agent/runs/plan` 已嵌入 preflight 结果，actual tool execution/frontend clarification UI 未启用
 - [x] Budget/stop policy scaffold 已建立：`docs/governance/budget-stop-policy-scaffold.md`；`/agent/runs/plan` 输出 `budget_stop_policy`，合法预算不足返回 `stopped_budget` + partial graceful stop response + continuation cost，连续 2 次同类错误停止自动重试，actual execution/live usage ledger/frontend budget confirmation 未启用
+- [x] Tool enforcement scaffold 已建立：`docs/governance/tool-enforcement-scaffold.md`；`/agent/runs/plan` 输出 `tool_enforcement`，planned tool calls 携带 version/schema/scope/data-class/rights-aware/no-SQL/no-URL/no-live metadata，`sql.query`/`http.fetch` 等未注册任意工具返回 `SCOPE_DENIED`
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract、每工具 synthetic golden fixtures 与 no-write Evidence/Lineage service scaffold 已建立；MCP protocol endpoint/runtime schema serving/live route replay/live DB writes/partner source rows 尚未实现
-- [ ] Sprint 1.3 的 Agent run context scaffold、ToolLoopAgent no-model planner scaffold、pre-tool-call resolution scaffold 与 budget/stop policy scaffold 已建立；actual tool execution/live streaming transport、evidence-binding、答案结构、失败恢复、模型路由 live 审计与前端 Ask/证据卡片尚未实现
+- [ ] Sprint 1.3 的 Agent run context scaffold、ToolLoopAgent no-model planner scaffold、pre-tool-call resolution scaffold、budget/stop policy scaffold 与 tool enforcement scaffold 已建立；actual tool execution/live streaming transport、evidence-binding、答案结构、失败恢复、模型路由 live 审计与前端 Ask/证据卡片尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -636,6 +637,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bb | 完成 `tool-enforcement-scaffold`：新增 Agent runtime `tool_enforcement`、planned tool-call enforcement metadata、`deploy/agent/tool-enforcement.contract.json` 与 `npm run check:tool-enforcement`，覆盖 registered/versioned/schema-bound/permission-scope/rights-aware/no-arbitrary-SQL/no-arbitrary-URL/read-only-no-live-data checks，`sql.query`/`http.fetch` 返回 `SCOPE_DENIED`；actual tool execution/runtime schema serving/MCP protocol endpoint/live entitlement DB reads 未启用，Sprint 1.3 更新为 5/10 |
 | 2026-06-21 | 1.0ba | 完成 `budget-stop-policy-scaffold`：新增 Agent runtime `budget_stop_policy`、`stopped_budget` 计划状态、steps/credits/rows/tokens/wall_clock_ms deterministic estimate、partial graceful stop response、continuation cost、连续 2 次同类错误停止自动重试，以及 `deploy/agent/budget-stop-policy.contract.json` / `npm run check:budget-stop-policy`；valid budget exhaustion 不再作为输入错误抛出，actual tool execution/live usage ledger/model-cost accounting/frontend budget confirmation UI 未启用，Sprint 1.3 更新为 4/10 |
 | 2026-06-21 | 1.0az | 完成 `pre-tool-call-resolution-scaffold`：新增 `createPreToolCallResolution()`、`POST /agent/runs/preflight`、`POST /agent/runs/plan` preflight embedding、`deploy/agent/pre-tool-call-resolution.contract.json` 与 `npm run check:pre-tool-call-resolution`，工具规划前解析 security/time/currency/methodology，ABC 歧义返回 blocking clarification + candidates，不静默选择；real NLP resolver/actual tool calls/frontend clarification UI 未启用，Sprint 1.3 更新为 3/10 |
 | 2026-06-21 | 1.0ay | 完成 `tool-loop-agent-planner-scaffold`：新增 `createToolLoopAgentPlan()`、`POST /agent/runs/plan`、`deploy/agent/tool-loop-planner.contract.json` 与 `npm run check:tool-loop-agent`，规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，多步计划限制 ≤6–8 steps、每步并行≤3只读工具，输出 public progress events 且不暴露 chain-of-thought；actual tool execution/live streaming transport/real model calls/frontend Ask 未启用，Sprint 1.3 更新为 2/10 |

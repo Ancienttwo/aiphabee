@@ -45,6 +45,16 @@ describe("agent runtime scaffold", () => {
       model_calls: false,
       planner_ready: true,
       status: "tool_loop_agent_planner_scaffold",
+      tool_enforcement: {
+        allow_arbitrary_sql: false,
+        allow_arbitrary_url: false,
+        denied_tool_behavior: "reject_request",
+        permission_aware: true,
+        registered_tools_only: true,
+        schema_bound: true,
+        status: "tool_enforcement_scaffold",
+        versioned_tools: true
+      },
       streaming_transport: "planned"
     });
     expect(capabilities.registered_tools).toHaveLength(9);
@@ -105,28 +115,59 @@ describe("agent runtime scaffold", () => {
     });
     expect(skeleton.run_context.toolset.tools).toEqual([
       expect.objectContaining({
+        allow_arbitrary_sql: false,
+        allow_arbitrary_url: false,
+        data_classes: ["security_master"],
+        execution_mode: "read_only_scaffold",
+        handler_ready: true,
         input_schema_id: "tool.resolve_security.input.v0",
+        live_data_access: false,
         name: "resolve_security",
         output_schema_id: "tool.resolve_security.output.v0",
+        required_scope: "security:read",
+        rights_aware: true,
+        standard_response_envelope: true,
+        status: "scaffold",
         version: "0.0.0"
       }),
       expect.objectContaining({
+        allow_arbitrary_sql: false,
+        allow_arbitrary_url: false,
+        data_classes: ["financial_facts"],
+        execution_mode: "read_only_scaffold",
+        handler_ready: true,
         input_schema_id: "tool.get_financial_facts.input.v0",
+        live_data_access: false,
         name: "get_financial_facts",
         output_schema_id: "tool.get_financial_facts.output.v0",
+        required_scope: "financials:read",
+        rights_aware: true,
+        standard_response_envelope: true,
+        status: "scaffold",
         version: "0.0.0"
       })
     ]);
   });
 
-  it("rejects unregistered tools", () => {
-    expect(() =>
+  it("rejects unregistered and arbitrary SQL/URL tools", () => {
+    const attempt = () =>
       createAgentRunSkeleton({
-        prompt: "Run arbitrary SQL",
+        prompt: "Run arbitrary SQL or fetch an arbitrary URL",
         requestId: "req-agent-2",
-        requestedTools: ["sql.query"]
-      })
-    ).toThrow(AgentRuntimeInputError);
+        requestedTools: ["sql.query", "http.fetch"]
+      });
+
+    expect(attempt).toThrow(AgentRuntimeInputError);
+
+    try {
+      attempt();
+    } catch (error) {
+      expect(error).toBeInstanceOf(AgentRuntimeInputError);
+      expect((error as AgentRuntimeInputError).details.deniedTools).toEqual([
+        "sql.query",
+        "http.fetch"
+      ]);
+    }
   });
 
   it("rejects step limits outside the scaffold budget", () => {
@@ -205,6 +246,61 @@ describe("agent runtime scaffold", () => {
         })
       ])
     );
+    expect(plan.tool_enforcement).toMatchObject({
+      actual_tool_execution: false,
+      allow_arbitrary_sql: false,
+      allow_arbitrary_url: false,
+      all_checks_passed: true,
+      denied_tools: [],
+      model_calls: false,
+      permission_aware: true,
+      registered_tool_count: 9,
+      registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
+      requested_tools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ],
+      schema_bound: true,
+      status: "allowed",
+      version: "2026-06-21.phase1.tool-enforcement-scaffold.v0",
+      versioned_tools: true
+    });
+    expect(plan.tool_enforcement.required_checks).toEqual([
+      "registered",
+      "versioned",
+      "schema_bound",
+      "permission_scope",
+      "rights_aware",
+      "no_arbitrary_sql",
+      "no_arbitrary_url",
+      "read_only_no_live_data"
+    ]);
+    expect(plan.tool_enforcement.tool_checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          allow_arbitrary_sql: false,
+          allow_arbitrary_url: false,
+          data_classes: ["financial_facts"],
+          input_schema_id: "tool.get_financial_facts.input.v0",
+          live_data_access: false,
+          name: "get_financial_facts",
+          output_schema_id: "tool.get_financial_facts.output.v0",
+          permission_scope: "financials:read",
+          registered: true,
+          rights_aware: true,
+          schema_bound: true,
+          standard_response_envelope: true,
+          status: "allowed",
+          version: "0.0.0",
+          versioned: true
+        })
+      ])
+    );
     expect(plan.retry_policy).toMatchObject({
       consecutive_same_error_limit: 2,
       max_attempts_per_tool: 2,
@@ -229,6 +325,18 @@ describe("agent runtime scaffold", () => {
       "get_financial_facts",
       "get_data_lineage"
     ]);
+    expect(
+      plan.steps
+        .flatMap((step) => step.tool_calls)
+        .every(
+          (tool) =>
+            !tool.allow_arbitrary_sql &&
+            !tool.allow_arbitrary_url &&
+            tool.rights_aware &&
+            tool.standard_response_envelope &&
+            tool.version.length > 0
+        )
+    ).toBe(true);
   });
 
   it("gracefully stops tool loop plans when the requested step budget is exhausted", () => {

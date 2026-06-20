@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run check:database && npm run check:data-gateway && npm run check:tool-registry && npm run check:tool-schemas && npm run check:security-tools && npm run check:market-calendar && npm run check:market-data && npm run check:corporate-actions && npm run check:financial-facts && npm run check:evidence-lineage && npm run check:evidence-service && npm run check:agent-run-context && npm run check:tool-loop-agent && npm run check:pre-tool-call-resolution && npm run check:budget-stop-policy && npm run check:model-provider && npm run check:observability && npm run check:secrets && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run check:database && npm run check:data-gateway && npm run check:tool-registry && npm run check:tool-schemas && npm run check:security-tools && npm run check:market-calendar && npm run check:market-data && npm run check:corporate-actions && npm run check:financial-facts && npm run check:evidence-lineage && npm run check:evidence-service && npm run check:agent-run-context && npm run check:tool-loop-agent && npm run check:pre-tool-call-resolution && npm run check:budget-stop-policy && npm run check:tool-enforcement && npm run check:model-provider && npm run check:observability && npm run check:secrets && npm run build",
     "check:agent-run-context": "node scripts/check-agent-run-context-contract.mjs",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
     "check:budget-stop-policy": "node scripts/check-budget-stop-policy-contract.mjs",
@@ -33,6 +33,7 @@
     "check:security-tools": "node scripts/check-security-tools-contract.mjs",
     "check:tool-schemas": "node scripts/check-tool-schemas-contract.mjs",
     "check:tool-loop-agent": "node scripts/check-tool-loop-agent-contract.mjs",
+    "check:tool-enforcement": "node scripts/check-tool-enforcement-contract.mjs",
     "check:tool-registry": "node scripts/check-tool-registry-contract.mjs",
     "dev": "npm run dev:worker",
     "dev:worker": "npm run dev --workspace @aiphabee/worker",
