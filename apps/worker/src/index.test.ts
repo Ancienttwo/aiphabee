@@ -93,6 +93,15 @@ interface GatewayRuntimeBody {
         uses_quality_state: boolean;
         warn_quality_states: readonly string[];
       };
+      query_planner: {
+        blocks_unreleased_snapshots: boolean;
+        live_reads: boolean;
+        requires_release_state: string;
+        sql_emitted: boolean;
+        status: string;
+        uses_release_state: boolean;
+        uses_row_limit: boolean;
+      };
       read_planner: {
         blocks_default_deny: boolean;
         blocks_quality_hold: boolean;
@@ -445,6 +454,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
     expect(body.data.guards).toContain("serving_quality_release_isolation");
+    expect(body.data.guards).toContain("serving_query_planner_scaffold");
     expect(body.data.guards).toContain("serving_read_default_deny");
     expect(body.data.guards).toContain("usage_event_writer_scaffold");
     expect(body.data.limits.max_rows).toBe(500);
@@ -465,6 +475,15 @@ describe("worker runtime", () => {
         status: "quality_release_isolation_scaffold",
         uses_quality_state: true,
         warn_quality_states: ["WARN"]
+      },
+      query_planner: {
+        blocks_unreleased_snapshots: true,
+        live_reads: false,
+        requires_release_state: "released",
+        sql_emitted: false,
+        status: "query_planner_scaffold",
+        uses_release_state: true,
+        uses_row_limit: true
       },
       read_planner: {
         blocks_default_deny: true,

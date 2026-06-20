@@ -58,7 +58,7 @@ owner: "Planner / PM"
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
-| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 16 / 21 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 17 / 22 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
@@ -204,6 +204,7 @@ owner: "Planner / PM"
 - [x] Serving Store schema scaffold：`core.serving_dataset` / `core.serving_field` / `core.serving_snapshot` / `core.serving_record` migration + `/data/runtime` + `/gateway/runtime` capability，默认 `HOLD` / `held` / `default_deny`（§10.1、DAT-06）
 - [x] Serving read default-deny scaffold：`@aiphabee/serving-store` read planner + Gateway `servingRead` decision + `/gateway/runtime` read planner capability，default-deny / quality-hold 不触发 live read、SQL 或 served rows（§11.1、§12.2、DAT-06）
 - [x] Serving quality release isolation scaffold：`@aiphabee/serving-store` 将 `PASS/WARN/HOLD/REJECT_RAW` 映射为 `released/held/withdrawn`，`HOLD/REJECT_RAW` 对外保持 `DATA_QUALITY_HOLD`，不触发 live write/read/SQL（DAT-06）
+- [x] Data Access Gateway Serving query planner scaffold：`@aiphabee/serving-store` query planner + Gateway `servingQuery` decision + `/gateway/runtime` query planner capability，将 released snapshot + allowed fields / rows / time range / cache material 转成 no-SQL query plan（§11.1、§12.2、DAT-06）
 - [x] Data Access Gateway default-deny scaffold：`packages/data-access-gateway`、`deploy/gateway/access.contract.json`、`npm run check:data-gateway`、`/gateway/runtime`、`/gateway/access-check`（§11.1、§12.2）
 - [ ] **Data Access Gateway live Serving**：真实字段裁剪 + 行数/时间范围限制 + 缓存 key 含数据版本/权限版本/字段集/口径（§11.1、§12.2）
 - [x] 字段级权益执行 scaffold：Gateway evaluator 支持 workspace / plan / channel / dataset / field / time_range / export 维度裁剪，cache key 含 workspace/export，`/gateway/runtime` capability（DAT-05、§A2）
@@ -607,11 +608,12 @@ owner: "Planner / PM"
 - [x] Serving Store schema scaffold 已建立：`docs/governance/serving-store-schema-scaffold.md`；serving_dataset/field/snapshot/record、versioned snapshots、quality/release/default-deny posture、`/data/runtime` 与 `/gateway/runtime` 已通过本地 smoke
 - [x] Serving read default-deny scaffold 已建立：`docs/governance/serving-read-scaffold-default-deny.md`；`@aiphabee/serving-store` read planner、Gateway `servingRead` decision、default-deny/quality-hold no SQL/no rows/no live read、`/gateway/runtime` capability 已通过本地 smoke
 - [x] Serving quality release isolation scaffold 已建立：`docs/governance/serving-quality-release-isolation-scaffold.md`；`PASS/WARN -> released`、`HOLD -> held`、`REJECT_RAW -> withdrawn`、`DATA_QUALITY_HOLD`、no live write/read/SQL，`/data/runtime` 与 `/gateway/runtime` capability 已通过本地 smoke
+- [x] Data Access Gateway Serving query planner scaffold 已建立：`docs/governance/live-serving-query-planner-scaffold.md`；Gateway decision `servingQuery`、released snapshot gating、row-limit planning、cache material `serving_snapshot_id` / `release_state`、no live read/SQL，`/gateway/runtime` capability 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
-- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -620,6 +622,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0ag | 完成 `live-serving-query-planner-scaffold`：新增 `@aiphabee/serving-store` query planner、Gateway decision `servingQuery`、Worker `/gateway/runtime` query planner capability 与 `serving_query_planner_scaffold` contract guard；live SQL / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 17/22 |
 | 2026-06-20 | 1.0af | 完成 `field-entitlement-policy-source-scaffold`：新增 Gateway entitlement row snapshot compiler、Worker `/gateway/runtime` policy source capability 与 `field_entitlement_policy_source_scaffold` contract guard；partner rights matrix / live DB reads 未启用，Sprint 1.1 更新为 16/21 |
 | 2026-06-20 | 1.0ae | 完成 `usage-ledger-event-writer-scaffold`：新增 `@aiphabee/usage-ledger` event writer planner、Gateway decision `usageLedger`、Worker `/gateway/runtime` capability 与 `usage_event_writer_scaffold` contract guard；live SQL / billing reconciliation / quota UI 未启用，Sprint 1.1 更新为 15/20 |
 | 2026-06-20 | 1.0ad | 完成 `serving-quality-release-isolation-scaffold`：新增 `@aiphabee/serving-store` quality release planner、Worker `/data/runtime` 与 `/gateway/runtime` capability、`serving_quality_release_isolation` contract guard；live SQL / partner rows / Serving writes 未启用，Sprint 1.1 更新为 14/19 |

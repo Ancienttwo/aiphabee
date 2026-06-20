@@ -1,6 +1,6 @@
 # Notes: data-access-gateway-default-deny-scaffold
 
-> **Last Updated**: 2026-06-20 17:10 +08
+> **Last Updated**: 2026-06-20 17:46 +08
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/data-access-gateway-default-deny-scaffold.md`
@@ -20,6 +20,8 @@
   partner rights matrix ingestion remain disabled.
 - Added a later `usage_event_writer_scaffold` runtime guard, but persistent
   usage writes and billing reconciliation remain disabled.
+- Added a later `serving_query_planner_scaffold` runtime guard and
+  `servingQuery` decision, but live Serving SQL remains disabled.
 - Added usage preview but not persistent ledger writes.
 
 ## Verification
@@ -35,8 +37,8 @@
 
 ## Residual Blockers
 
-- Serving Store schema, read planner, and quality release isolation planner
-  exist, but released rows, live reads, and live writes are absent.
+- Serving Store schema, read planner, quality release isolation planner, and
+  query planner exist, but live SQL, live reads, and live writes are absent.
 - Partner-signed field rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

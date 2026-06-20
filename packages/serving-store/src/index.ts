@@ -2,6 +2,8 @@ export const SERVING_STORE_READ_VERSION =
   "2026-06-20.phase1.serving-read-scaffold.v0";
 export const SERVING_STORE_QUALITY_RELEASE_VERSION =
   "2026-06-20.phase1.quality-release-isolation.v0";
+export const SERVING_STORE_QUERY_PLAN_VERSION =
+  "2026-06-20.phase1.live-serving-query-planner-scaffold.v0";
 
 export type ServingQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type ServingReleaseState = "held" | "released" | "withdrawn";
@@ -14,6 +16,7 @@ export type ServingReadPlanStatus =
   | "blocked_by_gateway"
   | "quality_hold"
   | "read_planned";
+export type ServingQueryPlanStatus = "query_blocked" | "query_planned";
 export type ServingQualityScope = "field" | "record" | "snapshot";
 
 export interface ServingReadPlanInput {
@@ -52,6 +55,14 @@ export interface ServingQualityReleasePlanInput {
   sourceRecordId: string;
 }
 
+export interface ServingQueryPlanInput {
+  readPlan: ServingReadPlan;
+  releaseState: ServingReleaseState;
+  rowCount: number;
+  servingSnapshotId: string;
+  snapshotQualityState: ServingQualityState;
+}
+
 export interface ServingReadPlan {
   allowedFields: string[];
   blockedReason?: string;
@@ -82,6 +93,48 @@ export interface ServingReadPlan {
     "core.serving_record"
   ];
   version: typeof SERVING_STORE_READ_VERSION;
+}
+
+export interface ServingQueryPlan {
+  allowedFields: string[];
+  blockedReason?: string;
+  cacheKeyMaterial: {
+    dataVersion: string;
+    fieldSet: string[];
+    methodologyVersion: string;
+    releaseState: ServingReleaseState;
+    rightsPolicyVersion: string;
+    servingSnapshotId: string;
+    timeRange?: {
+      from: string;
+      to: string;
+    };
+  };
+  dataset: string;
+  filters: {
+    servingSnapshotId: string;
+    timeRange?: {
+      from: string;
+      to: string;
+    };
+  };
+  liveRead: false;
+  plannedRows: number;
+  qualityState: ServingQualityState;
+  releaseState: ServingReleaseState;
+  requestedFields: string[];
+  requestedRows: number;
+  rowLimit: number;
+  snapshotRowCount: number;
+  sqlEmitted: false;
+  status: ServingQueryPlanStatus;
+  tables: readonly [
+    "core.serving_dataset",
+    "core.serving_field",
+    "core.serving_snapshot",
+    "core.serving_record"
+  ];
+  version: typeof SERVING_STORE_QUERY_PLAN_VERSION;
 }
 
 export interface ServingQualityReleasePlan {
@@ -197,6 +250,51 @@ export function createServingQualityReleasePlan(
   };
 }
 
+export function createServingQueryPlan(input: ServingQueryPlanInput): ServingQueryPlan {
+  const readPlan = input.readPlan;
+  const blockedReason = getServingQueryBlockedReason(input);
+  const status: ServingQueryPlanStatus =
+    blockedReason === undefined ? "query_planned" : "query_blocked";
+  const allowedFields = status === "query_planned" ? readPlan.allowedFields : [];
+  const plannedRows =
+    status === "query_planned"
+      ? Math.min(readPlan.requestedRows, readPlan.rowLimit, input.rowCount)
+      : 0;
+
+  return {
+    allowedFields,
+    blockedReason,
+    cacheKeyMaterial: {
+      ...readPlan.cacheKeyMaterial,
+      fieldSet: allowedFields,
+      releaseState: input.releaseState,
+      servingSnapshotId: input.servingSnapshotId
+    },
+    dataset: readPlan.dataset,
+    filters: {
+      servingSnapshotId: input.servingSnapshotId,
+      timeRange: readPlan.cacheKeyMaterial.timeRange
+    },
+    liveRead: false,
+    plannedRows,
+    qualityState: input.snapshotQualityState,
+    releaseState: input.releaseState,
+    requestedFields: readPlan.requestedFields,
+    requestedRows: readPlan.requestedRows,
+    rowLimit: readPlan.rowLimit,
+    snapshotRowCount: input.rowCount,
+    sqlEmitted: false,
+    status,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ],
+    version: SERVING_STORE_QUERY_PLAN_VERSION
+  };
+}
+
 export function getServingStoreReadCapabilities() {
   return {
     blocks_default_deny: true,
@@ -224,6 +322,34 @@ export function getServingStoreReadCapabilities() {
   };
 }
 
+export function getServingStoreQueryPlannerCapabilities() {
+  return {
+    blocks_unreleased_snapshots: true,
+    live_reads: false,
+    planner_version: SERVING_STORE_QUERY_PLAN_VERSION,
+    requires_release_state: "released" as const,
+    sql_emitted: false,
+    status: "query_planner_scaffold" as const,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ] as const,
+    uses_cache_key_material: [
+      "data_version",
+      "rights_policy_version",
+      "methodology_version",
+      "field_set",
+      "time_range",
+      "serving_snapshot_id",
+      "release_state"
+    ] as const,
+    uses_release_state: true,
+    uses_row_limit: true
+  };
+}
+
 export function getServingStoreQualityReleaseCapabilities() {
   return {
     blocks_quality_states: ["HOLD", "REJECT_RAW"] as const,
@@ -244,6 +370,27 @@ export function getServingStoreQualityReleaseCapabilities() {
     version: SERVING_STORE_QUALITY_RELEASE_VERSION,
     warn_quality_states: ["WARN"] as const
   };
+}
+
+function getServingQueryBlockedReason(
+  input: ServingQueryPlanInput
+): string | undefined {
+  if (input.readPlan.status !== "read_planned") {
+    return input.readPlan.blockedReason ?? "DATA_NOT_LICENSED";
+  }
+
+  if (
+    input.snapshotQualityState === "HOLD" ||
+    input.snapshotQualityState === "REJECT_RAW"
+  ) {
+    return "DATA_QUALITY_HOLD";
+  }
+
+  if (input.releaseState !== "released") {
+    return "SERVING_SNAPSHOT_NOT_RELEASED";
+  }
+
+  return undefined;
 }
 
 function getServingReadStatus(

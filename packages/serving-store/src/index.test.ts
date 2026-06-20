@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   createServingReadPlan,
+  createServingQueryPlan,
   createServingQualityReleasePlan,
   getServingStoreQualityReleaseCapabilities,
+  getServingStoreQueryPlannerCapabilities,
   getServingStoreReadCapabilities
 } from "./index";
 
@@ -110,6 +112,141 @@ describe("serving store read planner", () => {
       status: "read_planner_scaffold",
       uses_quality_state: true,
       uses_versioned_snapshots: true
+    });
+  });
+
+  it("plans released snapshot queries without emitting SQL", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: ["synthetic_profile.company_name"],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "synthetic_profile",
+      gatewayStatus: "allow_with_redactions",
+      maxRows: 3,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: [
+        "synthetic_profile.company_name",
+        "synthetic_profile.revenue"
+      ],
+      requestedRows: 5,
+      rightsPolicyVersion: "synthetic-policy-v0",
+      timeRange: {
+        from: "2024-01-01",
+        to: "2024-01-31"
+      }
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 10,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+
+    expect(queryPlan).toMatchObject({
+      allowedFields: ["synthetic_profile.company_name"],
+      liveRead: false,
+      plannedRows: 3,
+      releaseState: "released",
+      snapshotRowCount: 10,
+      sqlEmitted: false,
+      status: "query_planned"
+    });
+    expect(queryPlan.cacheKeyMaterial).toEqual({
+      dataVersion: "gateway-scaffold-v0",
+      fieldSet: ["synthetic_profile.company_name"],
+      methodologyVersion: "methodology-v0",
+      releaseState: "released",
+      rightsPolicyVersion: "synthetic-policy-v0",
+      servingSnapshotId: "snapshot-released-v0",
+      timeRange: {
+        from: "2024-01-01",
+        to: "2024-01-31"
+      }
+    });
+  });
+
+  it("blocks query planning when the read plan is denied", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: [],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "hk_equity_quote",
+      errorCode: "DATA_NOT_LICENSED",
+      gatewayStatus: "deny",
+      maxRows: 500,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["quote.close"],
+      requestedRows: 1,
+      rightsPolicyVersion: "gate0-default-deny-v0"
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 10,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+
+    expect(queryPlan).toMatchObject({
+      allowedFields: [],
+      blockedReason: "DATA_NOT_LICENSED",
+      liveRead: false,
+      plannedRows: 0,
+      sqlEmitted: false,
+      status: "query_blocked"
+    });
+  });
+
+  it("blocks unreleased or held snapshots before live reads", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: ["synthetic_profile.company_name"],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "synthetic_profile",
+      gatewayStatus: "allow",
+      maxRows: 500,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["synthetic_profile.company_name"],
+      requestedRows: 1,
+      rightsPolicyVersion: "synthetic-policy-v0"
+    });
+    const heldRelease = createServingQueryPlan({
+      readPlan,
+      releaseState: "held",
+      rowCount: 1,
+      servingSnapshotId: "snapshot-held-v0",
+      snapshotQualityState: "PASS"
+    });
+    const heldQuality = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 1,
+      servingSnapshotId: "snapshot-quality-held-v0",
+      snapshotQualityState: "HOLD"
+    });
+
+    expect(heldRelease).toMatchObject({
+      blockedReason: "SERVING_SNAPSHOT_NOT_RELEASED",
+      plannedRows: 0,
+      status: "query_blocked"
+    });
+    expect(heldQuality).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      plannedRows: 0,
+      status: "query_blocked"
+    });
+  });
+
+  it("reports a no-live-read query planner capability", () => {
+    expect(getServingStoreQueryPlannerCapabilities()).toMatchObject({
+      blocks_unreleased_snapshots: true,
+      live_reads: false,
+      requires_release_state: "released",
+      sql_emitted: false,
+      status: "query_planner_scaffold",
+      uses_release_state: true,
+      uses_row_limit: true
     });
   });
 

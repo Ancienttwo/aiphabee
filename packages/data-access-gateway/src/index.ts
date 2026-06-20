@@ -1,6 +1,8 @@
 import type { AiphaBeeErrorCode, ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 import {
+  createServingQueryPlan,
   createServingReadPlan,
+  type ServingQueryPlan,
   type ServingReadPlan
 } from "@aiphabee/serving-store";
 import {
@@ -9,7 +11,7 @@ import {
 } from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.field-entitlement-policy-source-scaffold.v0";
+  "2026-06-20.phase1.live-serving-query-planner-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -161,6 +163,7 @@ export interface DataAccessDecision {
   provenance: ProvenanceRef[];
   qualityState: DataQualityState;
   rightsPolicyVersion: string;
+  servingQuery: ServingQueryPlan;
   servingRead: ServingReadPlan;
   status: DataAccessDecisionStatus;
   usage: UsageSummary;
@@ -217,6 +220,16 @@ export function evaluateDataAccessRequest(
     rightsPolicyVersion: policy.rightsPolicyVersion,
     timeRange: request.timeRange
   });
+  const servingQuery = createServingQueryPlan({
+    readPlan: servingRead,
+    releaseState:
+      finalStatus === "allow" || finalStatus === "allow_with_redactions"
+        ? "released"
+        : "held",
+    rowCount: servedRows,
+    servingSnapshotId: "serving-snapshot-scaffold-v0",
+    snapshotQualityState: request.qualityState
+  });
   const warnings = getWarnings(request.qualityState, fieldDecision.deniedFields);
   const usage: UsageSummary = {
     cached: false,
@@ -270,6 +283,7 @@ export function evaluateDataAccessRequest(
     ],
     qualityState: request.qualityState,
     rightsPolicyVersion: policy.rightsPolicyVersion,
+    servingQuery,
     servingRead,
     status: finalStatus,
     usage,

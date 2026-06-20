@@ -35,6 +35,14 @@ describe("data access gateway", () => {
       sqlEmitted: false,
       status: "blocked_by_gateway"
     });
+    expect(decision.servingQuery).toMatchObject({
+      blockedReason: "DATA_NOT_LICENSED",
+      liveRead: false,
+      plannedRows: 0,
+      releaseState: "held",
+      sqlEmitted: false,
+      status: "query_blocked"
+    });
     expect(decision.usage.rows).toBe(0);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -96,6 +104,20 @@ describe("data access gateway", () => {
       fieldSet: ["synthetic_profile.company_name"],
       rightsPolicyVersion: "synthetic-policy-v0"
     });
+    expect(decision.servingQuery).toMatchObject({
+      allowedFields: ["synthetic_profile.company_name"],
+      liveRead: false,
+      plannedRows: 5,
+      releaseState: "released",
+      snapshotRowCount: 5,
+      sqlEmitted: false,
+      status: "query_planned"
+    });
+    expect(decision.servingQuery.cacheKeyMaterial).toMatchObject({
+      fieldSet: ["synthetic_profile.company_name"],
+      rightsPolicyVersion: "synthetic-policy-v0",
+      servingSnapshotId: "serving-snapshot-scaffold-v0"
+    });
     expect(decision.usage.rows).toBe(5);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -132,6 +154,14 @@ describe("data access gateway", () => {
       servedRows: 0,
       sqlEmitted: false,
       status: "quality_hold"
+    });
+    expect(decision.servingQuery).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      liveRead: false,
+      plannedRows: 0,
+      releaseState: "held",
+      sqlEmitted: false,
+      status: "query_blocked"
     });
     expect(decision.usage.credits).toBe(0);
     expect(decision.usageLedger).toMatchObject({

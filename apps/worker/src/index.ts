@@ -22,6 +22,7 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  getServingStoreQueryPlannerCapabilities,
   getServingStoreQualityReleaseCapabilities,
   getServingStoreReadCapabilities
 } from "@aiphabee/serving-store";
@@ -302,7 +303,9 @@ app.get("/gateway/runtime", (c) => {
           "data_version",
           "rights_policy_version",
           "methodology_version",
-          "time_range"
+          "time_range",
+          "serving_snapshot_id",
+          "release_state"
         ],
         channels: DEFAULT_DATA_ACCESS_POLICY.channels,
         contract: "deploy/gateway/access.contract.json",
@@ -324,6 +327,7 @@ app.get("/gateway/runtime", (c) => {
           "time_range_limit",
           "quality_hold",
           "serving_quality_release_isolation",
+          "serving_query_planner_scaffold",
           "serving_read_default_deny",
           "cache_key_versioning",
           "provenance_required",
@@ -357,6 +361,7 @@ app.get("/gateway/runtime", (c) => {
         serving_store: {
           live_reads: false,
           quality_release: getServingStoreQualityReleaseCapabilities(),
+          query_planner: getServingStoreQueryPlannerCapabilities(),
           release_state_default: "held",
           read_planner: getServingStoreReadCapabilities(),
           status: "schema_scaffold",

@@ -15,6 +15,7 @@ const requiredGuards = [
   "time_range_limit",
   "quality_hold",
   "serving_quality_release_isolation",
+  "serving_query_planner_scaffold",
   "serving_read_default_deny",
   "cache_key_versioning",
   "provenance_required",
@@ -178,7 +179,9 @@ function validateCacheKey(value) {
       "data_version",
       "rights_policy_version",
       "methodology_version",
-      "time_range"
+      "time_range",
+      "serving_snapshot_id",
+      "release_state"
     ],
     "cache_key_fields"
   );
