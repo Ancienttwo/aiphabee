@@ -43,6 +43,13 @@ interface AgentRuntimeBody {
       chain_of_thought_exposed: boolean;
       max_parallel_tools: number;
       model_calls: boolean;
+      numeric_source_guard: {
+        allowed_sources: string[];
+        concrete_numbers_allowed_without_sources: boolean;
+        memory_numbers_allowed: boolean;
+        post_generation_validation: string;
+        status: string;
+      };
       planner_ready: boolean;
       status: string;
       tool_enforcement: {
@@ -848,6 +855,38 @@ interface AgentToolLoopPlanBody {
     chain_of_thought_exposed: boolean;
     max_parallel_tools: number;
     model_calls: boolean;
+    numeric_source_guard: {
+      allowed_sources: string[];
+      answer_contract: {
+        concrete_financial_numbers_allowed: boolean;
+        failure_code: string;
+        memory_generated_numbers_allowed: boolean;
+        requires_calculation_ref: boolean;
+        requires_source_record_ref: boolean;
+        unsupported_numeric_claim_behavior: string;
+        unknown_value_label: string;
+      };
+      blocked_sources: string[];
+      concrete_claims_allowed_now: boolean;
+      deterministic_calculations: Array<{
+        calculation_id: string;
+        input_source: string;
+        methodology_version: string;
+        required_source_tools: string[];
+      }>;
+      model_calls: boolean;
+      planned_tool_result_sources: Array<{
+        data_classes: string[];
+        output_schema_id: string;
+        source_record_required: boolean;
+        tool_name: string;
+        version: string;
+      }>;
+      post_generation_validation: string;
+      status: string;
+      validation_rules: string[];
+      version: string;
+    };
     planned_step_count: number;
     pre_tool_call_resolution: {
       clarification_required: boolean;
@@ -1065,6 +1104,13 @@ describe("worker runtime", () => {
       chain_of_thought_exposed: false,
       max_parallel_tools: 3,
       model_calls: false,
+      numeric_source_guard: {
+        allowed_sources: ["tool_result", "deterministic_calculation"],
+        concrete_numbers_allowed_without_sources: false,
+        memory_numbers_allowed: false,
+        post_generation_validation: "planned",
+        status: "numeric_source_guard_scaffold"
+      },
       planner_ready: true,
       status: "tool_loop_agent_planner_scaffold",
       tool_enforcement: {
@@ -3069,6 +3115,58 @@ describe("worker runtime", () => {
         unfinished_step_ids: []
       }
     });
+    expect(body.data.numeric_source_guard).toMatchObject({
+      allowed_sources: ["tool_result", "deterministic_calculation"],
+      answer_contract: {
+        concrete_financial_numbers_allowed: false,
+        failure_code: "UNSOURCED_NUMERIC_CLAIM",
+        memory_generated_numbers_allowed: false,
+        requires_calculation_ref: true,
+        requires_source_record_ref: true,
+        unsupported_numeric_claim_behavior: "block_answer_claim",
+        unknown_value_label: "unknown"
+      },
+      blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
+      concrete_claims_allowed_now: false,
+      model_calls: false,
+      post_generation_validation: "planned",
+      status: "guarded_no_actual_results",
+      validation_rules: [
+        "extract_numeric_claims",
+        "require_tool_result_or_calculation_ref",
+        "block_model_memory_numbers",
+        "label_missing_numbers_unknown"
+      ],
+      version: "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
+    });
+    expect(body.data.numeric_source_guard.planned_tool_result_sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          output_schema_id: "tool.get_quote_snapshot.output.v0",
+          source_record_required: true,
+          tool_name: "get_quote_snapshot",
+          version: "0.0.0"
+        }),
+        expect.objectContaining({
+          output_schema_id: "tool.get_financial_facts.output.v0",
+          source_record_required: true,
+          tool_name: "get_financial_facts",
+          version: "0.0.0"
+        })
+      ])
+    );
+    expect(body.data.numeric_source_guard.deterministic_calculations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          calculation_id: "deterministic_return_risk_v0",
+          required_source_tools: ["get_price_history"]
+        }),
+        expect.objectContaining({
+          calculation_id: "deterministic_financial_growth_v0",
+          required_source_tools: ["get_financial_facts"]
+        })
+      ])
+    );
     expect(body.data.tool_enforcement).toMatchObject({
       allow_arbitrary_sql: false,
       allow_arbitrary_url: false,

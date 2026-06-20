@@ -20,6 +20,8 @@ export const PRE_TOOL_CALL_RESOLUTION_VERSION =
 export const BUDGET_STOP_POLICY_VERSION =
   "2026-06-21.phase1.budget-stop-policy-scaffold.v0";
 export const TOOL_ENFORCEMENT_VERSION = "2026-06-21.phase1.tool-enforcement-scaffold.v0";
+export const NUMERIC_SOURCE_GUARD_VERSION =
+  "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -84,6 +86,13 @@ export interface AgentRuntimeCapabilities {
     max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
     model_calls: false;
     planner_ready: true;
+    numeric_source_guard: {
+      allowed_sources: readonly ["tool_result", "deterministic_calculation"];
+      concrete_numbers_allowed_without_sources: false;
+      memory_numbers_allowed: false;
+      post_generation_validation: "planned";
+      status: "numeric_source_guard_scaffold";
+    };
     tool_enforcement: {
       allow_arbitrary_sql: false;
       allow_arbitrary_url: false;
@@ -275,6 +284,52 @@ export interface AgentToolEnforcement {
   tool_checks: AgentToolEnforcementCheck[];
   version: typeof TOOL_ENFORCEMENT_VERSION;
   versioned_tools: true;
+}
+
+export type AgentNumericSourceKind = "deterministic_calculation" | "tool_result";
+export type AgentBlockedNumericSource =
+  | "model_memory"
+  | "training_data"
+  | "unverified_prompt"
+  | "unstated_source";
+
+export interface AgentNumericSourceGuard {
+  actual_tool_execution: false;
+  allowed_sources: AgentNumericSourceKind[];
+  answer_contract: {
+    concrete_financial_numbers_allowed: false;
+    failure_code: "UNSOURCED_NUMERIC_CLAIM";
+    memory_generated_numbers_allowed: false;
+    requires_calculation_ref: true;
+    requires_source_record_ref: true;
+    unsupported_numeric_claim_behavior: "block_answer_claim";
+    unknown_value_label: "unknown";
+  };
+  blocked_sources: AgentBlockedNumericSource[];
+  concrete_claims_allowed_now: false;
+  deterministic_calculations: Array<{
+    calculation_id: string;
+    input_source: "tool_result";
+    methodology_version: string;
+    required_source_tools: RegisteredAgentToolName[];
+  }>;
+  model_calls: false;
+  planned_tool_result_sources: Array<{
+    data_classes: string[];
+    output_schema_id: string;
+    source_record_required: true;
+    tool_name: RegisteredAgentToolName;
+    version: string;
+  }>;
+  post_generation_validation: "planned";
+  status: "guarded_no_actual_results";
+  validation_rules: readonly [
+    "extract_numeric_claims",
+    "require_tool_result_or_calculation_ref",
+    "block_model_memory_numbers",
+    "label_missing_numbers_unknown"
+  ];
+  version: typeof NUMERIC_SOURCE_GUARD_VERSION;
 }
 
 export interface AgentToolLoopToolCallPlan {
@@ -471,6 +526,7 @@ export interface AgentToolLoopPlan {
   chain_of_thought_exposed: false;
   max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
   model_calls: false;
+  numeric_source_guard: AgentNumericSourceGuard;
   planned_step_count: number;
   progress_stream: {
     events: AgentToolLoopProgressEvent[];
@@ -581,6 +637,13 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       chain_of_thought_exposed: false,
       max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
       model_calls: false,
+      numeric_source_guard: {
+        allowed_sources: ["tool_result", "deterministic_calculation"],
+        concrete_numbers_allowed_without_sources: false,
+        memory_numbers_allowed: false,
+        post_generation_validation: "planned",
+        status: "numeric_source_guard_scaffold"
+      },
       planner_ready: true,
       tool_enforcement: {
         allow_arbitrary_sql: false,
@@ -765,6 +828,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     requestedTools: skeleton.tool_policy.requested_tools,
     tools: skeleton.run_context.toolset.tools
   });
+  const numericSourceGuard = createNumericSourceGuard(skeleton.run_context.toolset.tools);
   const steps =
     budgetStopPolicy.decision.status === "stop_before_execution"
       ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
@@ -777,6 +841,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     chain_of_thought_exposed: false,
     max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
     model_calls: false,
+    numeric_source_guard: numericSourceGuard,
     planned_step_count: steps.length,
     progress_stream: {
       events: [
@@ -1447,6 +1512,94 @@ function createToolEnforcementCheck(tool: AgentRunToolContext): AgentToolEnforce
     version: tool.version,
     versioned
   };
+}
+
+function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSourceGuard {
+  const numericSourceTools = tools.filter(isNumericSourceTool);
+
+  return {
+    actual_tool_execution: false,
+    allowed_sources: ["tool_result", "deterministic_calculation"],
+    answer_contract: {
+      concrete_financial_numbers_allowed: false,
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      memory_generated_numbers_allowed: false,
+      requires_calculation_ref: true,
+      requires_source_record_ref: true,
+      unsupported_numeric_claim_behavior: "block_answer_claim",
+      unknown_value_label: "unknown"
+    },
+    blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
+    concrete_claims_allowed_now: false,
+    deterministic_calculations: createPlannedDeterministicCalculations(numericSourceTools),
+    model_calls: false,
+    planned_tool_result_sources: numericSourceTools.map((tool) => ({
+      data_classes: tool.data_classes,
+      output_schema_id: tool.output_schema_id,
+      source_record_required: true,
+      tool_name: tool.name,
+      version: tool.version
+    })),
+    post_generation_validation: "planned",
+    status: "guarded_no_actual_results",
+    validation_rules: [
+      "extract_numeric_claims",
+      "require_tool_result_or_calculation_ref",
+      "block_model_memory_numbers",
+      "label_missing_numbers_unknown"
+    ],
+    version: NUMERIC_SOURCE_GUARD_VERSION
+  };
+}
+
+function isNumericSourceTool(tool: AgentRunToolContext): boolean {
+  return tool.data_classes.some((dataClass) =>
+    [
+      "corporate_actions",
+      "financial_facts",
+      "market_calendar",
+      "price_history",
+      "quote_snapshot"
+    ].includes(dataClass)
+  );
+}
+
+function createPlannedDeterministicCalculations(
+  numericSourceTools: AgentRunToolContext[]
+): AgentNumericSourceGuard["deterministic_calculations"] {
+  const toolNames = new Set(numericSourceTools.map((tool) => tool.name));
+  const calculations: AgentNumericSourceGuard["deterministic_calculations"] = [];
+
+  if (toolNames.has("get_price_history")) {
+    calculations.push({
+      calculation_id: "deterministic_return_risk_v0",
+      input_source: "tool_result",
+      methodology_version: "deterministic-price-series-calculation-v0",
+      required_source_tools: ["get_price_history"]
+    });
+  }
+
+  if (toolNames.has("get_financial_facts")) {
+    calculations.push({
+      calculation_id: "deterministic_financial_growth_v0",
+      input_source: "tool_result",
+      methodology_version: "deterministic-financial-facts-calculation-v0",
+      required_source_tools: ["get_financial_facts"]
+    });
+  }
+
+  if (toolNames.has("get_corporate_actions") || toolNames.has("get_price_history")) {
+    calculations.push({
+      calculation_id: "deterministic_adjusted_price_v0",
+      input_source: "tool_result",
+      methodology_version: "deterministic-corporate-action-adjustment-v0",
+      required_source_tools: toolNames.has("get_corporate_actions")
+        ? ["get_corporate_actions"]
+        : ["get_price_history"]
+    });
+  }
+
+  return calculations;
 }
 
 function createRetryPolicy(): AgentToolLoopRetryPolicy {

@@ -1,0 +1,52 @@
+{
+  "version": "2026-06-21.phase1.numeric-source-guard-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "guard_status": "guarded_no_actual_results",
+  "allowed_sources": ["tool_result", "deterministic_calculation"],
+  "blocked_sources": ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
+  "concrete_claims_allowed_now": false,
+  "post_generation_validation": "planned",
+  "answer_contract": {
+    "concrete_financial_numbers_allowed": false,
+    "failure_code": "UNSOURCED_NUMERIC_CLAIM",
+    "memory_generated_numbers_allowed": false,
+    "requires_calculation_ref": true,
+    "requires_source_record_ref": true,
+    "unsupported_numeric_claim_behavior": "block_answer_claim",
+    "unknown_value_label": "unknown"
+  },
+  "required_validation_rules": [
+    "extract_numeric_claims",
+    "require_tool_result_or_calculation_ref",
+    "block_model_memory_numbers",
+    "label_missing_numbers_unknown"
+  ],
+  "required_tool_result_source_fields": [
+    "tool_name",
+    "version",
+    "output_schema_id",
+    "data_classes",
+    "source_record_required"
+  ],
+  "required_deterministic_calculation_fields": [
+    "calculation_id",
+    "input_source",
+    "methodology_version",
+    "required_source_tools"
+  ],
+  "required_planned_tool_sources": [
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_financial_facts"
+  ],
+  "required_calculation_ids": [
+    "deterministic_return_risk_v0",
+    "deterministic_financial_growth_v0"
+  ]
+}
