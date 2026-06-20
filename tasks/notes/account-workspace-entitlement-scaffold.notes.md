@@ -29,6 +29,6 @@
 
 - Identity provider and payment provider integrations are absent.
 - Real account, workspace, subscription, and entitlement rows are absent.
-- Usage ledger schemas now exist, but live field-level entitlement execution and
-  billing reconciliation remain unwired.
+- Usage ledger schemas and field-entitlement evaluator scaffold now exist, but
+  live DB policy source and billing reconciliation remain unwired.
 - Hyperdrive and Supabase live database are not provisioned.

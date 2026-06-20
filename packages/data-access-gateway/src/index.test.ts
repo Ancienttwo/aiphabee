@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
   createSyntheticApprovedPolicy,
+  createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest
 } from "./index";
 
@@ -113,5 +114,85 @@ describe("data access gateway", () => {
 
     expect(tooManyRows.error?.code).toBe("TOO_MANY_ROWS");
     expect(outOfRange.error?.code).toBe("OUT_OF_RANGE");
+  });
+
+  it("enforces workspace, plan, export, and entitlement time range", () => {
+    const policy = createSyntheticWorkspaceEntitlementPolicy();
+    const allowedWithRedaction = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: [
+          "synthetic_profile.company_name",
+          "synthetic_profile.revenue"
+        ],
+        requestedRows: 2,
+        timeRange: {
+          from: "2024-01-01",
+          to: "2024-01-31"
+        },
+        workspaceId: "ws_synthetic_team"
+      },
+      policy
+    );
+    const exportBlocked = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        exportRequested: true,
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        workspaceId: "ws_synthetic_team"
+      },
+      policy
+    );
+    const planBlocked = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "free",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        workspaceId: "ws_synthetic_team"
+      },
+      policy
+    );
+    const timeBlocked = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        timeRange: {
+          from: "2024-01-01",
+          to: "2024-03-01"
+        },
+        workspaceId: "ws_synthetic_team"
+      },
+      policy
+    );
+
+    expect(allowedWithRedaction.status).toBe("allow_with_redactions");
+    expect(allowedWithRedaction.allowedFields).toEqual([
+      "synthetic_profile.company_name"
+    ]);
+    expect(allowedWithRedaction.deniedFields).toEqual([
+      {
+        field: "synthetic_profile.revenue",
+        reason: "workspace_entitlement_default_deny"
+      }
+    ]);
+    expect(allowedWithRedaction.cacheKey).toContain("workspace=ws_synthetic_team");
+    expect(allowedWithRedaction.cacheKey).toContain("export=false");
+    expect(exportBlocked.deniedFields[0]?.reason).toBe("export_blocked");
+    expect(planBlocked.deniedFields[0]?.reason).toBe("workspace_entitlement_default_deny");
+    expect(timeBlocked.deniedFields[0]?.reason).toBe("time_range_blocked");
   });
 });

@@ -58,9 +58,9 @@ Reason:
 Tradeoff:
 
 - Sprint 1.1 now has executable gateway behavior and runtime smoke.
-- Usage ledger schemas now exist, but it still does not complete real data
-  persistence, live usage writes, billing reconciliation, or live
-  account/workspace entitlement enforcement.
+- Usage ledger schemas and entitlement evaluator scaffold now exist, but it
+  still does not complete real data persistence, live usage writes, billing
+  reconciliation, or live database entitlement policy source.
 
 ## Verification
 
@@ -95,6 +95,7 @@ Observed `/gateway/runtime` fields:
   corporate-action/adjustment schemas now exist, but real Serving Store is
   absent.
 - Partner-signed rights matrix is absent.
-- Account/workspace/plan and usage ledger schemas now exist, but live
-  enforcement, persistent usage writes, and billing reconciliation are absent.
+- Account/workspace/plan and usage ledger schemas now exist, and entitlement
+  enforcement has synthetic coverage, but live DB policy source, persistent
+  usage writes, and billing reconciliation are absent.
 - No external MCP/API redistribution surface is enabled.

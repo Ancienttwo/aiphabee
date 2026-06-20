@@ -56,6 +56,12 @@ interface GatewayRuntimeBody {
     contract: string;
     default_rights_status: string;
     error_codes: string[];
+    field_entitlement_enforcement: {
+      dimensions: string[];
+      live_policy_source: boolean;
+      status: string;
+      workspace_isolation: boolean;
+    };
     guards: string[];
     limits: {
       max_rows: number;
@@ -320,7 +326,24 @@ describe("worker runtime", () => {
     expect(body.data.channels.mcp).toBe("default_deny");
     expect(body.data.error_codes).toContain("DATA_NOT_LICENSED");
     expect(body.data.error_codes).toContain("DATA_QUALITY_HOLD");
+    expect(body.data.field_entitlement_enforcement).toMatchObject({
+      dimensions: [
+        "workspace",
+        "plan",
+        "channel",
+        "dataset",
+        "field",
+        "time_range",
+        "export"
+      ],
+      live_policy_source: false,
+      status: "scaffold",
+      workspace_isolation: true
+    });
     expect(body.data.guards).toContain("field_redaction");
+    expect(body.data.guards).toContain("workspace_entitlement_default_deny");
+    expect(body.data.guards).toContain("plan_entitlement");
+    expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
     expect(body.data.limits.max_rows).toBe(500);
     expect(body.data.live_data_access).toBe(false);
@@ -414,8 +437,10 @@ describe("worker runtime", () => {
       body: JSON.stringify({
         channel: "mcp",
         dataset: "hk_equity_quote",
+        export_requested: false,
         fields: ["quote.close"],
-        requested_rows: 1
+        requested_rows: 1,
+        workspace_id: "ws_default_deny"
       }),
       headers: {
         "content-type": "application/json",

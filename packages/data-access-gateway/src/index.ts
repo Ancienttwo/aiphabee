@@ -1,7 +1,7 @@
 import type { AiphaBeeErrorCode, ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.data-access-gateway.v0";
+  "2026-06-20.phase1.field-entitlement-enforcement.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -9,18 +9,40 @@ export type DataAccessDecisionStatus =
   | "allow_with_redactions"
   | "deny"
   | "quality_hold";
+export type DataAccessDeniedReason =
+  | "channel_blocked"
+  | "export_blocked"
+  | "field_blocked"
+  | "field_default_deny"
+  | "time_range_blocked"
+  | "workspace_entitlement_blocked"
+  | "workspace_entitlement_default_deny";
 export type DataAccessFieldStatus = "approved" | "blocked" | "default_deny";
 export type DataQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
+  dataset?: string;
   field: string;
+  plan?: string;
   status: DataAccessFieldStatus;
+}
+
+export interface DataAccessEntitlementPolicy {
+  channel: DataAccessChannel;
+  dataset: string;
+  exportAllowed: boolean;
+  fieldPattern: string;
+  maxWindowDays?: number;
+  plan: string;
+  status: DataAccessFieldStatus;
+  workspaceId: string;
 }
 
 export interface DataAccessPolicy {
   channels: Record<DataAccessChannel, DataAccessFieldStatus>;
   defaultFieldStatus: "default_deny";
+  entitlementPolicies: DataAccessEntitlementPolicy[];
   fieldPolicies: DataAccessFieldPolicy[];
   maxRows: number;
   maxWindowDays: number;
@@ -31,6 +53,7 @@ export interface DataAccessPolicy {
 export interface DataAccessRequest {
   channel: DataAccessChannel;
   dataset: string;
+  exportRequested?: boolean;
   plan: string;
   qualityState: DataQualityState;
   requestedFields: string[];
@@ -39,6 +62,7 @@ export interface DataAccessRequest {
     from: string;
     to: string;
   };
+  workspaceId?: string;
 }
 
 export interface DataAccessDecision {
@@ -47,7 +71,7 @@ export interface DataAccessDecision {
   dataVersion: string;
   deniedFields: Array<{
     field: string;
-    reason: "channel_blocked" | "field_blocked" | "field_default_deny";
+    reason: DataAccessDeniedReason;
   }>;
   error?: {
     code: AiphaBeeErrorCode;
@@ -77,6 +101,7 @@ export const DEFAULT_DATA_ACCESS_POLICY: DataAccessPolicy = {
     web: "default_deny"
   },
   defaultFieldStatus: "default_deny",
+  entitlementPolicies: [],
   fieldPolicies: [],
   maxRows: 500,
   maxWindowDays: 366,
@@ -92,7 +117,7 @@ export function evaluateDataAccessRequest(
   const timeWindowDays = calculateWindowDays(request.timeRange);
   const limitError = getLimitError(request, policy, timeWindowDays);
   const qualityError = getQualityError(request.qualityState);
-  const fieldDecision = evaluateFields(request.channel, requestedFields, policy);
+  const fieldDecision = evaluateFields(request, requestedFields, policy, timeWindowDays);
   const servedRows =
     limitError || qualityError || fieldDecision.allowedFields.length === 0
       ? 0
@@ -156,7 +181,45 @@ export function createSyntheticApprovedPolicy(): DataAccessPolicy {
         status: "default_deny"
       }
     ],
+    entitlementPolicies: [],
     rightsPolicyVersion: "synthetic-policy-v0"
+  };
+}
+
+export function createSyntheticWorkspaceEntitlementPolicy(): DataAccessPolicy {
+  return {
+    ...DEFAULT_DATA_ACCESS_POLICY,
+    channels: {
+      ...DEFAULT_DATA_ACCESS_POLICY.channels,
+      web: "approved"
+    },
+    entitlementPolicies: [
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        exportAllowed: false,
+        fieldPattern: "synthetic_profile.company_name",
+        maxWindowDays: 31,
+        plan: "team",
+        status: "approved",
+        workspaceId: "ws_synthetic_team"
+      }
+    ],
+    fieldPolicies: [
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        field: "synthetic_profile.company_name",
+        status: "approved"
+      },
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        field: "synthetic_profile.revenue",
+        status: "approved"
+      }
+    ],
+    rightsPolicyVersion: "synthetic-workspace-policy-v0"
   };
 }
 
@@ -170,6 +233,8 @@ export function createDataAccessCacheKey(
     `dataset=${request.dataset}`,
     `channel=${request.channel}`,
     `plan=${request.plan}`,
+    `workspace=${request.workspaceId ?? "none"}`,
+    `export=${request.exportRequested === true}`,
     `fields=${[...allowedFields].sort().join(",") || "none"}`,
     `data_version=gateway-scaffold-v0`,
     `rights=${policy.rightsPolicyVersion}`,
@@ -182,11 +247,12 @@ export function createDataAccessCacheKey(
 }
 
 function evaluateFields(
-  channel: DataAccessChannel,
+  request: DataAccessRequest,
   requestedFields: string[],
-  policy: DataAccessPolicy
+  policy: DataAccessPolicy,
+  timeWindowDays: number | undefined
 ) {
-  const channelStatus = policy.channels[channel] ?? policy.defaultFieldStatus;
+  const channelStatus = policy.channels[request.channel] ?? policy.defaultFieldStatus;
 
   if (channelStatus !== "approved") {
     return {
@@ -200,17 +266,30 @@ function evaluateFields(
 
   return requestedFields.reduce(
     (accumulator, field) => {
-      const fieldPolicy = policy.fieldPolicies.find(
-        (policyEntry) => policyEntry.channel === channel && policyEntry.field === field
-      );
+      const fieldPolicy = getFieldPolicy(request, field, policy);
       const fieldStatus = fieldPolicy?.status ?? policy.defaultFieldStatus;
 
-      if (fieldStatus === "approved") {
+      if (fieldStatus !== "approved") {
+        accumulator.deniedFields.push({
+          field,
+          reason: fieldStatus === "blocked" ? "field_blocked" : "field_default_deny"
+        });
+        return accumulator;
+      }
+
+      const entitlementDecision = evaluateWorkspaceEntitlement(
+        request,
+        field,
+        policy,
+        timeWindowDays
+      );
+
+      if (entitlementDecision.allowed) {
         accumulator.allowedFields.push(field);
       } else {
         accumulator.deniedFields.push({
           field,
-          reason: fieldStatus === "blocked" ? "field_blocked" : "field_default_deny"
+          reason: entitlementDecision.reason
         });
       }
 
@@ -221,6 +300,100 @@ function evaluateFields(
       deniedFields: [] as DataAccessDecision["deniedFields"]
     }
   );
+}
+
+function getFieldPolicy(
+  request: DataAccessRequest,
+  field: string,
+  policy: DataAccessPolicy
+) {
+  return policy.fieldPolicies.find(
+    (policyEntry) =>
+      policyEntry.channel === request.channel &&
+      policyEntry.field === field &&
+      (policyEntry.dataset === undefined || policyEntry.dataset === request.dataset) &&
+      (policyEntry.plan === undefined || policyEntry.plan === request.plan)
+  );
+}
+
+function evaluateWorkspaceEntitlement(
+  request: DataAccessRequest,
+  field: string,
+  policy: DataAccessPolicy,
+  timeWindowDays: number | undefined
+): { allowed: true } | { allowed: false; reason: DataAccessDeniedReason } {
+  if (policy.entitlementPolicies.length === 0) {
+    return { allowed: true };
+  }
+
+  if (request.workspaceId === undefined || request.workspaceId.length === 0) {
+    return {
+      allowed: false,
+      reason: "workspace_entitlement_default_deny"
+    };
+  }
+
+  const matchingEntitlements = policy.entitlementPolicies.filter(
+    (entitlement) =>
+      entitlement.workspaceId === request.workspaceId &&
+      entitlement.plan === request.plan &&
+      entitlement.dataset === request.dataset &&
+      entitlement.channel === request.channel &&
+      matchesFieldPattern(entitlement.fieldPattern, field)
+  );
+  const blockedEntitlement = matchingEntitlements.find(
+    (entitlement) => entitlement.status === "blocked"
+  );
+
+  if (blockedEntitlement !== undefined) {
+    return {
+      allowed: false,
+      reason: "workspace_entitlement_blocked"
+    };
+  }
+
+  const approvedEntitlement = matchingEntitlements.find(
+    (entitlement) => entitlement.status === "approved"
+  );
+
+  if (approvedEntitlement === undefined) {
+    return {
+      allowed: false,
+      reason: "workspace_entitlement_default_deny"
+    };
+  }
+
+  if (request.exportRequested === true && !approvedEntitlement.exportAllowed) {
+    return {
+      allowed: false,
+      reason: "export_blocked"
+    };
+  }
+
+  if (
+    timeWindowDays !== undefined &&
+    approvedEntitlement.maxWindowDays !== undefined &&
+    timeWindowDays > approvedEntitlement.maxWindowDays
+  ) {
+    return {
+      allowed: false,
+      reason: "time_range_blocked"
+    };
+  }
+
+  return { allowed: true };
+}
+
+function matchesFieldPattern(pattern: string, field: string): boolean {
+  if (pattern === "*") {
+    return true;
+  }
+
+  if (pattern.endsWith(".*")) {
+    return field.startsWith(pattern.slice(0, -1));
+  }
+
+  return pattern === field;
 }
 
 function getDecisionStatus(

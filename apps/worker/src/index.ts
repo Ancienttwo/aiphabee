@@ -259,7 +259,9 @@ app.get("/gateway/runtime", (c) => {
           "dataset",
           "channel",
           "plan",
+          "workspace_id",
           "allowed_fields",
+          "export_requested",
           "data_version",
           "rights_policy_version",
           "methodology_version",
@@ -277,6 +279,9 @@ app.get("/gateway/runtime", (c) => {
         guards: [
           "channel_rights_default_deny",
           "field_redaction",
+          "workspace_entitlement_default_deny",
+          "plan_entitlement",
+          "export_entitlement",
           "row_limit",
           "time_range_limit",
           "quality_hold",
@@ -284,6 +289,20 @@ app.get("/gateway/runtime", (c) => {
           "provenance_required",
           "usage_preview"
         ],
+        field_entitlement_enforcement: {
+          dimensions: [
+            "workspace",
+            "plan",
+            "channel",
+            "dataset",
+            "field",
+            "time_range",
+            "export"
+          ],
+          live_policy_source: false,
+          status: "scaffold",
+          workspace_isolation: true
+        },
         limits: {
           max_rows: DEFAULT_DATA_ACCESS_POLICY.maxRows,
           max_window_days: DEFAULT_DATA_ACCESS_POLICY.maxWindowDays
@@ -338,10 +357,12 @@ app.post("/gateway/access-check", async (c) => {
     channel?: unknown;
     dataset?: unknown;
     fields?: unknown;
+    export_requested?: unknown;
     plan?: unknown;
     quality_state?: unknown;
     requested_rows?: unknown;
     time_range?: unknown;
+    workspace_id?: unknown;
   };
   const requestedFields = Array.isArray(body.fields)
     ? body.fields.filter((field): field is string => typeof field === "string")
@@ -349,11 +370,14 @@ app.post("/gateway/access-check", async (c) => {
   const decision = evaluateDataAccessRequest({
     channel: isDataAccessChannel(body.channel) ? body.channel : "mcp",
     dataset: typeof body.dataset === "string" ? body.dataset : "hk_equity_quote",
+    exportRequested:
+      typeof body.export_requested === "boolean" ? body.export_requested : false,
     plan: typeof body.plan === "string" ? body.plan : "free",
     qualityState: isQualityState(body.quality_state) ? body.quality_state : "PASS",
     requestedFields,
     requestedRows: typeof body.requested_rows === "number" ? body.requested_rows : 1,
-    timeRange: isTimeRange(body.time_range) ? body.time_range : undefined
+    timeRange: isTimeRange(body.time_range) ? body.time_range : undefined,
+    workspaceId: typeof body.workspace_id === "string" ? body.workspace_id : undefined
   });
 
   if (decision.error !== undefined) {

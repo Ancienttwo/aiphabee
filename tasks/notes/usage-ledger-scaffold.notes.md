@@ -29,4 +29,6 @@
 - Live Serving Gateway reads and account identity context are absent.
 - Billing provider integration and invoice reconciliation are absent.
 - Persistent usage writes are not wired to `/gateway/access-check`.
+- Field-entitlement evaluator scaffold exists, but live DB policy source is not
+  wired.
 - Hyperdrive and Supabase live database are not provisioned.
