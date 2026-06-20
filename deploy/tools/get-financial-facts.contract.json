@@ -1,0 +1,81 @@
+{
+  "version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+  "status": "local_contract",
+  "tool_name": "get_financial_facts",
+  "route": "POST /tools/get-financial-facts",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "currency_unit_metadata": true,
+  "point_in_time_selection": true,
+  "restatement_versions": true,
+  "max_rows_per_request": 4,
+  "supported_inputs": [
+    "instrument_id",
+    "from",
+    "to",
+    "statement_types",
+    "metrics",
+    "as_of",
+    "limit",
+    "cursor"
+  ],
+  "supported_statement_types": ["income_statement", "balance_sheet", "cash_flow"],
+  "supported_metrics": [
+    "revenue",
+    "net_income",
+    "assets",
+    "liabilities",
+    "equity",
+    "operating_cash_flow",
+    "free_cash_flow"
+  ],
+  "required_statuses": [
+    "found",
+    "not_found",
+    "data_not_licensed",
+    "data_quality_hold",
+    "out_of_range",
+    "point_in_time_unavailable",
+    "too_many_rows"
+  ],
+  "required_fact_fields": [
+    "statementId",
+    "statementType",
+    "metricId",
+    "periodEnd",
+    "value",
+    "currency",
+    "unit",
+    "scale",
+    "accountingStandard",
+    "restatementVersion",
+    "publishedAt",
+    "qualityState",
+    "sourceRecordId"
+  ],
+  "required_error_codes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "NOT_FOUND",
+    "OUT_OF_RANGE",
+    "POINT_IN_TIME_UNAVAILABLE",
+    "TOO_MANY_ROWS",
+    "SCOPE_DENIED"
+  ],
+  "fixture_cases": [
+    "financial_fact_rows",
+    "metric_subset",
+    "statement_type_subset",
+    "cursor_pagination",
+    "unlicensed_metric",
+    "unlicensed_statement_type",
+    "quality_hold",
+    "point_in_time_unavailable",
+    "not_found",
+    "out_of_range",
+    "too_many_rows"
+  ]
+}

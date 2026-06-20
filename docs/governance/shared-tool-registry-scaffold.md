@@ -1,7 +1,7 @@
 # Shared Tool Registry Scaffold
 
 > **Status**: Verified shared registry scaffold
-> **Last Updated**: 2026-06-21 02:02 +08
+> **Last Updated**: 2026-06-21 02:11 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-shared-tool-registry-scaffold.md`
@@ -10,10 +10,10 @@
 
 This slice creates a shared Tool Registry metadata source for Sprint 1.2.
 Later `resolve_security`, `get_security_profile`, `get_market_calendar`,
-`get_quote_snapshot`, `get_price_history`, and `get_corporate_actions`
-scaffolds now mark six tool handlers as available for synthetic no-live lookup.
-Live Serving reads, partner row access, MCP protocol tool-call integration, and
-frontend surfaces remain absent.
+`get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, and
+`get_financial_facts` scaffolds now mark seven tool handlers as available for
+synthetic no-live lookup. Live Serving reads, partner row access, MCP protocol
+tool-call integration, and frontend surfaces remain absent.
 
 ## P1 Architecture Map
 
@@ -24,7 +24,7 @@ frontend surfaces remain absent.
 | Worker runtime route | `GET /tools/runtime` | Reports registry capability and disabled execution |
 | Registry contract | `deploy/tools/registry.contract.json` | Requires 9 planned tools and no arbitrary SQL/URL |
 | Contract checker | `scripts/check-tool-registry-contract.mjs` | Validates registry contract and no secret-like values |
-| Tool handlers | Six no-live scaffolds | `resolve_security`, `get_security_profile`, `get_market_calendar`, `get_quote_snapshot`, `get_price_history`, and `get_corporate_actions` have synthetic handlers; other handlers and live data access remain absent |
+| Tool handlers | Seven no-live scaffolds | `resolve_security`, `get_security_profile`, `get_market_calendar`, `get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, and `get_financial_facts` have synthetic handlers; other handlers and live data access remain absent |
 
 ## P2 Concrete Trace
 
@@ -36,7 +36,7 @@ Registry capability trace:
    execution, and testing metadata.
 4. The capability reports `schema_ready=true`, `rights_aware=true`,
    `standard_response_envelope=true`, `execution_ready=false`,
-   `handler_ready_tool_count=6`, `allow_arbitrary_sql=false`, and
+   `handler_ready_tool_count=7`, `allow_arbitrary_sql=false`, and
    `allow_arbitrary_url=false`.
 
 Agent policy trace:
@@ -93,7 +93,7 @@ Observed `/tools/runtime` fields:
   "schema_ready": true,
   "rights_aware": true,
   "standard_response_envelope": true,
-  "handler_ready_tool_count": 6,
+  "handler_ready_tool_count": 7,
   "execution_ready": false,
   "allow_arbitrary_sql": false,
   "allow_arbitrary_url": false
@@ -103,8 +103,8 @@ Observed `/tools/runtime` fields:
 ## Residual Gaps
 
 - `resolve_security`, `get_security_profile`, `get_market_calendar`,
-  `get_quote_snapshot`, `get_price_history`, and `get_corporate_actions` have
-  no-live synthetic handlers.
+  `get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, and
+  `get_financial_facts` have no-live synthetic handlers.
 - Other individual tool handlers are absent.
 - MCP protocol tool-call integration is absent.
 - Tool JSON Schema bodies and golden fixtures are not implemented.

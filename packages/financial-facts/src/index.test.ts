@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  FinancialFactsInputError,
   FinancialRestatementError,
   buildFinancialRestatementTimeline,
+  getFinancialFacts,
+  getFinancialFactsCapabilities,
   getFinancialRestatementCapabilities,
   runSyntheticFinancialRestatementGolden,
   selectFinancialStatementAsOf
@@ -136,6 +139,172 @@ describe("financial restatement engine", () => {
         }
       ])
     ).toThrow(FinancialRestatementError);
+  });
+});
+
+describe("financial facts tool scaffold", () => {
+  it("returns standardized financial facts with currency, unit, and version metadata", () => {
+    const result = getFinancialFacts({
+      from: "2023-12-31",
+      instrumentId: "eq_hk_00700",
+      metrics: ["revenue", "net_income", "assets", "equity"],
+      to: "2023-12-31"
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_financial_facts");
+    expect(result.liveDataAccess).toBe(false);
+    expect(result.facts).toMatchObject({
+      accountingStandard: "HKFRS",
+      currency: "HKD",
+      instrumentId: "eq_hk_00700",
+      qualityState: "PASS",
+      rowCount: 4,
+      symbol: "00700.HK",
+      totalRows: 4,
+      unit: "million"
+    });
+    expect(result.facts?.facts.map((fact) => fact.metricId)).toEqual([
+      "assets",
+      "equity",
+      "net_income",
+      "revenue"
+    ]);
+    expect(result.facts?.facts[0]).toMatchObject({
+      periodEnd: "2023-12-31",
+      restatementVersion: 1,
+      scale: 1000000,
+      versionStatus: "latest"
+    });
+    expect(result.usage.rows).toBe(4);
+    expect(result.usage.credits).toBe(8);
+  });
+
+  it("supports statement type subsets and deterministic cursor pagination", () => {
+    const firstPage = getFinancialFacts({
+      from: "2023-12-31",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      statementTypes: ["balance_sheet"],
+      to: "2023-12-31"
+    });
+    const secondPage = getFinancialFacts({
+      cursor: firstPage.facts?.nextCursor,
+      from: "2023-12-31",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      statementTypes: ["balance_sheet"],
+      to: "2023-12-31"
+    });
+
+    expect(firstPage.facts?.facts.map((fact) => fact.metricId)).toEqual([
+      "assets",
+      "equity"
+    ]);
+    expect(firstPage.facts?.nextCursor).toBe("offset:2");
+    expect(secondPage.facts?.facts.map((fact) => fact.metricId)).toEqual([
+      "liabilities"
+    ]);
+    expect(secondPage.facts?.nextCursor).toBeUndefined();
+  });
+
+  it("returns data_not_licensed for unsupported metrics and statement types", () => {
+    const unsupportedMetric = getFinancialFacts({
+      from: "2023-12-31",
+      instrumentId: "eq_hk_00700",
+      metrics: ["revenue", "ev_to_ebitda"],
+      to: "2023-12-31"
+    });
+    const unsupportedStatement = getFinancialFacts({
+      from: "2023-12-31",
+      instrumentId: "eq_hk_00700",
+      statementTypes: ["segment_note"],
+      to: "2023-12-31"
+    });
+
+    expect(unsupportedMetric.status).toBe("data_not_licensed");
+    expect(unsupportedMetric.rejectedMetrics).toEqual(["ev_to_ebitda"]);
+    expect(unsupportedMetric.facts).toBeUndefined();
+    expect(unsupportedStatement.status).toBe("data_not_licensed");
+    expect(unsupportedStatement.rejectedStatementTypes).toEqual(["segment_note"]);
+  });
+
+  it("returns quality, time, range, missing, and row-limit states", () => {
+    expect(
+      getFinancialFacts({
+        from: "2023-12-31",
+        instrumentId: "eq_hk_08001",
+        to: "2023-12-31"
+      }).status
+    ).toBe("data_quality_hold");
+    expect(
+      getFinancialFacts({
+        asOf: "2022-01-01T00:00:00Z",
+        from: "2023-12-31",
+        instrumentId: "eq_hk_00700",
+        to: "2023-12-31"
+      }).status
+    ).toBe("point_in_time_unavailable");
+    expect(
+      getFinancialFacts({
+        from: "2021-12-31",
+        instrumentId: "eq_hk_00700",
+        to: "2021-12-31"
+      }).status
+    ).toBe("out_of_range");
+    expect(
+      getFinancialFacts({
+        from: "2023-12-31",
+        instrumentId: "eq_hk_missing",
+        to: "2023-12-31"
+      }).status
+    ).toBe("not_found");
+    expect(
+      getFinancialFacts({
+        from: "2023-12-31",
+        instrumentId: "eq_hk_00700",
+        limit: 5,
+        to: "2023-12-31"
+      }).status
+    ).toBe("too_many_rows");
+  });
+
+  it("requires valid financial fact inputs", () => {
+    expect(() =>
+      getFinancialFacts({
+        from: "2023-12-31",
+        instrumentId: "  ",
+        to: "2023-12-31"
+      })
+    ).toThrow(FinancialFactsInputError);
+    expect(() =>
+      getFinancialFacts({
+        from: "2023-12-31",
+        instrumentId: "eq_hk_00700",
+        to: "2022-12-31"
+      })
+    ).toThrow(FinancialFactsInputError);
+    expect(() =>
+      getFinancialFacts({
+        asOf: "not-a-date",
+        from: "2023-12-31",
+        instrumentId: "eq_hk_00700",
+        to: "2023-12-31"
+      })
+    ).toThrow(FinancialFactsInputError);
+  });
+
+  it("reports no-live financial facts capabilities", () => {
+    expect(getFinancialFactsCapabilities()).toMatchObject({
+      currency_unit_metadata: true,
+      handler_ready: true,
+      live_data_access: false,
+      max_rows_per_request: 4,
+      point_in_time_selection: true,
+      restatement_versions: true,
+      status: "get_financial_facts_scaffold",
+      supported_statement_types: ["income_statement", "balance_sheet", "cash_flow"]
+    });
   });
 });
 

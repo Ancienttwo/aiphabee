@@ -2,12 +2,42 @@ export const FINANCIAL_RESTATEMENT_ENGINE_VERSION =
   "2026-06-20.phase1.financial-restatement-engine.v0";
 export const FINANCIAL_RESTATEMENT_METHODOLOGY_VERSION =
   "financial-restatement@synthetic-v0";
+export const GET_FINANCIAL_FACTS_VERSION =
+  "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0";
+export const GET_FINANCIAL_FACTS_DATA_VERSION = "financial-facts-synthetic-v0";
 
 export type FinancialRestatementErrorCode =
   | "ACCOUNTING_IDENTITY_INVALID"
   | "PUBLISHED_AT_INVALID"
   | "RESTATEMENT_CHAIN_INVALID"
   | "STATEMENT_DIMENSION_MISMATCH";
+export type FinancialFactsInputErrorCode =
+  | "AS_OF_INVALID"
+  | "INSTRUMENT_ID_REQUIRED"
+  | "INVALID_CURSOR"
+  | "INVALID_LIMIT"
+  | "INVALID_RANGE";
+export type FinancialFactsStatus =
+  | "data_not_licensed"
+  | "data_quality_hold"
+  | "found"
+  | "not_found"
+  | "out_of_range"
+  | "point_in_time_unavailable"
+  | "too_many_rows";
+export type FinancialFactStatementType =
+  | "balance_sheet"
+  | "cash_flow"
+  | "income_statement";
+export type FinancialFactMetric =
+  | "assets"
+  | "equity"
+  | "free_cash_flow"
+  | "liabilities"
+  | "net_income"
+  | "operating_cash_flow"
+  | "revenue";
+export type FinancialFactQualityState = "HOLD" | "PASS";
 
 export interface FinancialStatementVersionInput {
   accountingStandard: string;
@@ -23,6 +53,84 @@ export interface FinancialStatementVersionInput {
   sourceRecordId: string;
   statementId: string;
   unit: string;
+}
+
+export interface GetFinancialFactsInput {
+  asOf?: string;
+  cursor?: string;
+  from: string;
+  instrumentId: string;
+  limit?: number;
+  metrics?: string[];
+  statementTypes?: string[];
+  to: string;
+}
+
+export interface FinancialFactRow {
+  accountingStandard: string;
+  companyId: string;
+  currency: string;
+  instrumentId: string;
+  metricId: FinancialFactMetric;
+  periodEnd: string;
+  periodType: "FY" | "H1";
+  publishedAt: string;
+  qualityState: FinancialFactQualityState;
+  restatementVersion: number;
+  scale: number;
+  sourceRecordId: string;
+  statementId: string;
+  statementType: FinancialFactStatementType;
+  unit: string;
+  value: number;
+  versionStatus: "latest" | "prior";
+}
+
+export interface FinancialFactsDataset {
+  accountingStandard: string;
+  asOf: string;
+  companyId: string;
+  currency: string;
+  facts: FinancialFactRow[];
+  from: string;
+  instrumentId: string;
+  nextCursor?: string;
+  qualityState: FinancialFactQualityState;
+  rowCount: number;
+  symbol: string;
+  to: string;
+  totalRows: number;
+  unit: string;
+}
+
+export interface GetFinancialFactsResult {
+  asOf: string;
+  cursor?: string;
+  dataVersion: typeof GET_FINANCIAL_FACTS_DATA_VERSION;
+  facts?: FinancialFactsDataset;
+  from: string;
+  instrumentId: string;
+  limit: number;
+  liveDataAccess: false;
+  methodologyVersion: typeof GET_FINANCIAL_FACTS_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version?: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  rejectedMetrics: string[];
+  rejectedStatementTypes: string[];
+  requestedMetrics: FinancialFactMetric[];
+  requestedStatementTypes: FinancialFactStatementType[];
+  status: FinancialFactsStatus;
+  to: string;
+  toolName: "get_financial_facts";
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  };
 }
 
 export interface FinancialStatementVersion {
@@ -105,6 +213,301 @@ export class FinancialRestatementError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+export class FinancialFactsInputError extends Error {
+  readonly code: FinancialFactsInputErrorCode;
+
+  constructor(code: FinancialFactsInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const DEFAULT_FINANCIAL_FACT_METRICS: readonly FinancialFactMetric[] = [
+  "revenue",
+  "net_income",
+  "assets",
+  "liabilities",
+  "equity",
+  "operating_cash_flow",
+  "free_cash_flow"
+];
+const DEFAULT_FINANCIAL_FACT_STATEMENT_TYPES: readonly FinancialFactStatementType[] = [
+  "income_statement",
+  "balance_sheet",
+  "cash_flow"
+];
+const DEFAULT_FINANCIAL_FACT_LIMIT = 4;
+const MAX_FINANCIAL_FACT_LIMIT = 4;
+const DEFAULT_FINANCIAL_FACT_AS_OF = "2024-04-01T00:00:00Z";
+
+interface SyntheticFinancialFactsRecord {
+  accountingStandard: string;
+  companyId: string;
+  currency: string;
+  facts: readonly FinancialFactRow[];
+  instrumentId: string;
+  qualityState: FinancialFactQualityState;
+  symbol: string;
+  unit: string;
+}
+
+const SYNTHETIC_FINANCIAL_FACTS: readonly SyntheticFinancialFactsRecord[] = [
+  {
+    accountingStandard: "HKFRS",
+    companyId: "co_hk_00700",
+    currency: "HKD",
+    facts: [
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "income_statement", "revenue", 609015, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "income_statement", "net_income", 115216, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "balance_sheet", "assets", 1570000, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "balance_sheet", "liabilities", 742000, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "balance_sheet", "equity", 828000, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "cash_flow", "operating_cash_flow", 222450, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "cash_flow", "free_cash_flow", 198100, "2023-12-31", "2024-03-20T08:00:00Z", 1),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "income_statement", "revenue", 554552, "2022-12-31", "2023-03-22T08:00:00Z", 0),
+      createFactRow("eq_hk_00700", "co_hk_00700", "00700.HK", "income_statement", "net_income", 94882, "2022-12-31", "2023-03-22T08:00:00Z", 0)
+    ],
+    instrumentId: "eq_hk_00700",
+    qualityState: "PASS",
+    symbol: "00700.HK",
+    unit: "million"
+  },
+  {
+    accountingStandard: "HKFRS",
+    companyId: "co_hk_08001",
+    currency: "HKD",
+    facts: [
+      {
+        ...createFactRow("eq_hk_08001", "co_hk_08001", "08001.HK", "income_statement", "revenue", 12, "2023-12-31", "2024-03-20T08:00:00Z", 0),
+        qualityState: "HOLD" as const
+      }
+    ],
+    instrumentId: "eq_hk_08001",
+    qualityState: "HOLD",
+    symbol: "08001.HK",
+    unit: "million"
+  }
+] as const;
+
+export function getFinancialFacts(input: GetFinancialFactsInput): GetFinancialFactsResult {
+  const instrumentId = input.instrumentId.trim();
+  const from = input.from.trim();
+  const to = input.to.trim();
+  const limit = input.limit ?? DEFAULT_FINANCIAL_FACT_LIMIT;
+  const asOf = input.asOf ?? DEFAULT_FINANCIAL_FACT_AS_OF;
+
+  if (instrumentId.length === 0) {
+    throw new FinancialFactsInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (!isIsoDate(from) || !isIsoDate(to) || from > to) {
+    throw new FinancialFactsInputError(
+      "INVALID_RANGE",
+      "from and to must be YYYY-MM-DD dates with from <= to"
+    );
+  }
+
+  if (Number.isNaN(Date.parse(asOf))) {
+    throw new FinancialFactsInputError("AS_OF_INVALID", "as_of must be an ISO timestamp");
+  }
+
+  if (!Number.isInteger(limit) || limit <= 0) {
+    throw new FinancialFactsInputError("INVALID_LIMIT", "limit must be a positive integer");
+  }
+
+  const normalizedMetrics = normalizeFinancialFactMetrics(input.metrics);
+  const normalizedStatementTypes = normalizeFinancialStatementTypes(input.statementTypes);
+  const offset = parseFinancialFactCursor(input.cursor);
+
+  if (
+    normalizedMetrics.rejectedMetrics.length > 0 ||
+    normalizedStatementTypes.rejectedStatementTypes.length > 0
+  ) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: normalizedMetrics.rejectedMetrics,
+      rejectedStatementTypes: normalizedStatementTypes.rejectedStatementTypes,
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "data_not_licensed",
+      to
+    });
+  }
+
+  if (limit > MAX_FINANCIAL_FACT_LIMIT) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "too_many_rows",
+      to
+    });
+  }
+
+  const record = SYNTHETIC_FINANCIAL_FACTS.find(
+    (candidate) =>
+      normalizeInstrumentId(candidate.instrumentId) === normalizeInstrumentId(instrumentId)
+  );
+
+  if (record === undefined) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "not_found",
+      to
+    });
+  }
+
+  if (record.qualityState === "HOLD") {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "data_quality_hold",
+      to
+    });
+  }
+
+  const coverage = getFinancialFactCoverage(record);
+  if (from < coverage.from || to > coverage.to) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "out_of_range",
+      to
+    });
+  }
+
+  const visibleFacts = record.facts.filter((fact) => Date.parse(fact.publishedAt) <= Date.parse(asOf));
+
+  if (visibleFacts.length === 0) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "point_in_time_unavailable",
+      to
+    });
+  }
+
+  const matchingFacts = visibleFacts.filter(
+    (fact) =>
+      fact.periodEnd >= from &&
+      fact.periodEnd <= to &&
+      normalizedMetrics.requestedMetrics.includes(fact.metricId) &&
+      normalizedStatementTypes.requestedStatementTypes.includes(fact.statementType)
+  );
+
+  if (matchingFacts.length === 0) {
+    return createFinancialFactsResult({
+      asOf,
+      cursor: input.cursor,
+      facts: undefined,
+      from,
+      instrumentId,
+      limit,
+      rejectedMetrics: [],
+      rejectedStatementTypes: [],
+      requestedMetrics: normalizedMetrics.requestedMetrics,
+      requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+      status: "out_of_range",
+      to
+    });
+  }
+
+  const facts = createFinancialFactsDataset({
+    asOf,
+    facts: matchingFacts,
+    from,
+    limit,
+    offset,
+    record,
+    to
+  });
+
+  return createFinancialFactsResult({
+    asOf,
+    cursor: input.cursor,
+    facts,
+    from,
+    instrumentId,
+    limit,
+    rejectedMetrics: [],
+    rejectedStatementTypes: [],
+    requestedMetrics: normalizedMetrics.requestedMetrics,
+    requestedStatementTypes: normalizedStatementTypes.requestedStatementTypes,
+    status: "found",
+    to
+  });
+}
+
+export function getFinancialFactsCapabilities() {
+  return {
+    currency_unit_metadata: true,
+    data_version: GET_FINANCIAL_FACTS_DATA_VERSION,
+    handler_ready: true,
+    input_schema: "tool.get_financial_facts.input.v0",
+    live_data_access: false,
+    max_rows_per_request: MAX_FINANCIAL_FACT_LIMIT,
+    output_schema: "tool.get_financial_facts.output.v0",
+    point_in_time_selection: true,
+    restatement_versions: true,
+    status: "get_financial_facts_scaffold" as const,
+    supported_metrics: DEFAULT_FINANCIAL_FACT_METRICS,
+    supported_statement_types: DEFAULT_FINANCIAL_FACT_STATEMENT_TYPES,
+    synthetic_fact_rows: SYNTHETIC_FINANCIAL_FACTS.reduce(
+      (count, record) => count + record.facts.length,
+      0
+    ),
+    version: GET_FINANCIAL_FACTS_VERSION
+  };
 }
 
 export function buildFinancialRestatementTimeline(
@@ -506,6 +909,231 @@ function validateDimensions(statements: FinancialStatementVersionInput[]): void 
       }
     );
   }
+}
+
+function createFinancialFactsResult(params: {
+  asOf: string;
+  cursor?: string;
+  facts: FinancialFactsDataset | undefined;
+  from: string;
+  instrumentId: string;
+  limit: number;
+  rejectedMetrics: string[];
+  rejectedStatementTypes: string[];
+  requestedMetrics: FinancialFactMetric[];
+  requestedStatementTypes: FinancialFactStatementType[];
+  status: FinancialFactsStatus;
+  to: string;
+}): GetFinancialFactsResult {
+  return {
+    asOf: params.asOf,
+    cursor: params.cursor,
+    dataVersion: GET_FINANCIAL_FACTS_DATA_VERSION,
+    facts: params.facts,
+    from: params.from,
+    instrumentId: params.instrumentId,
+    limit: params.limit,
+    liveDataAccess: false,
+    methodologyVersion: GET_FINANCIAL_FACTS_VERSION,
+    provenance: createFinancialFactsProvenance(),
+    rejectedMetrics: params.rejectedMetrics,
+    rejectedStatementTypes: params.rejectedStatementTypes,
+    requestedMetrics: params.requestedMetrics,
+    requestedStatementTypes: params.requestedStatementTypes,
+    status: params.status,
+    to: params.to,
+    toolName: "get_financial_facts",
+    usage: {
+      cached: false,
+      credits: params.facts === undefined ? 0 : params.facts.facts.length * 2,
+      rows: params.facts?.facts.length ?? 0
+    }
+  };
+}
+
+function createFinancialFactsDataset(params: {
+  asOf: string;
+  facts: readonly FinancialFactRow[];
+  from: string;
+  limit: number;
+  offset: number;
+  record: SyntheticFinancialFactsRecord;
+  to: string;
+}): FinancialFactsDataset {
+  const pageFacts = [...params.facts]
+    .sort((left, right) => {
+      const period = right.periodEnd.localeCompare(left.periodEnd);
+
+      if (period !== 0) {
+        return period;
+      }
+
+      return left.metricId.localeCompare(right.metricId);
+    })
+    .slice(params.offset, params.offset + params.limit);
+  const nextOffset = params.offset + pageFacts.length;
+  const nextCursor =
+    nextOffset < params.facts.length ? `offset:${nextOffset}` : undefined;
+
+  return {
+    accountingStandard: params.record.accountingStandard,
+    asOf: params.asOf,
+    companyId: params.record.companyId,
+    currency: params.record.currency,
+    facts: pageFacts.map((fact) => ({ ...fact })),
+    from: params.from,
+    instrumentId: params.record.instrumentId,
+    nextCursor,
+    qualityState: params.record.qualityState,
+    rowCount: pageFacts.length,
+    symbol: params.record.symbol,
+    to: params.to,
+    totalRows: params.facts.length,
+    unit: params.record.unit
+  };
+}
+
+function normalizeFinancialFactMetrics(metrics: string[] | undefined): {
+  rejectedMetrics: string[];
+  requestedMetrics: FinancialFactMetric[];
+} {
+  if (metrics === undefined || metrics.length === 0) {
+    return {
+      rejectedMetrics: [],
+      requestedMetrics: [...DEFAULT_FINANCIAL_FACT_METRICS]
+    };
+  }
+
+  const requestedMetrics: FinancialFactMetric[] = [];
+  const rejectedMetrics: string[] = [];
+
+  for (const metric of metrics) {
+    if (isFinancialFactMetric(metric)) {
+      requestedMetrics.push(metric);
+    } else {
+      rejectedMetrics.push(metric);
+    }
+  }
+
+  return {
+    rejectedMetrics,
+    requestedMetrics
+  };
+}
+
+function normalizeFinancialStatementTypes(statementTypes: string[] | undefined): {
+  rejectedStatementTypes: string[];
+  requestedStatementTypes: FinancialFactStatementType[];
+} {
+  if (statementTypes === undefined || statementTypes.length === 0) {
+    return {
+      rejectedStatementTypes: [],
+      requestedStatementTypes: [...DEFAULT_FINANCIAL_FACT_STATEMENT_TYPES]
+    };
+  }
+
+  const requestedStatementTypes: FinancialFactStatementType[] = [];
+  const rejectedStatementTypes: string[] = [];
+
+  for (const statementType of statementTypes) {
+    if (isFinancialFactStatementType(statementType)) {
+      requestedStatementTypes.push(statementType);
+    } else {
+      rejectedStatementTypes.push(statementType);
+    }
+  }
+
+  return {
+    rejectedStatementTypes,
+    requestedStatementTypes
+  };
+}
+
+function isFinancialFactMetric(value: string): value is FinancialFactMetric {
+  return (DEFAULT_FINANCIAL_FACT_METRICS as readonly string[]).includes(value);
+}
+
+function isFinancialFactStatementType(value: string): value is FinancialFactStatementType {
+  return (DEFAULT_FINANCIAL_FACT_STATEMENT_TYPES as readonly string[]).includes(value);
+}
+
+function parseFinancialFactCursor(cursor: string | undefined): number {
+  if (cursor === undefined || cursor.length === 0) {
+    return 0;
+  }
+
+  const match = /^offset:(\d+)$/u.exec(cursor);
+  if (match === null) {
+    throw new FinancialFactsInputError(
+      "INVALID_CURSOR",
+      "cursor must be empty or match offset:<number>"
+    );
+  }
+
+  return Number(match[1]);
+}
+
+function getFinancialFactCoverage(record: SyntheticFinancialFactsRecord): {
+  from: string;
+  to: string;
+} {
+  const periodEnds = record.facts.map((fact) => fact.periodEnd).sort();
+
+  return {
+    from: periodEnds[0] ?? "",
+    to: periodEnds.at(-1) ?? ""
+  };
+}
+
+function createFactRow(
+  instrumentId: string,
+  companyId: string,
+  symbol: string,
+  statementType: FinancialFactStatementType,
+  metricId: FinancialFactMetric,
+  value: number,
+  periodEnd: string,
+  publishedAt: string,
+  restatementVersion: number
+): FinancialFactRow {
+  return {
+    accountingStandard: "HKFRS",
+    companyId,
+    currency: "HKD",
+    instrumentId,
+    metricId,
+    periodEnd,
+    periodType: "FY",
+    publishedAt,
+    qualityState: "PASS",
+    restatementVersion,
+    scale: 1_000_000,
+    sourceRecordId: `src_financial_fact_${symbol.toLowerCase().replace(".", "_")}_${metricId}_${periodEnd}`,
+    statementId: `financial_stmt_${instrumentId}_${statementType}_${periodEnd}_v${restatementVersion}`,
+    statementType,
+    unit: "million",
+    value,
+    versionStatus: restatementVersion > 0 ? "latest" : "prior"
+  };
+}
+
+function normalizeInstrumentId(value: string): string {
+  return value.trim().toLocaleLowerCase("en-US");
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(value);
+}
+
+function createFinancialFactsProvenance() {
+  return [
+    {
+      data_version: GET_FINANCIAL_FACTS_DATA_VERSION,
+      methodology_version: GET_FINANCIAL_FACTS_VERSION,
+      source: "synthetic-financial-facts",
+      source_record_id: "get-financial-facts-fixture-v0"
+    }
+  ];
 }
 
 function identityBalances(facts: Record<string, number>): boolean {

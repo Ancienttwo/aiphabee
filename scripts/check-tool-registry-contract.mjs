@@ -22,7 +22,8 @@ const scaffoldTools = [
   "get_market_calendar",
   "get_quote_snapshot",
   "get_price_history",
-  "get_corporate_actions"
+  "get_corporate_actions",
+  "get_financial_facts"
 ];
 
 let contract;

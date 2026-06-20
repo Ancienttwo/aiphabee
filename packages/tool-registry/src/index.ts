@@ -147,16 +147,18 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return standardized financial facts with period, currency, unit, and version.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_financial_facts",
     permissions: createPermissions("financials:read", ["financial_facts"]),
     schema: createSchema("get_financial_facts", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
       "POINT_IN_TIME_UNAVAILABLE"
     ]),
-    status: "planned",
-    testing: createTesting("get_financial_facts"),
+    status: "scaffold",
+    testing: createTesting("get_financial_facts", true),
     version: "0.0.0"
   },
   {

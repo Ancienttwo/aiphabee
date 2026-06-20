@@ -258,6 +258,48 @@ interface CorporateActionsBody {
   };
 }
 
+interface FinancialFactsBody {
+  data: {
+    capability: {
+      currency_unit_metadata: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      point_in_time_selection: boolean;
+      restatement_versions: boolean;
+      status: string;
+      supported_statement_types: string[];
+    };
+    facts: {
+      accountingStandard: string;
+      currency: string;
+      facts: Array<{
+        metricId: string;
+        periodEnd: string;
+        restatementVersion: number;
+        unit: string;
+        value: number;
+        versionStatus: string;
+      }>;
+      nextCursor?: string;
+      qualityState: string;
+      rowCount: number;
+      symbol: string;
+      totalRows: number;
+      unit: string;
+    };
+    liveDataAccess: boolean;
+    requestedMetrics: string[];
+    requestedStatementTypes: string[];
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -667,7 +709,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(6);
+    expect(body.data.handler_ready_tool_count).toBe(7);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -740,6 +782,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_corporate_actions")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_financial_facts")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -1476,6 +1532,174 @@ describe("worker runtime", () => {
     expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
     expect(qualityHold.status).toBe(409);
     expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
+    expect(tooManyRows.status).toBe(422);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns financial facts with period, currency, unit, and version metadata", async () => {
+    const response = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_00700",
+        metrics: ["revenue", "net_income", "assets", "equity"],
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as FinancialFactsBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_financial_facts");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.facts).toMatchObject({
+      accountingStandard: "HKFRS",
+      currency: "HKD",
+      qualityState: "PASS",
+      rowCount: 4,
+      symbol: "00700.HK",
+      totalRows: 4,
+      unit: "million"
+    });
+    expect(body.data.facts.facts.map((fact) => fact.metricId)).toEqual([
+      "assets",
+      "equity",
+      "net_income",
+      "revenue"
+    ]);
+    expect(body.data.facts.facts[0]).toMatchObject({
+      periodEnd: "2023-12-31",
+      restatementVersion: 1,
+      unit: "million",
+      versionStatus: "latest"
+    });
+    expect(body.data.capability).toMatchObject({
+      currency_unit_metadata: true,
+      handler_ready: true,
+      live_data_access: false,
+      point_in_time_selection: true,
+      restatement_versions: true,
+      status: "get_financial_facts_scaffold",
+      supported_statement_types: ["income_statement", "balance_sheet", "cash_flow"]
+    });
+    expect(body.usage.rows).toBe(4);
+    expect(body.usage.credits).toBe(8);
+  });
+
+  it("returns standard errors for financial fact licensing, quality, time, range, row, and input failures", async () => {
+    const unlicensed = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_00700",
+        metrics: ["revenue", "ev_to_ebitda"],
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-unlicensed"
+      },
+      method: "POST"
+    });
+    const qualityHold = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_08001",
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-quality"
+      },
+      method: "POST"
+    });
+    const unavailable = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        as_of: "2022-01-01T00:00:00Z",
+        from: "2023-12-31",
+        instrument_id: "eq_hk_00700",
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-unavailable"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2021-12-31",
+        instrument_id: "eq_hk_00700",
+        to: "2021-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-range"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_00700",
+        limit: 5,
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-too-many"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_missing",
+        to: "2023-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-financial-facts", {
+      body: JSON.stringify({
+        from: "2023-12-31",
+        instrument_id: "eq_hk_00700",
+        to: "2022-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-facts-invalid"
+      },
+      method: "POST"
+    });
+    const unlicensedBody = (await unlicensed.json()) as ErrorBody;
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const unavailableBody = (await unavailable.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unlicensed.status).toBe(403);
+    expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(unavailable.status).toBe(422);
+    expect(unavailableBody.error.code).toBe("POINT_IN_TIME_UNAVAILABLE");
     expect(outOfRange.status).toBe(422);
     expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
     expect(tooManyRows.status).toBe(422);

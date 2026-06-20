@@ -19,7 +19,12 @@ import {
   getServingResultEnvelopeCapabilities
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
-import { getFinancialRestatementCapabilities } from "@aiphabee/financial-facts";
+import {
+  FinancialFactsInputError,
+  getFinancialFacts,
+  getFinancialFactsCapabilities,
+  getFinancialRestatementCapabilities
+} from "@aiphabee/financial-facts";
 import {
   MarketCalendarInputError,
   getMarketCalendar,
@@ -1570,6 +1575,171 @@ app.post("/tools/get-corporate-actions", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-financial-facts", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    asOf?: unknown;
+    cursor?: unknown;
+    from?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+    limit?: unknown;
+    metrics?: unknown;
+    statement_types?: unknown;
+    statementTypes?: unknown;
+    to?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+  const metrics = Array.isArray(body.metrics)
+    ? body.metrics.filter((metric): metric is string => typeof metric === "string")
+    : undefined;
+  const rawStatementTypes = Array.isArray(body.statement_types)
+    ? body.statement_types
+    : Array.isArray(body.statementTypes)
+      ? body.statementTypes
+      : undefined;
+  const statementTypes = Array.isArray(rawStatementTypes)
+    ? rawStatementTypes.filter(
+        (statementType): statementType is string => typeof statementType === "string"
+      )
+    : undefined;
+
+  try {
+    const result = getFinancialFacts({
+      asOf:
+        typeof body.as_of === "string"
+          ? body.as_of
+          : typeof body.asOf === "string"
+            ? body.asOf
+            : undefined,
+      cursor: typeof body.cursor === "string" ? body.cursor : undefined,
+      from: typeof body.from === "string" ? body.from : "",
+      instrumentId: rawInstrumentId,
+      limit: typeof body.limit === "number" ? body.limit : undefined,
+      metrics,
+      statementTypes,
+      to: typeof body.to === "string" ? body.to : ""
+    });
+    const meta = {
+      asOf: result.asOf,
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "financial facts were not found", meta),
+        404
+      );
+    }
+
+    if (result.status === "data_not_licensed") {
+      return c.json(
+        createErrorEnvelope(
+          "DATA_NOT_LICENSED",
+          "financial metrics or statement types are not licensed",
+          meta
+        ),
+        403
+      );
+    }
+
+    if (result.status === "data_quality_hold") {
+      return c.json(
+        createErrorEnvelope(
+          "DATA_QUALITY_HOLD",
+          "financial facts are held by quality policy",
+          meta
+        ),
+        409
+      );
+    }
+
+    if (result.status === "point_in_time_unavailable") {
+      return c.json(
+        createErrorEnvelope(
+          "POINT_IN_TIME_UNAVAILABLE",
+          "financial facts are unavailable for the requested point in time",
+          meta
+        ),
+        422
+      );
+    }
+
+    if (result.status === "out_of_range") {
+      return c.json(
+        createErrorEnvelope(
+          "OUT_OF_RANGE",
+          "financial facts range is out of synthetic coverage",
+          meta
+        ),
+        422
+      );
+    }
+
+    if (result.status === "too_many_rows") {
+      return c.json(
+        createErrorEnvelope("TOO_MANY_ROWS", "financial facts request exceeds row limit", meta),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getFinancialFactsCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof FinancialFactsInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_financial_facts failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,
