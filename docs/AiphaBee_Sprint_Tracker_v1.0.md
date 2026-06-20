@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 14 / 21 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 15 / 22 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
@@ -162,6 +162,8 @@ owner: "Planner / PM"
 - [ ] 初始化前端应用：TanStack Start + Vite（Claude 前端跟进，PRD §1.1、§11.3）
 - [x] Hono Worker 空运行面：`apps/worker`、Wrangler local config、`/health` route（§11.3）
 - [x] Agent Runtime 骨架：AI SDK v7 beta dry-run runtime on Cloudflare Workers（§11.3）
+- [x] Model provider / streaming scaffold：Cloudflare AI Gateway planned contract、AI SDK v7 `generateText`/`streamText` boundary、`/agent/runs/stream` guard、`npm run check:model-provider`（§11.3、§11.6）
+- [ ] Model provider live execution smoke：真实 AI Gateway request + `streamText`/`generateText` + token/cost/fallback logs（§11.3、§11.6）
 - [x] Cloudflare binding contract：Workers、Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive 命名/职责/smoke 矩阵（§11.3–§11.4）
 - [ ] Cloudflare resources provisioned + binding smoke tests：Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive（§11.3–§11.4）
 - [x] Postgres/Supabase migration scaffold：Supabase-compatible migrations、Hyperdrive connection contract、default-deny governance schema、`npm run check:database`（§11.4）
@@ -572,13 +574,14 @@ owner: "Planner / PM"
 - [x] Env/secrets contract 已建立：`docs/governance/env-secrets-contract.md`；dev/staging/prod names-only templates、schema、CI validation 已通过
 - [x] Cloudflare binding contract 已建立：`docs/governance/cloudflare-bindings-contract.md`；Workers/Workflows/Queues/Cron/DO/R2/KV/AI Gateway/Hyperdrive 命名、职责与 smoke 面已校验
 - [x] Agent Runtime scaffold 已建立：`docs/governance/agent-runtime-scaffold.md`；AI SDK v7 beta dry-run capabilities、step-limit、registered-tool policy、Worker dry-run routes 已通过本地 smoke
+- [x] Model provider / streaming scaffold 已建立：`docs/governance/model-provider-streaming-scaffold.md`；Cloudflare AI Gateway planned contract、AI SDK v7 execution APIs、`/agent/model-provider` 与 guarded `/agent/runs/stream` 已通过本地 smoke
 - [x] Observability/eval scaffold 已建立：`docs/governance/observability-eval-scaffold.md`；Workers Logs/traces、`run.audit`/`run.eval` 事件、console sink、CI contract check 与 dry-run telemetry headers 已通过本地 smoke
 - [x] Postgres/Hyperdrive migration scaffold 已建立：`docs/governance/postgres-hyperdrive-migration-scaffold.md`；Supabase-compatible migration、Hyperdrive contract、default-deny governance schema、`npm run check:database` 与 `/database/runtime` 已通过本地 smoke
 - [x] Provider secret stores contract 已建立：`docs/governance/provider-secret-stores-contract.md`；Cloudflare/GitHub/Supabase planned stores、rotation/revocation runbook、`npm run check:secrets` 与 `/secrets/runtime` 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的黄金 fixtures/质量规则尚未可执行，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
-- [ ] Sprint 0.4 的前端 scaffold、model provider/streaming execution、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP destination + persistent eval store、provider secret live provisioning/rotation smoke、Design System 集成与可执行 golden fixtures 尚未实现
+- [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP destination + persistent eval store、provider secret live provisioning/rotation smoke、Design System 集成与可执行 golden fixtures 尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -587,6 +590,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0p | 完成 `model-provider-streaming-scaffold`：新增 model provider / AI Gateway contract、`npm run check:model-provider`、`MODEL_PROVIDER_NOT_CONFIGURED`、Worker `/agent/model-provider` 与 guarded `/agent/runs/stream`；真实 AI Gateway / `streamText` / token logs 仍未完成，Sprint 0.4 更新为 15/22 |
 | 2026-06-20 | 1.0o | 完成 `provider-secret-stores-contract`：新增 Cloudflare/GitHub/Supabase secret stores contract、rotation/revocation runbook、`npm run check:secrets`、Worker `/secrets/runtime`；真实 provider store provisioning/rotation smoke 仍未完成，Sprint 0.4 更新为 14/21 |
 | 2026-06-20 | 1.0n | 完成 `postgres-hyperdrive-migration-scaffold`：新增 Supabase-compatible migration、database migration manifest、Hyperdrive connection contract、`npm run check:database`、Worker `/database/runtime`；真实 Hyperdrive binding / `SELECT 1` smoke 仍未完成，Sprint 0.4 更新为 13/20 |
 | 2026-06-20 | 1.0m | 完成 `observability-eval-scaffold`：启用 Workers Logs/traces，新增 `packages/observability`、`run.audit`/`run.eval` 事件契约、console sink、`npm run check:observability` 与 dry-run telemetry headers；真实 OTLP destination / persistent eval store 仍未完成，Sprint 0.4 更新为 12/19 |

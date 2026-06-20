@@ -159,6 +159,73 @@ app.get("/secrets/runtime", (c) => {
   );
 });
 
+app.get("/agent/model-provider", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ai_gateway: {
+          features: ["logging", "caching", "rate_limiting", "fallback", "guardrails"],
+          gateway_id: "default",
+          provider: "cloudflare_ai_gateway",
+          status: "planned",
+          unified_billing: true
+        },
+        ai_sdk: {
+          execution_apis: ["generateText", "streamText"],
+          package_name: "ai",
+          stop_condition: "isStepCount",
+          target_version: "7.0.0-beta.182"
+        },
+        execution_modes: [
+          {
+            model_calls: false,
+            name: "dry_run",
+            route: "POST /agent/runs/dry-run",
+            status: "wired"
+          },
+          {
+            model_calls: false,
+            name: "generate_text",
+            route: "POST /agent/runs/generate",
+            status: "planned"
+          },
+          {
+            model_calls: false,
+            name: "stream_text",
+            route: "POST /agent/runs/stream",
+            status: "guarded"
+          }
+        ],
+        model_calls_enabled: false,
+        provider_contract: "deploy/model-providers/providers.contract.json",
+        streaming_enabled: false
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "model-provider-scaffold-v0",
+        provenance: [
+          {
+            data_version: "model-provider-scaffold-v0",
+            methodology_version: "model-provider-scaffold-v0",
+            source: "model-provider-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
 app.get("/agent/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -183,6 +250,38 @@ app.get("/agent/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.post("/agent/runs/stream", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createErrorEnvelope(
+      "MODEL_PROVIDER_NOT_CONFIGURED",
+      "model provider and AI Gateway are not configured for streaming execution",
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "model-provider-scaffold-v0",
+        provenance: [
+          {
+            data_version: "model-provider-scaffold-v0",
+            methodology_version: "model-provider-scaffold-v0",
+            source: "model-provider-contract",
+            source_record_id: "stream-guard"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    ),
+    503
   );
 });
 

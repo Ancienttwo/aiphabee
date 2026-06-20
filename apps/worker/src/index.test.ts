@@ -58,6 +58,30 @@ interface SecretsRuntimeBody {
   ok: true;
 }
 
+interface ModelProviderBody {
+  data: {
+    ai_gateway: {
+      provider: string;
+      status: string;
+      unified_billing: boolean;
+    };
+    ai_sdk: {
+      execution_apis: string[];
+      stop_condition: string;
+      target_version: string;
+    };
+    execution_modes: Array<{
+      model_calls: boolean;
+      name: string;
+      status: string;
+    }>;
+    model_calls_enabled: boolean;
+    provider_contract: string;
+    streaming_enabled: boolean;
+  };
+  ok: true;
+}
+
 interface AgentDryRunBody {
   data: {
     budget: {
@@ -181,6 +205,56 @@ describe("worker runtime", () => {
     expect(body.data.provider_stores.every((store) => store.status === "planned")).toBe(
       true
     );
+  });
+
+  it("serves model provider capabilities without model calls", async () => {
+    const response = await app.request("/agent/model-provider", {
+      headers: {
+        "x-request-id": "req-model-provider"
+      }
+    });
+    const body = (await response.json()) as ModelProviderBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.ai_sdk.execution_apis).toContain("streamText");
+    expect(body.data.ai_sdk.execution_apis).toContain("generateText");
+    expect(body.data.ai_sdk.stop_condition).toBe("isStepCount");
+    expect(body.data.ai_sdk.target_version).toBe("7.0.0-beta.182");
+    expect(body.data.ai_gateway.provider).toBe("cloudflare_ai_gateway");
+    expect(body.data.ai_gateway.status).toBe("planned");
+    expect(body.data.ai_gateway.unified_billing).toBe(true);
+    expect(body.data.model_calls_enabled).toBe(false);
+    expect(body.data.streaming_enabled).toBe(false);
+    expect(body.data.provider_contract).toBe(
+      "deploy/model-providers/providers.contract.json"
+    );
+    expect(body.data.execution_modes.find((mode) => mode.name === "stream_text")).toMatchObject(
+      {
+        model_calls: false,
+        status: "guarded"
+      }
+    );
+  });
+
+  it("guards streaming execution until a model provider exists", async () => {
+    const response = await app.request("/agent/runs/stream", {
+      body: JSON.stringify({
+        prompt: "Explain 00700.HK trend"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-stream-guard"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("MODEL_PROVIDER_NOT_CONFIGURED");
   });
 
   it("creates an agent dry-run skeleton", async () => {

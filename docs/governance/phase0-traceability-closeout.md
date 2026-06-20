@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 14/21; frontend/model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, model-provider/streaming guard, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 15/22; frontend/live model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -80,7 +80,7 @@ recorded in `tasks/todos.md`:
 - External Gate 0 rights/regulatory approvals.
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
-- Remaining runtime surfaces: frontend app, model provider/streaming execution,
+- Remaining runtime surfaces: frontend app, live model provider/streaming execution,
   Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, OTLP
   destination plus persistent eval store, provider secret-store provisioning
   plus rotation smoke, and executable golden fixtures.
@@ -138,7 +138,7 @@ Not completed:
 
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
-- Model provider/streaming execution, Cloudflare resource provisioning/smoke,
+- Live model provider/streaming execution, Cloudflare resource provisioning/smoke,
   live Hyperdrive `SELECT 1`, persistent observability/eval store, executable
   golden fixtures, and live provider secret-store smoke.
 
@@ -232,9 +232,29 @@ Completed:
 
 Not completed:
 
-- Real model provider / AI Gateway binding, streaming generation, registered
-  data tool execution, persistent run store, persistent observability/eval store,
-  and Workflow handoff remain absent.
+- Real model provider / AI Gateway request, streaming generation, registered data
+  tool execution, persistent run store, persistent observability/eval store, and
+  Workflow handoff remain absent.
+
+## Execution Update - 2026-06-20 15:25 +08
+
+`model-provider-streaming-scaffold` has been executed in
+`docs/governance/model-provider-streaming-scaffold.md`.
+
+Completed:
+
+- `deploy/model-providers/providers.contract.json` defines AI SDK v7
+  `generateText`/`streamText` and planned Cloudflare AI Gateway boundary.
+- `npm run check:model-provider` and CI `Model Provider Contract` coverage added.
+- Shared `MODEL_PROVIDER_NOT_CONFIGURED` error code added.
+- Worker `GET /agent/model-provider` added and smoke-tested.
+- Worker `POST /agent/runs/stream` guard added and smoke-tested with 503.
+
+Not completed:
+
+- Live Cloudflare AI Gateway request, `generateText`/`streamText`, token/cost
+  logging, fallback, budget ledger, and generated-output evidence binding remain
+  absent.
 
 ## Execution Update - 2026-06-20 14:57 +08
 

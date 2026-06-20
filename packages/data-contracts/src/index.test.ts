@@ -12,6 +12,7 @@ describe("data contracts", () => {
     expect(ERROR_CODES).toContain("SCOPE_DENIED");
     expect(ERROR_CODES).toContain("DATA_QUALITY_HOLD");
     expect(ERROR_CODES).toContain("OUT_OF_RANGE");
+    expect(ERROR_CODES).toContain("MODEL_PROVIDER_NOT_CONFIGURED");
     expect(ERROR_CODES).toContain("UPSTREAM_STALE");
   });
 

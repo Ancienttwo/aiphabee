@@ -1,7 +1,7 @@
 # Engineering Runtime Scaffold
 
 > **Status**: Verified non-frontend slice
-> **Last Updated**: 2026-06-20 15:20 +08
+> **Last Updated**: 2026-06-20 15:25 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Source Closeout**: `docs/governance/phase0-traceability-closeout.md`
 > **Plan**: `plans/plan-engineering-runtime-scaffold.md`
@@ -123,8 +123,9 @@ Observed `/health` response:
 
 - Frontend scaffold is intentionally absent and delegated to Claude.
 - AI SDK v7 dry-run Agent Runtime skeleton now exists in
-  `docs/governance/agent-runtime-scaffold.md`; real model provider execution
-  remains unimplemented.
+  `docs/governance/agent-runtime-scaffold.md`; model-provider/streaming contract
+  now exists in `docs/governance/model-provider-streaming-scaffold.md`; live
+  model execution remains unimplemented.
 - Cloudflare binding contract now exists in
   `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
   tests remain unimplemented.

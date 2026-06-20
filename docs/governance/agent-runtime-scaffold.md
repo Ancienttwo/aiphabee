@@ -1,7 +1,7 @@
 # Agent Runtime Scaffold
 
 > **Status**: Verified dry-run scaffold
-> **Last Updated**: 2026-06-20 14:47 +08
+> **Last Updated**: 2026-06-20 15:25 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-agent-runtime-scaffold.md`
 > **Task Contract**: `tasks/contracts/agent-runtime-scaffold.contract.md`
@@ -80,8 +80,9 @@ Passed:
 
 ## Residual Gaps
 
-- Real model provider / AI Gateway binding is not configured.
-- `streamText` / `generateText` execution is not wired.
+- Model provider / streaming contract now exists in
+  `docs/governance/model-provider-streaming-scaffold.md`; real AI Gateway
+  request, `streamText`, and `generateText` execution remain unimplemented.
 - Registered tools are planned policy entries; they do not execute market data.
 - Usage ledger, persistent run store, OTel spans, and Workflow handoff are not
   implemented.
