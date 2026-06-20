@@ -31,7 +31,10 @@ import {
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
 import {
+  GetSecurityProfileInputError,
   ResolveSecurityInputError,
+  getSecurityProfile,
+  getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
   resolveSecurity
 } from "@aiphabee/security-tools";
@@ -994,6 +997,94 @@ app.post("/tools/resolve-security", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.resolve-security-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-security-profile", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+
+  try {
+    const result = getSecurityProfile({
+      asOf: typeof body.as_of === "string" ? body.as_of : undefined,
+      instrumentId: rawInstrumentId
+    });
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "security profile was not found", {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }),
+        404
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getSecurityProfileCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof GetSecurityProfileInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_security_profile failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,

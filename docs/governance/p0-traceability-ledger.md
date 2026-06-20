@@ -58,7 +58,7 @@ DoD.
 | SEC-01 多形式证券解析 | AIP-P0-SEC-01 | Data Engineering | 1.2 | `resolve_security` golden cases for code/name/history aliases | Sprint 1.2 exit: ambiguous securities return candidates | `resolve_security` no-live scaffold complete for synthetic code/name/history aliases; live security master reads pending |
 | SEC-02 代码与实体分离 | AIP-P0-SEC-02 | Data Engineering | 0.2 / 1.1 | Security master schema and migration tests | Sprint 1.1 exit: company/instrument/listing history is persisted | Design baseline complete; runtime pending |
 | SEC-03 歧义返回候选 | AIP-P0-SEC-03 | Data Engineering / Product | 1.2 | Ambiguous lookup contract tests | Sprint 1.2 exit: no silent guessing in tool responses | `resolve_security` no-live scaffold returns candidates without selected instrument for ambiguous synthetic lookups |
-| SEC-04 上市状态/币种/覆盖 | AIP-P0-SEC-04 | Data Engineering | 1.2 | Profile fixture tests for listed/suspended/delisted coverage | Sprint 1.2 exit: profile tool exposes status/currency/coverage | Not started |
+| SEC-04 上市状态/币种/覆盖 | AIP-P0-SEC-04 | Data Engineering | 1.2 | Profile fixture tests for listed/suspended/delisted coverage | Sprint 1.2 exit: profile tool exposes status/currency/coverage | `get_security_profile` no-live scaffold complete for synthetic listed/suspended/delisted profiles; live security master reads pending |
 
 ## Agent Runtime
 
@@ -67,7 +67,7 @@ DoD.
 | AGT-01 流式 + 工具进度 | AIP-P0-AGT-01 | Agent Runtime Engineering | 1.3 | Streaming response and progress event tests | Sprint 1.3 exit: user-visible progress without chain-of-thought | Not started |
 | AGT-02 调用前口径解析 | AIP-P0-AGT-02 | Agent Runtime Engineering / Product | 1.3 | Pre-tool disambiguation tests | Sprint 1.3 exit: securities/time/currency/methodology resolved before tools | Not started |
 | AGT-03 单 run 预算上限 | AIP-P0-AGT-03 | Agent Runtime Engineering / Billing | 1.3 | Run budget exhaustion tests | Sprint 1.3 exit: budget limit stops gracefully with partial evidence | Not started |
-| AGT-04 仅注册工具 | AIP-P0-AGT-04 | Platform Engineering / Security | 1.2 / 1.3 | Tool registry allowlist denial tests | Sprint 1.3 exit: unregistered tool and arbitrary SQL are rejected | Shared Tool Registry scaffold complete; tool execution and MCP/API handlers pending |
+| AGT-04 仅注册工具 | AIP-P0-AGT-04 | Platform Engineering / Security | 1.2 / 1.3 | Tool registry allowlist denial tests | Sprint 1.3 exit: unregistered tool and arbitrary SQL are rejected | Shared Tool Registry scaffold complete with two no-live tool handlers; MCP/API protocol handlers pending |
 | AGT-05 数字来自工具/计算 | AIP-P0-AGT-05 | Agent Runtime Engineering / Quality | 1.3 | Evidence-binding eval tests | Sprint 1.3 exit: sourced financial numbers only | Not started |
 | AGT-06 事实/计算/推断/未知 | AIP-P0-AGT-06 | Agent Runtime Engineering / Product | 1.3 | Answer classification snapshot tests | Sprint 1.3 exit: response layers are visible and consistent | Not started |
 | AGT-07 来源引用证据卡片 | AIP-P0-AGT-07 | Product Engineering / Data | 1.3 | Evidence card click-through tests | Sprint 1.3 exit: every cited number opens source/as-of/version | Not started |
@@ -78,7 +78,7 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| STK-01 公司/证券档案 | AIP-P0-STK-01 | Product Engineering / Data | 1.2 / 1.4 | Profile tool and UI contract tests | Sprint 1.4 exit: company/security profile visible internally | Not started |
+| STK-01 公司/证券档案 | AIP-P0-STK-01 | Product Engineering / Data | 1.2 / 1.4 | Profile tool and UI contract tests | Sprint 1.4 exit: company/security profile visible internally | `get_security_profile` no-live Worker route returns synthetic company/security profile metadata; UI and live data remain pending |
 | STK-02 价格/回报/回撤/基准 | AIP-P0-STK-02 | Data Engineering / Analytics | 1.4 | Price history and return calculation golden tests | Sprint 1.4 exit: price views match golden methodology | Not started |
 | STK-03 财务三表事实趋势 | AIP-P0-STK-03 | Data Engineering | 1.4 | Financial facts point-in-time tests | Sprint 1.4 exit: facts show period/currency/unit/published/restated version | Not started |
 | STK-04 估值/盈利派生指标 | AIP-P0-STK-04 | Analytics Engineering | 1.4 | Metric library formula tests | Sprint 1.4 exit: derived metrics expose definitions and anomaly handling | Not started |

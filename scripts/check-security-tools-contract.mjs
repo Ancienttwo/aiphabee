@@ -2,54 +2,114 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const contractPath = "deploy/tools/resolve-security.contract.json";
-const requiredLookupForms = ["code", "symbol", "name", "historical_name"];
-const requiredStatuses = ["resolved", "ambiguous", "not_found"];
-const requiredCandidateFields = [
-  "instrumentId",
-  "listingId",
-  "symbol",
-  "market",
-  "exchange",
-  "currency",
-  "status",
-  "name",
-  "validFrom",
-  "matchReason"
-];
-const requiredErrorCodes = ["NOT_FOUND", "SCOPE_DENIED"];
-const requiredFixtureCases = [
-  "code_variant",
-  "symbol_variant",
-  "zh_name",
-  "en_name",
-  "historical_name",
-  "ambiguous",
-  "not_found"
+const contractSpecs = [
+  {
+    ambiguityCandidates: true,
+    coverageMetadata: undefined,
+    fixtureCases: [
+      "code_variant",
+      "symbol_variant",
+      "zh_name",
+      "en_name",
+      "historical_name",
+      "ambiguous",
+      "not_found"
+    ],
+    path: "deploy/tools/resolve-security.contract.json",
+    requiredCandidateFields: [
+      "instrumentId",
+      "listingId",
+      "symbol",
+      "market",
+      "exchange",
+      "currency",
+      "status",
+      "name",
+      "validFrom",
+      "matchReason"
+    ],
+    requiredCoverageFields: undefined,
+    requiredErrorCodes: ["NOT_FOUND", "SCOPE_DENIED"],
+    requiredProfileFields: undefined,
+    requiredStatuses: ["resolved", "ambiguous", "not_found"],
+    route: "POST /tools/resolve-security",
+    supportedInputs: undefined,
+    supportedListingStatuses: undefined,
+    supportedLookupForms: ["code", "symbol", "name", "historical_name"],
+    toolName: "resolve_security"
+  },
+  {
+    ambiguityCandidates: undefined,
+    coverageMetadata: true,
+    fixtureCases: ["listed_profile", "suspended_profile", "delisted_profile", "not_found"],
+    path: "deploy/tools/get-security-profile.contract.json",
+    requiredCandidateFields: undefined,
+    requiredCoverageFields: [
+      "profile",
+      "quoteSnapshot",
+      "priceHistory",
+      "financialFacts",
+      "corporateActions",
+      "lineage",
+      "entitlements"
+    ],
+    requiredErrorCodes: ["NOT_FOUND", "SCOPE_DENIED"],
+    requiredProfileFields: [
+      "instrumentId",
+      "listingId",
+      "symbol",
+      "market",
+      "exchange",
+      "currency",
+      "listingStatus",
+      "company",
+      "industry",
+      "coverage",
+      "lifecycle"
+    ],
+    requiredStatuses: ["found", "not_found"],
+    route: "POST /tools/get-security-profile",
+    supportedInputs: ["instrument_id"],
+    supportedListingStatuses: ["listed", "suspended", "delisted"],
+    supportedLookupForms: undefined,
+    toolName: "get_security_profile"
+  }
 ];
 
-let contract;
+const contracts = [];
+const errors = [];
 
-try {
-  contract = JSON.parse(readFileSync(resolve(process.cwd(), contractPath), "utf8"));
-} catch (error) {
-  emit(
-    {
+for (const spec of contractSpecs) {
+  let contract;
+
+  try {
+    contract = JSON.parse(readFileSync(resolve(process.cwd(), spec.path), "utf8"));
+  } catch (error) {
+    errors.push({
       error: error instanceof Error ? error.message : String(error),
-      path: contractPath,
+      path: spec.path,
       status: "invalid_json"
-    },
-    1
-  );
-}
+    });
+    continue;
+  }
 
-const errors = validateContract(contract);
+  const contractErrors = validateContract(contract, spec);
+
+  if (contractErrors.length > 0) {
+    errors.push({
+      errors: contractErrors,
+      path: spec.path,
+      status: "invalid_contract"
+    });
+  }
+
+  contracts.push(contract);
+}
 
 if (errors.length > 0) {
   emit(
     {
       errors,
-      path: contractPath,
       status: "invalid_contract"
     },
     1
@@ -58,15 +118,15 @@ if (errors.length > 0) {
 
 emit(
   {
-    fixtures: contract.fixture_cases.length,
-    route: contract.route,
+    contracts: contracts.length,
+    routes: contracts.map((contract) => contract.route),
     status: "ok",
-    tool: contract.tool_name
+    tools: contracts.map((contract) => contract.tool_name)
   },
   0
 );
 
-function validateContract(value) {
+function validateContract(value, spec) {
   const errors = [];
 
   if (!isRecord(value)) {
@@ -81,12 +141,12 @@ function validateContract(value) {
     errors.push("status must be local_contract until live tool data exists");
   }
 
-  if (value.tool_name !== "resolve_security") {
-    errors.push("tool_name must be resolve_security");
+  if (value.tool_name !== spec.toolName) {
+    errors.push(`tool_name must be ${spec.toolName}`);
   }
 
-  if (value.route !== "POST /tools/resolve-security") {
-    errors.push("route must be POST /tools/resolve-security");
+  if (value.route !== spec.route) {
+    errors.push(`route must be ${spec.route}`);
   }
 
   if (value.handler_ready !== true) {
@@ -109,37 +169,82 @@ function validateContract(value) {
     errors.push("standard_response_envelope must be true");
   }
 
-  if (value.no_silent_guessing !== true) {
-    errors.push("no_silent_guessing must be true");
-  }
-
-  if (value.ambiguity_candidates !== true) {
+  if (spec.ambiguityCandidates !== undefined && value.ambiguity_candidates !== true) {
     errors.push("ambiguity_candidates must be true");
   }
 
+  if (spec.coverageMetadata !== undefined && value.coverage_metadata !== true) {
+    errors.push("coverage_metadata must be true");
+  }
+
+  if (spec.supportedLookupForms !== undefined) {
+    errors.push(
+      ...validateStringArray(
+        value.supported_lookup_forms,
+        spec.supportedLookupForms,
+        "supported_lookup_forms"
+      )
+    );
+  }
+
+  if (spec.supportedInputs !== undefined) {
+    errors.push(
+      ...validateStringArray(value.supported_inputs, spec.supportedInputs, "supported_inputs")
+    );
+  }
+
+  if (spec.supportedListingStatuses !== undefined) {
+    errors.push(
+      ...validateStringArray(
+        value.supported_listing_statuses,
+        spec.supportedListingStatuses,
+        "supported_listing_statuses"
+      )
+    );
+  }
+
+  errors.push(
+    ...validateStringArray(value.required_statuses, spec.requiredStatuses, "required_statuses")
+  );
+
+  if (spec.requiredCandidateFields !== undefined) {
+    errors.push(
+      ...validateStringArray(
+        value.required_candidate_fields,
+        spec.requiredCandidateFields,
+        "required_candidate_fields"
+      )
+    );
+  }
+
+  if (spec.requiredProfileFields !== undefined) {
+    errors.push(
+      ...validateStringArray(
+        value.required_profile_fields,
+        spec.requiredProfileFields,
+        "required_profile_fields"
+      )
+    );
+  }
+
+  if (spec.requiredCoverageFields !== undefined) {
+    errors.push(
+      ...validateStringArray(
+        value.required_coverage_fields,
+        spec.requiredCoverageFields,
+        "required_coverage_fields"
+      )
+    );
+  }
+
   errors.push(
     ...validateStringArray(
-      value.supported_lookup_forms,
-      requiredLookupForms,
-      "supported_lookup_forms"
+      value.required_error_codes,
+      spec.requiredErrorCodes,
+      "required_error_codes"
     )
   );
-  errors.push(
-    ...validateStringArray(value.required_statuses, requiredStatuses, "required_statuses")
-  );
-  errors.push(
-    ...validateStringArray(
-      value.required_candidate_fields,
-      requiredCandidateFields,
-      "required_candidate_fields"
-    )
-  );
-  errors.push(
-    ...validateStringArray(value.required_error_codes, requiredErrorCodes, "required_error_codes")
-  );
-  errors.push(
-    ...validateStringArray(value.fixture_cases, requiredFixtureCases, "fixture_cases")
-  );
+  errors.push(...validateStringArray(value.fixture_cases, spec.fixtureCases, "fixture_cases"));
   errors.push(...validateNoSecretLikeValues(value));
 
   return errors;

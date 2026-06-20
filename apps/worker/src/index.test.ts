@@ -89,6 +89,38 @@ interface ResolveSecurityBody {
   };
 }
 
+interface SecurityProfileBody {
+  data: {
+    capability: {
+      coverage_metadata: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+    };
+    liveDataAccess: boolean;
+    profile: {
+      coverage: {
+        profile: {
+          status: string;
+        };
+        quoteSnapshot: {
+          status: string;
+        };
+      };
+      currency: string;
+      listingStatus: string;
+      market: string;
+      symbol: string;
+    };
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -498,10 +530,24 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(1);
+    expect(body.data.handler_ready_tool_count).toBe(2);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_security_profile")
+    ).toMatchObject({
       execution: {
         handlerReady: true,
         liveDataAccess: false
@@ -592,6 +638,92 @@ describe("worker runtime", () => {
       headers: {
         "content-type": "application/json",
         "x-request-id": "req-resolve-security-invalid"
+      },
+      method: "POST"
+    });
+    const notFoundBody = (await notFound.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(notFound.status).toBe(404);
+    expect(notFoundBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns security profile, status, currency, and coverage metadata", async () => {
+    const response = await app.request("/tools/get-security-profile", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-profile"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SecurityProfileBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_security_profile");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.profile).toMatchObject({
+      currency: "HKD",
+      listingStatus: "listed",
+      market: "HK",
+      symbol: "00700.HK"
+    });
+    expect(body.data.profile.coverage.profile.status).toBe("available");
+    expect(body.data.profile.coverage.quoteSnapshot.status).toBe("planned");
+    expect(body.data.capability).toMatchObject({
+      coverage_metadata: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_security_profile_scaffold"
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("returns suspended profile fixture without live data access", async () => {
+    const response = await app.request("/tools/get-security-profile", {
+      body: JSON.stringify({
+        instrumentId: "eq_hk_08001"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-profile-suspended"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SecurityProfileBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.profile.listingStatus).toBe("suspended");
+    expect(body.data.profile.coverage.quoteSnapshot.status).toBe("unavailable");
+    expect(body.data.liveDataAccess).toBe(false);
+  });
+
+  it("returns standard errors for missing or invalid security profiles", async () => {
+    const notFound = await app.request("/tools/get-security-profile", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-profile-not-found"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-security-profile", {
+      body: JSON.stringify({
+        instrument_id: "   "
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-profile-invalid"
       },
       method: "POST"
     });

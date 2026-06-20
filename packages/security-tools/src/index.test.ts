@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  GetSecurityProfileInputError,
   ResolveSecurityInputError,
+  getSecurityProfile,
+  getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
   resolveSecurity
 } from "./index";
@@ -69,6 +72,75 @@ describe("resolve security scaffold", () => {
       live_data_access: false,
       no_silent_guessing: true,
       status: "resolve_security_scaffold"
+    });
+  });
+});
+
+describe("security profile scaffold", () => {
+  it("returns listed security profile, currency, and coverage metadata", () => {
+    const result = getSecurityProfile({ instrumentId: "eq_hk_00700" });
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_security_profile");
+    expect(result.liveDataAccess).toBe(false);
+    expect(result.profile).toMatchObject({
+      currency: "HKD",
+      exchange: "HKEX",
+      industry: {
+        sector: "Communication Services"
+      },
+      listingStatus: "listed",
+      market: "HK",
+      symbol: "00700.HK"
+    });
+    expect(result.profile?.coverage.profile.status).toBe("available");
+    expect(result.profile?.coverage.quoteSnapshot.status).toBe("planned");
+    expect(result.usage.rows).toBe(1);
+  });
+
+  it("returns suspended and delisted fixture states without live access", () => {
+    const suspended = getSecurityProfile({ instrumentId: "EQ_HK_08001" });
+    const delisted = getSecurityProfile({ instrumentId: "eq_hk_09999" });
+
+    expect(suspended.profile).toMatchObject({
+      lifecycle: {
+        suspendedAt: "2025-01-15"
+      },
+      listingStatus: "suspended"
+    });
+    expect(suspended.profile?.coverage.quoteSnapshot.status).toBe("unavailable");
+    expect(delisted.profile).toMatchObject({
+      lifecycle: {
+        delistedAt: "2022-12-30"
+      },
+      listingStatus: "delisted"
+    });
+    expect(delisted.profile?.coverage.financialFacts.status).toBe("unavailable");
+    expect(suspended.liveDataAccess).toBe(false);
+    expect(delisted.liveDataAccess).toBe(false);
+  });
+
+  it("returns not_found for unknown instrument ids", () => {
+    const result = getSecurityProfile({ instrumentId: "eq_hk_missing" });
+
+    expect(result.status).toBe("not_found");
+    expect(result.profile).toBeUndefined();
+    expect(result.usage.rows).toBe(0);
+  });
+
+  it("requires a non-empty instrument id", () => {
+    expect(() => getSecurityProfile({ instrumentId: "  " })).toThrow(
+      GetSecurityProfileInputError
+    );
+  });
+
+  it("reports no-live profile capabilities", () => {
+    expect(getSecurityProfileCapabilities()).toMatchObject({
+      coverage_metadata: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_security_profile_scaffold",
+      supported_listing_statuses: ["listed", "suspended", "delisted"]
     });
   });
 });

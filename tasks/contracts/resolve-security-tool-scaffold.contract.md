@@ -81,7 +81,7 @@ exit_criteria:
   smoke_tests:
     - "POST /tools/resolve-security with 00700.HK returns selectedInstrumentId=eq_hk_00700"
     - "POST /tools/resolve-security with ABC returns ambiguous candidates and no selectedInstrumentId"
-    - "GET /tools/runtime reports handler_ready_tool_count=1"
+    - "GET /tools/runtime reports resolve_security handlerReady=true"
 ```
 
 ## Acceptance Notes

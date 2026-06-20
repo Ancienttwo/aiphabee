@@ -1,0 +1,44 @@
+{
+  "version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
+  "status": "local_contract",
+  "tool_name": "get_security_profile",
+  "route": "POST /tools/get-security-profile",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "coverage_metadata": true,
+  "supported_inputs": ["instrument_id"],
+  "supported_listing_statuses": ["listed", "suspended", "delisted"],
+  "required_statuses": ["found", "not_found"],
+  "required_profile_fields": [
+    "instrumentId",
+    "listingId",
+    "symbol",
+    "market",
+    "exchange",
+    "currency",
+    "listingStatus",
+    "company",
+    "industry",
+    "coverage",
+    "lifecycle"
+  ],
+  "required_coverage_fields": [
+    "profile",
+    "quoteSnapshot",
+    "priceHistory",
+    "financialFacts",
+    "corporateActions",
+    "lineage",
+    "entitlements"
+  ],
+  "required_error_codes": ["NOT_FOUND", "SCOPE_DENIED"],
+  "fixture_cases": [
+    "listed_profile",
+    "suspended_profile",
+    "delisted_profile",
+    "not_found"
+  ]
+}

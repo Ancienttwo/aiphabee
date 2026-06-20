@@ -16,7 +16,7 @@ const requiredTools = [
 ];
 const requiredRoutes = ["GET /tools/runtime", "GET /agent/runtime"];
 const requiredChannels = ["web", "mcp", "api"];
-const scaffoldTools = ["resolve_security"];
+const scaffoldTools = ["resolve_security", "get_security_profile"];
 
 let contract;
 

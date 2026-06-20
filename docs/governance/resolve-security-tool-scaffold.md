@@ -98,7 +98,7 @@ Observed route fields:
     "candidateCount": 2
   },
   "runtime": {
-    "handler_ready_tool_count": 1,
+    "handler_ready_tool_count": 2,
     "execution_ready": false
   }
 }

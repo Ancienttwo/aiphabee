@@ -15,7 +15,8 @@
 - Returned `ambiguous` with candidates and no selected instrument for ambiguous
   lookups.
 - Added `POST /tools/resolve-security` with standard success/error envelopes.
-- Marked `resolve_security` as the only scaffold-ready registry tool.
+- Marked `resolve_security` as scaffold-ready in the registry; later
+  `get_security_profile` is also scaffold-ready.
 - Kept live DB reads, arbitrary SQL/URL, partner rows, MCP endpoints, and
   frontend out of scope.
 

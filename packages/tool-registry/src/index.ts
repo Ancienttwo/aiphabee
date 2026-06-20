@@ -67,12 +67,16 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return security profile, status, currency, and coverage metadata.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_security_profile",
     permissions: createPermissions("security:read", ["security_master"]),
-    schema: createSchema("get_security_profile", ["DATA_NOT_LICENSED", "NOT_FOUND"]),
-    status: "planned",
-    testing: createTesting("get_security_profile"),
+    schema: createSchema("get_security_profile", [
+      "DATA_NOT_LICENSED",
+      "NOT_FOUND",
+      "SCOPE_DENIED"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_security_profile", true),
     version: "0.0.0"
   },
   {
