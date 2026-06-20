@@ -13,9 +13,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:golden && npm run check:env && npm run check:bindings && npm run check:observability && npm run build",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
     "check:env": "node scripts/check-env-contract.mjs",
+    "check:observability": "node scripts/check-observability-contract.mjs",
     "dev": "npm run dev:worker",
     "dev:worker": "npm run dev --workspace @aiphabee/worker",
     "lint": "npm run lint --workspaces --if-present",

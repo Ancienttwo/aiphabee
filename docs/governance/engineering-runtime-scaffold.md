@@ -1,7 +1,7 @@
 # Engineering Runtime Scaffold
 
 > **Status**: Verified non-frontend slice
-> **Last Updated**: 2026-06-20 14:20 +08
+> **Last Updated**: 2026-06-20 14:57 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Source Closeout**: `docs/governance/phase0-traceability-closeout.md`
 > **Plan**: `plans/plan-engineering-runtime-scaffold.md`
@@ -60,8 +60,8 @@ Tradeoff:
 
 - Selected: root npm workspace + Worker + shared contracts + CI/env.
 - Deferred: frontend app, AI SDK agent loop, full Cloudflare bindings,
-  Postgres/Hyperdrive, observability, secrets management by environment, and
-  P0 issue/owner/test/release traceability.
+  Postgres/Hyperdrive, persistent observability/eval store, secrets management
+  by environment, and P0 issue/owner/test/release traceability.
 
 Reason:
 
@@ -72,9 +72,9 @@ Reason:
 
 First failure at 10x scale:
 
-- The single Worker has no binding abstraction, no persistence, no observability
-  pipeline, and no request budget ledger. Those are the correct next shared
-  runtime bottlenecks before Phase 1 data or agent features.
+- The single Worker has no binding abstraction, no persistence, no persistent
+  observability/eval store, and no request budget ledger. Those are the correct
+  next shared runtime bottlenecks before Phase 1 data or agent features.
 
 ## File Inventory
 
@@ -129,7 +129,9 @@ Observed `/health` response:
   `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
   tests remain unimplemented.
 - Postgres/Supabase/Hyperdrive migration tooling is not implemented.
-- OTel/log/eval store wiring is not implemented.
+- Local observability/eval event wiring now exists in
+  `docs/governance/observability-eval-scaffold.md`; real OTLP destination and
+  persistent eval store remain unimplemented.
 - Env contract and dev/staging/prod names-only validation now exist in
   `docs/governance/env-secrets-contract.md`; provider secret stores and
   rotation remain unimplemented.

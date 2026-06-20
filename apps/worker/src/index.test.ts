@@ -123,6 +123,10 @@ describe("worker runtime", () => {
     const body = (await response.json()) as AgentDryRunBody;
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(response.headers.get("x-aiphabee-telemetry-run-id")).toBe(
+      "dry_req-agent-dry-run"
+    );
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("dry_run");
     expect(body.data.request_id).toBe("req-agent-dry-run");
@@ -146,6 +150,10 @@ describe("worker runtime", () => {
     const body = (await response.json()) as ErrorBody;
 
     expect(response.status).toBe(403);
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(response.headers.get("x-aiphabee-telemetry-run-id")).toBe(
+      "dry_req-agent-denied"
+    );
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
   });

@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, and Agent dry-run skeleton complete 11/18; frontend/model execution/resource provisioning/persistence/observability/provider secrets remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, and local observability/eval event contract complete 12/19; frontend/model execution/resource provisioning/persistence/OTLP destination/provider secrets remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -81,8 +81,9 @@ recorded in `tasks/todos.md`:
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
 - Remaining runtime surfaces: frontend app, model provider/streaming execution,
-  Cloudflare resource provisioning/smoke, Postgres/Hyperdrive, observability,
-  provider secret stores/rotation, and executable golden fixtures.
+  Cloudflare resource provisioning/smoke, Postgres/Hyperdrive, OTLP destination
+  plus persistent eval store, provider secret stores/rotation, and executable
+  golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -138,8 +139,8 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - Model provider/streaming execution, Cloudflare resource provisioning/smoke,
-  Postgres/Hyperdrive, OTel, executable golden fixtures, and provider secret
-  stores/rotation.
+  Postgres/Hyperdrive, persistent observability/eval store, executable golden
+  fixtures, and provider secret stores/rotation.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -230,8 +231,29 @@ Completed:
 Not completed:
 
 - Real model provider / AI Gateway binding, streaming generation, registered
-  data tool execution, persistent run store, OTel, and Workflow handoff remain
-  absent.
+  data tool execution, persistent run store, persistent observability/eval store,
+  and Workflow handoff remain absent.
+
+## Execution Update - 2026-06-20 14:57 +08
+
+`observability-eval-scaffold` has been executed in
+`docs/governance/observability-eval-scaffold.md`.
+
+Completed:
+
+- `packages/observability` added with structured `run.audit` and `run.eval`
+  events.
+- Worker dry-run success/error paths now emit telemetry events and response
+  headers.
+- `deploy/observability/events.contract.json` defines event types, forbidden
+  prompt/secret fields, and planned sinks.
+- `npm run check:observability` and CI `Observability Contract` coverage added.
+- Wrangler smoke verified telemetry headers and console JSON events.
+
+Not completed:
+
+- OTLP destination, persistent eval store, dashboarding, alerting, and real
+  model token/cost/latency telemetry remain absent.
 
 ## Closeout Decision
 

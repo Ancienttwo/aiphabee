@@ -1,0 +1,59 @@
+{
+  "version": "2026-06-20.phase0.observability.v0",
+  "status": "local_contract",
+  "event_types": [
+    {
+      "type": "run.audit",
+      "required_fields": [
+        "event_id",
+        "event_version",
+        "event_type",
+        "emitted_at",
+        "request_id",
+        "run_id",
+        "service",
+        "environment",
+        "route",
+        "outcome",
+        "attributes",
+        "audit"
+      ],
+      "forbidden_fields": ["prompt", "api_key", "token", "secret", "password"]
+    },
+    {
+      "type": "run.eval",
+      "required_fields": [
+        "event_id",
+        "event_version",
+        "event_type",
+        "emitted_at",
+        "request_id",
+        "run_id",
+        "service",
+        "environment",
+        "route",
+        "outcome",
+        "attributes",
+        "eval"
+      ],
+      "forbidden_fields": ["prompt", "api_key", "token", "secret", "password"]
+    }
+  ],
+  "sinks": [
+    {
+      "name": "worker_console",
+      "status": "wired",
+      "purpose": "Local structured JSON log sink collected by Workers Logs when enabled."
+    },
+    {
+      "name": "eval_store",
+      "status": "planned",
+      "purpose": "Future persistent evaluation store for run quality and regression analytics."
+    },
+    {
+      "name": "otlp_destination",
+      "status": "planned",
+      "purpose": "Future OpenTelemetry export destination configured outside repo secrets."
+    }
+  ]
+}

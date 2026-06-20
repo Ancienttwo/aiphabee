@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 import {
   AgentRuntimeInputError,
+  AGENT_RUNTIME_LIMITS,
   createAgentRunSkeleton,
   getAgentRuntimeCapabilities
 } from "@aiphabee/agent-runtime";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
+import {
+  createAgentDryRunTelemetry,
+  createConsoleTelemetrySink,
+  recordTelemetryEvents
+} from "@aiphabee/observability";
 
 interface WorkerBindings {
   APP_ENV?: string;
@@ -17,12 +23,12 @@ app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
 
   return c.json({
-    environment: c.env.APP_ENV ?? "local",
+    environment: c.env?.APP_ENV ?? "local",
     market_data_surfaces: false,
     mcp_redistribution_surfaces: false,
     service: "aiphabee-worker",
     status: "ok",
-    version: c.env.APP_VERSION ?? "0.0.0"
+    version: c.env?.APP_VERSION ?? "0.0.0"
   });
 });
 
@@ -88,6 +94,8 @@ app.get("/agent/runtime", (c) => {
 
 app.post("/agent/runs/dry-run", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  let requestedToolsForTelemetry: string[] = [];
+  let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
 
   c.header("Cache-Control", "no-store");
 
@@ -97,14 +105,34 @@ app.post("/agent/runs/dry-run", async (c) => {
       prompt?: unknown;
       tools?: unknown;
     };
+    const requestedTools = Array.isArray(body.tools)
+      ? body.tools.filter((tool): tool is string => typeof tool === "string")
+      : undefined;
+
+    requestedToolsForTelemetry = requestedTools ?? [];
+    maxStepsForTelemetry =
+      typeof body.max_steps === "number" ? body.max_steps : AGENT_RUNTIME_LIMITS.maxSteps;
+
     const skeleton = createAgentRunSkeleton({
-      maxSteps: typeof body.max_steps === "number" ? body.max_steps : undefined,
+      maxSteps: maxStepsForTelemetry,
       prompt: typeof body.prompt === "string" ? body.prompt : "",
-      requestedTools: Array.isArray(body.tools)
-        ? body.tools.filter((tool): tool is string => typeof tool === "string")
-        : undefined,
+      requestedTools,
       requestId
     });
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: skeleton.budget.max_steps,
+      outcome: "success",
+      requestId,
+      requestedTools: skeleton.tool_policy.requested_tools,
+      route: "/agent/runs/dry-run",
+      runId: skeleton.run_id
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", skeleton.run_id);
 
     return c.json(
       createSuccessEnvelope(skeleton, {
@@ -131,6 +159,25 @@ app.post("/agent/runs/dry-run", async (c) => {
       const code =
         error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
       const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+      const deniedTools = Array.isArray(error.details.deniedTools)
+        ? error.details.deniedTools.filter((tool): tool is string => typeof tool === "string")
+        : [];
+      const runId = `dry_${requestId}`;
+      const telemetryEvents = createAgentDryRunTelemetry({
+        deniedTools,
+        environment: c.env?.APP_ENV ?? "local",
+        maxSteps: maxStepsForTelemetry,
+        outcome: "rejected",
+        requestId,
+        requestedTools: requestedToolsForTelemetry,
+        route: "/agent/runs/dry-run",
+        runId
+      });
+
+      await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+      c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+      c.header("x-aiphabee-telemetry-run-id", runId);
 
       return c.json(
         createErrorEnvelope(code, error.message, {
@@ -146,6 +193,22 @@ app.post("/agent/runs/dry-run", async (c) => {
         status
       );
     }
+
+    const runId = `dry_${requestId}`;
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: maxStepsForTelemetry,
+      outcome: "error",
+      requestId,
+      requestedTools: requestedToolsForTelemetry,
+      route: "/agent/runs/dry-run",
+      runId
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", runId);
 
     return c.json(
       createErrorEnvelope("INTERNAL_ERROR", "agent dry run failed", {

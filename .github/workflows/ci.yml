@@ -40,5 +40,8 @@ jobs:
       - name: Cloudflare Bindings Contract
         run: npm run check:bindings
 
+      - name: Observability Contract
+        run: npm run check:observability
+
       - name: Build
         run: npm run build
