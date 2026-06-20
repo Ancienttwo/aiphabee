@@ -113,6 +113,28 @@ Acceptance:
 - CI uses the same commands.
 - Gate 0 rights remain enforced by absence of market-data surfaces.
 
+## Execution Update - 2026-06-20 14:20 +08
+
+`engineering-runtime-scaffold` has been partially executed as a non-frontend
+slice in `docs/governance/engineering-runtime-scaffold.md`.
+
+Completed:
+
+- npm workspace and lockfile.
+- `apps/worker` Hono runtime with Wrangler local config and `/health`.
+- `packages/data-contracts` with response envelope, provenance/usage metadata,
+  and default-deny error codes.
+- GitHub Actions CI for install/lint/typecheck/test/build.
+- `deploy/env/.env.example` names-only template.
+- Local `npm run check` and Wrangler `/health` smoke test.
+
+Not completed:
+
+- `apps/web`, TanStack Start, Vite, and design-system frontend integration.
+  These were explicitly delegated to Claude by user instruction.
+- AI SDK Agent Runtime, full Cloudflare bindings, Postgres/Hyperdrive, OTel,
+  golden regression, secrets management by environment, and P0 traceability.
+
 ## Closeout Decision
 
 The Phase 0 sprint backlog is closed at the program evidence layer, but Phase 0

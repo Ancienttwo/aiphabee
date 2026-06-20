@@ -1,0 +1,23 @@
+{
+  "name": "@aiphabee/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "wrangler dev --config wrangler.jsonc --port 8787",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aiphabee/data-contracts": "file:../../packages/data-contracts",
+    "hono": "^4.12.26"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260620.1",
+    "wrangler": "^4.103.0"
+  }
+}

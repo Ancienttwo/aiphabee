@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 1 / 10 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 6 / 15 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
@@ -158,18 +158,23 @@ owner: "Planner / PM"
 ### Sprint 0.4 — 工程地基（脚手架·CI·Cloudflare 绑定）　🟦
 **目标：** 把 greenfield 仓库拉起到「可部署的空骨架」，建立需求→issue 追溯。
 
-- [ ] 初始化 monorepo 与包管理：TanStack Start + Vite + Hono（PRD §1.1、§11.3）
+- [x] 初始化 npm workspaces 与根包管理：`package.json` / `package-lock.json` / shared TypeScript + Vitest config（PRD §1.1、§11.3）
+- [ ] 初始化前端应用：TanStack Start + Vite（Claude 前端跟进，PRD §1.1、§11.3）
+- [x] Hono Worker 空运行面：`apps/worker`、Wrangler local config、`/health` route（§11.3）
 - [ ] Agent Runtime 骨架：AI SDK v7 on Cloudflare Workers（§11.3）
-- [ ] Cloudflare 绑定规划与最小可用：Workers、Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive（§11.3–§11.4）
+- [ ] Cloudflare 绑定规划与最小可用：Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive（§11.3–§11.4）
 - [ ] Postgres/Supabase 接入（经 Hyperdrive），最小迁移工具链（§11.4）
-- [ ] CI 流水线：lint / typecheck / test / 黄金样本回归挂载点（§A4）
+- [x] CI 流水线：`npm ci` / lint / typecheck / test / build（§A4）
+- [ ] 黄金样本回归挂载点与可执行 fixtures（§A4）
 - [ ] OTel + 日志 + eval store 接线（§11.3、§12.3）
+- [x] 环境变量 names-only template：`deploy/env/.env.example`
 - [ ] Secrets/环境变量管理与分环境（dev/staging/prod）
-- [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线
+- [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线（Claude 前端跟进）
 - [x] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
+- [x] 建立 shared `packages/data-contracts`：标准响应信封、provenance、usage、默认拒绝错误码（§9.5–§9.6）
 - [ ] 建立 PRD 每条 P0 需求 → issue/owner/测试/发布门槛 的 traceability（§23.12，对齐本文件 §M）
 
-**退出门槛 DoD：** ☐ 空骨架可本地运行并部署到 staging　☐ CI 绿　☐ 绑定连通性冒烟通过　☐ §M 追溯矩阵建好
+**退出门槛 DoD：** ☐ 空骨架可本地运行并部署到 staging　☐ CI 绿（remote run pending；local `npm run check` 已通过）　☐ 绑定连通性冒烟通过　☐ §M 追溯矩阵建好
 
 ---
 
@@ -556,11 +561,12 @@ owner: "Planner / PM"
 - [x] 黄金样本、质量规则与商业模型基线已建立：`docs/governance/golden-quality-commercial-baseline.md`
 - [x] 工程地基现状审计已建立：`docs/governance/engineering-foundation-audit.md`
 - [x] Phase 0 traceability closeout 已建立：`docs/governance/phase0-traceability-closeout.md`
+- [x] 非前端 runtime scaffold 已建立：`docs/governance/engineering-runtime-scaffold.md`；包含 npm workspaces、Hono Worker `/health`、shared data contracts、CI workflow、names-only env template，并通过 local checks + Wrangler health smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的黄金样本/质量规则尚未进入 CI，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
-- [ ] Sprint 0.4 的 runtime scaffold、CI、Cloudflare/Postgres 绑定、OTel、Secrets、Design System 集成与 P0 issue/owner/test/release traceability 尚未实现；当前仅完成 PRD §23 现状审计
-- [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；下一可执行 slice 为 `engineering-runtime-scaffold`
+- [ ] Sprint 0.4 的前端 scaffold、AI SDK Agent Runtime、完整 Cloudflare/Postgres 绑定、OTel、Secrets 分环境管理、Design System 集成、golden regression 与 P0 issue/owner/test/release traceability 尚未实现
+- [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
 
@@ -568,6 +574,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0g | 完成 `engineering-runtime-scaffold` 非前端切片：新增 npm workspaces、Hono Worker health、shared data contracts、CI、env template 与 runtime evidence；按用户指示撤出前端/TanStack/Vite，Sprint 0.4 更新为 6/15 |
 | 2026-06-20 | 1.0f | 完成 `phase0-traceability-closeout`：新增 Phase 0 证据/阻断/traceability closeout，更新 `tasks/todos.md` deferred blockers；Phase 0 Gate 仍保持未全绿 |
 | 2026-06-20 | 1.0e | 完成 `engineering-foundation-audit`：新增 PRD §23 工程地基现状审计；Sprint 0.4 完成度 1/10，其余 runtime scaffold / CI / binding / traceability 任务保持未完成 |
 | 2026-06-20 | 1.0d | 完成 `golden-quality-commercial-baseline`：新增黄金样本、质量规则、数据隔离/更正、套餐权益、credits、单位经济与 Free 防滥用基线；Sprint 0.3 设计 backlog 9/9，CI/商业评审门槛保持未绿 |

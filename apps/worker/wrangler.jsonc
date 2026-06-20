@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aiphabee-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-20",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "APP_ENV": "local",
+    "APP_VERSION": "0.0.0"
+  }
+}

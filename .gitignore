@@ -1,6 +1,11 @@
 # Project-specific
 artifacts/
 coverage/
+dist/
+node_modules/
+.vite/
+.wrangler/
+.output/
 *.tar.gz
 *.tgz
 # External references
