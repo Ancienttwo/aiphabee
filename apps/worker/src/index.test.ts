@@ -177,6 +177,12 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    financial_ratios: {
+      formula_version: string;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     screen_securities: {
       editable_conditions: boolean;
       preview_execution: boolean;
@@ -190,6 +196,44 @@ interface AnalyticsRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface FinancialRatiosBody {
+  data: {
+    capability: {
+      formula_version: string;
+      route: string;
+      status: string;
+    };
+    facts_status: string;
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    percentile_methodology: {
+      live_peer_constituents: boolean;
+      method: string;
+      point_in_time: boolean;
+    };
+    ratios: Array<{
+      blocked_reason?: string;
+      formula_version: string;
+      metric_id: string;
+      percentile?: {
+        peer_set_id: string;
+        percentile_rank: number;
+        sample_count: number;
+      };
+      status: string;
+      value?: number;
+    }>;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface ScreenSecuritiesBody {
@@ -1842,6 +1886,12 @@ describe("worker runtime", () => {
       status: "compare_securities_scaffold",
       tool_name: "compare_securities"
     });
+    expect(body.data.financial_ratios).toMatchObject({
+      formula_version: "financial-ratios-v0",
+      route: "POST /analytics/financial-ratios",
+      status: "financial_ratios_scaffold",
+      tool_name: "get_financial_ratios"
+    });
     expect(body.data.screen_securities).toMatchObject({
       editable_conditions: true,
       preview_execution: true,
@@ -1849,6 +1899,53 @@ describe("worker runtime", () => {
       status: "screen_securities_scaffold",
       tool_name: "screen_securities"
     });
+  });
+
+  it("computes financial ratios with formula version and percentile scaffold", async () => {
+    const response = await app.request("/analytics/financial-ratios", {
+      body: JSON.stringify({
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-financial-ratios"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as FinancialRatiosBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      facts_status: "found",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      status: "computed",
+      toolName: "get_financial_ratios"
+    });
+    expect(body.data.ratios.map((ratio) => [ratio.metric_id, ratio.status, ratio.value])).toEqual([
+      ["net_margin", "computed", 0.189184],
+      ["return_on_assets", "computed", 0.073386],
+      ["return_on_equity", "computed", 0.13915],
+      ["asset_turnover", "computed", 0.387908],
+      ["equity_multiplier", "computed", 1.896135]
+    ]);
+    expect(body.data.ratios[0]?.percentile).toEqual({
+      peer_set_id: "synthetic_hk_large_mid_cap_v0",
+      percentile_rank: 0.8,
+      sample_count: 5
+    });
+    expect(body.data.percentile_methodology).toMatchObject({
+      live_peer_constituents: false,
+      method: "synthetic_peer_distribution_rank",
+      point_in_time: true
+    });
+    expect(body.data.capability).toMatchObject({
+      formula_version: "financial-ratios-v0",
+      route: "POST /analytics/financial-ratios"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
   });
 
   it("plans editable screen conditions and explains hits", async () => {

@@ -21,6 +21,8 @@ import {
 import {
   compareSecurities,
   getCompareSecuritiesCapabilities,
+  getFinancialRatios,
+  getFinancialRatiosCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities,
   type ScreenSecuritiesCondition
@@ -691,17 +693,19 @@ app.get("/analytics/runtime", (c) => {
 
   const capability = getCompareSecuritiesCapabilities();
   const screenCapability = getScreenSecuritiesCapabilities();
+  const financialRatiosCapability = getFinancialRatiosCapabilities();
 
   return c.json(
     createSuccessEnvelope(
       {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
+        financial_ratios: financialRatiosCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
         live_data_access: false,
         route: capability.route,
-        routes: [capability.route, screenCapability.route],
+        routes: [capability.route, screenCapability.route, financialRatiosCapability.route],
         status: "analytics_tools_scaffold"
       },
       {
@@ -722,6 +726,46 @@ app.get("/analytics/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.post("/analytics/financial-ratios", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const ratios = getFinancialRatios({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...ratios,
+        capability: getFinancialRatiosCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: ratios.data_version,
+        methodologyVersion: ratios.methodology_version,
+        provenance: [
+          {
+            data_version: ratios.data_version,
+            methodology_version: ratios.methodology_version,
+            source: "analytics-financial-ratios",
+            source_record_id: "financial-ratios"
+          }
+        ],
+        requestId,
+        usage: ratios.usage
       }
     )
   );

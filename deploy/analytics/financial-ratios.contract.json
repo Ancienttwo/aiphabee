@@ -1,0 +1,53 @@
+{
+  "version": "2026-06-21.phase2.financial-ratios-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/financial-ratios",
+  "tool_name": "get_financial_ratios",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_2_1_items": [
+    "FIN-RATIOS",
+    "DAT-07"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_financial_facts"
+  ],
+  "ratio_contract": {
+    "formula_version": "financial-ratios-v0",
+    "point_in_time": true,
+    "percentile_methodology": "synthetic_peer_distribution_rank",
+    "live_peer_constituents": false,
+    "supported_ratios": [
+      "net_margin",
+      "return_on_assets",
+      "return_on_equity",
+      "asset_turnover",
+      "equity_multiplier"
+    ],
+    "required_inputs": [
+      "revenue",
+      "net_income",
+      "assets",
+      "equity"
+    ],
+    "anomaly_handling": [
+      "missing_input",
+      "zero_denominator",
+      "negative_denominator",
+      "quality_hold"
+    ],
+    "required_output_fields": [
+      "definitions",
+      "ratios",
+      "formula_version",
+      "percentile",
+      "source_record_ids",
+      "blocked_reason"
+    ]
+  }
+}

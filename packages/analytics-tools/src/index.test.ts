@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   compareSecurities,
   getCompareSecuritiesCapabilities,
+  getFinancialRatios,
+  getFinancialRatiosCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities
 } from "./index";
@@ -186,5 +188,80 @@ describe("compare securities scaffold", () => {
     expect(result.status).toBe("unsupported_query");
     expect(result.parsed_conditions).toEqual([]);
     expect(result.execution_preview.hit_count).toBe(0);
+  });
+
+  it("reports financial ratios capabilities", () => {
+    expect(getFinancialRatiosCapabilities()).toMatchObject({
+      formula_version: "financial-ratios-v0",
+      frontend_rendering: false,
+      live_data_access: false,
+      percentile_methodology: "synthetic_peer_distribution_rank",
+      point_in_time: true,
+      route: "POST /analytics/financial-ratios",
+      status: "financial_ratios_scaffold",
+      tool_name: "get_financial_ratios"
+    });
+  });
+
+  it("computes deterministic financial ratios with formula version and percentiles", () => {
+    const result = getFinancialRatios({
+      requestId: "req_ratios_001",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      facts_status: "found",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      status: "computed",
+      toolName: "get_financial_ratios"
+    });
+    expect(result.definitions[0]).toMatchObject({
+      formula: "net_income / revenue",
+      formula_version: "financial-ratios-v0",
+      metric_id: "net_margin"
+    });
+    expect(result.ratios.map((ratio) => [ratio.metric_id, ratio.status, ratio.value])).toEqual([
+      ["net_margin", "computed", 0.189184],
+      ["return_on_assets", "computed", 0.073386],
+      ["return_on_equity", "computed", 0.13915],
+      ["asset_turnover", "computed", 0.387908],
+      ["equity_multiplier", "computed", 1.896135]
+    ]);
+    expect(result.ratios[0]?.percentile).toEqual({
+      peer_set_id: "synthetic_hk_large_mid_cap_v0",
+      percentile_rank: 0.8,
+      sample_count: 5
+    });
+    expect(result.percentile_methodology).toMatchObject({
+      live_peer_constituents: false,
+      point_in_time: true
+    });
+  });
+
+  it("blocks ratios when financial facts are held", () => {
+    const result = getFinancialRatios({
+      requestId: "req_ratios_hold",
+      securityQuery: "08001.HK"
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.facts_status).toBe("data_quality_hold");
+    expect(result.ratios.every((ratio) => ratio.status === "blocked")).toBe(true);
+    expect(result.ratios[0]?.blocked_reason).toBe("financial_facts_data_quality_hold");
+  });
+
+  it("blocks ambiguous financial ratio securities without guessing", () => {
+    const result = getFinancialRatios({
+      requestId: "req_ratios_ambiguous",
+      securityQuery: "ABC"
+    });
+
+    expect(result.status).toBe("blocked_resolution");
+    expect(result.resolve_security?.status).toBe("ambiguous");
+    expect(result.ratios.every((ratio) => ratio.blocked_reason === "security_resolution_required")).toBe(
+      true
+    );
   });
 });

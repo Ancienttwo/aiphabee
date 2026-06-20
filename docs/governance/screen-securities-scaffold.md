@@ -82,5 +82,6 @@ Observed screen behavior:
 - Frontend screening UI remains delegated.
 - Broad NLP and model-assisted parsing are not implemented.
 - Live universe execution and high-cost queueing are not implemented.
-- Ratio percentile and return/risk/Beta engines are not implemented.
+- Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`;
+  return/risk/Beta engines are not implemented.
 - Tool registry/MCP exposure remains pending.

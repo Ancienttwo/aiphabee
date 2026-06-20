@@ -20,6 +20,8 @@ export const ANALYTICS_TOOLS_VERSION =
   "2026-06-21.phase2.compare-securities-scaffold.v0";
 export const SCREEN_SECURITIES_VERSION =
   "2026-06-21.phase2.screen-securities-scaffold.v0";
+export const FINANCIAL_RATIOS_VERSION =
+  "2026-06-21.phase2.financial-ratios-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -146,6 +148,79 @@ export interface ScreenSecuritiesResult {
   };
 }
 
+export type FinancialRatioStatus = "blocked" | "computed";
+export type FinancialRatioMetricId =
+  | "asset_turnover"
+  | "equity_multiplier"
+  | "net_margin"
+  | "return_on_assets"
+  | "return_on_equity";
+
+export interface FinancialRatioInput {
+  asOf?: string;
+  financialFrom?: string;
+  financialTo?: string;
+  instrumentId?: string;
+  requestId: string;
+  securityQuery?: string;
+}
+
+export interface FinancialRatioDefinition {
+  anomaly_policy: {
+    missing_input: "blocked";
+    negative_denominator: "blocked";
+    quality_hold: "blocked";
+    zero_denominator: "blocked";
+  };
+  formula: string;
+  formula_version: typeof FINANCIAL_RATIO_FORMULA_VERSION;
+  metric_id: FinancialRatioMetricId;
+  required_inputs: FinancialFactMetric[];
+  unit: "multiple" | "ratio";
+}
+
+export interface FinancialRatioValue {
+  blocked_reason?: string;
+  formula_version: typeof FINANCIAL_RATIO_FORMULA_VERSION;
+  inputs: Partial<Record<FinancialFactMetric, number>>;
+  metric_id: FinancialRatioMetricId;
+  percentile?: {
+    peer_set_id: string;
+    percentile_rank: number;
+    sample_count: number;
+  };
+  period_end?: string;
+  source_record_ids: string[];
+  status: FinancialRatioStatus;
+  unit: "multiple" | "ratio";
+  value?: number;
+}
+
+export interface FinancialRatiosResult {
+  as_of: string;
+  data_version: typeof FINANCIAL_RATIOS_VERSION;
+  definitions: FinancialRatioDefinition[];
+  facts_status: GetFinancialFactsResult["status"];
+  frontend_rendering: false;
+  instrument_id?: string;
+  live_data_access: false;
+  methodology_version: typeof FINANCIAL_RATIOS_VERSION;
+  percentile_methodology: {
+    live_peer_constituents: false;
+    method: "synthetic_peer_distribution_rank";
+    point_in_time: true;
+  };
+  ratios: FinancialRatioValue[];
+  resolve_security?: ResolveSecurityResult;
+  status: "blocked_resolution" | "computed" | "partial";
+  toolName: "get_financial_ratios";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -156,12 +231,62 @@ interface ResolvedComparisonSurface {
 const DEFAULT_FINANCIAL_FROM = "2023-12-31";
 const DEFAULT_FINANCIAL_TO = "2023-12-31";
 const DEFAULT_SCREEN_UNIVERSE = ["00700.HK", "08001.HK", "00001.HK"];
+const FINANCIAL_RATIO_FORMULA_VERSION = "financial-ratios-v0";
 const REQUIRED_FINANCIAL_METRICS: FinancialFactMetric[] = [
   "revenue",
   "net_income",
   "assets",
   "equity"
 ];
+const FINANCIAL_RATIO_DEFINITIONS: FinancialRatioDefinition[] = [
+  {
+    anomaly_policy: createFinancialRatioAnomalyPolicy(),
+    formula: "net_income / revenue",
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    metric_id: "net_margin",
+    required_inputs: ["net_income", "revenue"],
+    unit: "ratio"
+  },
+  {
+    anomaly_policy: createFinancialRatioAnomalyPolicy(),
+    formula: "net_income / assets",
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    metric_id: "return_on_assets",
+    required_inputs: ["net_income", "assets"],
+    unit: "ratio"
+  },
+  {
+    anomaly_policy: createFinancialRatioAnomalyPolicy(),
+    formula: "net_income / equity",
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    metric_id: "return_on_equity",
+    required_inputs: ["net_income", "equity"],
+    unit: "ratio"
+  },
+  {
+    anomaly_policy: createFinancialRatioAnomalyPolicy(),
+    formula: "revenue / assets",
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    metric_id: "asset_turnover",
+    required_inputs: ["revenue", "assets"],
+    unit: "ratio"
+  },
+  {
+    anomaly_policy: createFinancialRatioAnomalyPolicy(),
+    formula: "assets / equity",
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    metric_id: "equity_multiplier",
+    required_inputs: ["assets", "equity"],
+    unit: "multiple"
+  }
+];
+const FINANCIAL_RATIO_PEER_DISTRIBUTION: Record<FinancialRatioMetricId, number[]> = {
+  asset_turnover: [0.12, 0.25, 0.387908, 0.52, 0.68],
+  equity_multiplier: [1.2, 1.5, 1.896135, 2.4, 3.1],
+  net_margin: [0.03, 0.08, 0.12, 0.189184, 0.24],
+  return_on_assets: [0.01, 0.03, 0.05, 0.073386, 0.11],
+  return_on_equity: [0.04, 0.08, 0.12, 0.13915, 0.21]
+};
 
 export function getCompareSecuritiesCapabilities() {
   return {
@@ -193,6 +318,22 @@ export function getScreenSecuritiesCapabilities() {
     supported_operators: ["eq", "gte", "lte"] as const,
     tool_name: "screen_securities" as const,
     version: SCREEN_SECURITIES_VERSION
+  };
+}
+
+export function getFinancialRatiosCapabilities() {
+  return {
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    percentile_methodology: "synthetic_peer_distribution_rank" as const,
+    point_in_time: true,
+    route: "POST /analytics/financial-ratios" as const,
+    status: "financial_ratios_scaffold" as const,
+    supported_metrics: FINANCIAL_RATIO_DEFINITIONS.map((definition) => definition.metric_id),
+    tool_name: "get_financial_ratios" as const,
+    version: FINANCIAL_RATIOS_VERSION
   };
 }
 
@@ -343,6 +484,76 @@ export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecurities
       cached: false,
       credits: comparison.usage.credits + 1,
       rows: comparison.usage.rows + comparison.rows.length
+    }
+  };
+}
+
+export function getFinancialRatios(input: FinancialRatioInput): FinancialRatiosResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const resolution =
+    input.instrumentId === undefined && input.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.securityQuery
+        })
+      : undefined;
+  const instrumentId = input.instrumentId ?? resolution?.selectedInstrumentId;
+
+  if (instrumentId === undefined) {
+    return {
+      as_of: asOf,
+      data_version: FINANCIAL_RATIOS_VERSION,
+      definitions: FINANCIAL_RATIO_DEFINITIONS,
+      facts_status: "not_found",
+      frontend_rendering: false,
+      live_data_access: false,
+      methodology_version: FINANCIAL_RATIOS_VERSION,
+      percentile_methodology: createFinancialRatioPercentileMethodology(),
+      ratios: FINANCIAL_RATIO_DEFINITIONS.map((definition) =>
+        createBlockedFinancialRatio(definition, "security_resolution_required", [])
+      ),
+      resolve_security: resolution,
+      status: "blocked_resolution",
+      toolName: "get_financial_ratios",
+      usage: {
+        cached: false,
+        credits: resolution?.usage.credits ?? 0,
+        rows: resolution?.usage.rows ?? 0
+      }
+    };
+  }
+
+  const facts = getFinancialFacts({
+    asOf: input.asOf,
+    from: input.financialFrom ?? DEFAULT_FINANCIAL_FROM,
+    instrumentId,
+    metrics: REQUIRED_FINANCIAL_METRICS,
+    to: input.financialTo ?? DEFAULT_FINANCIAL_TO
+  });
+  const factMap = createFinancialFactMap(facts.facts?.facts ?? []);
+  const ratios = FINANCIAL_RATIO_DEFINITIONS.map((definition) =>
+    createFinancialRatioValue(definition, factMap, facts.status)
+  );
+  const computedCount = ratios.filter((ratio) => ratio.status === "computed").length;
+
+  return {
+    as_of: asOf,
+    data_version: FINANCIAL_RATIOS_VERSION,
+    definitions: FINANCIAL_RATIO_DEFINITIONS,
+    facts_status: facts.status,
+    frontend_rendering: false,
+    instrument_id: instrumentId,
+    live_data_access: false,
+    methodology_version: FINANCIAL_RATIOS_VERSION,
+    percentile_methodology: createFinancialRatioPercentileMethodology(),
+    ratios,
+    resolve_security: resolution,
+    status: computedCount === ratios.length ? "computed" : "partial",
+    toolName: "get_financial_ratios",
+    usage: {
+      cached: false,
+      credits: facts.usage.credits + (resolution?.usage.credits ?? 0) + (computedCount > 0 ? 1 : 0),
+      rows: facts.usage.rows + (resolution?.usage.rows ?? 0) + ratios.length
     }
   };
 }
@@ -535,6 +746,116 @@ function createSurfaceCredits(surface: ResolvedComparisonSurface): number {
   );
 }
 
+function createFinancialRatioValue(
+  definition: FinancialRatioDefinition,
+  facts: Map<FinancialFactMetric, FinancialFactRow>,
+  factsStatus: GetFinancialFactsResult["status"]
+): FinancialRatioValue {
+  const numerator = facts.get(definition.required_inputs[0]);
+  const denominator = facts.get(definition.required_inputs[1]);
+  const sourceRecordIds = createFinancialRatioSourceRecordIds([numerator, denominator]);
+
+  if (factsStatus !== "found") {
+    return createBlockedFinancialRatio(
+      definition,
+      `financial_facts_${factsStatus}`,
+      sourceRecordIds
+    );
+  }
+
+  if (numerator === undefined || denominator === undefined) {
+    return createBlockedFinancialRatio(definition, "missing_input", sourceRecordIds);
+  }
+
+  if (numerator.qualityState !== "PASS" || denominator.qualityState !== "PASS") {
+    return createBlockedFinancialRatio(definition, "quality_hold", sourceRecordIds);
+  }
+
+  if (denominator.value === 0) {
+    return createBlockedFinancialRatio(definition, "zero_denominator", sourceRecordIds);
+  }
+
+  if (denominator.value < 0) {
+    return createBlockedFinancialRatio(definition, "negative_denominator", sourceRecordIds);
+  }
+
+  const value = roundMetric(numerator.value / denominator.value);
+
+  return {
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    inputs: {
+      [numerator.metricId]: numerator.value,
+      [denominator.metricId]: denominator.value
+    },
+    metric_id: definition.metric_id,
+    percentile: createFinancialRatioPercentile(definition.metric_id, value),
+    period_end: numerator.periodEnd,
+    source_record_ids: sourceRecordIds,
+    status: "computed",
+    unit: definition.unit,
+    value
+  };
+}
+
+function createBlockedFinancialRatio(
+  definition: FinancialRatioDefinition,
+  blockedReason: string,
+  sourceRecordIds: string[]
+): FinancialRatioValue {
+  return {
+    blocked_reason: blockedReason,
+    formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
+    inputs: {},
+    metric_id: definition.metric_id,
+    source_record_ids: sourceRecordIds,
+    status: "blocked",
+    unit: definition.unit
+  };
+}
+
+function createFinancialRatioPercentile(
+  metricId: FinancialRatioMetricId,
+  value: number
+): FinancialRatioValue["percentile"] {
+  const distribution = FINANCIAL_RATIO_PEER_DISTRIBUTION[metricId];
+  const rank = distribution.filter((peerValue) => peerValue <= value).length;
+
+  return {
+    peer_set_id: "synthetic_hk_large_mid_cap_v0",
+    percentile_rank: roundMetric(rank / distribution.length),
+    sample_count: distribution.length
+  };
+}
+
+function createFinancialRatioPercentileMethodology(): FinancialRatiosResult["percentile_methodology"] {
+  return {
+    live_peer_constituents: false,
+    method: "synthetic_peer_distribution_rank",
+    point_in_time: true
+  };
+}
+
+function createFinancialRatioSourceRecordIds(
+  facts: Array<FinancialFactRow | undefined>
+): string[] {
+  return Array.from(
+    new Set(
+      facts
+        .filter((fact): fact is FinancialFactRow => fact !== undefined)
+        .map((fact) => fact.sourceRecordId)
+    )
+  ).sort();
+}
+
+function createFinancialRatioAnomalyPolicy(): FinancialRatioDefinition["anomaly_policy"] {
+  return {
+    missing_input: "blocked",
+    negative_denominator: "blocked",
+    quality_hold: "blocked",
+    zero_denominator: "blocked"
+  };
+}
+
 function normalizeScreenConditions(
   conditions: Array<Partial<ScreenSecuritiesCondition>> | undefined,
   naturalLanguage: string | undefined
@@ -718,4 +1039,8 @@ function isScreenField(value: string): value is ScreenSecuritiesField {
 
 function isScreenOperator(value: string): value is ScreenSecuritiesOperator {
   return value === "eq" || value === "gte" || value === "lte";
+}
+
+function roundMetric(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }
