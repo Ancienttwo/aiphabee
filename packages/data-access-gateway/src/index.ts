@@ -1,9 +1,11 @@
 import type { AiphaBeeErrorCode, ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 import {
+  createServingExecutionAdapterPlan,
   createServingQueryPlan,
   createServingReadPlan,
   createServingSqlDescriptor,
   createServingSqlTextPlan,
+  type ServingExecutionAdapterPlan,
   type ServingQueryPlan,
   type ServingReadPlan,
   type ServingSqlDescriptor,
@@ -15,7 +17,7 @@ import {
 } from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.serving-sql-text-compiler-scaffold.v0";
+  "2026-06-20.phase1.serving-execution-adapter-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -167,6 +169,7 @@ export interface DataAccessDecision {
   provenance: ProvenanceRef[];
   qualityState: DataQualityState;
   rightsPolicyVersion: string;
+  servingExecution: ServingExecutionAdapterPlan;
   servingQuery: ServingQueryPlan;
   servingRead: ServingReadPlan;
   servingSqlDescriptor: ServingSqlDescriptor;
@@ -242,6 +245,9 @@ export function evaluateDataAccessRequest(
   const servingSqlText = createServingSqlTextPlan({
     descriptor: servingSqlDescriptor
   });
+  const servingExecution = createServingExecutionAdapterPlan({
+    sqlTextPlan: servingSqlText
+  });
   const warnings = getWarnings(request.qualityState, fieldDecision.deniedFields);
   const usage: UsageSummary = {
     cached: false,
@@ -295,6 +301,7 @@ export function evaluateDataAccessRequest(
     ],
     qualityState: request.qualityState,
     rightsPolicyVersion: policy.rightsPolicyVersion,
+    servingExecution,
     servingQuery,
     servingRead,
     servingSqlDescriptor,

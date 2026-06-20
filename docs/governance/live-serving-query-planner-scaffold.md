@@ -1,7 +1,7 @@
 # Live Serving Query Planner Scaffold
 
 > **Status**: Verified query-plan scaffold
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-live-serving-query-planner-scaffold.md`
@@ -12,7 +12,8 @@ This slice adds the first deterministic query-plan boundary for Data Access
 Gateway live Serving. It does not emit SQL, read Hyperdrive/Supabase, load
 partner rows, or enable frontend access. Later SQL descriptor and SQL text
 compiler scaffolds now turn planned queries into adapter material while keeping
-execution disabled.
+execution disabled. A later execution adapter scaffold now accepts that material
+and returns deferred empty-row plans.
 
 ## P1 Architecture Map
 
@@ -21,6 +22,7 @@ execution disabled.
 | Query planner | `packages/serving-store` | Converts approved read plans and released snapshot metadata into no-SQL query plans |
 | SQL descriptor planner | `packages/serving-store` | Converts planned queries into allow-listed statement descriptors without SQL text |
 | SQL text compiler | `packages/serving-store` | Converts allow-listed descriptors into fixed SQL text without execution |
+| Execution adapter | `packages/serving-store` | Accepts fixed SQL text and defers execution with empty rows |
 | Gateway evaluator | `packages/data-access-gateway` | Attaches `servingQuery` after rights, fields, row/time, quality, and read planning |
 | Worker runtime route | `GET /gateway/runtime` | Reports `serving_query_planner_scaffold`, no live reads |
 | Access contract | `deploy/gateway/access.contract.json` | Requires query planner guard and cache material |
@@ -44,8 +46,9 @@ Allowed released snapshot trace:
    state.
 6. Planner returns `status=query_planned`, `liveRead=false`,
    `sqlEmitted=false`, and bounded `plannedRows`.
-7. Later `servingSqlDescriptor` and `servingSqlText` planning add statement id,
-   bindings, and fixed SQL text without execution.
+7. Later `servingSqlDescriptor`, `servingSqlText`, and `servingExecution`
+   planning add statement id, bindings, fixed SQL text, and deferred adapter
+   shape without execution.
 
 Blocked trace:
 

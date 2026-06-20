@@ -1,7 +1,7 @@
 # Serving SQL Descriptor Scaffold
 
 > **Status**: Verified SQL descriptor scaffold
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-serving-sql-descriptor-scaffold.md`
@@ -13,6 +13,8 @@ Gateway Serving query planning. It does not emit SQL text, execute SQL, read
 Hyperdrive/Supabase, load partner rows, or enable frontend access. A later SQL
 text compiler scaffold now compiles allow-listed descriptors into fixed SQL
 text while keeping execution disabled.
+A later execution adapter scaffold now accepts SQL text and returns deferred
+empty-row plans.
 
 ## P1 Architecture Map
 
@@ -20,6 +22,7 @@ text while keeping execution disabled.
 |---|---|---|
 | SQL descriptor planner | `packages/serving-store` | Converts planned Serving queries into statement descriptor and bindings |
 | SQL text compiler | `packages/serving-store` | Compiles allow-listed descriptors into fixed SQL text, no execution |
+| Execution adapter | `packages/serving-store` | Defers fixed SQL text execution, no rows returned |
 | Gateway evaluator | `packages/data-access-gateway` | Attaches `servingSqlDescriptor` after `servingQuery` |
 | Worker runtime route | `GET /gateway/runtime` | Reports `serving_sql_descriptor_scaffold`, no execution |
 | Access contract | `deploy/gateway/access.contract.json` | Requires SQL descriptor guard |
@@ -39,8 +42,9 @@ Allowed descriptor trace:
 5. Descriptor returns `status=descriptor_planned`,
    `executionReady=false`, `liveRead=false`, `sqlTextEmitted=false`, and
    `sqlEmitted=false`.
-6. Later `servingSqlText` planning can compile the descriptor into fixed SQL
-   text, but keeps `executionReady=false` and `sqlExecuted=false`.
+6. Later `servingSqlText` and `servingExecution` planning can compile the
+   descriptor and accept it into an adapter plan, but keeps
+   `executionReady=false` and `sqlExecuted=false`.
 
 Blocked descriptor trace:
 

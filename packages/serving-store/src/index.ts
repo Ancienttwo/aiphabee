@@ -8,6 +8,8 @@ export const SERVING_STORE_SQL_DESCRIPTOR_VERSION =
   "2026-06-20.phase1.serving-sql-descriptor-scaffold.v0";
 export const SERVING_STORE_SQL_TEXT_VERSION =
   "2026-06-20.phase1.serving-sql-text-compiler-scaffold.v0";
+export const SERVING_STORE_EXECUTION_ADAPTER_VERSION =
+  "2026-06-20.phase1.serving-execution-adapter-scaffold.v0";
 
 export type ServingQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type ServingReleaseState = "held" | "released" | "withdrawn";
@@ -25,6 +27,9 @@ export type ServingSqlDescriptorStatus =
   | "descriptor_blocked"
   | "descriptor_planned";
 export type ServingSqlTextStatus = "sql_text_blocked" | "sql_text_planned";
+export type ServingExecutionAdapterStatus =
+  | "execution_blocked"
+  | "execution_deferred";
 export type ServingQualityScope = "field" | "record" | "snapshot";
 
 export interface ServingReadPlanInput {
@@ -77,6 +82,10 @@ export interface ServingSqlDescriptorInput {
 
 export interface ServingSqlTextInput {
   descriptor: ServingSqlDescriptor;
+}
+
+export interface ServingExecutionAdapterInput {
+  sqlTextPlan: ServingSqlTextPlan;
 }
 
 export interface ServingReadPlan {
@@ -217,6 +226,23 @@ export interface ServingSqlTextPlan {
   sqlTextEmitted: boolean;
   status: ServingSqlTextStatus;
   version: typeof SERVING_STORE_SQL_TEXT_VERSION;
+}
+
+export interface ServingExecutionAdapterPlan {
+  adapter: "hyperdrive";
+  blockedReason?: string;
+  deferredReason?: "LIVE_SERVING_EXECUTION_DISABLED";
+  executionReady: false;
+  liveRead: false;
+  parameterOrder: ServingSqlTextPlan["parameterOrder"];
+  parameters: ServingSqlTextPlan["parameters"];
+  rows: [];
+  servedRows: 0;
+  sqlExecuted: false;
+  sqlTextAccepted: boolean;
+  statementId: ServingSqlTextPlan["descriptorStatementId"];
+  status: ServingExecutionAdapterStatus;
+  version: typeof SERVING_STORE_EXECUTION_ADAPTER_VERSION;
 }
 
 export interface ServingQualityReleasePlan {
@@ -470,6 +496,36 @@ export function createServingSqlTextPlan(
   };
 }
 
+export function createServingExecutionAdapterPlan(
+  input: ServingExecutionAdapterInput
+): ServingExecutionAdapterPlan {
+  const sqlTextPlan = input.sqlTextPlan;
+  const blockedReason =
+    sqlTextPlan.status === "sql_text_planned"
+      ? undefined
+      : sqlTextPlan.blockedReason ?? "SERVING_SQL_TEXT_NOT_PLANNED";
+  const status: ServingExecutionAdapterStatus =
+    blockedReason === undefined ? "execution_deferred" : "execution_blocked";
+
+  return {
+    adapter: "hyperdrive",
+    blockedReason,
+    deferredReason:
+      status === "execution_deferred" ? "LIVE_SERVING_EXECUTION_DISABLED" : undefined,
+    executionReady: false,
+    liveRead: false,
+    parameterOrder: sqlTextPlan.parameterOrder,
+    parameters: sqlTextPlan.parameters,
+    rows: [],
+    servedRows: 0,
+    sqlExecuted: false,
+    sqlTextAccepted: status === "execution_deferred",
+    statementId: sqlTextPlan.descriptorStatementId,
+    status,
+    version: SERVING_STORE_EXECUTION_ADAPTER_VERSION
+  };
+}
+
 export function getServingStoreReadCapabilities() {
   return {
     blocks_default_deny: true,
@@ -494,6 +550,20 @@ export function getServingStoreReadCapabilities() {
     ] as const,
     uses_quality_state: true,
     uses_versioned_snapshots: true
+  };
+}
+
+export function getServingStoreExecutionAdapterCapabilities() {
+  return {
+    adapter: "hyperdrive" as const,
+    blocks_blocked_sql_text: true,
+    execution_ready: false,
+    live_reads: false,
+    returns_empty_rows: true,
+    rows_returned: false,
+    sql_executed: false,
+    status: "execution_adapter_scaffold" as const,
+    version: SERVING_STORE_EXECUTION_ADAPTER_VERSION
   };
 }
 

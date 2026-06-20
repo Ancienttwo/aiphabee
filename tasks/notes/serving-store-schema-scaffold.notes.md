@@ -1,6 +1,6 @@
 # Notes: serving-store-schema-scaffold
 
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Plan**: `plans/plan-serving-store-schema-scaffold.md`
 > **Runtime Evidence**: `docs/governance/serving-store-schema-scaffold.md`
 
@@ -25,6 +25,8 @@
   parameter bindings, but still emits no SQL text and executes no SQL.
 - Added a later SQL text compiler capability that emits fixed SQL text, but
   still executes no SQL.
+- Added a later execution adapter capability that accepts SQL text and bindings,
+  but returns empty rows and performs no live read.
 
 ## Verification
 
@@ -41,7 +43,7 @@
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-approved data loading is absent.
 - Gateway creates blocked/held Serving read plans, quality release plans,
-  no-SQL query plans, no-execute SQL descriptors, and SQL text plans, but does
-  not read or write Serving Store records.
+  no-SQL query plans, no-execute SQL descriptors, SQL text plans, and deferred
+  execution adapter plans, but does not read or write Serving Store records.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

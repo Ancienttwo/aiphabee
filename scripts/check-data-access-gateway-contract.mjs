@@ -14,6 +14,7 @@ const requiredGuards = [
   "row_limit",
   "time_range_limit",
   "quality_hold",
+  "serving_execution_adapter_scaffold",
   "serving_quality_release_isolation",
   "serving_query_planner_scaffold",
   "serving_read_default_deny",

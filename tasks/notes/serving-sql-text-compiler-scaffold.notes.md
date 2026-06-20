@@ -1,6 +1,6 @@
 # Notes: serving-sql-text-compiler-scaffold
 
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Plan**: `plans/plan-serving-sql-text-compiler-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/serving-sql-text-compiler-scaffold.md`
@@ -18,6 +18,8 @@
   `servingSqlDescriptor`.
 - Extended `/gateway/runtime` with `serving_sql_text_compiler_scaffold` and
   `serving_store.sql_text_compiler`.
+- Added a later execution adapter scaffold that accepts SQL text but returns
+  deferred empty-row execution plans.
 - Kept SQL execution, Hyperdrive reads, partner rows, and frontend out of scope.
 
 ## Verification

@@ -1,6 +1,6 @@
 # Notes: live-serving-query-planner-scaffold
 
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Plan**: `plans/plan-live-serving-query-planner-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/live-serving-query-planner-scaffold.md`
@@ -21,6 +21,8 @@
   allow-listed statement id and bindings without SQL text or execution.
 - Added a later SQL text compiler scaffold that emits fixed SQL text from the
   descriptor without execution.
+- Added a later execution adapter scaffold that accepts SQL text but defers
+  execution with empty rows.
 
 ## Verification
 

@@ -60,6 +60,17 @@ describe("data access gateway", () => {
       status: "sql_text_blocked"
     });
     expect(decision.servingSqlText.sqlText).toBeUndefined();
+    expect(decision.servingExecution).toMatchObject({
+      adapter: "hyperdrive",
+      blockedReason: "DATA_NOT_LICENSED",
+      executionReady: false,
+      liveRead: false,
+      rows: [],
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: false,
+      status: "execution_blocked"
+    });
     expect(decision.usage.rows).toBe(0);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -167,6 +178,17 @@ describe("data access gateway", () => {
     expect(decision.servingSqlText.sqlText).toContain(
       "from core.serving_record"
     );
+    expect(decision.servingExecution).toMatchObject({
+      adapter: "hyperdrive",
+      deferredReason: "LIVE_SERVING_EXECUTION_DISABLED",
+      executionReady: false,
+      liveRead: false,
+      rows: [],
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: true,
+      status: "execution_deferred"
+    });
     expect(decision.usage.rows).toBe(5);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -226,6 +248,15 @@ describe("data access gateway", () => {
       sqlExecuted: false,
       sqlTextEmitted: false,
       status: "sql_text_blocked"
+    });
+    expect(decision.servingExecution).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      executionReady: false,
+      liveRead: false,
+      rows: [],
+      servedRows: 0,
+      sqlExecuted: false,
+      status: "execution_blocked"
     });
     expect(decision.usage.credits).toBe(0);
     expect(decision.usageLedger).toMatchObject({

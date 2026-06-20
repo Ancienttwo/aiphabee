@@ -1,7 +1,7 @@
 # Serving SQL Text Compiler Scaffold
 
 > **Status**: Verified SQL text compiler scaffold
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-serving-sql-text-compiler-scaffold.md`
@@ -11,13 +11,15 @@
 This slice adds a deterministic SQL text compiler boundary after the Serving SQL
 descriptor. It emits fixed, allow-listed SQL text and positional parameter
 metadata, but does not execute SQL, read Hyperdrive/Supabase, load partner rows,
-or enable frontend access.
+or enable frontend access. A later execution adapter scaffold now accepts SQL
+text and bindings but still returns deferred execution with empty rows.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
 | SQL text compiler | `packages/serving-store` | Converts an allow-listed descriptor into fixed SQL text and bindings |
+| Execution adapter | `packages/serving-store` | Accepts SQL text and bindings, returns deferred no-live execution plan |
 | Gateway evaluator | `packages/data-access-gateway` | Attaches `servingSqlText` after `servingSqlDescriptor` |
 | Worker runtime route | `GET /gateway/runtime` | Reports `serving_sql_text_compiler_scaffold`, no execution |
 | Access contract | `deploy/gateway/access.contract.json` | Requires SQL text compiler guard |
@@ -37,6 +39,8 @@ Allowed SQL text trace:
    `serving_snapshot_id`, `field_set`, `time_from`, `time_to`, `limit`.
 6. Compiler returns `status=sql_text_planned`,
    `executionReady=false`, `liveRead=false`, and `sqlExecuted=false`.
+7. Later `servingExecution` planning accepts this SQL text but returns
+   `execution_deferred` and empty rows.
 
 Blocked SQL text trace:
 

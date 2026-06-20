@@ -58,7 +58,7 @@ owner: "Planner / PM"
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
-| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 19 / 24 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 20 / 25 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
@@ -207,6 +207,7 @@ owner: "Planner / PM"
 - [x] Data Access Gateway Serving query planner scaffold：`@aiphabee/serving-store` query planner + Gateway `servingQuery` decision + `/gateway/runtime` query planner capability，将 released snapshot + allowed fields / rows / time range / cache material 转成 no-SQL query plan（§11.1、§12.2、DAT-06）
 - [x] Serving SQL descriptor scaffold：`@aiphabee/serving-store` SQL descriptor planner + Gateway `servingSqlDescriptor` decision + `/gateway/runtime` SQL descriptor capability，将 planned query 转成 allow-listed statement id + parameter bindings，不输出 SQL text / 不执行 SQL（§11.1、§12.2、DAT-06）
 - [x] Serving SQL text compiler scaffold：`@aiphabee/serving-store` SQL text compiler + Gateway `servingSqlText` decision + `/gateway/runtime` SQL text compiler capability，将 allow-listed descriptor 转成固定 SQL text + positional bindings，不执行 SQL / 不读 Hyperdrive（§11.1、§12.2、DAT-06）
+- [x] Serving execution adapter scaffold：`@aiphabee/serving-store` execution adapter + Gateway `servingExecution` decision + `/gateway/runtime` execution adapter capability，接收 SQL text/bindings 后返回 `execution_deferred`、空 rows、no SQL execution/no live read（§11.1、§12.2、DAT-06）
 - [x] Data Access Gateway default-deny scaffold：`packages/data-access-gateway`、`deploy/gateway/access.contract.json`、`npm run check:data-gateway`、`/gateway/runtime`、`/gateway/access-check`（§11.1、§12.2）
 - [ ] **Data Access Gateway live Serving**：真实字段裁剪 + 行数/时间范围限制 + 缓存 key 含数据版本/权限版本/字段集/口径（§11.1、§12.2）
 - [x] 字段级权益执行 scaffold：Gateway evaluator 支持 workspace / plan / channel / dataset / field / time_range / export 维度裁剪，cache key 含 workspace/export，`/gateway/runtime` capability（DAT-05、§A2）
@@ -613,11 +614,12 @@ owner: "Planner / PM"
 - [x] Data Access Gateway Serving query planner scaffold 已建立：`docs/governance/live-serving-query-planner-scaffold.md`；Gateway decision `servingQuery`、released snapshot gating、row-limit planning、cache material `serving_snapshot_id` / `release_state`、no live read/SQL，`/gateway/runtime` capability 已通过本地 smoke
 - [x] Serving SQL descriptor scaffold 已建立：`docs/governance/serving-sql-descriptor-scaffold.md`；Gateway decision `servingSqlDescriptor`、allow-listed statement id、snapshot/field/time/limit bindings、no SQL text / no execute / no live read，`/gateway/runtime` capability 已通过本地 smoke
 - [x] Serving SQL text compiler scaffold 已建立：`docs/governance/serving-sql-text-compiler-scaffold.md`；Gateway decision `servingSqlText`、fixed SQL template、positional bindings、no execute / no live read，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving execution adapter scaffold 已建立：`docs/governance/serving-execution-adapter-scaffold.md`；Gateway decision `servingExecution`、Hyperdrive adapter shape、`execution_deferred`、empty rows、no SQL execution / no live read，`/gateway/runtime` capability 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
-- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -626,6 +628,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0aj | 完成 `serving-execution-adapter-scaffold`：新增 `@aiphabee/serving-store` execution adapter planner、Gateway decision `servingExecution`、Worker `/gateway/runtime` execution adapter capability 与 `serving_execution_adapter_scaffold` contract guard；SQL execution / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 20/25 |
 | 2026-06-20 | 1.0ai | 完成 `serving-sql-text-compiler-scaffold`：新增 `@aiphabee/serving-store` SQL text compiler、Gateway decision `servingSqlText`、Worker `/gateway/runtime` SQL text compiler capability 与 `serving_sql_text_compiler_scaffold` contract guard；SQL execution / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 19/24 |
 | 2026-06-20 | 1.0ah | 完成 `serving-sql-descriptor-scaffold`：新增 `@aiphabee/serving-store` SQL descriptor planner、Gateway decision `servingSqlDescriptor`、Worker `/gateway/runtime` SQL descriptor capability 与 `serving_sql_descriptor_scaffold` contract guard；SQL text / live execution / Hyperdrive reads 未启用，Sprint 1.1 更新为 18/23 |
 | 2026-06-20 | 1.0ag | 完成 `live-serving-query-planner-scaffold`：新增 `@aiphabee/serving-store` query planner、Gateway decision `servingQuery`、Worker `/gateway/runtime` query planner capability 与 `serving_query_planner_scaffold` contract guard；live SQL / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 17/22 |

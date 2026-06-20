@@ -22,6 +22,7 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  getServingStoreExecutionAdapterCapabilities,
   getServingStoreQueryPlannerCapabilities,
   getServingStoreQualityReleaseCapabilities,
   getServingStoreReadCapabilities,
@@ -328,6 +329,7 @@ app.get("/gateway/runtime", (c) => {
           "row_limit",
           "time_range_limit",
           "quality_hold",
+          "serving_execution_adapter_scaffold",
           "serving_quality_release_isolation",
           "serving_query_planner_scaffold",
           "serving_read_default_deny",
@@ -363,6 +365,7 @@ app.get("/gateway/runtime", (c) => {
         mcp_redistribution_surfaces: false,
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
         serving_store: {
+          execution_adapter: getServingStoreExecutionAdapterCapabilities(),
           live_reads: false,
           quality_release: getServingStoreQualityReleaseCapabilities(),
           query_planner: getServingStoreQueryPlannerCapabilities(),

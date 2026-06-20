@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  createServingExecutionAdapterPlan,
   createServingReadPlan,
   createServingQueryPlan,
   createServingQualityReleasePlan,
   createServingSqlDescriptor,
   createServingSqlTextPlan,
+  getServingStoreExecutionAdapterCapabilities,
   getServingStoreQualityReleaseCapabilities,
   getServingStoreQueryPlannerCapabilities,
   getServingStoreReadCapabilities,
@@ -456,6 +458,95 @@ describe("serving store read planner", () => {
       status: "sql_text_compiler_scaffold",
       template_source: "allow_listed_statement_id",
       uses_parameterized_bindings: true
+    });
+  });
+
+  it("defers execution for planned SQL text without live reads", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: ["synthetic_profile.company_name"],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "synthetic_profile",
+      gatewayStatus: "allow",
+      maxRows: 10,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["synthetic_profile.company_name"],
+      requestedRows: 3,
+      rightsPolicyVersion: "synthetic-policy-v0"
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 8,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+    const sqlTextPlan = createServingSqlTextPlan({ descriptor });
+    const execution = createServingExecutionAdapterPlan({ sqlTextPlan });
+
+    expect(execution).toMatchObject({
+      adapter: "hyperdrive",
+      deferredReason: "LIVE_SERVING_EXECUTION_DISABLED",
+      executionReady: false,
+      liveRead: false,
+      rows: [],
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: true,
+      statementId: "serving_record_projection_by_snapshot_v0",
+      status: "execution_deferred"
+    });
+  });
+
+  it("blocks execution adapter plans for blocked SQL text", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: [],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "hk_equity_quote",
+      errorCode: "DATA_NOT_LICENSED",
+      gatewayStatus: "deny",
+      maxRows: 500,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["quote.close"],
+      requestedRows: 1,
+      rightsPolicyVersion: "gate0-default-deny-v0"
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 10,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+    const sqlTextPlan = createServingSqlTextPlan({ descriptor });
+    const execution = createServingExecutionAdapterPlan({ sqlTextPlan });
+
+    expect(execution).toMatchObject({
+      adapter: "hyperdrive",
+      blockedReason: "DATA_NOT_LICENSED",
+      executionReady: false,
+      liveRead: false,
+      rows: [],
+      servedRows: 0,
+      sqlExecuted: false,
+      sqlTextAccepted: false,
+      status: "execution_blocked"
+    });
+  });
+
+  it("reports a no-live execution adapter capability", () => {
+    expect(getServingStoreExecutionAdapterCapabilities()).toMatchObject({
+      adapter: "hyperdrive",
+      blocks_blocked_sql_text: true,
+      execution_ready: false,
+      live_reads: false,
+      returns_empty_rows: true,
+      rows_returned: false,
+      sql_executed: false,
+      status: "execution_adapter_scaffold"
     });
   });
 

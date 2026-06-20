@@ -1,7 +1,7 @@
 # Serving Store Schema Scaffold
 
 > **Status**: Verified schema scaffold
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-serving-store-schema-scaffold.md`
 > **Task Contract**:
@@ -9,9 +9,9 @@
 
 This slice creates the empty schema foundation for versioned Serving Store
 projections. Later read-planner, quality-release, query-planner, SQL
-descriptor, and SQL text compiler scaffolds now target this schema shape, but it
-still does not apply to a live database, load partner data, or enable Gateway
-live Serving reads/writes.
+descriptor, SQL text compiler, and execution adapter scaffolds now target this
+schema shape, but it still does not apply to a live database, load partner data,
+or enable Gateway live Serving reads/writes.
 
 ## P1 Architecture Map
 
@@ -26,6 +26,7 @@ live Serving reads/writes.
 | Query planner | `packages/serving-store` | Plans released snapshot queries against the schema shape, no SQL emitted |
 | SQL descriptor planner | `packages/serving-store` | Plans statement id and parameter bindings against the schema shape, no SQL text emitted |
 | SQL text compiler | `packages/serving-store` | Compiles fixed SQL text against `core.serving_record`, no execution |
+| Execution adapter | `packages/serving-store` | Defers execution against the schema shape, no rows returned |
 | Dataset registry | `core.serving_dataset` | Dataset/domain/default quality/default rights metadata |
 | Field registry | `core.serving_field` | Field path/type/right/quality metadata |
 | Snapshots | `core.serving_snapshot` | Versioned, as-of, quality-gated dataset releases |
@@ -60,10 +61,10 @@ Runtime capability trace:
    `serving_store.query_planner.status=query_planner_scaffold`,
    `serving_store.sql_descriptor.status=sql_descriptor_scaffold`,
    `serving_store.sql_text_compiler.status=sql_text_compiler_scaffold`,
+   `serving_store.execution_adapter.status=execution_adapter_scaffold`,
    and `live_reads=false`.
-5. `/gateway/access-check` attaches `servingRead`, `servingQuery`, and
-   `servingSqlDescriptor` plans to Gateway decisions but does not read data,
-   emit SQL text, or execute SQL.
+5. `/gateway/access-check` attaches Serving read/query/SQL/adapter plans to
+   Gateway decisions but does not read data or execute SQL.
 
 ## P3 Design Decision
 
@@ -86,6 +87,8 @@ Tradeoff:
   adapter without execution.
   SQL text planning now adds the fixed template contract for that adapter, still
   without execution.
+  Execution adapter planning now adds the empty-row deferred boundary for a
+  future Hyperdrive reader.
 - It still cannot return real licensed market data.
 
 ## Verification
@@ -135,6 +138,12 @@ Observed runtime fields:
       "sql_executed": false,
       "live_reads": false
     },
+    "execution_adapter": {
+      "status": "execution_adapter_scaffold",
+      "execution_ready": false,
+      "sql_executed": false,
+      "rows_returned": false
+    },
     "live_serving_reads": false,
     "live_reads": false,
     "default_quality_state": "HOLD",
@@ -149,8 +158,7 @@ Observed runtime fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-approved data loading is absent.
 - Gateway creates blocked/held Serving read plans, quality release plans,
-  no-SQL query plans, and no-execute SQL descriptors, but does not read or
-  write Serving Store records. SQL text planning exists, but execution is still
-  absent.
+  no-SQL query plans, no-execute SQL descriptors, SQL text plans, and deferred
+  execution adapter plans, but does not read or write Serving Store records.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

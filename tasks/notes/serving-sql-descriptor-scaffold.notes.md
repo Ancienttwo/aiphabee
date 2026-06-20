@@ -1,6 +1,6 @@
 # Notes: serving-sql-descriptor-scaffold
 
-> **Last Updated**: 2026-06-20 18:05 +08
+> **Last Updated**: 2026-06-20 18:14 +08
 > **Plan**: `plans/plan-serving-sql-descriptor-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/serving-sql-descriptor-scaffold.md`
@@ -18,6 +18,8 @@
   `serving_store.sql_descriptor`.
 - Added a later SQL text compiler scaffold that emits fixed SQL text from the
   descriptor while keeping execution disabled.
+- Added a later execution adapter scaffold that accepts SQL text but returns
+  deferred empty-row plans.
 - Kept live SQL execution, Hyperdrive reads, partner rows, and frontend out of
   scope.
 

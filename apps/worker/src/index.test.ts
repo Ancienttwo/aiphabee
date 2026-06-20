@@ -80,6 +80,16 @@ interface GatewayRuntimeBody {
     mcp_redistribution_surfaces: boolean;
     rights_policy_version: string;
     serving_store: {
+      execution_adapter: {
+        adapter: string;
+        blocks_blocked_sql_text: boolean;
+        execution_ready: boolean;
+        live_reads: boolean;
+        returns_empty_rows: boolean;
+        rows_returned: boolean;
+        sql_executed: boolean;
+        status: string;
+      };
       live_reads: boolean;
       quality_release: {
         blocks_quality_states: readonly string[];
@@ -474,6 +484,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("plan_entitlement");
     expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
+    expect(body.data.guards).toContain("serving_execution_adapter_scaffold");
     expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_query_planner_scaffold");
     expect(body.data.guards).toContain("serving_read_default_deny");
@@ -486,6 +497,16 @@ describe("worker runtime", () => {
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
     expect(body.data.serving_store).toMatchObject({
+      execution_adapter: {
+        adapter: "hyperdrive",
+        blocks_blocked_sql_text: true,
+        execution_ready: false,
+        live_reads: false,
+        returns_empty_rows: true,
+        rows_returned: false,
+        sql_executed: false,
+        status: "execution_adapter_scaffold"
+      },
       live_reads: false,
       quality_release: {
         blocks_quality_states: ["HOLD", "REJECT_RAW"],
