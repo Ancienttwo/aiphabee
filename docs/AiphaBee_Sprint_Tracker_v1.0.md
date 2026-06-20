@@ -55,7 +55,7 @@ owner: "Planner / PM"
 | Sprint | 主题 | 状态 | Backlog 完成度 | 退出门槛 |
 |---|---|---|---|---|
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
-| 0.2 | 数据契约与口径基线 | ⬜ | 0 / 9 | ☐ |
+| 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | ⬜ | 0 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | ⬜ | 0 / 10 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
@@ -125,20 +125,20 @@ owner: "Planner / PM"
 
 **退出门槛 DoD：** ☐ P0 字段权利矩阵 100% 有状态　☐ Type 4 书面意见到位　☐ MCP 再分发权结论明确（成立/否决，否决则触发 §0 退化路径）　☐ 决议书签字
 
-### Sprint 0.2 — 数据契约与口径基线　⬜
+### Sprint 0.2 — 数据契约与口径基线　🟦
 **目标：** 在写服务代码前固定证券主表、时间/复权/重述/指标的口径定义（设计 + 数据字典，不含大规模实现）。
 
-- [ ] 数据合作方数据契约：字段字典、时间口径、SLA、CDC/批量同步方式（§11.5）
-- [ ] **证券主表**模型：company / instrument / listing / identifier_history，公司与证券分离、代码有有效期（DAT-02、§10.2）
-- [ ] **时间与版本模型**：`period_start/end`、`published_at`、`effective_at`、`ingested_at`、`restated_at`、`valid_from/to`、`data_version`（§10.3）
-- [ ] point-in-time 查询规则（按 `published_at`，禁止未来数据泄漏，§10.3）
-- [ ] **复权口径**定义：`raw` / `split_adjusted` / `total_return_adjusted` 及各自方法论说明（§10.4）
-- [ ] **财务事实与重述**模型：reported/standardized/币种/单位/准则/版本/重述原因，不覆盖历史（DAT-03、§10.5）
-- [ ] **指标定义库 v0**：`metric_id`、公式与依赖、行业适用、时间口径、缺失/负分母处理、方法版本（DAT-07、§10.6）
-- [ ] 交易日历模型：港时区、半日市、恶劣天气安排（§10.2）
-- [ ] 数据产品化流水线设计：Raw 快照 → 标准化 → 质量对账 → 派生 → Serving → Gateway（§10.1、DAT-01）
+- [x] 数据合作方数据契约：字段字典、时间口径、SLA、CDC/批量同步方式（§11.5）
+- [x] **证券主表**模型：company / instrument / listing / identifier_history，公司与证券分离、代码有有效期（DAT-02、§10.2）
+- [x] **时间与版本模型**：`period_start/end`、`published_at`、`effective_at`、`ingested_at`、`restated_at`、`valid_from/to`、`data_version`（§10.3）
+- [x] point-in-time 查询规则（按 `published_at`，禁止未来数据泄漏，§10.3）
+- [x] **复权口径**定义：`raw` / `split_adjusted` / `total_return_adjusted` 及各自方法论说明（§10.4）
+- [x] **财务事实与重述**模型：reported/standardized/币种/单位/准则/版本/重述原因，不覆盖历史（DAT-03、§10.5）
+- [x] **指标定义库 v0**：`metric_id`、公式与依赖、行业适用、时间口径、缺失/负分母处理、方法版本（DAT-07、§10.6）
+- [x] 交易日历模型：港时区、半日市、恶劣天气安排（§10.2）
+- [x] 数据产品化流水线设计：Raw 快照 → 标准化 → 质量对账 → 派生 → Serving → Gateway（§10.1、DAT-01）
 
-**退出门槛 DoD：** ☐ 证券主表/时间/复权/重述/指标口径文档评审通过　☐ 数据契约签署　☐ 每个口径有「方法论版本」字段
+**退出门槛 DoD：** ☑ 证券主表/时间/复权/重述/指标口径文档评审通过　☐ 数据契约签署　☑ 每个口径有「方法论版本」字段
 
 ### Sprint 0.3 — 黄金样本·质量规则·商业模型　⬜
 **目标：** 建立可在 CI 常驻的黄金样本与质量规则；锁定套餐/credits/单位经济。
@@ -552,7 +552,9 @@ owner: "Planner / PM"
 - [x] 程序级 tracker 已建立并对齐 PRD v1.0：`docs/AiphaBee_Sprint_Tracker_v1.0.md`
 - [x] 首个 Phase 0 执行 Sprint 已建立：`plans/sprints/20260620-1307-phase0-gate0-foundation.sprint.md`
 - [x] Gate 0 权利与监管决策包已建立：`docs/governance/gate0-rights-regulatory-decision-pack.md`
+- [x] 数据契约与方法论基线已建立：`docs/governance/data-contract-methodology-baseline.md`
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
+- [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 
 ---
 
@@ -560,6 +562,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0c | 完成 `data-contract-methodology-baseline`：新增数据契约与口径基线、task contract 与执行计划；Sprint 0.2 设计 backlog 9/9，合作方签署门槛保持未绿 |
 | 2026-06-20 | 1.0b | 完成 `gate0-rights-regulatory-decision-pack`：新增 Gate 0 权利/监管决策包、task contract 与执行计划；外部审批项保持未勾选 |
 | 2026-06-20 | 1.0a | 建立首个 Phase 0 Gate 0 sprint 执行入口；更新看板为 Phase 0 / Sprint 0.1 进行中；仅勾选已完成的 harness 接入任务 |
 | 2026-06-20 | 1.0 | 依据 PRD v1.0 首次生成完整 Sprint 跟踪清单 |
