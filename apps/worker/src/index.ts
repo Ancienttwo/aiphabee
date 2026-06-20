@@ -5,6 +5,11 @@ import {
   createAgentRunSkeleton,
   getAgentRuntimeCapabilities
 } from "@aiphabee/agent-runtime";
+import {
+  DATA_ACCESS_GATEWAY_VERSION,
+  DEFAULT_DATA_ACCESS_POLICY,
+  evaluateDataAccessRequest
+} from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import {
   EVAL_STORE_SCHEMA_VERSION,
@@ -112,6 +117,136 @@ app.get("/database/runtime", (c) => {
         }
       }
     )
+  );
+});
+
+app.get("/gateway/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        cache_key_fields: [
+          "dataset",
+          "channel",
+          "plan",
+          "allowed_fields",
+          "data_version",
+          "rights_policy_version",
+          "methodology_version",
+          "time_range"
+        ],
+        channels: DEFAULT_DATA_ACCESS_POLICY.channels,
+        contract: "deploy/gateway/access.contract.json",
+        default_rights_status: DEFAULT_DATA_ACCESS_POLICY.defaultFieldStatus,
+        error_codes: [
+          "DATA_NOT_LICENSED",
+          "DATA_QUALITY_HOLD",
+          "OUT_OF_RANGE",
+          "TOO_MANY_ROWS"
+        ],
+        guards: [
+          "channel_rights_default_deny",
+          "field_redaction",
+          "row_limit",
+          "time_range_limit",
+          "quality_hold",
+          "cache_key_versioning",
+          "provenance_required",
+          "usage_preview"
+        ],
+        limits: {
+          max_rows: DEFAULT_DATA_ACCESS_POLICY.maxRows,
+          max_window_days: DEFAULT_DATA_ACCESS_POLICY.maxWindowDays
+        },
+        live_data_access: false,
+        market_data_surfaces: false,
+        methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
+        mcp_redistribution_surfaces: false,
+        rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+        version: DATA_ACCESS_GATEWAY_VERSION
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: DATA_ACCESS_GATEWAY_VERSION,
+        provenance: [
+          {
+            data_version: "gateway-scaffold-v0",
+            methodology_version: DATA_ACCESS_GATEWAY_VERSION,
+            source: "data-access-gateway-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/gateway/access-check", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    channel?: unknown;
+    dataset?: unknown;
+    fields?: unknown;
+    plan?: unknown;
+    quality_state?: unknown;
+    requested_rows?: unknown;
+    time_range?: unknown;
+  };
+  const requestedFields = Array.isArray(body.fields)
+    ? body.fields.filter((field): field is string => typeof field === "string")
+    : ["quote.close"];
+  const decision = evaluateDataAccessRequest({
+    channel: isDataAccessChannel(body.channel) ? body.channel : "mcp",
+    dataset: typeof body.dataset === "string" ? body.dataset : "hk_equity_quote",
+    plan: typeof body.plan === "string" ? body.plan : "free",
+    qualityState: isQualityState(body.quality_state) ? body.quality_state : "PASS",
+    requestedFields,
+    requestedRows: typeof body.requested_rows === "number" ? body.requested_rows : 1,
+    timeRange: isTimeRange(body.time_range) ? body.time_range : undefined
+  });
+
+  if (decision.error !== undefined) {
+    const status =
+      decision.error.code === "DATA_NOT_LICENSED"
+        ? 403
+        : decision.error.code === "DATA_QUALITY_HOLD"
+          ? 409
+          : 400;
+
+    return c.json(
+      createErrorEnvelope(decision.error.code, decision.error.message, {
+        asOf: new Date().toISOString(),
+        dataVersion: decision.dataVersion,
+        methodologyVersion: decision.methodologyVersion,
+        provenance: decision.provenance,
+        requestId,
+        usage: decision.usage
+      }),
+      status
+    );
+  }
+
+  return c.json(
+    createSuccessEnvelope(decision, {
+      asOf: new Date().toISOString(),
+      dataVersion: decision.dataVersion,
+      methodologyVersion: decision.methodologyVersion,
+      provenance: decision.provenance,
+      requestId,
+      usage: decision.usage
+    })
   );
 });
 
@@ -506,3 +641,23 @@ app.post("/agent/runs/dry-run", async (c) => {
 });
 
 export default app;
+
+function isDataAccessChannel(value: unknown): value is "api" | "export" | "mcp" | "web" {
+  return value === "api" || value === "export" || value === "mcp" || value === "web";
+}
+
+function isQualityState(value: unknown): value is "HOLD" | "PASS" | "REJECT_RAW" | "WARN" {
+  return value === "HOLD" || value === "PASS" || value === "REJECT_RAW" || value === "WARN";
+}
+
+function isTimeRange(value: unknown): value is { from: string; to: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "from" in value &&
+    "to" in value &&
+    typeof value.from === "string" &&
+    typeof value.to === "string"
+  );
+}

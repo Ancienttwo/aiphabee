@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@aiphabee/agent-runtime": "file:../../packages/agent-runtime",
+    "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
     "@aiphabee/observability": "file:../../packages/observability",
     "hono": "^4.12.26"

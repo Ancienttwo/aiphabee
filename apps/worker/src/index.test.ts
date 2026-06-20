@@ -44,6 +44,25 @@ interface DatabaseRuntimeBody {
   ok: true;
 }
 
+interface GatewayRuntimeBody {
+  data: {
+    channels: Record<string, string>;
+    contract: string;
+    default_rights_status: string;
+    error_codes: string[];
+    guards: string[];
+    limits: {
+      max_rows: number;
+      max_window_days: number;
+    };
+    live_data_access: boolean;
+    market_data_surfaces: boolean;
+    mcp_redistribution_surfaces: boolean;
+    rights_policy_version: string;
+  };
+  ok: true;
+}
+
 interface SecretsRuntimeBody {
   data: {
     emergency_revocation_sla_minutes: number;
@@ -208,6 +227,76 @@ describe("worker runtime", () => {
     expect(body.data.migration_directory).toBe("supabase/migrations");
     expect(body.data.live_queries).toBe(false);
     expect(body.data.market_data_surfaces).toBe(false);
+  });
+
+  it("serves gateway runtime capabilities with default-deny guards", async () => {
+    const response = await app.request("/gateway/runtime", {
+      headers: {
+        "x-request-id": "req-gateway-runtime"
+      }
+    });
+    const body = (await response.json()) as GatewayRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.contract).toBe("deploy/gateway/access.contract.json");
+    expect(body.data.default_rights_status).toBe("default_deny");
+    expect(body.data.channels.mcp).toBe("default_deny");
+    expect(body.data.error_codes).toContain("DATA_NOT_LICENSED");
+    expect(body.data.error_codes).toContain("DATA_QUALITY_HOLD");
+    expect(body.data.guards).toContain("field_redaction");
+    expect(body.data.guards).toContain("quality_hold");
+    expect(body.data.limits.max_rows).toBe(500);
+    expect(body.data.live_data_access).toBe(false);
+    expect(body.data.market_data_surfaces).toBe(false);
+    expect(body.data.mcp_redistribution_surfaces).toBe(false);
+    expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+  });
+
+  it("denies gateway access checks by default", async () => {
+    const response = await app.request("/gateway/access-check", {
+      body: JSON.stringify({
+        channel: "mcp",
+        dataset: "hk_equity_quote",
+        fields: ["quote.close"],
+        requested_rows: 1
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-gateway-deny"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("DATA_NOT_LICENSED");
+  });
+
+  it("returns quality hold before gateway serving", async () => {
+    const response = await app.request("/gateway/access-check", {
+      body: JSON.stringify({
+        channel: "mcp",
+        dataset: "hk_equity_quote",
+        fields: ["quote.close"],
+        quality_state: "HOLD",
+        requested_rows: 1
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-gateway-hold"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("DATA_QUALITY_HOLD");
   });
 
   it("serves secret store capabilities without secret values", async () => {

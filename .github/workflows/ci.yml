@@ -43,6 +43,9 @@ jobs:
       - name: Database Migration Contract
         run: npm run check:database
 
+      - name: Data Access Gateway Contract
+        run: npm run check:data-gateway
+
       - name: Model Provider Contract
         run: npm run check:model-provider
 
