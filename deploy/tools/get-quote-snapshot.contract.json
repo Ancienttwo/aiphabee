@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0",
+  "status": "local_contract",
+  "tool_name": "get_quote_snapshot",
+  "route": "POST /tools/get-quote-snapshot",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "delay_metadata": true,
+  "supported_inputs": ["instrument_id", "fields", "mode", "as_of"],
+  "supported_modes": ["delayed", "close"],
+  "supported_fields": [
+    "lastPrice",
+    "previousClose",
+    "change",
+    "changePercent",
+    "volume",
+    "turnover"
+  ],
+  "required_statuses": [
+    "found",
+    "not_found",
+    "data_not_licensed",
+    "data_quality_hold",
+    "point_in_time_unavailable"
+  ],
+  "required_quote_fields": [
+    "instrumentId",
+    "symbol",
+    "market",
+    "exchange",
+    "currency",
+    "asOf",
+    "delay",
+    "marketStatus",
+    "qualityState",
+    "fields"
+  ],
+  "required_error_codes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "NOT_FOUND",
+    "POINT_IN_TIME_UNAVAILABLE",
+    "SCOPE_DENIED"
+  ],
+  "fixture_cases": [
+    "delayed_snapshot",
+    "close_snapshot",
+    "field_subset",
+    "unlicensed_field",
+    "quality_hold",
+    "not_found",
+    "point_in_time_unavailable"
+  ]
+}

@@ -2,25 +2,51 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const contractPath = "deploy/tools/registry.contract.json";
-const requiredTools = [
-  "resolve_security",
-  "get_security_profile",
-  "get_market_calendar",
-  "get_quote_snapshot",
-  "get_price_history",
-  "get_corporate_actions",
-  "get_financial_facts",
-  "get_data_lineage",
-  "get_entitlements"
+const contractPath = "deploy/tools/get-quote-snapshot.contract.json";
+const requiredInputs = ["instrument_id", "fields", "mode", "as_of"];
+const requiredModes = ["delayed", "close"];
+const requiredFields = [
+  "lastPrice",
+  "previousClose",
+  "change",
+  "changePercent",
+  "volume",
+  "turnover"
 ];
-const requiredRoutes = ["GET /tools/runtime", "GET /agent/runtime"];
-const requiredChannels = ["web", "mcp", "api"];
-const scaffoldTools = [
-  "resolve_security",
-  "get_security_profile",
-  "get_market_calendar",
-  "get_quote_snapshot"
+const requiredStatuses = [
+  "found",
+  "not_found",
+  "data_not_licensed",
+  "data_quality_hold",
+  "point_in_time_unavailable"
+];
+const requiredQuoteFields = [
+  "instrumentId",
+  "symbol",
+  "market",
+  "exchange",
+  "currency",
+  "asOf",
+  "delay",
+  "marketStatus",
+  "qualityState",
+  "fields"
+];
+const requiredErrorCodes = [
+  "DATA_NOT_LICENSED",
+  "DATA_QUALITY_HOLD",
+  "NOT_FOUND",
+  "POINT_IN_TIME_UNAVAILABLE",
+  "SCOPE_DENIED"
+];
+const requiredFixtureCases = [
+  "delayed_snapshot",
+  "close_snapshot",
+  "field_subset",
+  "unlicensed_field",
+  "quality_hold",
+  "not_found",
+  "point_in_time_unavailable"
 ];
 
 let contract;
@@ -53,9 +79,10 @@ if (errors.length > 0) {
 
 emit(
   {
-    routes: contract.runtime_routes.length,
+    fixture_cases: contract.fixture_cases.length,
+    route: contract.route,
     status: "ok",
-    tools: contract.required_tools.length
+    tool: contract.tool_name
   },
   0
 );
@@ -72,15 +99,19 @@ function validateContract(value) {
   }
 
   if (value.status !== "local_contract") {
-    errors.push("status must be local_contract until tool execution exists");
+    errors.push("status must be local_contract until live tool data exists");
   }
 
-  if (value.registry_status !== "registry_scaffold") {
-    errors.push("registry_status must be registry_scaffold");
+  if (value.tool_name !== "get_quote_snapshot") {
+    errors.push("tool_name must be get_quote_snapshot");
   }
 
-  if (value.execution_ready !== false) {
-    errors.push("execution_ready must be false in this scaffold");
+  if (value.route !== "POST /tools/get-quote-snapshot") {
+    errors.push("route must be POST /tools/get-quote-snapshot");
+  }
+
+  if (value.handler_ready !== true) {
+    errors.push("handler_ready must be true for this scaffold");
   }
 
   if (value.live_data_access !== false) {
@@ -99,47 +130,29 @@ function validateContract(value) {
     errors.push("standard_response_envelope must be true");
   }
 
-  if (value.rights_aware !== true) {
-    errors.push("rights_aware must be true");
+  if (value.delay_metadata !== true) {
+    errors.push("delay_metadata must be true");
   }
 
-  errors.push(...validateStringArray(value.channels, requiredChannels, "channels"));
-  errors.push(...validateStringArray(value.runtime_routes, requiredRoutes, "runtime_routes"));
-  errors.push(...validateStringArray(value.required_tools, requiredTools, "required_tools"));
-  errors.push(...validateStringArray(value.scaffold_tools, scaffoldTools, "scaffold_tools"));
-  errors.push(...validateStringArray(value.required_tool_fields, [
-    "name",
-    "version",
-    "description",
-    "channels",
-    "permissions",
-    "schema",
-    "execution",
-    "testing",
-    "status"
-  ], "required_tool_fields"));
-  errors.push(...validateStringArray(value.required_schema_fields, [
-    "inputSchemaId",
-    "outputSchemaId",
-    "standardErrorCodes",
-    "standardResponseEnvelope"
-  ], "required_schema_fields"));
-  errors.push(...validateStringArray(value.required_permission_fields, [
-    "requiredScope",
-    "dataClasses",
-    "rightsAware"
-  ], "required_permission_fields"));
-  errors.push(...validateStringArray(value.required_execution_fields, [
-    "mode",
-    "handlerReady",
-    "liveDataAccess",
-    "allowArbitrarySql",
-    "allowArbitraryUrl"
-  ], "required_execution_fields"));
-  errors.push(...validateStringArray(value.required_testing_fields, [
-    "goldenFixtureReady",
-    "requiredGoldenFixture"
-  ], "required_testing_fields"));
+  errors.push(...validateStringArray(value.supported_inputs, requiredInputs, "supported_inputs"));
+  errors.push(...validateStringArray(value.supported_modes, requiredModes, "supported_modes"));
+  errors.push(...validateStringArray(value.supported_fields, requiredFields, "supported_fields"));
+  errors.push(
+    ...validateStringArray(value.required_statuses, requiredStatuses, "required_statuses")
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_quote_fields,
+      requiredQuoteFields,
+      "required_quote_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(value.required_error_codes, requiredErrorCodes, "required_error_codes")
+  );
+  errors.push(
+    ...validateStringArray(value.fixture_cases, requiredFixtureCases, "fixture_cases")
+  );
   errors.push(...validateNoSecretLikeValues(value));
 
   return errors;

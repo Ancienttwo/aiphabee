@@ -84,7 +84,7 @@ exit_criteria:
   smoke_tests:
     - "POST /tools/get-market-calendar with HK 2026-01-05..2026-01-07 returns trading_day/trading_day/half_day"
     - "POST /tools/get-market-calendar with HK 2026-01-08..2026-01-10 returns weather/holiday/weekend closures"
-    - "GET /tools/runtime reports handler_ready_tool_count=3"
+    - "GET /tools/runtime reports get_market_calendar handlerReady=true"
 ```
 
 ## Acceptance Notes

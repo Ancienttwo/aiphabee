@@ -21,6 +21,11 @@ import {
   getMarketCalendarCapabilities
 } from "@aiphabee/market-calendar";
 import {
+  QuoteSnapshotInputError,
+  getQuoteSnapshot,
+  getQuoteSnapshotCapabilities
+} from "@aiphabee/market-data";
+import {
   EVAL_STORE_SCHEMA_VERSION,
   OBSERVABILITY_EVENT_VERSION,
   createAgentDryRunTelemetry,
@@ -1187,6 +1192,119 @@ app.post("/tools/get-market-calendar", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-quote-snapshot", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    fields?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+    mode?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+  const mode =
+    body.mode === "close" || body.mode === "delayed" ? body.mode : undefined;
+  const fields = Array.isArray(body.fields)
+    ? body.fields.filter((field): field is string => typeof field === "string")
+    : undefined;
+
+  try {
+    const result = getQuoteSnapshot({
+      asOf: typeof body.as_of === "string" ? body.as_of : undefined,
+      fields,
+      instrumentId: rawInstrumentId,
+      mode
+    });
+    const meta = {
+      asOf: result.asOf ?? new Date().toISOString(),
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "not_found") {
+      return c.json(createErrorEnvelope("NOT_FOUND", "quote snapshot was not found", meta), 404);
+    }
+
+    if (result.status === "data_not_licensed") {
+      return c.json(
+        createErrorEnvelope("DATA_NOT_LICENSED", "quote snapshot fields are not licensed", meta),
+        403
+      );
+    }
+
+    if (result.status === "data_quality_hold") {
+      return c.json(
+        createErrorEnvelope("DATA_QUALITY_HOLD", "quote snapshot is held by quality policy", meta),
+        409
+      );
+    }
+
+    if (result.status === "point_in_time_unavailable") {
+      return c.json(
+        createErrorEnvelope(
+          "POINT_IN_TIME_UNAVAILABLE",
+          "quote snapshot is unavailable for the requested point in time",
+          meta
+        ),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getQuoteSnapshotCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof QuoteSnapshotInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_quote_snapshot failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,

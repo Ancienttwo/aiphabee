@@ -97,16 +97,18 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return an entitled delayed or close quote snapshot.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_quote_snapshot",
     permissions: createPermissions("quotes:read", ["quote_snapshot"]),
     schema: createSchema("get_quote_snapshot", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
-      "POINT_IN_TIME_UNAVAILABLE"
+      "NOT_FOUND",
+      "POINT_IN_TIME_UNAVAILABLE",
+      "SCOPE_DENIED"
     ]),
-    status: "planned",
-    testing: createTesting("get_quote_snapshot"),
+    status: "scaffold",
+    testing: createTesting("get_quote_snapshot", true),
     version: "0.0.0"
   },
   {

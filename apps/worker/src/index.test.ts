@@ -147,6 +147,40 @@ interface MarketCalendarBody {
   };
 }
 
+interface QuoteSnapshotBody {
+  data: {
+    capability: {
+      delay_metadata: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+      supported_modes: string[];
+    };
+    liveDataAccess: boolean;
+    mode: string;
+    quote: {
+      currency: string;
+      delay: {
+        minutes: number;
+        type: string;
+      };
+      fields: Record<string, number>;
+      instrumentId: string;
+      marketStatus: string;
+      qualityState: string;
+      symbol: string;
+    };
+    requestedFields: string[];
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -556,7 +590,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(3);
+    expect(body.data.handler_ready_tool_count).toBe(4);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -587,6 +621,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_market_calendar")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_quote_snapshot")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -885,6 +933,144 @@ describe("worker runtime", () => {
     expect(unsupportedBody.error.code).toBe("NOT_FOUND");
     expect(outOfRange.status).toBe(422);
     expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns delayed quote snapshots without live data access", async () => {
+    const response = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        fields: ["lastPrice", "volume"],
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as QuoteSnapshotBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_quote_snapshot");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.quote).toMatchObject({
+      currency: "HKD",
+      delay: {
+        minutes: 15,
+        type: "delayed"
+      },
+      instrumentId: "eq_hk_00700",
+      qualityState: "PASS",
+      symbol: "00700.HK"
+    });
+    expect(Object.keys(body.data.quote.fields)).toEqual(["lastPrice", "volume"]);
+    expect(body.data.capability).toMatchObject({
+      delay_metadata: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_quote_snapshot_scaffold",
+      supported_modes: ["delayed", "close"]
+    });
+    expect(body.usage.rows).toBe(1);
+    expect(body.usage.credits).toBe(2);
+  });
+
+  it("returns close quote snapshots with close delay metadata", async () => {
+    const response = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_00700",
+        mode: "close"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-close"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as QuoteSnapshotBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.mode).toBe("close");
+    expect(body.data.quote.delay).toEqual({
+      minutes: 0,
+      type: "close"
+    });
+    expect(body.data.quote.marketStatus).toBe("closed");
+    expect(body.usage.credits).toBe(1);
+  });
+
+  it("returns standard errors for quote licensing, quality, time, and input failures", async () => {
+    const unlicensed = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        fields: ["lastPrice", "realTimeBidAsk"],
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-unlicensed"
+      },
+      method: "POST"
+    });
+    const qualityHold = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_08001"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-quality"
+      },
+      method: "POST"
+    });
+    const unavailable = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        as_of: "2026-01-06T16:15:00+08:00",
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-unavailable"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-quote-snapshot", {
+      body: JSON.stringify({
+        instrument_id: "   "
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-quote-snapshot-invalid"
+      },
+      method: "POST"
+    });
+    const unlicensedBody = (await unlicensed.json()) as ErrorBody;
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const unavailableBody = (await unavailable.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unlicensed.status).toBe(403);
+    expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(unavailable.status).toBe(422);
+    expect(unavailableBody.error.code).toBe("POINT_IN_TIME_UNAVAILABLE");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
     expect(invalid.status).toBe(400);
     expect(invalidBody.error.code).toBe("SCOPE_DENIED");
   });
