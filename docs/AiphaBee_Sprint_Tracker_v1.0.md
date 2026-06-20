@@ -555,10 +555,12 @@ owner: "Planner / PM"
 - [x] 数据契约与方法论基线已建立：`docs/governance/data-contract-methodology-baseline.md`
 - [x] 黄金样本、质量规则与商业模型基线已建立：`docs/governance/golden-quality-commercial-baseline.md`
 - [x] 工程地基现状审计已建立：`docs/governance/engineering-foundation-audit.md`
+- [x] Phase 0 traceability closeout 已建立：`docs/governance/phase0-traceability-closeout.md`
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的黄金样本/质量规则尚未进入 CI，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
 - [ ] Sprint 0.4 的 runtime scaffold、CI、Cloudflare/Postgres 绑定、OTel、Secrets、Design System 集成与 P0 issue/owner/test/release traceability 尚未实现；当前仅完成 PRD §23 现状审计
+- [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；下一可执行 slice 为 `engineering-runtime-scaffold`
 
 ---
 
@@ -566,6 +568,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0f | 完成 `phase0-traceability-closeout`：新增 Phase 0 证据/阻断/traceability closeout，更新 `tasks/todos.md` deferred blockers；Phase 0 Gate 仍保持未全绿 |
 | 2026-06-20 | 1.0e | 完成 `engineering-foundation-audit`：新增 PRD §23 工程地基现状审计；Sprint 0.4 完成度 1/10，其余 runtime scaffold / CI / binding / traceability 任务保持未完成 |
 | 2026-06-20 | 1.0d | 完成 `golden-quality-commercial-baseline`：新增黄金样本、质量规则、数据隔离/更正、套餐权益、credits、单位经济与 Free 防滥用基线；Sprint 0.3 设计 backlog 9/9，CI/商业评审门槛保持未绿 |
 | 2026-06-20 | 1.0c | 完成 `data-contract-methodology-baseline`：新增数据契约与口径基线、task contract 与执行计划；Sprint 0.2 设计 backlog 9/9，合作方签署门槛保持未绿 |
