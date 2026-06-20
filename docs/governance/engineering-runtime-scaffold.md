@@ -128,4 +128,6 @@ Observed `/health` response:
 - OTel/log/eval store wiring is not implemented.
 - Secrets are names-only; dev/staging/prod management is not implemented.
 - Golden sample regression is not executable in CI.
-- P0 requirement issue/owner/test/release traceability is still missing.
+- External tracker sync for P0 traceability remains optional until a tracker is
+  selected; repo-local traceability now exists in
+  `docs/governance/p0-traceability-ledger.md`.

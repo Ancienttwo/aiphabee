@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; executable CI and cost review missing | Not green |
-| 0.4 Engineering foundation | Audit complete 1/10; runtime scaffold/CI/bindings missing | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold and P0 ledger complete 7/15; frontend/agent/bindings/persistence/observability/golden/env remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -63,14 +63,14 @@ sprints. The current traceability maturity is:
 |---|---|
 | Requirement -> sprint | Present in tracker §M |
 | Requirement -> governance baseline | Present for Gate 0/data/quality/commercial/engineering audit surfaces |
-| Requirement -> issue | Missing |
-| Requirement -> owner | Missing |
-| Requirement -> automated test | Missing |
-| Requirement -> release gate | Missing |
+| Requirement -> issue | Present for P0 via repo-local refs in `docs/governance/p0-traceability-ledger.md` |
+| Requirement -> owner | Present for P0 as owner roles in `docs/governance/p0-traceability-ledger.md` |
+| Requirement -> automated test | Present for P0 as planned test gates in `docs/governance/p0-traceability-ledger.md` |
+| Requirement -> release gate | Present for P0 in `docs/governance/p0-traceability-ledger.md` |
 
-Decision: do not mark full PRD §23.12 traceability complete yet. The next
-engineering implementation should add an issue/owner/test/release-gate ledger
-or connect to the selected project tracker.
+Decision update: PRD §23.12 P0 traceability is now present as a repo-local
+ledger. External issue tracker synchronization remains optional until a tracker
+is selected.
 
 ## Deferred Goals Added
 
@@ -80,14 +80,19 @@ recorded in `tasks/todos.md`:
 - External Gate 0 rights/regulatory approvals.
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
-- Runtime scaffold with package manager, Web/Worker apps, CI, env examples, and
-  initial data contracts package.
-- P0 requirement owner/issue/test/release traceability ledger.
+- Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, full
+  Cloudflare bindings, Postgres/Hyperdrive, observability, secrets management,
+  and golden regression.
+- External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
-## Next Executable Slice
+## Historical Next Executable Slice
 
-Recommended next slice: `engineering-runtime-scaffold`.
+Original recommended next slice: `engineering-runtime-scaffold`.
+
+Current state: this slice has been partially executed as a non-frontend backend
+foundation. Frontend work was explicitly delegated to Claude. See execution
+updates below.
 
 Scope:
 
@@ -133,7 +138,25 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - AI SDK Agent Runtime, full Cloudflare bindings, Postgres/Hyperdrive, OTel,
-  golden regression, secrets management by environment, and P0 traceability.
+  golden regression, and secrets management by environment.
+
+## Execution Update - 2026-06-20 14:32 +08
+
+`p0-traceability-ledger` has been executed in
+`docs/governance/p0-traceability-ledger.md`.
+
+Completed:
+
+- 53 P0 requirements from tracker §M mapped to stable repo-local issue refs.
+- Each P0 row now has owner role, sprint, planned test gate, release gate, and
+  implementation state.
+- Tracker Sprint 0.4 traceability leaf is checked.
+
+Not completed:
+
+- External GitHub/Jira/Linear issue IDs are not created because no external
+  tracker is selected.
+- Requirement implementation statuses in tracker §M remain unchanged.
 
 ## Closeout Decision
 
