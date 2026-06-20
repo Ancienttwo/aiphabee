@@ -1,0 +1,501 @@
+{
+  "version": "2026-06-21.phase1.tool-schema-contract-scaffold.v0",
+  "status": "local_contract",
+  "schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "required_envelope_fields": [
+    "ok",
+    "request_id",
+    "as_of",
+    "market_status",
+    "provenance",
+    "usage"
+  ],
+  "required_success_fields": ["data"],
+  "required_error_fields": ["error"],
+  "schemas": {
+    "resolve_security": {
+      "standard_error_codes": [
+        "AMBIGUOUS_SECURITY",
+        "SYMBOL_AMBIGUOUS",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.resolve_security.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1 },
+          "market": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.resolve_security.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "resolve_security" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_security_profile": {
+      "standard_error_codes": ["DATA_NOT_LICENSED", "NOT_FOUND", "SCOPE_DENIED"],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_security_profile.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "properties": {
+          "instrument_id": { "type": "string", "minLength": 1 },
+          "instrumentId": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_security_profile.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_security_profile" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_market_calendar": {
+      "standard_error_codes": ["NOT_FOUND", "OUT_OF_RANGE", "SCOPE_DENIED"],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_market_calendar.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["market", "from", "to"],
+        "properties": {
+          "market": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_market_calendar.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_market_calendar" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_quote_snapshot": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "POINT_IN_TIME_UNAVAILABLE",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_quote_snapshot.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "properties": {
+          "instrument_id": { "type": "string", "minLength": 1 },
+          "instrumentId": { "type": "string", "minLength": 1 },
+          "mode": { "enum": ["close", "delayed"] },
+          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "as_of": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_quote_snapshot.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_quote_snapshot" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_price_history": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_price_history.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "required": ["from", "to"],
+        "properties": {
+          "instrument_id": { "type": "string", "minLength": 1 },
+          "instrumentId": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "adjustment": { "enum": ["raw", "split_adjusted", "total_return_adjusted"] },
+          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "limit": { "type": "integer", "minimum": 1 },
+          "cursor": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_price_history.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_price_history" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_corporate_actions": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_corporate_actions.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "required": ["from", "to"],
+        "properties": {
+          "instrument_id": { "type": "string", "minLength": 1 },
+          "instrumentId": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "limit": { "type": "integer", "minimum": 1 },
+          "cursor": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_corporate_actions.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_corporate_actions" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_financial_facts": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "OUT_OF_RANGE",
+        "POINT_IN_TIME_UNAVAILABLE",
+        "TOO_MANY_ROWS",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_financial_facts.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "required": ["from", "to"],
+        "properties": {
+          "instrument_id": { "type": "string", "minLength": 1 },
+          "instrumentId": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "metrics": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "statement_types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "statementTypes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "as_of": { "type": "string", "minLength": 1 },
+          "asOf": { "type": "string", "minLength": 1 },
+          "limit": { "type": "integer", "minimum": 1 },
+          "cursor": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_financial_facts.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_financial_facts" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_data_lineage": {
+      "standard_error_codes": ["DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_data_lineage.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          { "required": ["evidence_id"] },
+          { "required": ["evidenceId"] },
+          { "required": ["record_id"] },
+          { "required": ["recordId"] }
+        ],
+        "properties": {
+          "evidence_id": { "type": "string", "minLength": 1 },
+          "evidenceId": { "type": "string", "minLength": 1 },
+          "record_id": { "type": "string", "minLength": 1 },
+          "recordId": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "asOf": { "type": "string", "minLength": 1 },
+          "include_upstream": { "type": "boolean" },
+          "includeUpstream": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_data_lineage.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_data_lineage" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    },
+    "get_entitlements": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_entitlements.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": { "type": "string", "minLength": 1 },
+          "workspaceId": { "type": "string", "minLength": 1 },
+          "channel": { "enum": ["api", "export", "mcp", "web"] },
+          "tool_name": { "type": "string", "minLength": 1 },
+          "toolName": { "type": "string", "minLength": 1 },
+          "dataset": { "type": "string", "minLength": 1 },
+          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "as_of": { "type": "string", "minLength": 1 },
+          "asOf": { "type": "string", "minLength": 1 },
+          "time_range": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+              "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+            }
+          },
+          "timeRange": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+              "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+            }
+          },
+          "requested_rows": { "type": "integer", "minimum": 1 },
+          "requestedRows": { "type": "integer", "minimum": 1 },
+          "export_requested": { "type": "boolean" },
+          "exportRequested": { "type": "boolean" },
+          "plan": { "type": "string", "minLength": 1 }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_entitlements.output.v0",
+        "type": "object",
+        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "properties": {
+          "ok": { "const": true },
+          "request_id": { "type": "string", "minLength": 1 },
+          "as_of": { "type": "string", "minLength": 1 },
+          "market_status": { "type": "string" },
+          "provenance": { "type": "array" },
+          "usage": { "type": "object" },
+          "data": {
+            "type": "object",
+            "required": ["toolName", "status", "liveDataAccess"],
+            "properties": {
+              "toolName": { "const": "get_entitlements" },
+              "status": { "type": "string" },
+              "liveDataAccess": { "const": false }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "tool.error.output.v0",
+    "type": "object",
+    "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "error"],
+    "properties": {
+      "ok": { "const": false },
+      "request_id": { "type": "string", "minLength": 1 },
+      "as_of": { "type": "string", "minLength": 1 },
+      "market_status": { "type": "string" },
+      "provenance": { "type": "array" },
+      "usage": { "type": "object" },
+      "error": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "enum": [
+              "AUTH_REQUIRED",
+              "DATA_NOT_LICENSED",
+              "SCOPE_DENIED",
+              "DATA_QUALITY_HOLD",
+              "AMBIGUOUS_SECURITY",
+              "SYMBOL_AMBIGUOUS",
+              "OUT_OF_RANGE",
+              "TOO_MANY_ROWS",
+              "POINT_IN_TIME_UNAVAILABLE",
+              "NOT_FOUND",
+              "RATE_LIMITED",
+              "BUDGET_EXCEEDED",
+              "MODEL_PROVIDER_NOT_CONFIGURED",
+              "UPSTREAM_STALE",
+              "INTERNAL_ERROR"
+            ]
+          },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
