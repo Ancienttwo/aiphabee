@@ -551,7 +551,8 @@ owner: "Planner / PM"
 - [x] 权威 PRD 已注册为 harness PRD：`plans/prds/20260620-1302-aiphabee.prd.md`
 - [x] 程序级 tracker 已建立并对齐 PRD v1.0：`docs/AiphaBee_Sprint_Tracker_v1.0.md`
 - [x] 首个 Phase 0 执行 Sprint 已建立：`plans/sprints/20260620-1307-phase0-gate0-foundation.sprint.md`
-- [ ] Sprint 0.1 的 Gate 0 task contracts 尚未投影；下一步从 `gate0-rights-regulatory-decision-pack` 开始
+- [x] Gate 0 权利与监管决策包已建立：`docs/governance/gate0-rights-regulatory-decision-pack.md`
+- [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 
 ---
 
@@ -559,5 +560,6 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0b | 完成 `gate0-rights-regulatory-decision-pack`：新增 Gate 0 权利/监管决策包、task contract 与执行计划；外部审批项保持未勾选 |
 | 2026-06-20 | 1.0a | 建立首个 Phase 0 Gate 0 sprint 执行入口；更新看板为 Phase 0 / Sprint 0.1 进行中；仅勾选已完成的 harness 接入任务 |
 | 2026-06-20 | 1.0 | 依据 PRD v1.0 首次生成完整 Sprint 跟踪清单 |
