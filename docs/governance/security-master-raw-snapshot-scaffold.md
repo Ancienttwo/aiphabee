@@ -96,4 +96,4 @@ Observed `/data/runtime` fields:
 - Financial fact/restatement and corporate-action/adjustment schemas now exist
   in `docs/governance/financial-facts-restatement-scaffold.md` and
   `docs/governance/corporate-action-adjustment-scaffold.md`, but are not live.
-- Serving Gateway and persistent usage ledger are not wired to these tables.
+- Serving Gateway and live usage ledger writes are not wired to these tables.

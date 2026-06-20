@@ -104,6 +104,20 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620090000_usage_ledger_scaffold.sql",
+      "purpose": "Create empty usage event, credit meter, ledger, and reconciliation scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.usage_event",
+        "core.usage_ledger_entry",
+        "core.usage_meter_rule",
+        "core.usage_reconciliation_batch",
+        "governance.usage_ledger_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

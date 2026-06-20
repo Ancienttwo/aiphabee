@@ -102,4 +102,6 @@ Observed runtime fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Identity provider and payment provider integrations are absent.
 - Real account, workspace, subscription, and entitlement rows are absent.
-- Field-level entitlement execution and usage ledger remain unwired.
+- Usage ledger schemas now exist in `docs/governance/usage-ledger-scaffold.md`,
+  but live field-level entitlement execution and billing reconciliation remain
+  unwired.

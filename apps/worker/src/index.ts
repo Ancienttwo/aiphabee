@@ -293,6 +293,18 @@ app.get("/gateway/runtime", (c) => {
         methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
         mcp_redistribution_surfaces: false,
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+        usage_ledger: {
+          live_writes: false,
+          reconciliation_target_delay_minutes: 5,
+          status: "schema_scaffold",
+          tables: [
+            "core.usage_meter_rule",
+            "core.usage_event",
+            "core.usage_reconciliation_batch",
+            "core.usage_ledger_entry"
+          ],
+          weighted_credits: true
+        },
         version: DATA_ACCESS_GATEWAY_VERSION
       },
       {

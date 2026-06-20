@@ -65,6 +65,13 @@ interface GatewayRuntimeBody {
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
     rights_policy_version: string;
+    usage_ledger: {
+      live_writes: boolean;
+      reconciliation_target_delay_minutes: number;
+      status: string;
+      tables: string[];
+      weighted_credits: boolean;
+    };
   };
   ok: true;
 }
@@ -320,6 +327,18 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+    expect(body.data.usage_ledger).toMatchObject({
+      live_writes: false,
+      reconciliation_target_delay_minutes: 5,
+      status: "schema_scaffold",
+      tables: [
+        "core.usage_meter_rule",
+        "core.usage_event",
+        "core.usage_reconciliation_batch",
+        "core.usage_ledger_entry"
+      ],
+      weighted_credits: true
+    });
   });
 
   it("serves data runtime schema capabilities without live market data", async () => {

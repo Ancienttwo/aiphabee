@@ -105,4 +105,4 @@ Observed `/data/runtime` fields:
 - Corporate-action/adjustment schemas now exist in
   `docs/governance/corporate-action-adjustment-scaffold.md`, but the live
   adjustment engine is absent.
-- Serving Gateway and persistent usage ledger are not wired to these tables.
+- Serving Gateway and live usage ledger writes are not wired to these tables.

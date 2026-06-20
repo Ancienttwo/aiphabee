@@ -102,4 +102,4 @@ Observed `/data/runtime` fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner corporate-action source samples and raw price bars are absent.
 - Live adjustment computation and golden parity are absent.
-- Serving Gateway and persistent usage ledger are not wired to these tables.
+- Serving Gateway and live usage ledger writes are not wired to these tables.

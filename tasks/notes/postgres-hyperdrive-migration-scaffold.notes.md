@@ -30,6 +30,6 @@
 - No remote migration dry-run or apply has been executed.
 - No read-only `SELECT 1` through Hyperdrive has been executed.
 - Security master, raw snapshot, financial fact/restatement,
-  corporate-action/adjustment, and account/workspace entitlement schemas now
-  exist, but ingestion, live data gateway reads, field entitlement execution,
-  and usage ledger remain absent.
+  corporate-action/adjustment, account/workspace entitlement, and usage-ledger
+  schemas now exist, but ingestion, live data gateway reads, field entitlement
+  execution, and live usage writes remain absent.
