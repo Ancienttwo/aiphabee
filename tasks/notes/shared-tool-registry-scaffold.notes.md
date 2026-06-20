@@ -1,6 +1,6 @@
 # Notes: shared-tool-registry-scaffold
 
-> **Last Updated**: 2026-06-21 01:05 +08
+> **Last Updated**: 2026-06-21 01:10 +08
 > **Plan**: `plans/plan-shared-tool-registry-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/shared-tool-registry-scaffold.md`
@@ -18,8 +18,9 @@
 - Kept every handler disabled with no live data access and no arbitrary SQL/URL.
 - Migrated agent runtime registered tool policy to the shared registry.
 - Added Worker `/tools/runtime` and `npm run check:tool-registry`.
-- Added later `resolve_security` and `get_security_profile` tool scaffolds and
-  marked both as handler-ready registry entries.
+- Added later `resolve_security`, `get_security_profile`, and
+  `get_market_calendar` tool scaffolds and marked them as handler-ready registry
+  entries.
 
 ## Verification
 
@@ -33,7 +34,8 @@
 
 ## Residual Blockers
 
-- `resolve_security` and `get_security_profile` have no-live synthetic handlers.
+- `resolve_security`, `get_security_profile`, and `get_market_calendar` have
+  no-live synthetic handlers.
 - Other individual tool handlers are absent.
 - MCP/API endpoints are absent.
 - Tool JSON Schema bodies and golden fixtures are not implemented.

@@ -99,7 +99,7 @@ Observed route fields:
     "quoteSnapshotCoverage": "unavailable"
   },
   "runtime": {
-    "handler_ready_tool_count": 2,
+    "handler_ready_tool_count": 3,
     "execution_ready": false
   }
 }

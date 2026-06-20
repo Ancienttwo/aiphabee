@@ -83,7 +83,7 @@ exit_criteria:
   smoke_tests:
     - "POST /tools/get-security-profile with eq_hk_00700 returns listingStatus=listed"
     - "POST /tools/get-security-profile with eq_hk_08001 returns listingStatus=suspended"
-    - "GET /tools/runtime reports handler_ready_tool_count=2"
+    - "GET /tools/runtime reports get_security_profile handlerReady=true"
 ```
 
 ## Acceptance Notes

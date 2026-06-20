@@ -121,6 +121,32 @@ interface SecurityProfileBody {
   };
 }
 
+interface MarketCalendarBody {
+  data: {
+    capability: {
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+      supported_session_statuses: string[];
+      timezone: string;
+    };
+    liveDataAccess: boolean;
+    sessions: Array<{
+      closureReason?: string;
+      date: string;
+      isTradingDay: boolean;
+      sessionStatus: string;
+    }>;
+    status: string;
+    timezone: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -530,7 +556,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(2);
+    expect(body.data.handler_ready_tool_count).toBe(3);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -547,6 +573,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_security_profile")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_market_calendar")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -732,6 +772,119 @@ describe("worker runtime", () => {
 
     expect(notFound.status).toBe(404);
     expect(notFoundBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns market calendar sessions without live data access", async () => {
+    const response = await app.request("/tools/get-market-calendar", {
+      body: JSON.stringify({
+        from: "2026-01-05",
+        market: "HK",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-calendar"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as MarketCalendarBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_market_calendar");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.timezone).toBe("Asia/Hong_Kong");
+    expect(body.data.sessions.map((session) => session.sessionStatus)).toEqual([
+      "trading_day",
+      "trading_day",
+      "half_day"
+    ]);
+    expect(body.data.capability).toMatchObject({
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_market_calendar_scaffold",
+      supported_session_statuses: ["trading_day", "half_day", "closed"],
+      timezone: "Asia/Hong_Kong"
+    });
+    expect(body.usage.rows).toBe(3);
+  });
+
+  it("returns closed market calendar sessions for weather, holiday, and weekend", async () => {
+    const response = await app.request("/tools/get-market-calendar", {
+      body: JSON.stringify({
+        from: "2026-01-08",
+        market: "HK",
+        to: "2026-01-10"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-calendar-closed"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as MarketCalendarBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.sessions.map((session) => session.closureReason)).toEqual([
+      "weather",
+      "holiday",
+      "weekend"
+    ]);
+    expect(body.data.sessions.every((session) => session.isTradingDay === false)).toBe(
+      true
+    );
+  });
+
+  it("returns standard errors for unsupported or invalid market calendar requests", async () => {
+    const unsupportedMarket = await app.request("/tools/get-market-calendar", {
+      body: JSON.stringify({
+        from: "2026-01-05",
+        market: "US",
+        to: "2026-01-05"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-calendar-not-found"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-market-calendar", {
+      body: JSON.stringify({
+        from: "2026-01-04",
+        market: "HK",
+        to: "2026-01-05"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-calendar-out-of-range"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-market-calendar", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        market: "HK",
+        to: "2026-01-05"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-calendar-invalid"
+      },
+      method: "POST"
+    });
+    const unsupportedBody = (await unsupportedMarket.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unsupportedMarket.status).toBe(404);
+    expect(unsupportedBody.error.code).toBe("NOT_FOUND");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
     expect(invalid.status).toBe(400);
     expect(invalidBody.error.code).toBe("SCOPE_DENIED");
   });

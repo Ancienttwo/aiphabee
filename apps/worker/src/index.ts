@@ -16,6 +16,11 @@ import {
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import { getFinancialRestatementCapabilities } from "@aiphabee/financial-facts";
 import {
+  MarketCalendarInputError,
+  getMarketCalendar,
+  getMarketCalendarCapabilities
+} from "@aiphabee/market-calendar";
+import {
   EVAL_STORE_SCHEMA_VERSION,
   OBSERVABILITY_EVENT_VERSION,
   createAgentDryRunTelemetry,
@@ -1085,6 +1090,103 @@ app.post("/tools/get-security-profile", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-market-calendar", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    from?: unknown;
+    market?: unknown;
+    to?: unknown;
+  };
+
+  try {
+    const result = getMarketCalendar({
+      from: typeof body.from === "string" ? body.from : "",
+      market: typeof body.market === "string" ? body.market : "",
+      to: typeof body.to === "string" ? body.to : ""
+    });
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "market calendar was not found", {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }),
+        404
+      );
+    }
+
+    if (result.status === "out_of_range") {
+      return c.json(
+        createErrorEnvelope("OUT_OF_RANGE", "market calendar range is out of synthetic coverage", {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMarketCalendarCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof MarketCalendarInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_market_calendar failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,

@@ -82,12 +82,16 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return exchange trading day, half-day, and holiday calendar metadata.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_market_calendar",
     permissions: createPermissions("calendar:read", ["market_calendar"]),
-    schema: createSchema("get_market_calendar", ["NOT_FOUND", "OUT_OF_RANGE"]),
-    status: "planned",
-    testing: createTesting("get_market_calendar"),
+    schema: createSchema("get_market_calendar", [
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "SCOPE_DENIED"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_market_calendar", true),
     version: "0.0.0"
   },
   {
