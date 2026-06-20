@@ -61,7 +61,7 @@ owner: "Planner / PM"
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
-| 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
+| 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 1 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | ⬜ | 0 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
@@ -268,7 +268,7 @@ owner: "Planner / PM"
 - [ ] 公告检索入口（基础版，跳转原文证据位置，STK-06）
 - [ ] 内部账号 + 手动套餐 + 登录/会话/设备管理（ACC-01、§18.2）
 - [ ] Web Agent 与 MCP 配额/用量展示骨架（ACC-04）
-- [ ] 评估集 v1：事实/计算/引用正确率 + 正确拒绝率埋点（§16.3、§A4）；WVRO 埋点（§4.3）
+- [x] 评估集 v1 + WVRO instrumentation scaffold：`@aiphabee/observability` `eval_v1` + `run.eval.eval_v1` payload + `GET /observability/runtime` eval v1 capability + `POST /observability/eval-v1/plan` no-write planner + `deploy/observability/eval-v1.contract.json` + `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes / live OTLP export / frontend analytics dashboard / production partner-approved corpus / automatic answer grading 未启用（§16.3、§A4、§4.3）
 
 **退出门槛 DoD（= Phase 1 退出门槛）：** ☐ 内部用户端到端完成一次研究　☐ 所有展示数字有证据　☐ 无严重权限串用　☐ 核心工具黄金样本一致
 
@@ -626,6 +626,7 @@ owner: "Planner / PM"
 - [x] Answer/evidence contract scaffold 已建立：`docs/governance/answer-evidence-contract-scaffold.md`；`/agent/runs/plan` 输出 `answer_evidence_contract`，固定 PRD §8.3 八段答案顺序、AGT-06 fact/calculation/inference/unknown 标签、AGT-07 evidence-card payload 字段与 evidence strength，不启用 frontend rendering
 - [x] Failure recovery policy scaffold 已建立：`docs/governance/failure-recovery-policy-scaffold.md`；`/agent/runs/plan` 输出 `failure_recovery_policy`，定义 failed-tool-call-only retry、completed evidence reuse、partial answer fallback、usage ledger idempotency placeholder 与 no-double-charge 计费语义
 - [x] Model routing audit scaffold 已建立：`docs/governance/model-routing-audit-scaffold.md`；`/agent/runs/plan` 输出 `model_routing_audit`，定义 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、fallback triggers、model-change audit fields、safe-cache 与 redaction 规则，live model execution 未启用
+- [x] Eval v1 WVRO scaffold 已建立：`docs/governance/eval-v1-wvro-scaffold.md`；`run.eval` 输出 `eval_v1` payload，`/observability/eval-v1/plan` 计算 fact/calculation/citation/correct-refusal metrics、WVRO eligibility 与 unsourced numeric claim target，persistent writes/live OTLP/frontend dashboard 未启用
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
@@ -641,6 +642,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bg | 完成 `eval-v1-wvro-scaffold`：新增 Observability `eval_v1` capability、`run.eval.eval_v1` payload、`POST /observability/eval-v1/plan` no-write planner、`deploy/observability/eval-v1.contract.json` 与 `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes/live OTLP export/frontend analytics dashboard/production partner-approved corpus/automatic answer grading 未启用，Sprint 1.4 更新为 1/9 |
 | 2026-06-21 | 1.0bf | 完成 `model-routing-audit-scaffold`：新增 Agent runtime `model_routing_audit`、`POST /agent/runs/plan` model routing/fallback audit policy、`deploy/agent/model-routing-audit.contract.json` 与 `npm run check:model-routing-audit`，覆盖 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、MODEL_TIMEOUT/RATE_LIMITED/UPSTREAM_5XX fallback、model-change audit fields、safe reusable non-sensitive cache 与 sensitive audit redaction；live model execution/real AI Gateway request smoke/live token-cost-fallback log writes/frontend Ask rendering 未启用，Sprint 1.3 更新为 10/10 |
 | 2026-06-21 | 1.0be | 完成 `failure-recovery-policy-scaffold`：新增 Agent runtime `failure_recovery_policy`、`POST /agent/runs/plan` per-step recovery plan、`deploy/agent/failure-recovery-policy.contract.json` 与 `npm run check:failure-recovery-policy`，覆盖 failed-tool-call-only partial retry、retryable/non-retryable classes、completed step/evidence reuse、partial answer fallback、usage-ledger idempotency placeholder，以及 failed/retry attempts 不计费；actual live retry execution/durable run-state persistence/live ledger writes/frontend retry UI 未启用，Sprint 1.3 更新为 9/10 |
 | 2026-06-21 | 1.0bd | 完成 `answer-evidence-contract-scaffold`：新增 Agent runtime `answer_evidence_contract`、`POST /agent/runs/plan` ordered answer/evidence contract、`deploy/agent/answer-evidence-contract.contract.json` 与 `npm run check:answer-evidence-contract`，固定 PRD §8.3 八段答案顺序、AGT-06 fact/calculation/inference/unknown 标签、AGT-07 evidence-card payload 字段、evidence strength 和 validation rules；actual generated-answer parsing/live evidence binding/frontend clickable rendering 未启用，Sprint 1.3 更新为 8/10 |

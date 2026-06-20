@@ -775,6 +775,23 @@ interface ObservabilityRuntimeBody {
       status: string;
       writes_enabled: boolean;
     };
+    eval_v1: {
+      event_type: string;
+      live_persistent_writes: boolean;
+      metrics: Array<{
+        metric_id: string;
+        source: string;
+        status: string;
+      }>;
+      status: string;
+      unsourced_numeric_claim_target_rate: number;
+      version: string;
+      wvro: {
+        definition_source: string;
+        high_intent_actions: string[];
+        required_criteria: string[];
+      };
+    };
     event_types: string[];
     forbidden_payloads: string[];
     otlp_destination: {
@@ -791,6 +808,43 @@ interface ObservabilityRuntimeBody {
     }>;
   };
   ok: true;
+}
+
+interface EvalV1PlanBody {
+  data: {
+    capability: {
+      status: string;
+    };
+    live_persistent_writes: boolean;
+    quality_metrics: Array<{
+      metric_id: string;
+      passed: number;
+      rate: number | null;
+      status: string;
+      total: number;
+    }>;
+    status: string;
+    unsourced_numeric_claims: {
+      observed_rate: number | null;
+      status: string;
+      target_rate: number;
+    };
+    version: string;
+    wvro: {
+      criteria: Array<{
+        criterion_id: string;
+        status: string;
+      }>;
+      definition_source: string;
+      eligible: boolean;
+      high_intent_actions: string[];
+      week_start: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface AgentDryRunBody {
@@ -3123,6 +3177,29 @@ describe("worker runtime", () => {
     expect(body.data.eval_store.persistent).toBe(true);
     expect(body.data.eval_store.writes_enabled).toBe(false);
     expect(body.data.eval_store.status).toBe("planned");
+    expect(body.data.eval_v1).toMatchObject({
+      event_type: "run.eval",
+      live_persistent_writes: false,
+      status: "eval_v1_wvro_scaffold",
+      unsourced_numeric_claim_target_rate: 0.001,
+      version: "2026-06-21.phase1.eval-v1-wvro-scaffold.v0",
+      wvro: {
+        definition_source: "prd_4_3",
+        required_criteria: [
+          "financial_tool_success",
+          "openable_evidence",
+          "high_intent_action",
+          "no_data_error_or_severe_hallucination_or_compliance_block"
+        ]
+      }
+    });
+    expect(body.data.eval_v1.metrics.map((metric) => metric.metric_id)).toEqual([
+      "fact_accuracy",
+      "calculation_accuracy",
+      "citation_accuracy",
+      "correct_refusal_rate"
+    ]);
+    expect(body.data.eval_v1.wvro.high_intent_actions).toContain("save_research");
     expect(body.data.otlp_destination.endpoint_configured).toBe(false);
     expect(body.data.otlp_destination.headers_configured).toBe(false);
     expect(body.data.otlp_destination.live_export_enabled).toBe(false);
@@ -3133,6 +3210,74 @@ describe("worker runtime", () => {
     expect(body.data.sinks.every((sink) => sink.live_export_enabled === false)).toBe(
       true
     );
+  });
+
+  it("plans eval v1 quality metrics and WVRO eligibility without writes", async () => {
+    const response = await app.request("/observability/eval-v1/plan", {
+      body: JSON.stringify({
+        calculation_accuracy: {
+          passed: 2,
+          total: 2
+        },
+        citation_accuracy: {
+          passed: 3,
+          total: 3
+        },
+        correct_refusal_rate: {
+          passed: 1,
+          total: 1
+        },
+        fact_accuracy: {
+          passed: 4,
+          total: 4
+        },
+        high_intent_actions: ["save_research", "continue_follow_up"],
+        openable_evidence_items: 2,
+        run_id: "dry_req-eval-v1-plan",
+        successful_financial_tool_calls: 1,
+        unsourced_numeric_claims: {
+          sampled_answers: 1000,
+          unsourced_claims: 0
+        },
+        week_start: "2026-06-15"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-eval-v1-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EvalV1PlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        status: "eval_v1_wvro_scaffold"
+      },
+      live_persistent_writes: false,
+      status: "planned_no_write",
+      version: "2026-06-21.phase1.eval-v1-wvro-scaffold.v0"
+    });
+    expect(body.data.quality_metrics.every((metric) => metric.status === "pass")).toBe(
+      true
+    );
+    expect(body.data.unsourced_numeric_claims).toMatchObject({
+      observed_rate: 0,
+      status: "pass",
+      target_rate: 0.001
+    });
+    expect(body.data.wvro).toMatchObject({
+      definition_source: "prd_4_3",
+      eligible: true,
+      high_intent_actions: ["save_research", "continue_follow_up"],
+      week_start: "2026-06-15"
+    });
+    expect(body.data.wvro.criteria.every((criterion) => criterion.status === "pass")).toBe(
+      true
+    );
+    expect(body.usage.rows).toBe(8);
   });
 
   it("guards streaming execution until a model provider exists", async () => {

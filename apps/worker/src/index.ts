@@ -55,8 +55,13 @@ import {
 import {
   EVAL_STORE_SCHEMA_VERSION,
   OBSERVABILITY_EVENT_VERSION,
+  WVRO_HIGH_INTENT_ACTIONS,
   createAgentDryRunTelemetry,
   createConsoleTelemetrySink,
+  createEvalV1RunRecord,
+  getEvalV1Capabilities,
+  type EvalV1MetricInput,
+  type WvroHighIntentAction,
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
@@ -647,6 +652,7 @@ app.get("/observability/runtime", (c) => {
           status: evalStoreBindingConfigured ? "binding_detected" : "planned",
           writes_enabled: false
         },
+        eval_v1: getEvalV1Capabilities(),
         event_contract: "deploy/observability/events.contract.json",
         event_types: ["run.audit", "run.eval"],
         event_version: OBSERVABILITY_EVENT_VERSION,
@@ -698,6 +704,86 @@ app.get("/observability/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/observability/eval-v1/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const record = createEvalV1RunRecord({
+    calculationAccuracy: normalizeEvalMetricInput(
+      body.calculation_accuracy ?? body.calculationAccuracy
+    ),
+    citationAccuracy: normalizeEvalMetricInput(body.citation_accuracy ?? body.citationAccuracy),
+    complianceBlocked: normalizeOptionalBoolean(
+      body.compliance_blocked ?? body.complianceBlocked
+    ),
+    correctRefusalRate: normalizeEvalMetricInput(
+      body.correct_refusal_rate ?? body.correctRefusalRate
+    ),
+    dataError: normalizeOptionalBoolean(body.data_error ?? body.dataError),
+    environment: c.env?.APP_ENV ?? "local",
+    factAccuracy: normalizeEvalMetricInput(body.fact_accuracy ?? body.factAccuracy),
+    highIntentActions: normalizeEvalHighIntentActions(
+      body.high_intent_actions ?? body.highIntentActions
+    ),
+    openableEvidenceItems: normalizeOptionalNumber(
+      body.openable_evidence_items ?? body.openableEvidenceItems
+    ),
+    requestId,
+    route: "/observability/eval-v1/plan",
+    runId:
+      typeof body.run_id === "string"
+        ? body.run_id
+        : typeof body.runId === "string"
+          ? body.runId
+          : `eval_${requestId}`,
+    severeHallucination: normalizeOptionalBoolean(
+      body.severe_hallucination ?? body.severeHallucination
+    ),
+    successfulFinancialToolCalls: normalizeOptionalNumber(
+      body.successful_financial_tool_calls ?? body.successfulFinancialToolCalls
+    ),
+    unsourcedNumericClaims: normalizeUnsourcedNumericClaims(
+      body.unsourced_numeric_claims ?? body.unsourcedNumericClaims
+    ),
+    weekStart:
+      typeof body.week_start === "string"
+        ? body.week_start
+        : typeof body.weekStart === "string"
+          ? body.weekStart
+          : undefined
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...record,
+        capability: getEvalV1Capabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: record.version,
+        methodologyVersion: record.version,
+        provenance: [
+          {
+            data_version: record.version,
+            methodology_version: record.version,
+            source: "observability-eval-v1",
+            source_record_id: "eval-v1-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: record.quality_metrics.length + record.wvro.criteria.length
         }
       }
     )
@@ -2572,6 +2658,52 @@ function normalizeAgentTimeRange(value: unknown): AgentRunSkeletonInput["timeRan
         start
       }
     : undefined;
+}
+
+function normalizeEvalMetricInput(value: unknown): EvalV1MetricInput | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    passed: normalizeOptionalNumber(record.passed ?? record.correct),
+    total: normalizeOptionalNumber(record.total ?? record.count)
+  };
+}
+
+function normalizeUnsourcedNumericClaims(
+  value: unknown
+): { sampledAnswers?: number; unsourcedClaims?: number } | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    sampledAnswers: normalizeOptionalNumber(record.sampled_answers ?? record.sampledAnswers),
+    unsourcedClaims: normalizeOptionalNumber(record.unsourced_claims ?? record.unsourcedClaims)
+  };
+}
+
+function normalizeEvalHighIntentActions(value: unknown): WvroHighIntentAction[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const allowedActions = new Set<WvroHighIntentAction>(WVRO_HIGH_INTENT_ACTIONS);
+  return value.filter(
+    (action): action is WvroHighIntentAction =>
+      typeof action === "string" && allowedActions.has(action as WvroHighIntentAction)
+  );
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function normalizeOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
 }
 
 function isDataAccessChannel(value: unknown): value is "api" | "export" | "mcp" | "web" {
