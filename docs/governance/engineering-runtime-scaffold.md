@@ -126,7 +126,9 @@ Observed `/health` response:
 - Full Cloudflare binding plan and smoke tests are not implemented.
 - Postgres/Supabase/Hyperdrive migration tooling is not implemented.
 - OTel/log/eval store wiring is not implemented.
-- Secrets are names-only; dev/staging/prod management is not implemented.
+- Env contract and dev/staging/prod names-only validation now exist in
+  `docs/governance/env-secrets-contract.md`; provider secret stores and
+  rotation remain unimplemented.
 - Golden sample regression is not executable in CI.
 - External tracker sync for P0 traceability remains optional until a tracker is
   selected; repo-local traceability now exists in

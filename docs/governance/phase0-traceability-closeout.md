@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, and golden hook complete 8/16; frontend/agent/bindings/persistence/observability/env remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, and env contract complete 9/17; frontend/agent/bindings/persistence/observability/provider secrets remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -81,8 +81,8 @@ recorded in `tasks/todos.md`:
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
 - Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, full
-  Cloudflare bindings, Postgres/Hyperdrive, observability, secrets management,
-  and executable golden fixtures.
+  Cloudflare bindings, Postgres/Hyperdrive, observability, provider secret
+  stores/rotation, and executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -138,7 +138,7 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - AI SDK Agent Runtime, full Cloudflare bindings, Postgres/Hyperdrive, OTel,
-  executable golden fixtures, and secrets management by environment.
+  executable golden fixtures, and provider secret stores/rotation.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -174,6 +174,24 @@ Not completed:
 
 - Golden fixture manifest, source samples, quality rule engine, and executable
   regression assertions remain absent.
+
+## Execution Update - 2026-06-20 14:58 +08
+
+`env-secrets-contract` has been executed in
+`docs/governance/env-secrets-contract.md`.
+
+Completed:
+
+- `deploy/env/env.schema.json` defines env variable names and secret flags.
+- `deploy/env/dev.env.example`, `staging.env.example`, and `prod.env.example`
+  are names-only templates.
+- `npm run check:env` validates schema/template parity and blank values.
+- CI now includes an `Env Contract` step.
+
+Not completed:
+
+- Provider secret stores, rotation policy, emergency revocation, and real
+  deployment environment provisioning remain absent.
 
 ## Closeout Decision
 

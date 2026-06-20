@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 8 / 16 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 9 / 17 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
@@ -169,7 +169,8 @@ owner: "Planner / PM"
 - [ ] 黄金样本可执行 fixtures 与质量规则断言（§A4）
 - [ ] OTel + 日志 + eval store 接线（§11.3、§12.3）
 - [x] 环境变量 names-only template：`deploy/env/.env.example`
-- [ ] Secrets/环境变量管理与分环境（dev/staging/prod）
+- [x] Env/secrets contract：dev/staging/prod names-only templates + schema + `npm run check:env`
+- [ ] Provider secret stores / rotation / emergency revocation（Cloudflare/GitHub/Supabase）
 - [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线（Claude 前端跟进）
 - [x] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
 - [x] 建立 shared `packages/data-contracts`：标准响应信封、provenance、usage、默认拒绝错误码（§9.5–§9.6）
@@ -564,10 +565,11 @@ owner: "Planner / PM"
 - [x] Phase 0 traceability closeout 已建立：`docs/governance/phase0-traceability-closeout.md`
 - [x] 非前端 runtime scaffold 已建立：`docs/governance/engineering-runtime-scaffold.md`；包含 npm workspaces、Hono Worker `/health`、shared data contracts、CI workflow、names-only env template，并通过 local checks + Wrangler health smoke
 - [x] P0 requirement traceability ledger 已建立：`docs/governance/p0-traceability-ledger.md`；53 条 P0 需求均有 repo-local issue ref、owner role、test gate、release gate
+- [x] Env/secrets contract 已建立：`docs/governance/env-secrets-contract.md`；dev/staging/prod names-only templates、schema、CI validation 已通过
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的黄金 fixtures/质量规则尚未可执行，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
-- [ ] Sprint 0.4 的前端 scaffold、AI SDK Agent Runtime、完整 Cloudflare/Postgres 绑定、OTel、Secrets 分环境管理、Design System 集成与可执行 golden fixtures 尚未实现
+- [ ] Sprint 0.4 的前端 scaffold、AI SDK Agent Runtime、完整 Cloudflare/Postgres 绑定、OTel、provider secret stores/rotation、Design System 集成与可执行 golden fixtures 尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -576,6 +578,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0j | 完成 `env-secrets-contract`：新增 env schema、dev/staging/prod names-only templates、`npm run check:env` 与 CI Env Contract；provider secret stores/rotation 仍未完成，Sprint 0.4 更新为 9/17 |
 | 2026-06-20 | 1.0i | 完成 `golden-regression-hook`：新增 `npm run test:golden`、CI Golden Regression Hook、fixture manifest validator 与 `tests/golden` 说明；fixtures 仍未完成，Sprint 0.4 更新为 8/16 |
 | 2026-06-20 | 1.0h | 完成 `p0-traceability-ledger`：新增 53 条 P0 requirement owner/issue/test/release gate ledger；Sprint 0.4 更新为 7/15，§M 需求实现状态不变 |
 | 2026-06-20 | 1.0g | 完成 `engineering-runtime-scaffold` 非前端切片：新增 npm workspaces、Hono Worker health、shared data contracts、CI、env template 与 runtime evidence；按用户指示撤出前端/TanStack/Vite，Sprint 0.4 更新为 6/15 |
