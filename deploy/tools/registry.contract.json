@@ -26,7 +26,8 @@
     "get_security_profile",
     "get_market_calendar",
     "get_quote_snapshot",
-    "get_price_history"
+    "get_price_history",
+    "get_corporate_actions"
   ],
   "required_tool_fields": [
     "name",

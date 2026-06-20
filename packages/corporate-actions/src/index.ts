@@ -2,8 +2,16 @@ export const CORPORATE_ACTION_ADJUSTMENT_ENGINE_VERSION =
   "2026-06-20.phase1.corporate-action-engine.v0";
 export const CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION =
   "corporate-action-adjustment@synthetic-v0";
+export const GET_CORPORATE_ACTIONS_VERSION =
+  "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0";
+export const GET_CORPORATE_ACTIONS_DATA_VERSION = "corporate-actions-synthetic-v0";
 
 export type CorporateActionType = "consolidation" | "dividend" | "split";
+export type CorporateActionToolType =
+  | CorporateActionType
+  | "buyback"
+  | "placement"
+  | "rights";
 export type CorporateActionAdjustmentType =
   | "raw"
   | "split_adjusted"
@@ -13,6 +21,19 @@ export type CorporateActionAdjustmentErrorCode =
   | "ACTION_DATE_INVALID"
   | "ACTION_FACTOR_INVALID"
   | "PRICE_BAR_INVALID";
+export type CorporateActionsInputErrorCode =
+  | "INSTRUMENT_ID_REQUIRED"
+  | "INVALID_CURSOR"
+  | "INVALID_LIMIT"
+  | "INVALID_RANGE";
+export type CorporateActionsStatus =
+  | "data_not_licensed"
+  | "data_quality_hold"
+  | "found"
+  | "not_found"
+  | "out_of_range"
+  | "too_many_rows";
+export type CorporateActionsQualityState = "HOLD" | "PASS";
 
 export interface CorporateActionEvent {
   actionId: string;
@@ -22,6 +43,85 @@ export interface CorporateActionEvent {
   ratio?: number;
   reinvestmentPrice?: number;
   sourceRecordId: string;
+}
+
+export interface GetCorporateActionsInput {
+  cursor?: string;
+  from: string;
+  instrumentId: string;
+  limit?: number;
+  to: string;
+  types?: string[];
+}
+
+export interface CorporateActionToolRow {
+  actionId: string;
+  actionType: CorporateActionToolType;
+  adjustmentImpact: {
+    affectsSplitAdjusted: boolean;
+    affectsTotalReturnAdjusted: boolean;
+    methodologyVersion: typeof CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION;
+    priceAdjustmentFactor?: number;
+  };
+  announcementDate: string;
+  effectiveDate: string;
+  exDate?: string;
+  instrumentId: string;
+  paymentDate?: string;
+  qualityState: CorporateActionsQualityState;
+  sourceRecordId: string;
+  status: "announced" | "confirmed";
+  summary: string;
+  terms: {
+    buybackValue?: number;
+    cashAmount?: number;
+    currency?: string;
+    offerPrice?: number;
+    ratio?: number;
+    shares?: number;
+  };
+}
+
+export interface CorporateActionsTimeline {
+  actions: CorporateActionToolRow[];
+  currency: string;
+  exchange: string;
+  from: string;
+  instrumentId: string;
+  market: string;
+  nextCursor?: string;
+  qualityState: CorporateActionsQualityState;
+  rowCount: number;
+  symbol: string;
+  to: string;
+  totalRows: number;
+}
+
+export interface GetCorporateActionsResult {
+  cursor?: string;
+  dataVersion: typeof GET_CORPORATE_ACTIONS_DATA_VERSION;
+  from: string;
+  instrumentId: string;
+  limit: number;
+  liveDataAccess: false;
+  methodologyVersion: typeof GET_CORPORATE_ACTIONS_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version?: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  rejectedTypes: string[];
+  requestedTypes: CorporateActionToolType[];
+  status: CorporateActionsStatus;
+  timeline?: CorporateActionsTimeline;
+  to: string;
+  toolName: "get_corporate_actions";
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  };
 }
 
 export interface PriceObservation {
@@ -112,6 +212,219 @@ export class CorporateActionAdjustmentError extends Error {
   }
 }
 
+export class CorporateActionsInputError extends Error {
+  readonly code: CorporateActionsInputErrorCode;
+
+  constructor(code: CorporateActionsInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const DEFAULT_CORPORATE_ACTION_TYPES: readonly CorporateActionToolType[] = [
+  "dividend",
+  "split",
+  "consolidation",
+  "rights",
+  "placement",
+  "buyback"
+];
+const DEFAULT_CORPORATE_ACTION_LIMIT = 3;
+const MAX_CORPORATE_ACTION_LIMIT = 3;
+
+interface SyntheticCorporateActionRecord {
+  actions: readonly CorporateActionToolRow[];
+  currency: string;
+  exchange: string;
+  instrumentId: string;
+  market: string;
+  qualityState: CorporateActionsQualityState;
+  symbol: string;
+}
+
+const SYNTHETIC_CORPORATE_ACTIONS: readonly SyntheticCorporateActionRecord[] = [
+  {
+    actions: [
+      {
+        actionId: "corp_action_00700_dividend_2026_01_07",
+        actionType: "dividend",
+        adjustmentImpact: {
+          affectsSplitAdjusted: false,
+          affectsTotalReturnAdjusted: true,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION,
+          priceAdjustmentFactor: 0.9978
+        },
+        announcementDate: "2025-12-18",
+        effectiveDate: "2026-01-07",
+        exDate: "2026-01-07",
+        instrumentId: "eq_hk_00700",
+        paymentDate: "2026-01-22",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00700_dividend_2026_01_07",
+        status: "confirmed",
+        summary: "Synthetic HKD cash dividend with total-return adjustment impact.",
+        terms: {
+          cashAmount: 1,
+          currency: "HKD"
+        }
+      },
+      {
+        actionId: "corp_action_00700_buyback_2026_01_06",
+        actionType: "buyback",
+        adjustmentImpact: {
+          affectsSplitAdjusted: false,
+          affectsTotalReturnAdjusted: false,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION
+        },
+        announcementDate: "2026-01-06",
+        effectiveDate: "2026-01-06",
+        instrumentId: "eq_hk_00700",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00700_buyback_2026_01_06",
+        status: "announced",
+        summary: "Synthetic on-market buyback disclosure.",
+        terms: {
+          buybackValue: 350000000,
+          currency: "HKD",
+          shares: 780000
+        }
+      },
+      {
+        actionId: "corp_action_00700_split_2026_01_05",
+        actionType: "split",
+        adjustmentImpact: {
+          affectsSplitAdjusted: true,
+          affectsTotalReturnAdjusted: true,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION,
+          priceAdjustmentFactor: 0.5
+        },
+        announcementDate: "2025-12-15",
+        effectiveDate: "2026-01-05",
+        exDate: "2026-01-05",
+        instrumentId: "eq_hk_00700",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00700_split_2026_01_05",
+        status: "confirmed",
+        summary: "Synthetic two-for-one split used for adjustment timeline semantics.",
+        terms: {
+          ratio: 2
+        }
+      },
+      {
+        actionId: "corp_action_00700_placement_2026_01_03",
+        actionType: "placement",
+        adjustmentImpact: {
+          affectsSplitAdjusted: false,
+          affectsTotalReturnAdjusted: false,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION
+        },
+        announcementDate: "2026-01-03",
+        effectiveDate: "2026-01-03",
+        instrumentId: "eq_hk_00700",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00700_placement_2026_01_03",
+        status: "announced",
+        summary: "Synthetic placement event for capital-action filtering.",
+        terms: {
+          currency: "HKD",
+          offerPrice: 430,
+          shares: 1200000
+        }
+      }
+    ],
+    currency: "HKD",
+    exchange: "HKEX",
+    instrumentId: "eq_hk_00700",
+    market: "HK",
+    qualityState: "PASS",
+    symbol: "00700.HK"
+  },
+  {
+    actions: [
+      {
+        actionId: "corp_action_00001_rights_2026_01_07",
+        actionType: "rights",
+        adjustmentImpact: {
+          affectsSplitAdjusted: false,
+          affectsTotalReturnAdjusted: false,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION
+        },
+        announcementDate: "2025-12-20",
+        effectiveDate: "2026-01-07",
+        exDate: "2026-01-07",
+        instrumentId: "eq_hk_00001",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00001_rights_2026_01_07",
+        status: "confirmed",
+        summary: "Synthetic rights issue event.",
+        terms: {
+          currency: "HKD",
+          offerPrice: 17.5,
+          ratio: 0.2
+        }
+      },
+      {
+        actionId: "corp_action_00001_consolidation_2026_01_06",
+        actionType: "consolidation",
+        adjustmentImpact: {
+          affectsSplitAdjusted: true,
+          affectsTotalReturnAdjusted: true,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION,
+          priceAdjustmentFactor: 2
+        },
+        announcementDate: "2025-12-12",
+        effectiveDate: "2026-01-06",
+        exDate: "2026-01-06",
+        instrumentId: "eq_hk_00001",
+        qualityState: "PASS",
+        sourceRecordId: "src_corp_action_00001_consolidation_2026_01_06",
+        status: "confirmed",
+        summary: "Synthetic one-for-two consolidation event.",
+        terms: {
+          ratio: 0.5
+        }
+      }
+    ],
+    currency: "HKD",
+    exchange: "HKEX",
+    instrumentId: "eq_hk_00001",
+    market: "HK",
+    qualityState: "PASS",
+    symbol: "00001.HK"
+  },
+  {
+    actions: [
+      {
+        actionId: "corp_action_08001_dividend_hold_2026_01_07",
+        actionType: "dividend",
+        adjustmentImpact: {
+          affectsSplitAdjusted: false,
+          affectsTotalReturnAdjusted: true,
+          methodologyVersion: CORPORATE_ACTION_ADJUSTMENT_METHODOLOGY_VERSION
+        },
+        announcementDate: "2026-01-02",
+        effectiveDate: "2026-01-07",
+        exDate: "2026-01-07",
+        instrumentId: "eq_hk_08001",
+        qualityState: "HOLD",
+        sourceRecordId: "src_corp_action_08001_dividend_hold_2026_01_07",
+        status: "announced",
+        summary: "Synthetic held action fixture.",
+        terms: {
+          cashAmount: 0.01,
+          currency: "HKD"
+        }
+      }
+    ],
+    currency: "HKD",
+    exchange: "HKEX",
+    instrumentId: "eq_hk_08001",
+    market: "HK",
+    qualityState: "HOLD",
+    symbol: "08001.HK"
+  }
+] as const;
+
 export function adjustPriceSeries(
   input: AdjustPriceSeriesInput
 ): CorporateActionAdjustmentResult {
@@ -147,6 +460,183 @@ export function adjustPriceSeries(
   };
 }
 
+export function getCorporateActions(
+  input: GetCorporateActionsInput
+): GetCorporateActionsResult {
+  const instrumentId = input.instrumentId.trim();
+  const from = input.from.trim();
+  const to = input.to.trim();
+  const limit = input.limit ?? DEFAULT_CORPORATE_ACTION_LIMIT;
+
+  if (instrumentId.length === 0) {
+    throw new CorporateActionsInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (!isIsoDate(from) || !isIsoDate(to) || from > to) {
+    throw new CorporateActionsInputError(
+      "INVALID_RANGE",
+      "from and to must be YYYY-MM-DD dates with from <= to"
+    );
+  }
+
+  if (!Number.isInteger(limit) || limit <= 0) {
+    throw new CorporateActionsInputError(
+      "INVALID_LIMIT",
+      "limit must be a positive integer"
+    );
+  }
+
+  const normalizedTypes = normalizeCorporateActionTypes(input.types);
+  const offset = parseCorporateActionCursor(input.cursor);
+
+  if (normalizedTypes.rejectedTypes.length > 0) {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: normalizedTypes.rejectedTypes,
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "data_not_licensed",
+      timeline: undefined,
+      to
+    });
+  }
+
+  if (limit > MAX_CORPORATE_ACTION_LIMIT) {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: [],
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "too_many_rows",
+      timeline: undefined,
+      to
+    });
+  }
+
+  const record = SYNTHETIC_CORPORATE_ACTIONS.find(
+    (candidate) =>
+      normalizeInstrumentId(candidate.instrumentId) === normalizeInstrumentId(instrumentId)
+  );
+
+  if (record === undefined) {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: [],
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "not_found",
+      timeline: undefined,
+      to
+    });
+  }
+
+  if (record.qualityState === "HOLD") {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: [],
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "data_quality_hold",
+      timeline: undefined,
+      to
+    });
+  }
+
+  const firstAvailableDate = record.actions[record.actions.length - 1]?.effectiveDate;
+  const lastAvailableDate = record.actions[0]?.effectiveDate;
+  if (
+    firstAvailableDate === undefined ||
+    lastAvailableDate === undefined ||
+    from < firstAvailableDate ||
+    to > lastAvailableDate
+  ) {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: [],
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "out_of_range",
+      timeline: undefined,
+      to
+    });
+  }
+
+  const matchingActions = record.actions.filter(
+    (action) =>
+      action.effectiveDate >= from &&
+      action.effectiveDate <= to &&
+      normalizedTypes.requestedTypes.includes(action.actionType)
+  );
+
+  if (matchingActions.length === 0) {
+    return createCorporateActionsResult({
+      cursor: input.cursor,
+      from,
+      instrumentId,
+      limit,
+      rejectedTypes: [],
+      requestedTypes: normalizedTypes.requestedTypes,
+      status: "out_of_range",
+      timeline: undefined,
+      to
+    });
+  }
+
+  const timeline = createCorporateActionsTimeline({
+    actions: matchingActions,
+    from,
+    limit,
+    offset,
+    record,
+    to
+  });
+
+  return createCorporateActionsResult({
+    cursor: input.cursor,
+    from,
+    instrumentId,
+    limit,
+    rejectedTypes: [],
+    requestedTypes: normalizedTypes.requestedTypes,
+    status: "found",
+    timeline,
+    to
+  });
+}
+
+export function getCorporateActionsCapabilities() {
+  return {
+    adjustment_impact_metadata: true,
+    cursor_pagination: true,
+    data_version: GET_CORPORATE_ACTIONS_DATA_VERSION,
+    handler_ready: true,
+    input_schema: "tool.get_corporate_actions.input.v0",
+    live_data_access: false,
+    max_rows_per_request: MAX_CORPORATE_ACTION_LIMIT,
+    output_schema: "tool.get_corporate_actions.output.v0",
+    status: "get_corporate_actions_scaffold" as const,
+    supported_action_types: DEFAULT_CORPORATE_ACTION_TYPES,
+    synthetic_action_rows: SYNTHETIC_CORPORATE_ACTIONS.reduce(
+      (count, record) => count + record.actions.length,
+      0
+    ),
+    version: GET_CORPORATE_ACTIONS_VERSION
+  };
+}
+
 export function getCorporateActionAdjustmentCapabilities() {
   const golden = runSyntheticCorporateActionGolden();
 
@@ -167,6 +657,136 @@ export function getCorporateActionAdjustmentCapabilities() {
       "total_return_adjusted"
     ] as const
   };
+}
+
+function createCorporateActionsResult(params: {
+  cursor?: string;
+  from: string;
+  instrumentId: string;
+  limit: number;
+  rejectedTypes: string[];
+  requestedTypes: CorporateActionToolType[];
+  status: CorporateActionsStatus;
+  timeline: CorporateActionsTimeline | undefined;
+  to: string;
+}): GetCorporateActionsResult {
+  return {
+    cursor: params.cursor,
+    dataVersion: GET_CORPORATE_ACTIONS_DATA_VERSION,
+    from: params.from,
+    instrumentId: params.instrumentId,
+    limit: params.limit,
+    liveDataAccess: false,
+    methodologyVersion: GET_CORPORATE_ACTIONS_VERSION,
+    provenance: createCorporateActionsProvenance(),
+    rejectedTypes: params.rejectedTypes,
+    requestedTypes: params.requestedTypes,
+    status: params.status,
+    timeline: params.timeline,
+    to: params.to,
+    toolName: "get_corporate_actions",
+    usage: {
+      cached: false,
+      credits: params.timeline === undefined ? 0 : params.timeline.actions.length * 2,
+      rows: params.timeline?.actions.length ?? 0
+    }
+  };
+}
+
+function createCorporateActionsTimeline(params: {
+  actions: readonly CorporateActionToolRow[];
+  from: string;
+  limit: number;
+  offset: number;
+  record: SyntheticCorporateActionRecord;
+  to: string;
+}): CorporateActionsTimeline {
+  const pageActions = params.actions.slice(params.offset, params.offset + params.limit);
+  const nextOffset = params.offset + pageActions.length;
+  const nextCursor =
+    nextOffset < params.actions.length ? `offset:${nextOffset}` : undefined;
+
+  return {
+    actions: pageActions.map((action) => ({ ...action })),
+    currency: params.record.currency,
+    exchange: params.record.exchange,
+    from: params.from,
+    instrumentId: params.record.instrumentId,
+    market: params.record.market,
+    nextCursor,
+    qualityState: params.record.qualityState,
+    rowCount: pageActions.length,
+    symbol: params.record.symbol,
+    to: params.to,
+    totalRows: params.actions.length
+  };
+}
+
+function normalizeCorporateActionTypes(types: string[] | undefined): {
+  rejectedTypes: string[];
+  requestedTypes: CorporateActionToolType[];
+} {
+  if (types === undefined || types.length === 0) {
+    return {
+      rejectedTypes: [],
+      requestedTypes: [...DEFAULT_CORPORATE_ACTION_TYPES]
+    };
+  }
+
+  const requestedTypes: CorporateActionToolType[] = [];
+  const rejectedTypes: string[] = [];
+
+  for (const type of types) {
+    if (isCorporateActionToolType(type)) {
+      requestedTypes.push(type);
+    } else {
+      rejectedTypes.push(type);
+    }
+  }
+
+  return {
+    rejectedTypes,
+    requestedTypes
+  };
+}
+
+function isCorporateActionToolType(value: string): value is CorporateActionToolType {
+  return (DEFAULT_CORPORATE_ACTION_TYPES as readonly string[]).includes(value);
+}
+
+function parseCorporateActionCursor(cursor: string | undefined): number {
+  if (cursor === undefined || cursor.length === 0) {
+    return 0;
+  }
+
+  const match = /^offset:(\d+)$/u.exec(cursor);
+  if (match === null) {
+    throw new CorporateActionsInputError(
+      "INVALID_CURSOR",
+      "cursor must be empty or match offset:<number>"
+    );
+  }
+
+  return Number(match[1]);
+}
+
+function normalizeInstrumentId(value: string): string {
+  return value.trim().toLocaleLowerCase("en-US");
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(value);
+}
+
+function createCorporateActionsProvenance() {
+  return [
+    {
+      data_version: GET_CORPORATE_ACTIONS_DATA_VERSION,
+      methodology_version: GET_CORPORATE_ACTIONS_VERSION,
+      source: "synthetic-corporate-actions",
+      source_record_id: "get-corporate-actions-fixture-v0"
+    }
+  ];
 }
 
 export function runSyntheticCorporateActionGolden(): CorporateActionGoldenResult {

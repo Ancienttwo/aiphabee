@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   CorporateActionAdjustmentError,
+  CorporateActionsInputError,
   adjustPriceSeries,
+  getCorporateActions,
   getCorporateActionAdjustmentCapabilities,
+  getCorporateActionsCapabilities,
   runSyntheticCorporateActionGolden
 } from "./index";
 
@@ -150,5 +153,169 @@ describe("corporate action adjustment engine", () => {
         instrumentId: "eq_bad"
       })
     ).toThrow(CorporateActionAdjustmentError);
+  });
+});
+
+describe("corporate actions tool scaffold", () => {
+  it("returns synthetic corporate action timeline rows with adjustment impact metadata", () => {
+    const result = getCorporateActions({
+      from: "2026-01-03",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07"
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_corporate_actions");
+    expect(result.liveDataAccess).toBe(false);
+    expect(result.timeline).toMatchObject({
+      currency: "HKD",
+      instrumentId: "eq_hk_00700",
+      market: "HK",
+      qualityState: "PASS",
+      rowCount: 3,
+      symbol: "00700.HK",
+      totalRows: 4
+    });
+    expect(result.timeline?.actions[0]).toMatchObject({
+      actionType: "dividend",
+      adjustmentImpact: {
+        affectsSplitAdjusted: false,
+        affectsTotalReturnAdjusted: true
+      },
+      effectiveDate: "2026-01-07",
+      terms: {
+        cashAmount: 1,
+        currency: "HKD"
+      }
+    });
+    expect(result.timeline?.nextCursor).toBe("offset:3");
+    expect(result.usage.rows).toBe(3);
+    expect(result.usage.credits).toBe(6);
+  });
+
+  it("supports type subsets and deterministic cursor pagination", () => {
+    const firstPage = getCorporateActions({
+      from: "2026-01-03",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      to: "2026-01-07",
+      types: ["dividend", "buyback", "split", "placement"]
+    });
+    const secondPage = getCorporateActions({
+      cursor: firstPage.timeline?.nextCursor,
+      from: "2026-01-03",
+      instrumentId: "eq_hk_00700",
+      limit: 2,
+      to: "2026-01-07",
+      types: ["dividend", "buyback", "split", "placement"]
+    });
+    const subset = getCorporateActions({
+      from: "2026-01-03",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07",
+      types: ["buyback"]
+    });
+
+    expect(firstPage.timeline?.actions.map((action) => action.actionType)).toEqual([
+      "dividend",
+      "buyback"
+    ]);
+    expect(firstPage.timeline?.nextCursor).toBe("offset:2");
+    expect(secondPage.timeline?.actions.map((action) => action.actionType)).toEqual([
+      "split",
+      "placement"
+    ]);
+    expect(secondPage.timeline?.nextCursor).toBeUndefined();
+    expect(subset.timeline?.actions.map((action) => action.actionType)).toEqual(["buyback"]);
+  });
+
+  it("returns data_not_licensed for unsupported corporate action types", () => {
+    const result = getCorporateActions({
+      from: "2026-01-03",
+      instrumentId: "eq_hk_00700",
+      to: "2026-01-07",
+      types: ["dividend", "spin_off"]
+    });
+
+    expect(result.status).toBe("data_not_licensed");
+    expect(result.rejectedTypes).toEqual(["spin_off"]);
+    expect(result.timeline).toBeUndefined();
+    expect(result.usage.rows).toBe(0);
+  });
+
+  it("returns quality, range, missing, and row-limit states", () => {
+    expect(
+      getCorporateActions({
+        from: "2026-01-07",
+        instrumentId: "eq_hk_08001",
+        to: "2026-01-07"
+      }).status
+    ).toBe("data_quality_hold");
+    expect(
+      getCorporateActions({
+        from: "2025-12-01",
+        instrumentId: "eq_hk_00700",
+        to: "2025-12-31"
+      }).status
+    ).toBe("out_of_range");
+    expect(
+      getCorporateActions({
+        from: "2026-01-03",
+        instrumentId: "eq_hk_missing",
+        to: "2026-01-07"
+      }).status
+    ).toBe("not_found");
+    expect(
+      getCorporateActions({
+        from: "2026-01-03",
+        instrumentId: "eq_hk_00700",
+        limit: 4,
+        to: "2026-01-07"
+      }).status
+    ).toBe("too_many_rows");
+  });
+
+  it("requires valid corporate action inputs", () => {
+    expect(() =>
+      getCorporateActions({
+        from: "2026-01-03",
+        instrumentId: "  ",
+        to: "2026-01-07"
+      })
+    ).toThrow(CorporateActionsInputError);
+    expect(() =>
+      getCorporateActions({
+        from: "2026-01-07",
+        instrumentId: "eq_hk_00700",
+        to: "2026-01-03"
+      })
+    ).toThrow(CorporateActionsInputError);
+    expect(() =>
+      getCorporateActions({
+        cursor: "bad-cursor",
+        from: "2026-01-03",
+        instrumentId: "eq_hk_00700",
+        to: "2026-01-07"
+      })
+    ).toThrow(CorporateActionsInputError);
+  });
+
+  it("reports no-live corporate actions capabilities", () => {
+    expect(getCorporateActionsCapabilities()).toMatchObject({
+      adjustment_impact_metadata: true,
+      cursor_pagination: true,
+      handler_ready: true,
+      live_data_access: false,
+      max_rows_per_request: 3,
+      status: "get_corporate_actions_scaffold",
+      supported_action_types: [
+        "dividend",
+        "split",
+        "consolidation",
+        "rights",
+        "placement",
+        "buyback"
+      ]
+    });
   });
 });

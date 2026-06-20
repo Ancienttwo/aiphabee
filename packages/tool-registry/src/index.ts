@@ -131,16 +131,17 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return dividends, splits, consolidations, buybacks, and placements.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_corporate_actions",
     permissions: createPermissions("corporate_actions:read", ["corporate_actions"]),
     schema: createSchema("get_corporate_actions", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
       "OUT_OF_RANGE"
     ]),
-    status: "planned",
-    testing: createTesting("get_corporate_actions"),
+    status: "scaffold",
+    testing: createTesting("get_corporate_actions", true),
     version: "0.0.0"
   },
   {

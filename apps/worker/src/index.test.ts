@@ -220,6 +220,44 @@ interface PriceHistoryBody {
   };
 }
 
+interface CorporateActionsBody {
+  data: {
+    capability: {
+      adjustment_impact_metadata: boolean;
+      cursor_pagination: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+      supported_action_types: string[];
+    };
+    liveDataAccess: boolean;
+    requestedTypes: string[];
+    status: string;
+    timeline: {
+      actions: Array<{
+        actionType: string;
+        adjustmentImpact: {
+          affectsSplitAdjusted: boolean;
+          affectsTotalReturnAdjusted: boolean;
+        };
+        effectiveDate: string;
+        terms: Record<string, number | string>;
+      }>;
+      nextCursor?: string;
+      qualityState: string;
+      rowCount: number;
+      symbol: string;
+      totalRows: number;
+    };
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -629,7 +667,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(5);
+    expect(body.data.handler_ready_tool_count).toBe(6);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -688,6 +726,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_price_history")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_corporate_actions")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -1257,6 +1309,159 @@ describe("worker runtime", () => {
       headers: {
         "content-type": "application/json",
         "x-request-id": "req-price-history-invalid"
+      },
+      method: "POST"
+    });
+    const unlicensedBody = (await unlicensed.json()) as ErrorBody;
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unlicensed.status).toBe(403);
+    expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
+    expect(tooManyRows.status).toBe(422);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns corporate action rows with adjustment impact metadata and cursor pagination", async () => {
+    const response = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        limit: 2,
+        to: "2026-01-07",
+        types: ["dividend", "buyback", "split", "placement"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CorporateActionsBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_corporate_actions");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.timeline).toMatchObject({
+      nextCursor: "offset:2",
+      qualityState: "PASS",
+      rowCount: 2,
+      symbol: "00700.HK",
+      totalRows: 4
+    });
+    expect(body.data.timeline.actions.map((action) => action.actionType)).toEqual([
+      "dividend",
+      "buyback"
+    ]);
+    expect(body.data.timeline.actions[0].adjustmentImpact).toMatchObject({
+      affectsSplitAdjusted: false,
+      affectsTotalReturnAdjusted: true
+    });
+    expect(body.data.capability).toMatchObject({
+      adjustment_impact_metadata: true,
+      cursor_pagination: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_corporate_actions_scaffold",
+      supported_action_types: [
+        "dividend",
+        "split",
+        "consolidation",
+        "rights",
+        "placement",
+        "buyback"
+      ]
+    });
+    expect(body.usage.rows).toBe(2);
+    expect(body.usage.credits).toBe(4);
+  });
+
+  it("returns standard errors for corporate action licensing, quality, range, row, and input failures", async () => {
+    const unlicensed = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-07",
+        types: ["dividend", "spin_off"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-unlicensed"
+      },
+      method: "POST"
+    });
+    const qualityHold = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        instrument_id: "eq_hk_08001",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-quality"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2025-12-01",
+        instrument_id: "eq_hk_00700",
+        to: "2025-12-31"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-range"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        limit: 4,
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-too-many"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_missing",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-corporate-actions", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-03"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-corporate-actions-invalid"
       },
       method: "POST"
     });
