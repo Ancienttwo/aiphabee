@@ -20,6 +20,14 @@ import {
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import {
+  DataLineageInputError,
+  EntitlementsInputError,
+  getDataLineage,
+  getDataLineageCapabilities,
+  getEntitlements,
+  getEntitlementsCapabilities
+} from "@aiphabee/evidence-lineage";
+import {
   FinancialFactsInputError,
   getFinancialFacts,
   getFinancialFactsCapabilities,
@@ -1740,6 +1748,264 @@ app.post("/tools/get-financial-facts", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-data-lineage", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    asOf?: unknown;
+    evidence_id?: unknown;
+    evidenceId?: unknown;
+    include_upstream?: unknown;
+    includeUpstream?: unknown;
+    record_id?: unknown;
+    recordId?: unknown;
+  };
+
+  try {
+    const result = getDataLineage({
+      asOf:
+        typeof body.as_of === "string"
+          ? body.as_of
+          : typeof body.asOf === "string"
+            ? body.asOf
+            : undefined,
+      evidenceId:
+        typeof body.evidence_id === "string"
+          ? body.evidence_id
+          : typeof body.evidenceId === "string"
+            ? body.evidenceId
+            : undefined,
+      includeUpstream:
+        typeof body.include_upstream === "boolean"
+          ? body.include_upstream
+          : typeof body.includeUpstream === "boolean"
+            ? body.includeUpstream
+            : undefined,
+      recordId:
+        typeof body.record_id === "string"
+          ? body.record_id
+          : typeof body.recordId === "string"
+            ? body.recordId
+            : undefined
+    });
+    const meta = {
+      asOf: result.asOf,
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "not_found") {
+      return c.json(createErrorEnvelope("NOT_FOUND", "data lineage was not found", meta), 404);
+    }
+
+    if (result.status === "data_quality_hold") {
+      return c.json(
+        createErrorEnvelope("DATA_QUALITY_HOLD", "data lineage is held by quality policy", meta),
+        409
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getDataLineageCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof DataLineageInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_data_lineage failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-entitlements", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    asOf?: unknown;
+    channel?: unknown;
+    dataset?: unknown;
+    export_requested?: unknown;
+    exportRequested?: unknown;
+    fields?: unknown;
+    plan?: unknown;
+    requested_rows?: unknown;
+    requestedRows?: unknown;
+    time_range?: unknown;
+    timeRange?: unknown;
+    tool_name?: unknown;
+    toolName?: unknown;
+    workspace_id?: unknown;
+    workspaceId?: unknown;
+  };
+  const fields = Array.isArray(body.fields)
+    ? body.fields.filter((field): field is string => typeof field === "string")
+    : undefined;
+  const rawTimeRange = isTimeRange(body.time_range)
+    ? body.time_range
+    : isTimeRange(body.timeRange)
+      ? body.timeRange
+      : undefined;
+
+  try {
+    const result = getEntitlements({
+      asOf:
+        typeof body.as_of === "string"
+          ? body.as_of
+          : typeof body.asOf === "string"
+            ? body.asOf
+            : undefined,
+      channel: typeof body.channel === "string" ? body.channel : undefined,
+      dataset: typeof body.dataset === "string" ? body.dataset : undefined,
+      exportRequested:
+        typeof body.export_requested === "boolean"
+          ? body.export_requested
+          : typeof body.exportRequested === "boolean"
+            ? body.exportRequested
+            : undefined,
+      fields,
+      plan: typeof body.plan === "string" ? body.plan : undefined,
+      requestedRows:
+        typeof body.requested_rows === "number"
+          ? body.requested_rows
+          : typeof body.requestedRows === "number"
+            ? body.requestedRows
+            : undefined,
+      timeRange: rawTimeRange,
+      toolName:
+        typeof body.tool_name === "string"
+          ? body.tool_name
+          : typeof body.toolName === "string"
+            ? body.toolName
+            : undefined,
+      workspaceId:
+        typeof body.workspace_id === "string"
+          ? body.workspace_id
+          : typeof body.workspaceId === "string"
+            ? body.workspaceId
+            : undefined
+    });
+    const meta = {
+      asOf: result.asOf,
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "scope_denied") {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", "entitlement workspace scope is denied", meta),
+        403
+      );
+    }
+
+    if (result.status === "data_not_licensed") {
+      return c.json(
+        createErrorEnvelope("DATA_NOT_LICENSED", "requested entitlement scope is not licensed", meta),
+        403
+      );
+    }
+
+    if (result.status === "out_of_range") {
+      return c.json(
+        createErrorEnvelope("OUT_OF_RANGE", "entitlement time range is out of policy", meta),
+        422
+      );
+    }
+
+    if (result.status === "too_many_rows") {
+      return c.json(
+        createErrorEnvelope("TOO_MANY_ROWS", "entitlement row request exceeds policy", meta),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getEntitlementsCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof EntitlementsInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_entitlements failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
         requestId,
         usage: {
           cached: false,

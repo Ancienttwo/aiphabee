@@ -17,6 +17,7 @@
     "@aiphabee/corporate-actions": "file:../../packages/corporate-actions",
     "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
+    "@aiphabee/evidence-lineage": "file:../../packages/evidence-lineage",
     "@aiphabee/financial-facts": "file:../../packages/financial-facts",
     "@aiphabee/market-calendar": "file:../../packages/market-calendar",
     "@aiphabee/market-data": "file:../../packages/market-data",

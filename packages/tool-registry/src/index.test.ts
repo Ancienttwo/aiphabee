@@ -15,7 +15,7 @@ describe("tool registry scaffold", () => {
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
     expect(capabilities.standard_response_envelope).toBe(true);
-    expect(capabilities.handler_ready_tool_count).toBe(7);
+    expect(capabilities.handler_ready_tool_count).toBe(9);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
         handlerReady: true,
@@ -88,6 +88,30 @@ describe("tool registry scaffold", () => {
     });
     expect(
       capabilities.tools.find((tool) => tool.name === "get_financial_facts")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        mode: "read_only_scaffold"
+      },
+      status: "scaffold",
+      testing: {
+        goldenFixtureReady: true
+      }
+    });
+    expect(
+      capabilities.tools.find((tool) => tool.name === "get_data_lineage")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        mode: "read_only_scaffold"
+      },
+      status: "scaffold",
+      testing: {
+        goldenFixtureReady: true
+      }
+    });
+    expect(
+      capabilities.tools.find((tool) => tool.name === "get_entitlements")
     ).toMatchObject({
       execution: {
         handlerReady: true,

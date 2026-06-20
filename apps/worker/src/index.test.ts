@@ -300,6 +300,83 @@ interface FinancialFactsBody {
   };
 }
 
+interface DataLineageBody {
+  data: {
+    capability: {
+      handler_ready: boolean;
+      live_data_access: boolean;
+      source_record_lookup: boolean;
+      status: string;
+    };
+    lineage: {
+      dataVersion: string;
+      dataset: string;
+      formula?: string;
+      recordId: string;
+      sourceBatchId: string;
+      sourceRecordId: string;
+      toolName: string;
+      upstream: Array<{
+        dataset: string;
+        recordId: string;
+      }>;
+      version: number;
+    };
+    liveDataAccess: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface EntitlementsBody {
+  data: {
+    capability: {
+      gateway_policy_compiler: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      status: string;
+    };
+    decision?: {
+      allowedFields: string[];
+      deniedFields: Array<{
+        field: string;
+        reason: string;
+      }>;
+      status: string;
+    };
+    entitlements: {
+      allowedFields: string[];
+      datasets: string[];
+      deniedFields: Array<{
+        field: string;
+        reason: string;
+      }>;
+      limitationCodes: string[];
+      tools: string[];
+    };
+    liveDataAccess: boolean;
+    policySource: {
+      liveDbReads: boolean;
+      partnerRightsMatrixLoaded: boolean;
+      sqlEmitted: boolean;
+      status: string;
+    };
+    status: string;
+    toolName: string;
+    workspaceId: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -709,7 +786,7 @@ describe("worker runtime", () => {
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(7);
+    expect(body.data.handler_ready_tool_count).toBe(9);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
@@ -796,6 +873,34 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_financial_facts")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_data_lineage")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_entitlements")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -1706,6 +1811,213 @@ describe("worker runtime", () => {
     expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
     expect(missing.status).toBe(404);
     expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns data lineage source, batch, version, formula, and upstream metadata", async () => {
+    const response = await app.request("/tools/get-data-lineage", {
+      body: JSON.stringify({
+        evidence_id: "ev_financial_facts_00700_fy2023"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-data-lineage"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as DataLineageBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_data_lineage");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.lineage).toMatchObject({
+      dataVersion: "financial-facts-synthetic-v0",
+      dataset: "financial_facts",
+      formula: "standardized_statement_row = source_fact.value * scale",
+      recordId: "financial_fact:eq_hk_00700:2023-12-31:restatement-1",
+      sourceBatchId: "batch-financial-facts-20240401",
+      toolName: "get_financial_facts",
+      version: 1
+    });
+    expect(body.data.lineage.upstream[0]).toMatchObject({
+      dataset: "security_master",
+      recordId: "security:eq_hk_00700"
+    });
+    expect(body.data.capability).toMatchObject({
+      handler_ready: true,
+      live_data_access: false,
+      source_record_lookup: true,
+      status: "get_data_lineage_scaffold"
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("returns standard errors for lineage quality, missing, and invalid lookups", async () => {
+    const qualityHold = await app.request("/tools/get-data-lineage", {
+      body: JSON.stringify({
+        evidence_id: "ev_quote_08001_quality_hold"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-data-lineage-quality"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-data-lineage", {
+      body: JSON.stringify({
+        evidence_id: "ev_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-data-lineage-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-data-lineage", {
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-data-lineage-invalid"
+      },
+      method: "POST"
+    });
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns entitlement scope and field redactions through the gateway policy compiler", async () => {
+    const response = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        dataset: "financial_facts",
+        fields: ["revenue", "capital_expenditure"],
+        workspace_id: "ws_demo_pro"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EntitlementsBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_entitlements");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.decision).toMatchObject({
+      allowedFields: ["revenue"],
+      deniedFields: [
+        {
+          field: "capital_expenditure",
+          reason: "workspace_entitlement_blocked"
+        }
+      ],
+      status: "allow_with_redactions"
+    });
+    expect(body.data.entitlements.datasets).toContain("financial_facts");
+    expect(body.data.entitlements.tools).toContain("get_financial_facts");
+    expect(body.data.entitlements.limitationCodes).toContain("field_redactions_applied");
+    expect(body.data.policySource).toMatchObject({
+      liveDbReads: false,
+      partnerRightsMatrixLoaded: false,
+      sqlEmitted: false,
+      status: "policy_source_scaffold"
+    });
+    expect(body.data.capability).toMatchObject({
+      gateway_policy_compiler: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "get_entitlements_scaffold"
+    });
+  });
+
+  it("returns standard errors for denied entitlement scopes and invalid requests", async () => {
+    const scopeDenied = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        workspace_id: "ws_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements-scope"
+      },
+      method: "POST"
+    });
+    const notLicensed = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        dataset: "vendor_ticks",
+        workspace_id: "ws_demo_pro"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements-license"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        dataset: "quote_snapshot",
+        requested_rows: 501,
+        workspace_id: "ws_demo_pro"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements-rows"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        dataset: "quote_snapshot",
+        time_range: {
+          from: "2024-01-01",
+          to: "2026-01-07"
+        },
+        workspace_id: "ws_demo_pro"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements-range"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-entitlements", {
+      body: JSON.stringify({
+        channel: "partner"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-entitlements-invalid"
+      },
+      method: "POST"
+    });
+    const scopeDeniedBody = (await scopeDenied.json()) as ErrorBody;
+    const notLicensedBody = (await notLicensed.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(scopeDenied.status).toBe(403);
+    expect(scopeDeniedBody.error.code).toBe("SCOPE_DENIED");
+    expect(notLicensed.status).toBe(403);
+    expect(notLicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(tooManyRows.status).toBe(422);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
     expect(invalid.status).toBe(400);
     expect(invalidBody.error.code).toBe("SCOPE_DENIED");
   });

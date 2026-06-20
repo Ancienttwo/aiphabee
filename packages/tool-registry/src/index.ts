@@ -164,23 +164,32 @@ export const REGISTERED_TOOLS = [
   {
     channels: ["web", "mcp", "api"],
     description: "Return lineage metadata for tool outputs and source records.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_data_lineage",
     permissions: createPermissions("lineage:read", ["lineage"]),
-    schema: createSchema("get_data_lineage", ["NOT_FOUND"]),
-    status: "planned",
-    testing: createTesting("get_data_lineage"),
+    schema: createSchema("get_data_lineage", [
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "SCOPE_DENIED"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_data_lineage", true),
     version: "0.0.0"
   },
   {
     channels: ["web", "mcp", "api"],
     description: "Return data entitlements for a workspace, channel, dataset, and fields.",
-    execution: createPlannedReadOnlyExecution(),
+    execution: createScaffoldReadOnlyExecution(),
     name: "get_entitlements",
     permissions: createPermissions("entitlements:read", ["entitlements"]),
-    schema: createSchema("get_entitlements", ["DATA_NOT_LICENSED", "SCOPE_DENIED"]),
-    status: "planned",
-    testing: createTesting("get_entitlements"),
+    schema: createSchema("get_entitlements", [
+      "DATA_NOT_LICENSED",
+      "OUT_OF_RANGE",
+      "SCOPE_DENIED",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_entitlements", true),
     version: "0.0.0"
   }
 ] as const satisfies readonly RegisteredToolDefinition[];

@@ -23,7 +23,9 @@ const scaffoldTools = [
   "get_quote_snapshot",
   "get_price_history",
   "get_corporate_actions",
-  "get_financial_facts"
+  "get_financial_facts",
+  "get_data_lineage",
+  "get_entitlements"
 ];
 
 let contract;
