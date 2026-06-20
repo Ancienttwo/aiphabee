@@ -1,0 +1,78 @@
+{
+  "version": "2026-06-20.phase0.cloudflare-bindings.v0",
+  "status": "planned",
+  "bindings": [
+    {
+      "name": "aiphabee-worker",
+      "type": "worker",
+      "purpose": "Public Worker entrypoint for health, future API, and future agent routes.",
+      "required_by_sprint": "0.4",
+      "smoke_test": "GET /health returns 200 with no market-data or MCP redistribution surface.",
+      "provisioned": true
+    },
+    {
+      "name": "AIPHABEE_RESEARCH_WORKFLOW",
+      "type": "workflow",
+      "purpose": "Future long-running research tasks and resumable jobs.",
+      "required_by_sprint": "2.4",
+      "smoke_test": "Create a dry-run workflow task and observe terminal state.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_EVENTS_QUEUE",
+      "type": "queue",
+      "purpose": "Future async events for usage ledger, corrections, notifications, and audit fanout.",
+      "required_by_sprint": "2.4",
+      "smoke_test": "Publish and consume a synthetic event with request_id.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_MAINTENANCE_CRON",
+      "type": "cron",
+      "purpose": "Future scheduled reconciliation, freshness checks, and housekeeping.",
+      "required_by_sprint": "3.2",
+      "smoke_test": "Invoke scheduled handler locally and record run status.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_RUN_COORDINATOR",
+      "type": "durable_object",
+      "purpose": "Future run coordination, budget counters, and idempotency boundaries.",
+      "required_by_sprint": "1.3",
+      "smoke_test": "Create object instance and read/write a synthetic run state.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_ARTIFACTS",
+      "type": "r2",
+      "purpose": "Future immutable artifacts, evidence snapshots, and generated report assets.",
+      "required_by_sprint": "2.2",
+      "smoke_test": "Put/get/delete a synthetic object with retention metadata.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_CONFIG",
+      "type": "kv",
+      "purpose": "Future low-risk runtime flags, public config, and kill-switch metadata.",
+      "required_by_sprint": "1.3",
+      "smoke_test": "Put/get a synthetic non-secret flag.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_AI_GATEWAY",
+      "type": "ai_gateway",
+      "purpose": "Future model logging, cost tracking, limits, caching, and fallback routing.",
+      "required_by_sprint": "1.3",
+      "smoke_test": "Route a synthetic model request through the configured gateway.",
+      "provisioned": false
+    },
+    {
+      "name": "AIPHABEE_HYPERDRIVE",
+      "type": "hyperdrive",
+      "purpose": "Future Postgres/Supabase connection path for Worker runtime.",
+      "required_by_sprint": "1.1",
+      "smoke_test": "Run read-only SELECT 1 through Hyperdrive.",
+      "provisioned": false
+    }
+  ]
+}

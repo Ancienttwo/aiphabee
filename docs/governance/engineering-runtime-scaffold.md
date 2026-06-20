@@ -123,7 +123,9 @@ Observed `/health` response:
 
 - Frontend scaffold is intentionally absent and delegated to Claude.
 - AI SDK v7 Agent Runtime is not implemented.
-- Full Cloudflare binding plan and smoke tests are not implemented.
+- Cloudflare binding contract now exists in
+  `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
+  tests remain unimplemented.
 - Postgres/Supabase/Hyperdrive migration tooling is not implemented.
 - OTel/log/eval store wiring is not implemented.
 - Env contract and dev/staging/prod names-only validation now exist in

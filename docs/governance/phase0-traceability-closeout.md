@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, and env contract complete 9/17; frontend/agent/bindings/persistence/observability/provider secrets remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, and Cloudflare binding contract complete 10/18; frontend/agent/resource provisioning/persistence/observability/provider secrets remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -80,9 +80,9 @@ recorded in `tasks/todos.md`:
 - External Gate 0 rights/regulatory approvals.
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
-- Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, full
-  Cloudflare bindings, Postgres/Hyperdrive, observability, provider secret
-  stores/rotation, and executable golden fixtures.
+- Remaining runtime surfaces: frontend app, AI SDK Agent Runtime, Cloudflare
+  resource provisioning/smoke, Postgres/Hyperdrive, observability, provider
+  secret stores/rotation, and executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -137,8 +137,9 @@ Not completed:
 
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
-- AI SDK Agent Runtime, full Cloudflare bindings, Postgres/Hyperdrive, OTel,
-  executable golden fixtures, and provider secret stores/rotation.
+- AI SDK Agent Runtime, Cloudflare resource provisioning/smoke,
+  Postgres/Hyperdrive, OTel, executable golden fixtures, and provider secret
+  stores/rotation.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -192,6 +193,25 @@ Not completed:
 
 - Provider secret stores, rotation policy, emergency revocation, and real
   deployment environment provisioning remain absent.
+
+## Execution Update - 2026-06-20 15:10 +08
+
+`cloudflare-bindings-contract` has been executed in
+`docs/governance/cloudflare-bindings-contract.md`.
+
+Completed:
+
+- `deploy/cloudflare/bindings.contract.json` defines planned Worker,
+  Workflows, Queues, Cron, Durable Objects, R2, KV, AI Gateway, and Hyperdrive
+  surfaces.
+- `npm run check:bindings` validates binding type coverage and rejects IDs,
+  tokens, secrets, or values in the contract.
+- CI now includes a `Cloudflare Bindings Contract` step.
+
+Not completed:
+
+- Real Cloudflare resources, Wrangler resource binding IDs, and provider smoke
+  tests remain absent.
 
 ## Closeout Decision
 
