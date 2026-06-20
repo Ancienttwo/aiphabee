@@ -61,6 +61,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql",
+      "purpose": "Create empty financial facts and restatement scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.financial_fact",
+        "core.financial_restatement",
+        "core.financial_statement",
+        "governance.financial_facts_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

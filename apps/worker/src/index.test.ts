@@ -70,6 +70,13 @@ interface DataRuntimeBody {
       table: string;
     };
     default_rights_status: string;
+    financial_facts: {
+      live_facts: boolean;
+      quality_default_state: string;
+      restatement_versions: boolean;
+      status: string;
+      tables: string[];
+    };
     live_queries: boolean;
     market_data_loaded: boolean;
     raw_snapshots: {
@@ -292,6 +299,17 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
     expect(body.data.default_rights_status).toBe("default_deny");
+    expect(body.data.financial_facts).toMatchObject({
+      live_facts: false,
+      quality_default_state: "HOLD",
+      restatement_versions: true,
+      status: "schema_scaffold",
+      tables: [
+        "core.financial_statement",
+        "core.financial_fact",
+        "core.financial_restatement"
+      ]
+    });
     expect(body.data.live_queries).toBe(false);
     expect(body.data.market_data_loaded).toBe(false);
     expect(body.data.security_master.status).toBe("schema_scaffold");

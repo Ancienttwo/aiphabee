@@ -90,8 +90,8 @@ Observed `/gateway/runtime` fields:
 
 ## Residual Gaps
 
-- Securities master, raw snapshots, financial facts, corporate actions, and
-  real Serving Store are absent.
+- Securities master, raw snapshot, and financial fact/restatement schemas now
+  exist, but corporate actions and real Serving Store are absent.
 - Partner-signed rights matrix is absent.
 - Persistent usage ledger and account/workspace/plan enforcement are absent.
 - No external MCP/API redistribution surface is enabled.

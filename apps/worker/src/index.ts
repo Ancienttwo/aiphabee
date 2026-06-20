@@ -134,6 +134,17 @@ app.get("/data/runtime", (c) => {
           live_batches: false
         },
         default_rights_status: "default_deny",
+        financial_facts: {
+          live_facts: false,
+          quality_default_state: "HOLD",
+          restatement_versions: true,
+          status: "schema_scaffold",
+          tables: [
+            "core.financial_statement",
+            "core.financial_fact",
+            "core.financial_restatement"
+          ]
+        },
         live_queries: false,
         market_data_loaded: false,
         raw_snapshots: {
@@ -157,13 +168,19 @@ app.get("/data/runtime", (c) => {
       },
       {
         asOf: new Date().toISOString(),
-        methodologyVersion: "security-master-raw-snapshot-scaffold-v0",
+        methodologyVersion: "financial-facts-restatement-scaffold-v0",
         provenance: [
           {
             data_version: "security-master-raw-snapshot-scaffold-v0",
             methodology_version: "security-master-raw-snapshot-scaffold-v0",
             source: "database-migration-contract",
             source_record_id: "security-master-runtime-capabilities"
+          },
+          {
+            data_version: "financial-facts-restatement-scaffold-v0",
+            methodology_version: "financial-facts-restatement-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "financial-facts-runtime-capabilities"
           }
         ],
         requestId,
