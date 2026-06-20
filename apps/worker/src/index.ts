@@ -91,7 +91,15 @@ import {
   resolveSecurity
 } from "@aiphabee/security-tools";
 import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
-import { getUsageLedgerEventWriterCapabilities } from "@aiphabee/usage-ledger";
+import {
+  USAGE_QUOTA_CHANNELS,
+  USAGE_QUOTA_PLAN_CODES,
+  createUsageQuotaDisplayPlan,
+  getUsageLedgerEventWriterCapabilities,
+  getUsageQuotaDisplayCapabilities,
+  type UsageQuotaChannel,
+  type UsageQuotaPlanCode
+} from "@aiphabee/usage-ledger";
 
 interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: unknown;
@@ -582,6 +590,80 @@ app.get("/gateway/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/usage/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getUsageQuotaDisplayCapabilities(), {
+      asOf: new Date().toISOString(),
+      methodologyVersion: "usage-quota-display-scaffold-v0",
+      provenance: [
+        {
+          data_version: "usage-quota-display-scaffold-v0",
+          methodology_version: "usage-quota-display-scaffold-v0",
+          source: "usage-quota-display-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/usage/quota/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createUsageQuotaDisplayPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    channel: normalizeUsageQuotaChannel(body.channel),
+    pendingCredits: normalizeOptionalNumber(body.pending_credits ?? body.pendingCredits),
+    periodEnd: normalizeString(body.period_end ?? body.periodEnd),
+    periodStart: normalizeString(body.period_start ?? body.periodStart),
+    planCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+    requestId,
+    usedCredits: normalizeOptionalNumber(body.used_credits ?? body.usedCredits),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getUsageQuotaDisplayCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "usage-quota-display",
+            source_record_id: "usage-quota-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? 1 : 0
         }
       }
     )
@@ -2824,6 +2906,18 @@ function normalizeAccountSessionAction(value: unknown): AccountSessionAction | u
     value === "revoke_device" ||
     value === "revoke_session"
     ? value
+    : undefined;
+}
+
+function normalizeUsageQuotaChannel(value: unknown): UsageQuotaChannel | undefined {
+  return USAGE_QUOTA_CHANNELS.includes(value as UsageQuotaChannel)
+    ? (value as UsageQuotaChannel)
+    : undefined;
+}
+
+function normalizeUsageQuotaPlanCode(value: unknown): UsageQuotaPlanCode | undefined {
+  return USAGE_QUOTA_PLAN_CODES.includes(value as UsageQuotaPlanCode)
+    ? (value as UsageQuotaPlanCode)
     : undefined;
 }
 

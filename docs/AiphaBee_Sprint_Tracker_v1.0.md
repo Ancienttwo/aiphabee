@@ -61,7 +61,7 @@ owner: "Planner / PM"
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
-| 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 2 / 9 | ☐ |
+| 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 3 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | ⬜ | 0 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
@@ -267,7 +267,7 @@ owner: "Planner / PM"
 - [ ] 公司行动时间线（STK-05）
 - [ ] 公告检索入口（基础版，跳转原文证据位置，STK-06）
 - [x] 内部账号 + 手动套餐 + 登录/会话/设备管理 scaffold：`@aiphabee/account-runtime` capability + `GET /account/runtime` + `POST /account/session/plan` no-write planner + `deploy/account/session.contract.json` + `npm run check:account-runtime`，覆盖 email/passwordless/social login method contract、session/device revoke plan、manual plan assignment plan、`core.account` / `core.workspace` / `core.workspace_membership` / `core.subscription_plan` / `core.workspace_subscription` table linkage；live identity provider / cookie issuance / DB writes / billing provider / frontend account UI 未启用（ACC-01、§18.2）
-- [ ] Web Agent 与 MCP 配额/用量展示骨架（ACC-04）
+- [x] Web Agent 与 MCP 配额/用量展示后端 scaffold：`@aiphabee/usage-ledger` quota display capability + `GET /usage/runtime` + `POST /usage/quota/plan` no-read/no-write planner + `deploy/usage/quota-display.contract.json` + `npm run check:usage-quota-display`，覆盖 Web Agent/MCP channel、request_id、plan_code、period、credit limit、used/pending/remaining credits 与 5-minute freshness target；live ledger reads / billing reconciliation / persistent writes / frontend quota UI 未启用（ACC-04）
 - [x] 评估集 v1 + WVRO instrumentation scaffold：`@aiphabee/observability` `eval_v1` + `run.eval.eval_v1` payload + `GET /observability/runtime` eval v1 capability + `POST /observability/eval-v1/plan` no-write planner + `deploy/observability/eval-v1.contract.json` + `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes / live OTLP export / frontend analytics dashboard / production partner-approved corpus / automatic answer grading 未启用（§16.3、§A4、§4.3）
 
 **退出门槛 DoD（= Phase 1 退出门槛）：** ☐ 内部用户端到端完成一次研究　☐ 所有展示数字有证据　☐ 无严重权限串用　☐ 核心工具黄金样本一致
@@ -628,6 +628,7 @@ owner: "Planner / PM"
 - [x] Model routing audit scaffold 已建立：`docs/governance/model-routing-audit-scaffold.md`；`/agent/runs/plan` 输出 `model_routing_audit`，定义 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、fallback triggers、model-change audit fields、safe-cache 与 redaction 规则，live model execution 未启用
 - [x] Eval v1 WVRO scaffold 已建立：`docs/governance/eval-v1-wvro-scaffold.md`；`run.eval` 输出 `eval_v1` payload，`/observability/eval-v1/plan` 计算 fact/calculation/citation/correct-refusal metrics、WVRO eligibility 与 unsourced numeric claim target，persistent writes/live OTLP/frontend dashboard 未启用
 - [x] Internal account/session/manual-plan scaffold 已建立：`docs/governance/internal-account-session-manual-plan-scaffold.md`；`@aiphabee/account-runtime` 输出 ACC-01 capability，`/account/runtime` 与 `/account/session/plan` 返回 no-write account/session/device/manual-plan plans，raw email/password/OAuth/session secret 保持 forbidden payload class，live auth/cookie/DB writes/billing/frontend 未启用
+- [x] Usage quota display scaffold 已建立：`docs/governance/usage-quota-display-scaffold.md`；`@aiphabee/usage-ledger` 输出 Web Agent/MCP quota display capability，`/usage/runtime` 与 `/usage/quota/plan` 返回 request_id / plan_code / channel / period / credit limit / used / pending / remaining credits / freshness target，live ledger reads/billing reconciliation/persistent writes/frontend 未启用
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
@@ -643,6 +644,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bi | 完成 `usage-quota-display-scaffold`：扩展 `@aiphabee/usage-ledger` quota display capability，新增 `GET /usage/runtime`、`POST /usage/quota/plan`、`deploy/usage/quota-display.contract.json` 与 `npm run check:usage-quota-display`，覆盖 Web Agent/MCP channel、request_id、plan_code、period、credit limit、used/pending/remaining credits 与 5-minute freshness target；live ledger reads/billing reconciliation/persistent writes/frontend quota UI 未启用，Sprint 1.4 更新为 3/9 |
 | 2026-06-21 | 1.0bh | 完成 `internal-account-session-manual-plan-scaffold`：新增 `@aiphabee/account-runtime`、`GET /account/runtime`、`POST /account/session/plan`、`deploy/account/session.contract.json` 与 `npm run check:account-runtime`，覆盖 email/passwordless/social login method contract、session/device revoke plan、manual plan assignment plan、既有 account/workspace/subscription table linkage 与 forbidden credential payload classes；live identity provider/cookie issuance/DB writes/billing provider/frontend account UI 未启用，Sprint 1.4 更新为 2/9 |
 | 2026-06-21 | 1.0bg | 完成 `eval-v1-wvro-scaffold`：新增 Observability `eval_v1` capability、`run.eval.eval_v1` payload、`POST /observability/eval-v1/plan` no-write planner、`deploy/observability/eval-v1.contract.json` 与 `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes/live OTLP export/frontend analytics dashboard/production partner-approved corpus/automatic answer grading 未启用，Sprint 1.4 更新为 1/9 |
 | 2026-06-21 | 1.0bf | 完成 `model-routing-audit-scaffold`：新增 Agent runtime `model_routing_audit`、`POST /agent/runs/plan` model routing/fallback audit policy、`deploy/agent/model-routing-audit.contract.json` 与 `npm run check:model-routing-audit`，覆盖 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、MODEL_TIMEOUT/RATE_LIMITED/UPSTREAM_5XX fallback、model-change audit fields、safe reusable non-sensitive cache 与 sensitive audit redaction；live model execution/real AI Gateway request smoke/live token-cost-fallback log writes/frontend Ask rendering 未启用，Sprint 1.3 更新为 10/10 |

@@ -1,9 +1,23 @@
 export const USAGE_LEDGER_EVENT_WRITER_VERSION =
   "2026-06-20.phase1.usage-event-writer-scaffold.v0";
+export const USAGE_QUOTA_DISPLAY_VERSION =
+  "2026-06-21.phase1.usage-quota-display-scaffold.v0";
+
+export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
+export const USAGE_QUOTA_PLAN_CODES = [
+  "free",
+  "plus",
+  "pro",
+  "developer",
+  "team",
+  "enterprise"
+] as const;
 
 export type UsageLedgerBillableState = "blocked" | "posted" | "preview" | "reversed" | "waived";
 export type UsageLedgerCacheState = "hit" | "miss" | "not_applicable";
 export type UsageLedgerChannel = "api" | "export" | "mcp" | "web";
+export type UsageQuotaChannel = (typeof USAGE_QUOTA_CHANNELS)[number];
+export type UsageQuotaPlanCode = (typeof USAGE_QUOTA_PLAN_CODES)[number];
 export type UsageLedgerOperation =
   | "agent_run"
   | "data_access"
@@ -12,6 +26,7 @@ export type UsageLedgerOperation =
   | "tool_call";
 export type UsageLedgerQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type UsageLedgerWriterStatus = "write_blocked" | "write_planned";
+export type UsageQuotaDisplayStatus = "blocked_missing_workspace" | "planned_no_write";
 
 export interface UsageLedgerEventPlanInput {
   accountId?: string;
@@ -92,6 +107,68 @@ export interface UsageLedgerEventPlan {
   version: typeof USAGE_LEDGER_EVENT_WRITER_VERSION;
   writeReady: false;
   writeReason: "LIVE_USAGE_WRITES_DISABLED" | "WORKSPACE_CONTEXT_MISSING";
+}
+
+export interface UsageQuotaDisplayPlanInput {
+  accountId?: string;
+  channel?: UsageQuotaChannel;
+  pendingCredits?: number;
+  periodEnd?: string;
+  periodStart?: string;
+  planCode?: UsageQuotaPlanCode;
+  requestId: string;
+  usedCredits?: number;
+  workspaceId?: string;
+}
+
+export interface UsageQuotaDisplayPlan {
+  account_id?: string;
+  billing_traceability: {
+    billing_provider_reconciliation: false;
+    live_invoice_link: false;
+    source: "usage_ledger_event_scaffold";
+  };
+  channel: UsageQuotaChannel;
+  display_fields: readonly [
+    "request_id",
+    "plan_code",
+    "channel",
+    "period_start",
+    "period_end",
+    "credit_limit",
+    "credits_used",
+    "credits_pending",
+    "credits_remaining",
+    "freshness_target_minutes"
+  ];
+  freshness_target_minutes: 5;
+  live_ledger_reads: false;
+  persistent_writes: false;
+  period: {
+    period_end: string;
+    period_start: string;
+  };
+  quota: {
+    credit_limit: number;
+    credits_pending: number;
+    credits_remaining: number;
+    credits_used: number;
+    over_quota: boolean;
+    plan_code: UsageQuotaPlanCode;
+  };
+  request_id: string;
+  request_id_visible: true;
+  sql_emitted: false;
+  status: UsageQuotaDisplayStatus;
+  tables: readonly [
+    "core.workspace_subscription",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.usage_reconciliation_batch"
+  ];
+  usage_snapshot_source: "synthetic_quota_snapshot";
+  version: typeof USAGE_QUOTA_DISPLAY_VERSION;
+  workspace_id: string;
 }
 
 export function createUsageLedgerEventPlan(
@@ -183,6 +260,108 @@ export function getUsageLedgerEventWriterCapabilities() {
   };
 }
 
+export function getUsageQuotaDisplayCapabilities() {
+  return {
+    billing_provider_reconciliation: false,
+    channels: USAGE_QUOTA_CHANNELS,
+    display_fields: [
+      "request_id",
+      "plan_code",
+      "channel",
+      "period_start",
+      "period_end",
+      "credit_limit",
+      "credits_used",
+      "credits_pending",
+      "credits_remaining",
+      "freshness_target_minutes"
+    ] as const,
+    freshness_target_minutes: 5,
+    live_ledger_reads: false,
+    persistent_writes: false,
+    plan_codes: USAGE_QUOTA_PLAN_CODES,
+    request_id_visible: true,
+    route: "POST /usage/quota/plan" as const,
+    runtime_route: "GET /usage/runtime" as const,
+    sql_emitted: false,
+    status: "usage_quota_display_scaffold" as const,
+    tables: [
+      "core.workspace_subscription",
+      "core.usage_event",
+      "core.usage_ledger_entry",
+      "core.usage_reconciliation_batch"
+    ] as const,
+    version: USAGE_QUOTA_DISPLAY_VERSION
+  };
+}
+
+export function createUsageQuotaDisplayPlan(
+  input: UsageQuotaDisplayPlanInput
+): UsageQuotaDisplayPlan {
+  const channel = input.channel ?? "web_agent";
+  const planCode = input.planCode ?? "free";
+  const workspaceId = input.workspaceId ?? "workspace_unresolved";
+  const creditLimit = getPlanCreditLimit(planCode);
+  const creditsUsed = normalizeCreditCount(input.usedCredits);
+  const creditsPending = normalizeCreditCount(input.pendingCredits);
+  const creditsRemaining = Math.max(0, creditLimit - creditsUsed - creditsPending);
+  const periodStart = input.periodStart ?? "current_billing_period_start";
+  const periodEnd = input.periodEnd ?? "current_billing_period_end";
+
+  return {
+    account_id: input.accountId,
+    billing_traceability: {
+      billing_provider_reconciliation: false,
+      live_invoice_link: false,
+      source: "usage_ledger_event_scaffold"
+    },
+    channel,
+    display_fields: [
+      "request_id",
+      "plan_code",
+      "channel",
+      "period_start",
+      "period_end",
+      "credit_limit",
+      "credits_used",
+      "credits_pending",
+      "credits_remaining",
+      "freshness_target_minutes"
+    ],
+    freshness_target_minutes: 5,
+    live_ledger_reads: false,
+    persistent_writes: false,
+    period: {
+      period_end: periodEnd,
+      period_start: periodStart
+    },
+    quota: {
+      credit_limit: creditLimit,
+      credits_pending: creditsPending,
+      credits_remaining: creditsRemaining,
+      credits_used: creditsUsed,
+      over_quota: creditsUsed + creditsPending > creditLimit,
+      plan_code: planCode
+    },
+    request_id: input.requestId,
+    request_id_visible: true,
+    sql_emitted: false,
+    status:
+      input.workspaceId !== undefined && input.workspaceId.length > 0
+        ? "planned_no_write"
+        : "blocked_missing_workspace",
+    tables: [
+      "core.workspace_subscription",
+      "core.usage_event",
+      "core.usage_ledger_entry",
+      "core.usage_reconciliation_batch"
+    ],
+    usage_snapshot_source: "synthetic_quota_snapshot",
+    version: USAGE_QUOTA_DISPLAY_VERSION,
+    workspace_id: workspaceId
+  };
+}
+
 function createUsageEventId(
   requestId: string,
   operation: UsageLedgerOperation,
@@ -202,4 +381,23 @@ function createMeterRuleId(
 
 function sanitizeId(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unset";
+}
+
+function getPlanCreditLimit(planCode: UsageQuotaPlanCode): number {
+  const limits: Record<UsageQuotaPlanCode, number> = {
+    developer: 10000,
+    enterprise: 100000,
+    free: 100,
+    plus: 1000,
+    pro: 5000,
+    team: 25000
+  };
+
+  return limits[planCode];
+}
+
+function normalizeCreditCount(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
 }

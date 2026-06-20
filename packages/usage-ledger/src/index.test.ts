@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
+  getUsageQuotaDisplayCapabilities,
   getUsageLedgerEventWriterCapabilities
 } from "./index";
 
@@ -123,5 +125,61 @@ describe("usage ledger event writer scaffold", () => {
       usage_event_grain: "request_operation_dataset_occurred_at",
       weighted_credits: true
     });
+  });
+
+  it("reports Web Agent and MCP quota display capabilities", () => {
+    expect(getUsageQuotaDisplayCapabilities()).toMatchObject({
+      billing_provider_reconciliation: false,
+      channels: ["web_agent", "mcp"],
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "POST /usage/quota/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "usage_quota_display_scaffold"
+    });
+  });
+
+  it("plans quota display values without live ledger reads", () => {
+    const plan = createUsageQuotaDisplayPlan({
+      accountId: "acct_internal_001",
+      channel: "mcp",
+      pendingCredits: 10,
+      planCode: "developer",
+      requestId: "req_quota_001",
+      usedCredits: 240,
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      channel: "mcp",
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(plan.quota).toEqual({
+      credit_limit: 10000,
+      credits_pending: 10,
+      credits_remaining: 9750,
+      credits_used: 240,
+      over_quota: false,
+      plan_code: "developer"
+    });
+  });
+
+  it("marks quota display blocked when workspace context is missing", () => {
+    const plan = createUsageQuotaDisplayPlan({
+      requestId: "req_missing_workspace"
+    });
+
+    expect(plan.status).toBe("blocked_missing_workspace");
+    expect(plan.workspace_id).toBe("workspace_unresolved");
+    expect(plan.quota.plan_code).toBe("free");
   });
 });

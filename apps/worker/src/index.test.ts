@@ -93,6 +93,64 @@ interface AccountSessionPlanBody {
   };
 }
 
+interface UsageRuntimeBody {
+  data: {
+    billing_provider_reconciliation: boolean;
+    channels: string[];
+    display_fields: string[];
+    freshness_target_minutes: number;
+    live_ledger_reads: boolean;
+    persistent_writes: boolean;
+    plan_codes: string[];
+    request_id_visible: boolean;
+    route: string;
+    runtime_route: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+}
+
+interface UsageQuotaPlanBody {
+  data: {
+    billing_traceability: {
+      billing_provider_reconciliation: boolean;
+      live_invoice_link: boolean;
+      source: string;
+    };
+    capability: {
+      status: string;
+    };
+    channel: string;
+    display_fields: string[];
+    freshness_target_minutes: number;
+    live_ledger_reads: boolean;
+    persistent_writes: boolean;
+    period: {
+      period_end: string;
+      period_start: string;
+    };
+    quota: {
+      credit_limit: number;
+      credits_pending: number;
+      credits_remaining: number;
+      credits_used: number;
+      over_quota: boolean;
+      plan_code: string;
+    };
+    request_id: string;
+    request_id_visible: boolean;
+    sql_emitted: boolean;
+    status: string;
+    usage_snapshot_source: string;
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface AgentRuntimeBody {
   data: {
     ai_sdk: {
@@ -1444,6 +1502,76 @@ describe("worker runtime", () => {
       subscription_id: "sub_ws_internal_alpha_developer"
     });
     expect(body.data.validation.unsupported_payload_fields).toContain("raw_email");
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("serves usage quota display capabilities without live ledger reads", async () => {
+    const response = await app.request("/usage/runtime", {
+      headers: {
+        "x-request-id": "req-usage-runtime"
+      }
+    });
+    const body = (await response.json()) as UsageRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      billing_provider_reconciliation: false,
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "POST /usage/quota/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "usage_quota_display_scaffold"
+    });
+    expect(body.data.channels).toEqual(["web_agent", "mcp"]);
+    expect(body.data.plan_codes).toContain("developer");
+    expect(body.data.display_fields).toContain("credits_remaining");
+  });
+
+  it("plans Web/MCP quota display values without reads or writes", async () => {
+    const response = await app.request("/usage/quota/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        channel: "mcp",
+        pending_credits: 10,
+        plan_code: "developer",
+        used_credits: 240,
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-quota"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsageQuotaPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      channel: "mcp",
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id: "req-usage-quota",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      usage_snapshot_source: "synthetic_quota_snapshot",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.quota).toEqual({
+      credit_limit: 10000,
+      credits_pending: 10,
+      credits_remaining: 9750,
+      credits_used: 240,
+      over_quota: false,
+      plan_code: "developer"
+    });
     expect(body.usage.rows).toBe(1);
   });
 
