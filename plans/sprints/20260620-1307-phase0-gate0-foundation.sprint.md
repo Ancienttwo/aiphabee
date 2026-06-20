@@ -3,7 +3,7 @@
 > **Status**: Executing
 > **Slug**: phase0-gate0-foundation
 > **Created**: 2026-06-20 13:07 +08
-> **Updated**: 2026-06-20 13:34 +08
+> **Updated**: 2026-06-20 13:51 +08
 > **Source PRD**: `plans/prds/20260620-1302-aiphabee.prd.md`
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Source Spec**: `docs/spec.md`
@@ -98,7 +98,7 @@ implementation or evidence closeout.
 |---|--------|------|------|------------|------|
 | 1 | [x] | gate0-rights-regulatory-decision-pack | contract | A Gate 0 packet records field-level rights, default-deny gaps, HKEX/vendor licensing status, Type 4 review status, MVP boundary copy, PCPD path, commercial settlement dimensions, and signature state. | `plans/plan-gate0-rights-regulatory-decision-pack.md` |
 | 2 | [x] | data-contract-methodology-baseline | contract | Data partner contract, security master, time/version model, point-in-time rule, adjustment methodology, financial restatement model, metric library v0, HK calendar model, and pipeline design are documented with methodology versions. | `plans/plan-data-contract-methodology-baseline.md` |
-| 3 | [ ] | golden-quality-commercial-baseline | contract | Golden sample design, quality rules, data hold/correction workflow, package-entitlement matrix, weighted credits, unit economics model, and Free abuse limits are documented and reviewable. | (pending) |
+| 3 | [x] | golden-quality-commercial-baseline | contract | Golden sample design, quality rules, data hold/correction workflow, package-entitlement matrix, weighted credits, unit economics model, and Free abuse limits are documented and reviewable. | `plans/plan-golden-quality-commercial-baseline.md` |
 | 4 | [ ] | engineering-foundation-audit | contract | Repo baseline is audited against PRD section 23, including package/runtime/deploy topology, Cloudflare bindings, CI hooks, secrets, observability, and design-system reuse path. | (pending) |
 | 5 | [ ] | phase0-traceability-closeout | contract | Program tracker, PRD mapping, `tasks/todos.md`, and traceability matrix reflect completed evidence, blocked items, and the next executable Phase 0 slice. | (pending) |
 
@@ -111,3 +111,4 @@ or a manual equivalent appends rows here.
 |------|------|------|--------|
 | 2026-06-20 13:18 +08 | gate0-rights-regulatory-decision-pack | `plans/plan-gate0-rights-regulatory-decision-pack.md` | Completed docs-only Gate 0 packet; external approvals remain pending/default-deny |
 | 2026-06-20 13:34 +08 | data-contract-methodology-baseline | `plans/plan-data-contract-methodology-baseline.md` | Completed docs-only data contract and methodology baseline; partner signature remains pending |
+| 2026-06-20 13:51 +08 | golden-quality-commercial-baseline | `plans/plan-golden-quality-commercial-baseline.md` | Completed docs-only golden sample, quality, correction, entitlement, credits, and unit-economics baseline; executable CI and commercial review remain pending |

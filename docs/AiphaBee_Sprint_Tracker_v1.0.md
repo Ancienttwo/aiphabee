@@ -56,7 +56,7 @@ owner: "Planner / PM"
 |---|---|---|---|---|
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
-| 0.3 | 黄金样本·质量规则·商业模型 | ⬜ | 0 / 9 | ☐ |
+| 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | ⬜ | 0 / 10 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
@@ -140,18 +140,18 @@ owner: "Planner / PM"
 
 **退出门槛 DoD：** ☑ 证券主表/时间/复权/重述/指标口径文档评审通过　☐ 数据契约签署　☑ 每个口径有「方法论版本」字段
 
-### Sprint 0.3 — 黄金样本·质量规则·商业模型　⬜
+### Sprint 0.3 — 黄金样本·质量规则·商业模型　🟦
 **目标：** 建立可在 CI 常驻的黄金样本与质量规则；锁定套餐/credits/单位经济。
 
-- [ ] 黄金样本集（PRD §10.7）：50–100 只跨行业跨年代含退市/复牌/供股/拆股证券
-- [ ] 黄金样本：20 复杂公司行动 + 20 财务重述 + 10 代码/名称变更 + 10 多币种/双重上市 + 指数历史成分
-- [ ] 自动质量规则集：主键/时间/币种/单位完整性、OHLC 关系、公司行动前后一致、三表勾稽、同比异常、公告日期逻辑、跨源对账、退市/停牌/双重上市特例（§10.7）
-- [ ] 数据质量隔离机制设计：严重异常不进 Serving Store，对外返回 `DATA_QUALITY_HOLD`（DAT-06、US-O02）
-- [ ] 数据更正流程设计：隔离→记录原值/新值/原因→重算派生→标记证据快照→通知→留审计（§10.8、DAT-08）
-- [ ] 套餐与权益矩阵：Free/Plus/Pro/Developer/Team/Enterprise，Web 与 MCP 权益分列（§15.2）
-- [ ] 加权 credits 计费模型 + 示例权重（解析 1 … 事件研究 20–50，§15.3）
-- [ ] 单位经济模型：贡献毛利公式与目标（B2C>70%、Dev/MCP>60%，§15.5）
-- [ ] Free 层防滥用原则：限范围/限并发/不可商业再分发（§15.2）
+- [x] 黄金样本集（PRD §10.7）：50–100 只跨行业跨年代含退市/复牌/供股/拆股证券
+- [x] 黄金样本：20 复杂公司行动 + 20 财务重述 + 10 代码/名称变更 + 10 多币种/双重上市 + 指数历史成分
+- [x] 自动质量规则集：主键/时间/币种/单位完整性、OHLC 关系、公司行动前后一致、三表勾稽、同比异常、公告日期逻辑、跨源对账、退市/停牌/双重上市特例（§10.7）
+- [x] 数据质量隔离机制设计：严重异常不进 Serving Store，对外返回 `DATA_QUALITY_HOLD`（DAT-06、US-O02）
+- [x] 数据更正流程设计：隔离→记录原值/新值/原因→重算派生→标记证据快照→通知→留审计（§10.8、DAT-08）
+- [x] 套餐与权益矩阵：Free/Plus/Pro/Developer/Team/Enterprise，Web 与 MCP 权益分列（§15.2）
+- [x] 加权 credits 计费模型 + 示例权重（解析 1 … 事件研究 20–50，§15.3）
+- [x] 单位经济模型：贡献毛利公式与目标（B2C>70%、Dev/MCP>60%，§15.5）
+- [x] Free 层防滥用原则：限范围/限并发/不可商业再分发（§15.2）
 
 **退出门槛 DoD：** ☐ 黄金样本可被自动校验　☐ 质量规则可执行　☐ 套餐/credits/单位经济模型评审通过
 
@@ -553,8 +553,10 @@ owner: "Planner / PM"
 - [x] 首个 Phase 0 执行 Sprint 已建立：`plans/sprints/20260620-1307-phase0-gate0-foundation.sprint.md`
 - [x] Gate 0 权利与监管决策包已建立：`docs/governance/gate0-rights-regulatory-decision-pack.md`
 - [x] 数据契约与方法论基线已建立：`docs/governance/data-contract-methodology-baseline.md`
+- [x] 黄金样本、质量规则与商业模型基线已建立：`docs/governance/golden-quality-commercial-baseline.md`
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
+- [ ] Sprint 0.3 的黄金样本/质量规则尚未进入 CI，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
 
 ---
 
@@ -562,6 +564,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0d | 完成 `golden-quality-commercial-baseline`：新增黄金样本、质量规则、数据隔离/更正、套餐权益、credits、单位经济与 Free 防滥用基线；Sprint 0.3 设计 backlog 9/9，CI/商业评审门槛保持未绿 |
 | 2026-06-20 | 1.0c | 完成 `data-contract-methodology-baseline`：新增数据契约与口径基线、task contract 与执行计划；Sprint 0.2 设计 backlog 9/9，合作方签署门槛保持未绿 |
 | 2026-06-20 | 1.0b | 完成 `gate0-rights-regulatory-decision-pack`：新增 Gate 0 权利/监管决策包、task contract 与执行计划；外部审批项保持未勾选 |
 | 2026-06-20 | 1.0a | 建立首个 Phase 0 Gate 0 sprint 执行入口；更新看板为 Phase 0 / Sprint 0.1 进行中；仅勾选已完成的 harness 接入任务 |
