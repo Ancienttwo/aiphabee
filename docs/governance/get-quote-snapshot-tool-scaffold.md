@@ -1,7 +1,7 @@
 # Get Quote Snapshot Tool Scaffold
 
-> **Status**: Verified no-live tool scaffold with workflow-wrapper timeout
-> **Last Updated**: 2026-06-21 01:25 +08
+> **Status**: Verified no-live tool scaffold
+> **Last Updated**: 2026-06-21 01:42 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-get-quote-snapshot-tool-scaffold.md`
@@ -82,16 +82,10 @@ Passed:
   `scripts`, `supabase`, `tasks`, and `packages`
 - Direct deploy SQL helper:
   `bash /Users/chris/Projects/agentic-dev/assets/templates/helpers/check-deploy-sql-order.sh --quiet`
+- `scripts/check-task-workflow.sh --strict`
 - `npx wrangler dev --config wrangler.jsonc --port 8787`
 - `POST /tools/get-quote-snapshot` -> `200 OK`
 - `GET /tools/runtime` -> `200 OK`
-
-Not passed:
-
-- `scripts/check-task-workflow.sh --strict` timed out with no output. A
-  `bash -x` trace reached the repo-local deploy-SQL wrapper path
-  (`scripts/check-deploy-sql-order.sh --quiet`); running the direct helper
-  passed.
 
 Observed route fields:
 
@@ -127,5 +121,3 @@ Observed route fields:
 - MCP endpoint and protocol tool-call integration are absent.
 - Price-history handler is absent.
 - Evidence/Lineage service is absent.
-- Repo-harness workflow strict wrapper currently times out at the deploy-SQL
-  wrapper path.

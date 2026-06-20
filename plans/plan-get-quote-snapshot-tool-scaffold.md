@@ -1,6 +1,6 @@
 # Plan: Get Quote Snapshot Tool Scaffold
 
-> **Status**: Verified with workflow-wrapper timeout
+> **Status**: Verified
 > **Created**: 2026-06-21 01:25 +08
 > **Slug**: get-quote-snapshot-tool-scaffold
 > **Spec**: `docs/spec.md`
@@ -55,5 +55,4 @@
 - [x] Add Worker `POST /tools/get-quote-snapshot` route.
 - [x] Add tool contract and checker.
 - [x] Update tracker/governance/todos.
-- [x] Verify local checks and Worker smoke.
-- [ ] Resolve repo-harness wrapper timeout in `scripts/check-task-workflow.sh --strict`.
+- [x] Verify local checks, Worker smoke, and workflow strict check.

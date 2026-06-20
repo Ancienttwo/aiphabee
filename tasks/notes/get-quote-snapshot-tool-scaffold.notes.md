@@ -1,6 +1,6 @@
 # Notes: get-quote-snapshot-tool-scaffold
 
-> **Last Updated**: 2026-06-21 01:25 +08
+> **Last Updated**: 2026-06-21 01:42 +08
 > **Plan**: `plans/plan-get-quote-snapshot-tool-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/get-quote-snapshot-tool-scaffold.md`
@@ -30,10 +30,8 @@
   `scripts`, `supabase`, `tasks`, and `packages`.
 - Passed: direct deploy SQL helper:
   `bash /Users/chris/Projects/agentic-dev/assets/templates/helpers/check-deploy-sql-order.sh --quiet`.
+- Passed: `scripts/check-task-workflow.sh --strict`.
 - Passed: Wrangler smoke for `/tools/get-quote-snapshot` and `/tools/runtime`.
-- Not passed: `scripts/check-task-workflow.sh --strict` timed out with no
-  output; `bash -x` traced the hang to the repo-local deploy-SQL wrapper path
-  (`scripts/check-deploy-sql-order.sh --quiet`), while the direct helper passed.
 
 ## Residual Blockers
 
@@ -42,5 +40,3 @@
 - MCP endpoint and protocol tool call integration are absent.
 - Price-history handler is absent.
 - Evidence/Lineage service is absent.
-- Repo-harness workflow strict wrapper currently times out at the deploy-SQL
-  wrapper path.
