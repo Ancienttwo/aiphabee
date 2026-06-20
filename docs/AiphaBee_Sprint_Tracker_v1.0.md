@@ -58,7 +58,7 @@ owner: "Planner / PM"
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
-| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 9 / 14 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 10 / 15 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
@@ -199,6 +199,7 @@ owner: "Planner / PM"
 - [x] 财务事实与重述 schema scaffold：`core.financial_statement` / `core.financial_fact` / `core.financial_restatement` migration + `/data/runtime` capability（DAT-03）
 - [x] 公司行动与复权 schema scaffold：`core.corporate_action` / `core.adjustment_methodology` / `core.price_adjustment_factor` migration + `/data/runtime` capability（DAT-04、§10.4）
 - [ ] 公司行动 live adjustment engine + 黄金样本对齐（DAT-04、§10.4）
+- [x] Serving Store schema scaffold：`core.serving_dataset` / `core.serving_field` / `core.serving_snapshot` / `core.serving_record` migration + `/data/runtime` + `/gateway/runtime` capability，默认 `HOLD` / `held` / `default_deny`（§10.1、DAT-06）
 - [x] Data Access Gateway default-deny scaffold：`packages/data-access-gateway`、`deploy/gateway/access.contract.json`、`npm run check:data-gateway`、`/gateway/runtime`、`/gateway/access-check`（§11.1、§12.2）
 - [ ] **Data Access Gateway live Serving**：真实字段裁剪 + 行数/时间范围限制 + 缓存 key 含数据版本/权限版本/字段集/口径（§11.1、§12.2）
 - [x] 字段级权益执行 scaffold：Gateway evaluator 支持 workspace / plan / channel / dataset / field / time_range / export 维度裁剪，cache key 含 workspace/export，`/gateway/runtime` capability（DAT-05、§A2）
@@ -593,11 +594,12 @@ owner: "Planner / PM"
 - [x] Account / Workspace / entitlement schema scaffold 已建立：`docs/governance/account-workspace-entitlement-scaffold.md`；account/workspace/membership/subscription/data_entitlement/workspace_entitlement、workspace isolation、`npm run check:database` 与 `/data/runtime`、`/gateway/runtime` 已通过本地 smoke
 - [x] Usage ledger schema scaffold 已建立：`docs/governance/usage-ledger-scaffold.md`；usage_meter_rule/usage_event/usage_reconciliation_batch/usage_ledger_entry、weighted credits、5-minute reconciliation target、`npm run check:database` 与 `/gateway/runtime` 已通过本地 smoke
 - [x] Field entitlement enforcement scaffold 已建立：`docs/governance/field-entitlement-enforcement-scaffold.md`；Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export，default-deny live route 与 synthetic entitlement tests 已通过
+- [x] Serving Store schema scaffold 已建立：`docs/governance/serving-store-schema-scaffold.md`；serving_dataset/field/snapshot/record、versioned snapshots、quality/release/default-deny posture、`/data/runtime` 与 `/gateway/runtime` 已通过本地 smoke
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
-- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema 与 entitlement evaluator 已存在但尚未接入 partner rows / Serving reads / live adjustment engine / DB entitlement rows / billing reconciliation
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger、Serving Store schema 与 entitlement evaluator 已存在但尚未接入 partner rows / Serving reads / live adjustment engine / DB entitlement rows / billing reconciliation
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -606,6 +608,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0z | 完成 `serving-store-schema-scaffold`：新增 Supabase-compatible Serving Store dataset/field/snapshot/record schema、database migration contract、Worker `/data/runtime` 与 `/gateway/runtime` capability；live Serving reads 未启用，Sprint 1.1 更新为 10/15 |
 | 2026-06-20 | 1.0y | 完成 `field-entitlement-enforcement-scaffold`：Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export 维度，更新 access contract/cache key/runtime；live policy source 未启用，Sprint 1.1 更新为 9/14 |
 | 2026-06-20 | 1.0x | 完成 `usage-ledger-scaffold`：新增 Supabase-compatible usage meter/event/reconciliation/ledger schema、database migration contract、Worker `/gateway/runtime`；不启用 live usage writes，Sprint 1.1 更新为 8/13 |
 | 2026-06-20 | 1.0w | 完成 `account-workspace-entitlement-scaffold`：新增 Supabase-compatible account/workspace/membership/subscription/entitlement schema、database migration contract、Worker `/data/runtime` 与 `/gateway/runtime`；不启用 live entitlement enforcement，Sprint 1.1 更新为 7/12 |

@@ -71,6 +71,14 @@ interface GatewayRuntimeBody {
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
     rights_policy_version: string;
+    serving_store: {
+      live_reads: boolean;
+      release_state_default: string;
+      status: string;
+      tables: string[];
+      uses_quality_state: boolean;
+      uses_versioned_snapshots: boolean;
+    };
     usage_ledger: {
       live_writes: boolean;
       reconciliation_target_delay_minutes: number;
@@ -119,6 +127,15 @@ interface DataRuntimeBody {
       table: string;
     };
     security_master: {
+      status: string;
+      tables: string[];
+    };
+    serving_store: {
+      cache_key_material: string[];
+      default_quality_state: string;
+      default_rights_status: string;
+      live_serving_reads: boolean;
+      release_state_default: string;
       status: string;
       tables: string[];
     };
@@ -350,6 +367,19 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+    expect(body.data.serving_store).toMatchObject({
+      live_reads: false,
+      release_state_default: "held",
+      status: "schema_scaffold",
+      tables: [
+        "core.serving_dataset",
+        "core.serving_field",
+        "core.serving_snapshot",
+        "core.serving_record"
+      ],
+      uses_quality_state: true,
+      uses_versioned_snapshots: true
+    });
     expect(body.data.usage_ledger).toMatchObject({
       live_writes: false,
       reconciliation_target_delay_minutes: 5,
@@ -427,6 +457,26 @@ describe("worker runtime", () => {
       immutable: true,
       quality_default_state: "HOLD",
       table: "core.raw_snapshot"
+    });
+    expect(body.data.serving_store).toMatchObject({
+      cache_key_material: [
+        "data_version",
+        "rights_policy_version",
+        "methodology_version",
+        "field_set",
+        "time_range"
+      ],
+      default_quality_state: "HOLD",
+      default_rights_status: "default_deny",
+      live_serving_reads: false,
+      release_state_default: "held",
+      status: "schema_scaffold",
+      tables: [
+        "core.serving_dataset",
+        "core.serving_field",
+        "core.serving_snapshot",
+        "core.serving_record"
+      ]
     });
     expect(body.data.source_batches.rights_default_state).toBe("default_deny");
     expect(body.data.data_version_batches.live_batches).toBe(false);

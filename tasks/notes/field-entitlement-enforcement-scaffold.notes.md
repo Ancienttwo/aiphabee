@@ -30,5 +30,5 @@
 
 - Partner-signed field rights matrix is absent.
 - Live database policy source is not wired.
-- Real Serving Gateway reads are absent.
+- Serving Store schema exists, but real Gateway reads are absent.
 - Usage ledger live writes are not wired.

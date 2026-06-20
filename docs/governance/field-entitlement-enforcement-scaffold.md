@@ -57,7 +57,8 @@ Reason:
 
 - Partner field rights matrix is not signed.
 - No live database policy rows have been loaded.
-- Real Serving Store remains absent, so allowing live data would be misleading.
+- Serving Store schema exists, but no released rows or live reads exist, so
+  allowing live data would be misleading.
 
 Tradeoff:
 
@@ -103,5 +104,5 @@ Observed `/gateway/runtime` fields:
 
 - Partner-signed field rights matrix is absent.
 - Live database policy source is not wired.
-- Real Serving Gateway reads are absent.
+- Serving Store schema exists, but real Gateway reads are absent.
 - Usage ledger live writes are not wired.

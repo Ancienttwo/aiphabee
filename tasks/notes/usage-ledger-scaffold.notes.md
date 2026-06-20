@@ -26,7 +26,8 @@
 
 ## Residual Blockers
 
-- Live Serving Gateway reads and account identity context are absent.
+- Serving Store schema exists, but live Gateway reads and account identity
+  context are absent.
 - Billing provider integration and invoice reconciliation are absent.
 - Persistent usage writes are not wired to `/gateway/access-check`.
 - Field-entitlement evaluator scaffold exists, but live DB policy source is not

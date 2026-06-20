@@ -19,7 +19,7 @@ not read real market data or grant any partner rights.
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
 | Worker runtime route | `GET /gateway/runtime` | Reports guard capabilities and no live data surface |
 | Worker access route | `POST /gateway/access-check` | Returns `DATA_NOT_LICENSED` by default or `DATA_QUALITY_HOLD` for held data |
-| Real Serving Store | Absent | Data schemas exist, but no partner rows, live entitlements, or MCP redistribution |
+| Real Serving Store | Schema scaffold only | Serving projection tables exist, but no partner rows, live reads, live entitlements, or MCP redistribution |
 
 ## P2 Concrete Trace
 
@@ -52,7 +52,8 @@ Selected a guarded gateway scaffold instead of a real Serving Store integration.
 Reason:
 
 - Gate 0 rights matrix and partner field contract are not signed.
-- Schema scaffolds exist, but no partner rows or Serving Store rows exist yet.
+- Schema scaffolds exist, including Serving Store projection tables, but no
+  partner rows or released Serving rows exist yet.
 - Exposing real data before rights enforcement would violate PRD default-deny.
 
 Tradeoff:
@@ -91,9 +92,9 @@ Observed `/gateway/runtime` fields:
 
 ## Residual Gaps
 
-- Securities master, raw snapshot, financial fact/restatement, and
-  corporate-action/adjustment schemas now exist, but real Serving Store is
-  absent.
+- Securities master, raw snapshot, financial fact/restatement,
+  corporate-action/adjustment, and Serving Store schemas now exist, but no
+  released Serving rows or live reads exist.
 - Partner-signed rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

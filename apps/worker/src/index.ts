@@ -188,6 +188,26 @@ app.get("/data/runtime", (c) => {
           ],
           status: "schema_scaffold"
         },
+        serving_store: {
+          cache_key_material: [
+            "data_version",
+            "rights_policy_version",
+            "methodology_version",
+            "field_set",
+            "time_range"
+          ],
+          default_quality_state: "HOLD",
+          default_rights_status: "default_deny",
+          live_serving_reads: false,
+          release_state_default: "held",
+          status: "schema_scaffold",
+          tables: [
+            "core.serving_dataset",
+            "core.serving_field",
+            "core.serving_snapshot",
+            "core.serving_record"
+          ]
+        },
         source_batches: {
           rights_default_state: "default_deny",
           table: "core.raw_source_batch"
@@ -195,7 +215,7 @@ app.get("/data/runtime", (c) => {
       },
       {
         asOf: new Date().toISOString(),
-        methodologyVersion: "account-workspace-entitlement-scaffold-v0",
+        methodologyVersion: "serving-store-scaffold-v0",
         provenance: [
           {
             data_version: "security-master-raw-snapshot-scaffold-v0",
@@ -220,6 +240,12 @@ app.get("/data/runtime", (c) => {
             methodology_version: "account-workspace-entitlement-scaffold-v0",
             source: "database-migration-contract",
             source_record_id: "account-workspace-runtime-capabilities"
+          },
+          {
+            data_version: "serving-store-scaffold-v0",
+            methodology_version: "serving-store-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "serving-store-runtime-capabilities"
           }
         ],
         requestId,
@@ -312,6 +338,19 @@ app.get("/gateway/runtime", (c) => {
         methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
         mcp_redistribution_surfaces: false,
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+        serving_store: {
+          live_reads: false,
+          release_state_default: "held",
+          status: "schema_scaffold",
+          tables: [
+            "core.serving_dataset",
+            "core.serving_field",
+            "core.serving_snapshot",
+            "core.serving_record"
+          ],
+          uses_quality_state: true,
+          uses_versioned_snapshots: true
+        },
         usage_ledger: {
           live_writes: false,
           reconciliation_target_delay_minutes: 5,

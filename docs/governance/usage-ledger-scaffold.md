@@ -55,7 +55,7 @@ Selected empty schema scaffold instead of live ledger writes.
 
 Reason:
 
-- Live Serving Gateway reads are still absent.
+- Serving Store schema exists, but live Gateway reads are still absent.
 - Identity, workspace context, and billing provider integration are not wired to
   runtime calls.
 - Writing usage from scaffolded decisions would create misleading billing
@@ -95,6 +95,7 @@ Observed `/gateway/runtime` fields:
 ## Residual Gaps
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
-- Live Serving Gateway reads and account identity context are absent.
+- Serving Store schema exists, but live Gateway reads and account identity
+  context are absent.
 - Persistent usage writes are not wired to `/gateway/access-check`.
 - Billing provider reconciliation and invoice export are absent.

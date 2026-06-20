@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-20.phase0.database-migrations.v0",
+  "version": "2026-06-20.phase1.serving-store.v0",
   "status": "local_contract",
   "provider": "supabase_postgres",
   "connection_path": "cloudflare_hyperdrive",
@@ -115,6 +115,20 @@
         "core.usage_meter_rule",
         "core.usage_reconciliation_batch",
         "governance.usage_ledger_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620091000_serving_store_scaffold.sql",
+      "purpose": "Create empty Serving Store projection scaffolds for Sprint 1.1 without enabling live Serving reads or loading partner market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.serving_dataset",
+        "core.serving_field",
+        "core.serving_record",
+        "core.serving_snapshot",
+        "governance.serving_store_contract"
       ],
       "market_data": false,
       "default_rights_status": "default_deny"

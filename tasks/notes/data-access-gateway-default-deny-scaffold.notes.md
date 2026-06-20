@@ -27,7 +27,7 @@
 
 ## Residual Blockers
 
-- Real securities master/Serving Store is absent.
+- Serving Store schema exists, but released rows and live reads are absent.
 - Partner-signed field rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent
