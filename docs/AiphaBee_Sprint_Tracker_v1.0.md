@@ -62,7 +62,7 @@ owner: "Planner / PM"
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
-| 2.1 | 比较 + 筛选 + 确定性分析 | ⬜ | 0 / 9 | ☐ |
+| 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 1 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | ⬜ | 0 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
@@ -281,7 +281,7 @@ owner: "Planner / PM"
 ### Sprint 2.1 — 比较 + 筛选 + 确定性分析　⬜
 **目标：** 多证券比较、自然语言筛选、确定性收益/风险计算。
 
-- [ ] `compare_securities`：2–5 证券统一币种/单位比较，不可比时明示（ANA-01、ANA-02）
+- [x] `compare_securities` 后端 scaffold：新增 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/compare-securities`、`deploy/analytics/compare-securities.contract.json` 与 `npm run check:compare-securities`，支持 2–5 证券、复用 `resolve_security` / `get_security_profile` / `get_quote_snapshot` / `get_financial_facts`，返回 base currency/unit、missing metrics、quality flags、source_record_ids 与 incomparable reasons；frontend comparator / MCP registration / live FX conversion / live data 未启用（ANA-01、ANA-02）
 - [ ] `screen_securities`：自然语言→可编辑结构化条件，执行前展示字段/运算符/时点/缺失值规则（ANA-03）
 - [ ] 筛选返回命中原因与可解释排序（ANA-04、US-W05）
 - [ ] `get_financial_ratios`：确定性派生指标 + 公式版本 + 分位（依赖指标库 §10.6）
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bm | 完成 `compare-securities-scaffold`：新增 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/compare-securities`、`deploy/analytics/compare-securities.contract.json` 与 `npm run check:compare-securities`，覆盖 2–5 securities、security resolution、quote/profile/financial facts fanout、base currency/unit、missing metrics、quality flags、source_record_ids 与 incomparable reasons；frontend comparator/MCP registration/live FX/live data 未启用，Sprint 2.1 更新为 1/9 |
 | 2026-06-21 | 1.0bl | 完成 `stock-workbench-announcement-search-scaffold`：扩展 `@aiphabee/workbench` `announcement_search` section、`POST /workbench/stock/announcements`、`GET /workbench/runtime` capability、`POST /workbench/stock/snapshot` payload 与 `deploy/workbench/stock-workbench.contract.json` / `npm run check:stock-workbench`，覆盖 STK-06 security/date/category/keyword/limit 过滤、source_record_id、document_id/page/anchor/synthetic original locator、ambiguous security blocking；live original document fetch/full Phase 2 announcement tools/frontend rendering 未启用，Sprint 1.4 更新为 9/9 |
 | 2026-06-21 | 1.0bk | 完成 `stock-workbench-derived-metrics-scaffold`：扩展 `@aiphabee/workbench` `derived_metrics` section、`GET /workbench/runtime` capability、`POST /workbench/stock/snapshot` payload 与 `deploy/workbench/stock-workbench.contract.json` / `npm run check:stock-workbench`，覆盖 STK-04 公式版本、指标定义、source inputs、异常策略、盈利能力 deterministic 计算，以及缺 market cap/share-count 时 P/E/P/S/P/B `market_cap_unavailable` 阻断；frontend rendering/live valuation data 未启用，Sprint 1.4 更新为 8/9 |
 | 2026-06-21 | 1.0bj | 完成 `stock-workbench-aggregate-scaffold`：新增 `@aiphabee/workbench`、`GET /workbench/runtime`、`POST /workbench/stock/snapshot`、`deploy/workbench/stock-workbench.contract.json` 与 `npm run check:stock-workbench`，聚合 `resolve_security` / `get_security_profile` / `get_quote_snapshot` / `get_price_history` / `get_financial_facts` / `get_corporate_actions` synthetic handlers，覆盖 STK-01/STK-02/STK-03/STK-05 后端 aggregate surface；STK-04 derived valuation metrics、STK-06 announcements、frontend rendering、live data 未启用，Sprint 1.4 更新为 7/9 |

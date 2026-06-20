@@ -168,6 +168,56 @@ interface WorkbenchRuntimeBody {
   ok: true;
 }
 
+interface AnalyticsRuntimeBody {
+  data: {
+    compare_securities: {
+      max_securities: number;
+      min_securities: number;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    route: string;
+    status: string;
+  };
+  ok: true;
+}
+
+interface CompareSecuritiesBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    row_count: number;
+    rows: Array<{
+      financials: Record<string, number>;
+      instrument_id?: string;
+      missing_metrics: string[];
+      quality_flags: string[];
+      status: string;
+      symbol?: string;
+    }>;
+    status: string;
+    toolName: string;
+    unified_comparison: {
+      base_currency?: string;
+      base_unit?: string;
+      currency_conversion: string;
+      incomparable_reasons: string[];
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface WorkbenchAnnouncementSearchBody {
   data: {
     announcements: Array<{
@@ -1715,6 +1765,89 @@ describe("worker runtime", () => {
       plan_code: "developer"
     });
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("serves analytics tool capabilities without frontend or live data", async () => {
+    const response = await app.request("/analytics/runtime", {
+      headers: {
+        "x-request-id": "req-analytics-runtime"
+      }
+    });
+    const body = (await response.json()) as AnalyticsRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      route: "POST /analytics/compare-securities",
+      status: "analytics_tools_scaffold"
+    });
+    expect(body.data.compare_securities).toMatchObject({
+      max_securities: 5,
+      min_securities: 2,
+      route: "POST /analytics/compare-securities",
+      status: "compare_securities_scaffold",
+      tool_name: "compare_securities"
+    });
+  });
+
+  it("compares securities and explains incomplete rows", async () => {
+    const response = await app.request("/analytics/compare-securities", {
+      body: JSON.stringify({
+        securities: ["00700.HK", "08001.HK"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-compare-securities"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CompareSecuritiesBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      row_count: 2,
+      status: "partial",
+      toolName: "compare_securities"
+    });
+    expect(body.data.unified_comparison).toMatchObject({
+      base_currency: "HKD",
+      base_unit: "million",
+      currency_conversion: "not_required"
+    });
+    expect(body.data.rows[0]).toMatchObject({
+      financials: {
+        assets: 1570000,
+        equity: 828000,
+        net_income: 115216,
+        revenue: 609015
+      },
+      instrument_id: "eq_hk_00700",
+      status: "comparable",
+      symbol: "00700.HK"
+    });
+    expect(body.data.rows[1]).toMatchObject({
+      financials: {},
+      instrument_id: "eq_hk_08001",
+      status: "incomparable",
+      symbol: "08001.HK"
+    });
+    expect(body.data.rows[1]?.missing_metrics).toEqual([
+      "revenue",
+      "net_income",
+      "assets",
+      "equity"
+    ]);
+    expect(body.data.unified_comparison.incomparable_reasons).toContain(
+      "08001.HK:financial_facts_data_quality_hold"
+    );
+    expect(body.usage.rows).toBeGreaterThan(0);
+    expect(body.usage.credits).toBeGreaterThan(0);
   });
 
   it("serves stock workbench aggregate capabilities without frontend rendering", async () => {

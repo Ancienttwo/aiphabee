@@ -15,6 +15,7 @@
   "dependencies": {
     "@aiphabee/account-runtime": "file:../../packages/account-runtime",
     "@aiphabee/agent-runtime": "file:../../packages/agent-runtime",
+    "@aiphabee/analytics-tools": "file:../../packages/analytics-tools",
     "@aiphabee/corporate-actions": "file:../../packages/corporate-actions",
     "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",

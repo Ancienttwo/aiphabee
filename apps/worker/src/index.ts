@@ -19,6 +19,10 @@ import {
   type AgentRunSkeletonInput
 } from "@aiphabee/agent-runtime";
 import {
+  compareSecurities,
+  getCompareSecuritiesCapabilities
+} from "@aiphabee/analytics-tools";
+import {
   CorporateActionsInputError,
   getCorporateActions,
   getCorporateActionAdjustmentCapabilities,
@@ -672,6 +676,86 @@ app.post("/usage/quota/plan", async (c) => {
           credits: 0,
           rows: plan.status === "planned_no_write" ? 1 : 0
         }
+      }
+    )
+  );
+});
+
+app.get("/analytics/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const capability = getCompareSecuritiesCapabilities();
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        package: "@aiphabee/analytics-tools",
+        compare_securities: capability,
+        frontend_rendering: false,
+        live_data_access: false,
+        route: capability.route,
+        status: "analytics_tools_scaffold"
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: capability.version,
+        methodologyVersion: capability.version,
+        provenance: [
+          {
+            data_version: capability.version,
+            methodology_version: capability.version,
+            source: "analytics-tools-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/analytics/compare-securities", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const comparison = compareSecurities({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    requestId,
+    securities: normalizeStringArray(body.securities) ?? [],
+    targetCurrency: normalizeString(body.target_currency ?? body.targetCurrency)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...comparison,
+        capability: getCompareSecuritiesCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: comparison.data_version,
+        methodologyVersion: comparison.methodology_version,
+        provenance: [
+          {
+            data_version: comparison.data_version,
+            methodology_version: comparison.methodology_version,
+            source: "analytics-compare-securities",
+            source_record_id: "compare-securities"
+          }
+        ],
+        requestId,
+        usage: comparison.usage
       }
     )
   );
