@@ -103,6 +103,7 @@ import {
   type UsageQuotaPlanCode
 } from "@aiphabee/usage-ledger";
 import {
+  createStockWorkbenchAnnouncementSearch,
   createStockWorkbenchSnapshot,
   getStockWorkbenchCapabilities
 } from "@aiphabee/workbench";
@@ -711,6 +712,15 @@ app.post("/workbench/stock/snapshot", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const snapshot = createStockWorkbenchSnapshot({
     adjustment: normalizeWorkbenchAdjustment(body.adjustment),
+    announcementCategories: normalizeStringArray(
+      body.announcement_categories ?? body.announcementCategories
+    ),
+    announcementFrom: normalizeString(body.announcement_from ?? body.announcementFrom),
+    announcementKeyword: normalizeString(body.announcement_keyword ?? body.announcementKeyword),
+    announcementLimit: normalizeOptionalInteger(
+      body.announcement_limit ?? body.announcementLimit
+    ),
+    announcementTo: normalizeString(body.announcement_to ?? body.announcementTo),
     asOf: normalizeString(body.as_of ?? body.asOf),
     corporateActionsFrom: normalizeString(
       body.corporate_actions_from ?? body.corporateActionsFrom
@@ -731,6 +741,7 @@ app.post("/workbench/stock/snapshot", async (c) => {
     snapshot.price_history.usage.rows +
     snapshot.financial_facts.usage.rows +
     snapshot.derived_metrics.usage.rows +
+    snapshot.announcement_search.usage.rows +
     snapshot.corporate_actions.usage.rows;
   const credits =
     snapshot.security_profile.usage.credits +
@@ -738,6 +749,7 @@ app.post("/workbench/stock/snapshot", async (c) => {
     snapshot.price_history.usage.credits +
     snapshot.financial_facts.usage.credits +
     snapshot.derived_metrics.usage.credits +
+    snapshot.announcement_search.usage.credits +
     snapshot.corporate_actions.usage.credits;
 
   return c.json(
@@ -764,6 +776,49 @@ app.post("/workbench/stock/snapshot", async (c) => {
           credits,
           rows
         }
+      }
+    )
+  );
+});
+
+app.post("/workbench/stock/announcements", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const announcementSearch = createStockWorkbenchAnnouncementSearch({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    categories: normalizeStringArray(body.categories ?? body.announcement_categories),
+    from: normalizeString(body.from ?? body.announcement_from),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    keyword: normalizeString(body.keyword ?? body.announcement_keyword),
+    limit: normalizeOptionalInteger(body.limit ?? body.announcement_limit),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    to: normalizeString(body.to ?? body.announcement_to)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...announcementSearch,
+        capability: getStockWorkbenchCapabilities().announcement_search
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: announcementSearch.data_version,
+        methodologyVersion: announcementSearch.methodology_version,
+        provenance: [
+          {
+            data_version: announcementSearch.data_version,
+            methodology_version: announcementSearch.methodology_version,
+            source: "workbench-announcement-search",
+            source_record_id: "stock-workbench-announcement-search"
+          }
+        ],
+        requestId,
+        usage: announcementSearch.usage
       }
     )
   );
@@ -2968,12 +3023,22 @@ function normalizeOptionalNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function normalizeOptionalInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) ? value : undefined;
+}
+
 function normalizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+    : undefined;
 }
 
 function normalizeAccountLoginMethod(value: unknown): AccountLoginMethod | undefined {

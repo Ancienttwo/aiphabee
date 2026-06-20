@@ -1,9 +1,10 @@
 {
-  "version": "2026-06-21.phase1.stock-workbench-derived-metrics-scaffold.v0",
+  "version": "2026-06-21.phase1.stock-workbench-announcement-search-scaffold.v0",
   "status": "local_contract",
   "package": "@aiphabee/workbench",
   "runtime_route": "GET /workbench/runtime",
   "route": "POST /workbench/stock/snapshot",
+  "announcement_route": "POST /workbench/stock/announcements",
   "standard_response_envelope": true,
   "frontend": false,
   "live_data_access": false,
@@ -14,7 +15,8 @@
     "STK-02",
     "STK-03",
     "STK-04",
-    "STK-05"
+    "STK-05",
+    "STK-06"
   ],
   "sections": [
     "security_profile",
@@ -22,6 +24,7 @@
     "price_history",
     "financial_facts",
     "derived_metrics",
+    "announcement_search",
     "corporate_actions"
   ],
   "source_tools": [
@@ -33,7 +36,7 @@
     "get_corporate_actions"
   ],
   "unsupported_sections": [
-    "announcements"
+    "full_announcement_document_search"
   ],
   "derived_metric_contract": {
     "formula_version": "stock-workbench-derived-metrics-v0",
@@ -62,7 +65,38 @@
     ],
     "valuation_blocked_without_market_cap": true
   },
+  "announcement_search_contract": {
+    "route": "POST /workbench/stock/announcements",
+    "source": "synthetic_announcement_fixture",
+    "categories": [
+      "results",
+      "dividend",
+      "buyback"
+    ],
+    "filters": [
+      "instrument_id",
+      "security_query",
+      "from",
+      "to",
+      "categories",
+      "keyword",
+      "limit"
+    ],
+    "max_limit": 3,
+    "evidence_locator_ready": true,
+    "original_document_fetch": false,
+    "external_href_authority": false,
+    "locator_fields": [
+      "document_id",
+      "source_record_id",
+      "page",
+      "anchor",
+      "original_url"
+    ],
+    "ambiguous_security_blocks": true
+  },
   "required_output_fields": [
+    "announcement_search",
     "security_profile",
     "quote_snapshot",
     "price_history",

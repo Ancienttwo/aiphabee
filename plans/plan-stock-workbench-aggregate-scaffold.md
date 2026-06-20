@@ -11,6 +11,7 @@
   financial facts, and corporate actions.
 - [x] Add deterministic STK-04 derived metric definitions, profitability
   calculations, and valuation blocked reasons.
+- [x] Add STK-06 basic announcement search entry with source locators.
 - [x] Add Worker runtime and snapshot routes.
 - [x] Add local contract checker and root check wiring.
 - [x] Add package and Worker tests.
@@ -18,10 +19,10 @@
 
 ## Scope
 
-This slice covers backend aggregation for STK-01, STK-02, STK-03, STK-04, and
-STK-05. It does not render frontend UI or implement announcement/document
-search. Valuation values remain blocked until market cap/share-count authority
-exists.
+This slice covers backend aggregation for STK-01, STK-02, STK-03, STK-04,
+STK-05, and STK-06. It does not render frontend UI or implement the full Phase
+2 announcement/document tool set. Valuation values remain blocked until market
+cap/share-count authority exists.
 
 ## Verification
 
@@ -35,5 +36,6 @@ Required before closeout:
 - `npm run build --workspace @aiphabee/worker`
 - local Worker smoke for `GET /workbench/runtime`
 - local Worker smoke for `POST /workbench/stock/snapshot`
+- local Worker smoke for `POST /workbench/stock/announcements`
 - `git diff --check`
 - `scripts/check-task-workflow.sh --strict`

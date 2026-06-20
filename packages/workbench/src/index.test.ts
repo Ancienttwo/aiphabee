@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createStockWorkbenchAnnouncementSearch,
   createStockWorkbenchSnapshot,
   getStockWorkbenchCapabilities
 } from "./index";
@@ -8,6 +9,7 @@ describe("stock workbench aggregate scaffold", () => {
   it("reports backend-only aggregate capabilities", () => {
     expect(getStockWorkbenchCapabilities()).toMatchObject({
       actual_tool_execution: true,
+      announcement_route: "POST /workbench/stock/announcements",
       frontend_rendering: false,
       live_data_access: false,
       package: "@aiphabee/workbench",
@@ -22,8 +24,14 @@ describe("stock workbench aggregate scaffold", () => {
       "price_history",
       "financial_facts",
       "derived_metrics",
+      "announcement_search",
       "corporate_actions"
     ]);
+    expect(getStockWorkbenchCapabilities().announcement_search).toMatchObject({
+      evidence_locator_ready: true,
+      external_href_authority: false,
+      original_document_fetch: false
+    });
     expect(getStockWorkbenchCapabilities().derived_metrics).toMatchObject({
       formula_version: "stock-workbench-derived-metrics-v0",
       valuation_requires_market_cap: true
@@ -45,6 +53,7 @@ describe("stock workbench aggregate scaffold", () => {
       status: "ready"
     });
     expect(snapshot.data_quality.section_statuses).toEqual({
+      announcement_search: "found",
       corporate_actions: "found",
       derived_metrics: "found",
       financial_facts: "found",
@@ -91,9 +100,51 @@ describe("stock workbench aggregate scaffold", () => {
       formula_version: "stock-workbench-derived-metrics-v0",
       metric_id: "net_margin"
     });
+    expect(snapshot.announcement_search).toMatchObject({
+      evidence_locator_ready: true,
+      original_document_fetch: false,
+      row_count: 3,
+      status: "found"
+    });
+    expect(snapshot.announcement_search.announcements[0]).toMatchObject({
+      category: "buyback",
+      evidence_locator: {
+        external_href_authority: false,
+        locator_type: "synthetic_original_locator",
+        page: 1
+      },
+      source_record_id: "src_announcement_00700_20260106_buyback"
+    });
     expect(snapshot.corporate_actions.timeline?.actions[0]?.actionType).toBe("dividend");
     expect(snapshot.unsupported_sections).toEqual({
-      announcements: "planned"
+      full_announcement_document_search: "phase_2_planned"
+    });
+  });
+
+  it("searches stock workbench announcements with evidence locators", () => {
+    const result = createStockWorkbenchAnnouncementSearch({
+      categories: ["dividend"],
+      keyword: "timetable",
+      requestId: "req_workbench_announcements",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      evidence_locator_ready: true,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 1,
+      status: "found"
+    });
+    expect(result.announcements[0]).toMatchObject({
+      category: "dividend",
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        original_url:
+          "urn:aiphabee:synthetic:announcement:ann_00700_20260103_dividend#page=2&anchor=dividend-timetable"
+      },
+      title: "Dividend Timetable Update"
     });
   });
 
@@ -104,6 +155,7 @@ describe("stock workbench aggregate scaffold", () => {
     });
 
     expect(snapshot.status).toBe("blocked_resolution");
+    expect(snapshot.announcement_search.status).toBe("blocked_resolution");
     expect(snapshot.resolve_security?.status).toBe("ambiguous");
     expect(snapshot.instrument_id).toBeUndefined();
     expect(snapshot.data_quality.blocking_statuses).toContain("not_found");

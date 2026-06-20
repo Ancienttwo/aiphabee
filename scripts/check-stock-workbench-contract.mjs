@@ -3,13 +3,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const contractPath = "deploy/workbench/stock-workbench.contract.json";
-const requiredItems = ["STK-01", "STK-02", "STK-03", "STK-04", "STK-05"];
+const requiredItems = ["STK-01", "STK-02", "STK-03", "STK-04", "STK-05", "STK-06"];
 const requiredSections = [
   "security_profile",
   "quote_snapshot",
   "price_history",
   "financial_facts",
   "derived_metrics",
+  "announcement_search",
   "corporate_actions"
 ];
 const requiredTools = [
@@ -20,8 +21,9 @@ const requiredTools = [
   "get_financial_facts",
   "get_corporate_actions"
 ];
-const requiredUnsupported = ["announcements"];
+const requiredUnsupported = ["full_announcement_document_search"];
 const requiredOutputFields = [
+  "announcement_search",
   "security_profile",
   "quote_snapshot",
   "price_history",
@@ -31,6 +33,23 @@ const requiredOutputFields = [
   "data_quality",
   "evidence",
   "unsupported_sections"
+];
+const requiredAnnouncementCategories = ["results", "dividend", "buyback"];
+const requiredAnnouncementFilters = [
+  "instrument_id",
+  "security_query",
+  "from",
+  "to",
+  "categories",
+  "keyword",
+  "limit"
+];
+const requiredAnnouncementLocatorFields = [
+  "document_id",
+  "source_record_id",
+  "page",
+  "anchor",
+  "original_url"
 ];
 const requiredComputedMetrics = [
   "net_margin",
@@ -101,7 +120,7 @@ function validateContract(value) {
     return ["contract must be an object"];
   }
 
-  if (value.version !== "2026-06-21.phase1.stock-workbench-derived-metrics-scaffold.v0") {
+  if (value.version !== "2026-06-21.phase1.stock-workbench-announcement-search-scaffold.v0") {
     errors.push("version must match stock workbench scaffold version");
   }
 
@@ -119,6 +138,10 @@ function validateContract(value) {
 
   if (value.route !== "POST /workbench/stock/snapshot") {
     errors.push("route must be POST /workbench/stock/snapshot");
+  }
+
+  if (value.announcement_route !== "POST /workbench/stock/announcements") {
+    errors.push("announcement_route must be POST /workbench/stock/announcements");
   }
 
   if (value.standard_response_envelope !== true) {
@@ -159,7 +182,67 @@ function validateContract(value) {
     )
   );
   errors.push(...validateDerivedMetricContract(value.derived_metric_contract));
+  errors.push(...validateAnnouncementSearchContract(value.announcement_search_contract));
   errors.push(...validateNoSecrets(value));
+
+  return errors;
+}
+
+function validateAnnouncementSearchContract(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["announcement_search_contract must be an object"];
+  }
+
+  if (value.route !== "POST /workbench/stock/announcements") {
+    errors.push("announcement_search_contract.route must be POST /workbench/stock/announcements");
+  }
+
+  if (value.source !== "synthetic_announcement_fixture") {
+    errors.push("announcement_search_contract.source must be synthetic_announcement_fixture");
+  }
+
+  if (value.max_limit !== 3) {
+    errors.push("announcement_search_contract.max_limit must be 3");
+  }
+
+  for (const field of [
+    "evidence_locator_ready",
+    "ambiguous_security_blocks"
+  ]) {
+    if (value[field] !== true) {
+      errors.push(`announcement_search_contract.${field} must be true`);
+    }
+  }
+
+  for (const field of ["original_document_fetch", "external_href_authority"]) {
+    if (value[field] !== false) {
+      errors.push(`announcement_search_contract.${field} must be false`);
+    }
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.categories,
+      requiredAnnouncementCategories,
+      "announcement_search_contract.categories"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.filters,
+      requiredAnnouncementFilters,
+      "announcement_search_contract.filters"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.locator_fields,
+      requiredAnnouncementLocatorFields,
+      "announcement_search_contract.locator_fields"
+    )
+  );
 
   return errors;
 }

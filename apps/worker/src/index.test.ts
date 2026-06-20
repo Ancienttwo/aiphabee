@@ -162,14 +162,59 @@ interface WorkbenchRuntimeBody {
     sql_emitted: boolean;
     status: string;
     unsupported_sections: {
-      announcements: string;
+      full_announcement_document_search: string;
     };
   };
   ok: true;
 }
 
+interface WorkbenchAnnouncementSearchBody {
+  data: {
+    announcements: Array<{
+      category: string;
+      evidence_locator: {
+        anchor: string;
+        external_href_authority: boolean;
+        locator_type: string;
+        original_url: string;
+        page: number;
+      };
+      source_record_id: string;
+      title: string;
+    }>;
+    capability: {
+      evidence_locator_ready: boolean;
+      original_document_fetch: boolean;
+    };
+    evidence_locator_ready: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    original_document_fetch: boolean;
+    row_count: number;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface WorkbenchStockSnapshotBody {
   data: {
+    announcement_search: {
+      announcements: Array<{
+        category: string;
+        evidence_locator: {
+          external_href_authority: boolean;
+          locator_type: string;
+          page: number;
+        };
+        source_record_id: string;
+      }>;
+      row_count: number;
+      status: string;
+    };
     actual_tool_execution: boolean;
     capability: {
       status: string;
@@ -238,7 +283,7 @@ interface WorkbenchStockSnapshotBody {
     sql_emitted: boolean;
     status: string;
     unsupported_sections: {
-      announcements: string;
+      full_announcement_document_search: string;
     };
   };
   ok: true;
@@ -1698,10 +1743,11 @@ describe("worker runtime", () => {
       "price_history",
       "financial_facts",
       "derived_metrics",
+      "announcement_search",
       "corporate_actions"
     ]);
     expect(body.data.unsupported_sections).toEqual({
-      announcements: "planned"
+      full_announcement_document_search: "phase_2_planned"
     });
   });
 
@@ -1729,6 +1775,7 @@ describe("worker runtime", () => {
       status: "ready"
     });
     expect(body.data.data_quality.section_statuses).toEqual({
+      announcement_search: "found",
       corporate_actions: "found",
       derived_metrics: "found",
       financial_facts: "found",
@@ -1768,9 +1815,64 @@ describe("worker runtime", () => {
       formula_version: "stock-workbench-derived-metrics-v0",
       metric_id: "net_margin"
     });
+    expect(body.data.announcement_search).toMatchObject({
+      row_count: 3,
+      status: "found"
+    });
+    expect(body.data.announcement_search.announcements[0]).toMatchObject({
+      category: "buyback",
+      evidence_locator: {
+        external_href_authority: false,
+        locator_type: "synthetic_original_locator",
+        page: 1
+      },
+      source_record_id: "src_announcement_00700_20260106_buyback"
+    });
     expect(body.data.corporate_actions.timeline?.rowCount).toBe(3);
     expect(body.usage.rows).toBeGreaterThan(0);
     expect(body.usage.credits).toBeGreaterThan(0);
+  });
+
+  it("searches stock workbench announcements with source locators", async () => {
+    const response = await app.request("/workbench/stock/announcements", {
+      body: JSON.stringify({
+        categories: ["dividend"],
+        keyword: "timetable",
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-workbench-announcements"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WorkbenchAnnouncementSearchBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      evidence_locator_ready: true,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 1,
+      status: "found"
+    });
+    expect(body.data.capability).toMatchObject({
+      evidence_locator_ready: true,
+      original_document_fetch: false
+    });
+    expect(body.data.announcements[0]).toMatchObject({
+      category: "dividend",
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        external_href_authority: false,
+        original_url:
+          "urn:aiphabee:synthetic:announcement:ann_00700_20260103_dividend#page=2&anchor=dividend-timetable"
+      },
+      title: "Dividend Timetable Update"
+    });
+    expect(body.usage.rows).toBe(1);
   });
 
   it("does not silently choose an ambiguous workbench security", async () => {
@@ -1789,6 +1891,7 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("blocked_resolution");
+    expect(body.data.announcement_search.status).toBe("blocked_resolution");
     expect(body.data.resolve_security?.status).toBe("ambiguous");
     expect(body.data.instrument_id).toBeUndefined();
   });

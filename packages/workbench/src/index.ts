@@ -30,10 +30,15 @@ import {
 } from "@aiphabee/security-tools";
 
 export const STOCK_WORKBENCH_VERSION =
-  "2026-06-21.phase1.stock-workbench-derived-metrics-scaffold.v0";
+  "2026-06-21.phase1.stock-workbench-announcement-search-scaffold.v0";
 
 export interface StockWorkbenchSnapshotInput {
   adjustment?: PriceHistoryAdjustment;
+  announcementCategories?: string[];
+  announcementFrom?: string;
+  announcementKeyword?: string;
+  announcementLimit?: number;
+  announcementTo?: string;
   asOf?: string;
   corporateActionsFrom?: string;
   corporateActionsTo?: string;
@@ -100,7 +105,78 @@ export interface StockWorkbenchDerivedMetrics {
   };
 }
 
+export type StockWorkbenchAnnouncementCategory =
+  | "buyback"
+  | "dividend"
+  | "results";
+export type StockWorkbenchAnnouncementSearchStatus =
+  | "blocked_resolution"
+  | "found"
+  | "not_found";
+
+export interface StockWorkbenchAnnouncementLocator {
+  anchor: string;
+  document_id: string;
+  external_href_authority: false;
+  locator_type: "synthetic_original_locator";
+  original_url: string;
+  page: number;
+  source_record_id: string;
+}
+
+export interface StockWorkbenchAnnouncement {
+  announcement_id: string;
+  category: StockWorkbenchAnnouncementCategory;
+  evidence_locator: StockWorkbenchAnnouncementLocator;
+  instrument_id: string;
+  language: "en" | "zh-Hant";
+  published_at: string;
+  source_record_id: string;
+  summary: string;
+  symbol: string;
+  title: string;
+}
+
+export interface StockWorkbenchAnnouncementSearchInput {
+  asOf?: string;
+  categories?: string[];
+  from?: string;
+  instrumentId?: string;
+  keyword?: string;
+  limit?: number;
+  requestId: string;
+  securityQuery?: string;
+  to?: string;
+}
+
+export interface StockWorkbenchAnnouncementSearch {
+  announcements: StockWorkbenchAnnouncement[];
+  categories: StockWorkbenchAnnouncementCategory[];
+  data_version: typeof STOCK_WORKBENCH_VERSION;
+  evidence_locator_ready: true;
+  frontend_rendering: false;
+  from: string;
+  instrument_id?: string;
+  keyword?: string;
+  limit: number;
+  live_data_access: false;
+  methodology_version: typeof STOCK_WORKBENCH_VERSION;
+  original_document_fetch: false;
+  resolve_security?: ResolveSecurityResult;
+  row_count: number;
+  status: StockWorkbenchAnnouncementSearchStatus;
+  to: string;
+  toolName: "stock_workbench_announcement_search";
+  total_count: number;
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 export interface StockWorkbenchSnapshot {
+  announcement_search: StockWorkbenchAnnouncementSearch;
   actual_tool_execution: true;
   corporate_actions: GetCorporateActionsResult;
   data_quality: {
@@ -123,12 +199,13 @@ export interface StockWorkbenchSnapshot {
   sql_emitted: false;
   status: "blocked_resolution" | "partial" | "ready";
   unsupported_sections: {
-    announcements: "planned";
+    full_announcement_document_search: "phase_2_planned";
   };
   version: typeof STOCK_WORKBENCH_VERSION;
 }
 
 export type StockWorkbenchSection =
+  | "announcement_search"
   | "corporate_actions"
   | "derived_metrics"
   | "financial_facts"
@@ -142,6 +219,10 @@ const DEFAULT_FINANCIAL_FROM = "2023-12-31";
 const DEFAULT_FINANCIAL_TO = "2023-12-31";
 const DEFAULT_CORPORATE_ACTIONS_FROM = "2026-01-03";
 const DEFAULT_CORPORATE_ACTIONS_TO = "2026-01-07";
+const DEFAULT_ANNOUNCEMENT_FROM = "2024-03-20";
+const DEFAULT_ANNOUNCEMENT_TO = "2026-01-07";
+const DEFAULT_ANNOUNCEMENT_LIMIT = 3;
+const MAX_ANNOUNCEMENT_LIMIT = 3;
 const DERIVED_METRIC_FORMULA_VERSION = "stock-workbench-derived-metrics-v0";
 const DERIVED_METRIC_DEFINITIONS: StockWorkbenchDerivedMetricDefinition[] = [
   {
@@ -233,6 +314,59 @@ const DERIVED_METRIC_DEFINITIONS: StockWorkbenchDerivedMetricDefinition[] = [
     unit: "multiple"
   }
 ];
+const SYNTHETIC_ANNOUNCEMENTS: readonly StockWorkbenchAnnouncement[] = [
+  {
+    announcement_id: "ann_00700_20240320_results",
+    category: "results",
+    evidence_locator: createAnnouncementLocator(
+      "ann_00700_20240320_results",
+      "src_announcement_00700_20240320_results",
+      4,
+      "financial-highlights"
+    ),
+    instrument_id: "eq_hk_00700",
+    language: "en",
+    published_at: "2024-03-20T18:30:00+08:00",
+    source_record_id: "src_announcement_00700_20240320_results",
+    summary: "Annual results announcement with financial highlights and FY metrics.",
+    symbol: "00700.HK",
+    title: "Annual Results Announcement for the Year Ended 31 December 2023"
+  },
+  {
+    announcement_id: "ann_00700_20260103_dividend",
+    category: "dividend",
+    evidence_locator: createAnnouncementLocator(
+      "ann_00700_20260103_dividend",
+      "src_announcement_00700_20260103_dividend",
+      2,
+      "dividend-timetable"
+    ),
+    instrument_id: "eq_hk_00700",
+    language: "en",
+    published_at: "2026-01-03T12:00:00+08:00",
+    source_record_id: "src_announcement_00700_20260103_dividend",
+    summary: "Dividend timetable announcement with ex-date and payment-date evidence anchors.",
+    symbol: "00700.HK",
+    title: "Dividend Timetable Update"
+  },
+  {
+    announcement_id: "ann_00700_20260106_buyback",
+    category: "buyback",
+    evidence_locator: createAnnouncementLocator(
+      "ann_00700_20260106_buyback",
+      "src_announcement_00700_20260106_buyback",
+      1,
+      "repurchase-summary"
+    ),
+    instrument_id: "eq_hk_00700",
+    language: "zh-Hant",
+    published_at: "2026-01-06T18:00:00+08:00",
+    source_record_id: "src_announcement_00700_20260106_buyback",
+    summary: "Share repurchase disclosure with quantity and consideration evidence anchors.",
+    symbol: "00700.HK",
+    title: "翌日披露報表 - 股份購回"
+  }
+];
 
 export function getStockWorkbenchCapabilities() {
   return {
@@ -240,6 +374,7 @@ export function getStockWorkbenchCapabilities() {
     frontend_rendering: false,
     live_data_access: false,
     package: "@aiphabee/workbench" as const,
+    announcement_route: "POST /workbench/stock/announcements" as const,
     route: "POST /workbench/stock/snapshot" as const,
     runtime_route: "GET /workbench/runtime" as const,
     sections: [
@@ -248,8 +383,17 @@ export function getStockWorkbenchCapabilities() {
       "price_history",
       "financial_facts",
       "derived_metrics",
+      "announcement_search",
       "corporate_actions"
     ] as const,
+    announcement_search: {
+      categories: ["results", "dividend", "buyback"] as const,
+      evidence_locator_ready: true,
+      external_href_authority: false,
+      max_limit: MAX_ANNOUNCEMENT_LIMIT,
+      original_document_fetch: false,
+      source: "synthetic_announcement_fixture" as const
+    },
     derived_metrics: {
       anomaly_handling: [
         "missing_input",
@@ -279,7 +423,7 @@ export function getStockWorkbenchCapabilities() {
     sql_emitted: false,
     status: "stock_workbench_aggregate_scaffold" as const,
     unsupported_sections: {
-      announcements: "planned" as const
+      full_announcement_document_search: "phase_2_planned" as const
     },
     version: STOCK_WORKBENCH_VERSION
   };
@@ -319,8 +463,18 @@ export function createStockWorkbenchSnapshot(
       financialFacts: unresolvedFacts,
       quoteSnapshot: unresolvedQuote
     });
+    const unresolvedAnnouncementSearch = createAnnouncementSearchResult({
+      categories: input.announcementCategories,
+      from: input.announcementFrom,
+      instrumentId,
+      keyword: input.announcementKeyword,
+      limit: input.announcementLimit,
+      resolution,
+      to: input.announcementTo
+    });
 
     return createSnapshot({
+      announcementSearch: unresolvedAnnouncementSearch,
       corporateActions: unresolvedActions,
       derivedMetrics: unresolvedDerivedMetrics,
       financialFacts: unresolvedFacts,
@@ -364,7 +518,17 @@ export function createStockWorkbenchSnapshot(
     financialFacts,
     quoteSnapshot
   });
+  const announcementSearch = createAnnouncementSearchResult({
+    categories: input.announcementCategories,
+    from: input.announcementFrom,
+    instrumentId,
+    keyword: input.announcementKeyword,
+    limit: input.announcementLimit,
+    resolution,
+    to: input.announcementTo
+  });
   const allFound = [
+    announcementSearch.status,
     securityProfile.status,
     quoteSnapshot.status,
     priceHistory.status,
@@ -373,6 +537,7 @@ export function createStockWorkbenchSnapshot(
   ].every((status) => status === "found");
 
   return createSnapshot({
+    announcementSearch,
     corporateActions,
     derivedMetrics,
     financialFacts,
@@ -385,7 +550,31 @@ export function createStockWorkbenchSnapshot(
   });
 }
 
+export function createStockWorkbenchAnnouncementSearch(
+  input: StockWorkbenchAnnouncementSearchInput
+): StockWorkbenchAnnouncementSearch {
+  const resolution =
+    input.instrumentId === undefined && input.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.securityQuery
+        })
+      : undefined;
+  const instrumentId = input.instrumentId ?? resolution?.selectedInstrumentId;
+
+  return createAnnouncementSearchResult({
+    categories: input.categories,
+    from: input.from,
+    instrumentId,
+    keyword: input.keyword,
+    limit: input.limit,
+    resolution,
+    to: input.to
+  });
+}
+
 function createSnapshot(input: {
+  announcementSearch: StockWorkbenchAnnouncementSearch;
   corporateActions: GetCorporateActionsResult;
   derivedMetrics: StockWorkbenchDerivedMetrics;
   financialFacts: GetFinancialFactsResult;
@@ -397,6 +586,7 @@ function createSnapshot(input: {
   status: StockWorkbenchSnapshot["status"];
 }): StockWorkbenchSnapshot {
   const sectionStatuses: Record<StockWorkbenchSection, string> = {
+    announcement_search: input.announcementSearch.status,
     corporate_actions: input.corporateActions.status,
     derived_metrics: derivedMetricSectionStatus(input.derivedMetrics),
     financial_facts: input.financialFacts.status,
@@ -406,6 +596,7 @@ function createSnapshot(input: {
   };
 
   return {
+    announcement_search: input.announcementSearch,
     actual_tool_execution: true,
     corporate_actions: input.corporateActions,
     data_quality: {
@@ -419,7 +610,10 @@ function createSnapshot(input: {
       ...input.quoteSnapshot.provenance,
       ...input.priceHistory.provenance,
       ...input.financialFacts.provenance,
-      ...input.corporateActions.provenance
+      ...input.corporateActions.provenance,
+      ...input.announcementSearch.announcements.map((announcement) => ({
+        source_record_id: announcement.source_record_id
+      }))
     ]),
     financial_facts: input.financialFacts,
     frontend_rendering: false,
@@ -432,10 +626,137 @@ function createSnapshot(input: {
     sql_emitted: false,
     status: input.status,
     unsupported_sections: {
-      announcements: "planned"
+      full_announcement_document_search: "phase_2_planned"
     },
     version: STOCK_WORKBENCH_VERSION
   };
+}
+
+function createAnnouncementSearchResult(input: {
+  categories?: string[];
+  from?: string;
+  instrumentId?: string;
+  keyword?: string;
+  limit?: number;
+  resolution?: ResolveSecurityResult;
+  to?: string;
+}): StockWorkbenchAnnouncementSearch {
+  const from = input.from ?? DEFAULT_ANNOUNCEMENT_FROM;
+  const to = input.to ?? DEFAULT_ANNOUNCEMENT_TO;
+  const categories = normalizeAnnouncementCategories(input.categories);
+  const limit = normalizeAnnouncementLimit(input.limit);
+  const keyword = input.keyword?.trim();
+
+  if (input.instrumentId === undefined) {
+    return {
+      announcements: [],
+      categories,
+      data_version: STOCK_WORKBENCH_VERSION,
+      evidence_locator_ready: true,
+      frontend_rendering: false,
+      from,
+      keyword: keyword === "" ? undefined : keyword,
+      limit,
+      live_data_access: false,
+      methodology_version: STOCK_WORKBENCH_VERSION,
+      original_document_fetch: false,
+      resolve_security: input.resolution,
+      row_count: 0,
+      status: "blocked_resolution",
+      to,
+      toolName: "stock_workbench_announcement_search",
+      total_count: 0,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const normalizedKeyword = keyword?.toLowerCase();
+  const matchingAnnouncements = SYNTHETIC_ANNOUNCEMENTS.filter(
+    (announcement) =>
+      announcement.instrument_id === input.instrumentId &&
+      categories.includes(announcement.category) &&
+      announcement.published_at.slice(0, 10) >= from &&
+      announcement.published_at.slice(0, 10) <= to &&
+      (normalizedKeyword === undefined ||
+        normalizedKeyword.length === 0 ||
+        [announcement.title, announcement.summary, announcement.category]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedKeyword))
+  ).sort((left, right) => right.published_at.localeCompare(left.published_at));
+  const announcements = matchingAnnouncements.slice(0, limit);
+
+  return {
+    announcements,
+    categories,
+    data_version: STOCK_WORKBENCH_VERSION,
+    evidence_locator_ready: true,
+    frontend_rendering: false,
+    from,
+    instrument_id: input.instrumentId,
+    keyword: keyword === "" ? undefined : keyword,
+    limit,
+    live_data_access: false,
+    methodology_version: STOCK_WORKBENCH_VERSION,
+    original_document_fetch: false,
+    resolve_security: input.resolution,
+    row_count: announcements.length,
+    status: announcements.length > 0 ? "found" : "not_found",
+    to,
+    toolName: "stock_workbench_announcement_search",
+    total_count: matchingAnnouncements.length,
+    usage: {
+      cached: false,
+      credits: announcements.length > 0 ? 1 : 0,
+      rows: announcements.length
+    }
+  };
+}
+
+function createAnnouncementLocator(
+  announcementId: string,
+  sourceRecordId: string,
+  page: number,
+  anchor: string
+): StockWorkbenchAnnouncementLocator {
+  return {
+    anchor,
+    document_id: `doc_${announcementId}`,
+    external_href_authority: false,
+    locator_type: "synthetic_original_locator",
+    original_url: `urn:aiphabee:synthetic:announcement:${announcementId}#page=${page}&anchor=${anchor}`,
+    page,
+    source_record_id: sourceRecordId
+  };
+}
+
+function normalizeAnnouncementCategories(
+  categories: string[] | undefined
+): StockWorkbenchAnnouncementCategory[] {
+  const allowed: StockWorkbenchAnnouncementCategory[] = ["results", "dividend", "buyback"];
+
+  if (categories === undefined || categories.length === 0) {
+    return allowed;
+  }
+
+  const normalized = categories.filter(
+    (category): category is StockWorkbenchAnnouncementCategory =>
+      allowed.includes(category as StockWorkbenchAnnouncementCategory)
+  );
+
+  return normalized.length > 0 ? normalized : allowed;
+}
+
+function normalizeAnnouncementLimit(limit: number | undefined): number {
+  if (limit === undefined || !Number.isInteger(limit) || limit <= 0) {
+    return DEFAULT_ANNOUNCEMENT_LIMIT;
+  }
+
+  return Math.min(limit, MAX_ANNOUNCEMENT_LIMIT);
 }
 
 function createDerivedMetrics(input: {

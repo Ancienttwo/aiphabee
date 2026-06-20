@@ -10,12 +10,14 @@ Complete the backend-only Sprint 1.4 stock workbench aggregate scaffold for:
 - STK-04 valuation/profitability derived metric definitions and anomaly
   handling
 - STK-05 corporate action timeline
+- STK-06 basic announcement search entry with original-position locator
 
 ## Required Surfaces
 
 - Package: `@aiphabee/workbench`
 - Runtime route: `GET /workbench/runtime`
 - Snapshot route: `POST /workbench/stock/snapshot`
+- Announcement route: `POST /workbench/stock/announcements`
 - Contract: `deploy/workbench/stock-workbench.contract.json`
 - Checker: `npm run check:stock-workbench`
 
@@ -41,9 +43,13 @@ Complete the backend-only Sprint 1.4 stock workbench aggregate scaffold for:
   - `price_to_earnings`
   - `price_to_sales`
   - `price_to_book`
+- Return `announcement_search` with security/date/category/keyword filters,
+  source record IDs, and original-position locator fields.
+- Keep announcement original document fetch disabled; full
+  `search_announcements` / `get_announcement` tool behavior remains Phase 2.
 - Do not silently pick an ambiguous security.
 - Explicitly mark unsupported sections:
-  - announcements/document search
+  - full announcement/document search
 
 ## Acceptance
 
@@ -54,4 +60,6 @@ Complete the backend-only Sprint 1.4 stock workbench aggregate scaffold for:
   behavior.
 - Ready snapshot proves profitability metrics are computed and valuation metrics
   return `market_cap_unavailable` instead of fabricated values.
+- Announcement route returns a filtered result with `document_id`,
+  `source_record_id`, `page`, `anchor`, and `original_url` locator fields.
 - Sprint tracker rows are checked only for the covered backend surfaces.

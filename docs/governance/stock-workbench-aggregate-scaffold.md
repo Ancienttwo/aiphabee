@@ -1,17 +1,18 @@
 # Stock Workbench Aggregate Scaffold
 
 > **Status**: Verified backend scaffold
-> **Last Updated**: 2026-06-21 05:29 +08
+> **Last Updated**: 2026-06-21 05:36 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-stock-workbench-aggregate-scaffold.md`
 > **Task Contract**:
 > `tasks/contracts/stock-workbench-aggregate-scaffold.contract.md`
 
 This slice completes the backend-only stock workbench aggregate scaffold for
-Sprint 1.4 STK-01, STK-02, STK-03, STK-04, and STK-05. It composes existing
-synthetic tool handlers into one snapshot surface and adds deterministic
-derived-metric definitions/results without frontend rendering, live market data
-access, SQL, or announcement/document search.
+Sprint 1.4 STK-01, STK-02, STK-03, STK-04, STK-05, and STK-06. It composes
+existing synthetic tool handlers into one snapshot surface, adds deterministic
+derived-metric definitions/results, and exposes a basic announcement search
+entry with source locators without frontend rendering, live market data access,
+SQL, or live document fetches.
 
 ## P1 Architecture Map
 
@@ -21,6 +22,7 @@ access, SQL, or announcement/document search.
 | Runtime route | `GET /workbench/runtime` | Reports sections, source tools, unsupported sections, and no-live posture |
 | Snapshot route | `POST /workbench/stock/snapshot` | Aggregates existing tool package outputs into a standard envelope |
 | Derived metrics | `derived_metrics` section | Computes profitability ratios and blocks valuation multiples when market cap is unavailable |
+| Announcement route | `POST /workbench/stock/announcements` | Returns synthetic announcement rows with original-position locators |
 | Source tools | `security-tools`, `market-data`, `financial-facts`, `corporate-actions` | Existing synthetic handlers remain authoritative for facts |
 | Contract | `deploy/workbench/stock-workbench.contract.json` | Guards route, covered STK rows, no frontend, no live data, no SQL |
 | Frontend | Out of scope | User delegated frontend work to Claude |
@@ -42,7 +44,10 @@ access, SQL, or announcement/document search.
      `asset_turnover`, `equity_multiplier`
    - blocked with explicit reason: `price_to_earnings`, `price_to_sales`,
      `price_to_book` when `market_cap` is unavailable
-6. The aggregate returns section statuses, provenance/source-record summary,
+6. Workbench searches synthetic announcement fixtures by security/date/category/
+   keyword and returns source-record IDs plus `synthetic_original_locator`
+   fields (`document_id`, `page`, `anchor`, `original_url`).
+7. The aggregate returns section statuses, provenance/source-record summary,
    and the original handler results inside a shared success envelope.
 
 ## P3 Design Decision
@@ -56,15 +61,17 @@ Reason:
 - Frontend rendering is explicitly delegated.
 - Valuation multiples require market cap/share-count authority; this scaffold
   exposes the formula and blocks those metrics instead of fabricating inputs.
-- STK-06 announcement search needs a separate document/source contract.
+- STK-06 only needs a basic workbench entry in this sprint; the full
+  `search_announcements` / `get_announcement` tool pair remains in Phase 2.
 
 Tradeoff:
 
-- The workbench now has a stable backend snapshot surface for five STK rows.
+- The workbench now has a stable backend snapshot surface for six STK rows.
 - The user still cannot see a frontend workbench until Claude integrates UI.
 - Valuation formulas are inspectable, but valuation values remain blocked until
   market cap/share-count source data exists.
-- Announcements remain open.
+- Announcement search is synthetic and locator-ready, but live original
+  document fetch is disabled.
 
 ## Verification
 
@@ -93,6 +100,7 @@ Observed runtime fields:
       "price_history",
       "financial_facts",
       "derived_metrics",
+      "announcement_search",
       "corporate_actions"
     ],
     "status": "stock_workbench_aggregate_scaffold"
@@ -102,6 +110,7 @@ Observed runtime fields:
     "section_statuses": {
       "corporate_actions": "found",
       "derived_metrics": "found",
+      "announcement_search": "found",
       "financial_facts": "found",
       "price_history": "found",
       "quote_snapshot": "found",
@@ -132,9 +141,21 @@ Derived metric behavior:
 }
 ```
 
+Announcement search behavior:
+
+```json
+{
+  "route": "POST /workbench/stock/announcements",
+  "categories": ["results", "dividend", "buyback"],
+  "locator_fields": ["document_id", "source_record_id", "page", "anchor", "original_url"],
+  "external_href_authority": false,
+  "original_document_fetch": false
+}
+```
+
 ## Residual Gaps
 
-- STK-06 announcement/document search is not implemented.
+- Full Phase 2 announcement/document search tools are not implemented.
 - Valuation multiples remain blocked until a market cap/share-count source is
   added.
 - Frontend workbench rendering remains delegated.
