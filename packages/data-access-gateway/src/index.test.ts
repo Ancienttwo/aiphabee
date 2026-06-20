@@ -52,6 +52,14 @@ describe("data access gateway", () => {
       sqlTextEmitted: false,
       status: "descriptor_blocked"
     });
+    expect(decision.servingSqlText).toMatchObject({
+      blockedReason: "DATA_NOT_LICENSED",
+      executionReady: false,
+      sqlExecuted: false,
+      sqlTextEmitted: false,
+      status: "sql_text_blocked"
+    });
+    expect(decision.servingSqlText.sqlText).toBeUndefined();
     expect(decision.usage.rows).toBe(0);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -143,6 +151,22 @@ describe("data access gateway", () => {
       statementId: "serving_record_projection_by_snapshot_v0",
       status: "descriptor_planned"
     });
+    expect(decision.servingSqlText).toMatchObject({
+      executionReady: false,
+      parameters: {
+        fieldSet: ["synthetic_profile.company_name"],
+        limit: 5,
+        servingSnapshotId: "serving-snapshot-scaffold-v0",
+        timeFrom: "2024-01-01",
+        timeTo: "2024-01-31"
+      },
+      sqlExecuted: false,
+      sqlTextEmitted: true,
+      status: "sql_text_planned"
+    });
+    expect(decision.servingSqlText.sqlText).toContain(
+      "from core.serving_record"
+    );
     expect(decision.usage.rows).toBe(5);
     expect(decision.usageLedger).toMatchObject({
       schemaReady: false,
@@ -195,6 +219,13 @@ describe("data access gateway", () => {
       sqlEmitted: false,
       sqlTextEmitted: false,
       status: "descriptor_blocked"
+    });
+    expect(decision.servingSqlText).toMatchObject({
+      blockedReason: "DATA_QUALITY_HOLD",
+      executionReady: false,
+      sqlExecuted: false,
+      sqlTextEmitted: false,
+      status: "sql_text_blocked"
     });
     expect(decision.usage.credits).toBe(0);
     expect(decision.usageLedger).toMatchObject({

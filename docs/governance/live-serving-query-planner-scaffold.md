@@ -1,7 +1,7 @@
 # Live Serving Query Planner Scaffold
 
 > **Status**: Verified query-plan scaffold
-> **Last Updated**: 2026-06-20 17:56 +08
+> **Last Updated**: 2026-06-20 18:05 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-live-serving-query-planner-scaffold.md`
@@ -10,8 +10,9 @@
 
 This slice adds the first deterministic query-plan boundary for Data Access
 Gateway live Serving. It does not emit SQL, read Hyperdrive/Supabase, load
-partner rows, or enable frontend access. A later SQL descriptor scaffold now
-turns planned queries into no-execute descriptor material.
+partner rows, or enable frontend access. Later SQL descriptor and SQL text
+compiler scaffolds now turn planned queries into adapter material while keeping
+execution disabled.
 
 ## P1 Architecture Map
 
@@ -19,6 +20,7 @@ turns planned queries into no-execute descriptor material.
 |---|---|---|
 | Query planner | `packages/serving-store` | Converts approved read plans and released snapshot metadata into no-SQL query plans |
 | SQL descriptor planner | `packages/serving-store` | Converts planned queries into allow-listed statement descriptors without SQL text |
+| SQL text compiler | `packages/serving-store` | Converts allow-listed descriptors into fixed SQL text without execution |
 | Gateway evaluator | `packages/data-access-gateway` | Attaches `servingQuery` after rights, fields, row/time, quality, and read planning |
 | Worker runtime route | `GET /gateway/runtime` | Reports `serving_query_planner_scaffold`, no live reads |
 | Access contract | `deploy/gateway/access.contract.json` | Requires query planner guard and cache material |
@@ -42,8 +44,8 @@ Allowed released snapshot trace:
    state.
 6. Planner returns `status=query_planned`, `liveRead=false`,
    `sqlEmitted=false`, and bounded `plannedRows`.
-7. Later `servingSqlDescriptor` planning adds statement id and bindings without
-   SQL text or execution.
+7. Later `servingSqlDescriptor` and `servingSqlText` planning add statement id,
+   bindings, and fixed SQL text without execution.
 
 Blocked trace:
 
@@ -112,7 +114,6 @@ Observed `/gateway/runtime` fields:
 ## Residual Gaps
 
 - Live Serving SQL is absent.
-- SQL text generation is absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.
 - Persistent usage writes and billing reconciliation are absent.

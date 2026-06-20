@@ -4,10 +4,12 @@ import {
   createServingQueryPlan,
   createServingQualityReleasePlan,
   createServingSqlDescriptor,
+  createServingSqlTextPlan,
   getServingStoreQualityReleaseCapabilities,
   getServingStoreQueryPlannerCapabilities,
   getServingStoreReadCapabilities,
-  getServingStoreSqlDescriptorCapabilities
+  getServingStoreSqlDescriptorCapabilities,
+  getServingStoreSqlTextCompilerCapabilities
 } from "./index";
 
 describe("serving store read planner", () => {
@@ -348,6 +350,112 @@ describe("serving store read planner", () => {
       uses_allowed_field_set: true,
       uses_row_limit: true,
       uses_snapshot_binding: true
+    });
+  });
+
+  it("compiles allow-listed SQL text without enabling execution", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: ["synthetic_profile.company_name"],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "synthetic_profile",
+      gatewayStatus: "allow",
+      maxRows: 10,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["synthetic_profile.company_name"],
+      requestedRows: 3,
+      rightsPolicyVersion: "synthetic-policy-v0",
+      timeRange: {
+        from: "2024-01-01",
+        to: "2024-01-31"
+      }
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 8,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+    const sqlText = createServingSqlTextPlan({ descriptor });
+
+    expect(sqlText).toMatchObject({
+      descriptorStatementId: "serving_record_projection_by_snapshot_v0",
+      executionReady: false,
+      liveRead: false,
+      parameterOrder: [
+        "serving_snapshot_id",
+        "field_set",
+        "time_from",
+        "time_to",
+        "limit"
+      ],
+      parameters: {
+        fieldSet: ["synthetic_profile.company_name"],
+        limit: 3,
+        servingSnapshotId: "snapshot-released-v0",
+        timeFrom: "2024-01-01",
+        timeTo: "2024-01-31"
+      },
+      sqlExecuted: false,
+      sqlTextEmitted: true,
+      status: "sql_text_planned"
+    });
+    expect(sqlText.sqlText).toContain("from core.serving_record");
+    expect(sqlText.sqlText).toContain("serving_snapshot_id = $1");
+    expect(sqlText.sqlText).toContain("field_set @> $2::text[]");
+    expect(sqlText.sqlText).toContain("limit $5");
+  });
+
+  it("blocks SQL text compilation for blocked descriptors", () => {
+    const readPlan = createServingReadPlan({
+      allowedFields: [],
+      dataVersion: "gateway-scaffold-v0",
+      dataset: "hk_equity_quote",
+      errorCode: "DATA_NOT_LICENSED",
+      gatewayStatus: "deny",
+      maxRows: 500,
+      methodologyVersion: "methodology-v0",
+      qualityState: "PASS",
+      requestedFields: ["quote.close"],
+      requestedRows: 1,
+      rightsPolicyVersion: "gate0-default-deny-v0"
+    });
+    const queryPlan = createServingQueryPlan({
+      readPlan,
+      releaseState: "released",
+      rowCount: 10,
+      servingSnapshotId: "snapshot-released-v0",
+      snapshotQualityState: "PASS"
+    });
+    const descriptor = createServingSqlDescriptor({ queryPlan });
+    const sqlText = createServingSqlTextPlan({ descriptor });
+
+    expect(sqlText).toMatchObject({
+      blockedReason: "DATA_NOT_LICENSED",
+      executionReady: false,
+      parameters: {
+        fieldSet: [],
+        limit: 0,
+        servingSnapshotId: "snapshot-released-v0"
+      },
+      sqlExecuted: false,
+      sqlTextEmitted: false,
+      status: "sql_text_blocked"
+    });
+    expect(sqlText.sqlText).toBeUndefined();
+  });
+
+  it("reports a no-execute SQL text compiler capability", () => {
+    expect(getServingStoreSqlTextCompilerCapabilities()).toMatchObject({
+      execution_ready: false,
+      live_reads: false,
+      sql_executed: false,
+      sql_text_emitted: true,
+      status: "sql_text_compiler_scaffold",
+      template_source: "allow_listed_statement_id",
+      uses_parameterized_bindings: true
     });
   });
 

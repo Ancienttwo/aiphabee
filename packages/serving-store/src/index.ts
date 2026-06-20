@@ -6,6 +6,8 @@ export const SERVING_STORE_QUERY_PLAN_VERSION =
   "2026-06-20.phase1.live-serving-query-planner-scaffold.v0";
 export const SERVING_STORE_SQL_DESCRIPTOR_VERSION =
   "2026-06-20.phase1.serving-sql-descriptor-scaffold.v0";
+export const SERVING_STORE_SQL_TEXT_VERSION =
+  "2026-06-20.phase1.serving-sql-text-compiler-scaffold.v0";
 
 export type ServingQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type ServingReleaseState = "held" | "released" | "withdrawn";
@@ -22,6 +24,7 @@ export type ServingQueryPlanStatus = "query_blocked" | "query_planned";
 export type ServingSqlDescriptorStatus =
   | "descriptor_blocked"
   | "descriptor_planned";
+export type ServingSqlTextStatus = "sql_text_blocked" | "sql_text_planned";
 export type ServingQualityScope = "field" | "record" | "snapshot";
 
 export interface ServingReadPlanInput {
@@ -70,6 +73,10 @@ export interface ServingQueryPlanInput {
 
 export interface ServingSqlDescriptorInput {
   queryPlan: ServingQueryPlan;
+}
+
+export interface ServingSqlTextInput {
+  descriptor: ServingSqlDescriptor;
 }
 
 export interface ServingReadPlan {
@@ -184,6 +191,32 @@ export interface ServingSqlDescriptor {
     };
   };
   version: typeof SERVING_STORE_SQL_DESCRIPTOR_VERSION;
+}
+
+export interface ServingSqlTextPlan {
+  blockedReason?: string;
+  descriptorStatementId: ServingSqlDescriptor["statementId"];
+  executionReady: false;
+  liveRead: false;
+  parameterOrder: readonly [
+    "serving_snapshot_id",
+    "field_set",
+    "time_from",
+    "time_to",
+    "limit"
+  ];
+  parameters: {
+    fieldSet: string[];
+    limit: number;
+    servingSnapshotId: string;
+    timeFrom?: string;
+    timeTo?: string;
+  };
+  sqlExecuted: false;
+  sqlText?: string;
+  sqlTextEmitted: boolean;
+  status: ServingSqlTextStatus;
+  version: typeof SERVING_STORE_SQL_TEXT_VERSION;
 }
 
 export interface ServingQualityReleasePlan {
@@ -396,6 +429,47 @@ export function createServingSqlDescriptor(
   };
 }
 
+export function createServingSqlTextPlan(
+  input: ServingSqlTextInput
+): ServingSqlTextPlan {
+  const descriptor = input.descriptor;
+  const blockedReason =
+    descriptor.status === "descriptor_planned"
+      ? undefined
+      : descriptor.blockedReason ?? "SERVING_SQL_DESCRIPTOR_NOT_PLANNED";
+  const status: ServingSqlTextStatus =
+    blockedReason === undefined ? "sql_text_planned" : "sql_text_blocked";
+
+  return {
+    blockedReason,
+    descriptorStatementId: descriptor.statementId,
+    executionReady: false,
+    liveRead: false,
+    parameterOrder: [
+      "serving_snapshot_id",
+      "field_set",
+      "time_from",
+      "time_to",
+      "limit"
+    ],
+    parameters: {
+      fieldSet: status === "sql_text_planned" ? descriptor.bindings.fieldSet : [],
+      limit: status === "sql_text_planned" ? descriptor.bindings.limit : 0,
+      servingSnapshotId: descriptor.bindings.servingSnapshotId,
+      timeFrom: descriptor.bindings.timeFrom,
+      timeTo: descriptor.bindings.timeTo
+    },
+    sqlExecuted: false,
+    sqlText:
+      status === "sql_text_planned"
+        ? createServingRecordProjectionSqlText()
+        : undefined,
+    sqlTextEmitted: status === "sql_text_planned",
+    status,
+    version: SERVING_STORE_SQL_TEXT_VERSION
+  };
+}
+
 export function getServingStoreReadCapabilities() {
   return {
     blocks_default_deny: true,
@@ -420,6 +494,27 @@ export function getServingStoreReadCapabilities() {
     ] as const,
     uses_quality_state: true,
     uses_versioned_snapshots: true
+  };
+}
+
+export function getServingStoreSqlTextCompilerCapabilities() {
+  return {
+    execution_ready: false,
+    live_reads: false,
+    parameter_order: [
+      "serving_snapshot_id",
+      "field_set",
+      "time_from",
+      "time_to",
+      "limit"
+    ] as const,
+    sql_executed: false,
+    sql_text_emitted: true,
+    statement_ids: ["serving_record_projection_by_snapshot_v0"] as const,
+    status: "sql_text_compiler_scaffold" as const,
+    template_source: "allow_listed_statement_id" as const,
+    uses_parameterized_bindings: true,
+    version: SERVING_STORE_SQL_TEXT_VERSION
   };
 }
 
@@ -494,6 +589,25 @@ export function getServingStoreQualityReleaseCapabilities() {
     version: SERVING_STORE_QUALITY_RELEASE_VERSION,
     warn_quality_states: ["WARN"] as const
   };
+}
+
+function createServingRecordProjectionSqlText(): string {
+  return [
+    "select",
+    "  core.serving_record.serving_record_id,",
+    "  core.serving_record.entity_type,",
+    "  core.serving_record.entity_id,",
+    "  core.serving_record.payload,",
+    "  core.serving_record.field_set,",
+    "  core.serving_record.source_record_id",
+    "from core.serving_record",
+    "where core.serving_record.serving_snapshot_id = $1",
+    "  and core.serving_record.field_set @> $2::text[]",
+    "  and ($3::date is null or core.serving_record.effective_to is null or core.serving_record.effective_to >= $3::date)",
+    "  and ($4::date is null or core.serving_record.effective_from is null or core.serving_record.effective_from <= $4::date)",
+    "order by core.serving_record.entity_id asc",
+    "limit $5"
+  ].join("\n");
 }
 
 function getServingQueryBlockedReason(

@@ -1,6 +1,6 @@
 # Notes: serving-read-scaffold-default-deny
 
-> **Last Updated**: 2026-06-20 17:56 +08
+> **Last Updated**: 2026-06-20 18:05 +08
 > **Plan**: `plans/plan-serving-read-scaffold-default-deny.md`
 > **Runtime Evidence**:
 > `docs/governance/serving-read-scaffold-default-deny.md`
@@ -22,6 +22,8 @@
   planned without SQL or live reads.
 - Added a later SQL descriptor capability; statement id and bindings are
   planned without SQL text or execution.
+- Added a later SQL text compiler capability; fixed SQL text is planned without
+  execution.
 
 ## Verification
 
@@ -38,7 +40,7 @@
 - Live Supabase/Hyperdrive Serving reads are absent.
 - Partner-approved data loading is absent.
 - Persistent quality-release jobs and Serving snapshot mutation are absent.
-- Query planning and SQL descriptor planning exist, but SQL text generation and
-  live Serving SQL execution are absent.
+- Query planning, SQL descriptor planning, and SQL text planning exist, but
+  live Serving SQL execution is absent.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

@@ -1,6 +1,6 @@
 # Notes: serving-sql-descriptor-scaffold
 
-> **Last Updated**: 2026-06-20 17:56 +08
+> **Last Updated**: 2026-06-20 18:05 +08
 > **Plan**: `plans/plan-serving-sql-descriptor-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/serving-sql-descriptor-scaffold.md`
@@ -16,6 +16,8 @@
   `servingQuery`.
 - Extended `/gateway/runtime` with `serving_sql_descriptor_scaffold` and
   `serving_store.sql_descriptor`.
+- Added a later SQL text compiler scaffold that emits fixed SQL text from the
+  descriptor while keeping execution disabled.
 - Kept live SQL execution, Hyperdrive reads, partner rows, and frontend out of
   scope.
 
@@ -31,7 +33,6 @@
 
 ## Residual Blockers
 
-- SQL text generation is absent.
 - Live Serving SQL execution is absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.

@@ -3,9 +3,11 @@ import {
   createServingQueryPlan,
   createServingReadPlan,
   createServingSqlDescriptor,
+  createServingSqlTextPlan,
   type ServingQueryPlan,
   type ServingReadPlan,
-  type ServingSqlDescriptor
+  type ServingSqlDescriptor,
+  type ServingSqlTextPlan
 } from "@aiphabee/serving-store";
 import {
   createUsageLedgerEventPlan,
@@ -13,7 +15,7 @@ import {
 } from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.serving-sql-descriptor-scaffold.v0";
+  "2026-06-20.phase1.serving-sql-text-compiler-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -168,6 +170,7 @@ export interface DataAccessDecision {
   servingQuery: ServingQueryPlan;
   servingRead: ServingReadPlan;
   servingSqlDescriptor: ServingSqlDescriptor;
+  servingSqlText: ServingSqlTextPlan;
   status: DataAccessDecisionStatus;
   usage: UsageSummary;
   usageLedger: UsageLedgerEventPlan;
@@ -236,6 +239,9 @@ export function evaluateDataAccessRequest(
   const servingSqlDescriptor = createServingSqlDescriptor({
     queryPlan: servingQuery
   });
+  const servingSqlText = createServingSqlTextPlan({
+    descriptor: servingSqlDescriptor
+  });
   const warnings = getWarnings(request.qualityState, fieldDecision.deniedFields);
   const usage: UsageSummary = {
     cached: false,
@@ -292,6 +298,7 @@ export function evaluateDataAccessRequest(
     servingQuery,
     servingRead,
     servingSqlDescriptor,
+    servingSqlText,
     status: finalStatus,
     usage,
     usageLedger,

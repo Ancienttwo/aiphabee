@@ -1,6 +1,6 @@
 # Notes: live-serving-query-planner-scaffold
 
-> **Last Updated**: 2026-06-20 17:56 +08
+> **Last Updated**: 2026-06-20 18:05 +08
 > **Plan**: `plans/plan-live-serving-query-planner-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/live-serving-query-planner-scaffold.md`
@@ -19,6 +19,8 @@
   `release_state`.
 - Added a later SQL descriptor scaffold that converts planned queries into
   allow-listed statement id and bindings without SQL text or execution.
+- Added a later SQL text compiler scaffold that emits fixed SQL text from the
+  descriptor without execution.
 
 ## Verification
 
@@ -32,7 +34,7 @@
 
 ## Residual Blockers
 
-- SQL text generation and live Serving SQL execution are absent.
+- Live Serving SQL execution is absent.
 - Hyperdrive/Supabase Serving reads are absent.
 - Partner market data rows are absent.
 - Persistent usage writes and billing reconciliation are absent.
