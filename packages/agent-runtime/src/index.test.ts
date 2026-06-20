@@ -35,6 +35,11 @@ describe("agent runtime scaffold", () => {
     });
     expect(capabilities.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
+      budget_stop_policy: {
+        graceful_stop: true,
+        returns_continue_cost: true,
+        status: "budget_stop_policy_scaffold"
+      },
       chain_of_thought_exposed: false,
       max_parallel_tools: 3,
       model_calls: false,
@@ -172,6 +177,34 @@ describe("agent runtime scaffold", () => {
       instrument_id: "eq_hk_00700",
       symbol: "00700.HK"
     });
+    expect(plan.budget_stop_policy).toMatchObject({
+      decision: {
+        reasons: [],
+        status: "continue"
+      },
+      error_stop_policy: {
+        consecutive_same_error_limit: 2,
+        retry_billable: false,
+        stops_automatic_retry: true
+      },
+      graceful_stop: {
+        partial_response_ready: false,
+        unfinished_step_ids: []
+      },
+      model_calls: false
+    });
+    expect(plan.budget_stop_policy.limit_status).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          dimension: "steps",
+          status: "within_budget"
+        }),
+        expect.objectContaining({
+          dimension: "credits",
+          status: "within_budget"
+        })
+      ])
+    );
     expect(plan.retry_policy).toMatchObject({
       consecutive_same_error_limit: 2,
       max_attempts_per_tool: 2,
@@ -198,23 +231,74 @@ describe("agent runtime scaffold", () => {
     ]);
   });
 
-  it("rejects tool loop plans that exceed the requested step budget", () => {
-    expect(() =>
-      createToolLoopAgentPlan({
-        maxSteps: 3,
-        prompt: "Explain 00700.HK revenue and price trend",
-        requestId: "req-agent-plan-budget",
-        requestedTools: [
-          "resolve_security",
-          "get_entitlements",
-          "get_security_profile",
-          "get_quote_snapshot",
-          "get_price_history",
-          "get_financial_facts",
-          "get_data_lineage"
-        ]
+  it("gracefully stops tool loop plans when the requested step budget is exhausted", () => {
+    const plan = createToolLoopAgentPlan({
+      maxSteps: 3,
+      prompt: "Explain 00700.HK revenue and price trend",
+      requestId: "req-agent-plan-budget",
+      requestedTools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ]
+    });
+
+    expect(plan.status).toBe("stopped_budget");
+    expect(plan.planned_step_count).toBe(3);
+    expect(plan.steps.map((step) => step.phase)).toEqual([
+      "security_resolution",
+      "entitlement_gate",
+      "answer_contract"
+    ]);
+    expect(plan.steps[2]).toMatchObject({
+      public_label: "Return graceful budget stop response",
+      tool_calls: []
+    });
+    expect(plan.budget_stop_policy.decision).toMatchObject({
+      reasons: ["steps"],
+      status: "stop_before_execution",
+      stop_before_step: 3
+    });
+    expect(plan.budget_stop_policy.graceful_stop).toMatchObject({
+      completed_step_ids: ["step_1", "step_2"],
+      existing_evidence_record_ids: [],
+      partial_response_ready: true
+    });
+    expect(plan.budget_stop_policy.graceful_stop.unfinished_step_ids).toContain("step_3");
+    expect(plan.budget_stop_policy.planned_usage.steps).toBe(3);
+  });
+
+  it("gracefully stops tool loop plans when credit budget is exhausted", () => {
+    const plan = createToolLoopAgentPlan({
+      maxCredits: 2,
+      maxSteps: 6,
+      prompt: "Explain 00700.HK revenue and price trend",
+      requestId: "req-agent-plan-credit-budget",
+      requestedTools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ]
+    });
+
+    expect(plan.status).toBe("stopped_budget");
+    expect(plan.budget_stop_policy.decision.reasons).toContain("credits");
+    expect(plan.budget_stop_policy.limit_status).toContainEqual(
+      expect.objectContaining({
+        dimension: "credits",
+        status: "would_exceed"
       })
-    ).toThrow(AgentRuntimeInputError);
+    );
+    expect(plan.budget_stop_policy.planned_usage.credits).toBeLessThanOrEqual(2);
+    expect(plan.budget_stop_policy.graceful_stop.next_step).toContain("approve at least");
   });
 
   it("resolves pre-tool-call security, time, currency, and methodology context", () => {

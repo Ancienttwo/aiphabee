@@ -35,6 +35,11 @@ interface AgentRuntimeBody {
     };
     tool_loop_agent: {
       actual_tool_execution: boolean;
+      budget_stop_policy: {
+        graceful_stop: boolean;
+        returns_continue_cost: boolean;
+        status: string;
+      };
       chain_of_thought_exposed: boolean;
       max_parallel_tools: number;
       model_calls: boolean;
@@ -802,6 +807,34 @@ interface AgentDryRunBody {
 interface AgentToolLoopPlanBody {
   data: {
     actual_tool_execution: boolean;
+    budget_stop_policy: {
+      decision: {
+        reasons: string[];
+        status: string;
+        stop_before_step?: number;
+      };
+      graceful_stop: {
+        completed_step_ids: string[];
+        existing_evidence_record_ids: string[];
+        next_step: string;
+        partial_response_ready: boolean;
+        unfinished_step_ids: string[];
+      };
+      limit_status: Array<{
+        dimension: string;
+        estimated: number;
+        limit: number;
+        status: string;
+      }>;
+      planned_usage: {
+        credits: number;
+        rows: number;
+        steps: number;
+        tokens: number;
+        tool_calls: number;
+        wall_clock_ms: number;
+      };
+    };
     chain_of_thought_exposed: boolean;
     max_parallel_tools: number;
     model_calls: boolean;
@@ -971,6 +1004,11 @@ describe("worker runtime", () => {
     });
     expect(body.data.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
+      budget_stop_policy: {
+        graceful_stop: true,
+        returns_continue_cost: true,
+        status: "budget_stop_policy_scaffold"
+      },
       chain_of_thought_exposed: false,
       max_parallel_tools: 3,
       model_calls: false,
@@ -2958,6 +2996,16 @@ describe("worker runtime", () => {
       instrument_id: "eq_hk_00700",
       symbol: "00700.HK"
     });
+    expect(body.data.budget_stop_policy).toMatchObject({
+      decision: {
+        reasons: [],
+        status: "continue"
+      },
+      graceful_stop: {
+        partial_response_ready: false,
+        unfinished_step_ids: []
+      }
+    });
     expect(body.data.progress_stream).toMatchObject({
       exposes_chain_of_thought: false,
       tool_progress_public: true,
@@ -2993,7 +3041,7 @@ describe("worker runtime", () => {
     expect(body.usage.rows).toBe(6);
   });
 
-  it("rejects ToolLoopAgent plans beyond the requested step budget", async () => {
+  it("gracefully stops ToolLoopAgent plans beyond the requested step budget", async () => {
     const response = await app.request("/agent/runs/plan", {
       body: JSON.stringify({
         max_steps: 3,
@@ -3014,12 +3062,30 @@ describe("worker runtime", () => {
       },
       method: "POST"
     });
-    const body = (await response.json()) as ErrorBody;
+    const body = (await response.json()) as AgentToolLoopPlanBody;
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
     expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
-    expect(body.ok).toBe(false);
-    expect(body.error.code).toBe("OUT_OF_RANGE");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("stopped_budget");
+    expect(body.data.planned_step_count).toBe(3);
+    expect(body.data.steps.map((step) => step.phase)).toEqual([
+      "security_resolution",
+      "entitlement_gate",
+      "answer_contract"
+    ]);
+    expect(body.data.budget_stop_policy.decision).toMatchObject({
+      reasons: ["steps"],
+      status: "stop_before_execution",
+      stop_before_step: 3
+    });
+    expect(body.data.budget_stop_policy.graceful_stop).toMatchObject({
+      completed_step_ids: ["step_1", "step_2"],
+      existing_evidence_record_ids: [],
+      partial_response_ready: true
+    });
+    expect(body.data.budget_stop_policy.graceful_stop.unfinished_step_ids).toContain("step_3");
+    expect(body.data.budget_stop_policy.planned_usage.steps).toBe(3);
   });
 
   it("resolves pre-tool-call context before tool planning", async () => {

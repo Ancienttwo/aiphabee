@@ -1,0 +1,56 @@
+{
+  "version": "2026-06-21.phase1.budget-stop-policy-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "default_status": "planned_no_model",
+  "budget_exhausted_status": "stopped_budget",
+  "budget_dimensions": ["steps", "credits", "rows", "tokens", "wall_clock_ms"],
+  "required_limit_status_fields": ["dimension", "estimated", "limit", "status"],
+  "required_decision_fields": ["status", "reasons", "stop_before_step"],
+  "required_graceful_stop_fields": [
+    "completed_step_ids",
+    "unfinished_step_ids",
+    "existing_evidence_record_ids",
+    "partial_response_ready",
+    "next_step"
+  ],
+  "required_usage_fields": [
+    "steps",
+    "credits",
+    "rows",
+    "tokens",
+    "tool_calls",
+    "wall_clock_ms"
+  ],
+  "required_stop_conditions": [
+    "max_steps",
+    "budget_exhausted",
+    "two_consecutive_same_error",
+    "tool_scope_denied",
+    "all_planned_tools_completed"
+  ],
+  "retry_policy": {
+    "max_attempts_per_tool": 2,
+    "consecutive_same_error_limit": 2,
+    "retry_billable": false,
+    "stops_automatic_retry": true,
+    "same_error_classes": [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "OUT_OF_RANGE",
+      "SCOPE_DENIED",
+      "TOO_MANY_ROWS",
+      "TOOL_TIMEOUT"
+    ]
+  },
+  "graceful_stop": {
+    "returns_partial_result": true,
+    "returns_continue_cost": true,
+    "does_not_throw_for_valid_budget_exhaustion": true
+  }
+}

@@ -15,6 +15,8 @@ export const TOOL_LOOP_AGENT_PLANNER_VERSION =
   "2026-06-21.phase1.tool-loop-agent-planner-scaffold.v0";
 export const PRE_TOOL_CALL_RESOLUTION_VERSION =
   "2026-06-21.phase1.pre-tool-call-resolution-scaffold.v0";
+export const BUDGET_STOP_POLICY_VERSION =
+  "2026-06-21.phase1.budget-stop-policy-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -79,6 +81,13 @@ export interface AgentRuntimeCapabilities {
     max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
     model_calls: false;
     planner_ready: true;
+    budget_stop_policy: {
+      budget_dimensions: readonly ["steps", "credits", "rows", "tokens", "wall_clock_ms"];
+      graceful_stop: true;
+      partial_result_supported: true;
+      returns_continue_cost: true;
+      status: "budget_stop_policy_scaffold";
+    };
     progress_events: readonly [
       "run.started",
       "tool.step.planned",
@@ -210,7 +219,7 @@ export type AgentToolLoopProgressEvent =
   | "tool.step.planned"
   | "run.completed"
   | "run.stopped";
-export type AgentToolLoopStatus = "planned_no_model";
+export type AgentToolLoopStatus = "planned_no_model" | "stopped_budget";
 
 export type PreToolCallResolutionStatus =
   | "needs_clarification"
@@ -298,6 +307,60 @@ export interface AgentToolLoopRetryPolicy {
   retry_billable: false;
 }
 
+export type AgentBudgetDimension = "credits" | "rows" | "steps" | "tokens" | "wall_clock_ms";
+export type AgentBudgetLimitStatus = "within_budget" | "would_exceed";
+export type AgentBudgetStopDecisionStatus = "continue" | "stop_before_execution";
+
+export interface AgentBudgetUsageEstimate {
+  credits: number;
+  rows: number;
+  steps: number;
+  tokens: number;
+  tool_calls: number;
+  wall_clock_ms: number;
+}
+
+export interface AgentBudgetStopPolicy {
+  actual_tool_execution: false;
+  budget: AgentRunBudget;
+  decision: {
+    reasons: AgentBudgetDimension[];
+    status: AgentBudgetStopDecisionStatus;
+    stop_before_step?: number;
+  };
+  error_stop_policy: {
+    consecutive_same_error_limit: 2;
+    retry_billable: false;
+    same_error_classes: readonly [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "OUT_OF_RANGE",
+      "SCOPE_DENIED",
+      "TOO_MANY_ROWS",
+      "TOOL_TIMEOUT"
+    ];
+    stops_automatic_retry: true;
+  };
+  estimated_usage: AgentBudgetUsageEstimate;
+  graceful_stop: {
+    completed_step_ids: string[];
+    existing_evidence_record_ids: string[];
+    next_step: string;
+    partial_response_ready: boolean;
+    unfinished_step_ids: string[];
+  };
+  limit_status: Array<{
+    dimension: AgentBudgetDimension;
+    estimated: number;
+    limit: number;
+    status: AgentBudgetLimitStatus;
+  }>;
+  model_calls: false;
+  planned_usage: AgentBudgetUsageEstimate;
+  retry_policy: AgentToolLoopRetryPolicy;
+  version: typeof BUDGET_STOP_POLICY_VERSION;
+}
+
 export interface AgentToolLoopStepPlan {
   index: number;
   kind: AgentToolLoopStepKind;
@@ -313,6 +376,7 @@ export interface AgentToolLoopStepPlan {
 export interface AgentToolLoopPlan {
   actual_tool_execution: false;
   budget: AgentRunBudget;
+  budget_stop_policy: AgentBudgetStopPolicy;
   chain_of_thought_exposed: false;
   max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
   model_calls: false;
@@ -415,6 +479,13 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     },
     tool_loop_agent: {
       actual_tool_execution: false,
+      budget_stop_policy: {
+        budget_dimensions: ["steps", "credits", "rows", "tokens", "wall_clock_ms"],
+        graceful_stop: true,
+        partial_result_supported: true,
+        returns_continue_cost: true,
+        status: "budget_stop_policy_scaffold"
+      },
       chain_of_thought_exposed: false,
       max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
       model_calls: false,
@@ -570,7 +641,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
   const skeleton = createAgentRunSkeleton(input);
   const preToolCallResolution = createPreToolCallResolution(input);
   const retryPolicy = createRetryPolicy();
-  const steps =
+  const naturalSteps =
     preToolCallResolution.clarification_required
       ? [
           createStep(
@@ -583,21 +654,20 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
           )
         ]
       : createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy);
-
-  if (steps.length > skeleton.budget.max_steps) {
-    throw new AgentRuntimeInputError(
-      "STEP_LIMIT_OUT_OF_RANGE",
-      `planned step count ${steps.length} exceeds maxSteps ${skeleton.budget.max_steps}`,
-      {
-        maxSteps: skeleton.budget.max_steps,
-        plannedStepCount: steps.length
-      }
-    );
-  }
+  const budgetStopPolicy = createBudgetStopPolicy({
+    budget: skeleton.run_context.budget,
+    retryPolicy,
+    steps: naturalSteps
+  });
+  const steps =
+    budgetStopPolicy.decision.status === "stop_before_execution"
+      ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
+      : naturalSteps;
 
   return {
     actual_tool_execution: false,
     budget: skeleton.run_context.budget,
+    budget_stop_policy: budgetStopPolicy,
     chain_of_thought_exposed: false,
     max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
     model_calls: false,
@@ -621,7 +691,10 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     retry_policy: retryPolicy,
     run_context: skeleton.run_context,
     run_id: skeleton.run_id,
-    status: "planned_no_model",
+    status:
+      budgetStopPolicy.decision.status === "stop_before_execution"
+        ? "stopped_budget"
+        : "planned_no_model",
     steps,
     stop_conditions: [
       "max_steps",
@@ -1039,6 +1112,90 @@ function createToolLoopSteps(
   return steps;
 }
 
+export function createBudgetStopPolicy(input: {
+  budget: AgentRunBudget;
+  retryPolicy?: AgentToolLoopRetryPolicy;
+  steps: AgentToolLoopStepPlan[];
+}): AgentBudgetStopPolicy {
+  const retryPolicy = input.retryPolicy ?? createRetryPolicy();
+  const estimatedUsage = estimateStepUsage(input.steps);
+  const limitStatus = createBudgetLimitStatus(input.budget, estimatedUsage);
+  const reasons = limitStatus
+    .filter((limit) => limit.status === "would_exceed")
+    .map((limit) => limit.dimension);
+  const shouldStop = reasons.length > 0;
+  const completedSteps = shouldStop ? selectBudgetPrefixSteps(input.steps, input.budget) : input.steps;
+  const unfinishedSteps = shouldStop ? input.steps.slice(completedSteps.length) : [];
+  const plannedUsage = shouldStop
+    ? addBudgetUsage(estimateStepUsage(completedSteps), STOP_RESPONSE_USAGE_ESTIMATE)
+    : estimatedUsage;
+  const continueCost = shouldStop ? estimateStepUsage(unfinishedSteps) : createZeroBudgetUsage();
+
+  return {
+    actual_tool_execution: false,
+    budget: input.budget,
+    decision: shouldStop
+      ? {
+          reasons,
+          status: "stop_before_execution",
+          stop_before_step: completedSteps.length + 1
+        }
+      : {
+          reasons: [],
+          status: "continue"
+        },
+    error_stop_policy: {
+      consecutive_same_error_limit: 2,
+      retry_billable: false,
+      same_error_classes: [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS",
+        "TOOL_TIMEOUT"
+      ],
+      stops_automatic_retry: true
+    },
+    estimated_usage: estimatedUsage,
+    graceful_stop: {
+      completed_step_ids: completedSteps.map((step) => step.step_id),
+      existing_evidence_record_ids: [],
+      next_step: shouldStop
+        ? createContinueCostMessage(continueCost)
+        : "Continue with the planned no-model tool loop when live execution is enabled.",
+      partial_response_ready: shouldStop,
+      unfinished_step_ids: unfinishedSteps.map((step) => step.step_id)
+    },
+    limit_status: limitStatus,
+    model_calls: false,
+    planned_usage: plannedUsage,
+    retry_policy: retryPolicy,
+    version: BUDGET_STOP_POLICY_VERSION
+  };
+}
+
+function createBudgetStoppedSteps(
+  steps: AgentToolLoopStepPlan[],
+  budgetStopPolicy: AgentBudgetStopPolicy,
+  retryPolicy: AgentToolLoopRetryPolicy
+): AgentToolLoopStepPlan[] {
+  const completedStepIds = new Set(budgetStopPolicy.graceful_stop.completed_step_ids);
+  const completedSteps = steps.filter((step) => completedStepIds.has(step.step_id));
+
+  return [
+    ...completedSteps,
+    createStep(
+      completedSteps.length + 1,
+      "answer_contract",
+      "answer_contract",
+      "Return graceful budget stop response",
+      [],
+      retryPolicy
+    )
+  ];
+}
+
 function pushToolStep(
   steps: AgentToolLoopStepPlan[],
   phase: AgentToolLoopPhase,
@@ -1091,6 +1248,212 @@ function createRetryPolicy(): AgentToolLoopRetryPolicy {
     max_attempts_per_tool: 2,
     retry_billable: false
   };
+}
+
+const TOOL_USAGE_ESTIMATES: Record<
+  RegisteredAgentToolName,
+  Omit<AgentBudgetUsageEstimate, "steps" | "tool_calls">
+> = {
+  get_corporate_actions: {
+    credits: 3,
+    rows: 60,
+    tokens: 500,
+    wall_clock_ms: 900
+  },
+  get_data_lineage: {
+    credits: 1,
+    rows: 5,
+    tokens: 250,
+    wall_clock_ms: 300
+  },
+  get_entitlements: {
+    credits: 1,
+    rows: 1,
+    tokens: 200,
+    wall_clock_ms: 300
+  },
+  get_financial_facts: {
+    credits: 5,
+    rows: 80,
+    tokens: 700,
+    wall_clock_ms: 1000
+  },
+  get_market_calendar: {
+    credits: 1,
+    rows: 20,
+    tokens: 250,
+    wall_clock_ms: 300
+  },
+  get_price_history: {
+    credits: 4,
+    rows: 120,
+    tokens: 600,
+    wall_clock_ms: 1000
+  },
+  get_quote_snapshot: {
+    credits: 1,
+    rows: 1,
+    tokens: 250,
+    wall_clock_ms: 500
+  },
+  get_security_profile: {
+    credits: 1,
+    rows: 1,
+    tokens: 300,
+    wall_clock_ms: 500
+  },
+  resolve_security: {
+    credits: 1,
+    rows: 1,
+    tokens: 250,
+    wall_clock_ms: 500
+  }
+};
+
+const ANSWER_CONTRACT_USAGE_ESTIMATE: AgentBudgetUsageEstimate = {
+  credits: 0,
+  rows: 0,
+  steps: 1,
+  tokens: 500,
+  tool_calls: 0,
+  wall_clock_ms: 300
+};
+
+const STOP_RESPONSE_USAGE_ESTIMATE: AgentBudgetUsageEstimate = {
+  credits: 0,
+  rows: 0,
+  steps: 1,
+  tokens: 250,
+  tool_calls: 0,
+  wall_clock_ms: 150
+};
+
+function estimateStepUsage(steps: AgentToolLoopStepPlan[]): AgentBudgetUsageEstimate {
+  return steps.reduce(
+    (usage, step) => addBudgetUsage(usage, estimateSingleStepUsage(step)),
+    createZeroBudgetUsage()
+  );
+}
+
+function estimateSingleStepUsage(step: AgentToolLoopStepPlan): AgentBudgetUsageEstimate {
+  if (step.kind === "answer_contract") {
+    return ANSWER_CONTRACT_USAGE_ESTIMATE;
+  }
+
+  return step.tool_calls.reduce(
+    (usage, toolCall) => {
+      const estimate = TOOL_USAGE_ESTIMATES[toolCall.name];
+
+      return {
+        credits: usage.credits + estimate.credits,
+        rows: usage.rows + estimate.rows,
+        steps: 1,
+        tokens: usage.tokens + estimate.tokens,
+        tool_calls: usage.tool_calls + 1,
+        wall_clock_ms: usage.wall_clock_ms + estimate.wall_clock_ms
+      };
+    },
+    {
+      credits: 0,
+      rows: 0,
+      steps: 1,
+      tokens: 0,
+      tool_calls: 0,
+      wall_clock_ms: 0
+    }
+  );
+}
+
+function createBudgetLimitStatus(
+  budget: AgentRunBudget,
+  estimatedUsage: AgentBudgetUsageEstimate
+): AgentBudgetStopPolicy["limit_status"] {
+  return [
+    createBudgetLimit("steps", estimatedUsage.steps, budget.max_steps),
+    createBudgetLimit("credits", estimatedUsage.credits, budget.max_credits),
+    createBudgetLimit("rows", estimatedUsage.rows, budget.max_rows),
+    createBudgetLimit("tokens", estimatedUsage.tokens, budget.max_tokens),
+    createBudgetLimit("wall_clock_ms", estimatedUsage.wall_clock_ms, budget.max_wall_clock_ms)
+  ];
+}
+
+function createBudgetLimit(
+  dimension: AgentBudgetDimension,
+  estimated: number,
+  limit: number
+): AgentBudgetStopPolicy["limit_status"][number] {
+  return {
+    dimension,
+    estimated,
+    limit,
+    status: estimated > limit ? "would_exceed" : "within_budget"
+  };
+}
+
+function selectBudgetPrefixSteps(
+  steps: AgentToolLoopStepPlan[],
+  budget: AgentRunBudget
+): AgentToolLoopStepPlan[] {
+  const selected: AgentToolLoopStepPlan[] = [];
+  let selectedUsage = createZeroBudgetUsage();
+  const maxPrefixSteps = Math.max(0, budget.max_steps - 1);
+
+  for (const step of steps) {
+    if (selected.length >= maxPrefixSteps) {
+      break;
+    }
+
+    const nextUsage = addBudgetUsage(selectedUsage, estimateSingleStepUsage(step));
+    const usageWithStopResponse = addBudgetUsage(nextUsage, STOP_RESPONSE_USAGE_ESTIMATE);
+
+    if (!isWithinBudget(usageWithStopResponse, budget)) {
+      break;
+    }
+
+    selected.push(step);
+    selectedUsage = nextUsage;
+  }
+
+  return selected;
+}
+
+function isWithinBudget(usage: AgentBudgetUsageEstimate, budget: AgentRunBudget): boolean {
+  return (
+    usage.credits <= budget.max_credits &&
+    usage.rows <= budget.max_rows &&
+    usage.steps <= budget.max_steps &&
+    usage.tokens <= budget.max_tokens &&
+    usage.wall_clock_ms <= budget.max_wall_clock_ms
+  );
+}
+
+function addBudgetUsage(
+  left: AgentBudgetUsageEstimate,
+  right: AgentBudgetUsageEstimate
+): AgentBudgetUsageEstimate {
+  return {
+    credits: left.credits + right.credits,
+    rows: left.rows + right.rows,
+    steps: left.steps + right.steps,
+    tokens: left.tokens + right.tokens,
+    tool_calls: left.tool_calls + right.tool_calls,
+    wall_clock_ms: left.wall_clock_ms + right.wall_clock_ms
+  };
+}
+
+function createZeroBudgetUsage(): AgentBudgetUsageEstimate {
+  return {
+    credits: 0,
+    rows: 0,
+    steps: 0,
+    tokens: 0,
+    tool_calls: 0,
+    wall_clock_ms: 0
+  };
+}
+
+function createContinueCostMessage(continueCost: AgentBudgetUsageEstimate): string {
+  return `Narrow the request or approve at least ${continueCost.credits} credits, ${continueCost.rows} rows, ${continueCost.tokens} tokens, ${continueCost.wall_clock_ms} ms, and ${continueCost.steps} more planned steps.`;
 }
 
 function chunkTools<T>(items: T[], size: number): T[][] {
