@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, local observability/eval event contract, and Postgres/Hyperdrive migration scaffold complete 13/20; frontend/model execution/resource provisioning/live DB smoke/OTLP destination/provider secrets remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, local observability/eval event contract, Postgres/Hyperdrive migration scaffold, and provider secret-store contract complete 14/21; frontend/model execution/resource provisioning/live DB smoke/OTLP destination/live provider secret smoke remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -82,8 +82,8 @@ recorded in `tasks/todos.md`:
 - Executable golden sample and quality-rule CI.
 - Remaining runtime surfaces: frontend app, model provider/streaming execution,
   Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, OTLP
-  destination plus persistent eval store, provider secret stores/rotation, and
-  executable golden fixtures.
+  destination plus persistent eval store, provider secret-store provisioning
+  plus rotation smoke, and executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -140,7 +140,7 @@ Not completed:
   These were explicitly delegated to Claude by user instruction.
 - Model provider/streaming execution, Cloudflare resource provisioning/smoke,
   live Hyperdrive `SELECT 1`, persistent observability/eval store, executable
-  golden fixtures, and provider secret stores/rotation.
+  golden fixtures, and live provider secret-store smoke.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -192,8 +192,10 @@ Completed:
 
 Not completed:
 
-- Provider secret stores, rotation policy, emergency revocation, and real
-  deployment environment provisioning remain absent.
+- Provider secret-store contract, rotation policy, and emergency revocation were
+  not completed in this earlier slice; they are now covered by
+  `provider-secret-stores-contract`. Real deployment environment provisioning
+  remains absent.
 
 ## Execution Update - 2026-06-20 15:10 +08
 
@@ -274,6 +276,27 @@ Not completed:
 
 - Real Supabase project, Hyperdrive resource, Wrangler binding ID, remote
   migration dry-run/apply, and read-only `SELECT 1` smoke remain absent.
+
+## Execution Update - 2026-06-20 15:20 +08
+
+`provider-secret-stores-contract` has been executed in
+`docs/governance/provider-secret-stores-contract.md`.
+
+Completed:
+
+- `deploy/secrets/stores.contract.json` defines Cloudflare Workers, GitHub
+  Actions, and Supabase planned secret stores.
+- `deploy/runbooks/secret-rotation-emergency-revocation.md` defines 90-day
+  rotation and 30-minute emergency revocation procedure.
+- `npm run check:secrets` and CI `Secret Stores Contract` coverage added.
+- Worker `GET /secrets/runtime` added and smoke-tested with
+  `secret_values_available=false`.
+- `.dev.vars*` added to `.gitignore`.
+
+Not completed:
+
+- Live provider secret-store provisioning, real rotation/revocation smoke, and
+  OIDC replacement for long-lived deployment secrets remain absent.
 
 ## Closeout Decision
 

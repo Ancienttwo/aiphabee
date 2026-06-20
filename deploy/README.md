@@ -8,6 +8,7 @@
 - `deploy/submissions/` for submission or review materials.
 - `deploy/runbooks/` and `deploy/release-checklists/` for operational documentation.
 - `deploy/database/` for database migration contracts and no-secret manifests.
+- `deploy/secrets/` for secret-store contracts and no-secret rotation runbooks.
 - `deploy/sql/` for ordered deployment SQL files named like `0001_create_tables.sql`.
 - `deploy/*.md` for runbooks and operating notes.
 - `deploy/env/.env.example` for documented variable shapes only.

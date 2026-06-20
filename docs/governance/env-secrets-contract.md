@@ -1,7 +1,7 @@
 # Environment And Secrets Contract
 
 > **Status**: Verified repo-local contract
-> **Last Updated**: 2026-06-20 15:10 +08
+> **Last Updated**: 2026-06-20 15:20 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-env-secrets-contract.md`
 > **Task Contract**: `tasks/contracts/env-secrets-contract.contract.md`
@@ -30,8 +30,9 @@ The schema marks these variables as secret:
 - `HYPERDRIVE_DATABASE_URL`
 - `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE`
 
-They must not be committed with values. Provider-specific storage remains a
-future deployment task.
+They must not be committed with values. Provider-specific storage is defined in
+`docs/governance/provider-secret-stores-contract.md`, but live provisioning
+remains a future deployment task.
 
 ## Verification
 
@@ -43,6 +44,8 @@ Passed:
 
 ## Residual Gaps
 
-- Cloudflare/GitHub/Supabase secret stores are not provisioned.
-- Rotation policy and emergency revocation runbooks are not implemented.
+- Cloudflare/GitHub/Supabase live secret stores are not provisioned.
+- Rotation policy and emergency revocation runbook now exist in
+  `docs/governance/provider-secret-stores-contract.md`; live rotation/revocation
+  smoke remains unimplemented.
 - Binding IDs are still placeholders until resources exist.

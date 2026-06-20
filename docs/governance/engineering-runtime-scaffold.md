@@ -1,7 +1,7 @@
 # Engineering Runtime Scaffold
 
 > **Status**: Verified non-frontend slice
-> **Last Updated**: 2026-06-20 15:10 +08
+> **Last Updated**: 2026-06-20 15:20 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Source Closeout**: `docs/governance/phase0-traceability-closeout.md`
 > **Plan**: `plans/plan-engineering-runtime-scaffold.md`
@@ -60,8 +60,8 @@ Tradeoff:
 
 - Selected: root npm workspace + Worker + shared contracts + CI/env.
 - Deferred: frontend app, AI SDK agent loop, full Cloudflare bindings,
-  live Postgres/Hyperdrive smoke, persistent observability/eval store, secrets
-  management by environment, and P0 issue/owner/test/release traceability.
+  live Postgres/Hyperdrive smoke, persistent observability/eval store, live
+  provider secret-store smoke, and P0 issue/owner/test/release traceability.
 
 Reason:
 
@@ -135,8 +135,9 @@ Observed `/health` response:
   `docs/governance/observability-eval-scaffold.md`; real OTLP destination and
   persistent eval store remain unimplemented.
 - Env contract and dev/staging/prod names-only validation now exist in
-  `docs/governance/env-secrets-contract.md`; provider secret stores and
-  rotation remain unimplemented.
+  `docs/governance/env-secrets-contract.md`; provider secret-store contracts and
+  runbooks now exist in `docs/governance/provider-secret-stores-contract.md`,
+  while live provisioning and rotation smoke remain unimplemented.
 - Golden sample regression is not executable in CI.
 - External tracker sync for P0 traceability remains optional until a tracker is
   selected; repo-local traceability now exists in

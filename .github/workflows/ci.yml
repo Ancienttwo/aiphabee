@@ -46,5 +46,8 @@ jobs:
       - name: Observability Contract
         run: npm run check:observability
 
+      - name: Secret Stores Contract
+        run: npm run check:secrets
+
       - name: Build
         run: npm run build

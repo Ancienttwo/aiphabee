@@ -44,6 +44,20 @@ interface DatabaseRuntimeBody {
   ok: true;
 }
 
+interface SecretsRuntimeBody {
+  data: {
+    emergency_revocation_sla_minutes: number;
+    provider_stores: Array<{
+      name: string;
+      status: string;
+    }>;
+    rotation_cadence_days: number;
+    secret_values_available: boolean;
+    store_contract: string;
+  };
+  ok: true;
+}
+
 interface AgentDryRunBody {
   data: {
     budget: {
@@ -142,6 +156,31 @@ describe("worker runtime", () => {
     expect(body.data.migration_directory).toBe("supabase/migrations");
     expect(body.data.live_queries).toBe(false);
     expect(body.data.market_data_surfaces).toBe(false);
+  });
+
+  it("serves secret store capabilities without secret values", async () => {
+    const response = await app.request("/secrets/runtime", {
+      headers: {
+        "x-request-id": "req-secrets-runtime"
+      }
+    });
+    const body = (await response.json()) as SecretsRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.secret_values_available).toBe(false);
+    expect(body.data.rotation_cadence_days).toBe(90);
+    expect(body.data.emergency_revocation_sla_minutes).toBe(30);
+    expect(body.data.store_contract).toBe("deploy/secrets/stores.contract.json");
+    expect(body.data.provider_stores.map((store) => store.name)).toEqual([
+      "cloudflare_workers",
+      "github_actions",
+      "supabase"
+    ]);
+    expect(body.data.provider_stores.every((store) => store.status === "planned")).toBe(
+      true
+    );
   });
 
   it("creates an agent dry-run skeleton", async () => {

@@ -110,6 +110,55 @@ app.get("/database/runtime", (c) => {
   );
 });
 
+app.get("/secrets/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        emergency_revocation_sla_minutes: 30,
+        provider_stores: [
+          {
+            name: "cloudflare_workers",
+            status: "planned"
+          },
+          {
+            name: "github_actions",
+            status: "planned"
+          },
+          {
+            name: "supabase",
+            status: "planned"
+          }
+        ],
+        rotation_cadence_days: 90,
+        secret_values_available: false,
+        store_contract: "deploy/secrets/stores.contract.json"
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "secret-stores-scaffold-v0",
+        provenance: [
+          {
+            data_version: "secret-stores-scaffold-v0",
+            methodology_version: "secret-stores-scaffold-v0",
+            source: "secret-stores-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
 app.get("/agent/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
