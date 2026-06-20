@@ -1,6 +1,6 @@
 # Notes: field-entitlement-enforcement-scaffold
 
-> **Last Updated**: 2026-06-20 16:27 +08
+> **Last Updated**: 2026-06-20 17:38 +08
 > **Plan**: `plans/plan-field-entitlement-enforcement-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/field-entitlement-enforcement-scaffold.md`
@@ -15,6 +15,8 @@
   or export-mode cache reuse.
 - Used synthetic workspace policy tests to prove allow/redaction/export/time
   behavior without committing real market data.
+- Added a later DB policy-source compiler that consumes entitlement row
+  snapshots, but still performs no live database reads.
 
 ## Verification
 
@@ -29,6 +31,7 @@
 ## Residual Blockers
 
 - Partner-signed field rights matrix is absent.
-- Live database policy source is not wired.
+- Live database policy reads are not wired.
+- Partner rights matrix ingestion is absent.
 - Serving Store schema exists, but real Gateway reads are absent.
 - Usage ledger live writes are not wired.

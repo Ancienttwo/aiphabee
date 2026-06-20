@@ -76,7 +76,8 @@ exit_criteria:
 
 - This task completes a DAT-05 enforcement scaffold only.
 - Live partner rights matrix execution remains blocked by external rights
-  approval and database policy source wiring.
+  approval and live database policy reads. A row-snapshot policy-source compiler
+  now exists as a separate scaffold.
 
 ## Rollback Point
 

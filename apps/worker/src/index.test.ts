@@ -59,6 +59,14 @@ interface GatewayRuntimeBody {
     field_entitlement_enforcement: {
       dimensions: string[];
       live_policy_source: boolean;
+      policy_source: {
+        compiles_to_gateway_policy: boolean;
+        default_rights_status: string;
+        live_db_reads: boolean;
+        partner_rights_matrix_loaded: boolean;
+        sql_emitted: boolean;
+        status: string;
+      };
       status: string;
       workspace_isolation: boolean;
     };
@@ -419,10 +427,19 @@ describe("worker runtime", () => {
         "export"
       ],
       live_policy_source: false,
+      policy_source: {
+        compiles_to_gateway_policy: true,
+        default_rights_status: "default_deny",
+        live_db_reads: false,
+        partner_rights_matrix_loaded: false,
+        sql_emitted: false,
+        status: "policy_source_scaffold"
+      },
       status: "scaffold",
       workspace_isolation: true
     });
     expect(body.data.guards).toContain("field_redaction");
+    expect(body.data.guards).toContain("field_entitlement_policy_source_scaffold");
     expect(body.data.guards).toContain("workspace_entitlement_default_deny");
     expect(body.data.guards).toContain("plan_entitlement");
     expect(body.data.guards).toContain("export_entitlement");

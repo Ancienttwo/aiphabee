@@ -9,7 +9,8 @@ import { getCorporateActionAdjustmentCapabilities } from "@aiphabee/corporate-ac
 import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
-  evaluateDataAccessRequest
+  evaluateDataAccessRequest,
+  getEntitlementPolicySourceCapabilities
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import { getFinancialRestatementCapabilities } from "@aiphabee/financial-facts";
@@ -315,6 +316,7 @@ app.get("/gateway/runtime", (c) => {
         guards: [
           "channel_rights_default_deny",
           "field_redaction",
+          "field_entitlement_policy_source_scaffold",
           "workspace_entitlement_default_deny",
           "plan_entitlement",
           "export_entitlement",
@@ -339,6 +341,7 @@ app.get("/gateway/runtime", (c) => {
             "export"
           ],
           live_policy_source: false,
+          policy_source: getEntitlementPolicySourceCapabilities(),
           status: "scaffold",
           workspace_isolation: true
         },

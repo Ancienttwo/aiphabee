@@ -15,6 +15,7 @@ not read real market data or grant any partner rights.
 | Surface | State | Boundary |
 |---|---|---|
 | Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead` plan |
+| Entitlement policy source | `packages/data-access-gateway` | Compiles account/workspace entitlement row snapshots into Gateway policy without SQL |
 | Serving read planner | `packages/serving-store` | Plans blocked/held Serving reads without SQL or live rows |
 | Serving quality release planner | `packages/serving-store` | Plans `held/released/withdrawn` posture without SQL or live writes |
 | Usage event writer | `packages/usage-ledger` | Plans usage event and ledger entry previews without SQL or billing writes |
@@ -98,6 +99,8 @@ Observed `/gateway/runtime` fields:
   "serving_store.read_planner.sql_emitted": false,
   "serving_store.quality_release.live_writes": false,
   "serving_store.quality_release.sql_emitted": false,
+  "field_entitlement_enforcement.policy_source.live_db_reads": false,
+  "field_entitlement_enforcement.policy_source.sql_emitted": false,
   "usage_ledger.event_writer.live_writes": false,
   "usage_ledger.event_writer.sql_emitted": false,
   "rights_policy_version": "gate0-default-deny-v0"

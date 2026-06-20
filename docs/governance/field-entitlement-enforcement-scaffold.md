@@ -1,7 +1,7 @@
 # Field Entitlement Enforcement Scaffold
 
 > **Status**: Verified enforcement scaffold
-> **Last Updated**: 2026-06-20 16:27 +08
+> **Last Updated**: 2026-06-20 17:38 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-field-entitlement-enforcement-scaffold.md`
 > **Task Contract**:
@@ -10,17 +10,20 @@
 This slice extends the Data Access Gateway evaluator so field access can be
 decided by workspace, plan, channel, dataset, field, time-range, and export
 context. It does not read live entitlement rows and does not enable market data.
+A later DB policy-source scaffold now compiles entitlement row snapshots into
+Gateway policy, but live database reads remain disabled.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
 | Gateway package | `packages/data-access-gateway` | Deterministic evaluator with synthetic entitlement tests |
+| Policy source compiler | `packages/data-access-gateway` | Compiles entitlement row snapshots into Gateway policy, no SQL emitted |
 | Contract | `deploy/gateway/access.contract.json` | Declares entitlement guards and cache key dimensions |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Requires entitlement guards and cache keys |
 | Runtime route | `GET /gateway/runtime` | Reports `field_entitlement_enforcement.status=scaffold` |
 | Access route | `POST /gateway/access-check` | Accepts workspace/export context but remains default-deny without live policy |
-| Live policy source | Absent | No partner rights matrix or database entitlement reads |
+| Live policy source | Scaffolded only | Row-snapshot compiler exists, but no partner rights matrix or database entitlement reads |
 
 ## P2 Concrete Trace
 
@@ -42,6 +45,7 @@ Runtime capability trace:
 2. Worker returns:
    - entitlement dimensions;
    - `live_policy_source=false`;
+   - `policy_source.status=policy_source_scaffold`;
    - `workspace_isolation=true`;
    - default-deny rights state.
 3. Client calls `POST /gateway/access-check`.
@@ -56,13 +60,15 @@ entitlement reads.
 Reason:
 
 - Partner field rights matrix is not signed.
-- No live database policy rows have been loaded.
+- No live database policy rows have been loaded; row snapshots are used only in
+  tests and local compiler contracts.
 - Serving Store schema exists, but no released rows or live reads exist, so
   allowing live data would be misleading.
 
 Tradeoff:
 
 - Sprint 1.1 now has executable DAT-05 policy logic and cache-key boundaries.
+- Sprint 1.1 now has executable DB policy-source compile semantics.
 - It still cannot enforce real partner entitlements from production rows.
 
 ## Verification
@@ -93,6 +99,12 @@ Observed `/gateway/runtime` fields:
       "export"
     ],
     "live_policy_source": false,
+    "policy_source": {
+      "status": "policy_source_scaffold",
+      "live_db_reads": false,
+      "partner_rights_matrix_loaded": false,
+      "sql_emitted": false
+    },
     "status": "scaffold",
     "workspace_isolation": true
   },
@@ -103,6 +115,7 @@ Observed `/gateway/runtime` fields:
 ## Residual Gaps
 
 - Partner-signed field rights matrix is absent.
-- Live database policy source is not wired.
+- Live database policy reads are not wired.
+- Policy-source compiler exists, but partner rights matrix ingestion is absent.
 - Serving Store schema exists, but real Gateway reads are absent.
 - Usage ledger live writes are not wired.

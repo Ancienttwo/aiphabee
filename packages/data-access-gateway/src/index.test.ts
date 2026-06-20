@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
+  createPolicyFromEntitlementRows,
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
-  evaluateDataAccessRequest
+  evaluateDataAccessRequest,
+  getEntitlementPolicySourceCapabilities
 } from "./index";
 
 describe("data access gateway", () => {
@@ -272,5 +274,188 @@ describe("data access gateway", () => {
     expect(exportBlocked.deniedFields[0]?.reason).toBe("export_blocked");
     expect(planBlocked.deniedFields[0]?.reason).toBe("workspace_entitlement_default_deny");
     expect(timeBlocked.deniedFields[0]?.reason).toBe("time_range_blocked");
+  });
+
+  it("compiles database entitlement rows into a default-deny gateway policy", () => {
+    const policySource = createPolicyFromEntitlementRows({
+      asOf: "2026-06-20T09:00:00.000Z",
+      dataEntitlements: [
+        {
+          channel: "web",
+          dataset: "synthetic_profile",
+          entitlementId: "ent_profile_all",
+          exportAllowed: false,
+          fieldPattern: "synthetic_profile.*",
+          rightsPolicyVersion: "db-policy-v0",
+          sourceRecordId: "data-entitlement-profile",
+          status: "approved",
+          timeRangeDays: 31
+        },
+        {
+          channel: "web",
+          dataset: "synthetic_profile",
+          entitlementId: "ent_revenue_block",
+          exportAllowed: false,
+          fieldPattern: "synthetic_profile.revenue",
+          rightsPolicyVersion: "db-policy-v0",
+          sourceRecordId: "data-entitlement-revenue-block",
+          status: "blocked",
+          timeRangeDays: 31
+        }
+      ],
+      subscriptionRows: [
+        {
+          billingState: "active",
+          planCode: "team",
+          subscriptionId: "sub_team",
+          validFrom: "2026-01-01T00:00:00.000Z",
+          workspaceId: "ws_synthetic_team"
+        }
+      ],
+      workspaceEntitlements: [
+        {
+          entitlementId: "ent_profile_all",
+          sourceRecordId: "workspace-entitlement-profile",
+          status: "approved",
+          subscriptionId: "sub_team",
+          validFrom: "2026-01-01T00:00:00.000Z",
+          workspaceEntitlementId: "we_profile",
+          workspaceId: "ws_synthetic_team"
+        },
+        {
+          entitlementId: "ent_revenue_block",
+          sourceRecordId: "workspace-entitlement-revenue-block",
+          status: "approved",
+          subscriptionId: "sub_team",
+          validFrom: "2026-01-01T00:00:00.000Z",
+          workspaceEntitlementId: "we_revenue_block",
+          workspaceId: "ws_synthetic_team"
+        }
+      ]
+    });
+    const decision = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: [
+          "synthetic_profile.company_name",
+          "synthetic_profile.revenue"
+        ],
+        requestedRows: 2,
+        timeRange: {
+          from: "2026-06-01",
+          to: "2026-06-20"
+        },
+        workspaceId: "ws_synthetic_team"
+      },
+      policySource.policy
+    );
+    const exportBlocked = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        exportRequested: true,
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        workspaceId: "ws_synthetic_team"
+      },
+      policySource.policy
+    );
+    const rangeBlocked = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        timeRange: {
+          from: "2026-04-01",
+          to: "2026-06-20"
+        },
+        workspaceId: "ws_synthetic_team"
+      },
+      policySource.policy
+    );
+
+    expect(policySource).toMatchObject({
+      liveDbReads: false,
+      partnerRightsMatrixLoaded: false,
+      sqlEmitted: false,
+      status: "policy_source_scaffold"
+    });
+    expect(policySource.policy.channels.web).toBe("approved");
+    expect(policySource.policy.channels.mcp).toBe("default_deny");
+    expect(policySource.policy.rightsPolicyVersion).toBe("db-policy-v0");
+    expect(decision.allowedFields).toEqual(["synthetic_profile.company_name"]);
+    expect(decision.deniedFields).toEqual([
+      {
+        field: "synthetic_profile.revenue",
+        reason: "field_blocked"
+      }
+    ]);
+    expect(exportBlocked.deniedFields[0]?.reason).toBe("export_blocked");
+    expect(rangeBlocked.deniedFields[0]?.reason).toBe("time_range_blocked");
+  });
+
+  it("does not compile expired workspace entitlements into live policy", () => {
+    const policySource = createPolicyFromEntitlementRows({
+      asOf: "2026-06-20T09:00:00.000Z",
+      dataEntitlements: [
+        {
+          channel: "web",
+          dataset: "synthetic_profile",
+          entitlementId: "ent_expired",
+          exportAllowed: false,
+          fieldPattern: "synthetic_profile.company_name",
+          rightsPolicyVersion: "db-policy-v0",
+          sourceRecordId: "data-entitlement-expired",
+          status: "approved"
+        }
+      ],
+      workspaceEntitlements: [
+        {
+          entitlementId: "ent_expired",
+          sourceRecordId: "workspace-entitlement-expired",
+          status: "approved",
+          validFrom: "2026-01-01T00:00:00.000Z",
+          validTo: "2026-02-01T00:00:00.000Z",
+          workspaceEntitlementId: "we_expired",
+          workspaceId: "ws_synthetic_team"
+        }
+      ]
+    });
+    const decision = evaluateDataAccessRequest(
+      {
+        channel: "web",
+        dataset: "synthetic_profile",
+        plan: "team",
+        qualityState: "PASS",
+        requestedFields: ["synthetic_profile.company_name"],
+        requestedRows: 1,
+        workspaceId: "ws_synthetic_team"
+      },
+      policySource.policy
+    );
+
+    expect(policySource.policy.channels.web).toBe("default_deny");
+    expect(policySource.policy.fieldPolicies).toEqual([]);
+    expect(decision.error?.code).toBe("DATA_NOT_LICENSED");
+    expect(decision.deniedFields[0]?.reason).toBe("channel_blocked");
+  });
+
+  it("reports database policy source capabilities without live reads", () => {
+    expect(getEntitlementPolicySourceCapabilities()).toMatchObject({
+      compiles_to_gateway_policy: true,
+      default_rights_status: "default_deny",
+      live_db_reads: false,
+      partner_rights_matrix_loaded: false,
+      sql_emitted: false,
+      status: "policy_source_scaffold"
+    });
   });
 });

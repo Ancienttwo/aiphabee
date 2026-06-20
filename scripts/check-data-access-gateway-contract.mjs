@@ -7,6 +7,7 @@ const requiredChannels = ["web", "mcp", "api", "export"];
 const requiredGuards = [
   "channel_rights_default_deny",
   "field_redaction",
+  "field_entitlement_policy_source_scaffold",
   "workspace_entitlement_default_deny",
   "plan_entitlement",
   "export_entitlement",

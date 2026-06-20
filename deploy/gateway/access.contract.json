@@ -1,9 +1,9 @@
 {
-  "version": "2026-06-20.phase1.usage-event-writer-scaffold.v0",
+  "version": "2026-06-20.phase1.field-entitlement-policy-source-scaffold.v0",
   "status": "local_contract",
   "default_rights_status": "default_deny",
   "rights_policy_version": "gate0-default-deny-v0",
-  "methodology_version": "2026-06-20.phase1.usage-event-writer-scaffold.v0",
+  "methodology_version": "2026-06-20.phase1.field-entitlement-policy-source-scaffold.v0",
   "channels": [
     {
       "name": "web",
@@ -25,6 +25,7 @@
   "required_guards": [
     "channel_rights_default_deny",
     "field_redaction",
+    "field_entitlement_policy_source_scaffold",
     "workspace_entitlement_default_deny",
     "plan_entitlement",
     "export_entitlement",

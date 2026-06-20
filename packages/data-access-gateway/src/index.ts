@@ -9,7 +9,7 @@ import {
 } from "@aiphabee/usage-ledger";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.usage-event-writer-scaffold.v0";
+  "2026-06-20.phase1.field-entitlement-policy-source-scaffold.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -47,6 +47,38 @@ export interface DataAccessEntitlementPolicy {
   workspaceId: string;
 }
 
+export interface DataEntitlementRow {
+  channel: DataAccessChannel;
+  dataset: string;
+  entitlementId: string;
+  exportAllowed: boolean;
+  fieldPattern: string;
+  rightsPolicyVersion: string;
+  sourceRecordId: string;
+  status: DataAccessFieldStatus;
+  timeRangeDays?: number;
+}
+
+export interface WorkspaceEntitlementRow {
+  entitlementId: string;
+  sourceRecordId: string;
+  status: DataAccessFieldStatus;
+  subscriptionId?: string;
+  validFrom: string;
+  validTo?: string;
+  workspaceEntitlementId: string;
+  workspaceId: string;
+}
+
+export interface WorkspaceSubscriptionRow {
+  billingState: "active" | "canceled" | "grace_period" | "paused" | "trialing";
+  planCode: string;
+  subscriptionId: string;
+  validFrom: string;
+  validTo?: string;
+  workspaceId: string;
+}
+
 export interface DataAccessPolicy {
   channels: Record<DataAccessChannel, DataAccessFieldStatus>;
   defaultFieldStatus: "default_deny";
@@ -56,6 +88,33 @@ export interface DataAccessPolicy {
   maxWindowDays: number;
   methodologyVersion: string;
   rightsPolicyVersion: string;
+}
+
+export interface EntitlementPolicySourcePlan {
+  liveDbReads: false;
+  partnerRightsMatrixLoaded: false;
+  policy: DataAccessPolicy;
+  rowCounts: {
+    dataEntitlements: number;
+    subscriptionRows: number;
+    workspaceEntitlements: number;
+  };
+  sourceRecords: string[];
+  sqlEmitted: false;
+  status: "policy_source_scaffold";
+  tables: readonly [
+    "core.data_entitlement",
+    "core.workspace_entitlement",
+    "core.workspace_subscription"
+  ];
+  version: typeof DATA_ACCESS_GATEWAY_VERSION;
+}
+
+export interface EntitlementPolicySourceInput {
+  asOf: string;
+  dataEntitlements: DataEntitlementRow[];
+  subscriptionRows?: WorkspaceSubscriptionRow[];
+  workspaceEntitlements: WorkspaceEntitlementRow[];
 }
 
 export interface DataAccessRequest {
@@ -280,6 +339,125 @@ export function createSyntheticWorkspaceEntitlementPolicy(): DataAccessPolicy {
   };
 }
 
+export function createPolicyFromEntitlementRows(
+  input: EntitlementPolicySourceInput
+): EntitlementPolicySourcePlan {
+  const activeSubscriptions = (input.subscriptionRows ?? []).filter((subscription) =>
+    isSubscriptionActive(subscription, input.asOf)
+  );
+  const activeWorkspaceEntitlements = input.workspaceEntitlements.filter((entitlement) =>
+    isWorkspaceEntitlementActive(entitlement, input.asOf)
+  );
+  const entitlementById = new Map(
+    input.dataEntitlements.map((entitlement) => [entitlement.entitlementId, entitlement])
+  );
+  const subscriptionById = new Map(
+    activeSubscriptions.map((subscription) => [subscription.subscriptionId, subscription])
+  );
+  const entitlementPolicies = activeWorkspaceEntitlements.flatMap((workspaceEntitlement) => {
+    const dataEntitlement = entitlementById.get(workspaceEntitlement.entitlementId);
+
+    if (dataEntitlement === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        channel: dataEntitlement.channel,
+        dataset: dataEntitlement.dataset,
+        exportAllowed: dataEntitlement.exportAllowed,
+        fieldPattern: dataEntitlement.fieldPattern,
+        maxWindowDays: dataEntitlement.timeRangeDays,
+        plan: getPlanCode(workspaceEntitlement, subscriptionById),
+        status: combineEntitlementStatuses(
+          dataEntitlement.status,
+          workspaceEntitlement.status
+        ),
+        workspaceId: workspaceEntitlement.workspaceId
+      }
+    ];
+  });
+  const activeDataEntitlementIds = new Set(
+    activeWorkspaceEntitlements.map((entitlement) => entitlement.entitlementId)
+  );
+  const activeDataEntitlements = input.dataEntitlements.filter((entitlement) =>
+    activeDataEntitlementIds.has(entitlement.entitlementId)
+  );
+  const fieldPolicies = activeDataEntitlements.map((entitlement) => ({
+    channel: entitlement.channel,
+    dataset: entitlement.dataset,
+    field: entitlement.fieldPattern,
+    status: entitlement.status
+  }));
+  const approvedChannels = new Set([
+    ...fieldPolicies
+      .filter((policy) => policy.status === "approved")
+      .map((policy) => policy.channel),
+    ...entitlementPolicies
+      .filter((policy) => policy.status === "approved")
+      .map((policy) => policy.channel)
+  ]);
+  const rightsPolicyVersions = [
+    ...new Set(activeDataEntitlements.map((entitlement) => entitlement.rightsPolicyVersion))
+  ].sort();
+  const sourceRecords = [
+    ...activeDataEntitlements.map((entitlement) => entitlement.sourceRecordId),
+    ...activeWorkspaceEntitlements.map((entitlement) => entitlement.sourceRecordId)
+  ].sort();
+
+  return {
+    liveDbReads: false,
+    partnerRightsMatrixLoaded: false,
+    policy: {
+      ...DEFAULT_DATA_ACCESS_POLICY,
+      channels: {
+        api: approvedChannels.has("api") ? "approved" : "default_deny",
+        export: approvedChannels.has("export") ? "approved" : "default_deny",
+        mcp: approvedChannels.has("mcp") ? "approved" : "default_deny",
+        web: approvedChannels.has("web") ? "approved" : "default_deny"
+      },
+      entitlementPolicies,
+      fieldPolicies,
+      methodologyVersion: DATA_ACCESS_GATEWAY_VERSION,
+      rightsPolicyVersion:
+        rightsPolicyVersions.length > 0
+          ? rightsPolicyVersions.join("+")
+          : DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion
+    },
+    rowCounts: {
+      dataEntitlements: input.dataEntitlements.length,
+      subscriptionRows: input.subscriptionRows?.length ?? 0,
+      workspaceEntitlements: input.workspaceEntitlements.length
+    },
+    sourceRecords,
+    sqlEmitted: false,
+    status: "policy_source_scaffold",
+    tables: [
+      "core.data_entitlement",
+      "core.workspace_entitlement",
+      "core.workspace_subscription"
+    ],
+    version: DATA_ACCESS_GATEWAY_VERSION
+  };
+}
+
+export function getEntitlementPolicySourceCapabilities() {
+  return {
+    compiles_to_gateway_policy: true,
+    default_rights_status: "default_deny" as const,
+    live_db_reads: false,
+    partner_rights_matrix_loaded: false,
+    source_tables: [
+      "core.data_entitlement",
+      "core.workspace_entitlement",
+      "core.workspace_subscription"
+    ] as const,
+    sql_emitted: false,
+    status: "policy_source_scaffold" as const,
+    version: DATA_ACCESS_GATEWAY_VERSION
+  };
+}
+
 export function createDataAccessCacheKey(
   request: DataAccessRequest,
   policy: DataAccessPolicy,
@@ -364,12 +542,18 @@ function getFieldPolicy(
   field: string,
   policy: DataAccessPolicy
 ) {
-  return policy.fieldPolicies.find(
+  const matchingPolicies = policy.fieldPolicies.filter(
     (policyEntry) =>
       policyEntry.channel === request.channel &&
-      policyEntry.field === field &&
+      matchesFieldPattern(policyEntry.field, field) &&
       (policyEntry.dataset === undefined || policyEntry.dataset === request.dataset) &&
       (policyEntry.plan === undefined || policyEntry.plan === request.plan)
+  );
+
+  return (
+    matchingPolicies.find((policyEntry) => policyEntry.status === "blocked") ??
+    matchingPolicies.find((policyEntry) => policyEntry.status === "approved") ??
+    matchingPolicies[0]
   );
 }
 
@@ -393,7 +577,7 @@ function evaluateWorkspaceEntitlement(
   const matchingEntitlements = policy.entitlementPolicies.filter(
     (entitlement) =>
       entitlement.workspaceId === request.workspaceId &&
-      entitlement.plan === request.plan &&
+      (entitlement.plan === "*" || entitlement.plan === request.plan) &&
       entitlement.dataset === request.dataset &&
       entitlement.channel === request.channel &&
       matchesFieldPattern(entitlement.fieldPattern, field)
@@ -550,4 +734,59 @@ function calculateWindowDays(timeRange: DataAccessRequest["timeRange"]) {
   }
 
   return Math.floor((to - from) / 86_400_000) + 1;
+}
+
+function isWorkspaceEntitlementActive(
+  entitlement: WorkspaceEntitlementRow,
+  asOf: string
+): boolean {
+  return isWithinInterval(asOf, entitlement.validFrom, entitlement.validTo);
+}
+
+function isSubscriptionActive(
+  subscription: WorkspaceSubscriptionRow,
+  asOf: string
+): boolean {
+  return (
+    ["active", "grace_period", "trialing"].includes(subscription.billingState) &&
+    isWithinInterval(asOf, subscription.validFrom, subscription.validTo)
+  );
+}
+
+function isWithinInterval(asOf: string, validFrom: string, validTo?: string): boolean {
+  const asOfTime = Date.parse(asOf);
+  const fromTime = Date.parse(validFrom);
+  const toTime = validTo === undefined ? undefined : Date.parse(validTo);
+
+  if (Number.isNaN(asOfTime) || Number.isNaN(fromTime)) {
+    return false;
+  }
+
+  return asOfTime >= fromTime && (toTime === undefined || asOfTime < toTime);
+}
+
+function getPlanCode(
+  entitlement: WorkspaceEntitlementRow,
+  subscriptions: Map<string, WorkspaceSubscriptionRow>
+): string {
+  if (entitlement.subscriptionId === undefined) {
+    return "*";
+  }
+
+  return subscriptions.get(entitlement.subscriptionId)?.planCode ?? "subscription_unresolved";
+}
+
+function combineEntitlementStatuses(
+  dataStatus: DataAccessFieldStatus,
+  workspaceStatus: DataAccessFieldStatus
+): DataAccessFieldStatus {
+  if (dataStatus === "blocked" || workspaceStatus === "blocked") {
+    return "blocked";
+  }
+
+  if (dataStatus === "approved" && workspaceStatus === "approved") {
+    return "approved";
+  }
+
+  return "default_deny";
 }
