@@ -124,6 +124,17 @@ interface DataRuntimeBody {
     };
     default_rights_status: string;
     financial_facts: {
+      engine: {
+        golden_cases: {
+          passed: boolean;
+          sample_count: number;
+        };
+        live_partner_data: boolean;
+        point_in_time_selection: boolean;
+        preserve_prior_versions: boolean;
+        status: string;
+        supported_statement_types: readonly string[];
+      };
       live_facts: boolean;
       quality_default_state: string;
       restatement_versions: boolean;
@@ -460,6 +471,17 @@ describe("worker runtime", () => {
     });
     expect(body.data.default_rights_status).toBe("default_deny");
     expect(body.data.financial_facts).toMatchObject({
+      engine: {
+        golden_cases: {
+          passed: true,
+          sample_count: 2
+        },
+        live_partner_data: false,
+        point_in_time_selection: true,
+        preserve_prior_versions: true,
+        status: "engine_scaffold",
+        supported_statement_types: ["balance_sheet"]
+      },
       live_facts: false,
       quality_default_state: "HOLD",
       restatement_versions: true,

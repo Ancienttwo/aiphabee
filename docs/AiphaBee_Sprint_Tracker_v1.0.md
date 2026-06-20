@@ -58,7 +58,7 @@ owner: "Planner / PM"
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
-| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 11 / 16 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 12 / 17 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | ⬜ | 0 / 9 | ☐ |
@@ -197,6 +197,7 @@ owner: "Planner / PM"
 - [x] 证券主表 schema scaffold：`core.company` / `core.instrument` / `core.listing` / `core.identifier_history` migration + `/data/runtime` capability（DAT-02）
 - [x] Raw 不可变快照 + `data_version` 批次 schema scaffold：`core.raw_source_batch` / `core.raw_snapshot` / `core.data_version_batch`，raw 默认 `HOLD`、rights 默认 `default_deny`（DAT-01）
 - [x] 财务事实与重述 schema scaffold：`core.financial_statement` / `core.financial_fact` / `core.financial_restatement` migration + `/data/runtime` capability（DAT-03）
+- [x] 财务重述 deterministic golden engine scaffold：`@aiphabee/financial-facts` 支持版本保留、point-in-time 选择、restatement delta、identity guard，`/data/runtime` engine capability（DAT-03、§10.5）
 - [x] 公司行动与复权 schema scaffold：`core.corporate_action` / `core.adjustment_methodology` / `core.price_adjustment_factor` migration + `/data/runtime` capability（DAT-04、§10.4）
 - [x] 公司行动 deterministic adjustment engine golden scaffold：`@aiphabee/corporate-actions` 支持 split/consolidation/dividend backward-adjusted synthetic golden cases，`/data/runtime` engine capability（DAT-04、§10.4）
 - [ ] 公司行动 live adjustment engine + partner/public benchmark 黄金样本对齐（DAT-04、§10.4）
@@ -591,6 +592,7 @@ owner: "Planner / PM"
 - [x] Data Access Gateway default-deny scaffold 已建立：`docs/governance/data-access-gateway-default-deny-scaffold.md`；default-deny rights、field redaction、row/time limit、cache key、quality hold guard、`npm run check:data-gateway` 与 Worker gateway smoke 已通过
 - [x] Security master / raw snapshot schema scaffold 已建立：`docs/governance/security-master-raw-snapshot-scaffold.md`；company/instrument/listing/identifier_history、raw_source_batch/raw_snapshot/data_version_batch、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
 - [x] Financial facts / restatement schema scaffold 已建立：`docs/governance/financial-facts-restatement-scaffold.md`；financial_statement/financial_fact/financial_restatement、restatement version links、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
+- [x] Financial restatement golden engine scaffold 已建立：`docs/governance/financial-restatement-golden-engine-scaffold.md`；`@aiphabee/financial-facts` 支持版本保留、point-in-time 选择、restatement delta、identity guard，`/data/runtime` engine capability 已通过本地 smoke
 - [x] Corporate action / adjustment schema scaffold 已建立：`docs/governance/corporate-action-adjustment-scaffold.md`；corporate_action/adjustment_methodology/price_adjustment_factor、closed-open adjustment intervals、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
 - [x] Corporate action adjustment engine golden scaffold 已建立：`docs/governance/corporate-action-adjustment-engine-golden-scaffold.md`；`@aiphabee/corporate-actions` 支持 split/consolidation/dividend backward-adjusted synthetic golden cases，`/data/runtime` engine capability 已通过本地 smoke
 - [x] Account / Workspace / entitlement schema scaffold 已建立：`docs/governance/account-workspace-entitlement-scaffold.md`；account/workspace/membership/subscription/data_entitlement/workspace_entitlement、workspace isolation、`npm run check:database` 与 `/data/runtime`、`/gateway/runtime` 已通过本地 smoke
@@ -601,7 +603,7 @@ owner: "Planner / PM"
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
-- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger、Serving Store schema、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / Serving reads / partner benchmark parity / DB entitlement rows / billing reconciliation
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger、Serving Store schema、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / Serving reads / partner benchmark parity / DB entitlement rows / billing reconciliation
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -610,6 +612,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0ab | 完成 `financial-restatement-golden-engine-scaffold`：新增 `@aiphabee/financial-facts` deterministic restatement engine、版本保留/point-in-time/delta/identity synthetic golden cases、Worker `/data/runtime` capability；partner financial data 与 live Serving reads 未启用，Sprint 1.1 更新为 12/17 |
 | 2026-06-20 | 1.0aa | 完成 `corporate-action-adjustment-engine-golden-scaffold`：新增 `@aiphabee/corporate-actions` deterministic adjustment engine、split/consolidation/dividend synthetic golden cases、Worker `/data/runtime` capability；partner/public benchmark parity 与 live Serving reads 未启用，Sprint 1.1 更新为 11/16 |
 | 2026-06-20 | 1.0z | 完成 `serving-store-schema-scaffold`：新增 Supabase-compatible Serving Store dataset/field/snapshot/record schema、database migration contract、Worker `/data/runtime` 与 `/gateway/runtime` capability；live Serving reads 未启用，Sprint 1.1 更新为 10/15 |
 | 2026-06-20 | 1.0y | 完成 `field-entitlement-enforcement-scaffold`：Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export 维度，更新 access contract/cache key/runtime；live policy source 未启用，Sprint 1.1 更新为 9/14 |

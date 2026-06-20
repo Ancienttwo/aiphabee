@@ -12,6 +12,7 @@ import {
   evaluateDataAccessRequest
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
+import { getFinancialRestatementCapabilities } from "@aiphabee/financial-facts";
 import {
   EVAL_STORE_SCHEMA_VERSION,
   OBSERVABILITY_EVENT_VERSION,
@@ -164,6 +165,7 @@ app.get("/data/runtime", (c) => {
         },
         default_rights_status: "default_deny",
         financial_facts: {
+          engine: getFinancialRestatementCapabilities(),
           live_facts: false,
           quality_default_state: "HOLD",
           restatement_versions: true,

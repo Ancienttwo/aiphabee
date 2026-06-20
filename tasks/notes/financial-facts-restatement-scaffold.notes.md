@@ -28,6 +28,8 @@
 
 - Hyperdrive and Supabase live database are not provisioned.
 - Partner-signed statement taxonomy and field contract are absent.
-- Corporate-action/adjustment schemas now exist, but live adjustment computation
-  and golden parity remain absent.
+- Synthetic restatement engine exists, but partner-backed restatement evidence is
+  absent.
+- Corporate-action/adjustment schemas and synthetic adjustment engine now exist,
+  but partner/public benchmark parity remains absent.
 - Serving Gateway and usage ledger remain unwired.

@@ -126,7 +126,7 @@ DoD.
 |---|---|---|---|---|---|---|
 | DAT-01 不可变原始快照 | AIP-P0-DAT-01 | Data Engineering | 1.1 | Raw snapshot immutability tests | Sprint 1.1 exit: derived values trace to original batches | Design baseline complete; storage pending |
 | DAT-02 统一证券主表 | AIP-P0-DAT-02 | Data Engineering | 0.2 / 1.1 | Security master schema tests | Sprint 1.1 exit: company/security/listing/code history persisted | Design baseline complete; storage pending |
-| DAT-03 财务事实与重述 | AIP-P0-DAT-03 | Data Engineering | 0.2 / 1.1 | Restatement versioning tests | Sprint 1.1 exit: multiple disclosures are preserved | Schema scaffold complete; partner data and Serving pending |
+| DAT-03 财务事实与重述 | AIP-P0-DAT-03 | Data Engineering | 0.2 / 1.1 | Restatement versioning tests | Sprint 1.1 exit: multiple disclosures are preserved | Synthetic restatement engine scaffold complete; partner data and Serving pending |
 | DAT-04 公司行动与复权引擎 | AIP-P0-DAT-04 | Data Engineering / Analytics | 1.1 | Corporate action adjustment golden tests | Sprint 1.1 exit: adjusted series matches golden samples | Synthetic engine scaffold complete; partner/public benchmark parity pending |
 | DAT-05 字段级数据授权 | AIP-P0-DAT-05 | Compliance / Data Engineering | 0.1 / 1.1 | Rights matrix enforcement tests | Gate 0 and Sprint 1.1 exit: default deny at runtime | Enforcement scaffold complete; partner matrix and DB policy source pending |
 | DAT-06 数据质量与隔离 | AIP-P0-DAT-06 | Data Engineering / Quality | 0.3 / 1.1 | Quality hold and serving isolation tests | Sprint 1.1 exit: severe anomalies do not enter Serving Store | Serving Store schema scaffold complete; live quality-release isolation pending |

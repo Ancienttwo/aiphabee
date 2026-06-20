@@ -21,6 +21,7 @@ not apply to a live database and does not load market data.
 | Financial statement | `core.financial_statement` | Period, statement type, currency/unit/scale, accounting standard, source, versions |
 | Financial fact | `core.financial_fact` | Metric-level values tied to statement, period, source, data version, methodology version |
 | Restatement | `core.financial_restatement` | Links original and restated statement versions with reason metadata |
+| Engine scaffold | `packages/financial-facts` | Synthetic deterministic restatement engine exists, but no partner rows or Serving reads |
 | Live data | Absent | No partner rows, no Hyperdrive query, no Serving Store read |
 
 ## P2 Concrete Trace
@@ -58,12 +59,13 @@ Reason:
 - Gate 0 rights matrix and partner data contract are not signed.
 - Hyperdrive/Supabase live resources are still unprovisioned.
 - Financial facts have partner-specific statement taxonomy, units, scale, and
-  restatement semantics that should not be guessed from synthetic rows.
+  restatement semantics; only synthetic engine cases are available.
 
 Tradeoff:
 
 - Sprint 1.1 now has concrete DAT-03 storage structures.
-- It still cannot serve real financial facts, ratios, or restatement evidence.
+- It still cannot serve real financial facts, ratios, or partner-backed
+  restatement evidence.
 
 ## Verification
 
@@ -102,7 +104,8 @@ Observed `/data/runtime` fields:
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-signed statement taxonomy, field dictionary, and source samples are
   absent.
-- Corporate-action/adjustment schemas now exist in
-  `docs/governance/corporate-action-adjustment-scaffold.md`, but the live
-  adjustment engine is absent.
+- Synthetic restatement engine exists, but partner-backed restatement evidence is
+  absent.
+- Corporate-action/adjustment schemas and synthetic adjustment engine now exist,
+  but partner/public benchmark parity is absent.
 - Serving Gateway and live usage ledger writes are not wired to these tables.

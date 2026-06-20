@@ -17,6 +17,7 @@
     "@aiphabee/corporate-actions": "file:../../packages/corporate-actions",
     "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
+    "@aiphabee/financial-facts": "file:../../packages/financial-facts",
     "@aiphabee/observability": "file:../../packages/observability",
     "hono": "^4.12.26"
   },
