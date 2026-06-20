@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | ⬜ | 0 / 10 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 1 / 10 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | ⬜ | 0 / 9 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | ⬜ | 0 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | ⬜ | 0 / 10 | ☐ |
@@ -155,7 +155,7 @@ owner: "Planner / PM"
 
 **退出门槛 DoD：** ☐ 黄金样本可被自动校验　☐ 质量规则可执行　☐ 套餐/credits/单位经济模型评审通过
 
-### Sprint 0.4 — 工程地基（脚手架·CI·Cloudflare 绑定）　⬜
+### Sprint 0.4 — 工程地基（脚手架·CI·Cloudflare 绑定）　🟦
 **目标：** 把 greenfield 仓库拉起到「可部署的空骨架」，建立需求→issue 追溯。
 
 - [ ] 初始化 monorepo 与包管理：TanStack Start + Vite + Hono（PRD §1.1、§11.3）
@@ -166,7 +166,7 @@ owner: "Planner / PM"
 - [ ] OTel + 日志 + eval store 接线（§11.3、§12.3）
 - [ ] Secrets/环境变量管理与分环境（dev/staging/prod）
 - [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线
-- [ ] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
+- [x] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
 - [ ] 建立 PRD 每条 P0 需求 → issue/owner/测试/发布门槛 的 traceability（§23.12，对齐本文件 §M）
 
 **退出门槛 DoD：** ☐ 空骨架可本地运行并部署到 staging　☐ CI 绿　☐ 绑定连通性冒烟通过　☐ §M 追溯矩阵建好
@@ -554,9 +554,11 @@ owner: "Planner / PM"
 - [x] Gate 0 权利与监管决策包已建立：`docs/governance/gate0-rights-regulatory-decision-pack.md`
 - [x] 数据契约与方法论基线已建立：`docs/governance/data-contract-methodology-baseline.md`
 - [x] 黄金样本、质量规则与商业模型基线已建立：`docs/governance/golden-quality-commercial-baseline.md`
+- [x] 工程地基现状审计已建立：`docs/governance/engineering-foundation-audit.md`
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的黄金样本/质量规则尚未进入 CI，套餐/credits/单位经济尚未用真实成本评审；执行前退出门槛保持未全绿
+- [ ] Sprint 0.4 的 runtime scaffold、CI、Cloudflare/Postgres 绑定、OTel、Secrets、Design System 集成与 P0 issue/owner/test/release traceability 尚未实现；当前仅完成 PRD §23 现状审计
 
 ---
 
@@ -564,6 +566,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-20 | 1.0e | 完成 `engineering-foundation-audit`：新增 PRD §23 工程地基现状审计；Sprint 0.4 完成度 1/10，其余 runtime scaffold / CI / binding / traceability 任务保持未完成 |
 | 2026-06-20 | 1.0d | 完成 `golden-quality-commercial-baseline`：新增黄金样本、质量规则、数据隔离/更正、套餐权益、credits、单位经济与 Free 防滥用基线；Sprint 0.3 设计 backlog 9/9，CI/商业评审门槛保持未绿 |
 | 2026-06-20 | 1.0c | 完成 `data-contract-methodology-baseline`：新增数据契约与口径基线、task contract 与执行计划；Sprint 0.2 设计 backlog 9/9，合作方签署门槛保持未绿 |
 | 2026-06-20 | 1.0b | 完成 `gate0-rights-regulatory-decision-pack`：新增 Gate 0 权利/监管决策包、task contract 与执行计划；外部审批项保持未勾选 |
