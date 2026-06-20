@@ -40,6 +40,9 @@ jobs:
       - name: Cloudflare Bindings Contract
         run: npm run check:bindings
 
+      - name: Database Migration Contract
+        run: npm run check:database
+
       - name: Observability Contract
         run: npm run check:observability
 

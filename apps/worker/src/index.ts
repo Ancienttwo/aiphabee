@@ -13,6 +13,7 @@ import {
 } from "@aiphabee/observability";
 
 interface WorkerBindings {
+  AIPHABEE_HYPERDRIVE?: unknown;
   APP_ENV?: string;
   APP_VERSION?: string;
 }
@@ -52,6 +53,50 @@ app.get("/", (c) => {
             methodology_version: "runtime-scaffold-v0",
             source: "worker-runtime",
             source_record_id: "root-route"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/database/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        connection_path: "cloudflare_hyperdrive",
+        hyperdrive: {
+          binding_configured: Boolean(c.env?.AIPHABEE_HYPERDRIVE),
+          binding_name: "AIPHABEE_HYPERDRIVE",
+          requires_real_resource_id: true,
+          status: "planned"
+        },
+        live_queries: false,
+        market_data_surfaces: false,
+        mcp_redistribution_surfaces: false,
+        migration_contract: "deploy/database/migrations.contract.json",
+        migration_directory: "supabase/migrations",
+        provider: "supabase_postgres"
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "database-migration-scaffold-v0",
+        provenance: [
+          {
+            data_version: "database-migration-scaffold-v0",
+            methodology_version: "database-migration-scaffold-v0",
+            source: "database-migration-contract",
+            source_record_id: "runtime-capabilities"
           }
         ],
         requestId,

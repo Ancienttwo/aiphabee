@@ -1,7 +1,7 @@
 # Engineering Runtime Scaffold
 
 > **Status**: Verified non-frontend slice
-> **Last Updated**: 2026-06-20 14:57 +08
+> **Last Updated**: 2026-06-20 15:10 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Source Closeout**: `docs/governance/phase0-traceability-closeout.md`
 > **Plan**: `plans/plan-engineering-runtime-scaffold.md`
@@ -60,8 +60,8 @@ Tradeoff:
 
 - Selected: root npm workspace + Worker + shared contracts + CI/env.
 - Deferred: frontend app, AI SDK agent loop, full Cloudflare bindings,
-  Postgres/Hyperdrive, persistent observability/eval store, secrets management
-  by environment, and P0 issue/owner/test/release traceability.
+  live Postgres/Hyperdrive smoke, persistent observability/eval store, secrets
+  management by environment, and P0 issue/owner/test/release traceability.
 
 Reason:
 
@@ -128,7 +128,9 @@ Observed `/health` response:
 - Cloudflare binding contract now exists in
   `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
   tests remain unimplemented.
-- Postgres/Supabase/Hyperdrive migration tooling is not implemented.
+- Postgres/Supabase/Hyperdrive migration tooling now exists in
+  `docs/governance/postgres-hyperdrive-migration-scaffold.md`; live Hyperdrive
+  binding and `SELECT 1` smoke remain unimplemented.
 - Local observability/eval event wiring now exists in
   `docs/governance/observability-eval-scaffold.md`; real OTLP destination and
   persistent eval store remain unimplemented.

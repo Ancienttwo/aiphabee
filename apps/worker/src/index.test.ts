@@ -28,6 +28,22 @@ interface AgentRuntimeBody {
   ok: true;
 }
 
+interface DatabaseRuntimeBody {
+  data: {
+    connection_path: string;
+    hyperdrive: {
+      binding_configured: boolean;
+      binding_name: string;
+      status: string;
+    };
+    live_queries: boolean;
+    market_data_surfaces: boolean;
+    migration_directory: string;
+    provider: string;
+  };
+  ok: true;
+}
+
 interface AgentDryRunBody {
   data: {
     budget: {
@@ -105,6 +121,27 @@ describe("worker runtime", () => {
     expect(body.data.surfaces.model_calls).toBe(false);
     expect(body.data.surfaces.market_data).toBe(false);
     expect(body.data.surfaces.mcp_redistribution).toBe(false);
+  });
+
+  it("serves database runtime capabilities without live queries", async () => {
+    const response = await app.request("/database/runtime", {
+      headers: {
+        "x-request-id": "req-database-runtime"
+      }
+    });
+    const body = (await response.json()) as DatabaseRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.provider).toBe("supabase_postgres");
+    expect(body.data.connection_path).toBe("cloudflare_hyperdrive");
+    expect(body.data.hyperdrive.binding_name).toBe("AIPHABEE_HYPERDRIVE");
+    expect(body.data.hyperdrive.binding_configured).toBe(false);
+    expect(body.data.hyperdrive.status).toBe("planned");
+    expect(body.data.migration_directory).toBe("supabase/migrations");
+    expect(body.data.live_queries).toBe(false);
+    expect(body.data.market_data_surfaces).toBe(false);
   });
 
   it("creates an agent dry-run skeleton", async () => {

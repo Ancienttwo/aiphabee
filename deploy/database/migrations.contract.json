@@ -1,0 +1,49 @@
+{
+  "version": "2026-06-20.phase0.database-migrations.v0",
+  "status": "local_contract",
+  "provider": "supabase_postgres",
+  "connection_path": "cloudflare_hyperdrive",
+  "migration_directory": "supabase/migrations",
+  "hyperdrive": {
+    "binding": "AIPHABEE_HYPERDRIVE",
+    "status": "planned",
+    "wrangler_binding_requires_real_id": true,
+    "local_dev_secret_env": "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE",
+    "smoke_test": "Run read-only SELECT 1 through Hyperdrive after resource provisioning."
+  },
+  "commands": [
+    {
+      "name": "create_migration",
+      "command": "supabase migration new <name>",
+      "effect": "local_file"
+    },
+    {
+      "name": "apply_local",
+      "command": "supabase migration up --local",
+      "effect": "local_database"
+    },
+    {
+      "name": "dry_run_remote",
+      "command": "supabase db push --dry-run --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "effect": "remote_dry_run"
+    },
+    {
+      "name": "apply_remote",
+      "command": "supabase db push --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "effect": "remote_database"
+    }
+  ],
+  "migrations": [
+    {
+      "file": "supabase/migrations/20260620071000_phase0_foundation.sql",
+      "purpose": "Create non-market-data schemas and default-deny governance controls used by later data-access slices.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "governance.data_rights_channel_status",
+        "governance.phase0_migration_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    }
+  ]
+}

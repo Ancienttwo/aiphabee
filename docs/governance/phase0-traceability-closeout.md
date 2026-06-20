@@ -52,7 +52,7 @@ Tracker Sprint DoD status:
 | 0.1 Legal/rights/regulatory | Packet exists; no external approvals | Not green |
 | 0.2 Data contract/methodology | Design baseline 9/9; partner signature missing | Not green |
 | 0.3 Golden/quality/commercial | Design baseline 9/9; CI hook exists; executable fixtures/rules and cost review missing | Not green |
-| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, and local observability/eval event contract complete 12/19; frontend/model execution/resource provisioning/persistence/OTLP destination/provider secrets remain | Not green |
+| 0.4 Engineering foundation | Non-frontend scaffold, P0 ledger, golden hook, env contract, Cloudflare binding contract, Agent dry-run skeleton, local observability/eval event contract, and Postgres/Hyperdrive migration scaffold complete 13/20; frontend/model execution/resource provisioning/live DB smoke/OTLP destination/provider secrets remain | Not green |
 
 ## PRD Requirement Traceability
 
@@ -81,9 +81,9 @@ recorded in `tasks/todos.md`:
 - Partner-signed data contract and real field/SLA samples.
 - Executable golden sample and quality-rule CI.
 - Remaining runtime surfaces: frontend app, model provider/streaming execution,
-  Cloudflare resource provisioning/smoke, Postgres/Hyperdrive, OTLP destination
-  plus persistent eval store, provider secret stores/rotation, and executable
-  golden fixtures.
+  Cloudflare resource provisioning/smoke, live Hyperdrive `SELECT 1`, OTLP
+  destination plus persistent eval store, provider secret stores/rotation, and
+  executable golden fixtures.
 - External tracker synchronization for P0 traceability, if a tracker is selected.
 - Remote branch reconciliation before push.
 
@@ -139,8 +139,8 @@ Not completed:
 - `apps/web`, TanStack Start, Vite, and design-system frontend integration.
   These were explicitly delegated to Claude by user instruction.
 - Model provider/streaming execution, Cloudflare resource provisioning/smoke,
-  Postgres/Hyperdrive, persistent observability/eval store, executable golden
-  fixtures, and provider secret stores/rotation.
+  live Hyperdrive `SELECT 1`, persistent observability/eval store, executable
+  golden fixtures, and provider secret stores/rotation.
 
 ## Execution Update - 2026-06-20 14:32 +08
 
@@ -254,6 +254,26 @@ Not completed:
 
 - OTLP destination, persistent eval store, dashboarding, alerting, and real
   model token/cost/latency telemetry remain absent.
+
+## Execution Update - 2026-06-20 15:10 +08
+
+`postgres-hyperdrive-migration-scaffold` has been executed in
+`docs/governance/postgres-hyperdrive-migration-scaffold.md`.
+
+Completed:
+
+- `supabase/migrations/20260620071000_phase0_foundation.sql` added with
+  non-market-data `audit`, `core`, and `governance` schemas.
+- Default-deny governance tables added for Phase 0 rights posture.
+- `deploy/database/migrations.contract.json` defines Supabase Postgres via
+  Cloudflare Hyperdrive, migration commands, and planned binding shape.
+- `npm run check:database` and CI `Database Migration Contract` coverage added.
+- Worker `GET /database/runtime` added and smoke-tested with `live_queries=false`.
+
+Not completed:
+
+- Real Supabase project, Hyperdrive resource, Wrangler binding ID, remote
+  migration dry-run/apply, and read-only `SELECT 1` smoke remain absent.
 
 ## Closeout Decision
 
