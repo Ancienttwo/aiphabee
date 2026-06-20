@@ -16,6 +16,8 @@
   and rights rows exist.
 - Exposed Worker `/gateway/runtime` read-planner capability only; no market data
   or external redistribution route is enabled.
+- Added a later quality release isolation capability; read planning still keeps
+  non-released records blocked before live reads.
 
 ## Verification
 
@@ -31,6 +33,6 @@
 
 - Live Supabase/Hyperdrive Serving reads are absent.
 - Partner-approved data loading is absent.
-- Persistent quality-release isolation into Serving snapshots is absent.
+- Persistent quality-release jobs and Serving snapshot mutation are absent.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

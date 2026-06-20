@@ -84,7 +84,8 @@ exit_criteria:
 ## Acceptance Notes
 
 - This task completes a Serving Store schema scaffold only.
-- Live Serving Gateway reads and quality-release enforcement remain future work.
+- Live Serving Gateway reads, live quality jobs, and persistent Serving mutation
+  remain future work.
 
 ## Rollback Point
 

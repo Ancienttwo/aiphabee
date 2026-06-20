@@ -1,7 +1,7 @@
 # Serving Read Scaffold Default-Deny
 
 > **Status**: Verified read planner scaffold
-> **Last Updated**: 2026-06-20 17:10 +08
+> **Last Updated**: 2026-06-20 17:20 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-serving-read-scaffold-default-deny.md`
 > **Task Contract**:
@@ -16,6 +16,7 @@ partner data, or enable frontend surfaces.
 | Surface | State | Boundary |
 |---|---|---|
 | Read planner | `packages/serving-store` | Builds Serving read plans from Gateway status, fields, quality state, and version material |
+| Quality release planner | `packages/serving-store` | Maps quality state to `held`, `released`, or `withdrawn` before future live reads |
 | Gateway evaluator | `packages/data-access-gateway` | Adds `servingRead` to every decision after rights, field, row, time, and quality guards |
 | Gateway contract | `deploy/gateway/access.contract.json` | Adds `serving_read_default_deny` to required guards |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates the read guard remains in the manifest |
@@ -57,6 +58,7 @@ Runtime capability trace:
 
 1. Client calls `GET /gateway/runtime`.
 2. Worker reports `serving_store.read_planner.status=read_planner_scaffold`,
+   `serving_store.quality_release.status=quality_release_isolation_scaffold`,
    `live_reads=false`, `sql_emitted=false`, `blocks_default_deny=true`, and
    `blocks_quality_hold=true`.
 
@@ -76,6 +78,8 @@ Reason:
 Tradeoff:
 
 - Gateway decisions now prove how Serving reads would be blocked or planned.
+- Serving quality states now prove whether future snapshots would be held,
+  released, or withdrawn before live reads.
 - The system still cannot return real licensed market data.
 
 ## Verification
@@ -102,6 +106,12 @@ Observed `/gateway/runtime` read-planner fields:
     "blocks_default_deny": true,
     "blocks_quality_hold": true,
     "release_state_default": "held"
+  },
+  "quality_release": {
+    "status": "quality_release_isolation_scaffold",
+    "live_reads": false,
+    "live_writes": false,
+    "sql_emitted": false
   }
 }
 ```
@@ -110,6 +120,6 @@ Observed `/gateway/runtime` read-planner fields:
 
 - Live Supabase/Hyperdrive Serving reads are absent.
 - Partner-approved data loading is absent.
-- Persistent quality-release isolation into Serving snapshots is absent.
+- Persistent quality-release jobs and Serving snapshot mutation are absent.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

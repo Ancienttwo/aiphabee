@@ -73,6 +73,18 @@ interface GatewayRuntimeBody {
     rights_policy_version: string;
     serving_store: {
       live_reads: boolean;
+      quality_release: {
+        blocks_quality_states: readonly string[];
+        gateway_error_code: string;
+        live_reads: boolean;
+        live_writes: boolean;
+        release_states: readonly string[];
+        released_quality_states: readonly string[];
+        sql_emitted: boolean;
+        status: string;
+        uses_quality_state: boolean;
+        warn_quality_states: readonly string[];
+      };
       read_planner: {
         blocks_default_deny: boolean;
         blocks_quality_hold: boolean;
@@ -167,6 +179,18 @@ interface DataRuntimeBody {
       default_quality_state: string;
       default_rights_status: string;
       live_serving_reads: boolean;
+      quality_release: {
+        blocks_quality_states: readonly string[];
+        gateway_error_code: string;
+        live_reads: boolean;
+        live_writes: boolean;
+        release_states: readonly string[];
+        released_quality_states: readonly string[];
+        sql_emitted: boolean;
+        status: string;
+        uses_quality_state: boolean;
+        warn_quality_states: readonly string[];
+      };
       release_state_default: string;
       status: string;
       tables: string[];
@@ -394,6 +418,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("plan_entitlement");
     expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
+    expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_read_default_deny");
     expect(body.data.limits.max_rows).toBe(500);
     expect(body.data.live_data_access).toBe(false);
@@ -402,6 +427,18 @@ describe("worker runtime", () => {
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
     expect(body.data.serving_store).toMatchObject({
       live_reads: false,
+      quality_release: {
+        blocks_quality_states: ["HOLD", "REJECT_RAW"],
+        gateway_error_code: "DATA_QUALITY_HOLD",
+        live_reads: false,
+        live_writes: false,
+        release_states: ["held", "released", "withdrawn"],
+        released_quality_states: ["PASS", "WARN"],
+        sql_emitted: false,
+        status: "quality_release_isolation_scaffold",
+        uses_quality_state: true,
+        warn_quality_states: ["WARN"]
+      },
       read_planner: {
         blocks_default_deny: true,
         blocks_quality_hold: true,
@@ -538,6 +575,18 @@ describe("worker runtime", () => {
       default_quality_state: "HOLD",
       default_rights_status: "default_deny",
       live_serving_reads: false,
+      quality_release: {
+        blocks_quality_states: ["HOLD", "REJECT_RAW"],
+        gateway_error_code: "DATA_QUALITY_HOLD",
+        live_reads: false,
+        live_writes: false,
+        release_states: ["held", "released", "withdrawn"],
+        released_quality_states: ["PASS", "WARN"],
+        sql_emitted: false,
+        status: "quality_release_isolation_scaffold",
+        uses_quality_state: true,
+        warn_quality_states: ["WARN"]
+      },
       release_state_default: "held",
       status: "schema_scaffold",
       tables: [

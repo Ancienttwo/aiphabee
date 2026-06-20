@@ -17,6 +17,8 @@
   reads.
 - Added a later read planner capability that targets the schema shape, but
   still emits no SQL and reads no live records.
+- Added a later quality release isolation capability that maps quality states to
+  `held`, `released`, or `withdrawn`, but still writes no live records.
 
 ## Verification
 
@@ -32,7 +34,7 @@
 
 - Live Supabase/Hyperdrive apply and `SELECT 1` smoke are absent.
 - Partner-approved data loading is absent.
-- Gateway creates blocked/held Serving read plans, but does not read Serving
-  Store records.
+- Gateway creates blocked/held Serving read plans and quality release plans, but
+  does not read or write Serving Store records.
 - Field entitlement live DB policy source is not wired.
 - Usage ledger live writes and billing reconciliation are not wired.

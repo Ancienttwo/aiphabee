@@ -1,7 +1,7 @@
 # Data Access Gateway Default-Deny Scaffold
 
 > **Status**: Verified guarded scaffold
-> **Last Updated**: 2026-06-20 17:10 +08
+> **Last Updated**: 2026-06-20 17:20 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-data-access-gateway-default-deny-scaffold.md`
 > **Task Contract**:
@@ -16,6 +16,7 @@ not read real market data or grant any partner rights.
 |---|---|---|
 | Gateway evaluator | `packages/data-access-gateway` | Default-deny rights, field redaction, row/time limits, quality hold, cache key, `servingRead` plan |
 | Serving read planner | `packages/serving-store` | Plans blocked/held Serving reads without SQL or live rows |
+| Serving quality release planner | `packages/serving-store` | Plans `held/released/withdrawn` posture without SQL or live writes |
 | Gateway contract | `deploy/gateway/access.contract.json` | No-secret default-deny route/guard manifest |
 | Contract checker | `scripts/check-data-access-gateway-contract.mjs` | Validates channels, guards, limits, routes, and no secret-like values |
 | Worker runtime route | `GET /gateway/runtime` | Reports guard capabilities and no live data surface |
@@ -58,8 +59,8 @@ Reason:
 
 - Gate 0 rights matrix and partner field contract are not signed.
 - Schema scaffolds and read planner exist, including Serving Store projection
-  tables and blocked read plans, but no partner rows or released Serving rows
-  exist yet.
+  tables, blocked read plans, and release/isolation plans, but no partner rows
+  or released Serving rows exist yet.
 - Exposing real data before rights enforcement would violate PRD default-deny.
 
 Tradeoff:
@@ -94,6 +95,8 @@ Observed `/gateway/runtime` fields:
   "mcp_redistribution_surfaces": false,
   "serving_store.read_planner.live_reads": false,
   "serving_store.read_planner.sql_emitted": false,
+  "serving_store.quality_release.live_writes": false,
+  "serving_store.quality_release.sql_emitted": false,
   "rights_policy_version": "gate0-default-deny-v0"
 }
 ```
@@ -101,8 +104,9 @@ Observed `/gateway/runtime` fields:
 ## Residual Gaps
 
 - Securities master, raw snapshot, financial fact/restatement,
-  corporate-action/adjustment, Serving Store schemas, and read planner now
-  exist, but no released Serving rows or live reads exist.
+  corporate-action/adjustment, Serving Store schemas, read planner, and quality
+  release isolation planner now exist, but no released Serving rows or live
+  reads/writes exist.
 - Partner-signed rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

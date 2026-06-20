@@ -14,6 +14,8 @@
 - Returned `DATA_QUALITY_HOLD` before rights serving when quality state is held.
 - Added `servingRead` planning to Gateway decisions, but kept blocked and held
   plans at `liveRead=false`, `servedRows=0`, and `sqlEmitted=false`.
+- Added a later `serving_quality_release_isolation` runtime guard, but live
+  Serving reads and writes remain disabled.
 - Added usage preview but not persistent ledger writes.
 
 ## Verification
@@ -29,8 +31,8 @@
 
 ## Residual Blockers
 
-- Serving Store schema and read planner exist, but released rows and live reads
-  are absent.
+- Serving Store schema, read planner, and quality release isolation planner
+  exist, but released rows, live reads, and live writes are absent.
 - Partner-signed field rights matrix is absent.
 - Account/workspace/plan and usage ledger schemas now exist, and entitlement
   enforcement has synthetic coverage, but live DB policy source, persistent

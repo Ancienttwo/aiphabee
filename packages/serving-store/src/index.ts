@@ -1,7 +1,10 @@
 export const SERVING_STORE_READ_VERSION =
   "2026-06-20.phase1.serving-read-scaffold.v0";
+export const SERVING_STORE_QUALITY_RELEASE_VERSION =
+  "2026-06-20.phase1.quality-release-isolation.v0";
 
 export type ServingQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
+export type ServingReleaseState = "held" | "released" | "withdrawn";
 export type ServingReadGatewayStatus =
   | "allow"
   | "allow_with_redactions"
@@ -11,6 +14,7 @@ export type ServingReadPlanStatus =
   | "blocked_by_gateway"
   | "quality_hold"
   | "read_planned";
+export type ServingQualityScope = "field" | "record" | "snapshot";
 
 export interface ServingReadPlanInput {
   allowedFields: string[];
@@ -28,6 +32,24 @@ export interface ServingReadPlanInput {
     from: string;
     to: string;
   };
+}
+
+export interface ServingQualitySubject {
+  id: string;
+  qualityState: ServingQualityState;
+  scope: ServingQualityScope;
+}
+
+export interface ServingQualityReleasePlanInput {
+  dataVersion: string;
+  dataset: string;
+  fieldQualityStates?: ServingQualitySubject[];
+  methodologyVersion: string;
+  recordQualityStates?: ServingQualitySubject[];
+  rightsPolicyVersion: string;
+  rowCount: number;
+  snapshotQualityState: ServingQualityState;
+  sourceRecordId: string;
 }
 
 export interface ServingReadPlan {
@@ -60,6 +82,33 @@ export interface ServingReadPlan {
     "core.serving_record"
   ];
   version: typeof SERVING_STORE_READ_VERSION;
+}
+
+export interface ServingQualityReleasePlan {
+  blockedQualityStates: ServingQualityState[];
+  dataVersion: string;
+  dataset: string;
+  fieldQualityStates: ServingQualitySubject[];
+  gatewayErrorCode?: "DATA_QUALITY_HOLD";
+  isolatedRows: number;
+  methodologyVersion: string;
+  recordQualityStates: ServingQualitySubject[];
+  releaseState: ServingReleaseState;
+  releasedRows: number;
+  rightsPolicyVersion: string;
+  rowCount: number;
+  servingEligible: boolean;
+  snapshotQualityState: ServingQualityState;
+  sourceRecordId: string;
+  sqlEmitted: false;
+  tables: readonly [
+    "core.serving_dataset",
+    "core.serving_field",
+    "core.serving_snapshot",
+    "core.serving_record"
+  ];
+  version: typeof SERVING_STORE_QUALITY_RELEASE_VERSION;
+  warnings: string[];
 }
 
 export function createServingReadPlan(input: ServingReadPlanInput): ServingReadPlan {
@@ -97,6 +146,57 @@ export function createServingReadPlan(input: ServingReadPlanInput): ServingReadP
   };
 }
 
+export function createServingQualityReleasePlan(
+  input: ServingQualityReleasePlanInput
+): ServingQualityReleasePlan {
+  const fieldQualityStates = [...(input.fieldQualityStates ?? [])];
+  const recordQualityStates = [...(input.recordQualityStates ?? [])];
+  const subjectStates = [
+    input.snapshotQualityState,
+    ...fieldQualityStates.map((subject) => subject.qualityState),
+    ...recordQualityStates.map((subject) => subject.qualityState)
+  ];
+  const hasRejectRaw = subjectStates.includes("REJECT_RAW");
+  const hasHold = subjectStates.includes("HOLD");
+  const hasWarn = subjectStates.includes("WARN");
+  const releaseState: ServingReleaseState = hasRejectRaw
+    ? "withdrawn"
+    : hasHold
+      ? "held"
+      : "released";
+  const servingEligible = releaseState === "released";
+  const blockedQualityStates = uniqueStates(
+    subjectStates.filter((state) => state === "HOLD" || state === "REJECT_RAW")
+  );
+
+  return {
+    blockedQualityStates,
+    dataVersion: input.dataVersion,
+    dataset: input.dataset,
+    fieldQualityStates,
+    gatewayErrorCode: servingEligible ? undefined : "DATA_QUALITY_HOLD",
+    isolatedRows: servingEligible ? 0 : input.rowCount,
+    methodologyVersion: input.methodologyVersion,
+    recordQualityStates,
+    releaseState,
+    releasedRows: servingEligible ? input.rowCount : 0,
+    rightsPolicyVersion: input.rightsPolicyVersion,
+    rowCount: input.rowCount,
+    servingEligible,
+    snapshotQualityState: input.snapshotQualityState,
+    sourceRecordId: input.sourceRecordId,
+    sqlEmitted: false,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ],
+    version: SERVING_STORE_QUALITY_RELEASE_VERSION,
+    warnings: hasWarn ? ["quality_state_warn"] : []
+  };
+}
+
 export function getServingStoreReadCapabilities() {
   return {
     blocks_default_deny: true,
@@ -121,6 +221,28 @@ export function getServingStoreReadCapabilities() {
     ] as const,
     uses_quality_state: true,
     uses_versioned_snapshots: true
+  };
+}
+
+export function getServingStoreQualityReleaseCapabilities() {
+  return {
+    blocks_quality_states: ["HOLD", "REJECT_RAW"] as const,
+    gateway_error_code: "DATA_QUALITY_HOLD" as const,
+    live_reads: false,
+    live_writes: false,
+    release_states: ["held", "released", "withdrawn"] as const,
+    released_quality_states: ["PASS", "WARN"] as const,
+    sql_emitted: false,
+    status: "quality_release_isolation_scaffold" as const,
+    tables: [
+      "core.serving_dataset",
+      "core.serving_field",
+      "core.serving_snapshot",
+      "core.serving_record"
+    ] as const,
+    uses_quality_state: true,
+    version: SERVING_STORE_QUALITY_RELEASE_VERSION,
+    warn_quality_states: ["WARN"] as const
   };
 }
 
@@ -160,4 +282,8 @@ function getBlockedReason(
 
 function normalizeFields(fields: string[]): string[] {
   return [...new Set(fields.filter((field) => field.length > 0))].sort();
+}
+
+function uniqueStates(states: ServingQualityState[]): ServingQualityState[] {
+  return [...new Set(states)].sort();
 }

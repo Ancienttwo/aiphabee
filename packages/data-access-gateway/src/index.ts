@@ -5,7 +5,7 @@ import {
 } from "@aiphabee/serving-store";
 
 export const DATA_ACCESS_GATEWAY_VERSION =
-  "2026-06-20.phase1.serving-read-scaffold.v0";
+  "2026-06-20.phase1.quality-release-isolation.v0";
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
