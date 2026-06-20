@@ -20,7 +20,10 @@ import {
 } from "@aiphabee/agent-runtime";
 import {
   compareSecurities,
-  getCompareSecuritiesCapabilities
+  getCompareSecuritiesCapabilities,
+  getScreenSecuritiesCapabilities,
+  screenSecurities,
+  type ScreenSecuritiesCondition
 } from "@aiphabee/analytics-tools";
 import {
   CorporateActionsInputError,
@@ -687,15 +690,18 @@ app.get("/analytics/runtime", (c) => {
   c.header("Cache-Control", "no-store");
 
   const capability = getCompareSecuritiesCapabilities();
+  const screenCapability = getScreenSecuritiesCapabilities();
 
   return c.json(
     createSuccessEnvelope(
       {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
+        screen_securities: screenCapability,
         frontend_rendering: false,
         live_data_access: false,
         route: capability.route,
+        routes: [capability.route, screenCapability.route],
         status: "analytics_tools_scaffold"
       },
       {
@@ -716,6 +722,49 @@ app.get("/analytics/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.post("/analytics/screen-securities", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const screen = screenSecurities({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    conditions: normalizeScreenConditionInputs(body.conditions),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    naturalLanguage: normalizeString(
+      body.natural_language ?? body.naturalLanguage ?? body.query
+    ),
+    requestId,
+    universe: normalizeStringArray(body.universe)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...screen,
+        capability: getScreenSecuritiesCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: screen.data_version,
+        methodologyVersion: screen.methodology_version,
+        provenance: [
+          {
+            data_version: screen.data_version,
+            methodology_version: screen.methodology_version,
+            source: "analytics-screen-securities",
+            source_record_id: "screen-securities"
+          }
+        ],
+        requestId,
+        usage: screen.usage
       }
     )
   );
@@ -3119,9 +3168,33 @@ function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function normalizeStringArray(value: unknown): string[] | undefined {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+    : undefined;
+}
+
+function normalizeScreenConditionInputs(
+  value: unknown
+): Array<Partial<ScreenSecuritiesCondition>> | undefined {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+        .map((item) => ({
+          field:
+            typeof item.field === "string"
+              ? (item.field as ScreenSecuritiesCondition["field"])
+              : undefined,
+          operator:
+            typeof item.operator === "string"
+              ? (item.operator as ScreenSecuritiesCondition["operator"])
+              : undefined,
+          value: normalizeOptionalNumber(item.value)
+        }))
     : undefined;
 }
 

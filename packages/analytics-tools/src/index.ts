@@ -18,6 +18,8 @@ import {
 
 export const ANALYTICS_TOOLS_VERSION =
   "2026-06-21.phase2.compare-securities-scaffold.v0";
+export const SCREEN_SECURITIES_VERSION =
+  "2026-06-21.phase2.screen-securities-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -79,6 +81,71 @@ export interface CompareSecuritiesResult {
   };
 }
 
+export type ScreenSecuritiesOperator = "eq" | "gte" | "lte";
+export type ScreenSecuritiesField = FinancialFactMetric | "last_price";
+export type ScreenSecuritiesStatus = "planned_with_preview" | "unsupported_query";
+
+export interface ScreenSecuritiesCondition {
+  editable: true;
+  field: ScreenSecuritiesField;
+  missing_value_rule: "exclude";
+  operator: ScreenSecuritiesOperator;
+  source_tool: "get_financial_facts" | "get_quote_snapshot";
+  time_basis: "latest_available_as_of";
+  value: number;
+}
+
+export interface ScreenSecuritiesInput {
+  asOf?: string;
+  conditions?: Array<Partial<ScreenSecuritiesCondition>>;
+  financialFrom?: string;
+  financialTo?: string;
+  naturalLanguage?: string;
+  requestId: string;
+  universe?: string[];
+}
+
+export interface ScreenSecuritiesHit {
+  instrument_id?: string;
+  matched_conditions: string[];
+  rank: number;
+  score: number;
+  source_record_ids: string[];
+  symbol?: string;
+  why: string[];
+}
+
+export interface ScreenSecuritiesResult {
+  as_of: string;
+  data_version: typeof SCREEN_SECURITIES_VERSION;
+  editable_before_execution: true;
+  execution_preview: {
+    hit_count: number;
+    hits: ScreenSecuritiesHit[];
+    ranking_method: "matched_condition_count_then_symbol";
+    rejected_count: number;
+    rejected_rows: Array<{
+      input: string;
+      reasons: string[];
+      symbol?: string;
+    }>;
+    universe_size: number;
+  };
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof SCREEN_SECURITIES_VERSION;
+  natural_language?: string;
+  parsed_conditions: ScreenSecuritiesCondition[];
+  requires_confirmation_before_live_execution: true;
+  status: ScreenSecuritiesStatus;
+  toolName: "screen_securities";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -88,6 +155,7 @@ interface ResolvedComparisonSurface {
 
 const DEFAULT_FINANCIAL_FROM = "2023-12-31";
 const DEFAULT_FINANCIAL_TO = "2023-12-31";
+const DEFAULT_SCREEN_UNIVERSE = ["00700.HK", "08001.HK", "00001.HK"];
 const REQUIRED_FINANCIAL_METRICS: FinancialFactMetric[] = [
   "revenue",
   "net_income",
@@ -108,6 +176,23 @@ export function getCompareSecuritiesCapabilities() {
     status: "compare_securities_scaffold" as const,
     tool_name: "compare_securities" as const,
     version: ANALYTICS_TOOLS_VERSION
+  };
+}
+
+export function getScreenSecuritiesCapabilities() {
+  return {
+    editable_conditions: true,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    preview_execution: true,
+    requires_confirmation_before_live_execution: true,
+    route: "POST /analytics/screen-securities" as const,
+    status: "screen_securities_scaffold" as const,
+    supported_fields: ["revenue", "net_income", "assets", "equity", "last_price"] as const,
+    supported_operators: ["eq", "gte", "lte"] as const,
+    tool_name: "screen_securities" as const,
+    version: SCREEN_SECURITIES_VERSION
   };
 }
 
@@ -167,6 +252,97 @@ export function compareSecurities(input: CompareSecuritiesInput): CompareSecurit
         surfaces.reduce((sum, surface) => sum + createSurfaceCredits(surface), 0) +
         (rows.length > 0 ? 1 : 0),
       rows: surfaces.reduce((sum, surface) => sum + createSurfaceRows(surface), 0) + rows.length
+    }
+  };
+}
+
+export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecuritiesResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const naturalLanguage = input.naturalLanguage?.trim();
+  const parsedConditions = normalizeScreenConditions(
+    input.conditions,
+    naturalLanguage
+  );
+  const universe =
+    input.universe?.map((security) => security.trim()).filter((security) => security.length > 0) ??
+    DEFAULT_SCREEN_UNIVERSE;
+  const comparison = compareSecurities({
+    asOf: input.asOf,
+    financialFrom: input.financialFrom,
+    financialTo: input.financialTo,
+    requestId: input.requestId,
+    securities: universe.slice(0, 5)
+  });
+
+  if (parsedConditions.length === 0) {
+    return {
+      as_of: asOf,
+      data_version: SCREEN_SECURITIES_VERSION,
+      editable_before_execution: true,
+      execution_preview: {
+        hit_count: 0,
+        hits: [],
+        ranking_method: "matched_condition_count_then_symbol",
+        rejected_count: comparison.rows.length,
+        rejected_rows: comparison.rows.map((row) => ({
+          input: row.input,
+          reasons: ["unsupported_or_empty_query"],
+          symbol: row.symbol
+        })),
+        universe_size: comparison.rows.length
+      },
+      frontend_rendering: false,
+      live_data_access: false,
+      methodology_version: SCREEN_SECURITIES_VERSION,
+      natural_language: naturalLanguage,
+      parsed_conditions: [],
+      requires_confirmation_before_live_execution: true,
+      status: "unsupported_query",
+      toolName: "screen_securities",
+      usage: {
+        cached: false,
+        credits: comparison.usage.credits,
+        rows: comparison.usage.rows
+      }
+    };
+  }
+
+  const evaluatedRows = comparison.rows.map((row) => evaluateScreenRow(row, parsedConditions));
+  const hits: ScreenSecuritiesHit[] = evaluatedRows
+    .flatMap((row) => (row.hit === undefined ? [] : [row.hit]))
+    .sort((left, right) => right.score - left.score || (left.symbol ?? "").localeCompare(right.symbol ?? ""))
+    .map((hit, index) => ({
+      ...hit,
+      rank: index + 1
+    }));
+  const rejectedRows = evaluatedRows
+    .filter((row) => row.hit === undefined)
+    .map((row) => row.rejected);
+
+  return {
+    as_of: asOf,
+    data_version: SCREEN_SECURITIES_VERSION,
+    editable_before_execution: true,
+    execution_preview: {
+      hit_count: hits.length,
+      hits,
+      ranking_method: "matched_condition_count_then_symbol",
+      rejected_count: rejectedRows.length,
+      rejected_rows: rejectedRows,
+      universe_size: comparison.rows.length
+    },
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: SCREEN_SECURITIES_VERSION,
+    natural_language: naturalLanguage,
+    parsed_conditions: parsedConditions,
+    requires_confirmation_before_live_execution: true,
+    status: "planned_with_preview",
+    toolName: "screen_securities",
+    usage: {
+      cached: false,
+      credits: comparison.usage.credits + 1,
+      rows: comparison.usage.rows + comparison.rows.length
     }
   };
 }
@@ -357,4 +533,189 @@ function createSurfaceCredits(surface: ResolvedComparisonSurface): number {
     surface.quote.usage.credits +
     surface.facts.usage.credits
   );
+}
+
+function normalizeScreenConditions(
+  conditions: Array<Partial<ScreenSecuritiesCondition>> | undefined,
+  naturalLanguage: string | undefined
+): ScreenSecuritiesCondition[] {
+  const explicitConditions =
+    conditions
+      ?.map((condition) => normalizeExplicitCondition(condition))
+      .filter((condition): condition is ScreenSecuritiesCondition => condition !== undefined) ??
+    [];
+
+  return explicitConditions.length > 0
+    ? explicitConditions
+    : parseNaturalLanguageConditions(naturalLanguage);
+}
+
+function normalizeExplicitCondition(
+  condition: Partial<ScreenSecuritiesCondition>
+): ScreenSecuritiesCondition | undefined {
+  if (
+    condition.field === undefined ||
+    condition.operator === undefined ||
+    condition.value === undefined ||
+    !isScreenField(condition.field) ||
+    !isScreenOperator(condition.operator) ||
+    !Number.isFinite(condition.value)
+  ) {
+    return undefined;
+  }
+
+  return createScreenCondition(condition.field, condition.operator, condition.value);
+}
+
+function parseNaturalLanguageConditions(
+  naturalLanguage: string | undefined
+): ScreenSecuritiesCondition[] {
+  if (naturalLanguage === undefined || naturalLanguage.length === 0) {
+    return [];
+  }
+
+  const normalized = naturalLanguage.toLowerCase();
+  const conditions: ScreenSecuritiesCondition[] = [];
+
+  for (const field of ["revenue", "net_income", "assets", "equity", "last_price"] as const) {
+    const value = parseThreshold(normalized, field);
+    if (value !== undefined) {
+      conditions.push(createScreenCondition(field, "gte", value));
+    }
+  }
+
+  if (normalized.includes("profitable") && !conditions.some((condition) => condition.field === "net_income")) {
+    conditions.push(createScreenCondition("net_income", "gte", 0));
+  }
+
+  return conditions;
+}
+
+function parseThreshold(
+  normalized: string,
+  field: ScreenSecuritiesField
+): number | undefined {
+  const fieldPattern = field.replace("_", "[ _-]?");
+  const pattern = new RegExp(
+    `${fieldPattern}\\s*(?:>=|>|above|over|greater than|at least)\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)`,
+    "u"
+  );
+  const match = normalized.match(pattern);
+  const rawValue = match?.[1]?.replaceAll(",", "");
+
+  return rawValue === undefined ? undefined : Number(rawValue);
+}
+
+function createScreenCondition(
+  field: ScreenSecuritiesField,
+  operator: ScreenSecuritiesOperator,
+  value: number
+): ScreenSecuritiesCondition {
+  return {
+    editable: true,
+    field,
+    missing_value_rule: "exclude",
+    operator,
+    source_tool: field === "last_price" ? "get_quote_snapshot" : "get_financial_facts",
+    time_basis: "latest_available_as_of",
+    value
+  };
+}
+
+function evaluateScreenRow(
+  row: CompareSecuritiesRow,
+  conditions: ScreenSecuritiesCondition[]
+): {
+  hit?: ScreenSecuritiesHit;
+  rejected: {
+    input: string;
+    reasons: string[];
+    symbol?: string;
+  };
+} {
+  const reasons: string[] = [];
+  const matchedConditions: string[] = [];
+
+  if (row.status === "blocked_resolution") {
+    reasons.push("security_resolution_required");
+  }
+
+  for (const condition of conditions) {
+    const actualValue = getScreenFieldValue(row, condition.field);
+
+    if (actualValue === undefined) {
+      reasons.push(`${condition.field}:missing_value_excluded`);
+      continue;
+    }
+
+    if (matchesCondition(actualValue, condition)) {
+      const label = `${condition.field}_${condition.operator}_${condition.value}`;
+      matchedConditions.push(label);
+    } else {
+      reasons.push(`${condition.field}:failed_${condition.operator}_${condition.value}`);
+    }
+  }
+
+  if (reasons.length > 0) {
+    return {
+      rejected: {
+        input: row.input,
+        reasons,
+        symbol: row.symbol
+      }
+    };
+  }
+
+  return {
+    hit: {
+      instrument_id: row.instrument_id,
+      matched_conditions: matchedConditions,
+      rank: 0,
+      score: matchedConditions.length,
+      source_record_ids: row.source_record_ids,
+      symbol: row.symbol,
+      why: matchedConditions.map((condition) => `matched:${condition}`)
+    },
+    rejected: {
+      input: row.input,
+      reasons: [],
+      symbol: row.symbol
+    }
+  };
+}
+
+function getScreenFieldValue(
+  row: CompareSecuritiesRow,
+  field: ScreenSecuritiesField
+): number | undefined {
+  return field === "last_price" ? row.quote?.last_price : row.financials[field];
+}
+
+function matchesCondition(
+  actualValue: number,
+  condition: ScreenSecuritiesCondition
+): boolean {
+  if (condition.operator === "eq") {
+    return actualValue === condition.value;
+  }
+
+  if (condition.operator === "gte") {
+    return actualValue >= condition.value;
+  }
+
+  return actualValue <= condition.value;
+}
+
+function isScreenField(value: string): value is ScreenSecuritiesField {
+  return [
+    "assets",
+    "equity",
+    "last_price",
+    "net_income",
+    "revenue"
+  ].includes(value);
+}
+
+function isScreenOperator(value: string): value is ScreenSecuritiesOperator {
+  return value === "eq" || value === "gte" || value === "lte";
 }

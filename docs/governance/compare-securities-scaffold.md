@@ -52,7 +52,8 @@ Tradeoff:
 
 - The backend compare surface is testable and contract-guarded now.
 - Tool registry/MCP exposure remains a later integration task.
-- Only the first Sprint 2.1 row is complete; screening, ratios, return/risk,
+- The first Sprint 2.1 row is complete here; screening is covered by
+  `docs/governance/screen-securities-scaffold.md`; ratios, return/risk,
   peer/index/history percentile, and UI rows remain open.
 
 ## Verification
@@ -85,7 +86,7 @@ Observed compare behavior:
 
 ## Residual Gaps
 
-- `screen_securities` is not implemented.
+- `screen_securities` is covered by `docs/governance/screen-securities-scaffold.md`.
 - Ratio percentile and deterministic return/risk/Beta engines are not implemented.
 - Peer/index/history percentile comparison is not implemented.
 - Frontend comparison and screening UI remains delegated.

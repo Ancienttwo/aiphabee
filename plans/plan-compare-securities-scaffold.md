@@ -17,9 +17,10 @@
 ## Scope
 
 This slice covers the first Sprint 2.1 backend item: 2-5 security comparison
-with explicit currency/unit alignment and incomparable-row reasons. It does not
-implement screening, ratio percentiles, return/risk calculations, frontend UI,
-MCP registration, live FX conversion, or live data access.
+with explicit currency/unit alignment and incomparable-row reasons. Screening
+is covered by `plans/plan-screen-securities-scaffold.md`; ratio percentiles,
+return/risk calculations, frontend UI, MCP registration, live FX conversion, and
+live data access remain outside this compare slice.
 
 ## Verification
 

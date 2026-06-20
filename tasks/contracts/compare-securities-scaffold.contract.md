@@ -37,4 +37,4 @@ Complete the backend-only Sprint 2.1 `compare_securities` scaffold for:
 - Package and Worker targeted tests pass.
 - Worker and package typecheck/build pass.
 - Local Worker smoke proves runtime and compare behavior.
-- Sprint tracker is checked only for `compare_securities`; screening, ratios, risk, percentile, and UI items remain open.
+- Sprint tracker is checked only for `compare_securities`; ratios, risk, percentile, and UI items remain open.

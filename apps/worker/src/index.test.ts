@@ -177,12 +177,63 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    screen_securities: {
+      editable_conditions: boolean;
+      preview_execution: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     frontend_rendering: boolean;
     live_data_access: boolean;
     route: string;
     status: string;
   };
   ok: true;
+}
+
+interface ScreenSecuritiesBody {
+  data: {
+    capability: {
+      editable_conditions: boolean;
+      preview_execution: boolean;
+      route: string;
+      status: string;
+    };
+    editable_before_execution: boolean;
+    execution_preview: {
+      hit_count: number;
+      hits: Array<{
+        matched_conditions: string[];
+        rank: number;
+        score: number;
+        symbol?: string;
+        why: string[];
+      }>;
+      rejected_rows: Array<{
+        reasons: string[];
+        symbol?: string;
+      }>;
+      universe_size: number;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    parsed_conditions: Array<{
+      editable: boolean;
+      field: string;
+      missing_value_rule: string;
+      operator: string;
+      value: number;
+    }>;
+    requires_confirmation_before_live_execution: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface CompareSecuritiesBody {
@@ -1791,6 +1842,74 @@ describe("worker runtime", () => {
       status: "compare_securities_scaffold",
       tool_name: "compare_securities"
     });
+    expect(body.data.screen_securities).toMatchObject({
+      editable_conditions: true,
+      preview_execution: true,
+      route: "POST /analytics/screen-securities",
+      status: "screen_securities_scaffold",
+      tool_name: "screen_securities"
+    });
+  });
+
+  it("plans editable screen conditions and explains hits", async () => {
+    const response = await app.request("/analytics/screen-securities", {
+      body: JSON.stringify({
+        natural_language: "revenue above 100000 and profitable"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-screen-securities"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ScreenSecuritiesBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      editable_before_execution: true,
+      frontend_rendering: false,
+      live_data_access: false,
+      requires_confirmation_before_live_execution: true,
+      status: "planned_with_preview",
+      toolName: "screen_securities"
+    });
+    expect(body.data.parsed_conditions).toEqual([
+      expect.objectContaining({
+        editable: true,
+        field: "revenue",
+        missing_value_rule: "exclude",
+        operator: "gte",
+        value: 100000
+      }),
+      expect.objectContaining({
+        editable: true,
+        field: "net_income",
+        missing_value_rule: "exclude",
+        operator: "gte",
+        value: 0
+      })
+    ]);
+    expect(body.data.execution_preview).toMatchObject({
+      hit_count: 1,
+      universe_size: 3
+    });
+    expect(body.data.execution_preview.hits[0]).toMatchObject({
+      rank: 1,
+      score: 2,
+      symbol: "00700.HK",
+      why: ["matched:revenue_gte_100000", "matched:net_income_gte_0"]
+    });
+    expect(body.data.execution_preview.rejected_rows.map((row) => row.symbol)).toEqual([
+      "08001.HK",
+      "00001.HK"
+    ]);
+    expect(body.data.capability).toMatchObject({
+      editable_conditions: true,
+      preview_execution: true,
+      route: "POST /analytics/screen-securities"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
   });
 
   it("compares securities and explains incomplete rows", async () => {

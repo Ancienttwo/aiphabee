@@ -25,7 +25,7 @@ the first ANA-02 comparability surface.
 ## Non-Goals
 
 - No frontend comparison UI.
-- No `screen_securities`.
+- `screen_securities` is covered by `docs/governance/screen-securities-scaffold.md`.
 - No financial-ratio percentile engine.
 - No return/risk/Beta engine.
 - No MCP registration.

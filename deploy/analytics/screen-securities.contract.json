@@ -1,0 +1,52 @@
+{
+  "version": "2026-06-21.phase2.screen-securities-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/screen-securities",
+  "tool_name": "screen_securities",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_2_1_items": [
+    "ANA-03",
+    "ANA-04",
+    "US-W05"
+  ],
+  "source_tools": [
+    "compare_securities",
+    "resolve_security",
+    "get_quote_snapshot",
+    "get_financial_facts"
+  ],
+  "screen_contract": {
+    "natural_language_parser": "deterministic_scaffold",
+    "editable_conditions": true,
+    "requires_confirmation_before_live_execution": true,
+    "preview_execution": true,
+    "missing_value_rule_visible": true,
+    "hit_reasons_visible": true,
+    "ranking_explainable": true,
+    "supported_fields": [
+      "revenue",
+      "net_income",
+      "assets",
+      "equity",
+      "last_price"
+    ],
+    "supported_operators": [
+      "eq",
+      "gte",
+      "lte"
+    ],
+    "required_output_fields": [
+      "parsed_conditions",
+      "editable_before_execution",
+      "execution_preview",
+      "hits",
+      "why",
+      "rejected_rows"
+    ]
+  }
+}
