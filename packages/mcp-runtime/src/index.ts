@@ -1183,6 +1183,11 @@ const MCP_TOOL_INPUT_VALIDATION_RULES = {
     anyOf: [["instrument_id"], ["instrumentId"]],
     required: ["from", "to"]
   },
+  get_event_timeline: {
+    allowed: ["instrument_id", "instrumentId", "from", "to", "types", "limit", "cursor"],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: ["from", "to"]
+  },
   get_market_calendar: {
     allowed: ["market", "from", "to"],
     anyOf: [],

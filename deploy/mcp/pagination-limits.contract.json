@@ -47,13 +47,15 @@
   "paginated_tools": [
     "get_price_history",
     "get_corporate_actions",
-    "get_financial_facts"
+    "get_financial_facts",
+    "get_event_timeline"
   ],
   "time_range_tools": [
     "get_market_calendar",
     "get_price_history",
     "get_corporate_actions",
     "get_financial_facts",
+    "get_event_timeline",
     "get_entitlements"
   ],
   "row_limited_tools": [
@@ -64,6 +66,7 @@
     "get_price_history",
     "get_corporate_actions",
     "get_financial_facts",
+    "get_event_timeline",
     "get_data_lineage",
     "get_entitlements"
   ],
@@ -75,6 +78,7 @@
     "get_price_history",
     "get_corporate_actions",
     "get_financial_facts",
+    "get_event_timeline",
     "get_data_lineage",
     "get_entitlements"
   ]

@@ -10,7 +10,7 @@ describe("tool registry scaffold", () => {
     const capabilities = getToolRegistryCapabilities();
 
     expect(capabilities.status).toBe("shared_tool_registry_scaffold");
-    expect(capabilities.tool_count).toBe(9);
+    expect(capabilities.tool_count).toBe(10);
     expect(capabilities.schema_ready).toBe(true);
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
@@ -20,7 +20,7 @@ describe("tool registry scaffold", () => {
     expect(capabilities.breaking_changes_require_new_major).toBe(true);
     expect(capabilities.pagination_limits_ready).toBe(true);
     expect(capabilities.pagination_or_rights_bypass_blocked).toBe(true);
-    expect(capabilities.handler_ready_tool_count).toBe(9);
+    expect(capabilities.handler_ready_tool_count).toBe(10);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
         handlerReady: true,
@@ -97,6 +97,42 @@ describe("tool registry scaffold", () => {
       execution: {
         handlerReady: true,
         mode: "read_only_scaffold"
+      },
+      status: "scaffold",
+      testing: {
+        goldenFixtureReady: true
+      }
+    });
+    expect(
+      capabilities.tools.find((tool) => tool.name === "get_event_timeline")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        mode: "read_only_scaffold"
+      },
+      permissions: {
+        dataClasses: [
+          "announcements",
+          "corporate_actions",
+          "financial_facts",
+          "market_calendar"
+        ],
+        requiredScope: "events:read"
+      },
+      retrieval: {
+        cursorPagination: {
+          enabled: true,
+          parameter: "cursor"
+        },
+        rowLimit: {
+          defaultLimit: 5,
+          maxLimit: 5,
+          parameter: "limit"
+        },
+        timeRangeLimit: {
+          maxWindowDays: 366,
+          required: true
+        }
       },
       status: "scaffold",
       testing: {
@@ -187,6 +223,7 @@ describe("tool registry scaffold", () => {
       "get_price_history",
       "get_corporate_actions",
       "get_financial_facts",
+      "get_event_timeline",
       "get_data_lineage",
       "get_entitlements"
     ]);

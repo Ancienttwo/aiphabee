@@ -16,6 +16,7 @@ export type RegisteredToolName =
   | "get_price_history"
   | "get_corporate_actions"
   | "get_financial_facts"
+  | "get_event_timeline"
   | "get_data_lineage"
   | "get_entitlements";
 
@@ -250,6 +251,37 @@ export const REGISTERED_TOOLS = [
     ]),
     status: "scaffold",
     testing: createTesting("get_financial_facts", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Return company and market event timeline rows with source-linked related data.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_event_timeline"),
+    name: "get_event_timeline",
+    permissions: createPermissions("events:read", [
+      "announcements",
+      "corporate_actions",
+      "financial_facts",
+      "market_calendar"
+    ]),
+    retrieval: createRetrievalLimits({
+      cursorParameter: "cursor",
+      defaultLimit: 5,
+      maxLimit: 5,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    }),
+    schema: createSchema("get_event_timeline", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_event_timeline", true),
     version: "0.0.0"
   },
   {

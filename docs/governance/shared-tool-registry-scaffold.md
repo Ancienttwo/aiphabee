@@ -1,7 +1,7 @@
 # Shared Tool Registry Scaffold
 
 > **Status**: Verified shared registry scaffold
-> **Last Updated**: 2026-06-21 02:30 +08
+> **Last Updated**: 2026-06-21 18:06 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**:
 > `plans/plan-shared-tool-registry-scaffold.md`
@@ -10,9 +10,9 @@
 
 This slice creates a shared Tool Registry metadata source for Sprint 1.2.
 Later `resolve_security`, `get_security_profile`, `get_market_calendar`,
-`get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, and
-`get_financial_facts`, `get_data_lineage`, and `get_entitlements` scaffolds now
-mark all nine registered tool handlers as available for synthetic no-live
+`get_quote_snapshot`, `get_price_history`, `get_corporate_actions`,
+`get_financial_facts`, `get_event_timeline`, `get_data_lineage`, and
+`get_entitlements` scaffolds now mark all ten registered tool handlers as available for synthetic no-live
 lookup. Live Serving reads, partner row access, MCP protocol tool-call
 integration, durable Evidence/Lineage storage, and frontend surfaces remain
 absent.
@@ -24,9 +24,9 @@ absent.
 | Tool registry package | `packages/tool-registry` | Owns tool names, versions, permissions, schema IDs, execution posture, and fixture requirements |
 | Agent runtime | `packages/agent-runtime` | Reads registered tool policy from shared registry |
 | Worker runtime route | `GET /tools/runtime` | Reports registry capability and disabled execution |
-| Registry contract | `deploy/tools/registry.contract.json` | Requires 9 planned tools and no arbitrary SQL/URL |
+| Registry contract | `deploy/tools/registry.contract.json` | Requires 10 planned tools and no arbitrary SQL/URL |
 | Contract checker | `scripts/check-tool-registry-contract.mjs` | Validates registry contract and no secret-like values |
-| Tool handlers | Nine no-live scaffolds | `resolve_security`, `get_security_profile`, `get_market_calendar`, `get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, `get_financial_facts`, `get_data_lineage`, and `get_entitlements` have synthetic handlers; live data access remains absent |
+| Tool handlers | Ten no-live scaffolds | `resolve_security`, `get_security_profile`, `get_market_calendar`, `get_quote_snapshot`, `get_price_history`, `get_corporate_actions`, `get_financial_facts`, `get_event_timeline`, `get_data_lineage`, and `get_entitlements` have synthetic handlers; live data access remains absent |
 
 ## P2 Concrete Trace
 
@@ -34,11 +34,11 @@ Registry capability trace:
 
 1. Client calls `GET /tools/runtime`.
 2. Worker calls `getToolRegistryCapabilities()`.
-3. Registry returns 9 read-only tool entries with schema, permission,
+3. Registry returns 10 read-only tool entries with schema, permission,
    execution, and testing metadata.
 4. The capability reports `schema_ready=true`, `rights_aware=true`,
    `standard_response_envelope=true`, `execution_ready=false`,
-   `handler_ready_tool_count=9`, `allow_arbitrary_sql=false`, and
+   `handler_ready_tool_count=10`, `allow_arbitrary_sql=false`, and
    `allow_arbitrary_url=false`.
 
 Agent policy trace:
@@ -91,11 +91,11 @@ Observed `/tools/runtime` fields:
 ```json
 {
   "status": "shared_tool_registry_scaffold",
-  "tool_count": 9,
+  "tool_count": 10,
   "schema_ready": true,
   "rights_aware": true,
   "standard_response_envelope": true,
-  "handler_ready_tool_count": 9,
+  "handler_ready_tool_count": 10,
   "execution_ready": false,
   "allow_arbitrary_sql": false,
   "allow_arbitrary_url": false
@@ -104,7 +104,7 @@ Observed `/tools/runtime` fields:
 
 ## Residual Gaps
 
-- All nine registered tools have no-live synthetic handlers.
+- All ten registered tools have no-live synthetic handlers.
 - MCP protocol tool-call integration is absent.
 - Tool JSON Schema bodies and golden fixtures are not implemented.
 - Evidence/Lineage service is absent.

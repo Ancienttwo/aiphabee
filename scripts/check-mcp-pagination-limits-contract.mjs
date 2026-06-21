@@ -13,19 +13,22 @@ const requiredTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_event_timeline",
   "get_data_lineage",
   "get_entitlements"
 ];
 const paginatedTools = [
   "get_price_history",
   "get_corporate_actions",
-  "get_financial_facts"
+  "get_financial_facts",
+  "get_event_timeline"
 ];
 const timeRangeTools = [
   "get_market_calendar",
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_event_timeline",
   "get_entitlements"
 ];
 const requiredSprintItems = [

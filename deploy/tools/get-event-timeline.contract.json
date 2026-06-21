@@ -1,0 +1,68 @@
+{
+  "version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+  "status": "local_contract",
+  "tool_name": "get_event_timeline",
+  "route": "POST /tools/get-event-timeline",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "company_and_market_events": true,
+  "related_data_links": true,
+  "source_record_required": true,
+  "cursor_pagination": true,
+  "max_rows_per_request": 5,
+  "supported_inputs": [
+    "instrument_id",
+    "from",
+    "to",
+    "types",
+    "limit",
+    "cursor"
+  ],
+  "supported_event_types": [
+    "announcement",
+    "corporate_action",
+    "financial_disclosure",
+    "market_event"
+  ],
+  "required_statuses": [
+    "found",
+    "not_found",
+    "data_not_licensed",
+    "data_quality_hold",
+    "out_of_range",
+    "too_many_rows"
+  ],
+  "required_event_fields": [
+    "eventId",
+    "eventType",
+    "eventScope",
+    "date",
+    "title",
+    "summary",
+    "source",
+    "sourceRecordId",
+    "relatedData",
+    "qualityState"
+  ],
+  "required_error_codes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "NOT_FOUND",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS",
+    "SCOPE_DENIED"
+  ],
+  "fixture_cases": [
+    "event_timeline_rows",
+    "type_subset",
+    "cursor_pagination",
+    "unlicensed_type",
+    "quality_hold",
+    "not_found",
+    "out_of_range",
+    "too_many_rows"
+  ]
+}

@@ -2558,6 +2558,7 @@ function isEvidenceCardSourceTool(tool: AgentRunToolContext): boolean {
   return [
     "get_corporate_actions",
     "get_data_lineage",
+    "get_event_timeline",
     "get_financial_facts",
     "get_price_history",
     "get_quote_snapshot",
@@ -2676,6 +2677,12 @@ const TOOL_USAGE_ESTIMATES: Record<
     rows: 1,
     tokens: 200,
     wall_clock_ms: 300
+  },
+  get_event_timeline: {
+    credits: 4,
+    rows: 20,
+    tokens: 600,
+    wall_clock_ms: 900
   },
   get_financial_facts: {
     credits: 5,

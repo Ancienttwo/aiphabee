@@ -83,6 +83,11 @@ import {
   searchAnnouncements
 } from "@aiphabee/document-tools";
 import {
+  EventTimelineInputError,
+  getEventTimeline,
+  getEventTimelineCapabilities
+} from "@aiphabee/event-timeline";
+import {
   FinancialFactsInputError,
   getFinancialFacts,
   getFinancialFactsCapabilities,
@@ -4271,6 +4276,135 @@ app.post("/tools/get-corporate-actions", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-event-timeline", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    cursor?: unknown;
+    from?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+    limit?: unknown;
+    to?: unknown;
+    types?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+  const types = Array.isArray(body.types)
+    ? body.types.filter((type): type is string => typeof type === "string")
+    : undefined;
+
+  try {
+    const result = getEventTimeline({
+      cursor: typeof body.cursor === "string" ? body.cursor : undefined,
+      from: typeof body.from === "string" ? body.from : "",
+      instrumentId: rawInstrumentId,
+      limit: typeof body.limit === "number" ? body.limit : undefined,
+      to: typeof body.to === "string" ? body.to : "",
+      types
+    });
+    const meta = {
+      asOf: new Date().toISOString(),
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId,
+      usage: result.usage
+    };
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "event timeline rows were not found", meta),
+        404
+      );
+    }
+
+    if (result.status === "data_not_licensed") {
+      return c.json(
+        createErrorEnvelope("DATA_NOT_LICENSED", "event timeline types are not licensed", meta),
+        403
+      );
+    }
+
+    if (result.status === "data_quality_hold") {
+      return c.json(
+        createErrorEnvelope(
+          "DATA_QUALITY_HOLD",
+          "event timeline rows are held by quality policy",
+          meta
+        ),
+        409
+      );
+    }
+
+    if (result.status === "out_of_range") {
+      return c.json(
+        createErrorEnvelope(
+          "OUT_OF_RANGE",
+          "event timeline range is out of synthetic coverage",
+          meta
+        ),
+        422
+      );
+    }
+
+    if (result.status === "too_many_rows") {
+      return c.json(
+        createErrorEnvelope("TOO_MANY_ROWS", "event timeline request exceeds row limit", meta),
+        422
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getEventTimelineCapabilities()
+        },
+        meta
+      )
+    );
+  } catch (error) {
+    if (error instanceof EventTimelineInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion:
+            "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_event_timeline failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion:
+          "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
         requestId,
         usage: {
           cached: false,

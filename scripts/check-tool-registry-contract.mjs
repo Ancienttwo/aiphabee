@@ -11,6 +11,7 @@ const requiredTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_event_timeline",
   "get_data_lineage",
   "get_entitlements"
 ];
@@ -24,6 +25,7 @@ const scaffoldTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_event_timeline",
   "get_data_lineage",
   "get_entitlements"
 ];

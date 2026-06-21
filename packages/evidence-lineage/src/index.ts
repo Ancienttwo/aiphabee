@@ -275,6 +275,7 @@ const TOOL_TO_DATASET: Record<string, string> = {
   get_corporate_actions: "corporate_actions",
   get_data_lineage: "lineage",
   get_entitlements: "entitlements",
+  get_event_timeline: "event_timeline",
   get_financial_facts: "financial_facts",
   get_market_calendar: "market_calendar",
   get_price_history: "price_history",
@@ -290,6 +291,7 @@ const DATASET_TO_TOOL = Object.fromEntries(
 const DEFAULT_FIELDS_BY_DATASET: Record<string, readonly string[]> = {
   corporate_actions: ["action_type", "effective_date", "adjustment_factor"],
   entitlements: ["scope", "limits", "restrictions"],
+  event_timeline: ["event_type", "event_scope", "date", "source_record_id"],
   financial_facts: ["revenue", "net_income", "assets", "equity"],
   lineage: ["source_record_id", "data_version", "methodology_version"],
   market_calendar: ["date", "session", "market_status"],
@@ -302,6 +304,7 @@ const DEFAULT_FIELDS_BY_DATASET: Record<string, readonly string[]> = {
 const DATASET_LIMITS: Record<string, { delaySeconds: number; historyDays: number }> = {
   corporate_actions: { delaySeconds: 900, historyDays: 3650 },
   entitlements: { delaySeconds: 0, historyDays: 3650 },
+  event_timeline: { delaySeconds: 900, historyDays: 3650 },
   financial_facts: { delaySeconds: 86_400, historyDays: 1095 },
   lineage: { delaySeconds: 0, historyDays: 3650 },
   market_calendar: { delaySeconds: 0, historyDays: 730 },

@@ -1766,6 +1766,46 @@ interface CorporateActionsBody {
   };
 }
 
+interface EventTimelineBody {
+  data: {
+    capability: {
+      company_and_market_events: boolean;
+      cursor_pagination: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      related_data_links: boolean;
+      source_record_required: boolean;
+      status: string;
+      supported_event_types: string[];
+    };
+    liveDataAccess: boolean;
+    requestedTypes: string[];
+    status: string;
+    timeline: {
+      events: Array<{
+        date: string;
+        eventScope: string;
+        eventType: string;
+        relatedData: Array<{
+          sourceRecordId: string;
+        }>;
+        sourceRecordId: string;
+      }>;
+      nextCursor?: string;
+      qualityState: string;
+      rowCount: number;
+      symbol: string;
+      totalRows: number;
+    };
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface FinancialFactsBody {
   data: {
     capability: {
@@ -5578,7 +5618,7 @@ describe("worker runtime", () => {
       status: "kill_switch_scaffold",
       tool_kill_switch_ready: true
     });
-    expect(body.data.registered_tools).toHaveLength(9);
+    expect(body.data.registered_tools).toHaveLength(10);
     expect(body.data.registered_tools[0]).toMatchObject({
       name: "resolve_security",
       schema: {
@@ -5663,12 +5703,12 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("shared_tool_registry_scaffold");
-    expect(body.data.tool_count).toBe(9);
+    expect(body.data.tool_count).toBe(10);
     expect(body.data.schema_ready).toBe(true);
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(9);
+    expect(body.data.handler_ready_tool_count).toBe(10);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.versioning_ready).toBe(true);
@@ -5767,6 +5807,20 @@ describe("worker runtime", () => {
     });
     expect(
       body.data.tools.find((tool) => tool.name === "get_financial_facts")
+    ).toMatchObject({
+      execution: {
+        handlerReady: true,
+        liveDataAccess: false
+      },
+      permissions: {
+        rightsAware: true
+      },
+      schema: {
+        standardResponseEnvelope: true
+      }
+    });
+    expect(
+      body.data.tools.find((tool) => tool.name === "get_event_timeline")
     ).toMatchObject({
       execution: {
         handlerReady: true,
@@ -6524,6 +6578,163 @@ describe("worker runtime", () => {
       headers: {
         "content-type": "application/json",
         "x-request-id": "req-corporate-actions-invalid"
+      },
+      method: "POST"
+    });
+    const unlicensedBody = (await unlicensed.json()) as ErrorBody;
+    const qualityHoldBody = (await qualityHold.json()) as ErrorBody;
+    const outOfRangeBody = (await outOfRange.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+    const missingBody = (await missing.json()) as ErrorBody;
+    const invalidBody = (await invalid.json()) as ErrorBody;
+
+    expect(unlicensed.status).toBe(403);
+    expect(unlicensedBody.error.code).toBe("DATA_NOT_LICENSED");
+    expect(qualityHold.status).toBe(409);
+    expect(qualityHoldBody.error.code).toBe("DATA_QUALITY_HOLD");
+    expect(outOfRange.status).toBe(422);
+    expect(outOfRangeBody.error.code).toBe("OUT_OF_RANGE");
+    expect(tooManyRows.status).toBe(422);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
+    expect(missing.status).toBe(404);
+    expect(missingBody.error.code).toBe("NOT_FOUND");
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns event timeline rows with company, market, and related source data", async () => {
+    const response = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        limit: 3,
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EventTimelineBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_event_timeline");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.timeline).toMatchObject({
+      nextCursor: "offset:3",
+      qualityState: "PASS",
+      rowCount: 3,
+      symbol: "00700.HK",
+      totalRows: 4
+    });
+    expect(body.data.timeline.events.map((event) => event.eventType)).toEqual([
+      "announcement",
+      "market_event",
+      "financial_disclosure"
+    ]);
+    expect(body.data.timeline.events.some((event) => event.eventScope === "market")).toBe(true);
+    expect(
+      body.data.timeline.events.every(
+        (event) =>
+          event.sourceRecordId.length > 0 &&
+          event.relatedData.every((item) => item.sourceRecordId.length > 0)
+      )
+    ).toBe(true);
+    expect(body.data.capability).toMatchObject({
+      company_and_market_events: true,
+      cursor_pagination: true,
+      handler_ready: true,
+      live_data_access: false,
+      related_data_links: true,
+      source_record_required: true,
+      status: "get_event_timeline_scaffold",
+      supported_event_types: [
+        "announcement",
+        "corporate_action",
+        "financial_disclosure",
+        "market_event"
+      ]
+    });
+    expect(body.usage.rows).toBe(3);
+    expect(body.usage.credits).toBe(9);
+  });
+
+  it("returns standard errors for event timeline licensing, quality, range, row, and input failures", async () => {
+    const unlicensed = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-07",
+        types: ["announcement", "rumor"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-unlicensed"
+      },
+      method: "POST"
+    });
+    const qualityHold = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_hold",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-quality"
+      },
+      method: "POST"
+    });
+    const outOfRange = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-02",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-range"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_00700",
+        limit: 6,
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-too-many"
+      },
+      method: "POST"
+    });
+    const missing = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-03",
+        instrument_id: "eq_hk_missing",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-missing"
+      },
+      method: "POST"
+    });
+    const invalid = await app.request("/tools/get-event-timeline", {
+      body: JSON.stringify({
+        from: "2026-01-07",
+        instrument_id: "eq_hk_00700",
+        to: "2026-01-03"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-timeline-invalid"
       },
       method: "POST"
     });
@@ -8498,7 +8709,7 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("planned_default_deny");
     expect(body.data.tools_list).toEqual({
-      blocked_tool_count: 9,
+      blocked_tool_count: 10,
       returned_tool_count: 0,
       tool_catalog_available_after_rights_gate: true,
       tools: []
@@ -9675,7 +9886,7 @@ describe("worker runtime", () => {
       denied_tools: [],
       model_calls: false,
       permission_aware: true,
-      registered_tool_count: 9,
+      registered_tool_count: 10,
       registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
       requested_tools: [
         "resolve_security",

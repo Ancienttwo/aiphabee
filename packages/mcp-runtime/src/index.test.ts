@@ -731,7 +731,7 @@ describe("mcp endpoint default-deny scaffold", () => {
 
     expect(plan.status).toBe("planned_default_deny");
     expect(plan.tools_list).toMatchObject({
-      blocked_tool_count: 9,
+      blocked_tool_count: 10,
       returned_tool_count: 0,
       tool_catalog_available_after_rights_gate: true,
       tools: []
@@ -747,7 +747,7 @@ describe("mcp endpoint default-deny scaffold", () => {
       requestId: "req-mcp-tools-list-versioned"
     });
 
-    expect(plan.tools_list?.returned_tool_count).toBe(9);
+    expect(plan.tools_list?.returned_tool_count).toBe(10);
     expect(
       plan.tools_list?.tools.every(
         (tool) =>
