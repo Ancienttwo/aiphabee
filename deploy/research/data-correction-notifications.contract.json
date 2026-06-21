@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-21.phase2.data-correction-notifications-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/research-runtime",
+  "runtime_route": "GET /research/runtime",
+  "route": "POST /research/data-corrections/plan",
+  "tool_name": "plan_data_correction_notifications",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_tool_execution": false,
+  "notification_fanout": false,
+  "queue_writes": false,
+  "sql_emitted": false,
+  "event_queue": "AIPHABEE_EVENTS_QUEUE",
+  "affected_report_marking_required": true,
+  "evidence_snapshot_marking_required": true,
+  "saved_report_notification_required": true,
+  "source_record_required": true,
+  "old_report_mutation_allowed": false,
+  "silent_rewrite_allowed": false,
+  "supported_notification_channels": [
+    "in_app",
+    "email"
+  ],
+  "required_output_fields": [
+    "corrections",
+    "affected_reports",
+    "notification_plan",
+    "persistence_plan",
+    "replay",
+    "validation"
+  ],
+  "tables": [
+    "core.data_correction_event",
+    "core.research_run_correction_impact",
+    "core.user_notification"
+  ],
+  "covered_prd_items": [
+    "DAT-08",
+    "US-O05",
+    "data_correction",
+    "saved_report_notification"
+  ],
+  "linked_contracts": [
+    "deploy/research/research-run-save.contract.json",
+    "deploy/research/research-run-replay.contract.json",
+    "deploy/database/migrations.contract.json"
+  ],
+  "forbidden_payloads": [
+    "raw_contact",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

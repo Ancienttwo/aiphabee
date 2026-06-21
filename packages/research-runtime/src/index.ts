@@ -4,11 +4,20 @@ export const RESEARCH_RUN_REPLAY_VERSION =
   "2026-06-21.phase2.research-run-replay-scaffold.v0";
 export const DEEP_REPORT_WORKFLOW_VERSION =
   "2026-06-21.phase2.deep-report-workflow-scaffold.v0";
+export const DATA_CORRECTION_NOTIFICATION_VERSION =
+  "2026-06-21.phase2.data-correction-notifications-scaffold.v0";
+export const DATA_CORRECTION_NOTIFICATION_CHANNELS = ["in_app", "email"] as const;
 
 export type ResearchRunSaveStatus = "planned_no_write";
 export type ResearchRunReplayStatus = "planned_no_write";
 export type ResearchRunDiffCategory = "data" | "model" | "parameters";
 export type DeepReportWorkflowStatus = "planned_no_write";
+export type DataCorrectionNotificationChannel =
+  (typeof DATA_CORRECTION_NOTIFICATION_CHANNELS)[number];
+export type DataCorrectionNotificationStatus =
+  | "blocked_missing_context"
+  | "planned_no_write";
+export type DataCorrectionSeverity = "low" | "medium" | "high";
 export type DeepReportWorkflowStageId =
   | "data_fetch"
   | "deterministic_analysis"
@@ -120,6 +129,25 @@ export interface CreateDeepReportWorkflowPlanInput {
   taskId?: string;
   userId?: string;
   workflowTaskId?: string;
+  workspaceId?: string;
+}
+
+export interface DataCorrectionSourceInput {
+  correctedDataVersion?: string;
+  correctionId?: string;
+  previousDataVersion?: string;
+  reason?: string;
+  severity?: DataCorrectionSeverity;
+  sourceRecordId?: string;
+}
+
+export interface CreateDataCorrectionNotificationPlanInput {
+  affectedRuns?: ResearchRunSavePlan[];
+  asOf?: string;
+  corrections?: DataCorrectionSourceInput[];
+  notificationChannels?: DataCorrectionNotificationChannel[];
+  requestId: string;
+  userId?: string;
   workspaceId?: string;
 }
 
@@ -496,6 +524,126 @@ export interface ResearchRunReplayPlan {
   version: typeof RESEARCH_RUN_REPLAY_VERSION;
 }
 
+export interface DataCorrectionNotificationCapabilities {
+  affected_report_marking_required: true;
+  event_queue: "AIPHABEE_EVENTS_QUEUE";
+  evidence_snapshot_marking_required: true;
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  notification_fanout: false;
+  package: "@aiphabee/research-runtime";
+  persistent_writes: false;
+  route: "POST /research/data-corrections/plan";
+  runtime_route: "GET /research/runtime";
+  saved_report_notification_required: true;
+  sql_emitted: false;
+  status: "data_correction_notifications_scaffold";
+  supported_notification_channels: readonly DataCorrectionNotificationChannel[];
+  tables: readonly [
+    "core.data_correction_event",
+    "core.research_run_correction_impact",
+    "core.user_notification"
+  ];
+  tool_name: "plan_data_correction_notifications";
+  version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
+}
+
+export interface DataCorrectionEventPlan {
+  corrected_data_version: string;
+  correction_event_id: string;
+  previous_data_version?: string;
+  reason: string;
+  severity: DataCorrectionSeverity;
+  source_record_id: string;
+  table: "core.data_correction_event";
+  write_status: "blocked" | "planned_no_write";
+}
+
+export interface DataCorrectionImpactPlan {
+  evidence_record_ids: string[];
+  impact_id: string;
+  impacted_source_record_ids: string[];
+  notification_required: true;
+  research_run_id: string;
+  snapshot_id: string;
+  table: "core.research_run_correction_impact";
+  user_id: string;
+  workspace_id: string;
+  write_status: "blocked" | "planned_no_write";
+}
+
+export interface DataCorrectionUserNotificationPlan {
+  channel: DataCorrectionNotificationChannel;
+  event_queue: "AIPHABEE_EVENTS_QUEUE";
+  fanout_status: "planned_no_write";
+  notification_event_id: string;
+  research_run_id: string;
+  snapshot_id: string;
+  table: "core.user_notification";
+  user_id: string;
+  workspace_id: string;
+}
+
+export interface DataCorrectionNotificationPlan {
+  affected_reports: {
+    count: number;
+    items: DataCorrectionImpactPlan[];
+    marking_status: "blocked" | "planned_no_write";
+  };
+  as_of: string;
+  corrections: DataCorrectionEventPlan[];
+  data_version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  methodology_version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
+  notification_fanout: false;
+  notification_plan: {
+    channels: DataCorrectionNotificationChannel[];
+    event_queue: "AIPHABEE_EVENTS_QUEUE";
+    fanout_status: "planned_no_write";
+    notification_required: true;
+    notifications: DataCorrectionUserNotificationPlan[];
+    table: "core.user_notification";
+    user_notification_count: number;
+  };
+  persistence_plan: {
+    live_db_writes: false;
+    queue_writes: false;
+    sql_emitted: false;
+    tables: DataCorrectionNotificationCapabilities["tables"];
+    write_status: "blocked" | "planned_no_write";
+  };
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  replay: {
+    old_report_mutation_allowed: false;
+    replay_route: "POST /research/runs/replay/plan";
+    rerun_recommended: boolean;
+    silent_rewrite_allowed: false;
+  };
+  request_id: string;
+  sql_emitted: false;
+  status: DataCorrectionNotificationStatus;
+  toolName: "plan_data_correction_notifications";
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  validation: {
+    affected_reports_present: boolean;
+    corrections_present: boolean;
+    required_context_present: boolean;
+  };
+  version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
+}
+
 const REQUIRED_RESEARCH_RUN_FIELDS = [
   "question",
   "tool_calls",
@@ -514,6 +662,11 @@ const DEEP_REPORT_WORKFLOW_TABLES = [
   "core.deep_report_evidence_index",
   "core.workflow_task",
   "core.workflow_task_checkpoint"
+] as const;
+const DATA_CORRECTION_NOTIFICATION_TABLES = [
+  "core.data_correction_event",
+  "core.research_run_correction_impact",
+  "core.user_notification"
 ] as const;
 const DEFAULT_DEEP_REPORT_TOOLS = [
   "resolve_security",
@@ -574,6 +727,7 @@ const DEEP_REPORT_WORKFLOW_STAGE_DEFINITIONS: Array<{
 
 export function getResearchRuntimeCapabilities() {
   return {
+    data_correction_notifications: getDataCorrectionNotificationCapabilities(),
     deep_report_workflow: getDeepReportWorkflowCapabilities(),
     frontend_rendering: false,
     immutable_report_snapshot: true,
@@ -604,6 +758,29 @@ export function getResearchRuntimeCapabilities() {
   };
 }
 
+export function getDataCorrectionNotificationCapabilities(): DataCorrectionNotificationCapabilities {
+  return {
+    affected_report_marking_required: true,
+    event_queue: "AIPHABEE_EVENTS_QUEUE",
+    evidence_snapshot_marking_required: true,
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    notification_fanout: false,
+    package: "@aiphabee/research-runtime",
+    persistent_writes: false,
+    route: "POST /research/data-corrections/plan",
+    runtime_route: "GET /research/runtime",
+    saved_report_notification_required: true,
+    sql_emitted: false,
+    status: "data_correction_notifications_scaffold",
+    supported_notification_channels: DATA_CORRECTION_NOTIFICATION_CHANNELS,
+    tables: DATA_CORRECTION_NOTIFICATION_TABLES,
+    tool_name: "plan_data_correction_notifications",
+    version: DATA_CORRECTION_NOTIFICATION_VERSION
+  };
+}
+
 export function getDeepReportWorkflowCapabilities() {
   return {
     citation_validation_required: true,
@@ -625,6 +802,110 @@ export function getDeepReportWorkflowCapabilities() {
     tool_name: "plan_deep_report_workflow" as const,
     version: DEEP_REPORT_WORKFLOW_VERSION,
     workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW" as const
+  };
+}
+
+export function createDataCorrectionNotificationPlan(
+  input: CreateDataCorrectionNotificationPlanInput
+): DataCorrectionNotificationPlan {
+  const asOf = normalizeAsOf(input.asOf);
+  const corrections = normalizeDataCorrectionEvents(input.corrections);
+  const sourceRecordIds = new Set(corrections.map((correction) => correction.source_record_id));
+  const userId = normalizeText(input.userId);
+  const workspaceId = normalizeText(input.workspaceId);
+  const channels = normalizeDataCorrectionNotificationChannels(input.notificationChannels);
+  const impactedReports = createDataCorrectionImpacts(
+    input.affectedRuns ?? [],
+    sourceRecordIds,
+    userId,
+    workspaceId
+  );
+  const correctionsPresent = corrections.length > 0;
+  const affectedReportsPresent = impactedReports.length > 0;
+  const status: DataCorrectionNotificationStatus =
+    correctionsPresent && affectedReportsPresent
+      ? "planned_no_write"
+      : "blocked_missing_context";
+  const writeStatus = status === "planned_no_write" ? "planned_no_write" : "blocked";
+  const notificationPlans = createDataCorrectionNotificationItems(
+    impactedReports,
+    channels
+  );
+
+  return {
+    affected_reports: {
+      count: impactedReports.length,
+      items: impactedReports.map((impact) => ({
+        ...impact,
+        write_status: writeStatus
+      })),
+      marking_status: writeStatus
+    },
+    as_of: asOf,
+    corrections: corrections.map((correction) => ({
+      ...correction,
+      write_status: writeStatus
+    })),
+    data_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    methodology_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+    notification_fanout: false,
+    notification_plan: {
+      channels,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write",
+      notification_required: true,
+      notifications: notificationPlans,
+      table: "core.user_notification",
+      user_notification_count: notificationPlans.length
+    },
+    persistence_plan: {
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: DATA_CORRECTION_NOTIFICATION_TABLES,
+      write_status: writeStatus
+    },
+    provenance: [
+      {
+        data_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        methodology_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        source: "data-correction-notification-plan",
+        source_record_id: `data_correction_${hashStableValue({
+          corrections: corrections.map((correction) => correction.correction_event_id),
+          requestId: input.requestId
+        })}`
+      },
+      ...impactedReports.map((impact) => ({
+        data_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        methodology_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        source: "research-run-correction-impact",
+        source_record_id: impact.impact_id
+      }))
+    ],
+    replay: {
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      rerun_recommended: affectedReportsPresent,
+      silent_rewrite_allowed: false
+    },
+    request_id: input.requestId,
+    sql_emitted: false,
+    status,
+    toolName: "plan_data_correction_notifications",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: corrections.length + impactedReports.length + notificationPlans.length
+    },
+    validation: {
+      affected_reports_present: affectedReportsPresent,
+      corrections_present: correctionsPresent,
+      required_context_present: correctionsPresent && affectedReportsPresent
+    },
+    version: DATA_CORRECTION_NOTIFICATION_VERSION
   };
 }
 
@@ -1166,6 +1447,143 @@ function createDeepReportWorkflowStages(): DeepReportWorkflowStage[] {
     stage_id: definition.id,
     status: "planned_no_write"
   }));
+}
+
+function normalizeDataCorrectionEvents(
+  corrections: DataCorrectionSourceInput[] | undefined
+): Array<Omit<DataCorrectionEventPlan, "write_status">> {
+  if (corrections === undefined) {
+    return [];
+  }
+
+  return corrections
+    .map((correction): Omit<DataCorrectionEventPlan, "write_status"> | undefined => {
+      const sourceRecordId = normalizeText(correction.sourceRecordId);
+      const correctedDataVersion = normalizeText(correction.correctedDataVersion);
+
+      if (sourceRecordId === undefined || correctedDataVersion === undefined) {
+        return undefined;
+      }
+
+      const previousDataVersion = normalizeText(correction.previousDataVersion);
+      const reason = normalizeText(correction.reason) ?? "data_correction";
+      const severity = normalizeDataCorrectionSeverity(correction.severity);
+      const correctionEventId =
+        normalizeText(correction.correctionId) ??
+        `data_correction_${hashStableValue({
+          correctedDataVersion,
+          previousDataVersion,
+          reason,
+          sourceRecordId
+        })}`;
+
+      return {
+        corrected_data_version: correctedDataVersion,
+        correction_event_id: correctionEventId,
+        previous_data_version: previousDataVersion,
+        reason,
+        severity,
+        source_record_id: sourceRecordId,
+        table: "core.data_correction_event" as const
+      };
+    })
+    .filter(
+      (correction): correction is Omit<DataCorrectionEventPlan, "write_status"> =>
+        correction !== undefined
+    );
+}
+
+function createDataCorrectionImpacts(
+  affectedRuns: ResearchRunSavePlan[],
+  correctedSourceRecordIds: Set<string>,
+  defaultUserId: string | undefined,
+  defaultWorkspaceId: string | undefined
+): Array<Omit<DataCorrectionImpactPlan, "write_status">> {
+  return affectedRuns
+    .map((run): Omit<DataCorrectionImpactPlan, "write_status"> | undefined => {
+      const matchedEvidenceRecords = run.evidence_snapshot.records.filter((record) =>
+        record.source_record_ids.some((sourceRecordId) =>
+          correctedSourceRecordIds.has(sourceRecordId)
+        )
+      );
+      const impactedSourceRecordIds = uniqueSorted(
+        matchedEvidenceRecords.flatMap((record) =>
+          record.source_record_ids.filter((sourceRecordId) =>
+            correctedSourceRecordIds.has(sourceRecordId)
+          )
+        )
+      );
+
+      if (impactedSourceRecordIds.length === 0) {
+        return undefined;
+      }
+
+      const evidenceRecordIds = uniqueSorted(
+        matchedEvidenceRecords.map((record) => record.evidence_record_id)
+      );
+      const userId = defaultUserId ?? run.user.user_id;
+      const workspaceId = defaultWorkspaceId ?? run.workspace.workspace_id;
+
+      return {
+        evidence_record_ids: evidenceRecordIds,
+        impact_id: `research_correction_impact_${hashStableValue({
+          impactedSourceRecordIds,
+          runId: run.run_id,
+          snapshotId: run.snapshot_id
+        })}`,
+        impacted_source_record_ids: impactedSourceRecordIds,
+        notification_required: true,
+        research_run_id: run.run_id,
+        snapshot_id: run.snapshot_id,
+        table: "core.research_run_correction_impact",
+        user_id: userId,
+        workspace_id: workspaceId
+      };
+    })
+    .filter(
+      (impact): impact is Omit<DataCorrectionImpactPlan, "write_status"> =>
+        impact !== undefined
+    );
+}
+
+function createDataCorrectionNotificationItems(
+  impacts: Array<Omit<DataCorrectionImpactPlan, "write_status">>,
+  channels: DataCorrectionNotificationChannel[]
+): DataCorrectionUserNotificationPlan[] {
+  return impacts.flatMap((impact) =>
+    channels.map((channel) => ({
+      channel,
+      event_queue: "AIPHABEE_EVENTS_QUEUE" as const,
+      fanout_status: "planned_no_write" as const,
+      notification_event_id: `user_notification_${hashStableValue({
+        channel,
+        impactId: impact.impact_id,
+        snapshotId: impact.snapshot_id
+      })}`,
+      research_run_id: impact.research_run_id,
+      snapshot_id: impact.snapshot_id,
+      table: "core.user_notification" as const,
+      user_id: impact.user_id,
+      workspace_id: impact.workspace_id
+    }))
+  );
+}
+
+function normalizeDataCorrectionNotificationChannels(
+  channels: DataCorrectionNotificationChannel[] | undefined
+): DataCorrectionNotificationChannel[] {
+  const normalized =
+    channels?.filter((channel): channel is DataCorrectionNotificationChannel =>
+      DATA_CORRECTION_NOTIFICATION_CHANNELS.includes(channel)
+    ) ?? [];
+
+  return normalized.length > 0 ? [...new Set(normalized)] : ["in_app"];
+}
+
+function normalizeDataCorrectionSeverity(
+  severity: DataCorrectionSeverity | undefined
+): DataCorrectionSeverity {
+  return severity === "low" || severity === "high" ? severity : "medium";
 }
 
 function createParameterSnapshot(

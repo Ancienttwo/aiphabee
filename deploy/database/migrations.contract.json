@@ -227,6 +227,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621111000_data_correction_notifications_scaffold.sql",
+      "purpose": "Create empty data correction event, saved-report impact, and user notification scaffolds without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.data_correction_event",
+        "core.research_run_correction_impact",
+        "core.user_notification",
+        "governance.data_correction_notifications_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

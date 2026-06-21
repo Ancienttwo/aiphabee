@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   ResearchRunInputError,
+  createDataCorrectionNotificationPlan,
   createDeepReportWorkflowPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
   getResearchRuntimeCapabilities
 } from "./index";
@@ -49,6 +51,47 @@ describe("research run save scaffold", () => {
       tool_name: "plan_deep_report_workflow",
       workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW"
     });
+    expect(getResearchRuntimeCapabilities().data_correction_notifications).toMatchObject({
+      affected_report_marking_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      frontend_rendering: false,
+      live_db_writes: false,
+      notification_fanout: false,
+      route: "POST /research/data-corrections/plan",
+      runtime_route: "GET /research/runtime",
+      saved_report_notification_required: true,
+      status: "data_correction_notifications_scaffold",
+      tool_name: "plan_data_correction_notifications"
+    });
+  });
+
+  it("reports data correction notification capabilities", () => {
+    expect(getDataCorrectionNotificationCapabilities()).toMatchObject({
+      affected_report_marking_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      evidence_snapshot_marking_required: true,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      notification_fanout: false,
+      package: "@aiphabee/research-runtime",
+      persistent_writes: false,
+      route: "POST /research/data-corrections/plan",
+      runtime_route: "GET /research/runtime",
+      saved_report_notification_required: true,
+      sql_emitted: false,
+      status: "data_correction_notifications_scaffold",
+      tool_name: "plan_data_correction_notifications"
+    });
+    expect(getDataCorrectionNotificationCapabilities().supported_notification_channels).toEqual([
+      "in_app",
+      "email"
+    ]);
+    expect(getDataCorrectionNotificationCapabilities().tables).toEqual([
+      "core.data_correction_event",
+      "core.research_run_correction_impact",
+      "core.user_notification"
+    ]);
   });
 
   it("reports deep report workflow capabilities", () => {
@@ -493,6 +536,178 @@ describe("research run save scaffold", () => {
       currency: "USD",
       include_segments: true,
       period_count: 2
+    });
+  });
+
+  it("plans data correction impact marks and user notifications", () => {
+    const affectedRun = createResearchRunSavePlan({
+      evidenceRecords: [
+        {
+          dataVersion: "data-v0",
+          evidenceRecordId: "evidence_00700_old",
+          methodologyVersion: "method-v0",
+          sourceRecordIds: ["src_00700_old", "src_00700_unchanged"]
+        }
+      ],
+      modelProvider: "cloudflare_ai_gateway",
+      modelVersion: "gpt-5.4-dry-run",
+      promptVersion: "prompt.research-summary.v0",
+      question: "Compare Tencent annual revenue across periods.",
+      requestId: "req-research-save-for-correction",
+      runId: "run_00700_research",
+      toolCalls: [
+        {
+          dataVersion: "data-v0",
+          input: {
+            document_id: "doc_ann_00700_20240320_results"
+          },
+          methodologyVersion: "method-v0",
+          requestId: "req-tool-old",
+          toolCallId: "tool_call_diff_announcements_1",
+          toolName: "diff_announcements",
+          toolVersion: "tool-v0"
+        }
+      ],
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
+    });
+    const unaffectedRun = createResearchRunSavePlan({
+      evidenceRecords: [
+        {
+          dataVersion: "data-v0",
+          evidenceRecordId: "evidence_00005_old",
+          methodologyVersion: "method-v0",
+          sourceRecordIds: ["src_00005_old"]
+        }
+      ],
+      modelProvider: "cloudflare_ai_gateway",
+      modelVersion: "gpt-5.4-dry-run",
+      promptVersion: "prompt.research-summary.v0",
+      question: "Summarize HSBC annual revenue.",
+      requestId: "req-research-save-unaffected",
+      runId: "run_00005_research",
+      toolCalls: [
+        {
+          dataVersion: "data-v0",
+          input: {
+            document_id: "doc_ann_00005_20240320_results"
+          },
+          methodologyVersion: "method-v0",
+          requestId: "req-tool-unaffected",
+          toolName: "search_announcements"
+        }
+      ],
+      userId: "user_internal_beta",
+      workspaceId: "workspace_research"
+    });
+
+    const plan = createDataCorrectionNotificationPlan({
+      affectedRuns: [affectedRun, unaffectedRun],
+      asOf: "2026-06-21T10:15:00+08:00",
+      corrections: [
+        {
+          correctedDataVersion: "data-v1",
+          correctionId: "correction_src_00700_old_v1",
+          previousDataVersion: "data-v0",
+          reason: "partner_restatement",
+          severity: "high",
+          sourceRecordId: "src_00700_old"
+        }
+      ],
+      notificationChannels: ["in_app", "email"],
+      requestId: "req-data-correction-notify"
+    });
+
+    expect(plan).toMatchObject({
+      as_of: "2026-06-21T10:15:00+08:00",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      notification_fanout: false,
+      request_id: "req-data-correction-notify",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_data_correction_notifications"
+    });
+    expect(plan.corrections).toEqual([
+      {
+        corrected_data_version: "data-v1",
+        correction_event_id: "correction_src_00700_old_v1",
+        previous_data_version: "data-v0",
+        reason: "partner_restatement",
+        severity: "high",
+        source_record_id: "src_00700_old",
+        table: "core.data_correction_event",
+        write_status: "planned_no_write"
+      }
+    ]);
+    expect(plan.affected_reports.count).toBe(1);
+    expect(plan.affected_reports.items[0]).toMatchObject({
+      evidence_record_ids: ["evidence_00700_old"],
+      impacted_source_record_ids: ["src_00700_old"],
+      notification_required: true,
+      research_run_id: "run_00700_research",
+      snapshot_id: affectedRun.snapshot_id,
+      table: "core.research_run_correction_impact",
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research",
+      write_status: "planned_no_write"
+    });
+    expect(plan.notification_plan).toMatchObject({
+      channels: ["in_app", "email"],
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write",
+      notification_required: true,
+      table: "core.user_notification",
+      user_notification_count: 2
+    });
+    expect(plan.notification_plan.notifications.map((item) => item.channel)).toEqual([
+      "in_app",
+      "email"
+    ]);
+    expect(plan.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.data_correction_event",
+        "core.research_run_correction_impact",
+        "core.user_notification"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(plan.replay).toEqual({
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      rerun_recommended: true,
+      silent_rewrite_allowed: false
+    });
+    expect(plan.validation).toEqual({
+      affected_reports_present: true,
+      corrections_present: true,
+      required_context_present: true
+    });
+    expect(plan.usage.rows).toBe(4);
+  });
+
+  it("blocks data correction notifications without affected reports", () => {
+    const plan = createDataCorrectionNotificationPlan({
+      corrections: [
+        {
+          correctedDataVersion: "data-v1",
+          sourceRecordId: "src_00700_old"
+        }
+      ],
+      requestId: "req-data-correction-blocked"
+    });
+
+    expect(plan.status).toBe("blocked_missing_context");
+    expect(plan.affected_reports.count).toBe(0);
+    expect(plan.persistence_plan.write_status).toBe("blocked");
+    expect(plan.validation).toEqual({
+      affected_reports_present: false,
+      corrections_present: true,
+      required_context_present: false
     });
   });
 

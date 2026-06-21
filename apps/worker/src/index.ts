@@ -136,11 +136,16 @@ import {
 import {
   createDeepReportWorkflowPlan,
   ResearchRunInputError,
+  createDataCorrectionNotificationPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
   getResearchRuntimeCapabilities,
   type CreateResearchRunReplayCurrentRunInput,
+  type DataCorrectionNotificationChannel,
+  type DataCorrectionSeverity,
+  type DataCorrectionSourceInput,
   type ResearchRunEvidenceInput,
   type ResearchRunJsonValue,
   type ResearchRunSavePlan,
@@ -293,6 +298,20 @@ interface WatchlistBriefingRequestBody {
   userId?: unknown;
   watchlist_id?: unknown;
   watchlistId?: unknown;
+  workspace_id?: unknown;
+  workspaceId?: unknown;
+}
+
+interface DataCorrectionNotificationRequestBody {
+  affected_runs?: unknown;
+  affectedRuns?: unknown;
+  as_of?: unknown;
+  asOf?: unknown;
+  corrections?: unknown;
+  notification_channels?: unknown;
+  notificationChannels?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
   workspace_id?: unknown;
   workspaceId?: unknown;
 }
@@ -1815,6 +1834,42 @@ app.get("/research/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.post("/research/data-corrections/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as DataCorrectionNotificationRequestBody;
+  const plan = createDataCorrectionNotificationPlan({
+    affectedRuns: normalizeResearchSavedRuns(body.affected_runs ?? body.affectedRuns),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    corrections: normalizeDataCorrectionInputs(body.corrections),
+    notificationChannels: normalizeDataCorrectionNotificationChannels(
+      body.notification_channels ?? body.notificationChannels
+    ),
+    requestId,
+    userId: normalizeString(body.user_id ?? body.userId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getDataCorrectionNotificationCapabilities()
+      },
+      {
+        asOf: plan.as_of,
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
   );
 });
 
@@ -5112,8 +5167,60 @@ function normalizeResearchReplayCurrentRun(
   };
 }
 
+function normalizeResearchSavedRuns(value: unknown): ResearchRunSavePlan[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const savedRuns = value.filter((item): item is ResearchRunSavePlan => isPlainRecord(item));
+
+  return savedRuns.length > 0 ? savedRuns : undefined;
+}
+
 function normalizeResearchSavedRun(value: unknown): ResearchRunSavePlan | undefined {
   return isPlainRecord(value) ? (value as unknown as ResearchRunSavePlan) : undefined;
+}
+
+function normalizeDataCorrectionInputs(value: unknown): DataCorrectionSourceInput[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const corrections = value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => ({
+      correctedDataVersion: normalizeString(
+        item.corrected_data_version ?? item.correctedDataVersion
+      ),
+      correctionId: normalizeString(item.correction_event_id ?? item.correctionId),
+      previousDataVersion: normalizeString(
+        item.previous_data_version ?? item.previousDataVersion
+      ),
+      reason: normalizeString(item.reason ?? item.correction_reason ?? item.correctionReason),
+      severity: normalizeDataCorrectionSeverity(item.severity),
+      sourceRecordId: normalizeString(item.source_record_id ?? item.sourceRecordId)
+    }));
+
+  return corrections.length > 0 ? corrections : undefined;
+}
+
+function normalizeDataCorrectionNotificationChannels(
+  value: unknown
+): DataCorrectionNotificationChannel[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const channels = value.filter(
+    (channel): channel is DataCorrectionNotificationChannel =>
+      channel === "in_app" || channel === "email"
+  );
+
+  return channels.length > 0 ? [...new Set(channels)] : undefined;
+}
+
+function normalizeDataCorrectionSeverity(value: unknown): DataCorrectionSeverity | undefined {
+  return value === "low" || value === "medium" || value === "high" ? value : undefined;
 }
 
 function handleMcpRuntimeError(

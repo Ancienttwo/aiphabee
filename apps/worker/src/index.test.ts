@@ -1870,6 +1870,24 @@ interface EvidenceRecordPlanBody {
 
 interface ResearchRuntimeBody {
   data: {
+    data_correction_notifications: {
+      affected_report_marking_required: boolean;
+      event_queue: string;
+      evidence_snapshot_marking_required: boolean;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_tool_execution: boolean;
+      notification_fanout: boolean;
+      persistent_writes: boolean;
+      route: string;
+      runtime_route: string;
+      saved_report_notification_required: boolean;
+      sql_emitted: boolean;
+      status: string;
+      supported_notification_channels: string[];
+      tables: string[];
+      tool_name: string;
+    };
     deep_report_workflow: {
       citation_validation_required: boolean;
       evidence_index_required: boolean;
@@ -2178,6 +2196,83 @@ interface ResearchRunReplayPlanBody {
     toolName: string;
   };
   ok: true;
+}
+
+interface DataCorrectionNotificationPlanBody {
+  data: {
+    affected_reports: {
+      count: number;
+      items: Array<{
+        evidence_record_ids: string[];
+        impacted_source_record_ids: string[];
+        notification_required: boolean;
+        research_run_id: string;
+        snapshot_id: string;
+        table: string;
+        user_id: string;
+        workspace_id: string;
+        write_status: string;
+      }>;
+      marking_status: string;
+    };
+    capability: ResearchRuntimeBody["data"]["data_correction_notifications"];
+    corrections: Array<{
+      corrected_data_version: string;
+      correction_event_id: string;
+      previous_data_version?: string;
+      reason: string;
+      severity: string;
+      source_record_id: string;
+      table: string;
+      write_status: string;
+    }>;
+    frontend_rendering: boolean;
+    live_db_writes: boolean;
+    live_tool_execution: boolean;
+    notification_fanout: boolean;
+    notification_plan: {
+      channels: string[];
+      event_queue: string;
+      fanout_status: string;
+      notification_required: boolean;
+      notifications: Array<{
+        channel: string;
+        fanout_status: string;
+        research_run_id: string;
+        snapshot_id: string;
+        table: string;
+        user_id: string;
+        workspace_id: string;
+      }>;
+      table: string;
+      user_notification_count: number;
+    };
+    persistence_plan: {
+      live_db_writes: boolean;
+      queue_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    replay: {
+      old_report_mutation_allowed: boolean;
+      replay_route: string;
+      rerun_recommended: boolean;
+      silent_rewrite_allowed: boolean;
+    };
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+    validation: {
+      affected_reports_present: boolean;
+      corrections_present: boolean;
+      required_context_present: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface McpRuntimeBody {
@@ -6795,6 +6890,31 @@ describe("worker runtime", () => {
       "evidence_index",
       "rerun_seed"
     ]);
+    expect(body.data.data_correction_notifications).toMatchObject({
+      affected_report_marking_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      evidence_snapshot_marking_required: true,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      notification_fanout: false,
+      persistent_writes: false,
+      route: "POST /research/data-corrections/plan",
+      runtime_route: "GET /research/runtime",
+      saved_report_notification_required: true,
+      sql_emitted: false,
+      status: "data_correction_notifications_scaffold",
+      tool_name: "plan_data_correction_notifications"
+    });
+    expect(body.data.data_correction_notifications.supported_notification_channels).toEqual([
+      "in_app",
+      "email"
+    ]);
+    expect(body.data.data_correction_notifications.tables).toEqual([
+      "core.data_correction_event",
+      "core.research_run_correction_impact",
+      "core.user_notification"
+    ]);
   });
 
   it("plans deep report workflows with linked workflow task ids", async () => {
@@ -7278,6 +7398,153 @@ describe("worker runtime", () => {
       include_segments: true,
       period_count: 2
     });
+  });
+
+  it("plans data correction marks and user notifications for affected saved reports", async () => {
+    const saveResponse = await app.request("/research/runs/save/plan", {
+      body: JSON.stringify({
+        evidence_records: [
+          {
+            data_version: "data-v0",
+            evidence_record_id: "evidence_00700_old",
+            methodology_version: "method-v0",
+            source_record_ids: ["src_00700_old", "src_00700_unchanged"]
+          }
+        ],
+        model_provider: "cloudflare_ai_gateway",
+        model_version: "gpt-5.4-dry-run",
+        prompt_version: "prompt.research-summary.v0",
+        question: "Compare Tencent annual revenue across periods.",
+        run_id: "run_00700_research",
+        tool_calls: [
+          {
+            data_version: "data-v0",
+            input: {
+              document_id: "doc_ann_00700_20240320_results"
+            },
+            methodology_version: "method-v0",
+            request_id: "req-tool-old",
+            tool_call_id: "tool_call_diff_announcements_1",
+            tool_name: "diff_announcements",
+            tool_version: "tool-v0"
+          }
+        ],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-save-for-correction"
+      },
+      method: "POST"
+    });
+    const saved = (await saveResponse.json()) as ResearchRunSavePlanBody;
+
+    const response = await app.request("/research/data-corrections/plan", {
+      body: JSON.stringify({
+        affected_runs: [saved.data],
+        as_of: "2026-06-21T10:15:00+08:00",
+        corrections: [
+          {
+            corrected_data_version: "data-v1",
+            correction_event_id: "correction_src_00700_old_v1",
+            previous_data_version: "data-v0",
+            reason: "partner_restatement",
+            severity: "high",
+            source_record_id: "src_00700_old"
+          }
+        ],
+        notification_channels: ["in_app", "email"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-data-correction-notify"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as DataCorrectionNotificationPlanBody;
+
+    expect(saveResponse.status).toBe(200);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      notification_fanout: false,
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_data_correction_notifications"
+    });
+    expect(body.data.capability).toMatchObject({
+      affected_report_marking_required: true,
+      route: "POST /research/data-corrections/plan",
+      saved_report_notification_required: true,
+      status: "data_correction_notifications_scaffold"
+    });
+    expect(body.data.corrections).toEqual([
+      {
+        corrected_data_version: "data-v1",
+        correction_event_id: "correction_src_00700_old_v1",
+        previous_data_version: "data-v0",
+        reason: "partner_restatement",
+        severity: "high",
+        source_record_id: "src_00700_old",
+        table: "core.data_correction_event",
+        write_status: "planned_no_write"
+      }
+    ]);
+    expect(body.data.affected_reports).toMatchObject({
+      count: 1,
+      marking_status: "planned_no_write"
+    });
+    expect(body.data.affected_reports.items[0]).toMatchObject({
+      evidence_record_ids: ["evidence_00700_old"],
+      impacted_source_record_ids: ["src_00700_old"],
+      notification_required: true,
+      research_run_id: "run_00700_research",
+      snapshot_id: saved.data.snapshot_id,
+      table: "core.research_run_correction_impact",
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.notification_plan).toMatchObject({
+      channels: ["in_app", "email"],
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write",
+      notification_required: true,
+      table: "core.user_notification",
+      user_notification_count: 2
+    });
+    expect(body.data.notification_plan.notifications.map((item) => item.channel)).toEqual([
+      "in_app",
+      "email"
+    ]);
+    expect(body.data.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.data_correction_event",
+        "core.research_run_correction_impact",
+        "core.user_notification"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.replay).toEqual({
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      rerun_recommended: true,
+      silent_rewrite_allowed: false
+    });
+    expect(body.data.validation).toEqual({
+      affected_reports_present: true,
+      corrections_present: true,
+      required_context_present: true
+    });
+    expect(body.usage.rows).toBe(4);
   });
 
   it("rejects incomplete research run replay plans with standard errors", async () => {
