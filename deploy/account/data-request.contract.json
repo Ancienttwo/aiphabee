@@ -1,0 +1,99 @@
+{
+  "version": "2026-06-21.phase3.account-data-request-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/account-runtime",
+  "runtime_route": "GET /account/runtime",
+  "route": "POST /account/data-requests/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_export": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_sprint_3_2_items": ["ACC-05", "account_data_download_delete_request"],
+  "request_actions": ["download", "delete"],
+  "request_scopes": [
+    "account_profile",
+    "workspace_membership",
+    "subscription_billing",
+    "mcp_credentials_metadata",
+    "authorized_memory",
+    "saved_research",
+    "usage_ledger",
+    "audit_log"
+  ],
+  "user_visible_controls": ["download", "delete_request", "status"],
+  "retention_policy": {
+    "source": "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05",
+    "policy_version_required": true,
+    "erasure_policy": "delete_or_anonymize_when_not_retained",
+    "delete_allowed_scopes": [
+      "account_profile",
+      "workspace_membership",
+      "mcp_credentials_metadata",
+      "authorized_memory",
+      "saved_research"
+    ],
+    "export_allowed_scopes": [
+      "account_profile",
+      "workspace_membership",
+      "subscription_billing",
+      "mcp_credentials_metadata",
+      "authorized_memory",
+      "saved_research",
+      "usage_ledger",
+      "audit_log"
+    ],
+    "retention_hold_scopes": ["subscription_billing", "usage_ledger", "audit_log"]
+  },
+  "audit": {
+    "required": true,
+    "audit_event": "account.data_request.plan",
+    "event_table": "audit.account_data_request_event",
+    "identity_verification_required": true,
+    "policy_version_required": true
+  },
+  "delivery": {
+    "secure_delivery_required": true,
+    "download_formats": ["json", "csv"],
+    "expires_after_delivery": true
+  },
+  "forbidden_payloads": [
+    "raw_email",
+    "password",
+    "oauth_access_token",
+    "oauth_refresh_token",
+    "session_secret",
+    "raw_prompt",
+    "generated_answer",
+    "payment_identifier"
+  ],
+  "privacy_contract": {
+    "raw_email_included": false,
+    "credential_material_included": false,
+    "raw_prompt_included": false,
+    "delete_request_does_not_remove_retained_audit_logs": true,
+    "unsupported_scopes_block_before_write": true
+  },
+  "tables": [
+    "core.account_data_request",
+    "core.account_data_request_item",
+    "audit.account_data_request_event",
+    "governance.account_data_request_contract"
+  ],
+  "required_output_fields": [
+    "account",
+    "workspace",
+    "request",
+    "delivery",
+    "retention_policy",
+    "execution_plan",
+    "audit",
+    "privacy",
+    "validation"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/account/session.contract.json",
+    "deploy/account/authorized-session-memory.contract.json"
+  ]
+}

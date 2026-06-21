@@ -2,10 +2,13 @@ import { Hono, type Context } from "hono";
 import {
   ACCOUNT_LOGIN_METHODS,
   ACCOUNT_PLAN_CODES,
+  ACCOUNT_DATA_REQUEST_ACTIONS,
   AUTHORIZED_SESSION_MEMORY_ACTIONS,
+  createAccountDataRequestPlan,
   createAccountSessionPlan,
   createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
+  getAccountDataRequestCapabilities,
   getAccountRuntimeCapabilities,
   getPackagePricingCatalog,
   getPackagePricingCapabilities,
@@ -13,6 +16,7 @@ import {
   type AccountLoginMethod,
   type AccountPlanCode,
   type AccountRole,
+  type AccountDataRequestAction,
   type AccountSessionAction,
   type AuthorizedSessionMemoryAction,
   type SubscriptionBillingState,
@@ -776,6 +780,7 @@ app.get("/account/runtime", (c) => {
     createSuccessEnvelope(
       {
         ...getAccountRuntimeCapabilities(),
+        data_requests: getAccountDataRequestCapabilities(),
         subscription_lifecycle: getSubscriptionLifecycleCapabilities()
       },
       {
@@ -829,6 +834,54 @@ app.get("/account/package-pricing", (c) => {
           cached: false,
           credits: 0,
           rows: catalog.plans.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/account/data-requests/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createAccountDataRequestPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    action: normalizeAccountDataRequestAction(body.action),
+    requestedAt: normalizeString(body.requested_at ?? body.requestedAt),
+    requestId,
+    requestScopes: normalizeStringArray(body.request_scopes ?? body.requestScopes ?? body.scopes),
+    retentionPolicyVersion: normalizeString(
+      body.retention_policy_version ?? body.retentionPolicyVersion
+    ),
+    verifiedBy: normalizeString(body.verified_by ?? body.verifiedBy),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAccountDataRequestCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "account-runtime",
+            source_record_id: "account-data-request-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? plan.execution_plan.length : 0
         }
       }
     )
@@ -6639,6 +6692,13 @@ function normalizeAuthorizedSessionMemoryAction(
   return typeof value === "string" &&
     AUTHORIZED_SESSION_MEMORY_ACTIONS.includes(value as AuthorizedSessionMemoryAction)
     ? (value as AuthorizedSessionMemoryAction)
+    : undefined;
+}
+
+function normalizeAccountDataRequestAction(value: unknown): AccountDataRequestAction | undefined {
+  return typeof value === "string" &&
+    ACCOUNT_DATA_REQUEST_ACTIONS.includes(value as AccountDataRequestAction)
+    ? (value as AccountDataRequestAction)
     : undefined;
 }
 

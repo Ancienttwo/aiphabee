@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  createAccountDataRequestPlan,
   createAccountSessionPlan,
   createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
+  getAccountDataRequestCapabilities,
   getAccountRuntimeCapabilities,
   getPackagePricingCatalog,
   getPackagePricingCapabilities,
@@ -28,6 +30,14 @@ describe("account runtime scaffold", () => {
     expect(getAccountRuntimeCapabilities().manual_plan_assignment.allowed_plan_codes).toContain(
       "developer"
     );
+    expect(getAccountRuntimeCapabilities().data_requests).toMatchObject({
+      frontend: false,
+      live_data_export: false,
+      persistent_writes: false,
+      route: "POST /account/data-requests/plan",
+      status: "account_data_request_scaffold",
+      version: "2026-06-21.phase3.account-data-request-scaffold.v0"
+    });
     expect(getAccountRuntimeCapabilities().package_pricing).toMatchObject({
       billing_provider_calls: false,
       currency: "HKD",
@@ -60,6 +70,31 @@ describe("account runtime scaffold", () => {
         "session_secret"
       ])
     );
+  });
+
+  it("reports account data request capabilities with retention policy controls", () => {
+    expect(getAccountDataRequestCapabilities()).toMatchObject({
+      frontend: false,
+      live_data_export: false,
+      package: "@aiphabee/account-runtime",
+      persistent_writes: false,
+      route: "POST /account/data-requests/plan",
+      runtime_route: "GET /account/runtime",
+      sql_emitted: false,
+      status: "account_data_request_scaffold",
+      user_visible_controls: ["download", "delete_request", "status"],
+      version: "2026-06-21.phase3.account-data-request-scaffold.v0"
+    });
+    expect(getAccountDataRequestCapabilities().request_actions).toEqual(["download", "delete"]);
+    expect(getAccountDataRequestCapabilities().retention_policy).toMatchObject({
+      retention_hold_scopes: ["subscription_billing", "usage_ledger", "audit_log"],
+      source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05"
+    });
+    expect(getAccountDataRequestCapabilities().audit).toMatchObject({
+      event_table: "audit.account_data_request_event",
+      required: true,
+      status: "planned_no_write"
+    });
   });
 
   it("reports Pro and Developer package pricing assumptions without live billing", () => {
@@ -229,6 +264,96 @@ describe("account runtime scaffold", () => {
       request_id: "req_authorized_memory_upsert",
       write_status: "planned_no_write"
     });
+  });
+
+  it("plans account data download requests without live export or writes", () => {
+    const plan = createAccountDataRequestPlan({
+      accountId: "acct_internal_001",
+      action: "download",
+      requestedAt: "2026-06-21T12:00:00.000Z",
+      requestId: "req_account_data_download",
+      requestScopes: ["account_profile", "authorized_memory", "usage_ledger"],
+      retentionPolicyVersion: "retention-v1",
+      verifiedBy: "support_agent_001",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(plan.request).toMatchObject({
+      request_id: "req_account_data_download",
+      request_status: "planned_no_write",
+      scopes: ["account_profile", "authorized_memory", "usage_ledger"],
+      table: "core.account_data_request"
+    });
+    expect(plan.delivery).toMatchObject({
+      download_format: "json",
+      download_status: "planned_no_write",
+      secure_delivery_required: true
+    });
+    expect(plan.execution_plan.map((step) => step.action)).toEqual(["export", "export", "export"]);
+    expect(plan.audit).toMatchObject({
+      audit_event: "account.data_request.plan",
+      policy_version: "retention-v1",
+      table: "audit.account_data_request_event",
+      verified_by: "support_agent_001",
+      write_status: "planned_no_write"
+    });
+    expect(plan.privacy).toMatchObject({
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_prompt_included: false,
+      retained_for_audit_scopes: ["usage_ledger"]
+    });
+  });
+
+  it("plans account data deletion with retention holds and blocks unsupported scopes", () => {
+    const deletePlan = createAccountDataRequestPlan({
+      accountId: "acct_internal_001",
+      action: "delete",
+      requestedAt: "2026-06-21T12:00:00.000Z",
+      requestId: "req_account_data_delete",
+      requestScopes: ["account_profile", "subscription_billing", "audit_log"],
+      retentionPolicyVersion: "retention-v1",
+      workspaceId: "ws_internal_alpha"
+    });
+    const unsupportedPlan = createAccountDataRequestPlan({
+      accountId: "acct_internal_001",
+      action: "delete",
+      requestedAt: "2026-06-21T12:00:00.000Z",
+      requestId: "req_account_data_unsupported",
+      requestScopes: ["account_profile", "raw_prompt_archive"],
+      retentionPolicyVersion: "retention-v1",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(deletePlan.status).toBe("planned_no_write");
+    expect(deletePlan.execution_plan).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "schedule_erasure",
+          scope: "account_profile"
+        }),
+        expect.objectContaining({
+          action: "retain",
+          scope: "subscription_billing"
+        }),
+        expect.objectContaining({
+          action: "retain",
+          scope: "audit_log"
+        })
+      ])
+    );
+    expect(deletePlan.retention_policy).toMatchObject({
+      erasure_policy: "delete_or_anonymize_when_not_retained",
+      retention_hold_scopes: ["subscription_billing", "usage_ledger", "audit_log"]
+    });
+    expect(unsupportedPlan.status).toBe("blocked_unsupported_scope");
+    expect(unsupportedPlan.request.unsupported_scopes).toEqual(["raw_prompt_archive"]);
+    expect(unsupportedPlan.validation.unsupported_scopes).toEqual(["raw_prompt_archive"]);
   });
 
   it("plans authorized session memory delete and blocks unsupported memory keys", () => {

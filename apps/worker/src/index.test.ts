@@ -279,6 +279,31 @@ interface AccountRuntimeBody {
       table: string;
       user_visible_controls: string[];
     };
+    data_requests: {
+      audit: {
+        event_table: string;
+        required: boolean;
+        status: string;
+      };
+      deletion: {
+        audit_log_retention: boolean;
+        hard_delete_requires_policy_clearance: boolean;
+        status: string;
+      };
+      frontend: boolean;
+      live_data_export: boolean;
+      persistent_writes: boolean;
+      request_actions: string[];
+      request_scopes: string[];
+      retention_policy: {
+        retention_hold_scopes: string[];
+        source: string;
+      };
+      route: string;
+      sql_emitted: boolean;
+      status: string;
+      user_visible_controls: string[];
+    };
     device_management: {
       revoke_supported: boolean;
       status: string;
@@ -421,6 +446,66 @@ interface AccountAuthorizedMemoryPlanBody {
       allowed_memory_keys: string[];
       required_context_present: boolean;
       unsupported_memory_keys: string[];
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AccountDataRequestPlanBody {
+  data: {
+    action: string;
+    audit: {
+      audit_event: string;
+      policy_version: string;
+      request_id: string;
+      table: string;
+      verified_by: string;
+      write_status: string;
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    delivery: {
+      download_format: string;
+      download_status: string;
+      secure_delivery_required: boolean;
+    };
+    execution_plan: Array<{
+      action: string;
+      reason: string;
+      scope: string;
+      table: string;
+    }>;
+    persistent_writes: boolean;
+    privacy: {
+      credential_material_included: boolean;
+      raw_email_included: boolean;
+      raw_prompt_included: boolean;
+      retained_for_audit_scopes: string[];
+    };
+    request: {
+      request_id: string;
+      request_status: string;
+      scopes: string[];
+      table: string;
+      unsupported_scopes: string[];
+    };
+    retention_policy: {
+      erasure_policy: string;
+      policy_version: string;
+      retention_hold_scopes: string[];
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      audit_required: boolean;
+      required_context_present: boolean;
+      retention_policy_present: boolean;
+      unsupported_scopes: string[];
     };
   };
   ok: true;
@@ -4987,6 +5072,26 @@ describe("worker runtime", () => {
     expect(body.data.authorized_memory.forbidden_payloads).toEqual(
       expect.arrayContaining(["raw_prompt", "generated_answer", "oauth_access_token"])
     );
+    expect(body.data.data_requests).toMatchObject({
+      frontend: false,
+      live_data_export: false,
+      persistent_writes: false,
+      route: "POST /account/data-requests/plan",
+      sql_emitted: false,
+      status: "account_data_request_scaffold",
+      user_visible_controls: ["download", "delete_request", "status"]
+    });
+    expect(body.data.data_requests.request_actions).toEqual(["download", "delete"]);
+    expect(body.data.data_requests.request_scopes).toContain("usage_ledger");
+    expect(body.data.data_requests.retention_policy).toMatchObject({
+      retention_hold_scopes: ["subscription_billing", "usage_ledger", "audit_log"],
+      source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05"
+    });
+    expect(body.data.data_requests.audit).toMatchObject({
+      event_table: "audit.account_data_request_event",
+      required: true,
+      status: "planned_no_write"
+    });
     expect(body.data.subscription_lifecycle).toMatchObject({
       billing_provider_calls: false,
       frontend: false,
@@ -5065,6 +5170,137 @@ describe("worker runtime", () => {
       credits: 0,
       rows: 2
     });
+  });
+
+  it("plans account data download and deletion requests with retention controls", async () => {
+    const downloadResponse = await app.request("/account/data-requests/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "download",
+        requested_at: "2026-06-21T12:00:00.000Z",
+        request_scopes: ["account_profile", "authorized_memory", "usage_ledger"],
+        retention_policy_version: "retention-v1",
+        verified_by: "support_agent_001",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-account-data-download"
+      },
+      method: "POST"
+    });
+    const deleteResponse = await app.request("/account/data-requests/plan", {
+      body: JSON.stringify({
+        accountId: "acct_internal_001",
+        action: "delete",
+        requestedAt: "2026-06-21T12:00:00.000Z",
+        requestScopes: ["account_profile", "subscription_billing", "audit_log"],
+        retentionPolicyVersion: "retention-v1",
+        workspaceId: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-account-data-delete"
+      },
+      method: "POST"
+    });
+    const downloadBody = (await downloadResponse.json()) as AccountDataRequestPlanBody;
+    const deleteBody = (await deleteResponse.json()) as AccountDataRequestPlanBody;
+
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadBody.ok).toBe(true);
+    expect(downloadBody.data).toMatchObject({
+      action: "download",
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(downloadBody.data.capability).toMatchObject({
+      route: "POST /account/data-requests/plan",
+      status: "account_data_request_scaffold"
+    });
+    expect(downloadBody.data.delivery).toMatchObject({
+      download_format: "json",
+      download_status: "planned_no_write",
+      secure_delivery_required: true
+    });
+    expect(downloadBody.data.audit).toMatchObject({
+      audit_event: "account.data_request.plan",
+      policy_version: "retention-v1",
+      request_id: "req-account-data-download",
+      table: "audit.account_data_request_event",
+      verified_by: "support_agent_001",
+      write_status: "planned_no_write"
+    });
+    expect(downloadBody.data.execution_plan.map((step) => step.action)).toEqual([
+      "export",
+      "export",
+      "export"
+    ]);
+    expect(downloadBody.data.privacy).toMatchObject({
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_prompt_included: false,
+      retained_for_audit_scopes: ["usage_ledger"]
+    });
+    expect(downloadBody.usage.rows).toBe(3);
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteBody.data.action).toBe("delete");
+    expect(deleteBody.data.execution_plan).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "schedule_erasure",
+          scope: "account_profile"
+        }),
+        expect.objectContaining({
+          action: "retain",
+          scope: "subscription_billing"
+        }),
+        expect.objectContaining({
+          action: "retain",
+          scope: "audit_log"
+        })
+      ])
+    );
+    expect(deleteBody.data.retention_policy).toMatchObject({
+      erasure_policy: "delete_or_anonymize_when_not_retained",
+      policy_version: "retention-v1",
+      retention_hold_scopes: ["subscription_billing", "usage_ledger", "audit_log"]
+    });
+    expect(deleteBody.data.validation).toMatchObject({
+      audit_required: true,
+      required_context_present: true,
+      retention_policy_present: true
+    });
+    expect(deleteBody.usage.rows).toBe(3);
+  });
+
+  it("blocks unsupported account data request scopes before planning writes", async () => {
+    const response = await app.request("/account/data-requests/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "delete",
+        requested_at: "2026-06-21T12:00:00.000Z",
+        request_scopes: ["account_profile", "raw_prompt_archive"],
+        retention_policy_version: "retention-v1",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-account-data-unsupported"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountDataRequestPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_unsupported_scope");
+    expect(body.data.request.unsupported_scopes).toEqual(["raw_prompt_archive"]);
+    expect(body.data.validation.unsupported_scopes).toEqual(["raw_prompt_archive"]);
+    expect(body.data.persistent_writes).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("plans authorized session memory view and deletion without live reads or writes", async () => {

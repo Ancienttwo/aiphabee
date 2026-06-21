@@ -6,6 +6,8 @@ export const AUTHORIZED_SESSION_MEMORY_VERSION =
   "2026-06-21.phase3.authorized-session-memory-scaffold.v0";
 export const PACKAGE_PRICING_VERSION =
   "2026-06-21.phase3.package-pricing-scaffold.v0";
+export const ACCOUNT_DATA_REQUEST_VERSION =
+  "2026-06-21.phase3.account-data-request-scaffold.v0";
 
 export const ACCOUNT_LOGIN_METHODS = [
   "email_passwordless",
@@ -31,6 +33,17 @@ export const SUBSCRIPTION_LIFECYCLE_ACTIONS = [
   "exit_grace_period"
 ] as const;
 export const AUTHORIZED_SESSION_MEMORY_ACTIONS = ["view", "upsert", "delete"] as const;
+export const ACCOUNT_DATA_REQUEST_ACTIONS = ["download", "delete"] as const;
+export const ACCOUNT_DATA_REQUEST_SCOPES = [
+  "account_profile",
+  "workspace_membership",
+  "subscription_billing",
+  "mcp_credentials_metadata",
+  "authorized_memory",
+  "saved_research",
+  "usage_ledger",
+  "audit_log"
+] as const;
 export const AUTHORIZED_SESSION_MEMORY_KEYS = [
   "authorized_tool_scopes",
   "data_retention_acknowledgement",
@@ -50,6 +63,8 @@ export type SubscriptionLifecycleAction = (typeof SUBSCRIPTION_LIFECYCLE_ACTIONS
 export type AuthorizedSessionMemoryAction =
   (typeof AUTHORIZED_SESSION_MEMORY_ACTIONS)[number];
 export type AuthorizedSessionMemoryKey = (typeof AUTHORIZED_SESSION_MEMORY_KEYS)[number];
+export type AccountDataRequestAction = (typeof ACCOUNT_DATA_REQUEST_ACTIONS)[number];
+export type AccountDataRequestScope = (typeof ACCOUNT_DATA_REQUEST_SCOPES)[number];
 export type PackagePricingPlanCode = (typeof PACKAGE_PRICING_PLAN_CODES)[number];
 export type PackagePricingUsageChannel = (typeof PACKAGE_PRICING_USAGE_CHANNELS)[number];
 export type SubscriptionBillingState =
@@ -71,6 +86,16 @@ export type AuthorizedSessionMemoryPlanStatus =
   | "blocked_missing_context"
   | "blocked_unsupported_memory_key"
   | "planned_no_write";
+export type AccountDataRequestPlanStatus =
+  | "blocked_missing_context"
+  | "blocked_unsupported_scope"
+  | "planned_no_write";
+
+export type AccountDataRequestExecutionStepAction =
+  | "anonymize"
+  | "export"
+  | "retain"
+  | "schedule_erasure";
 
 export interface AccountSessionPlanInput {
   accountId?: string;
@@ -92,6 +117,17 @@ export interface AuthorizedSessionMemoryPlanInput {
   memoryKey?: string;
   memoryKeys?: string[];
   requestId: string;
+  workspaceId?: string;
+}
+
+export interface AccountDataRequestPlanInput {
+  accountId?: string;
+  action?: AccountDataRequestAction;
+  requestedAt?: string;
+  requestId: string;
+  requestScopes?: string[];
+  retentionPolicyVersion?: string;
+  verifiedBy?: string;
   workspaceId?: string;
 }
 
@@ -122,6 +158,7 @@ export interface AccountRuntimeCapabilities {
     user_visible_controls: readonly ["view", "edit", "delete"];
     version: typeof AUTHORIZED_SESSION_MEMORY_VERSION;
   };
+  data_requests: AccountDataRequestCapabilities;
   device_management: {
     audit_event: "account.device.plan";
     revoke_supported: true;
@@ -160,6 +197,56 @@ export interface AccountRuntimeCapabilities {
     "core.workspace_subscription"
   ];
   version: typeof ACCOUNT_RUNTIME_VERSION;
+}
+
+export interface AccountDataRequestCapabilities {
+  audit: {
+    audit_event: "account.data_request.plan";
+    event_table: "audit.account_data_request_event";
+    required: true;
+    status: "planned_no_write";
+  };
+  delivery: {
+    download_formats: readonly ["json", "csv"];
+    secure_delivery_required: true;
+    status: "planned_no_write";
+  };
+  deletion: {
+    audit_log_retention: true;
+    hard_delete_requires_policy_clearance: true;
+    retained_for_audit_table: "audit.account_data_request_event";
+    status: "retention_policy_scaffold";
+  };
+  frontend: false;
+  live_data_export: false;
+  package: "@aiphabee/account-runtime";
+  persistent_writes: false;
+  request_actions: typeof ACCOUNT_DATA_REQUEST_ACTIONS;
+  request_scopes: typeof ACCOUNT_DATA_REQUEST_SCOPES;
+  retention_policy: {
+    delete_allowed_scopes: readonly [
+      "account_profile",
+      "workspace_membership",
+      "mcp_credentials_metadata",
+      "authorized_memory",
+      "saved_research"
+    ];
+    export_allowed_scopes: typeof ACCOUNT_DATA_REQUEST_SCOPES;
+    retention_hold_scopes: readonly ["subscription_billing", "usage_ledger", "audit_log"];
+    source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05";
+  };
+  route: "POST /account/data-requests/plan";
+  runtime_route: "GET /account/runtime";
+  sql_emitted: false;
+  status: "account_data_request_scaffold";
+  tables: readonly [
+    "core.account_data_request",
+    "core.account_data_request_item",
+    "audit.account_data_request_event",
+    "governance.account_data_request_contract"
+  ];
+  user_visible_controls: readonly ["download", "delete_request", "status"];
+  version: typeof ACCOUNT_DATA_REQUEST_VERSION;
 }
 
 export interface PackagePricingCapabilities {
@@ -452,6 +539,71 @@ export interface AuthorizedSessionMemoryPlan {
   };
 }
 
+export interface AccountDataRequestPlan {
+  account: {
+    account_id: string;
+    table: "core.account";
+  };
+  action: AccountDataRequestAction;
+  audit: {
+    audit_event: "account.data_request.plan";
+    audit_event_id: string;
+    policy_version: string;
+    request_id: string;
+    table: "audit.account_data_request_event";
+    verified_by: string;
+    write_status: "planned_no_write";
+  };
+  delivery: {
+    download_format: "json";
+    download_status: "not_requested" | "planned_no_write";
+    secure_delivery_required: true;
+  };
+  execution_plan: Array<{
+    action: AccountDataRequestExecutionStepAction;
+    reason: string;
+    scope: AccountDataRequestScope;
+    table: string;
+  }>;
+  persistent_writes: false;
+  privacy: {
+    credential_material_included: false;
+    raw_email_included: false;
+    raw_prompt_included: false;
+    retained_for_audit_scopes: AccountDataRequestScope[];
+  };
+  request: {
+    requested_at: string;
+    request_id: string;
+    request_status: "blocked" | "planned_no_write";
+    scopes: AccountDataRequestScope[];
+    table: "core.account_data_request";
+    unsupported_scopes: string[];
+  };
+  retention_policy: {
+    delete_allowed_scopes: AccountDataRequestCapabilities["retention_policy"]["delete_allowed_scopes"];
+    erasure_policy: "delete_or_anonymize_when_not_retained";
+    export_allowed_scopes: AccountDataRequestCapabilities["retention_policy"]["export_allowed_scopes"];
+    policy_version: string;
+    retention_hold_scopes: AccountDataRequestCapabilities["retention_policy"]["retention_hold_scopes"];
+  };
+  sql_emitted: false;
+  status: AccountDataRequestPlanStatus;
+  tables: AccountDataRequestCapabilities["tables"];
+  validation: {
+    audit_required: true;
+    required_context_present: boolean;
+    retention_policy_present: boolean;
+    supported_actions: typeof ACCOUNT_DATA_REQUEST_ACTIONS;
+    unsupported_scopes: string[];
+  };
+  version: typeof ACCOUNT_DATA_REQUEST_VERSION;
+  workspace: {
+    table: "core.workspace";
+    workspace_id: string;
+  };
+}
+
 const ACCOUNT_TABLES: AccountRuntimeCapabilities["tables"] = [
   "core.account",
   "core.workspace",
@@ -472,6 +624,12 @@ const AUTHORIZED_SESSION_MEMORY_TABLES: AuthorizedSessionMemoryPlan["tables"] = 
   "core.workspace",
   "core.workspace_membership",
   "core.authorized_session_memory"
+];
+const ACCOUNT_DATA_REQUEST_TABLES: AccountDataRequestCapabilities["tables"] = [
+  "core.account_data_request",
+  "core.account_data_request_item",
+  "audit.account_data_request_event",
+  "governance.account_data_request_contract"
 ];
 const PACKAGE_PRICING_TABLES: PackagePricingCapabilities["tables"] = [
   "core.subscription_plan",
@@ -513,6 +671,18 @@ const PACKAGE_PRICING_VALIDATION_REQUIRED: PackagePricingCapabilities["validatio
   "target_market_interview",
   "unit_economics_margin_review"
 ];
+const ACCOUNT_DATA_REQUEST_DELETE_ALLOWED_SCOPES: AccountDataRequestCapabilities["retention_policy"]["delete_allowed_scopes"] = [
+  "account_profile",
+  "workspace_membership",
+  "mcp_credentials_metadata",
+  "authorized_memory",
+  "saved_research"
+];
+const ACCOUNT_DATA_REQUEST_RETENTION_HOLD_SCOPES: AccountDataRequestCapabilities["retention_policy"]["retention_hold_scopes"] = [
+  "subscription_billing",
+  "usage_ledger",
+  "audit_log"
+];
 
 export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
   return {
@@ -531,6 +701,7 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
       user_visible_controls: ["view", "edit", "delete"],
       version: AUTHORIZED_SESSION_MEMORY_VERSION
     },
+    data_requests: getAccountDataRequestCapabilities(),
     device_management: {
       audit_event: "account.device.plan",
       revoke_supported: true,
@@ -557,6 +728,47 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
     status: "internal_account_session_manual_plan_scaffold",
     tables: ACCOUNT_TABLES,
     version: ACCOUNT_RUNTIME_VERSION
+  };
+}
+
+export function getAccountDataRequestCapabilities(): AccountDataRequestCapabilities {
+  return {
+    audit: {
+      audit_event: "account.data_request.plan",
+      event_table: "audit.account_data_request_event",
+      required: true,
+      status: "planned_no_write"
+    },
+    delivery: {
+      download_formats: ["json", "csv"],
+      secure_delivery_required: true,
+      status: "planned_no_write"
+    },
+    deletion: {
+      audit_log_retention: true,
+      hard_delete_requires_policy_clearance: true,
+      retained_for_audit_table: "audit.account_data_request_event",
+      status: "retention_policy_scaffold"
+    },
+    frontend: false,
+    live_data_export: false,
+    package: "@aiphabee/account-runtime",
+    persistent_writes: false,
+    request_actions: ACCOUNT_DATA_REQUEST_ACTIONS,
+    request_scopes: ACCOUNT_DATA_REQUEST_SCOPES,
+    retention_policy: {
+      delete_allowed_scopes: ACCOUNT_DATA_REQUEST_DELETE_ALLOWED_SCOPES,
+      export_allowed_scopes: ACCOUNT_DATA_REQUEST_SCOPES,
+      retention_hold_scopes: ACCOUNT_DATA_REQUEST_RETENTION_HOLD_SCOPES,
+      source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05"
+    },
+    route: "POST /account/data-requests/plan",
+    runtime_route: "GET /account/runtime",
+    sql_emitted: false,
+    status: "account_data_request_scaffold",
+    tables: ACCOUNT_DATA_REQUEST_TABLES,
+    user_visible_controls: ["download", "delete_request", "status"],
+    version: ACCOUNT_DATA_REQUEST_VERSION
   };
 }
 
@@ -958,6 +1170,106 @@ export function createAuthorizedSessionMemoryPlan(
   };
 }
 
+export function createAccountDataRequestPlan(
+  input: AccountDataRequestPlanInput
+): AccountDataRequestPlan {
+  const accountId = normalizeIdentifier(input.accountId, "account_unresolved");
+  const workspaceId = normalizeIdentifier(input.workspaceId, "workspace_unresolved");
+  const action = input.action ?? "download";
+  const requestedAt = normalizeIdentifier(input.requestedAt, "requested_at_unresolved");
+  const retentionPolicyVersion = normalizeIdentifier(
+    input.retentionPolicyVersion,
+    "retention_policy_unresolved"
+  );
+  const requestedScopes = normalizeRequestedDataRequestScopes(input.requestScopes);
+  const scopes = requestedScopes.filter(isAccountDataRequestScope);
+  const unsupportedScopes = requestedScopes.filter((scope) => !isAccountDataRequestScope(scope));
+  const requiredContextPresent =
+    input.accountId !== undefined &&
+    input.accountId.length > 0 &&
+    input.workspaceId !== undefined &&
+    input.workspaceId.length > 0 &&
+    input.requestedAt !== undefined &&
+    input.requestedAt.length > 0 &&
+    input.retentionPolicyVersion !== undefined &&
+    input.retentionPolicyVersion.length > 0;
+  const status: AccountDataRequestPlanStatus =
+    !requiredContextPresent
+      ? "blocked_missing_context"
+      : unsupportedScopes.length > 0
+        ? "blocked_unsupported_scope"
+        : "planned_no_write";
+  const retainedForAuditScopes = scopes.filter(isAccountDataRequestRetentionHoldScope);
+
+  return {
+    account: {
+      account_id: accountId,
+      table: "core.account"
+    },
+    action,
+    audit: {
+      audit_event: "account.data_request.plan",
+      audit_event_id: `audit_account_data_request_${sanitizeForId(input.requestId)}_${sanitizeForId(
+        action
+      )}`,
+      policy_version: retentionPolicyVersion,
+      request_id: input.requestId,
+      table: "audit.account_data_request_event",
+      verified_by: normalizeIdentifier(input.verifiedBy, "verification_pending"),
+      write_status: "planned_no_write"
+    },
+    delivery: {
+      download_format: "json",
+      download_status: action === "download" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
+      secure_delivery_required: true
+    },
+    execution_plan: scopes.map((scope) => ({
+      action: resolveDataRequestExecutionStep(action, scope),
+      reason: getDataRequestExecutionReason(action, scope),
+      scope,
+      table: "core.account_data_request_item"
+    })),
+    persistent_writes: false,
+    privacy: {
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_prompt_included: false,
+      retained_for_audit_scopes: retainedForAuditScopes
+    },
+    request: {
+      requested_at: requestedAt,
+      request_id: input.requestId,
+      request_status: status === "planned_no_write" ? "planned_no_write" : "blocked",
+      scopes,
+      table: "core.account_data_request",
+      unsupported_scopes: unsupportedScopes
+    },
+    retention_policy: {
+      delete_allowed_scopes: ACCOUNT_DATA_REQUEST_DELETE_ALLOWED_SCOPES,
+      erasure_policy: "delete_or_anonymize_when_not_retained",
+      export_allowed_scopes: ACCOUNT_DATA_REQUEST_SCOPES,
+      policy_version: retentionPolicyVersion,
+      retention_hold_scopes: ACCOUNT_DATA_REQUEST_RETENTION_HOLD_SCOPES
+    },
+    sql_emitted: false,
+    status,
+    tables: ACCOUNT_DATA_REQUEST_TABLES,
+    validation: {
+      audit_required: true,
+      required_context_present: requiredContextPresent,
+      retention_policy_present:
+        input.retentionPolicyVersion !== undefined && input.retentionPolicyVersion.length > 0,
+      supported_actions: ACCOUNT_DATA_REQUEST_ACTIONS,
+      unsupported_scopes: unsupportedScopes
+    },
+    version: ACCOUNT_DATA_REQUEST_VERSION,
+    workspace: {
+      table: "core.workspace",
+      workspace_id: workspaceId
+    }
+  };
+}
+
 function resolveTargetBillingState(
   action: SubscriptionLifecycleAction,
   currentBillingState: SubscriptionBillingState
@@ -1006,8 +1318,67 @@ function normalizeAllowedMemoryFields(value: string[] | undefined): string[] {
   return [...new Set(fields)];
 }
 
+function normalizeRequestedDataRequestScopes(value: string[] | undefined): string[] {
+  const scopes = (value ?? [...ACCOUNT_DATA_REQUEST_SCOPES])
+    .map((scope) => scope.trim())
+    .filter((scope) => scope.length > 0);
+  const unique = [...new Set(scopes)];
+
+  return unique.length > 0 ? unique : [...ACCOUNT_DATA_REQUEST_SCOPES];
+}
+
 function isAuthorizedSessionMemoryKey(value: string): value is AuthorizedSessionMemoryKey {
   return AUTHORIZED_SESSION_MEMORY_KEYS.includes(value as AuthorizedSessionMemoryKey);
+}
+
+function isAccountDataRequestScope(value: string): value is AccountDataRequestScope {
+  return ACCOUNT_DATA_REQUEST_SCOPES.includes(value as AccountDataRequestScope);
+}
+
+function isAccountDataRequestDeleteAllowedScope(value: AccountDataRequestScope): boolean {
+  return ACCOUNT_DATA_REQUEST_DELETE_ALLOWED_SCOPES.includes(
+    value as (typeof ACCOUNT_DATA_REQUEST_DELETE_ALLOWED_SCOPES)[number]
+  );
+}
+
+function isAccountDataRequestRetentionHoldScope(value: AccountDataRequestScope): boolean {
+  return ACCOUNT_DATA_REQUEST_RETENTION_HOLD_SCOPES.includes(
+    value as (typeof ACCOUNT_DATA_REQUEST_RETENTION_HOLD_SCOPES)[number]
+  );
+}
+
+function resolveDataRequestExecutionStep(
+  action: AccountDataRequestAction,
+  scope: AccountDataRequestScope
+): AccountDataRequestExecutionStepAction {
+  if (action === "download") {
+    return "export";
+  }
+
+  if (isAccountDataRequestRetentionHoldScope(scope)) {
+    return "retain";
+  }
+
+  return isAccountDataRequestDeleteAllowedScope(scope) ? "schedule_erasure" : "anonymize";
+}
+
+function getDataRequestExecutionReason(
+  action: AccountDataRequestAction,
+  scope: AccountDataRequestScope
+): string {
+  if (action === "download") {
+    return "export_subject_data_after_identity_verification";
+  }
+
+  if (isAccountDataRequestRetentionHoldScope(scope)) {
+    return "retained_for_audit_billing_or_security_policy";
+  }
+
+  if (isAccountDataRequestDeleteAllowedScope(scope)) {
+    return "eligible_for_erasure_after_retention_policy_check";
+  }
+
+  return "anonymize_when_direct_erasure_is_not_allowed";
 }
 
 function normalizeIdentifier(value: string | undefined, fallback: string): string {

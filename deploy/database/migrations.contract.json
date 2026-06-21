@@ -383,6 +383,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621128000_account_data_request_scaffold.sql",
+      "purpose": "Create empty account data download/delete request, request item, audit event, and governance scaffolds with retention-policy controls without enabling live export, live erasure, or persistent writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.account_data_request",
+        "core.account_data_request_item",
+        "audit.account_data_request_event",
+        "governance.account_data_request_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
