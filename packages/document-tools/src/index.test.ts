@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getDocumentSanitizerCapabilities,
   getAnnouncement,
   getAnnouncementCapabilities,
   getDocumentToolsCapabilities,
@@ -23,10 +24,21 @@ describe("search announcements scaffold", () => {
       max_excerpt_chars: 400,
       original_document_fetch: false,
       route: "POST /documents/get-announcement",
+      sanitizer_enabled: true,
       status: "get_announcement_scaffold",
       tool_name: "get_announcement",
       untrusted_document_policy: true,
       vector_search: false
+    });
+    expect(getDocumentSanitizerCapabilities()).toMatchObject({
+      applied_route: "POST /documents/get-announcement",
+      hidden_text_removed: true,
+      output_contains_raw_html: false,
+      raw_excerpt_returned: false,
+      scripts_executable: false,
+      status: "document_sanitizer_scaffold",
+      tool_invocation_allowed_from_document: false,
+      tool_name: "document_sanitizer"
     });
     expect(getSearchAnnouncementsCapabilities()).toMatchObject({
       date_basis: "published_at",
@@ -184,10 +196,34 @@ describe("get announcement scaffold", () => {
       section_title: "Dividend timetable",
       untrusted_document: true
     });
+    expect(result.excerpts[0]?.sanitization).toMatchObject({
+      document_instruction_executed: false,
+      raw_excerpt_returned: false,
+      sanitizer_version: "2026-06-21.phase2.document-sanitizer-scaffold.v0",
+      status: "sanitized"
+    });
+    expect(result.excerpts[0]?.sanitization.removed_items).toEqual([
+      "hidden_text",
+      "script_tag",
+      "suspicious_instruction"
+    ]);
     expect(result.document_trust_policy).toEqual({
       content_is_untrusted_data: true,
       prompt_injection_isolated: true,
       scripts_executable: false
+    });
+    expect(result.sanitization_policy).toMatchObject({
+      hidden_text_removed: true,
+      output_contains_raw_html: false,
+      scripts_removed: true,
+      suspicious_instructions_neutralized: true,
+      tool_invocation_allowed_from_document: false
+    });
+    expect(result.sanitization_summary).toEqual({
+      raw_document_instructions_ignored: true,
+      removed_item_count: 3,
+      sections_sanitized: 1,
+      sections_reviewed: 1
     });
     expect(result.source).toMatchObject({
       category: "dividend",
@@ -195,6 +231,29 @@ describe("get announcement scaffold", () => {
       symbol: "00700.HK"
     });
     expect(result.usage.rows).toBe(1);
+  });
+
+  it("removes script, hidden text, and document-origin instructions before returning excerpts", () => {
+    const result = getAnnouncement({
+      documentId: "doc_ann_00700_20260103_dividend",
+      requestId: "req_get_announcement_sanitized",
+      sections: ["dividend_timetable"]
+    });
+    const excerpt = result.excerpts[0]?.excerpt ?? "";
+
+    expect(result.status).toBe("found");
+    expect(result.sanitization_summary).toMatchObject({
+      raw_document_instructions_ignored: true,
+      sections_sanitized: 1
+    });
+    expect(result.excerpts[0]?.sanitization).toMatchObject({
+      document_instruction_executed: false,
+      raw_excerpt_returned: false,
+      status: "sanitized"
+    });
+    expect(excerpt).toContain("The timetable section identifies");
+    expect(excerpt).not.toMatch(/<script|<\/script|display:none|callTool|grant_access/iu);
+    expect(excerpt).not.toMatch(/ignore (system|previous) instructions|invoke tools|run tool_call/iu);
   });
 
   it("caps excerpts to the requested authorized length", () => {

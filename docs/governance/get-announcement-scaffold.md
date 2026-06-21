@@ -55,7 +55,8 @@ Tradeoff:
 - Citation location can now be tested end to end from search result
   `document_id` to page/paragraph/source record.
 - The excerpt corpus is synthetic and bounded.
-- Full DOC-03 malicious-content sanitization remains a separate slice.
+- DOC-03 announcement-excerpt sanitization is covered by
+  `docs/governance/document-sanitizer-scaffold.md`.
 
 ## Verification
 
@@ -106,8 +107,7 @@ Observed root check residual:
 
 ## Residual Gaps
 
-- Complete DOC-03 script/hidden-text/prompt-injection sanitizer is not
-  implemented.
+- Webpage and user-input sanitizer coverage are not implemented.
 - pgvector/semantic announcement search is not implemented.
 - Cross-period document diff and numeric extraction are not implemented.
 - Saved research runs and replay are not implemented.

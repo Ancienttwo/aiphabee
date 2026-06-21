@@ -63,7 +63,7 @@ owner: "Planner / PM"
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
-| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 2 / 9 | ☐ |
+| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 3 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
@@ -297,8 +297,8 @@ owner: "Planner / PM"
 **目标：** 公告检索与原文定位 + 研究 run 保存与重放。
 
 - [x] `search_announcements` 后端 scaffold：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，支持 company/security resolution、published_at 日期范围、category、keyword、language、limit 过滤，返回 title / published_at / category / language / summary / `document_id` / `source_record_id` / page / anchor / synthetic locator，并对歧义证券返回 `blocked_resolution`；live original document fetch / pgvector search / frontend UI 未启用（DOC-01）
-- [x] `get_announcement` 后端 scaffold：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，支持 `document_id` + optional sections + `max_excerpt_chars`，返回 allowed sections、bounded authorized excerpts、title/source metadata、`document_id` / `source_record_id` / page / paragraph / anchor / synthetic locator，并对未知文档返回 `not_found`、未知 section 返回 `section_not_found`；live original document fetch / full document return / complete DOC-03 sanitizer / frontend UI 未启用（DOC-02、US-W06）
-- [ ] 公告作为不可信数据处理，去脚本/隐藏文本（DOC-03、§A3）
+- [x] `get_announcement` 后端 scaffold：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，支持 `document_id` + optional sections + `max_excerpt_chars`，返回 allowed sections、bounded authorized excerpts、title/source metadata、`document_id` / `source_record_id` / page / paragraph / anchor / synthetic locator，并对未知文档返回 `not_found`、未知 section 返回 `section_not_found`；live original document fetch / full document return / frontend UI 未启用，DOC-03 sanitizer 由后续独立项覆盖（DOC-02、US-W06）
+- [x] 公告作为不可信数据处理后端 sanitizer：扩展 `@aiphabee/document-tools` runtime `document_sanitizer` capability、`POST /documents/get-announcement` sanitized excerpt 输出、`deploy/documents/document-sanitizer.contract.json` 与 `npm run check:document-sanitizer`，覆盖 `<script>` removal、hidden text/comment removal、document-origin suspicious instruction neutralization、`document_instruction_executed=false`、`raw_excerpt_returned=false`、`removed_items` audit 与 `sanitization_summary`；webpage/user-input sanitizer/live parser/frontend UI 未启用（DOC-03、§A3）
 - [ ] pgvector 公告/文件检索（§11.4 搜索）
 - [ ] 跨期公告差异与关键数字抽取，抽取值绑定原文位置 + Schema 校验（DOC-04）
 - [ ] `RES-01` 保存完整研究 run（问题/工具输入/证据快照/模型与提示词版本）
@@ -306,7 +306,7 @@ owner: "Planner / PM"
 - [ ] 旧报告不被新数据静默改写（RES-02、§8.5）
 - [ ] 研究库 Web UI（PRD §5.1 研究库）
 
-**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☐ 文档内恶意指令不触发工具　☐ 保存 run 可重放并显示差异
+**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☑ 文档内恶意指令不触发工具（backend sanitizer fixture）　☐ 保存 run 可重放并显示差异
 
 ### Sprint 2.3 — Remote MCP OAuth + Developer Console　⬜
 **目标：** 对外 Remote MCP 产品（依赖 Gate 0 的 MCP 再分发权）。
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bv | 完成 `document-sanitizer-scaffold`：扩展 `@aiphabee/document-tools` runtime `document_sanitizer` capability、`POST /documents/get-announcement` sanitized excerpt 输出、`deploy/documents/document-sanitizer.contract.json` 与 `npm run check:document-sanitizer`，覆盖 script/hidden text/comment removal、document-origin suspicious instruction neutralization、`document_instruction_executed=false`、`raw_excerpt_returned=false`、`removed_items` audit 与 `sanitization_summary`；webpage/user-input sanitizer/live parser/frontend 未启用，Sprint 2.2 更新为 3/9 |
 | 2026-06-21 | 1.0bu | 完成 `get-announcement-scaffold`：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，覆盖 `document_id` lookup、optional sections、authorized bounded excerpts、page/paragraph/source_record synthetic locator、unknown document/section non-fabrication 与 untrusted document policy；live original document fetch/full document return/complete DOC-03 sanitizer/frontend 未启用，Sprint 2.2 更新为 2/9 |
 | 2026-06-21 | 1.0bt | 完成 `search-announcements-scaffold`：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，覆盖 company/date/category/keyword/language filters、title/published_at/category/language/summary rows、document/source locator metadata、untrusted document policy 与 ambiguous security blocking；live original document fetch/pgvector/frontend 未启用，Sprint 2.2 更新为 1/9 |
 | 2026-06-21 | 1.0bs | 完成 `high-cost-analytics-queue-scaffold`：新增 `plan_high_cost_analytics`、`GET /analytics/runtime` capability、`POST /analytics/high-cost/plan`、`deploy/analytics/high-cost-analytics-queue.contract.json` 与 `npm run check:high-cost-analytics`，覆盖 screen/compare PRD 权重、`>=8` 高成本阈值、`analytics_high_cost` 独立池、普通池保护、confirmation/pre-debit/failure-refund/idempotency/enqueue plan metadata；durable queue writes/live limiter/live ledger/MCP limiter/frontend confirmation 未启用，Sprint 2.1 更新为 8/9 |

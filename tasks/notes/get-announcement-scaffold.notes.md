@@ -27,7 +27,8 @@ US-W06.
 
 - No live original document fetch.
 - No full-document return.
-- No complete DOC-03 sanitizer for scripts/hidden text.
+- DOC-03 announcement-excerpt sanitizer is covered by the separate
+  `document-sanitizer-scaffold` slice.
 - No pgvector search.
 - No cross-period document diff.
 - No saved research run persistence or replay.

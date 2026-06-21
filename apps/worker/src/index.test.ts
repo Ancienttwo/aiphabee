@@ -524,10 +524,21 @@ interface DocumentRuntimeBody {
       evidence_locator_ready: boolean;
       original_document_fetch: boolean;
       route: string;
+      sanitizer_enabled: boolean;
       status: string;
       tool_name: string;
       untrusted_document_policy: boolean;
       vector_search: boolean;
+    };
+    document_sanitizer: {
+      applied_route: string;
+      hidden_text_removed: boolean;
+      output_contains_raw_html: boolean;
+      raw_excerpt_returned: boolean;
+      scripts_executable: boolean;
+      status: string;
+      tool_invocation_allowed_from_document: boolean;
+      tool_name: string;
     };
     status: string;
   };
@@ -630,6 +641,13 @@ interface GetAnnouncementBody {
         source_record_id: string;
       };
       excerpt: string;
+      sanitization: {
+        document_instruction_executed: boolean;
+        raw_excerpt_returned: boolean;
+        removed_items: string[];
+        sanitizer_version: string;
+        status: string;
+      };
       section_id: string;
       section_title: string;
       untrusted_document: boolean;
@@ -640,6 +658,19 @@ interface GetAnnouncementBody {
     live_data_access: boolean;
     original_document_fetch: boolean;
     row_count: number;
+    sanitization_policy: {
+      hidden_text_removed: boolean;
+      output_contains_raw_html: boolean;
+      scripts_removed: boolean;
+      suspicious_instructions_neutralized: boolean;
+      tool_invocation_allowed_from_document: boolean;
+    };
+    sanitization_summary: {
+      raw_document_instructions_ignored: boolean;
+      removed_item_count: number;
+      sections_sanitized: number;
+      sections_reviewed: number;
+    };
     source?: {
       source_record_id: string;
       symbol: string;
@@ -2821,10 +2852,21 @@ describe("worker runtime", () => {
       evidence_locator_ready: true,
       original_document_fetch: false,
       route: "POST /documents/get-announcement",
+      sanitizer_enabled: true,
       status: "get_announcement_scaffold",
       tool_name: "get_announcement",
       untrusted_document_policy: true,
       vector_search: false
+    });
+    expect(body.data.document_sanitizer).toMatchObject({
+      applied_route: "POST /documents/get-announcement",
+      hidden_text_removed: true,
+      output_contains_raw_html: false,
+      raw_excerpt_returned: false,
+      scripts_executable: false,
+      status: "document_sanitizer_scaffold",
+      tool_invocation_allowed_from_document: false,
+      tool_name: "document_sanitizer"
     });
   });
 
@@ -2979,6 +3021,28 @@ describe("worker runtime", () => {
       section_id: "dividend_timetable",
       section_title: "Dividend timetable",
       untrusted_document: true
+    });
+    expect(body.data.excerpts[0]?.sanitization).toMatchObject({
+      document_instruction_executed: false,
+      raw_excerpt_returned: false,
+      removed_items: ["hidden_text", "script_tag", "suspicious_instruction"],
+      status: "sanitized"
+    });
+    expect(body.data.excerpts[0]?.excerpt).not.toMatch(
+      /<script|display:none|callTool|grant_access|ignore previous instructions|invoke tools|run tool_call/iu
+    );
+    expect(body.data.sanitization_policy).toMatchObject({
+      hidden_text_removed: true,
+      output_contains_raw_html: false,
+      scripts_removed: true,
+      suspicious_instructions_neutralized: true,
+      tool_invocation_allowed_from_document: false
+    });
+    expect(body.data.sanitization_summary).toEqual({
+      raw_document_instructions_ignored: true,
+      removed_item_count: 3,
+      sections_sanitized: 1,
+      sections_reviewed: 1
     });
     expect(body.data.excerpts[0]?.excerpt.length).toBeLessThanOrEqual(120);
     expect(body.data.source).toMatchObject({
