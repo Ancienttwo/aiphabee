@@ -24,6 +24,8 @@ export const NUMERIC_SOURCE_GUARD_VERSION =
   "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
 export const ANSWER_EVIDENCE_CONTRACT_VERSION =
   "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
+export const AGENT_RESPONSE_PRESENTATION_VERSION =
+  "2026-06-21.phase3.localized-response-contract.v0";
 export const FAILURE_RECOVERY_POLICY_VERSION =
   "2026-06-21.phase1.failure-recovery-policy-scaffold.v0";
 export const MODEL_ROUTING_AUDIT_VERSION =
@@ -47,6 +49,11 @@ export const AGENT_RUNTIME_LIMITS = {
 
 export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
 export type RegisteredAgentToolName = RegisteredToolName;
+
+export const AGENT_RESPONSE_LOCALES = ["zh-Hant", "zh-Hans", "en"] as const;
+export const AGENT_RESPONSE_DEPTHS = ["newbie", "professional"] as const;
+export type AgentResponseLocale = (typeof AGENT_RESPONSE_LOCALES)[number];
+export type AgentResponseDepth = (typeof AGENT_RESPONSE_DEPTHS)[number];
 
 export const AGENT_WORKFLOW_TASK_KINDS = [
   "deep_report",
@@ -79,10 +86,12 @@ export interface AgentRunSkeletonInput {
   modelKillSwitch?: boolean;
   modelTier?: string;
   methodology?: string;
+  locale?: string;
   plan?: string;
   prompt: string;
   requestId: string;
   requestedTools?: string[];
+  responseDepth?: string;
   securities?: string[];
   securityQuery?: string;
   timeRange?: {
@@ -127,6 +136,22 @@ export interface AgentRuntimeCapabilities {
     model_calls: false;
     required_dimensions: readonly ["security", "time", "currency", "methodology"];
     status: "pre_tool_call_resolution_scaffold";
+  };
+  response_presentation: {
+    actual_tool_execution: false;
+    data_contract_invariant: true;
+    default_locale: "zh-Hant";
+    default_response_depth: "professional";
+    frontend: false;
+    locale_switch_changes_data: false;
+    model_calls: false;
+    response_depth_changes_data: false;
+    route: "POST /agent/runs/plan";
+    status: "localized_response_contract_scaffold";
+    supported_locales: typeof AGENT_RESPONSE_LOCALES;
+    supported_response_depths: typeof AGENT_RESPONSE_DEPTHS;
+    terminology_glossary_ready: true;
+    version: typeof AGENT_RESPONSE_PRESENTATION_VERSION;
   };
   tool_loop_agent: {
     actual_tool_execution: false;
@@ -441,6 +466,12 @@ export type AgentAnswerSectionId =
 export type AgentAnswerClaimLabel = "calculation" | "fact" | "inference" | "unknown";
 export type AgentEvidenceStrength = "medium" | "strong" | "unknown" | "weak";
 export type AgentEvidenceCardType = "data_point" | "lineage" | "methodology" | "profile";
+export type AgentFinancialTerminologyId =
+  | "abnormal_return"
+  | "free_cash_flow"
+  | "operating_profit"
+  | "roe"
+  | "total_return_adjusted";
 export type AgentEvidenceCardRequiredField =
   | "as_of"
   | "card_id"
@@ -455,6 +486,66 @@ export type AgentEvidenceCardRequiredField =
   | "source_record_id"
   | "unit"
   | "warnings";
+
+export interface AgentFinancialTerminologyEntry {
+  definition: string;
+  en: string;
+  methodology_note_required: true;
+  metric_id: AgentFinancialTerminologyId;
+  source_record_required_when_numeric: true;
+  zh_hans: string;
+  zh_hant: string;
+}
+
+export interface AgentResponsePresentationContract {
+  default_locale: "zh-Hant";
+  default_response_depth: "professional";
+  frontend_rendering: false;
+  locale: AgentResponseLocale;
+  locale_switch_invariant: {
+    currency: true;
+    data_values: true;
+    evidence_card_refs: true;
+    methodology_versions: true;
+    numeric_precision: true;
+    source_record_ids: true;
+    units: true;
+  };
+  model_calls: false;
+  response_depth: AgentResponseDepth;
+  response_depth_invariant: {
+    conclusion: true;
+    currency: true;
+    data_values: true;
+    evidence_card_refs: true;
+    methodology_versions: true;
+    source_record_ids: true;
+    units: true;
+  };
+  response_depth_policy: {
+    newbie_adds_examples: true;
+    newbie_requires_plain_language_definition: true;
+    professional_can_show_raw_formula_and_source_fields: true;
+  };
+  supported_locales: AgentResponseLocale[];
+  supported_response_depths: AgentResponseDepth[];
+  terminology_glossary: AgentFinancialTerminologyEntry[];
+  terminology_policy: {
+    bilingual_terms_required: true;
+    same_glossary_for_all_locales: true;
+    unknown_terms_use_source_label: true;
+  };
+  validation_rules: readonly [
+    "require_locale_in_zh_hant_zh_hans_en",
+    "preserve_numeric_values_across_locale_switch",
+    "preserve_source_record_ids_across_locale_switch",
+    "preserve_methodology_versions_across_locale_switch",
+    "preserve_conclusion_and_evidence_across_response_depth",
+    "require_bilingual_financial_terms",
+    "require_methodology_note_for_financial_terms"
+  ];
+  version: typeof AGENT_RESPONSE_PRESENTATION_VERSION;
+}
 
 export interface AgentAnswerEvidenceContract {
   actual_tool_execution: false;
@@ -506,6 +597,7 @@ export interface AgentAnswerEvidenceContract {
   frontend_rendering: false;
   model_calls: false;
   numeric_source_guard_version: typeof NUMERIC_SOURCE_GUARD_VERSION;
+  presentation: AgentResponsePresentationContract;
   status: "answer_evidence_contract_scaffold";
   validation_rules: readonly [
     "require_ordered_answer_sections",
@@ -1123,6 +1215,22 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       required_dimensions: ["security", "time", "currency", "methodology"],
       status: "pre_tool_call_resolution_scaffold"
     },
+    response_presentation: {
+      actual_tool_execution: false,
+      data_contract_invariant: true,
+      default_locale: "zh-Hant",
+      default_response_depth: "professional",
+      frontend: false,
+      locale_switch_changes_data: false,
+      model_calls: false,
+      response_depth_changes_data: false,
+      route: "POST /agent/runs/plan",
+      status: "localized_response_contract_scaffold",
+      supported_locales: AGENT_RESPONSE_LOCALES,
+      supported_response_depths: AGENT_RESPONSE_DEPTHS,
+      terminology_glossary_ready: true,
+      version: AGENT_RESPONSE_PRESENTATION_VERSION
+    },
     tool_loop_agent: {
       actual_tool_execution: false,
       budget_stop_policy: {
@@ -1459,7 +1567,9 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
   });
   const numericSourceGuard = createNumericSourceGuard(skeleton.run_context.toolset.tools);
   const answerEvidenceContract = createAnswerEvidenceContract({
+    locale: input.locale,
     numericSourceGuard,
+    responseDepth: input.responseDepth,
     tools: skeleton.run_context.toolset.tools
   });
   const steps =
@@ -2469,7 +2579,9 @@ function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSou
 }
 
 function createAnswerEvidenceContract(input: {
+  locale?: string;
   numericSourceGuard: AgentNumericSourceGuard;
+  responseDepth?: string;
   tools: AgentRunToolContext[];
 }): AgentAnswerEvidenceContract {
   return {
@@ -2523,6 +2635,10 @@ function createAnswerEvidenceContract(input: {
     frontend_rendering: false,
     model_calls: false,
     numeric_source_guard_version: input.numericSourceGuard.version,
+    presentation: createResponsePresentationContract({
+      locale: input.locale,
+      responseDepth: input.responseDepth
+    }),
     status: "answer_evidence_contract_scaffold",
     validation_rules: [
       "require_ordered_answer_sections",
@@ -2534,6 +2650,160 @@ function createAnswerEvidenceContract(input: {
     ],
     version: ANSWER_EVIDENCE_CONTRACT_VERSION
   };
+}
+
+function createResponsePresentationContract(input: {
+  locale?: string;
+  responseDepth?: string;
+}): AgentResponsePresentationContract {
+  return {
+    default_locale: "zh-Hant",
+    default_response_depth: "professional",
+    frontend_rendering: false,
+    locale: normalizeAgentResponseLocale(input.locale),
+    locale_switch_invariant: {
+      currency: true,
+      data_values: true,
+      evidence_card_refs: true,
+      methodology_versions: true,
+      numeric_precision: true,
+      source_record_ids: true,
+      units: true
+    },
+    model_calls: false,
+    response_depth: normalizeAgentResponseDepth(input.responseDepth),
+    response_depth_invariant: {
+      conclusion: true,
+      currency: true,
+      data_values: true,
+      evidence_card_refs: true,
+      methodology_versions: true,
+      source_record_ids: true,
+      units: true
+    },
+    response_depth_policy: {
+      newbie_adds_examples: true,
+      newbie_requires_plain_language_definition: true,
+      professional_can_show_raw_formula_and_source_fields: true
+    },
+    supported_locales: [...AGENT_RESPONSE_LOCALES],
+    supported_response_depths: [...AGENT_RESPONSE_DEPTHS],
+    terminology_glossary: createFinancialTerminologyGlossary(),
+    terminology_policy: {
+      bilingual_terms_required: true,
+      same_glossary_for_all_locales: true,
+      unknown_terms_use_source_label: true
+    },
+    validation_rules: [
+      "require_locale_in_zh_hant_zh_hans_en",
+      "preserve_numeric_values_across_locale_switch",
+      "preserve_source_record_ids_across_locale_switch",
+      "preserve_methodology_versions_across_locale_switch",
+      "preserve_conclusion_and_evidence_across_response_depth",
+      "require_bilingual_financial_terms",
+      "require_methodology_note_for_financial_terms"
+    ],
+    version: AGENT_RESPONSE_PRESENTATION_VERSION
+  };
+}
+
+function normalizeAgentResponseLocale(value: string | undefined): AgentResponseLocale {
+  const normalized = value?.trim().toLowerCase().replace("_", "-");
+
+  if (
+    normalized === "zh-hans" ||
+    normalized === "zh-cn" ||
+    normalized === "zh-sg" ||
+    normalized === "simplified" ||
+    normalized === "sc" ||
+    normalized === "简中" ||
+    normalized === "简体" ||
+    normalized === "简体中文"
+  ) {
+    return "zh-Hans";
+  }
+
+  if (
+    normalized === "en" ||
+    normalized === "en-us" ||
+    normalized === "en-gb" ||
+    normalized === "english"
+  ) {
+    return "en";
+  }
+
+  return "zh-Hant";
+}
+
+function normalizeAgentResponseDepth(value: string | undefined): AgentResponseDepth {
+  const normalized = value?.trim().toLowerCase().replace("_", "-");
+
+  if (
+    normalized === "newbie" ||
+    normalized === "beginner" ||
+    normalized === "plain" ||
+    normalized === "simple" ||
+    normalized === "新手"
+  ) {
+    return "newbie";
+  }
+
+  return "professional";
+}
+
+function createFinancialTerminologyGlossary(): AgentFinancialTerminologyEntry[] {
+  return [
+    {
+      definition:
+        "Net cash generated after operating cash flow and capital expenditure, using the reported cash-flow statement methodology.",
+      en: "free cash flow",
+      methodology_note_required: true,
+      metric_id: "free_cash_flow",
+      source_record_required_when_numeric: true,
+      zh_hans: "自由现金流",
+      zh_hant: "自由現金流"
+    },
+    {
+      definition:
+        "Profit from core operations before financing and tax presentation differences, using the reported financial facts methodology.",
+      en: "operating profit",
+      methodology_note_required: true,
+      metric_id: "operating_profit",
+      source_record_required_when_numeric: true,
+      zh_hans: "经营利润",
+      zh_hant: "經營利潤"
+    },
+    {
+      definition:
+        "Return on equity calculated from attributable profit and equity under the selected financial facts methodology.",
+      en: "ROE",
+      methodology_note_required: true,
+      metric_id: "roe",
+      source_record_required_when_numeric: true,
+      zh_hans: "净资产收益率",
+      zh_hant: "股本回報率"
+    },
+    {
+      definition:
+        "Price-series return adjusted for dividends and corporate actions when the selected price-history methodology supports it.",
+      en: "total-return adjusted",
+      methodology_note_required: true,
+      metric_id: "total_return_adjusted",
+      source_record_required_when_numeric: true,
+      zh_hans: "总回报调整",
+      zh_hant: "總回報調整"
+    },
+    {
+      definition:
+        "Event-window security return minus benchmark return under the selected event-study methodology.",
+      en: "abnormal return",
+      methodology_note_required: true,
+      metric_id: "abnormal_return",
+      source_record_required_when_numeric: true,
+      zh_hans: "异常收益",
+      zh_hant: "異常收益"
+    }
+  ];
 }
 
 function createOrderedAnswerSections(): AgentAnswerEvidenceContract["answer_structure"]["ordered_sections"] {

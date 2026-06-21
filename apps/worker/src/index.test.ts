@@ -1456,6 +1456,22 @@ interface AgentRuntimeBody {
       required_dimensions: string[];
       status: string;
     };
+    response_presentation: {
+      actual_tool_execution: boolean;
+      data_contract_invariant: boolean;
+      default_locale: string;
+      default_response_depth: string;
+      frontend: boolean;
+      locale_switch_changes_data: boolean;
+      model_calls: boolean;
+      response_depth_changes_data: boolean;
+      route: string;
+      status: string;
+      supported_locales: string[];
+      supported_response_depths: string[];
+      terminology_glossary_ready: boolean;
+      version: string;
+    };
     tool_loop_agent: {
       actual_tool_execution: boolean;
       budget_stop_policy: {
@@ -3453,6 +3469,54 @@ interface AgentToolLoopPlanBody {
       frontend_rendering: boolean;
       model_calls: boolean;
       numeric_source_guard_version: string;
+      presentation: {
+        default_locale: string;
+        default_response_depth: string;
+        frontend_rendering: boolean;
+        locale: string;
+        locale_switch_invariant: {
+          currency: boolean;
+          data_values: boolean;
+          evidence_card_refs: boolean;
+          methodology_versions: boolean;
+          numeric_precision: boolean;
+          source_record_ids: boolean;
+          units: boolean;
+        };
+        model_calls: boolean;
+        response_depth: string;
+        response_depth_invariant: {
+          conclusion: boolean;
+          currency: boolean;
+          data_values: boolean;
+          evidence_card_refs: boolean;
+          methodology_versions: boolean;
+          source_record_ids: boolean;
+          units: boolean;
+        };
+        response_depth_policy: {
+          newbie_adds_examples: boolean;
+          newbie_requires_plain_language_definition: boolean;
+          professional_can_show_raw_formula_and_source_fields: boolean;
+        };
+        supported_locales: string[];
+        supported_response_depths: string[];
+        terminology_glossary: Array<{
+          en: string;
+          metric_id: string;
+          methodology_note_required: boolean;
+          source_record_required_when_numeric: boolean;
+          zh_hans: string;
+          zh_hant: string;
+        }>;
+        terminology_policy: {
+          bilingual_terms_required: boolean;
+          same_glossary_for_all_locales: boolean;
+          unknown_terms_use_source_label: boolean;
+        };
+        validation_rules: string[];
+        version: string;
+      };
       status: string;
       validation_rules: string[];
       version: string;
@@ -5755,6 +5819,22 @@ describe("worker runtime", () => {
       model_calls: false,
       required_dimensions: ["security", "time", "currency", "methodology"],
       status: "pre_tool_call_resolution_scaffold"
+    });
+    expect(body.data.response_presentation).toMatchObject({
+      actual_tool_execution: false,
+      data_contract_invariant: true,
+      default_locale: "zh-Hant",
+      default_response_depth: "professional",
+      frontend: false,
+      locale_switch_changes_data: false,
+      model_calls: false,
+      response_depth_changes_data: false,
+      route: "POST /agent/runs/plan",
+      status: "localized_response_contract_scaffold",
+      supported_locales: ["zh-Hant", "zh-Hans", "en"],
+      supported_response_depths: ["newbie", "professional"],
+      terminology_glossary_ready: true,
+      version: "2026-06-21.phase3.localized-response-contract.v0"
     });
     expect(body.data.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
@@ -9720,6 +9800,8 @@ describe("worker runtime", () => {
       body: JSON.stringify({
         max_steps: 6,
         prompt: "Explain 00700.HK revenue and price trend",
+        response_depth: "newbie",
+        response_locale: "en",
         tools: [
           "resolve_security",
           "get_entitlements",
@@ -9992,6 +10074,72 @@ describe("worker runtime", () => {
       status: "answer_evidence_contract_scaffold",
       version: "2026-06-21.phase1.answer-evidence-contract-scaffold.v0"
     });
+    expect(body.data.answer_evidence_contract.presentation).toMatchObject({
+      default_locale: "zh-Hant",
+      default_response_depth: "professional",
+      frontend_rendering: false,
+      locale: "en",
+      locale_switch_invariant: {
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        numeric_precision: true,
+        source_record_ids: true,
+        units: true
+      },
+      model_calls: false,
+      response_depth: "newbie",
+      response_depth_invariant: {
+        conclusion: true,
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        source_record_ids: true,
+        units: true
+      },
+      response_depth_policy: {
+        newbie_adds_examples: true,
+        newbie_requires_plain_language_definition: true,
+        professional_can_show_raw_formula_and_source_fields: true
+      },
+      supported_locales: ["zh-Hant", "zh-Hans", "en"],
+      supported_response_depths: ["newbie", "professional"],
+      terminology_policy: {
+        bilingual_terms_required: true,
+        same_glossary_for_all_locales: true,
+        unknown_terms_use_source_label: true
+      },
+      version: "2026-06-21.phase3.localized-response-contract.v0"
+    });
+    expect(body.data.answer_evidence_contract.presentation.terminology_glossary).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          en: "operating profit",
+          metric_id: "operating_profit",
+          methodology_note_required: true,
+          source_record_required_when_numeric: true,
+          zh_hans: "经营利润",
+          zh_hant: "經營利潤"
+        }),
+        expect.objectContaining({
+          en: "total-return adjusted",
+          metric_id: "total_return_adjusted",
+          zh_hans: "总回报调整",
+          zh_hant: "總回報調整"
+        })
+      ])
+    );
+    expect(body.data.answer_evidence_contract.presentation.validation_rules).toEqual([
+      "require_locale_in_zh_hant_zh_hans_en",
+      "preserve_numeric_values_across_locale_switch",
+      "preserve_source_record_ids_across_locale_switch",
+      "preserve_methodology_versions_across_locale_switch",
+      "preserve_conclusion_and_evidence_across_response_depth",
+      "require_bilingual_financial_terms",
+      "require_methodology_note_for_financial_terms"
+    ]);
     expect(body.data.answer_evidence_contract.answer_structure.ordered_sections).toEqual([
       expect.objectContaining({ order: 1, section_id: "direct_answer", source: "prd_8_3" }),
       expect.objectContaining({ order: 2, section_id: "data_status", source: "prd_8_3" }),

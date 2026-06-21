@@ -50,6 +50,22 @@ describe("agent runtime scaffold", () => {
       required_dimensions: ["security", "time", "currency", "methodology"],
       status: "pre_tool_call_resolution_scaffold"
     });
+    expect(capabilities.response_presentation).toMatchObject({
+      actual_tool_execution: false,
+      data_contract_invariant: true,
+      default_locale: "zh-Hant",
+      default_response_depth: "professional",
+      frontend: false,
+      locale_switch_changes_data: false,
+      model_calls: false,
+      response_depth_changes_data: false,
+      route: "POST /agent/runs/plan",
+      status: "localized_response_contract_scaffold",
+      supported_locales: ["zh-Hant", "zh-Hans", "en"],
+      supported_response_depths: ["newbie", "professional"],
+      terminology_glossary_ready: true,
+      version: "2026-06-21.phase3.localized-response-contract.v0"
+    });
     expect(capabilities.tool_loop_agent).toMatchObject({
       actual_tool_execution: false,
       budget_stop_policy: {
@@ -661,6 +677,72 @@ describe("agent runtime scaffold", () => {
       status: "answer_evidence_contract_scaffold",
       version: "2026-06-21.phase1.answer-evidence-contract-scaffold.v0"
     });
+    expect(plan.answer_evidence_contract.presentation).toMatchObject({
+      default_locale: "zh-Hant",
+      default_response_depth: "professional",
+      frontend_rendering: false,
+      locale: "zh-Hant",
+      locale_switch_invariant: {
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        numeric_precision: true,
+        source_record_ids: true,
+        units: true
+      },
+      model_calls: false,
+      response_depth: "professional",
+      response_depth_invariant: {
+        conclusion: true,
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        source_record_ids: true,
+        units: true
+      },
+      response_depth_policy: {
+        newbie_adds_examples: true,
+        newbie_requires_plain_language_definition: true,
+        professional_can_show_raw_formula_and_source_fields: true
+      },
+      supported_locales: ["zh-Hant", "zh-Hans", "en"],
+      supported_response_depths: ["newbie", "professional"],
+      terminology_policy: {
+        bilingual_terms_required: true,
+        same_glossary_for_all_locales: true,
+        unknown_terms_use_source_label: true
+      },
+      version: "2026-06-21.phase3.localized-response-contract.v0"
+    });
+    expect(plan.answer_evidence_contract.presentation.terminology_glossary).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          en: "free cash flow",
+          metric_id: "free_cash_flow",
+          methodology_note_required: true,
+          source_record_required_when_numeric: true,
+          zh_hans: "自由现金流",
+          zh_hant: "自由現金流"
+        }),
+        expect.objectContaining({
+          en: "abnormal return",
+          metric_id: "abnormal_return",
+          zh_hans: "异常收益",
+          zh_hant: "異常收益"
+        })
+      ])
+    );
+    expect(plan.answer_evidence_contract.presentation.validation_rules).toEqual([
+      "require_locale_in_zh_hant_zh_hans_en",
+      "preserve_numeric_values_across_locale_switch",
+      "preserve_source_record_ids_across_locale_switch",
+      "preserve_methodology_versions_across_locale_switch",
+      "preserve_conclusion_and_evidence_across_response_depth",
+      "require_bilingual_financial_terms",
+      "require_methodology_note_for_financial_terms"
+    ]);
     expect(plan.answer_evidence_contract.answer_structure.ordered_sections).toEqual([
       expect.objectContaining({ order: 1, section_id: "direct_answer", source: "prd_8_3" }),
       expect.objectContaining({ order: 2, section_id: "data_status", source: "prd_8_3" }),
@@ -1108,6 +1190,53 @@ describe("agent runtime scaffold", () => {
       blocked_tools: ["resolve_security", "get_financial_facts"],
       can_plan_tools: false
     });
+  });
+
+  it("keeps locale and response depth as presentation-only answer contract choices", () => {
+    const plan = createToolLoopAgentPlan({
+      locale: "zh-Hans",
+      maxSteps: 4,
+      prompt: "用新手模式解释 00700.HK ROE 和自由现金流",
+      requestId: "req-agent-localized-response",
+      requestedTools: ["resolve_security", "get_financial_facts", "get_data_lineage"],
+      responseDepth: "newbie"
+    });
+
+    expect(plan.answer_evidence_contract.presentation).toMatchObject({
+      locale: "zh-Hans",
+      response_depth: "newbie",
+      locale_switch_invariant: {
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        numeric_precision: true,
+        source_record_ids: true,
+        units: true
+      },
+      response_depth_invariant: {
+        conclusion: true,
+        currency: true,
+        data_values: true,
+        evidence_card_refs: true,
+        methodology_versions: true,
+        source_record_ids: true,
+        units: true
+      }
+    });
+    expect(plan.answer_evidence_contract.presentation.terminology_glossary).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          en: "ROE",
+          metric_id: "roe",
+          methodology_note_required: true,
+          zh_hans: "净资产收益率",
+          zh_hant: "股本回報率"
+        })
+      ])
+    );
+    expect(plan.actual_tool_execution).toBe(false);
+    expect(plan.model_calls).toBe(false);
   });
 
   it("creates an AI SDK stop condition function", () => {

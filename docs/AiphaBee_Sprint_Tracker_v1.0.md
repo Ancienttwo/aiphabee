@@ -66,7 +66,7 @@ owner: "Planner / PM"
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
-| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 3 / 9 | ☐ |
+| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 6 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
 | 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
 
@@ -355,14 +355,14 @@ owner: "Planner / PM"
 - [x] `get_event_timeline` tool scaffold：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入与 `npm run check:event-timeline`，支持 synthetic announcement / market_event / financial_disclosure / corporate_action timeline、sourceRecordId/relatedData source links、type subset、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误；live event feed/full 16-tool catalog/event study/frontend 未启用（§9.2）
 - [x] 完整 P0 工具目录收口与一致性回归：Shared Tool Registry / tool schema contract / MCP schema validation / versioning / pagination limits / usage envelope / Agent tool enforcement / Evidence-Lineage mapping / golden fixture manifest 全部覆盖 PRD §9.2 16 个 P0 工具，新增 `deploy/tools/p0-tool-catalog.contract.json` 与 `npm run check:p0-tool-catalog` 交叉验证 `p0_tool_count=16`、`schema_pairs=16`、`golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用（§9.2 全 16 工具）
 - [x] 事件研究：新增 `@aiphabee/analytics-tools` `runEventStudy()`、`POST /analytics/event-study`、`GET /analytics/runtime` event-study capability、`deploy/analytics/event-study.contract.json`、`npm run check:event-study`，覆盖 event_date / event_window / benchmark / abnormal_return_method / observations / `missing_observations` / summary / source_record_ids，并将 `run_event_study` 纳入 high-cost analytics 20–50 credits 独立池规划；live event-study rows / queue writes / usage debits / frontend 未启用（ANA-06、`run_event_study` §9.3）
-- [ ] 繁中/简中/英文关键路径，切换不改口径（AGT-11、§12.4）
-- [ ] 新手/专业模式仅改表达深度不改数据（AGT-12、US-W07）
-- [ ] 财务术语中英文与口径解释（§12.4）
+- [x] 繁中/简中/英文关键路径 backend contract：新增 `GET /agent/runtime` `response_presentation` capability、`POST /agent/runs/plan` `locale` / `response_locale` / `language` 解析、`answer_evidence_contract.presentation` supported locales `zh-Hant` / `zh-Hans` / `en`，并以 `deploy/agent/localized-response.contract.json` + `npm run check:localized-response` 锁定 numeric values / source_record_ids / evidence refs / methodology versions / currency / units / numeric precision 不随语言切换改变；frontend 切换控件/生成式翻译未启用（AGT-11、§12.4）
+- [x] 新手/专业模式 backend contract：`POST /agent/runs/plan` 支持 `response_depth` / `responseDepth`，normalized depths 为 `newbie` / `professional`，contract 锁定只改变表达深度、plain-language examples/formula/source-field 展示策略，不改变 data values / evidence refs / methodology versions / source_record_ids / currency / units / conclusion；frontend mode switch 未启用（AGT-12、US-W07）
+- [x] 财务术语中英文与口径解释 backend glossary：`answer_evidence_contract.presentation.terminology_glossary` 覆盖 ROE / free cash flow / operating profit / total-return adjusted / abnormal return 的繁中/简中/英文名称、methodology note requirement 与 numeric source-record requirement；live generated-answer terminology validation 未启用（§12.4）
 - [ ] 会话记忆仅存授权信息，可查看/编辑/删除（AGT-10）
 - [ ] 历史成分/历史行业/历史名称（SEC-05）
 - [ ] 导出（CSV/图片/PDF）受字段授权/行数/水印约束（ANA-08、`exports.read` 高风险单独授权）
 
-**退出门槛 DoD：** ☐ P0 工具全量一致　☐ 事件研究样本缺失不静默删除　☐ 三语关键路径口径一致
+**退出门槛 DoD：** ☑ P0 工具全量一致　☑ 事件研究样本缺失不静默删除　☑ 三语关键路径口径一致
 
 ### Sprint 3.2 — 文档·状态页·隐私·分享报告·套餐正式化　⬜
 **目标：** 公开运营面与 Pro/Developer 正式套餐。
@@ -503,8 +503,8 @@ owner: "Planner / PM"
 | AGT-08 失败恢复/局部重试 | P0 | 1.3 | ☐ |
 | AGT-09 长任务转 Workflow | P0 | 2.4 | ☐ |
 | AGT-10 授权记忆 | P1 | 3.1 | ☐ |
-| AGT-11 繁/简/英输出 | P1 | 3.1 | ☐ |
-| AGT-12 新手/专业模式 | P1 | 3.1 | ☐ |
+| AGT-11 繁/简/英输出 | P1 | 3.1 | ☑ |
+| AGT-12 新手/专业模式 | P1 | 3.1 | ☑ |
 | STK-01 公司/证券档案 | P0 | 1.2 / 1.4 | ☐ |
 | STK-02 价格/回报/回撤/基准 | P0 | 1.4 | ☐ |
 | STK-03 财务三表事实趋势 | P0 | 1.4 | ☐ |
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0cx | 完成 `localized-response-contract`：扩展 `@aiphabee/agent-runtime` `response_presentation` capability 与 `answer_evidence_contract.presentation`，`POST /agent/runs/plan` 支持 `locale` / `response_locale` / `language` 和 `response_depth` / `responseDepth`，新增 `deploy/agent/localized-response.contract.json`、`scripts/check-localized-response-contract.mjs` 与 `npm run check:localized-response`；锁定繁中/简中/英文与新手/专业模式只改变表达层，numeric values / source_record_ids / evidence refs / methodology versions / currency / units / conclusion 不变，并提供 ROE/free cash flow/operating profit/total-return adjusted/abnormal return 术语表；frontend 切换控件/生成式翻译/live model 未启用，Sprint 3.1 更新为 6/9 |
 | 2026-06-21 | 1.0cw | 完成 `event-study-scaffold`：新增 `@aiphabee/analytics-tools` `runEventStudy()`、`POST /analytics/event-study`、`GET /analytics/runtime` event-study capability、`deploy/analytics/event-study.contract.json`、`scripts/check-event-study-contract.mjs` 与 `npm run check:event-study`，覆盖 event_date / event_window / benchmark / abnormal_return_method / explicit `missing_observations` / summary / source_record_ids；`run_event_study` 已纳入 high-cost analytics 20–50 credits 独立池规划；live event-study rows / queue writes / usage debits / frontend 未启用，Sprint 3.1 更新为 3/9 |
 | 2026-06-21 | 1.0cv | 完成 `p0-tool-catalog-consistency`：PRD §9.2 16 个 P0 工具已在 Shared Tool Registry、`deploy/tools/tool-schemas.contract.json`、MCP schema validation/versioning/pagination/usage contracts、Agent tool enforcement、Evidence/Lineage dataset mapping 与 golden tool fixtures 中一致收口；新增 `deploy/tools/p0-tool-catalog.contract.json`、`scripts/check-p0-tool-catalog-contract.mjs`、`npm run check:p0-tool-catalog` 与治理记录，验证 `p0_tool_count=16` / `schema_pairs=16` / `golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用，Sprint 3.1 更新为 2/9 |
 | 2026-06-21 | 1.0cu | 完成 `get-event-timeline-tool-scaffold`：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、`npm run check:event-timeline`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入，并将 shared Tool Registry/Agent/MCP registered tool count 更新为 10；支持 synthetic company+market event timeline、sourceRecordId/relatedData links、type subset、cursor pagination 与标准错误；live partner event rows/full 16-tool P0 catalog/`run_event_study`/frontend 未启用，Sprint 3.1 更新为 1/9 |

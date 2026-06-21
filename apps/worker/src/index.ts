@@ -235,14 +235,20 @@ interface AgentRunRequestBody {
   max_tokens?: unknown;
   max_wall_clock_ms?: unknown;
   methodology?: unknown;
+  locale?: unknown;
   kill_switch_reason?: unknown;
   killSwitchReason?: unknown;
+  language?: unknown;
   model_kill_switch?: unknown;
   modelKillSwitch?: unknown;
   model_tier?: unknown;
   modelTier?: unknown;
   plan?: unknown;
   prompt?: unknown;
+  response_depth?: unknown;
+  responseDepth?: unknown;
+  response_locale?: unknown;
+  responseLocale?: unknown;
   securities?: unknown;
   security_query?: unknown;
   securityQuery?: unknown;
@@ -5122,6 +5128,9 @@ function createAgentRunInput(
     maxWallClockMs:
       typeof body.max_wall_clock_ms === "number" ? body.max_wall_clock_ms : undefined,
     killSwitchReason: normalizeString(body.kill_switch_reason ?? body.killSwitchReason),
+    locale: normalizeString(
+      body.locale ?? body.response_locale ?? body.responseLocale ?? body.language
+    ),
     methodology: typeof body.methodology === "string" ? body.methodology : undefined,
     modelKillSwitch: normalizeOptionalBoolean(body.model_kill_switch ?? body.modelKillSwitch),
     modelTier:
@@ -5136,6 +5145,7 @@ function createAgentRunInput(
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined,
     requestId,
+    responseDepth: normalizeString(body.response_depth ?? body.responseDepth),
     securities: Array.isArray(body.securities)
       ? body.securities.filter((security): security is string => typeof security === "string")
       : undefined,
