@@ -6,6 +6,8 @@ const contractPath = "deploy/model-providers/live-smoke-readiness.contract.json"
 const providerContractPath = "deploy/model-providers/providers.contract.json";
 const envSchemaPath = "deploy/env/env.schema.json";
 const packageJsonPath = "package.json";
+const agentRuntimePath = "packages/agent-runtime/src/index.ts";
+const workerPath = "apps/worker/src/index.ts";
 const smokeScriptPath = "scripts/smoke-ai-gateway-live.mjs";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 
@@ -18,13 +20,15 @@ const requiredEnv = [
 const requiredOutputFields = [
   "status",
   "http_status",
-  "gateway_id",
-  "model",
-  "latency_ms",
-  "input_tokens",
-  "output_tokens",
-  "total_tokens",
-  "output_hash",
+  "http_statuses",
+  "provider",
+  "method",
+  "gateway_id_hash",
+  "model_hash",
+  "prompt_hash",
+  "operation_count",
+  "generate_text",
+  "stream_text",
   "response_hash"
 ];
 const forbiddenOutputFields = [
@@ -33,7 +37,9 @@ const forbiddenOutputFields = [
   "token",
   "secret",
   "raw_prompt",
-  "raw_model_output"
+  "raw_model_output",
+  "gateway_id",
+  "model"
 ];
 const requiredScriptTokens = [
   "/ai/v1/chat/completions",
@@ -41,6 +47,9 @@ const requiredScriptTokens = [
   "missing_env",
   "response_hash",
   "output_hash",
+  "generateText",
+  "streamText",
+  "createOpenAICompatible",
   "raw_model_output"
 ];
 const forbiddenTextPatterns = [
@@ -55,6 +64,8 @@ const contract = readJson(contractPath);
 const providerContract = readJson(providerContractPath);
 const envSchema = readJson(envSchemaPath);
 const packageJson = readJson(packageJsonPath);
+const agentRuntime = readText(agentRuntimePath);
+const worker = readText(workerPath);
 const smokeScript = readText(smokeScriptPath);
 const tracker = readText(trackerPath);
 const errors = validateContract(
@@ -62,6 +73,8 @@ const errors = validateContract(
   providerContract,
   envSchema,
   packageJson,
+  agentRuntime,
+  worker,
   smokeScript,
   tracker
 );
@@ -91,6 +104,8 @@ function validateContract(
   providerValue,
   envValue,
   packageValue,
+  agentRuntimeValue,
+  workerValue,
   smokeScriptValue,
   trackerValue
 ) {
@@ -158,9 +173,17 @@ function validateContract(
   errors.push(...validateProviderContract(providerValue));
   errors.push(...validateEnvSchema(envValue));
   errors.push(...validatePackageScripts(packageValue));
+  errors.push(...validateRuntimeIntegration(agentRuntimeValue, workerValue));
   errors.push(...validateSmokeScript(smokeScriptValue));
   errors.push(...validateTrackerSync(trackerValue));
-  errors.push(...validateLinkedFiles([value.provider_contract, value.live_smoke_script]));
+  errors.push(
+    ...validateLinkedFiles([
+      value.provider_contract,
+      value.live_smoke_script,
+      agentRuntimePath,
+      workerPath
+    ])
+  );
   errors.push(...validateNoSecrets(value));
 
   return errors;
@@ -211,13 +234,15 @@ function validateProviderContract(value) {
       value.live_smoke.proof_fields,
       [
         "http_status",
-        "gateway_id",
-        "model",
-        "latency_ms",
-        "input_tokens",
-        "output_tokens",
-        "total_tokens",
-        "output_hash",
+        "http_statuses",
+        "provider",
+        "method",
+        "gateway_id_hash",
+        "model_hash",
+        "prompt_hash",
+        "operation_count",
+        "generate_text",
+        "stream_text",
         "response_hash"
       ],
       "provider live_smoke.proof_fields"
@@ -283,6 +308,40 @@ function validatePackageScripts(value) {
 
   if (typeof check !== "string" || !check.includes("check:model-provider-live-readiness")) {
     errors.push("root check must include check:model-provider-live-readiness");
+  }
+
+  return errors;
+}
+
+function validateRuntimeIntegration(agentRuntimeValue, workerValue) {
+  const errors = [];
+
+  for (const token of [
+    "runAiGatewayLiveSmoke",
+    "createOpenAICompatible",
+    "generateText",
+    "streamText",
+    "cf-aig-gateway-id",
+    "AI_GATEWAY_LIVE_SMOKE_PROMPT"
+  ]) {
+    if (!agentRuntimeValue.includes(token)) {
+      errors.push(`agent runtime must include ${token}`);
+    }
+  }
+
+  for (const token of [
+    "AI_GATEWAY_LIVE_SMOKE_VERSION",
+    "runAiGatewayLiveSmoke",
+    "/agent/model-provider/live-smoke",
+    "model-provider-live-v1",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "AI_GATEWAY_NAME",
+    "AI_GATEWAY_SMOKE_MODEL"
+  ]) {
+    if (!workerValue.includes(token)) {
+      errors.push(`worker runtime must include ${token}`);
+    }
   }
 
   return errors;

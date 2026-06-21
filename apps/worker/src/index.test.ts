@@ -3,6 +3,7 @@ import app, { AiphaBeeResearchWorkflow, AiphaBeeRunCoordinator } from "./index";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 interface RootRouteBody {
@@ -5399,6 +5400,43 @@ interface ModelProviderBody {
   ok: true;
 }
 
+interface ModelProviderLiveSmokeBody {
+  error_code?: string;
+  missing_env?: string[];
+  model_provider_result?: {
+    gateway_id_hash: string;
+    generate_text: {
+      api: string;
+      exact_output_match: boolean;
+      input_tokens: number;
+      output_tokens: number;
+      status: string;
+      total_tokens: number;
+    };
+    http_status: number;
+    http_statuses: number[];
+    method: string;
+    model_hash: string;
+    operation_count: number;
+    provider: string;
+    response_hash: string;
+    status: string;
+    stream_text: {
+      api: string;
+      chunk_count: number;
+      exact_output_match: boolean;
+      input_tokens: number;
+      output_tokens: number;
+      status: string;
+      total_tokens: number;
+    };
+  };
+  request_id: string;
+  response_hash?: string;
+  route: string;
+  status: string;
+}
+
 interface ObservabilityRuntimeBody {
   data: {
     eval_store: {
@@ -6145,6 +6183,119 @@ interface ErrorBody {
     };
   };
   ok: false;
+}
+
+interface OpenAiCompatibleMockCall {
+  body: Record<string, unknown>;
+  headers: Record<string, string>;
+  url: string;
+}
+
+function createOpenAiCompatibleMockFetch(): {
+  calls: OpenAiCompatibleMockCall[];
+  fetch: typeof fetch;
+} {
+  const calls: OpenAiCompatibleMockCall[] = [];
+  const fetchMock = (async (resource: Parameters<typeof fetch>[0], options?: RequestInit) => {
+    const body = parseMockRequestBody(options?.body);
+    const headers = Object.fromEntries(new Headers(options?.headers).entries());
+    calls.push({
+      body,
+      headers,
+      url: String(resource)
+    });
+
+    if (body.stream === true) {
+      return new Response(
+        [
+          `data: ${JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  content: "AIPHABEE_AI_GATEWAY_SMOKE_OK",
+                  role: "assistant"
+                },
+                finish_reason: null,
+                index: 0
+              }
+            ],
+            created: 0,
+            id: "chatcmpl-synthetic-stream",
+            model: "synthetic-model",
+            object: "chat.completion.chunk"
+          })}`,
+          "",
+          `data: ${JSON.stringify({
+            choices: [
+              {
+                delta: {},
+                finish_reason: "stop",
+                index: 0
+              }
+            ],
+            created: 0,
+            id: "chatcmpl-synthetic-stream",
+            model: "synthetic-model",
+            object: "chat.completion.chunk",
+            usage: {
+              completion_tokens: 3,
+              prompt_tokens: 2,
+              total_tokens: 5
+            }
+          })}`,
+          "",
+          "data: [DONE]",
+          ""
+        ].join("\n"),
+        {
+          headers: {
+            "content-type": "text/event-stream"
+          },
+          status: 200
+        }
+      );
+    }
+
+    return Response.json(
+      {
+        choices: [
+          {
+            finish_reason: "stop",
+            index: 0,
+            message: {
+              content: "AIPHABEE_AI_GATEWAY_SMOKE_OK",
+              role: "assistant"
+            }
+          }
+        ],
+        created: 0,
+        id: "chatcmpl-synthetic",
+        model: "synthetic-model",
+        object: "chat.completion",
+        usage: {
+          completion_tokens: 3,
+          prompt_tokens: 2,
+          total_tokens: 5
+        }
+      },
+      {
+        status: 200
+      }
+    );
+  }) as typeof fetch;
+
+  return {
+    calls,
+    fetch: fetchMock
+  };
+}
+
+function parseMockRequestBody(value: BodyInit | null | undefined): Record<string, unknown> {
+  if (typeof value !== "string") {
+    return {};
+  }
+
+  return JSON.parse(value) as Record<string, unknown>;
 }
 
 interface FakeD1Statement {
@@ -15855,6 +16006,117 @@ describe("worker runtime", () => {
         status: "guarded"
       }
     );
+  });
+
+  it("rejects the AI Gateway live smoke route without the smoke header", async () => {
+    const response = await app.request("/agent/model-provider/live-smoke", {
+      headers: {
+        "x-request-id": "req-model-provider-live-denied"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ModelProviderLiveSmokeBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-model-provider-live-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /agent/model-provider/live-smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing env for the AI Gateway live smoke route without secrets", async () => {
+    const response = await app.request("/agent/model-provider/live-smoke", {
+      headers: {
+        "x-aiphabee-smoke": "model-provider-live-v1",
+        "x-request-id": "req-model-provider-live-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ModelProviderLiveSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_env: [
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "AI_GATEWAY_NAME",
+        "AI_GATEWAY_SMOKE_MODEL"
+      ],
+      request_id: "req-model-provider-live-missing",
+      route: "POST /agent/model-provider/live-smoke",
+      status: "missing_env"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
+  it("runs the AI Gateway live smoke route through generateText and streamText", async () => {
+    const { calls, fetch } = createOpenAiCompatibleMockFetch();
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/model-provider/live-smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "model-provider-live-v1",
+          "x-request-id": "req-model-provider-live-ok"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AI_GATEWAY_SMOKE_MODEL: "@cf/aiphabee/synthetic-model",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ModelProviderLiveSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-model-provider-live-ok",
+      route: "POST /agent/model-provider/live-smoke",
+      status: "ok"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.model_provider_result).toMatchObject({
+      http_status: 200,
+      http_statuses: [200, 200],
+      method: "ai_sdk_openai_compatible",
+      operation_count: 2,
+      provider: "cloudflare_ai_gateway",
+      status: "ok"
+    });
+    expect(body.model_provider_result?.generate_text).toMatchObject({
+      api: "generateText",
+      exact_output_match: true,
+      input_tokens: 2,
+      output_tokens: 3,
+      status: "passed",
+      total_tokens: 5
+    });
+    expect(body.model_provider_result?.stream_text).toMatchObject({
+      api: "streamText",
+      chunk_count: 1,
+      exact_output_match: true,
+      input_tokens: 2,
+      output_tokens: 3,
+      status: "passed",
+      total_tokens: 5
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls.every((call) => call.url.endsWith("/ai/v1/chat/completions"))).toBe(true);
+    expect(calls.every((call) => call.headers["cf-aig-gateway-id"] === "default")).toBe(true);
+    expect(calls.map((call) => call.body.stream)).toEqual([undefined, true]);
+    expect(serialized).not.toContain("synthetic-token");
+    expect(serialized).not.toContain("synthetic-account-id");
+    expect(serialized).not.toContain("@cf/aiphabee/synthetic-model");
+    expect(serialized).not.toContain("AIPHABEE_AI_GATEWAY_SMOKE_OK");
   });
 
   it("serves observability runtime capabilities without live export", async () => {

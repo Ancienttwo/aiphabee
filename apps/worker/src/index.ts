@@ -24,6 +24,7 @@ import {
   type SubscriptionLifecycleAction
 } from "@aiphabee/account-runtime";
 import {
+  AI_GATEWAY_LIVE_SMOKE_VERSION,
   AgentRuntimeInputError,
   AGENT_RUNTIME_LIMITS,
   AGENT_WORKFLOW_NOTIFICATION_CHANNELS,
@@ -40,6 +41,7 @@ import {
   getAgentRuntimeCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
+  runAiGatewayLiveSmoke,
   validatePostGenerationEvidenceBinding,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
@@ -300,6 +302,10 @@ interface WorkerBindings {
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
   APP_ENV?: string;
   APP_VERSION?: string;
+  AI_GATEWAY_NAME?: string;
+  AI_GATEWAY_SMOKE_MODEL?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
   OTLP_EXPORTER_OTLP_HEADERS?: string;
 }
@@ -675,6 +681,8 @@ const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_QUEUE_SMOKE_POLL_MS = 500;
 const CLOUDFLARE_WORKFLOW_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_WORKFLOW_SMOKE_POLL_MS = 500;
+const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
+const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -914,6 +922,91 @@ app.post(CLOUDFLARE_CRON_SMOKE_ROUTE, async (c) => {
     },
     cronResult.status === "passed" ? 200 : 424
   );
+});
+
+app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAiGatewayLiveSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  try {
+    const modelProviderResult = await runAiGatewayLiveSmoke({
+      accountId: c.env.CLOUDFLARE_ACCOUNT_ID ?? "",
+      apiToken: c.env.CLOUDFLARE_API_TOKEN ?? "",
+      gatewayId: c.env.AI_GATEWAY_NAME ?? "",
+      model: c.env.AI_GATEWAY_SMOKE_MODEL ?? ""
+    });
+    const bodyWithoutHash = {
+      model_provider_result: modelProviderResult,
+      request_id: requestId,
+      route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
+      status: "ok",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      200
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code:
+        error instanceof AgentRuntimeInputError ? error.code : "AI_GATEWAY_REQUEST_FAILED",
+      request_id: requestId,
+      route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
+      status: "failed",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
 });
 
 app.get("/public/runtime", (c) => {
@@ -8578,6 +8671,19 @@ function missingCloudflareCronResult(failureCode: string): CloudflareCronSmokeRe
     status: "missing_binding",
     surface: "cron_handler_smoke"
   };
+}
+
+function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
+  const requiredEnv: Array<readonly [string, string | undefined]> = [
+    ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
+    ["CLOUDFLARE_API_TOKEN", env.CLOUDFLARE_API_TOKEN],
+    ["AI_GATEWAY_NAME", env.AI_GATEWAY_NAME],
+    ["AI_GATEWAY_SMOKE_MODEL", env.AI_GATEWAY_SMOKE_MODEL]
+  ];
+
+  return requiredEnv
+    .filter(([, value]) => typeof value !== "string" || value.trim().length === 0)
+    .map(([name]) => name);
 }
 
 async function failedCloudflareQueueResult({

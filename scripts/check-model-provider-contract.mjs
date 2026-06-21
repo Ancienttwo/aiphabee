@@ -16,13 +16,15 @@ const requiredEnv = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWA
 const requiredLiveSmokeEnv = [...requiredEnv, "AI_GATEWAY_SMOKE_MODEL"];
 const requiredLiveSmokeProofFields = [
   "http_status",
-  "gateway_id",
-  "model",
-  "latency_ms",
-  "input_tokens",
-  "output_tokens",
-  "total_tokens",
-  "output_hash",
+  "http_statuses",
+  "provider",
+  "method",
+  "gateway_id_hash",
+  "model_hash",
+  "prompt_hash",
+  "operation_count",
+  "generate_text",
+  "stream_text",
   "response_hash"
 ];
 const forbiddenKeys = ["api_key", "password", "secret", "token", "value"];
@@ -226,7 +228,16 @@ function validateLiveSmoke(value, schema) {
   errors.push(
     ...validateStringArray(
       value.forbidden_output_fields,
-      ["authorization", "api_key", "token", "secret", "raw_prompt", "raw_model_output"],
+      [
+        "authorization",
+        "api_key",
+        "token",
+        "secret",
+        "raw_prompt",
+        "raw_model_output",
+        "gateway_id",
+        "model"
+      ],
       "live_smoke.forbidden_output_fields"
     )
   );

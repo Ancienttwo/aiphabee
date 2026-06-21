@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText, streamText } from "ai";
 
 const requiredEnv = [
   "CLOUDFLARE_ACCOUNT_ID",
@@ -13,9 +15,12 @@ const forbiddenOutputFields = [
   "token",
   "secret",
   "raw_prompt",
-  "raw_model_output"
+  "raw_model_output",
+  "gateway_id",
+  "model"
 ];
 const endpointPath = "/ai/v1/chat/completions";
+const providerBasePath = "/ai/v1";
 const fixedPrompt = "Return exactly: AIPHABEE_AI_GATEWAY_SMOKE_OK";
 const dryRun = process.argv.includes("--dry-run");
 
@@ -25,7 +30,7 @@ if (dryRun) {
       endpoint: `https://api.cloudflare.com/client/v4/accounts/{account_id}${endpointPath}`,
       forbidden_output_fields: forbiddenOutputFields,
       gateway_header: "cf-aig-gateway-id",
-      method: "POST",
+      method: "ai_sdk_openai_compatible",
       required_env: requiredEnv,
       status: "ready_no_network"
     },
@@ -50,102 +55,132 @@ const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
 const apiToken = process.env.CLOUDFLARE_API_TOKEN.trim();
 const gatewayId = process.env.AI_GATEWAY_NAME.trim();
 const model = process.env.AI_GATEWAY_SMOKE_MODEL.trim();
-const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
-  accountId
-)}${endpointPath}`;
-const startedAt = Date.now();
+const httpStatuses = [];
+const instrumentedFetch = async (resource, options) => {
+  const response = await fetch(resource, options);
+  httpStatuses.push(response.status);
+
+  return response;
+};
 
 try {
-  const response = await fetch(url, {
-    body: JSON.stringify({
-      max_tokens: 32,
-      messages: [
-        {
-          content: fixedPrompt,
-          role: "user"
-        }
-      ],
-      model,
-      temperature: 0
-    }),
+  const provider = createOpenAICompatible({
+    apiKey: apiToken,
+    baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
+      accountId
+    )}${providerBasePath}`,
+    fetch: instrumentedFetch,
     headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "cf-aig-gateway-id": gatewayId,
-      "Content-Type": "application/json"
+      "cf-aig-gateway-id": gatewayId
     },
-    method: "POST"
+    includeUsage: true,
+    name: "cloudflare-ai-gateway"
   });
-  const latencyMs = Date.now() - startedAt;
-  const responseText = await response.text();
-  const parsed = parseJson(responseText);
+  const chatModel = provider.chatModel(model);
 
-  if (!response.ok) {
-    emit(
-      {
-        error: sanitizeCloudflareError(parsed, responseText),
-        gateway_id: gatewayId,
-        http_status: response.status,
-        latency_ms: latencyMs,
-        model,
-        status: "failed"
-      },
-      1
-    );
+  const generateStartedAt = Date.now();
+  const generateResult = await generateText({
+    maxOutputTokens: 32,
+    model: chatModel,
+    prompt: fixedPrompt,
+    temperature: 0
+  });
+  const generateOperation = createOperationProof({
+    api: "generateText",
+    finishReason: generateResult.finishReason,
+    latencyMs: Date.now() - generateStartedAt,
+    text: generateResult.text,
+    usage: generateResult.usage
+  });
+
+  const streamStartedAt = Date.now();
+  const streamResult = streamText({
+    maxOutputTokens: 32,
+    model: chatModel,
+    prompt: fixedPrompt,
+    temperature: 0
+  });
+  const streamChunks = [];
+
+  for await (const chunk of streamResult.textStream) {
+    streamChunks.push(chunk);
   }
 
-  const outputText = extractOutputText(parsed);
-  const usage = extractUsage(parsed);
+  const streamTextValue = streamChunks.join("");
+  const streamOperation = createOperationProof({
+    api: "streamText",
+    chunkCount: streamChunks.length,
+    finishReason: await streamResult.finishReason,
+    latencyMs: Date.now() - streamStartedAt,
+    text: streamTextValue,
+    usage: await streamResult.usage
+  });
+  const responseWithoutHash = {
+    endpoint: endpointPath,
+    gateway_header: "cf-aig-gateway-id",
+    gateway_id_hash: hashString(gatewayId),
+    generate_text: generateOperation,
+    http_status: httpStatuses.every((status) => status === 200) ? 200 : httpStatuses[0] ?? 0,
+    http_statuses: httpStatuses,
+    method: "ai_sdk_openai_compatible",
+    model_hash: hashString(model),
+    operation_count: 2,
+    prompt_hash: hashString(fixedPrompt),
+    provider: "cloudflare_ai_gateway",
+    status: "ok",
+    stream_text: streamOperation
+  };
 
   emit(
     {
-      gateway_id: gatewayId,
-      http_status: response.status,
-      input_tokens: usage.input_tokens,
-      latency_ms: latencyMs,
-      model,
-      output_hash: hashString(outputText),
-      output_tokens: usage.output_tokens,
-      response_hash: hashString(responseText),
-      status: "ok",
-      total_tokens: usage.total_tokens
+      ...responseWithoutHash,
+      response_hash: hashString(JSON.stringify(responseWithoutHash))
     },
     0
   );
 } catch (error) {
   emit(
     {
-      error: error instanceof Error ? error.message : String(error),
-      gateway_id: gatewayId,
-      model,
+      error: {
+        message_hash: hashString(
+          sanitizeText(error instanceof Error ? error.message : String(error)).slice(0, 500)
+        ),
+        name: error instanceof Error ? error.name : "unknown"
+      },
+      gateway_id_hash: hashString(gatewayId),
+      model_hash: hashString(model),
       status: "request_error"
     },
     1
   );
 }
 
-function extractOutputText(value) {
-  if (!isRecord(value)) {
-    return "";
+function createOperationProof({ api, chunkCount, finishReason, latencyMs, text, usage }) {
+  const normalizedUsage = extractUsage(usage);
+  const operation = {
+    api,
+    char_count: text.length,
+    exact_output_match: text.trim() === "AIPHABEE_AI_GATEWAY_SMOKE_OK",
+    finish_reason: String(finishReason ?? "unknown"),
+    input_tokens: normalizedUsage.input_tokens,
+    latency_ms: Math.max(0, Math.trunc(latencyMs)),
+    output_hash: hashString(text),
+    output_tokens: normalizedUsage.output_tokens,
+    status: "passed",
+    total_tokens: normalizedUsage.total_tokens
+  };
+
+  if (typeof chunkCount === "number") {
+    operation.chunk_count = Math.max(0, Math.trunc(chunkCount));
   }
 
-  const firstChoice = Array.isArray(value.choices) ? value.choices[0] : undefined;
-
-  if (isRecord(firstChoice) && isRecord(firstChoice.message)) {
-    return typeof firstChoice.message.content === "string" ? firstChoice.message.content : "";
-  }
-
-  if (typeof value.output_text === "string") {
-    return value.output_text;
-  }
-
-  return "";
+  return operation;
 }
 
 function extractUsage(value) {
-  const usage = isRecord(value) && isRecord(value.usage) ? value.usage : {};
-  const inputTokens = normalizeTokenCount(usage.prompt_tokens ?? usage.input_tokens) ?? 0;
-  const outputTokens = normalizeTokenCount(usage.completion_tokens ?? usage.output_tokens) ?? 0;
-  const totalTokens = normalizeTokenCount(usage.total_tokens) ?? inputTokens + outputTokens;
+  const inputTokens = normalizeTokenCount(value?.inputTokens) ?? 0;
+  const outputTokens = normalizeTokenCount(value?.outputTokens) ?? 0;
+  const totalTokens = normalizeTokenCount(value?.totalTokens) ?? inputTokens + outputTokens;
 
   return {
     input_tokens: inputTokens,
@@ -158,48 +193,16 @@ function normalizeTokenCount(value) {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : undefined;
 }
 
-function sanitizeCloudflareError(parsed, fallbackText) {
-  if (isRecord(parsed)) {
-    const errors = Array.isArray(parsed.errors)
-      ? parsed.errors
-          .filter(isRecord)
-          .map((error) => ({
-            code: typeof error.code === "number" ? error.code : undefined,
-            message: sanitizeText(
-              typeof error.message === "string" ? error.message : "cloudflare_error"
-            )
-          }))
-      : [];
-
-    return {
-      errors,
-      success: parsed.success === true
-    };
-  }
-
-  return {
-    errors: [
-      {
-        message: sanitizeText(fallbackText).slice(0, 200)
-      }
-    ],
-    success: false
-  };
-}
-
 function sanitizeText(value) {
   return value
     .replace(/Bearer\s+[A-Za-z0-9._-]+/gu, "Bearer [REDACTED]")
     .replace(/sk-[A-Za-z0-9_-]+/gu, "sk-[REDACTED]")
-    .replace(/gh[pousr]_[A-Za-z0-9_]+/gu, "gh[REDACTED]");
-}
-
-function parseJson(value) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return undefined;
-  }
+    .replace(/gh[pousr]_[A-Za-z0-9_]+/gu, "gh[REDACTED]")
+    .replace(/\b[a-f0-9]{32}\b/giu, "[REDACTED_ID]")
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu,
+      "[REDACTED_UUID]"
+    );
 }
 
 function hashString(value) {
@@ -208,10 +211,6 @@ function hashString(value) {
 
 function hasValue(value) {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function emit(payload, exitCode) {

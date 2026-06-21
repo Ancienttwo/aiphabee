@@ -16,7 +16,9 @@ import {
   getAgentRuntimeCapabilities,
   getPromptInjectionToolDenialReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
-  getTaskReplayModeReleaseGateCapabilities
+  getTaskReplayModeReleaseGateCapabilities,
+  runAiGatewayLiveSmoke,
+  type AiGatewayLiveSmokeFetch
 } from "./index";
 
 describe("agent runtime scaffold", () => {
@@ -258,6 +260,59 @@ describe("agent runtime scaffold", () => {
         standardResponseEnvelope: true
       }
     });
+  });
+
+  it("runs AI Gateway live smoke through generateText and streamText with sanitized proof", async () => {
+    const { calls, fetch } = createOpenAiCompatibleMockFetch();
+    const result = await runAiGatewayLiveSmoke({
+      accountId: "synthetic-account-id",
+      apiToken: "synthetic-token",
+      fetch,
+      gatewayId: "default",
+      model: "@cf/aiphabee/synthetic-model",
+      now: createMonotonicNow()
+    });
+    const serialized = JSON.stringify(result);
+
+    expect(result).toMatchObject({
+      endpoint: "/ai/v1/chat/completions",
+      gateway_header: "cf-aig-gateway-id",
+      http_status: 200,
+      http_statuses: [200, 200],
+      method: "ai_sdk_openai_compatible",
+      operation_count: 2,
+      provider: "cloudflare_ai_gateway",
+      status: "ok"
+    });
+    expect(result.generate_text).toMatchObject({
+      api: "generateText",
+      exact_output_match: true,
+      input_tokens: 2,
+      output_tokens: 3,
+      status: "passed",
+      total_tokens: 5
+    });
+    expect(result.stream_text).toMatchObject({
+      api: "streamText",
+      chunk_count: 1,
+      exact_output_match: true,
+      input_tokens: 2,
+      output_tokens: 3,
+      status: "passed",
+      total_tokens: 5
+    });
+    expect(result.gateway_id_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(result.model_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(result.prompt_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(result.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(calls).toHaveLength(2);
+    expect(calls.every((call) => call.url.endsWith("/ai/v1/chat/completions"))).toBe(true);
+    expect(calls.every((call) => call.headers["cf-aig-gateway-id"] === "default")).toBe(true);
+    expect(calls.map((call) => call.body.stream)).toEqual([undefined, true]);
+    expect(serialized).not.toContain("synthetic-token");
+    expect(serialized).not.toContain("synthetic-account-id");
+    expect(serialized).not.toContain("@cf/aiphabee/synthetic-model");
+    expect(serialized).not.toContain("AIPHABEE_AI_GATEWAY_SMOKE_OK");
   });
 
   it("exposes Agent label and high-cost budget release gate capability", () => {
@@ -1786,3 +1841,148 @@ describe("agent runtime scaffold", () => {
     expect(typeof createAiSdkStopCondition(3)).toBe("function");
   });
 });
+
+interface OpenAiCompatibleMockCall {
+  body: Record<string, unknown>;
+  headers: Record<string, string>;
+  url: string;
+}
+
+function createOpenAiCompatibleMockFetch(): {
+  calls: OpenAiCompatibleMockCall[];
+  fetch: AiGatewayLiveSmokeFetch;
+} {
+  const calls: OpenAiCompatibleMockCall[] = [];
+  const fetch = (async (...args: Parameters<AiGatewayLiveSmokeFetch>) => {
+    const [resource, options] = args;
+    const body = parseMockRequestBody((options as { body?: unknown } | undefined)?.body);
+    const headers = normalizeMockHeaders((options as { headers?: unknown } | undefined)?.headers);
+    calls.push({
+      body,
+      headers,
+      url: String(resource)
+    });
+
+    if (body.stream === true) {
+      return createMockResponse(
+        [
+          `data: ${JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  content: "AIPHABEE_AI_GATEWAY_SMOKE_OK",
+                  role: "assistant"
+                },
+                finish_reason: null,
+                index: 0
+              }
+            ],
+            created: 0,
+            id: "chatcmpl-synthetic-stream",
+            model: "synthetic-model",
+            object: "chat.completion.chunk"
+          })}`,
+          "",
+          `data: ${JSON.stringify({
+            choices: [
+              {
+                delta: {},
+                finish_reason: "stop",
+                index: 0
+              }
+            ],
+            created: 0,
+            id: "chatcmpl-synthetic-stream",
+            model: "synthetic-model",
+            object: "chat.completion.chunk",
+            usage: {
+              completion_tokens: 3,
+              prompt_tokens: 2,
+              total_tokens: 5
+            }
+          })}`,
+          "",
+          "data: [DONE]",
+          ""
+        ].join("\n"),
+        {
+          "content-type": "text/event-stream"
+        }
+      );
+    }
+
+    return createMockResponse(
+      JSON.stringify({
+        choices: [
+          {
+            finish_reason: "stop",
+            index: 0,
+            message: {
+              content: "AIPHABEE_AI_GATEWAY_SMOKE_OK",
+              role: "assistant"
+            }
+          }
+        ],
+        created: 0,
+        id: "chatcmpl-synthetic",
+        model: "synthetic-model",
+        object: "chat.completion",
+        usage: {
+          completion_tokens: 3,
+          prompt_tokens: 2,
+          total_tokens: 5
+        }
+      }),
+      {
+        "content-type": "application/json"
+      }
+    );
+  }) as AiGatewayLiveSmokeFetch;
+
+  return {
+    calls,
+    fetch
+  };
+}
+
+function createMonotonicNow(): () => number {
+  let current = 1000;
+
+  return () => {
+    current += 10;
+
+    return current;
+  };
+}
+
+function parseMockRequestBody(value: unknown): Record<string, unknown> {
+  if (typeof value !== "string") {
+    return {};
+  }
+
+  return JSON.parse(value) as Record<string, unknown>;
+}
+
+function normalizeMockHeaders(value: unknown): Record<string, string> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, headerValue]) => [key.toLowerCase(), String(headerValue)])
+  );
+}
+
+function createMockResponse(body: string, headers: Record<string, string>) {
+  const ResponseConstructor = (globalThis as typeof globalThis & {
+    Response: new (
+      body?: string,
+      init?: { headers?: Record<string, string>; status?: number }
+    ) => Awaited<ReturnType<AiGatewayLiveSmokeFetch>>;
+  }).Response;
+
+  return new ResponseConstructor(body, {
+    headers,
+    status: 200
+  });
+}

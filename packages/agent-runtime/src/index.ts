@@ -1,4 +1,8 @@
-import { isStepCount } from "ai";
+import {
+  createOpenAICompatible,
+  type OpenAICompatibleProviderSettings
+} from "@ai-sdk/openai-compatible";
+import { generateText, isStepCount, streamText } from "ai";
 import {
   getAnnouncement,
   getDocumentSanitizerCapabilities,
@@ -50,6 +54,10 @@ export const TASK_REPLAY_MODE_RELEASE_GATE_VERSION =
 export const PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
+export const AI_GATEWAY_LIVE_SMOKE_VERSION =
+  "2026-06-22.phase0.ai-gateway-live-smoke.v0";
+export const AI_GATEWAY_LIVE_SMOKE_PROMPT =
+  "Return exactly: AIPHABEE_AI_GATEWAY_SMOKE_OK";
 
 export const AGENT_RUNTIME_LIMITS = {
   maxCredits: 20,
@@ -1622,6 +1630,258 @@ export class AgentRuntimeInputError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+export type AiGatewayLiveSmokeFetch = NonNullable<OpenAICompatibleProviderSettings["fetch"]>;
+
+export interface AiGatewayLiveSmokeInput {
+  accountId: string;
+  apiToken: string;
+  fetch?: AiGatewayLiveSmokeFetch;
+  gatewayId: string;
+  model: string;
+  now?: () => number;
+  prompt?: string;
+}
+
+export interface AiGatewayLiveSmokeOperationResult {
+  api: "generateText" | "streamText";
+  char_count: number;
+  exact_output_match: boolean;
+  finish_reason: string;
+  input_tokens: number;
+  latency_ms: number;
+  output_hash: string;
+  output_tokens: number;
+  status: "passed";
+  total_tokens: number;
+}
+
+export interface AiGatewayLiveSmokeStreamOperationResult
+  extends AiGatewayLiveSmokeOperationResult {
+  api: "streamText";
+  chunk_count: number;
+}
+
+export interface AiGatewayLiveSmokeResult {
+  endpoint: "/ai/v1/chat/completions";
+  gateway_header: "cf-aig-gateway-id";
+  gateway_id_hash: string;
+  generate_text: AiGatewayLiveSmokeOperationResult;
+  http_status: number;
+  http_statuses: number[];
+  method: "ai_sdk_openai_compatible";
+  model_hash: string;
+  operation_count: 2;
+  prompt_hash: string;
+  provider: "cloudflare_ai_gateway";
+  response_hash: string;
+  status: "ok";
+  stream_text: AiGatewayLiveSmokeStreamOperationResult;
+  version: typeof AI_GATEWAY_LIVE_SMOKE_VERSION;
+}
+
+type AiGatewaySmokeCrypto = {
+  subtle: {
+    digest(algorithm: string, data: Uint8Array): Promise<ArrayBuffer>;
+  };
+};
+
+type AiGatewaySmokeTextEncoderConstructor = new () => {
+  encode(value: string): Uint8Array;
+};
+
+export async function runAiGatewayLiveSmoke(
+  input: AiGatewayLiveSmokeInput
+): Promise<AiGatewayLiveSmokeResult> {
+  const accountId = normalizeRequiredAiGatewayInput(input.accountId, "accountId");
+  const apiToken = normalizeRequiredAiGatewayInput(input.apiToken, "apiToken");
+  const gatewayId = normalizeRequiredAiGatewayInput(input.gatewayId, "gatewayId");
+  const model = normalizeRequiredAiGatewayInput(input.model, "model");
+  const prompt = input.prompt?.trim() || AI_GATEWAY_LIVE_SMOKE_PROMPT;
+  const now = input.now ?? Date.now;
+  const httpStatuses: number[] = [];
+  const fetch = createAiGatewayInstrumentedFetch(input.fetch, httpStatuses);
+  const provider = createOpenAICompatible({
+    apiKey: apiToken,
+    baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
+      accountId
+    )}/ai/v1`,
+    fetch,
+    headers: {
+      "cf-aig-gateway-id": gatewayId
+    },
+    includeUsage: true,
+    name: "cloudflare-ai-gateway"
+  });
+  const chatModel = provider.chatModel(model);
+
+  const generateStartedAt = now();
+  const generateResult = await generateText({
+    maxOutputTokens: 32,
+    model: chatModel,
+    prompt,
+    temperature: 0
+  });
+  const generateTextValue = generateResult.text;
+  const generateUsage = normalizeAiGatewayUsage(generateResult.usage);
+  const generateOperation: AiGatewayLiveSmokeOperationResult = {
+    api: "generateText",
+    char_count: generateTextValue.length,
+    exact_output_match: isExpectedAiGatewaySmokeOutput(generateTextValue),
+    finish_reason: String(generateResult.finishReason ?? "unknown"),
+    input_tokens: generateUsage.input_tokens,
+    latency_ms: Math.max(0, Math.trunc(now() - generateStartedAt)),
+    output_hash: await hashAiGatewaySmokeString(generateTextValue),
+    output_tokens: generateUsage.output_tokens,
+    status: "passed",
+    total_tokens: generateUsage.total_tokens
+  };
+
+  const streamStartedAt = now();
+  const streamResult = streamText({
+    maxOutputTokens: 32,
+    model: chatModel,
+    prompt,
+    temperature: 0
+  });
+  const streamChunks: string[] = [];
+
+  for await (const chunk of streamResult.textStream) {
+    streamChunks.push(chunk);
+  }
+
+  const streamTextValue = streamChunks.join("");
+  const streamUsage = normalizeAiGatewayUsage(await streamResult.usage);
+  const streamOperation: AiGatewayLiveSmokeStreamOperationResult = {
+    api: "streamText",
+    char_count: streamTextValue.length,
+    chunk_count: streamChunks.length,
+    exact_output_match: isExpectedAiGatewaySmokeOutput(streamTextValue),
+    finish_reason: String((await streamResult.finishReason) ?? "unknown"),
+    input_tokens: streamUsage.input_tokens,
+    latency_ms: Math.max(0, Math.trunc(now() - streamStartedAt)),
+    output_hash: await hashAiGatewaySmokeString(streamTextValue),
+    output_tokens: streamUsage.output_tokens,
+    status: "passed",
+    total_tokens: streamUsage.total_tokens
+  };
+
+  const responseHash = await hashAiGatewaySmokeString(
+    JSON.stringify({
+      generate_text: generateOperation,
+      http_statuses: httpStatuses,
+      model_hash: await hashAiGatewaySmokeString(model),
+      prompt_hash: await hashAiGatewaySmokeString(prompt),
+      stream_text: streamOperation
+    })
+  );
+
+  return {
+    endpoint: "/ai/v1/chat/completions",
+    gateway_header: "cf-aig-gateway-id",
+    gateway_id_hash: await hashAiGatewaySmokeString(gatewayId),
+    generate_text: generateOperation,
+    http_status: httpStatuses.every((status) => status === 200) ? 200 : httpStatuses[0] ?? 0,
+    http_statuses: httpStatuses,
+    method: "ai_sdk_openai_compatible",
+    model_hash: await hashAiGatewaySmokeString(model),
+    operation_count: 2,
+    prompt_hash: await hashAiGatewaySmokeString(prompt),
+    provider: "cloudflare_ai_gateway",
+    response_hash: responseHash,
+    status: "ok",
+    stream_text: streamOperation,
+    version: AI_GATEWAY_LIVE_SMOKE_VERSION
+  };
+}
+
+function createAiGatewayInstrumentedFetch(
+  fetch: AiGatewayLiveSmokeFetch | undefined,
+  httpStatuses: number[]
+): AiGatewayLiveSmokeFetch {
+  const upstreamFetch = fetch ?? getRuntimeAiGatewayFetch();
+
+  return async (...args: Parameters<AiGatewayLiveSmokeFetch>) => {
+    const response = await upstreamFetch(...args);
+    httpStatuses.push(response.status);
+
+    return response;
+  };
+}
+
+function getRuntimeAiGatewayFetch(): AiGatewayLiveSmokeFetch {
+  const runtimeFetch = (globalThis as typeof globalThis & { fetch?: AiGatewayLiveSmokeFetch })
+    .fetch;
+
+  if (typeof runtimeFetch !== "function") {
+    throw new AgentRuntimeInputError("CONTEXT_REQUIRED", "Runtime fetch is required", {
+      missing_field: "fetch"
+    });
+  }
+
+  return runtimeFetch;
+}
+
+function normalizeRequiredAiGatewayInput(value: string, field: string): string {
+  const normalized = value.trim();
+
+  if (normalized.length === 0) {
+    throw new AgentRuntimeInputError("CONTEXT_REQUIRED", "AI Gateway live smoke input missing", {
+      field
+    });
+  }
+
+  return normalized;
+}
+
+function normalizeAiGatewayUsage(value: {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}): { input_tokens: number; output_tokens: number; total_tokens: number } {
+  const inputTokens = normalizeAiGatewayTokenCount(value.inputTokens);
+  const outputTokens = normalizeAiGatewayTokenCount(value.outputTokens);
+  const totalTokens =
+    normalizeAiGatewayTokenCount(value.totalTokens) ?? inputTokens + outputTokens;
+
+  return {
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens
+  };
+}
+
+function normalizeAiGatewayTokenCount(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.trunc(value))
+    : 0;
+}
+
+function isExpectedAiGatewaySmokeOutput(value: string): boolean {
+  return value.trim() === "AIPHABEE_AI_GATEWAY_SMOKE_OK";
+}
+
+async function hashAiGatewaySmokeString(value: string): Promise<string> {
+  const runtime = globalThis as typeof globalThis & {
+    TextEncoder?: AiGatewaySmokeTextEncoderConstructor;
+    crypto?: AiGatewaySmokeCrypto;
+  };
+
+  if (!runtime.TextEncoder || !runtime.crypto?.subtle) {
+    throw new AgentRuntimeInputError("CONTEXT_REQUIRED", "Web Crypto hash runtime is required", {
+      missing_fields: ["TextEncoder", "crypto.subtle"]
+    });
+  }
+
+  const digest = await runtime.crypto.subtle.digest(
+    "SHA-256",
+    new runtime.TextEncoder().encode(value)
+  );
+
+  return `sha256:${[...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")}`;
 }
 
 export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
