@@ -566,6 +566,14 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    event_study: {
+      abnormal_return_method: string;
+      formula_version: string;
+      route: string;
+      sample_missing_policy: string;
+      status: string;
+      tool_name: string;
+    };
     financial_ratios: {
       formula_version: string;
       route: string;
@@ -755,6 +763,67 @@ interface ReturnsRiskBody {
       row_count: number;
       volatility_method: string;
     };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface EventStudyBody {
+  data: {
+    benchmark: {
+      instrument_id?: string;
+      label: string;
+      price_history_status: string;
+    };
+    capability: {
+      formula_version: string;
+      route: string;
+      status: string;
+    };
+    event: {
+      event_date: string;
+      event_id: string;
+    };
+    event_window: {
+      from: string;
+      requested_observation_count: number;
+      to: string;
+    };
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    methodology: {
+      abnormal_return_method: string;
+      formula_version: string;
+      sample_missing_policy: string;
+    };
+    missing_observations: Array<{
+      date: string;
+      reason: string;
+      relative_day: number;
+    }>;
+    observations: Array<{
+      abnormal_return?: number;
+      benchmark_return?: number;
+      date: string;
+      relative_day: number;
+      security_return?: number;
+      status: string;
+    }>;
+    price_history_status: string;
+    status: string;
+    summary: {
+      computed_observation_count: number;
+      cumulative_abnormal_return?: number;
+      cumulative_benchmark_return?: number;
+      cumulative_security_return?: number;
+      missing_observation_count: number;
+      requested_observation_count: number;
+    };
+    toolName: string;
   };
   ok: true;
   usage: {
@@ -4388,6 +4457,14 @@ describe("worker runtime", () => {
       status: "compare_securities_scaffold",
       tool_name: "compare_securities"
     });
+    expect(body.data.event_study).toMatchObject({
+      abnormal_return_method: "security_return_minus_benchmark_return",
+      formula_version: "event-study-v0",
+      route: "POST /analytics/event-study",
+      sample_missing_policy: "surface_missing_dates_do_not_drop",
+      status: "event_study_scaffold",
+      tool_name: "run_event_study"
+    });
     expect(body.data.financial_ratios).toMatchObject({
       formula_version: "financial-ratios-v0",
       route: "POST /analytics/financial-ratios",
@@ -4550,6 +4627,51 @@ describe("worker runtime", () => {
     });
   });
 
+  it("plans high-cost event studies with reservation metadata", async () => {
+    const response = await app.request("/analytics/high-cost/plan", {
+      body: JSON.stringify({
+        event_count: 2,
+        event_window_days: 5,
+        subscription_id: "sub_ws_internal_alpha_developer",
+        tool_name: "run_event_study",
+        user_confirmed: true,
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-high-cost-event-study"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HighCostAnalyticsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("queued_planned");
+    expect(body.data.cost_estimate).toMatchObject({
+      credit_weight: 27,
+      high_cost_threshold: 8,
+      rows_estimate: 10
+    });
+    expect(body.data.scheduling_decision).toMatchObject({
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      queue_required: true
+    });
+    expect(body.data.enqueue_plan).toMatchObject({
+      planned_task_id: "planned_run_event_study_req-high-cost-event-study:run_event_study",
+      status: "would_enqueue"
+    });
+    expect(body.data.usage_reservation.reservation).toMatchObject({
+      task_id: "planned_run_event_study_req-high-cost-event-study:run_event_study",
+      tool_name: "run_event_study"
+    });
+    expect(body.data.usage_reservation.pre_debit).toMatchObject({
+      pre_debit_credits: 27,
+      required: true
+    });
+  });
+
   it("computes financial ratios with formula version and percentile scaffold", async () => {
     const response = await app.request("/analytics/financial-ratios", {
       body: JSON.stringify({
@@ -4709,6 +4831,111 @@ describe("worker runtime", () => {
       route: "POST /analytics/returns-risk"
     });
     expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("runs event study with event window, benchmark, and abnormal return method", async () => {
+    const response = await app.request("/analytics/event-study", {
+      body: JSON.stringify({
+        benchmark_security_query: "00700.HK",
+        event_date: "2026-01-06",
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-study"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EventStudyBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      price_history_status: "found",
+      status: "computed",
+      toolName: "run_event_study"
+    });
+    expect(body.data.event).toMatchObject({
+      event_date: "2026-01-06",
+      event_id: "synthetic_00700_results_event"
+    });
+    expect(body.data.event_window).toMatchObject({
+      from: "2026-01-05",
+      requested_observation_count: 3,
+      to: "2026-01-07"
+    });
+    expect(body.data.benchmark).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      label: "resolved_security_benchmark",
+      price_history_status: "found"
+    });
+    expect(body.data.methodology).toMatchObject({
+      abnormal_return_method: "security_return_minus_benchmark_return",
+      formula_version: "event-study-v0",
+      sample_missing_policy: "surface_missing_dates_do_not_drop"
+    });
+    expect(body.data.observations.map((observation) => [
+      observation.date,
+      observation.relative_day,
+      observation.abnormal_return,
+      observation.status
+    ])).toEqual([
+      ["2026-01-05", -1, 0, "computed"],
+      ["2026-01-06", 0, 0, "computed"],
+      ["2026-01-07", 1, 0, "computed"]
+    ]);
+    expect(body.data.summary).toMatchObject({
+      computed_observation_count: 3,
+      cumulative_abnormal_return: 0,
+      missing_observation_count: 0,
+      requested_observation_count: 3
+    });
+    expect(body.data.capability).toMatchObject({
+      formula_version: "event-study-v0",
+      route: "POST /analytics/event-study"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("surfaces missing event study samples through the Worker route", async () => {
+    const response = await app.request("/analytics/event-study", {
+      body: JSON.stringify({
+        benchmark_security_query: "00700.HK",
+        event_date: "2026-01-06",
+        security_query: "00700.HK",
+        window_pre_days: 2
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-event-study-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as EventStudyBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("partial");
+    expect(body.data.event_window).toMatchObject({
+      from: "2026-01-04",
+      requested_observation_count: 4,
+      to: "2026-01-07"
+    });
+    expect(body.data.missing_observations).toEqual([
+      {
+        date: "2026-01-04",
+        reason: "missing_security_and_benchmark_return",
+        relative_day: -2
+      }
+    ]);
+    expect(body.data.summary).toMatchObject({
+      computed_observation_count: 3,
+      missing_observation_count: 1,
+      requested_observation_count: 4
+    });
   });
 
   it("plans editable screen conditions and explains hits", async () => {

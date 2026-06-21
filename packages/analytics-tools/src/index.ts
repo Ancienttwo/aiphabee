@@ -31,6 +31,8 @@ export const PERCENTILE_COMPARISON_VERSION =
   "2026-06-21.phase2.percentile-comparison-scaffold.v0";
 export const HIGH_COST_ANALYTICS_QUEUE_VERSION =
   "2026-06-21.phase2.high-cost-analytics-queue-scaffold.v0";
+export const EVENT_STUDY_VERSION =
+  "2026-06-21.phase3.event-study-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -318,6 +320,99 @@ export interface ReturnsRiskResult {
   };
 }
 
+export type EventStudyObservationStatus =
+  | "computed"
+  | "missing_benchmark_return"
+  | "missing_security_and_benchmark_return"
+  | "missing_security_return";
+
+export interface EventStudyInput {
+  adjustment?: string;
+  asOf?: string;
+  benchmarkInstrumentId?: string;
+  benchmarkSecurityQuery?: string;
+  eventDate?: string;
+  eventId?: string;
+  eventLabel?: string;
+  instrumentId?: string;
+  requestId: string;
+  securityQuery?: string;
+  windowPostDays?: number;
+  windowPreDays?: number;
+}
+
+export interface EventStudyObservation {
+  abnormal_return?: number;
+  benchmark_return?: number;
+  date: string;
+  relative_day: number;
+  security_return?: number;
+  source_record_ids: string[];
+  status: EventStudyObservationStatus;
+}
+
+export interface EventStudyResult {
+  as_of: string;
+  benchmark: {
+    instrument_id?: string;
+    label: string;
+    price_history_status: GetPriceHistoryResult["status"];
+    resolve_security?: ResolveSecurityResult;
+  };
+  data_version: typeof EVENT_STUDY_VERSION;
+  event: {
+    event_date: string;
+    event_id: string;
+    label: string;
+  };
+  event_window: {
+    from: string;
+    post_days: number;
+    pre_days: number;
+    requested_observation_count: number;
+    to: string;
+  };
+  frontend_rendering: false;
+  instrument_id?: string;
+  live_data_access: false;
+  methodology: {
+    abnormal_return_method: "security_return_minus_benchmark_return";
+    formula_version: typeof EVENT_STUDY_FORMULA_VERSION;
+    point_in_time: true;
+    price_field: "return";
+    sample_missing_policy: "surface_missing_dates_do_not_drop";
+    supported_window: {
+      max_post_days: typeof EVENT_STUDY_MAX_POST_DAYS;
+      max_pre_days: typeof EVENT_STUDY_MAX_PRE_DAYS;
+    };
+  };
+  methodology_version: typeof EVENT_STUDY_VERSION;
+  missing_observations: Array<{
+    date: string;
+    reason: Exclude<EventStudyObservationStatus, "computed">;
+    relative_day: number;
+  }>;
+  observations: EventStudyObservation[];
+  price_history_status: GetPriceHistoryResult["status"];
+  resolve_security?: ResolveSecurityResult;
+  source_record_ids: string[];
+  status: "blocked_history" | "blocked_resolution" | "computed" | "partial";
+  summary: {
+    computed_observation_count: number;
+    cumulative_abnormal_return?: number;
+    cumulative_benchmark_return?: number;
+    cumulative_security_return?: number;
+    missing_observation_count: number;
+    requested_observation_count: number;
+  };
+  toolName: "run_event_study";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 export type PercentileBenchmarkType = "history" | "index" | "peer";
 export type PercentileMetricId = "net_margin" | "total_return";
 export type PercentileComparisonStatus = "blocked" | "computed";
@@ -399,7 +494,10 @@ export interface PercentileComparisonResult {
   };
 }
 
-export type HighCostAnalyticsToolName = "compare_securities" | "screen_securities";
+export type HighCostAnalyticsToolName =
+  | "compare_securities"
+  | "run_event_study"
+  | "screen_securities";
 export type HighCostAnalyticsPlanStatus =
   | "confirmation_required"
   | "inline_allowed"
@@ -407,6 +505,8 @@ export type HighCostAnalyticsPlanStatus =
   | "unsupported_tool";
 
 export interface HighCostAnalyticsQueueInput {
+  eventCount?: number;
+  eventWindowDays?: number;
   metricCount?: number;
   requestId: string;
   securities?: string[];
@@ -486,6 +586,15 @@ const RETURNS_RISK_ANNUALIZATION_FACTOR = 252;
 const RETURNS_RISK_FORMULA_VERSION = "returns-risk-v0";
 const RETURNS_RISK_LIMIT = 3;
 const RETURNS_RISK_TOLERANCE = 0.000001;
+const DEFAULT_EVENT_STUDY_EVENT_DATE = "2026-01-06";
+const DEFAULT_EVENT_STUDY_EVENT_ID = "synthetic_00700_results_event";
+const DEFAULT_EVENT_STUDY_LABEL = "Synthetic annual results announcement";
+const DEFAULT_EVENT_STUDY_PRE_DAYS = 1;
+const DEFAULT_EVENT_STUDY_POST_DAYS = 1;
+const EVENT_STUDY_FORMULA_VERSION = "event-study-v0";
+const EVENT_STUDY_MAX_PRE_DAYS = 2;
+const EVENT_STUDY_MAX_POST_DAYS = 1;
+const EVENT_STUDY_PRICE_HISTORY_LIMIT = 3;
 const DEFAULT_PERCENTILE_BENCHMARK_TYPES: PercentileBenchmarkType[] = [
   "peer",
   "index",
@@ -506,6 +615,10 @@ const HIGH_COST_ANALYTICS_TOOL_WEIGHTS: Record<
   compare_securities: {
     max: 15,
     min: 5
+  },
+  run_event_study: {
+    max: 50,
+    min: 20
   },
   screen_securities: {
     max: 20,
@@ -795,6 +908,27 @@ export function getReturnsRiskCapabilities() {
   };
 }
 
+export function getEventStudyCapabilities() {
+  return {
+    abnormal_return_method: "security_return_minus_benchmark_return" as const,
+    formula_version: EVENT_STUDY_FORMULA_VERSION,
+    frontend_rendering: false,
+    high_cost_queueing: true,
+    high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+    live_data_access: false,
+    max_post_days: EVENT_STUDY_MAX_POST_DAYS,
+    max_pre_days: EVENT_STUDY_MAX_PRE_DAYS,
+    package: "@aiphabee/analytics-tools" as const,
+    price_history_fields: ["return"] as const,
+    queue_route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
+    route: "POST /analytics/event-study" as const,
+    sample_missing_policy: "surface_missing_dates_do_not_drop" as const,
+    status: "event_study_scaffold" as const,
+    tool_name: "run_event_study" as const,
+    version: EVENT_STUDY_VERSION
+  };
+}
+
 export function getPercentileComparisonCapabilities() {
   return {
     benchmark_types: DEFAULT_PERCENTILE_BENCHMARK_TYPES,
@@ -825,7 +959,7 @@ export function getHighCostAnalyticsQueueCapabilities() {
     queue_name: "analytics-high-cost" as const,
     route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
     status: "high_cost_analytics_queue_scaffold" as const,
-    supported_tools: ["screen_securities", "compare_securities"] as const,
+    supported_tools: ["screen_securities", "compare_securities", "run_event_study"] as const,
     tool_name: "plan_high_cost_analytics" as const,
     usage_policy: {
       failure_refund_required: true,
@@ -1319,6 +1453,160 @@ export function calculateReturnsRisk(input: ReturnsRiskInput): ReturnsRiskResult
       (benchmarkResolution?.usage.rows ?? 0) +
       metrics.length,
     window: createReturnsRiskWindow(from, to, adjustment, history.history.rowCount)
+  });
+}
+
+export function runEventStudy(input: EventStudyInput): EventStudyResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const eventDate = normalizeEventStudyDate(input.eventDate, DEFAULT_EVENT_STUDY_EVENT_DATE);
+  const preDays = clampInteger(
+    input.windowPreDays,
+    DEFAULT_EVENT_STUDY_PRE_DAYS,
+    0,
+    EVENT_STUDY_MAX_PRE_DAYS
+  );
+  const postDays = clampInteger(
+    input.windowPostDays,
+    DEFAULT_EVENT_STUDY_POST_DAYS,
+    0,
+    EVENT_STUDY_MAX_POST_DAYS
+  );
+  const window = createEventStudyWindow(eventDate, preDays, postDays);
+  const adjustment = input.adjustment ?? DEFAULT_RETURNS_RISK_ADJUSTMENT;
+  const resolution =
+    input.instrumentId === undefined && input.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.securityQuery
+        })
+      : undefined;
+  const instrumentId = input.instrumentId ?? resolution?.selectedInstrumentId;
+  const benchmarkResolution =
+    input.benchmarkInstrumentId === undefined && input.benchmarkSecurityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.benchmarkSecurityQuery
+        })
+      : undefined;
+  const benchmarkInstrumentId =
+    input.benchmarkInstrumentId ??
+    benchmarkResolution?.selectedInstrumentId ??
+    (input.benchmarkSecurityQuery === undefined ? instrumentId : undefined);
+
+  if (instrumentId === undefined || benchmarkInstrumentId === undefined) {
+    return createEventStudyResult({
+      asOf,
+      benchmarkInstrumentId,
+      benchmarkResolution,
+      benchmarkStatus: "not_found",
+      eventDate,
+      eventId: input.eventId,
+      eventLabel: input.eventLabel,
+      instrumentId,
+      observations: [],
+      priceHistoryStatus: "not_found",
+      resolution,
+      sourceRecordIds: [],
+      status: "blocked_resolution",
+      usageCredits: (resolution?.usage.credits ?? 0) + (benchmarkResolution?.usage.credits ?? 0),
+      usageRows: (resolution?.usage.rows ?? 0) + (benchmarkResolution?.usage.rows ?? 0),
+      window
+    });
+  }
+
+  const securityHistory = getPriceHistory({
+    adjustment,
+    fields: ["return"],
+    from: window.from,
+    instrumentId,
+    limit: EVENT_STUDY_PRICE_HISTORY_LIMIT,
+    to: window.to
+  });
+  const benchmarkHistory = getPriceHistory({
+    adjustment,
+    fields: ["return"],
+    from: window.from,
+    instrumentId: benchmarkInstrumentId,
+    limit: EVENT_STUDY_PRICE_HISTORY_LIMIT,
+    to: window.to
+  });
+  const sourceRecordIds = Array.from(
+    new Set([
+      ...createPriceHistorySourceRecordIds(securityHistory),
+      ...createPriceHistorySourceRecordIds(benchmarkHistory)
+    ])
+  ).sort();
+
+  if (securityHistory.status !== "found" || securityHistory.history === undefined) {
+    return createEventStudyResult({
+      asOf,
+      benchmarkInstrumentId,
+      benchmarkResolution,
+      benchmarkStatus: benchmarkHistory.status,
+      eventDate,
+      eventId: input.eventId,
+      eventLabel: input.eventLabel,
+      instrumentId,
+      observations: createMissingEventStudyObservations(
+        window.requestedDates,
+        eventDate,
+        "missing_security_return",
+        sourceRecordIds
+      ),
+      priceHistoryStatus: securityHistory.status,
+      resolution,
+      sourceRecordIds,
+      status: "blocked_history",
+      usageCredits:
+        securityHistory.usage.credits +
+        benchmarkHistory.usage.credits +
+        (resolution?.usage.credits ?? 0) +
+        (benchmarkResolution?.usage.credits ?? 0),
+      usageRows:
+        securityHistory.usage.rows +
+        benchmarkHistory.usage.rows +
+        (resolution?.usage.rows ?? 0) +
+        (benchmarkResolution?.usage.rows ?? 0),
+      window
+    });
+  }
+
+  const observations = createEventStudyObservations({
+    benchmarkRows: benchmarkHistory.history?.rows ?? [],
+    eventDate,
+    requestedDates: window.requestedDates,
+    securityRows: securityHistory.history.rows,
+    sourceRecordIds
+  });
+  const computedCount = observations.filter((observation) => observation.status === "computed").length;
+
+  return createEventStudyResult({
+    asOf,
+    benchmarkInstrumentId,
+    benchmarkResolution,
+    benchmarkStatus: benchmarkHistory.status,
+    eventDate,
+    eventId: input.eventId,
+    eventLabel: input.eventLabel,
+    instrumentId,
+    observations,
+    priceHistoryStatus: securityHistory.status,
+    resolution,
+    sourceRecordIds,
+    status: computedCount === observations.length ? "computed" : "partial",
+    usageCredits:
+      securityHistory.usage.credits +
+      benchmarkHistory.usage.credits +
+      (resolution?.usage.credits ?? 0) +
+      (benchmarkResolution?.usage.credits ?? 0) +
+      20,
+    usageRows:
+      securityHistory.usage.rows +
+      benchmarkHistory.usage.rows +
+      (resolution?.usage.rows ?? 0) +
+      (benchmarkResolution?.usage.rows ?? 0) +
+      observations.length,
+    window
   });
 }
 
@@ -1917,6 +2205,260 @@ function createPriceHistorySourceRecordIds(history: GetPriceHistoryResult): stri
   return history.provenance.map((item) => item.source_record_id).sort();
 }
 
+function createEventStudyResult(params: {
+  asOf: string;
+  benchmarkInstrumentId: string | undefined;
+  benchmarkResolution: ResolveSecurityResult | undefined;
+  benchmarkStatus: GetPriceHistoryResult["status"];
+  eventDate: string;
+  eventId: string | undefined;
+  eventLabel: string | undefined;
+  instrumentId: string | undefined;
+  observations: EventStudyObservation[];
+  priceHistoryStatus: GetPriceHistoryResult["status"];
+  resolution: ResolveSecurityResult | undefined;
+  sourceRecordIds: string[];
+  status: EventStudyResult["status"];
+  usageCredits: number;
+  usageRows: number;
+  window: {
+    from: string;
+    postDays: number;
+    preDays: number;
+    requestedDates: string[];
+    to: string;
+  };
+}): EventStudyResult {
+  const missingObservations = params.observations
+    .filter(
+      (
+        observation
+      ): observation is EventStudyObservation & {
+        status: Exclude<EventStudyObservationStatus, "computed">;
+      } => observation.status !== "computed"
+    )
+    .map((observation) => ({
+      date: observation.date,
+      reason: observation.status,
+      relative_day: observation.relative_day
+    }));
+  const computedObservations = params.observations.filter(
+    (observation) => observation.status === "computed"
+  );
+
+  return {
+    as_of: params.asOf,
+    benchmark: {
+      instrument_id: params.benchmarkInstrumentId,
+      label:
+        params.benchmarkResolution === undefined
+          ? "default_self_proxy"
+          : "resolved_security_benchmark",
+      price_history_status: params.benchmarkStatus,
+      resolve_security: params.benchmarkResolution
+    },
+    data_version: EVENT_STUDY_VERSION,
+    event: {
+      event_date: params.eventDate,
+      event_id: params.eventId ?? DEFAULT_EVENT_STUDY_EVENT_ID,
+      label: params.eventLabel ?? DEFAULT_EVENT_STUDY_LABEL
+    },
+    event_window: {
+      from: params.window.from,
+      post_days: params.window.postDays,
+      pre_days: params.window.preDays,
+      requested_observation_count: params.window.requestedDates.length,
+      to: params.window.to
+    },
+    frontend_rendering: false,
+    instrument_id: params.instrumentId,
+    live_data_access: false,
+    methodology: {
+      abnormal_return_method: "security_return_minus_benchmark_return",
+      formula_version: EVENT_STUDY_FORMULA_VERSION,
+      point_in_time: true,
+      price_field: "return",
+      sample_missing_policy: "surface_missing_dates_do_not_drop",
+      supported_window: {
+        max_post_days: EVENT_STUDY_MAX_POST_DAYS,
+        max_pre_days: EVENT_STUDY_MAX_PRE_DAYS
+      }
+    },
+    methodology_version: EVENT_STUDY_VERSION,
+    missing_observations: missingObservations,
+    observations: params.observations,
+    price_history_status: params.priceHistoryStatus,
+    resolve_security: params.resolution,
+    source_record_ids: params.sourceRecordIds,
+    status: params.status,
+    summary: {
+      computed_observation_count: computedObservations.length,
+      cumulative_abnormal_return:
+        computedObservations.length === 0
+          ? undefined
+          : roundMetric(
+              computedObservations.reduce(
+                (sum, observation) => sum + (observation.abnormal_return ?? 0),
+                0
+              )
+            ),
+      cumulative_benchmark_return: cumulativeReturn(
+        computedObservations.map((observation) => observation.benchmark_return)
+      ),
+      cumulative_security_return: cumulativeReturn(
+        computedObservations.map((observation) => observation.security_return)
+      ),
+      missing_observation_count: missingObservations.length,
+      requested_observation_count: params.window.requestedDates.length
+    },
+    toolName: "run_event_study",
+    usage: {
+      cached: false,
+      credits: params.usageCredits,
+      rows: params.usageRows
+    }
+  };
+}
+
+function createEventStudyWindow(
+  eventDate: string,
+  preDays: number,
+  postDays: number
+): {
+  from: string;
+  postDays: number;
+  preDays: number;
+  requestedDates: string[];
+  to: string;
+} {
+  const from = addIsoDays(eventDate, -preDays);
+  const to = addIsoDays(eventDate, postDays);
+
+  return {
+    from,
+    postDays,
+    preDays,
+    requestedDates: createIsoDateRange(from, to),
+    to
+  };
+}
+
+function createEventStudyObservations(input: {
+  benchmarkRows: PriceHistoryRow[];
+  eventDate: string;
+  requestedDates: string[];
+  securityRows: PriceHistoryRow[];
+  sourceRecordIds: string[];
+}): EventStudyObservation[] {
+  const securityReturnsByDate = createReturnMap(input.securityRows);
+  const benchmarkReturnsByDate = createReturnMap(input.benchmarkRows);
+
+  return input.requestedDates.map((date) => {
+    const securityReturn = securityReturnsByDate.get(date);
+    const benchmarkReturn = benchmarkReturnsByDate.get(date);
+    const status = getEventStudyObservationStatus(securityReturn, benchmarkReturn);
+
+    return {
+      abnormal_return:
+        securityReturn === undefined || benchmarkReturn === undefined
+          ? undefined
+          : roundMetric(securityReturn - benchmarkReturn),
+      benchmark_return: benchmarkReturn,
+      date,
+      relative_day: diffIsoDays(date, input.eventDate),
+      security_return: securityReturn,
+      source_record_ids: input.sourceRecordIds,
+      status
+    };
+  });
+}
+
+function createMissingEventStudyObservations(
+  requestedDates: string[],
+  eventDate: string,
+  reason: Exclude<EventStudyObservationStatus, "computed">,
+  sourceRecordIds: string[]
+): EventStudyObservation[] {
+  return requestedDates.map((date) => ({
+    date,
+    relative_day: diffIsoDays(date, eventDate),
+    source_record_ids: sourceRecordIds,
+    status: reason
+  }));
+}
+
+function createReturnMap(rows: PriceHistoryRow[]): Map<string, number> {
+  return new Map(
+    rows.flatMap((row) => {
+      const value = getFiniteHistoryField(row, "return");
+      return value === undefined ? [] : [[row.date, value] as const];
+    })
+  );
+}
+
+function getEventStudyObservationStatus(
+  securityReturn: number | undefined,
+  benchmarkReturn: number | undefined
+): EventStudyObservationStatus {
+  if (securityReturn !== undefined && benchmarkReturn !== undefined) {
+    return "computed";
+  }
+
+  if (securityReturn === undefined && benchmarkReturn === undefined) {
+    return "missing_security_and_benchmark_return";
+  }
+
+  return securityReturn === undefined ? "missing_security_return" : "missing_benchmark_return";
+}
+
+function normalizeEventStudyDate(value: string | undefined, fallback: string): string {
+  return value !== undefined && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : fallback;
+}
+
+function addIsoDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function createIsoDateRange(from: string, to: string): string[] {
+  const dates: string[] = [];
+  for (let date = from; date <= to; date = addIsoDays(date, 1)) {
+    dates.push(date);
+  }
+
+  return dates;
+}
+
+function diffIsoDays(date: string, anchor: string): number {
+  return Math.round(
+    (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${anchor}T00:00:00Z`)) / 86_400_000
+  );
+}
+
+function cumulativeReturn(values: Array<number | undefined>): number | undefined {
+  const finiteValues = values.filter((value): value is number => value !== undefined);
+
+  if (finiteValues.length === 0) {
+    return undefined;
+  }
+
+  return roundMetric(finiteValues.reduce((product, value) => product * (1 + value), 1) - 1);
+}
+
+function clampInteger(
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number {
+  if (value === undefined || !Number.isInteger(value)) {
+    return fallback;
+  }
+
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
 function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -2149,7 +2691,11 @@ function getPercentileSubjectSourceTool(
 function normalizeHighCostAnalyticsToolName(
   value: string | undefined
 ): HighCostAnalyticsToolName | undefined {
-  return value === "compare_securities" || value === "screen_securities" ? value : undefined;
+  return value === "compare_securities" ||
+    value === "run_event_study" ||
+    value === "screen_securities"
+    ? value
+    : undefined;
 }
 
 function estimateHighCostAnalyticsCost(
@@ -2172,6 +2718,32 @@ function estimateHighCostAnalyticsCost(
         "screening_uses_independent_pool"
       ],
       rows_estimate: universeSize,
+      source: "deterministic_scaffold",
+      tool_weight_range: toolWeightRange
+    };
+  }
+
+  if (toolName === "run_event_study") {
+    const eventCount = clampPositiveInteger(input.eventCount, 1);
+    const eventWindowDays = clampPositiveInteger(
+      input.eventWindowDays,
+      DEFAULT_EVENT_STUDY_PRE_DAYS + DEFAULT_EVENT_STUDY_POST_DAYS + 1
+    );
+    const eventWeight = Math.max(0, eventCount - 1) * 5;
+    const windowWeight = Math.max(0, eventWindowDays - 3);
+    const creditWeight = Math.min(
+      toolWeightRange.max,
+      toolWeightRange.min + eventWeight + windowWeight
+    );
+
+    return {
+      credit_weight: creditWeight,
+      high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+      reason_codes: [
+        "prd_event_study_weight_20_50",
+        "event_study_uses_independent_pool"
+      ],
+      rows_estimate: eventCount * eventWindowDays,
       source: "deterministic_scaffold",
       tool_weight_range: toolWeightRange
     };

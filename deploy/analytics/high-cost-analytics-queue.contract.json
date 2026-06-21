@@ -43,6 +43,12 @@
       "prd_credit_weight_max": 15,
       "default_pool": "analytics_standard",
       "high_cost_threshold": 8
+    },
+    {
+      "tool_name": "run_event_study",
+      "prd_credit_weight_min": 20,
+      "prd_credit_weight_max": 50,
+      "default_pool": "analytics_high_cost"
     }
   ],
   "required_output_fields": [

@@ -4,6 +4,7 @@ import {
   compareSecurities,
   comparePercentiles,
   getCompareSecuritiesCapabilities,
+  getEventStudyCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
@@ -11,6 +12,7 @@ import {
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   planHighCostAnalyticsQueue,
+  runEventStudy,
   screenSecurities
 } from "./index";
 
@@ -263,7 +265,7 @@ describe("compare securities scaffold", () => {
       queue_name: "analytics-high-cost",
       route: "POST /analytics/high-cost/plan",
       status: "high_cost_analytics_queue_scaffold",
-      supported_tools: ["screen_securities", "compare_securities"],
+      supported_tools: ["screen_securities", "compare_securities", "run_event_study"],
       tool_name: "plan_high_cost_analytics",
       usage_policy: {
         failure_refund_required: true,
@@ -357,6 +359,41 @@ describe("compare securities scaffold", () => {
       queue_required: false
     });
     expect(result.enqueue_plan.status).toBe("not_required");
+  });
+
+  it("plans event studies into the high-cost analytics pool", () => {
+    const result = planHighCostAnalyticsQueue({
+      eventCount: 2,
+      eventWindowDays: 5,
+      requestId: "req_high_cost_event_study",
+      toolName: "run_event_study",
+      userConfirmed: true
+    });
+
+    expect(result.status).toBe("queued_planned");
+    expect(result.cost_estimate).toMatchObject({
+      credit_weight: 27,
+      high_cost_threshold: 8,
+      rows_estimate: 10,
+      tool_weight_range: {
+        max: 50,
+        min: 20
+      }
+    });
+    expect(result.cost_estimate.reason_codes).toEqual([
+      "prd_event_study_weight_20_50",
+      "event_study_uses_independent_pool"
+    ]);
+    expect(result.scheduling_decision).toMatchObject({
+      analytics_tool_name: "run_event_study",
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      queue_required: true
+    });
+    expect(result.enqueue_plan).toMatchObject({
+      planned_task_id: "planned_run_event_study_req_high_cost_event_study:run_event_study",
+      status: "would_enqueue"
+    });
   });
 
   it("reports financial ratios capabilities", () => {
@@ -522,6 +559,115 @@ describe("compare securities scaffold", () => {
     expect(result.metrics.every((metric) => metric.blocked_reason === "security_resolution_required")).toBe(
       true
     );
+  });
+
+  it("reports event study capabilities", () => {
+    expect(getEventStudyCapabilities()).toMatchObject({
+      abnormal_return_method: "security_return_minus_benchmark_return",
+      formula_version: "event-study-v0",
+      frontend_rendering: false,
+      high_cost_queueing: true,
+      high_cost_threshold: 8,
+      live_data_access: false,
+      route: "POST /analytics/event-study",
+      sample_missing_policy: "surface_missing_dates_do_not_drop",
+      status: "event_study_scaffold",
+      tool_name: "run_event_study"
+    });
+  });
+
+  it("runs deterministic event study with event date, window, benchmark, and abnormal returns", () => {
+    const result = runEventStudy({
+      benchmarkSecurityQuery: "00700.HK",
+      eventDate: "2026-01-06",
+      requestId: "req_event_study_001",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      price_history_status: "found",
+      status: "computed",
+      toolName: "run_event_study"
+    });
+    expect(result.event).toMatchObject({
+      event_date: "2026-01-06",
+      event_id: "synthetic_00700_results_event"
+    });
+    expect(result.event_window).toEqual({
+      from: "2026-01-05",
+      post_days: 1,
+      pre_days: 1,
+      requested_observation_count: 3,
+      to: "2026-01-07"
+    });
+    expect(result.benchmark).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      label: "resolved_security_benchmark",
+      price_history_status: "found"
+    });
+    expect(result.methodology).toMatchObject({
+      abnormal_return_method: "security_return_minus_benchmark_return",
+      formula_version: "event-study-v0",
+      point_in_time: true,
+      sample_missing_policy: "surface_missing_dates_do_not_drop"
+    });
+    expect(result.observations.map((observation) => [
+      observation.date,
+      observation.relative_day,
+      observation.security_return,
+      observation.benchmark_return,
+      observation.abnormal_return,
+      observation.status
+    ])).toEqual([
+      ["2026-01-05", -1, 0.0096, 0.0096, 0, "computed"],
+      ["2026-01-06", 0, 0.005, 0.005, 0, "computed"],
+      ["2026-01-07", 1, 0.0072, 0.0072, 0, "computed"]
+    ]);
+    expect(result.summary).toMatchObject({
+      computed_observation_count: 3,
+      cumulative_abnormal_return: 0,
+      cumulative_benchmark_return: 0.021953,
+      cumulative_security_return: 0.021953,
+      missing_observation_count: 0,
+      requested_observation_count: 3
+    });
+  });
+
+  it("surfaces missing event-window observations instead of silently dropping them", () => {
+    const result = runEventStudy({
+      benchmarkSecurityQuery: "00700.HK",
+      eventDate: "2026-01-06",
+      requestId: "req_event_study_missing",
+      securityQuery: "00700.HK",
+      windowPreDays: 2
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.event_window).toMatchObject({
+      from: "2026-01-04",
+      requested_observation_count: 4,
+      to: "2026-01-07"
+    });
+    expect(result.missing_observations).toEqual([
+      {
+        date: "2026-01-04",
+        reason: "missing_security_and_benchmark_return",
+        relative_day: -2
+      }
+    ]);
+    expect(result.observations[0]).toMatchObject({
+      date: "2026-01-04",
+      relative_day: -2,
+      status: "missing_security_and_benchmark_return"
+    });
+    expect(result.summary).toMatchObject({
+      computed_observation_count: 3,
+      missing_observation_count: 1,
+      requested_observation_count: 4
+    });
   });
 
   it("reports percentile comparison capabilities", () => {

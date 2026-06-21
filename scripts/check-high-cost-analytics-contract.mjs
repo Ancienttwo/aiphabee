@@ -20,7 +20,7 @@ const requiredLinkedContracts = [
   "deploy/usage/high-cost-reservation.contract.json",
   "deploy/database/migrations.contract.json"
 ];
-const requiredTools = ["screen_securities", "compare_securities"];
+const requiredTools = ["screen_securities", "compare_securities", "run_event_study"];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
   /postgres(?:ql)?:\/\//iu,
@@ -187,11 +187,16 @@ function validateToolWeights(value) {
       continue;
     }
 
-    if (tool.prd_credit_weight_min !== (toolName === "screen_securities" ? 8 : 5)) {
+    const expectedMin =
+      toolName === "screen_securities" ? 8 : toolName === "run_event_study" ? 20 : 5;
+    const expectedMax =
+      toolName === "screen_securities" ? 20 : toolName === "run_event_study" ? 50 : 15;
+
+    if (tool.prd_credit_weight_min !== expectedMin) {
       errors.push(`${toolName} prd_credit_weight_min is invalid`);
     }
 
-    if (tool.prd_credit_weight_max !== (toolName === "screen_securities" ? 20 : 15)) {
+    if (tool.prd_credit_weight_max !== expectedMax) {
       errors.push(`${toolName} prd_credit_weight_max is invalid`);
     }
   }

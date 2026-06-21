@@ -34,12 +34,14 @@ import {
   comparePercentiles,
   compareSecurities,
   getCompareSecuritiesCapabilities,
+  getEventStudyCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
   getPercentileComparisonCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
+  runEventStudy,
   screenSecurities,
   planHighCostAnalyticsQueue,
   type PercentileBenchmarkType,
@@ -1172,6 +1174,7 @@ app.get("/analytics/runtime", (c) => {
   const screenCapability = getScreenSecuritiesCapabilities();
   const financialRatiosCapability = getFinancialRatiosCapabilities();
   const returnsRiskCapability = getReturnsRiskCapabilities();
+  const eventStudyCapability = getEventStudyCapabilities();
   const percentileComparisonCapability = getPercentileComparisonCapabilities();
   const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
 
@@ -1180,6 +1183,7 @@ app.get("/analytics/runtime", (c) => {
       {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
+        event_study: eventStudyCapability,
         financial_ratios: financialRatiosCapability,
         high_cost_analytics_queue: highCostAnalyticsQueueCapability,
         percentile_comparison: percentileComparisonCapability,
@@ -1193,6 +1197,7 @@ app.get("/analytics/runtime", (c) => {
           screenCapability.route,
           financialRatiosCapability.route,
           returnsRiskCapability.route,
+          eventStudyCapability.route,
           percentileComparisonCapability.route,
           highCostAnalyticsQueueCapability.route
         ],
@@ -1230,6 +1235,10 @@ app.post("/analytics/high-cost/plan", async (c) => {
   const toolName = normalizeString(body.tool_name ?? body.toolName);
   const userConfirmed = normalizeOptionalBoolean(body.user_confirmed ?? body.userConfirmed);
   const plan = planHighCostAnalyticsQueue({
+    eventCount: normalizeOptionalInteger(body.event_count ?? body.eventCount),
+    eventWindowDays: normalizeOptionalInteger(
+      body.event_window_days ?? body.eventWindowDays
+    ),
     metricCount: normalizeOptionalInteger(body.metric_count ?? body.metricCount),
     requestId,
     securities: normalizeStringArray(body.securities),
@@ -1271,6 +1280,58 @@ app.post("/analytics/high-cost/plan", async (c) => {
         ],
         requestId,
         usage: plan.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/event-study", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const eventStudy = runEventStudy({
+    adjustment: normalizeString(body.adjustment),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    benchmarkInstrumentId: normalizeString(
+      body.benchmark_instrument_id ?? body.benchmarkInstrumentId
+    ),
+    benchmarkSecurityQuery: normalizeString(
+      body.benchmark_security_query ?? body.benchmarkSecurityQuery
+    ),
+    eventDate: normalizeString(body.event_date ?? body.eventDate),
+    eventId: normalizeString(body.event_id ?? body.eventId),
+    eventLabel: normalizeString(body.event_label ?? body.eventLabel),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    windowPostDays: normalizeOptionalInteger(
+      body.window_post_days ?? body.windowPostDays
+    ),
+    windowPreDays: normalizeOptionalInteger(body.window_pre_days ?? body.windowPreDays)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...eventStudy,
+        capability: getEventStudyCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: eventStudy.data_version,
+        methodologyVersion: eventStudy.methodology_version,
+        provenance: [
+          {
+            data_version: eventStudy.data_version,
+            methodology_version: eventStudy.methodology_version,
+            source: "analytics-event-study",
+            source_record_id: "event-study"
+          }
+        ],
+        requestId,
+        usage: eventStudy.usage
       }
     )
   );
