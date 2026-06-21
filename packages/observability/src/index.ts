@@ -247,15 +247,51 @@ export interface TelemetryEventBase {
   service: "aiphabee-worker";
 }
 
+export type AuditToolCallStatus = "planned_no_execution" | "denied_pre_execution";
+
+export interface AuditToolVersion {
+  tool_name: string;
+  tool_version: string;
+}
+
+export interface AuditToolCallTelemetry extends AuditToolVersion {
+  data_version: string;
+  estimated_cost_usd: number;
+  input_tokens: number;
+  latency_ms: number;
+  methodology_version: string;
+  model_id: string;
+  model_provider: "not_configured";
+  model_version: string;
+  output_hash: string;
+  output_tokens: number;
+  status: AuditToolCallStatus;
+  total_tokens: number;
+}
+
 export interface AuditTelemetryEvent extends TelemetryEventBase {
   audit: {
     credits: number;
     data_version: string;
     denied_tools: string[];
+    estimated_cost_usd: number;
+    input_tokens: number;
+    latency_ms: number;
     methodology_version: string;
     model_calls: boolean;
+    model_id: string;
     model_provider: "not_configured";
+    model_tier: string;
+    model_version: string;
+    output_hash: string;
+    output_tokens: number;
     requested_tools: string[];
+    tool_call_count: number;
+    tool_calls: AuditToolCallTelemetry[];
+    tool_versions: AuditToolVersion[];
+    total_tokens: number;
+    user_id: string;
+    workspace_id: string;
   };
   event_type: "run.audit";
 }
@@ -276,14 +312,27 @@ export interface EvalTelemetryEvent extends TelemetryEventBase {
 export type TelemetryEvent = AuditTelemetryEvent | EvalTelemetryEvent;
 
 export interface AgentDryRunTelemetryInput {
+  dataVersion?: string;
   deniedTools?: string[];
   environment: string;
+  estimatedCostUsd?: number;
+  inputTokens?: number;
+  latencyMs?: number;
   maxSteps: number;
+  methodologyVersion?: string;
+  modelId?: string;
+  modelTier?: string;
+  modelVersion?: string;
   outcome: TelemetryOutcome;
+  outputHash?: string;
+  outputTokens?: number;
   requestId: string;
   requestedTools: string[];
   route: string;
   runId: string;
+  toolVersions?: AuditToolVersion[];
+  userId?: string;
+  workspaceId?: string;
 }
 
 export interface PerformanceAvailabilityReleaseGatePlanInput {
@@ -487,6 +536,45 @@ export function createAgentDryRunTelemetry(
 ): [AuditTelemetryEvent, EvalTelemetryEvent] {
   const now = new Date().toISOString();
   const deniedTools = input.deniedTools ?? [];
+  const dataVersion = input.dataVersion ?? "agent-runtime-scaffold-v0";
+  const methodologyVersion = input.methodologyVersion ?? dataVersion;
+  const inputTokens = normalizeNonNegativeInteger(input.inputTokens);
+  const outputTokens = normalizeNonNegativeInteger(input.outputTokens);
+  const totalTokens = inputTokens + outputTokens;
+  const estimatedCostUsd = normalizeNonNegativeNumber(input.estimatedCostUsd);
+  const latencyMs = normalizeNonNegativeInteger(input.latencyMs);
+  const modelId = input.modelId ?? "dry_run_no_model";
+  const modelTier = input.modelTier ?? "dry_run";
+  const modelVersion = input.modelVersion ?? "dry_run_no_model_provider";
+  const userId = input.userId ?? "user_local_dry_run";
+  const workspaceId = input.workspaceId ?? "workspace_local_dry_run";
+  const outputHash =
+    input.outputHash ??
+    createStableAuditHash([
+      input.route,
+      input.runId,
+      input.outcome,
+      input.requestedTools.join(","),
+      deniedTools.join(",")
+    ]);
+  const toolVersions = createAuditToolVersions(
+    input.requestedTools,
+    input.toolVersions,
+    deniedTools
+  );
+  const toolCalls = createAuditToolCalls({
+    dataVersion,
+    deniedTools,
+    estimatedCostUsd,
+    inputTokens,
+    latencyMs,
+    methodologyVersion,
+    modelId,
+    modelVersion,
+    outputTokens,
+    toolVersions,
+    totalTokens
+  });
   const evalV1 = createEvalV1RunRecord({
     environment: input.environment,
     highIntentActions: [],
@@ -502,7 +590,13 @@ export function createAgentDryRunTelemetry(
       "agent.max_steps": input.maxSteps,
       "agent.model_calls": false,
       "agent.requested_tool_count": input.requestedTools.length,
-      "agent.tool_denied_count": deniedTools.length
+      "agent.tool_denied_count": deniedTools.length,
+      "agent.tool_version_count": toolVersions.length,
+      "audit.estimated_cost_usd": estimatedCostUsd,
+      "audit.input_tokens": inputTokens,
+      "audit.latency_ms": latencyMs,
+      "audit.output_tokens": outputTokens,
+      "audit.total_tokens": totalTokens
     },
     emitted_at: now,
     environment: input.environment,
@@ -519,12 +613,26 @@ export function createAgentDryRunTelemetry(
       ...base,
       audit: {
         credits: 0,
-        data_version: "agent-runtime-scaffold-v0",
+        data_version: dataVersion,
         denied_tools: deniedTools,
-        methodology_version: "agent-runtime-scaffold-v0",
+        estimated_cost_usd: estimatedCostUsd,
+        input_tokens: inputTokens,
+        latency_ms: latencyMs,
+        methodology_version: methodologyVersion,
         model_calls: false,
+        model_id: modelId,
         model_provider: "not_configured",
-        requested_tools: input.requestedTools
+        model_tier: modelTier,
+        model_version: modelVersion,
+        output_hash: outputHash,
+        output_tokens: outputTokens,
+        requested_tools: input.requestedTools,
+        tool_call_count: toolCalls.length,
+        tool_calls: toolCalls,
+        tool_versions: toolVersions,
+        total_tokens: totalTokens,
+        user_id: userId,
+        workspace_id: workspaceId
       },
       event_id: createTelemetryEventId(input.requestId, "run.audit"),
       event_type: "run.audit"
@@ -554,6 +662,95 @@ export function createAgentDryRunTelemetry(
       event_type: "run.eval"
     }
   ];
+}
+
+function createAuditToolVersions(
+  requestedTools: string[],
+  inputToolVersions: AuditToolVersion[] | undefined,
+  deniedTools: string[]
+): AuditToolVersion[] {
+  const providedVersions = new Map(
+    (inputToolVersions ?? []).map((tool) => [tool.tool_name, tool.tool_version])
+  );
+  const deniedToolSet = new Set(deniedTools);
+
+  return requestedTools.map((toolName) => ({
+    tool_name: toolName,
+    tool_version:
+      providedVersions.get(toolName) ??
+      (deniedToolSet.has(toolName) ? "unregistered" : "unknown")
+  }));
+}
+
+function createAuditToolCalls(input: {
+  dataVersion: string;
+  deniedTools: string[];
+  estimatedCostUsd: number;
+  inputTokens: number;
+  latencyMs: number;
+  methodologyVersion: string;
+  modelId: string;
+  modelVersion: string;
+  outputTokens: number;
+  toolVersions: AuditToolVersion[];
+  totalTokens: number;
+}): AuditToolCallTelemetry[] {
+  const deniedToolSet = new Set(input.deniedTools);
+
+  return input.toolVersions.map((tool) => {
+    const status: AuditToolCallStatus = deniedToolSet.has(tool.tool_name)
+      ? "denied_pre_execution"
+      : "planned_no_execution";
+
+    return {
+      ...tool,
+      data_version: input.dataVersion,
+      estimated_cost_usd: status === "denied_pre_execution" ? 0 : input.estimatedCostUsd,
+      input_tokens: status === "denied_pre_execution" ? 0 : input.inputTokens,
+      latency_ms: status === "denied_pre_execution" ? 0 : input.latencyMs,
+      methodology_version: input.methodologyVersion,
+      model_id: input.modelId,
+      model_provider: "not_configured",
+      model_version: input.modelVersion,
+      output_hash: createStableAuditHash([
+        tool.tool_name,
+        tool.tool_version,
+        input.dataVersion,
+        status
+      ]),
+      output_tokens: status === "denied_pre_execution" ? 0 : input.outputTokens,
+      status,
+      total_tokens: status === "denied_pre_execution" ? 0 : input.totalTokens
+    };
+  });
+}
+
+function createStableAuditHash(parts: readonly string[]): string {
+  let hash = 0x811c9dc5;
+  const value = parts.join("|");
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
+}
+
+function normalizeNonNegativeInteger(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.trunc(value));
+}
+
+function normalizeNonNegativeNumber(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, value);
 }
 
 export async function recordTelemetryEvents(

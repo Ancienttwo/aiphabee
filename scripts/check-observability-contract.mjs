@@ -7,6 +7,45 @@ const envSchemaPath = "deploy/env/env.schema.json";
 const bindingsContractPath = "deploy/cloudflare/bindings.contract.json";
 const requiredEventTypes = ["run.audit", "run.eval"];
 const requiredSinks = ["worker_console", "eval_store", "otlp_destination"];
+const requiredAuditFields = [
+  "user_id",
+  "workspace_id",
+  "requested_tools",
+  "denied_tools",
+  "tool_versions",
+  "tool_call_count",
+  "tool_calls",
+  "data_version",
+  "methodology_version",
+  "model_provider",
+  "model_id",
+  "model_version",
+  "model_tier",
+  "model_calls",
+  "input_tokens",
+  "output_tokens",
+  "total_tokens",
+  "estimated_cost_usd",
+  "credits",
+  "latency_ms",
+  "output_hash"
+];
+const requiredToolCallFields = [
+  "tool_name",
+  "tool_version",
+  "status",
+  "data_version",
+  "methodology_version",
+  "model_provider",
+  "model_id",
+  "model_version",
+  "input_tokens",
+  "output_tokens",
+  "total_tokens",
+  "estimated_cost_usd",
+  "latency_ms",
+  "output_hash"
+];
 const requiredOtlpEnv = [
   "OTLP_EXPORTER_OTLP_ENDPOINT",
   "OTLP_EXPORTER_OTLP_HEADERS"
@@ -128,6 +167,23 @@ function validateContract(value, envValue, bindingValue) {
       if (!eventType.forbidden_fields?.includes(forbidden)) {
         errors.push(`event_types[${index}] must forbid ${forbidden}`);
       }
+    }
+
+    if (eventType.type === "run.audit") {
+      errors.push(
+        ...validateStringArray(
+          eventType.audit_required_fields,
+          requiredAuditFields,
+          `event_types[${index}].audit_required_fields`
+        )
+      );
+      errors.push(
+        ...validateStringArray(
+          eventType.tool_call_required_fields,
+          requiredToolCallFields,
+          `event_types[${index}].tool_call_required_fields`
+        )
+      );
     }
   });
 
@@ -321,6 +377,22 @@ function findBinding(value, name) {
   return value.bindings.find(
     (binding) => isRecord(binding) && binding.name === name
   );
+}
+
+function validateStringArray(value, requiredValues, name) {
+  const errors = [];
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    return [`${name} must be a string array`];
+  }
+
+  for (const requiredValue of requiredValues) {
+    if (!value.includes(requiredValue)) {
+      errors.push(`${name} must include ${requiredValue}`);
+    }
+  }
+
+  return errors;
 }
 
 function isRecord(value) {

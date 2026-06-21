@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import app from "./index";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 interface RootRouteBody {
   data: {
@@ -15343,6 +15347,7 @@ describe("worker runtime", () => {
   });
 
   it("creates an agent dry-run skeleton", async () => {
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const response = await app.request("/agent/runs/dry-run", {
       body: JSON.stringify({
         channel: "web",
@@ -15419,6 +15424,53 @@ describe("worker runtime", () => {
         name: "get_financial_facts",
         output_schema_id: "tool.get_financial_facts.output.v0",
         version: "0.0.0"
+      })
+    ]);
+    const auditEvent = consoleInfo.mock.calls
+      .map(
+        ([message]) =>
+          JSON.parse(String(message)) as {
+            audit?: Record<string, unknown>;
+            event_type?: string;
+          }
+      )
+      .find((event) => event.event_type === "run.audit");
+
+    expect(auditEvent?.audit).toMatchObject({
+      data_version: "agent-runtime-scaffold-v0",
+      estimated_cost_usd: 0,
+      input_tokens: 0,
+      latency_ms: 0,
+      model_calls: false,
+      model_id: "dry_run_no_model",
+      model_provider: "not_configured",
+      model_tier: "dry_run",
+      model_version: "dry_run_no_model_provider",
+      output_tokens: 0,
+      total_tokens: 0,
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research"
+    });
+    expect(auditEvent?.audit?.tool_versions).toEqual([
+      {
+        tool_name: "resolve_security",
+        tool_version: "0.0.0"
+      },
+      {
+        tool_name: "get_financial_facts",
+        tool_version: "0.0.0"
+      }
+    ]);
+    expect(auditEvent?.audit?.tool_calls).toEqual([
+      expect.objectContaining({
+        status: "planned_no_execution",
+        tool_name: "resolve_security",
+        tool_version: "0.0.0"
+      }),
+      expect.objectContaining({
+        status: "planned_no_execution",
+        tool_name: "get_financial_facts",
+        tool_version: "0.0.0"
       })
     ]);
   });

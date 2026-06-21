@@ -176,6 +176,7 @@ import {
   getEvalV1Capabilities,
   getLoadDrIncidentDrillReleaseGateCapabilities,
   getPerformanceAvailabilityReleaseGateCapabilities,
+  type AgentDryRunTelemetryInput,
   type EvalV1MetricInput,
   type LoadDrIncidentDrillEvidenceInput,
   type PerformanceAvailabilityObservationInput,
@@ -5430,6 +5431,7 @@ app.post("/agent/runs/dry-run", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
   let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
+  let telemetryIdentity = createAgentTelemetryIdentity();
 
   c.header("Cache-Control", "no-store");
 
@@ -5453,6 +5455,7 @@ app.post("/agent/runs/dry-run", async (c) => {
       workspace_id?: unknown;
       workspaceId?: unknown;
     };
+    telemetryIdentity = createAgentTelemetryIdentity(body);
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -5501,11 +5504,16 @@ app.post("/agent/runs/dry-run", async (c) => {
     const telemetryEvents = createAgentDryRunTelemetry({
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: skeleton.budget.max_steps,
+      modelTier: skeleton.run_context.model.tier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "success",
       requestId,
       requestedTools: skeleton.tool_policy.requested_tools,
       route: "/agent/runs/dry-run",
-      runId: skeleton.run_id
+      runId: skeleton.run_id,
+      toolVersions: createTelemetryToolVersions(skeleton.run_context.toolset.tools),
+      userId: skeleton.run_context.user.user_id,
+      workspaceId: skeleton.run_context.workspace.workspace_id
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5546,11 +5554,16 @@ app.post("/agent/runs/dry-run", async (c) => {
         deniedTools,
         environment: c.env?.APP_ENV ?? "local",
         maxSteps: maxStepsForTelemetry,
+        modelTier: telemetryIdentity.modelTier,
+        modelVersion: telemetryIdentity.modelVersion,
         outcome: "rejected",
         requestId,
         requestedTools: requestedToolsForTelemetry,
         route: "/agent/runs/dry-run",
-        runId
+        runId,
+        toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+        userId: telemetryIdentity.userId,
+        workspaceId: telemetryIdentity.workspaceId
       });
 
       await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5577,11 +5590,16 @@ app.post("/agent/runs/dry-run", async (c) => {
     const telemetryEvents = createAgentDryRunTelemetry({
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: maxStepsForTelemetry,
+      modelTier: telemetryIdentity.modelTier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "error",
       requestId,
       requestedTools: requestedToolsForTelemetry,
       route: "/agent/runs/dry-run",
-      runId
+      runId,
+      toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+      userId: telemetryIdentity.userId,
+      workspaceId: telemetryIdentity.workspaceId
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5675,11 +5693,13 @@ app.post("/agent/runs/plan", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
   let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
+  let telemetryIdentity = createAgentTelemetryIdentity();
 
   c.header("Cache-Control", "no-store");
 
   try {
     const body = (await c.req.json()) as AgentRunRequestBody;
+    telemetryIdentity = createAgentTelemetryIdentity(body);
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -5690,13 +5710,20 @@ app.post("/agent/runs/plan", async (c) => {
 
     const plan = createToolLoopAgentPlan(createAgentRunInput(body, requestId));
     const telemetryEvents = createAgentDryRunTelemetry({
+      dataVersion: plan.version,
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: plan.budget.max_steps,
+      methodologyVersion: plan.version,
+      modelTier: plan.run_context.model.tier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "success",
       requestId,
       requestedTools: plan.run_context.entitlements.allowed_tools,
       route: "/agent/runs/plan",
-      runId: plan.run_id
+      runId: plan.run_id,
+      toolVersions: createTelemetryToolVersions(plan.run_context.toolset.tools),
+      userId: plan.run_context.user.user_id,
+      workspaceId: plan.run_context.workspace.workspace_id
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5737,11 +5764,16 @@ app.post("/agent/runs/plan", async (c) => {
         deniedTools,
         environment: c.env?.APP_ENV ?? "local",
         maxSteps: maxStepsForTelemetry,
+        modelTier: telemetryIdentity.modelTier,
+        modelVersion: telemetryIdentity.modelVersion,
         outcome: "rejected",
         requestId,
         requestedTools: requestedToolsForTelemetry,
         route: "/agent/runs/plan",
-        runId
+        runId,
+        toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+        userId: telemetryIdentity.userId,
+        workspaceId: telemetryIdentity.workspaceId
       });
 
       await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5768,11 +5800,16 @@ app.post("/agent/runs/plan", async (c) => {
     const telemetryEvents = createAgentDryRunTelemetry({
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: maxStepsForTelemetry,
+      modelTier: telemetryIdentity.modelTier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "error",
       requestId,
       requestedTools: requestedToolsForTelemetry,
       route: "/agent/runs/plan",
-      runId
+      runId,
+      toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+      userId: telemetryIdentity.userId,
+      workspaceId: telemetryIdentity.workspaceId
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5848,11 +5885,13 @@ app.post("/agent/workflows/tasks/plan", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
   let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
+  let telemetryIdentity = createAgentTelemetryIdentity();
 
   c.header("Cache-Control", "no-store");
 
   try {
     const body = (await c.req.json()) as AgentRunRequestBody;
+    telemetryIdentity = createAgentTelemetryIdentity(body);
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -5869,13 +5908,20 @@ app.post("/agent/workflows/tasks/plan", async (c) => {
       workflowKind: normalizeAgentWorkflowTaskKind(body.workflow_kind ?? body.workflowKind)
     });
     const telemetryEvents = createAgentDryRunTelemetry({
+      dataVersion: plan.version,
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: plan.tool_loop_plan.budget.max_steps,
+      methodologyVersion: plan.tool_loop_plan.version,
+      modelTier: plan.tool_loop_plan.run_context.model.tier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "success",
       requestId,
       requestedTools: plan.tool_loop_plan.run_context.entitlements.allowed_tools,
       route: "/agent/workflows/tasks/plan",
-      runId: plan.tool_loop_plan.run_id
+      runId: plan.tool_loop_plan.run_id,
+      toolVersions: createTelemetryToolVersions(plan.tool_loop_plan.run_context.toolset.tools),
+      userId: plan.tool_loop_plan.run_context.user.user_id,
+      workspaceId: plan.tool_loop_plan.run_context.workspace.workspace_id
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5924,11 +5970,16 @@ app.post("/agent/workflows/tasks/plan", async (c) => {
         deniedTools,
         environment: c.env?.APP_ENV ?? "local",
         maxSteps: maxStepsForTelemetry,
+        modelTier: telemetryIdentity.modelTier,
+        modelVersion: telemetryIdentity.modelVersion,
         outcome: "rejected",
         requestId,
         requestedTools: requestedToolsForTelemetry,
         route: "/agent/workflows/tasks/plan",
-        runId
+        runId,
+        toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+        userId: telemetryIdentity.userId,
+        workspaceId: telemetryIdentity.workspaceId
       });
 
       await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -5955,11 +6006,16 @@ app.post("/agent/workflows/tasks/plan", async (c) => {
     const telemetryEvents = createAgentDryRunTelemetry({
       environment: c.env?.APP_ENV ?? "local",
       maxSteps: maxStepsForTelemetry,
+      modelTier: telemetryIdentity.modelTier,
+      modelVersion: telemetryIdentity.modelVersion,
       outcome: "error",
       requestId,
       requestedTools: requestedToolsForTelemetry,
       route: "/agent/workflows/tasks/plan",
-      runId
+      runId,
+      toolVersions: createTelemetryToolVersions(undefined, requestedToolsForTelemetry),
+      userId: telemetryIdentity.userId,
+      workspaceId: telemetryIdentity.workspaceId
     });
 
     await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
@@ -7715,6 +7771,50 @@ function createAgentRunInput(
           ? body.workspaceId
           : undefined
   };
+}
+
+function createAgentTelemetryIdentity(body?: AgentRunRequestBody): {
+  modelTier: string;
+  modelVersion: string;
+  userId: string;
+  workspaceId: string;
+} {
+  return {
+    modelTier: normalizeTelemetryString(body?.model_tier ?? body?.modelTier, "dry_run"),
+    modelVersion: "dry_run_no_model_provider",
+    userId: normalizeTelemetryString(body?.user_id ?? body?.userId, "user_local_dry_run"),
+    workspaceId: normalizeTelemetryString(
+      body?.workspace_id ?? body?.workspaceId,
+      "workspace_local_dry_run"
+    )
+  };
+}
+
+function createTelemetryToolVersions(
+  toolContexts?: Array<{ name: string; version: string }>,
+  requestedTools?: string[]
+): AgentDryRunTelemetryInput["toolVersions"] {
+  if (toolContexts !== undefined) {
+    return toolContexts.map((tool) => ({
+      tool_name: tool.name,
+      tool_version: tool.version
+    }));
+  }
+
+  const registryVersions = new Map<string, string>(
+    REGISTERED_TOOLS.map((tool) => [tool.name, tool.version])
+  );
+
+  return (requestedTools ?? []).map((toolName) => ({
+    tool_name: toolName,
+    tool_version: registryVersions.get(toolName) ?? "unregistered"
+  }));
+}
+
+function normalizeTelemetryString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : fallback;
 }
 
 function normalizeAgentTimeRange(value: unknown): AgentRunSkeletonInput["timeRange"] {

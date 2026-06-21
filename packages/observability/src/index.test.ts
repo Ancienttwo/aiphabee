@@ -18,13 +18,28 @@ import {
 describe("observability scaffold", () => {
   it("creates audit and eval events without prompt content", () => {
     const events = createAgentDryRunTelemetry({
+      dataVersion: "agent-runtime-test-v0",
       environment: "test",
+      estimatedCostUsd: 0.024,
+      inputTokens: 123,
+      latencyMs: 456,
       maxSteps: 4,
+      methodologyVersion: "agent-runtime-test-methodology-v0",
+      modelVersion: "dry_run_no_model_provider",
       outcome: "success",
+      outputTokens: 78,
       requestId: "req-obs-1",
       requestedTools: ["resolve_security"],
       route: "/agent/runs/dry-run",
-      runId: "dry_req-obs-1"
+      runId: "dry_req-obs-1",
+      toolVersions: [
+        {
+          tool_name: "resolve_security",
+          tool_version: "0.0.0"
+        }
+      ],
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
     });
 
     expect(events).toHaveLength(2);
@@ -32,6 +47,50 @@ describe("observability scaffold", () => {
     expect(events[1]?.event_type).toBe("run.eval");
     expect(JSON.stringify(events)).not.toContain("Explain 00700.HK");
     expect(events[0]?.attributes["agent.max_steps"]).toBe(4);
+    expect(events[0]?.attributes["audit.total_tokens"]).toBe(201);
+    expect(events[0]?.audit).toMatchObject({
+      data_version: "agent-runtime-test-v0",
+      estimated_cost_usd: 0.024,
+      input_tokens: 123,
+      latency_ms: 456,
+      methodology_version: "agent-runtime-test-methodology-v0",
+      model_calls: false,
+      model_id: "dry_run_no_model",
+      model_provider: "not_configured",
+      model_tier: "dry_run",
+      model_version: "dry_run_no_model_provider",
+      output_tokens: 78,
+      requested_tools: ["resolve_security"],
+      tool_call_count: 1,
+      total_tokens: 201,
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research"
+    });
+    expect(events[0]?.audit.output_hash).toMatch(/^fnv1a32:[0-9a-f]{8}$/u);
+    expect(events[0]?.audit.tool_versions).toEqual([
+      {
+        tool_name: "resolve_security",
+        tool_version: "0.0.0"
+      }
+    ]);
+    expect(events[0]?.audit.tool_calls).toEqual([
+      expect.objectContaining({
+        data_version: "agent-runtime-test-v0",
+        estimated_cost_usd: 0.024,
+        input_tokens: 123,
+        latency_ms: 456,
+        methodology_version: "agent-runtime-test-methodology-v0",
+        model_id: "dry_run_no_model",
+        model_provider: "not_configured",
+        model_version: "dry_run_no_model_provider",
+        output_tokens: 78,
+        status: "planned_no_execution",
+        tool_name: "resolve_security",
+        tool_version: "0.0.0",
+        total_tokens: 201
+      })
+    ]);
+    expect(events[0]?.audit.tool_calls[0]?.output_hash).toMatch(/^fnv1a32:[0-9a-f]{8}$/u);
     expect(events[1]?.eval.eval_v1).toMatchObject({
       live_persistent_writes: false,
       status: "planned_no_write",
@@ -43,7 +102,7 @@ describe("observability scaffold", () => {
   });
 
   it("marks eval failure when a tool is denied", () => {
-    const [, evalEvent] = createAgentDryRunTelemetry({
+    const [auditEvent, evalEvent] = createAgentDryRunTelemetry({
       deniedTools: ["sql.query"],
       environment: "test",
       maxSteps: 6,
@@ -59,6 +118,22 @@ describe("observability scaffold", () => {
       name: "registered_tool_allowlist",
       status: "fail"
     });
+    expect(auditEvent.audit.tool_versions).toEqual([
+      {
+        tool_name: "sql.query",
+        tool_version: "unregistered"
+      }
+    ]);
+    expect(auditEvent.audit.tool_calls).toEqual([
+      expect.objectContaining({
+        input_tokens: 0,
+        output_tokens: 0,
+        status: "denied_pre_execution",
+        tool_name: "sql.query",
+        tool_version: "unregistered",
+        total_tokens: 0
+      })
+    ]);
   });
 
   it("records events into an in-memory sink", async () => {
