@@ -11,7 +11,25 @@
   "allowed_sources": ["tool_result", "deterministic_calculation"],
   "blocked_sources": ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
   "concrete_claims_allowed_now": false,
-  "post_generation_validation": "planned",
+  "post_generation_validation": "local_deterministic",
+  "post_generation_validator_ready": true,
+  "post_generation_validator_route": "POST /agent/runs/validate-answer",
+  "post_generation_evidence_binding": {
+    "version": "2026-06-22.phase3.post-generation-evidence-binding.v0",
+    "status": "validator_ready",
+    "route": "POST /agent/runs/validate-answer",
+    "local_deterministic_validation": true,
+    "live_evidence_binding": false,
+    "model_calls": false,
+    "failure_code": "UNSOURCED_NUMERIC_CLAIM",
+    "allowed_binding_refs": ["evidence_card", "source_record", "deterministic_calculation"],
+    "validation_rules": [
+      "extract_post_generation_numeric_claims",
+      "require_source_record_or_calculation_binding",
+      "block_unsourced_financial_numbers",
+      "mark_missing_numbers_unknown"
+    ]
+  },
   "answer_contract": {
     "concrete_financial_numbers_allowed": false,
     "failure_code": "UNSOURCED_NUMERIC_CLAIM",

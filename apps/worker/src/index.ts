@@ -39,9 +39,11 @@ import {
   getAgentRuntimeCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
+  validatePostGenerationEvidenceBinding,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
-  type AgentRunSkeletonInput
+  type AgentRunSkeletonInput,
+  type ValidatePostGenerationEvidenceBindingInput
 } from "@aiphabee/agent-runtime";
 import {
   calculateReturnsRisk,
@@ -300,7 +302,11 @@ interface AgentRunRequestBody {
   ambiguousSecurityQuery?: unknown;
   as_of?: unknown;
   asOf?: unknown;
+  answer_text?: unknown;
+  answerText?: unknown;
   channel?: unknown;
+  calculations?: unknown;
+  claims?: unknown;
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
@@ -342,6 +348,8 @@ interface AgentRunRequestBody {
   data_version?: unknown;
   dataVersion?: unknown;
   disclaimer?: unknown;
+  evidence_cards?: unknown;
+  evidenceCards?: unknown;
   format?: unknown;
   generated_at?: unknown;
   generatedAt?: unknown;
@@ -5788,6 +5796,54 @@ app.post("/agent/runs/plan", async (c) => {
   }
 });
 
+app.post("/agent/runs/validate-answer", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json()) as AgentRunRequestBody;
+    const validation = validatePostGenerationEvidenceBinding(
+      normalizePostGenerationEvidenceBindingInput(body, requestId)
+    );
+
+    return c.json(
+      createSuccessEnvelope(validation, {
+        asOf: validation.as_of,
+        methodologyVersion: validation.version,
+        provenance: [
+          {
+            data_version: validation.version,
+            methodology_version: validation.version,
+            source: "agent-runtime",
+            source_record_id: "post-generation-evidence-binding-validator"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: validation.numeric_claims.length
+        }
+      })
+    );
+  } catch {
+    return c.json(
+      createErrorEnvelope("SCOPE_DENIED", "post-generation answer validation failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "2026-06-22.phase3.post-generation-evidence-binding.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      400
+    );
+  }
+});
+
 app.post("/agent/workflows/tasks/plan", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
@@ -7435,6 +7491,160 @@ app.post("/evidence/records/plan", async (c) => {
 });
 
 export default app;
+
+function normalizePostGenerationEvidenceBindingInput(
+  body: AgentRunRequestBody,
+  requestId: string
+): ValidatePostGenerationEvidenceBindingInput {
+  return {
+    answerText: normalizeString(body.answer_text ?? body.answerText),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    calculations: normalizePostGenerationCalculationRefs(body.calculations),
+    claims: normalizePostGenerationClaims(body.claims),
+    evidenceCards: normalizePostGenerationEvidenceCards(body.evidence_cards ?? body.evidenceCards),
+    requestId
+  };
+}
+
+function normalizePostGenerationClaims(
+  value: unknown
+): ValidatePostGenerationEvidenceBindingInput["claims"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const claims: NonNullable<ValidatePostGenerationEvidenceBindingInput["claims"]> = [];
+
+  for (const item of value.filter((entry): entry is Record<string, unknown> => isPlainRecord(entry))) {
+    const text = normalizeString(item.text ?? item.claim_text ?? item.claimText);
+
+    if (text === undefined) {
+      continue;
+    }
+
+    const claim: NonNullable<ValidatePostGenerationEvidenceBindingInput["claims"]>[number] = {
+      text
+    };
+    const calculationId = normalizeString(item.calculation_id ?? item.calculationId);
+    const claimId = normalizeString(item.claim_id ?? item.claimId);
+    const dataVersion = normalizeString(item.data_version ?? item.dataVersion);
+    const evidenceCardId = normalizeString(
+      item.evidence_card_id ?? item.evidenceCardId ?? item.card_id ?? item.cardId
+    );
+    const label = normalizeAnswerClaimLabel(item.label);
+    const methodologyVersion = normalizeString(item.methodology_version ?? item.methodologyVersion);
+    const sourceRecordId = normalizeString(item.source_record_id ?? item.sourceRecordId);
+
+    if (calculationId !== undefined) {
+      claim.calculationId = calculationId;
+    }
+    if (claimId !== undefined) {
+      claim.claimId = claimId;
+    }
+    if (dataVersion !== undefined) {
+      claim.dataVersion = dataVersion;
+    }
+    if (evidenceCardId !== undefined) {
+      claim.evidenceCardId = evidenceCardId;
+    }
+    if (label !== undefined) {
+      claim.label = label;
+    }
+    if (methodologyVersion !== undefined) {
+      claim.methodologyVersion = methodologyVersion;
+    }
+    if (sourceRecordId !== undefined) {
+      claim.sourceRecordId = sourceRecordId;
+    }
+
+    claims.push(claim);
+  }
+
+  return claims.length > 0 ? claims : undefined;
+}
+
+function normalizePostGenerationEvidenceCards(
+  value: unknown
+): ValidatePostGenerationEvidenceBindingInput["evidenceCards"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const cards = value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => {
+      const cardId = normalizeString(item.card_id ?? item.cardId);
+      const dataVersion = normalizeString(item.data_version ?? item.dataVersion);
+      const methodologyVersion = normalizeString(item.methodology_version ?? item.methodologyVersion);
+      const sourceRecordId = normalizeString(item.source_record_id ?? item.sourceRecordId);
+
+      return cardId !== undefined &&
+        dataVersion !== undefined &&
+        methodologyVersion !== undefined &&
+        sourceRecordId !== undefined
+        ? {
+            cardId,
+            dataVersion,
+            methodologyVersion,
+            sourceRecordId
+          }
+        : undefined;
+    })
+    .filter(
+      (
+        card
+      ): card is NonNullable<ValidatePostGenerationEvidenceBindingInput["evidenceCards"]>[number] =>
+        card !== undefined
+    );
+
+  return cards.length > 0 ? cards : undefined;
+}
+
+function normalizePostGenerationCalculationRefs(
+  value: unknown
+): ValidatePostGenerationEvidenceBindingInput["calculations"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const calculations = value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => {
+      const calculationId = normalizeString(item.calculation_id ?? item.calculationId);
+      const methodologyVersion = normalizeString(item.methodology_version ?? item.methodologyVersion);
+      const sourceRecordIds = normalizeStringArray(
+        item.source_record_ids ?? item.sourceRecordIds
+      );
+
+      return calculationId !== undefined &&
+        methodologyVersion !== undefined &&
+        sourceRecordIds !== undefined &&
+        sourceRecordIds.length > 0
+        ? {
+            calculationId,
+            methodologyVersion,
+            sourceRecordIds
+          }
+        : undefined;
+    })
+    .filter(
+      (
+        calculation
+      ): calculation is NonNullable<
+        ValidatePostGenerationEvidenceBindingInput["calculations"]
+      >[number] => calculation !== undefined
+    );
+
+  return calculations.length > 0 ? calculations : undefined;
+}
+
+function normalizeAnswerClaimLabel(
+  value: unknown
+): NonNullable<ValidatePostGenerationEvidenceBindingInput["claims"]>[number]["label"] {
+  return value === "calculation" || value === "fact" || value === "inference" || value === "unknown"
+    ? value
+    : undefined;
+}
 
 function createAgentRunInput(
   body: AgentRunRequestBody,

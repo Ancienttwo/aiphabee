@@ -148,6 +148,11 @@ interface ComplianceOpsReleaseGatePlanBody {
       check: string;
       status: string;
     }>;
+    post_generation_evidence_binding: {
+      route: string;
+      status: string;
+      version: string;
+    };
     release_gate: {
       blockers: string[];
       gate_status: string;
@@ -2462,6 +2467,8 @@ interface AgentRuntimeBody {
         concrete_numbers_allowed_without_sources: boolean;
         memory_numbers_allowed: boolean;
         post_generation_validation: string;
+        post_generation_validator_ready: boolean;
+        post_generation_validator_route: string;
         status: string;
       };
       planner_ready: boolean;
@@ -2927,6 +2934,10 @@ interface ProductAgentReleaseGatePlanBody {
       deterministic_calculation_count: number;
       failure_code: string;
       planned_tool_result_source_count: number;
+      post_generation_sourced_probe_allowed: boolean;
+      post_generation_unsourced_probe_blocked: boolean;
+      post_generation_validation: string;
+      post_generation_validator_route: string;
       requires_calculation_ref: boolean;
       requires_source_record_ref: boolean;
       validation_rules: string[];
@@ -2936,6 +2947,7 @@ interface ProductAgentReleaseGatePlanBody {
       status: string;
     }>;
     release_gate: {
+      blockers: string[];
       gate_status: string;
       no_live_release_claim: boolean;
       required_signoffs: string[];
@@ -5795,11 +5807,28 @@ interface AgentToolLoopPlanBody {
         version: string;
       }>;
       post_generation_validation: string;
+      post_generation_evidence_binding: {
+        allowed_binding_refs: string[];
+        failure_code: string;
+        live_evidence_binding: boolean;
+        local_deterministic_validation: boolean;
+        model_calls: boolean;
+        route: string;
+        status: string;
+        version: string;
+      };
       status: string;
       validation_rules: string[];
       version: string;
     };
     planned_step_count: number;
+    post_generation_evidence_binding: {
+      allowed_binding_refs: string[];
+      failure_code: string;
+      route: string;
+      status: string;
+      version: string;
+    };
     pre_tool_call_resolution: {
       clarification_required: boolean;
       security: {
@@ -9486,7 +9515,9 @@ describe("worker runtime", () => {
         allowed_sources: ["tool_result", "deterministic_calculation"],
         concrete_numbers_allowed_without_sources: false,
         memory_numbers_allowed: false,
-        post_generation_validation: "planned",
+        post_generation_validation: "local_deterministic",
+        post_generation_validator_ready: true,
+        post_generation_validator_route: "POST /agent/runs/validate-answer",
         status: "numeric_source_guard_scaffold"
       },
       planner_ready: true,
@@ -9537,6 +9568,7 @@ describe("worker runtime", () => {
       "ambiguous_security_blocks_tool_planning",
       "silent_security_selection_blocked",
       "numeric_claim_requires_tool_result_or_calculation_ref",
+      "post_generation_unsourced_numeric_claim_blocked",
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
@@ -9689,13 +9721,23 @@ describe("worker runtime", () => {
         concrete_claims_allowed_now: false,
         concrete_numbers_allowed_without_sources: false,
         failure_code: "UNSOURCED_NUMERIC_CLAIM",
+        post_generation_sourced_probe_allowed: true,
+        post_generation_unsourced_probe_blocked: true,
+        post_generation_validation: "local_deterministic",
+        post_generation_validator_route: "POST /agent/runs/validate-answer",
         requires_calculation_ref: true,
         requires_source_record_ref: true
       },
       release_gate: {
-        gate_status: "blocked_live_post_generation_validation",
+        blockers: ["live_evidence_binding_missing", "frontend_clarification_ui_missing"],
+        gate_status: "blocked_live_evidence_binding",
         no_live_release_claim: true,
         required_signoffs: ["product", "agent", "data_quality"]
+      },
+      post_generation_evidence_binding: {
+        route: "POST /agent/runs/validate-answer",
+        status: "validator_ready",
+        version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
       },
       version: "2026-06-21.phase3.product-agent-release-gate-scaffold.v0"
     });
@@ -9725,6 +9767,7 @@ describe("worker runtime", () => {
       "ambiguous_security_blocks_tool_planning",
       "silent_security_selection_blocked",
       "numeric_claim_requires_tool_result_or_calculation_ref",
+      "post_generation_unsourced_numeric_claim_blocked",
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
@@ -9739,10 +9782,12 @@ describe("worker runtime", () => {
       no_frontend_rendering: true,
       no_live_execution: true,
       numeric_sources_restricted: true,
+      post_generation_sourced_numeric_claim_allowed: true,
+      post_generation_unsourced_numeric_claim_blocked: true,
       silent_selection_allowed: false,
       tool_planning_blocked_until_clarified: true
     });
-    expect(body.usage.rows).toBe(5);
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans prompt injection and arbitrary tool denial release gate", async () => {
@@ -15822,7 +15867,7 @@ describe("worker runtime", () => {
       blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
       concrete_claims_allowed_now: false,
       model_calls: false,
-      post_generation_validation: "planned",
+      post_generation_validation: "local_deterministic",
       status: "guarded_no_actual_results",
       validation_rules: [
         "extract_numeric_claims",
@@ -15831,6 +15876,20 @@ describe("worker runtime", () => {
         "label_missing_numbers_unknown"
       ],
       version: "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
+    });
+    expect(body.data.post_generation_evidence_binding).toMatchObject({
+      allowed_binding_refs: ["evidence_card", "source_record", "deterministic_calculation"],
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      route: "POST /agent/runs/validate-answer",
+      status: "validator_ready",
+      version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
+    });
+    expect(body.data.numeric_source_guard.post_generation_evidence_binding).toMatchObject({
+      live_evidence_binding: false,
+      local_deterministic_validation: true,
+      model_calls: false,
+      route: "POST /agent/runs/validate-answer",
+      status: "validator_ready"
     });
     expect(body.data.numeric_source_guard.planned_tool_result_sources).toEqual(
       expect.arrayContaining([
@@ -15960,6 +16019,123 @@ describe("worker runtime", () => {
         )
     ).toBe(true);
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("validates post-generation answer evidence binding over HTTP", async () => {
+    const blockedResponse = await app.request("/agent/runs/validate-answer", {
+      body: JSON.stringify({
+        claims: [
+          {
+            claim_id: "claim_unsourced_revenue",
+            label: "fact",
+            text: "00700.HK revenue grew 12.4% to HK$100.2 billion."
+          }
+        ]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-validate-answer-block"
+      },
+      method: "POST"
+    });
+    const blockedBody = (await blockedResponse.json()) as {
+      data: {
+        blocked_claim_count: number;
+        failure_code?: string;
+        live_evidence_binding: boolean;
+        model_calls: boolean;
+        numeric_claims: Array<{
+          binding_status: string;
+          claim_id: string;
+          missing_fields: string[];
+          numeric_values: string[];
+        }>;
+        output_allowed: boolean;
+        route: string;
+        status: string;
+        version: string;
+      };
+      ok: true;
+      usage: {
+        rows: number;
+      };
+    };
+
+    expect(blockedResponse.status).toBe(200);
+    expect(blockedResponse.headers.get("cache-control")).toBe("no-store");
+    expect(blockedBody.ok).toBe(true);
+    expect(blockedBody.data).toMatchObject({
+      blocked_claim_count: 1,
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      live_evidence_binding: false,
+      model_calls: false,
+      output_allowed: false,
+      route: "POST /agent/runs/validate-answer",
+      status: "blocked_unsourced_numeric_claim",
+      version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
+    });
+    expect(blockedBody.data.numeric_claims[0]).toMatchObject({
+      binding_status: "missing_source_binding",
+      claim_id: "claim_unsourced_revenue",
+      missing_fields: ["source_record_id", "data_version", "methodology_version"]
+    });
+    expect(blockedBody.data.numeric_claims[0].numeric_values).toEqual(
+      expect.arrayContaining(["12.4%", "HK$100.2 billion"])
+    );
+    expect(blockedBody.usage.rows).toBe(1);
+
+    const allowedResponse = await app.request("/agent/runs/validate-answer", {
+      body: JSON.stringify({
+        claims: [
+          {
+            evidence_card_id: "card_roe",
+            label: "fact",
+            text: "ROE was 18.2%."
+          }
+        ],
+        evidence_cards: [
+          {
+            card_id: "card_roe",
+            data_version: "synthetic-financial-facts-v0",
+            methodology_version: "deterministic-financial-growth-v0",
+            source_record_id: "financial-fact-00700-roe-2025"
+          }
+        ]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-validate-answer-pass"
+      },
+      method: "POST"
+    });
+    const allowedBody = (await allowedResponse.json()) as {
+      data: {
+        blocked_claim_count: number;
+        failure_code?: string;
+        numeric_claims: Array<{
+          binding_status: string;
+          evidence_card_id?: string;
+          source_record_id?: string;
+        }>;
+        output_allowed: boolean;
+        status: string;
+      };
+      ok: true;
+    };
+
+    expect(allowedResponse.status).toBe(200);
+    expect(allowedBody.ok).toBe(true);
+    expect(allowedBody.data).toMatchObject({
+      blocked_claim_count: 0,
+      output_allowed: true,
+      status: "passed"
+    });
+    expect(allowedBody.data.failure_code).toBeUndefined();
+    expect(allowedBody.data.numeric_claims[0]).toMatchObject({
+      binding_status: "bound_evidence_card",
+      evidence_card_id: "card_roe",
+      source_record_id: "financial-fact-00700-roe-2025"
+    });
   });
 
   it("degrades ToolLoopAgent planning when the tool kill switch is tripped", async () => {

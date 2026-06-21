@@ -17,6 +17,9 @@ financial numbers.
   `tool_readiness.can_plan_tools=false`.
 - The gate reuses `createToolLoopAgentPlan()` to prove concrete financial
   numbers are restricted to `tool_result` or `deterministic_calculation`.
+- The gate now reuses `validatePostGenerationEvidenceBinding()` to prove
+  unsourced post-generation financial numbers are blocked while evidence-card
+  bound numbers pass locally.
 - Numeric sources from model memory, training data, unverified prompts, and
   unstated sources remain blocked with `UNSOURCED_NUMERIC_CLAIM`.
 - The answer/evidence contract requires fact/calculation/inference/unknown
@@ -31,8 +34,7 @@ financial numbers.
 
 ## Non-Goals
 
-- No live post-generation numeric extraction.
-- No live evidence binding.
+- No live evidence binding writes.
 - No frontend clarification UI.
 - No model calls.
 - No live tool execution.

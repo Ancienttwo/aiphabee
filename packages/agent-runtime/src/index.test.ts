@@ -9,6 +9,7 @@ import {
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
+  validatePostGenerationEvidenceBinding,
   createWorkflowTaskPlan,
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
@@ -117,7 +118,9 @@ describe("agent runtime scaffold", () => {
         allowed_sources: ["tool_result", "deterministic_calculation"],
         concrete_numbers_allowed_without_sources: false,
         memory_numbers_allowed: false,
-        post_generation_validation: "planned",
+        post_generation_validation: "local_deterministic",
+        post_generation_validator_ready: true,
+        post_generation_validator_route: "POST /agent/runs/validate-answer",
         status: "numeric_source_guard_scaffold"
       },
       planner_ready: true,
@@ -168,6 +171,7 @@ describe("agent runtime scaffold", () => {
       "ambiguous_security_blocks_tool_planning",
       "silent_security_selection_blocked",
       "numeric_claim_requires_tool_result_or_calculation_ref",
+      "post_generation_unsourced_numeric_claim_blocked",
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
@@ -404,6 +408,10 @@ describe("agent runtime scaffold", () => {
       concrete_claims_allowed_now: false,
       concrete_numbers_allowed_without_sources: false,
       failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      post_generation_sourced_probe_allowed: true,
+      post_generation_unsourced_probe_blocked: true,
+      post_generation_validation: "local_deterministic",
+      post_generation_validator_route: "POST /agent/runs/validate-answer",
       requires_calculation_ref: true,
       requires_source_record_ref: true
     });
@@ -428,14 +436,27 @@ describe("agent runtime scaffold", () => {
       "ambiguous_security_blocks_tool_planning",
       "silent_security_selection_blocked",
       "numeric_claim_requires_tool_result_or_calculation_ref",
+      "post_generation_unsourced_numeric_claim_blocked",
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
     expect(plan.release_gate).toMatchObject({
-      gate_status: "blocked_live_post_generation_validation",
+      gate_status: "blocked_live_evidence_binding",
       no_live_release_claim: true,
       required_signoffs: ["product", "agent", "data_quality"]
     });
+    expect(plan.post_generation_evidence_binding).toMatchObject({
+      route: "POST /agent/runs/validate-answer",
+      status: "validator_ready",
+      version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
+    });
+    expect(plan.release_gate.blockers).not.toContain(
+      "actual_post_generation_numeric_extraction_missing"
+    );
+    expect(plan.release_gate.blockers).toEqual([
+      "live_evidence_binding_missing",
+      "frontend_clarification_ui_missing"
+    ]);
     expect(plan.validation).toEqual({
       ambiguous_security_blocked: true,
       answer_contract_blocks_unsourced_numbers: true,
@@ -444,6 +465,8 @@ describe("agent runtime scaffold", () => {
       no_frontend_rendering: true,
       no_live_execution: true,
       numeric_sources_restricted: true,
+      post_generation_sourced_numeric_claim_allowed: true,
+      post_generation_unsourced_numeric_claim_blocked: true,
       silent_selection_allowed: false,
       tool_planning_blocked_until_clarified: true
     });
@@ -451,6 +474,104 @@ describe("agent runtime scaffold", () => {
     expect(plan.numeric_tool_loop_plan.numeric_source_guard.version).toBe(
       "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
     );
+  });
+
+  it("validates post-generation numeric claims against evidence bindings", () => {
+    const blocked = validatePostGenerationEvidenceBinding({
+      claims: [
+        {
+          claimId: "claim_revenue_without_source",
+          label: "fact",
+          text: "00700.HK revenue grew 12.4% to HK$100.2 billion."
+        }
+      ],
+      requestId: "req-post-generation-block"
+    });
+
+    expect(blocked).toMatchObject({
+      actual_tool_execution: false,
+      blocked_claim_count: 1,
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      live_evidence_binding: false,
+      model_calls: false,
+      output_allowed: false,
+      persistent_writes: false,
+      route: "POST /agent/runs/validate-answer",
+      sql_emitted: false,
+      status: "blocked_unsourced_numeric_claim",
+      version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
+    });
+    expect(blocked.numeric_claims[0]).toMatchObject({
+      binding_status: "missing_source_binding",
+      claim_id: "claim_revenue_without_source",
+      financial_context: true,
+      missing_fields: ["source_record_id", "data_version", "methodology_version"]
+    });
+    expect(blocked.numeric_claims[0].numeric_values).toEqual(
+      expect.arrayContaining(["12.4%", "HK$100.2 billion"])
+    );
+
+    const evidenceBound = validatePostGenerationEvidenceBinding({
+      claims: [
+        {
+          claimId: "claim_roe_with_card",
+          evidenceCardId: "card_roe",
+          label: "fact",
+          text: "ROE was 18.2%."
+        }
+      ],
+      evidenceCards: [
+        {
+          cardId: "card_roe",
+          dataVersion: "synthetic-financial-facts-v0",
+          methodologyVersion: "deterministic-financial-growth-v0",
+          sourceRecordId: "financial-fact-00700-roe-2025"
+        }
+      ],
+      requestId: "req-post-generation-card"
+    });
+
+    expect(evidenceBound).toMatchObject({
+      blocked_claim_count: 0,
+      output_allowed: true,
+      status: "passed"
+    });
+    expect(evidenceBound.failure_code).toBeUndefined();
+    expect(evidenceBound.numeric_claims[0]).toMatchObject({
+      binding_status: "bound_evidence_card",
+      evidence_card_id: "card_roe",
+      source_record_id: "financial-fact-00700-roe-2025"
+    });
+
+    const calculationBound = validatePostGenerationEvidenceBinding({
+      calculations: [
+        {
+          calculationId: "deterministic_return_risk_v0",
+          methodologyVersion: "deterministic-return-risk-v0",
+          sourceRecordIds: ["price-history-00700-2025"]
+        }
+      ],
+      claims: [
+        {
+          calculationId: "deterministic_return_risk_v0",
+          claimId: "claim_total_return",
+          label: "calculation",
+          text: "Total return was 21.5%."
+        }
+      ],
+      requestId: "req-post-generation-calculation"
+    });
+
+    expect(calculationBound).toMatchObject({
+      blocked_claim_count: 0,
+      output_allowed: true,
+      status: "passed"
+    });
+    expect(calculationBound.numeric_claims[0]).toMatchObject({
+      binding_status: "bound_calculation",
+      calculation_id: "deterministic_return_risk_v0",
+      source_record_id: "price-history-00700-2025"
+    });
   });
 
   it("creates a dry-run skeleton with registered tool policy", () => {
@@ -1229,10 +1350,23 @@ describe("agent runtime scaffold", () => {
       blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
       concrete_claims_allowed_now: false,
       model_calls: false,
-      post_generation_validation: "planned",
+      post_generation_validation: "local_deterministic",
       status: "guarded_no_actual_results",
       version: "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
     });
+    expect(plan.post_generation_evidence_binding).toMatchObject({
+      allowed_binding_refs: ["evidence_card", "source_record", "deterministic_calculation"],
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      live_evidence_binding: false,
+      local_deterministic_validation: true,
+      model_calls: false,
+      route: "POST /agent/runs/validate-answer",
+      status: "validator_ready",
+      version: "2026-06-22.phase3.post-generation-evidence-binding.v0"
+    });
+    expect(plan.numeric_source_guard.post_generation_evidence_binding).toEqual(
+      plan.post_generation_evidence_binding
+    );
     expect(plan.numeric_source_guard.validation_rules).toEqual([
       "extract_numeric_claims",
       "require_tool_result_or_calculation_ref",

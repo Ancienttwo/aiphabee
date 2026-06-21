@@ -27,6 +27,8 @@ export const BUDGET_STOP_POLICY_VERSION =
 export const TOOL_ENFORCEMENT_VERSION = "2026-06-21.phase1.tool-enforcement-scaffold.v0";
 export const NUMERIC_SOURCE_GUARD_VERSION =
   "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
+export const POST_GENERATION_EVIDENCE_BINDING_VERSION =
+  "2026-06-22.phase3.post-generation-evidence-binding.v0";
 export const ANSWER_EVIDENCE_CONTRACT_VERSION =
   "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
 export const AGENT_RESPONSE_PRESENTATION_VERSION =
@@ -83,6 +85,7 @@ export const PRODUCT_AGENT_RELEASE_GATE_CHECKS = [
   "ambiguous_security_blocks_tool_planning",
   "silent_security_selection_blocked",
   "numeric_claim_requires_tool_result_or_calculation_ref",
+  "post_generation_unsourced_numeric_claim_blocked",
   "answer_contract_blocks_unsourced_numbers",
   "deterministic_calculations_keep_model_out"
 ] as const;
@@ -369,7 +372,9 @@ export interface AgentRuntimeCapabilities {
       allowed_sources: readonly ["tool_result", "deterministic_calculation"];
       concrete_numbers_allowed_without_sources: false;
       memory_numbers_allowed: false;
-      post_generation_validation: "planned";
+      post_generation_validation: AgentPostGenerationValidationMode;
+      post_generation_validator_ready: true;
+      post_generation_validator_route: "POST /agent/runs/validate-answer";
       status: "numeric_source_guard_scaffold";
     };
     tool_enforcement: {
@@ -593,6 +598,104 @@ export type AgentBlockedNumericSource =
   | "training_data"
   | "unverified_prompt"
   | "unstated_source";
+export type AgentPostGenerationValidationMode = "local_deterministic";
+export type AgentPostGenerationEvidenceBindingStatus =
+  | "blocked_unsourced_numeric_claim"
+  | "passed";
+export type AgentPostGenerationNumericClaimBindingStatus =
+  | "bound_calculation"
+  | "bound_evidence_card"
+  | "bound_source_record"
+  | "missing_source_binding";
+export type AgentPostGenerationEvidenceBindingRef =
+  | "deterministic_calculation"
+  | "evidence_card"
+  | "source_record";
+export type AgentPostGenerationEvidenceBindingRule =
+  | "extract_post_generation_numeric_claims"
+  | "require_source_record_or_calculation_binding"
+  | "block_unsourced_financial_numbers"
+  | "mark_missing_numbers_unknown";
+
+export interface AgentPostGenerationEvidenceBindingPolicy {
+  allowed_binding_refs: readonly AgentPostGenerationEvidenceBindingRef[];
+  failure_code: "UNSOURCED_NUMERIC_CLAIM";
+  live_evidence_binding: false;
+  local_deterministic_validation: true;
+  model_calls: false;
+  route: "POST /agent/runs/validate-answer";
+  status: "validator_ready";
+  validation_rules: readonly [
+    "extract_post_generation_numeric_claims",
+    "require_source_record_or_calculation_binding",
+    "block_unsourced_financial_numbers",
+    "mark_missing_numbers_unknown"
+  ];
+  version: typeof POST_GENERATION_EVIDENCE_BINDING_VERSION;
+}
+
+export interface AgentAnswerDraftClaimInput {
+  calculationId?: string;
+  claimId?: string;
+  dataVersion?: string;
+  evidenceCardId?: string;
+  label?: AgentAnswerClaimLabel;
+  methodologyVersion?: string;
+  sourceRecordId?: string;
+  text: string;
+}
+
+export interface AgentAnswerEvidenceCardInput {
+  cardId: string;
+  dataVersion: string;
+  methodologyVersion: string;
+  sourceRecordId: string;
+}
+
+export interface AgentAnswerCalculationRefInput {
+  calculationId: string;
+  methodologyVersion: string;
+  sourceRecordIds: string[];
+}
+
+export interface ValidatePostGenerationEvidenceBindingInput {
+  answerText?: string;
+  asOf?: string;
+  calculations?: AgentAnswerCalculationRefInput[];
+  claims?: AgentAnswerDraftClaimInput[];
+  evidenceCards?: AgentAnswerEvidenceCardInput[];
+  requestId: string;
+}
+
+export interface AgentPostGenerationNumericClaimValidation {
+  binding_status: AgentPostGenerationNumericClaimBindingStatus;
+  calculation_id?: string;
+  claim_id: string;
+  evidence_card_id?: string;
+  financial_context: boolean;
+  missing_fields: string[];
+  numeric_values: string[];
+  source_record_id?: string;
+  text: string;
+}
+
+export interface AgentPostGenerationEvidenceBindingValidation {
+  actual_tool_execution: false;
+  as_of: string;
+  blocked_claim_count: number;
+  failure_code?: "UNSOURCED_NUMERIC_CLAIM";
+  live_evidence_binding: false;
+  model_calls: false;
+  numeric_claims: AgentPostGenerationNumericClaimValidation[];
+  output_allowed: boolean;
+  persistent_writes: false;
+  request_id: string;
+  route: "POST /agent/runs/validate-answer";
+  sql_emitted: false;
+  status: AgentPostGenerationEvidenceBindingStatus;
+  validation_rules: AgentPostGenerationEvidenceBindingPolicy["validation_rules"];
+  version: typeof POST_GENERATION_EVIDENCE_BINDING_VERSION;
+}
 
 export interface AgentNumericSourceGuard {
   actual_tool_execution: false;
@@ -622,7 +725,8 @@ export interface AgentNumericSourceGuard {
     tool_name: RegisteredAgentToolName;
     version: string;
   }>;
-  post_generation_validation: "planned";
+  post_generation_evidence_binding: AgentPostGenerationEvidenceBindingPolicy;
+  post_generation_validation: AgentPostGenerationValidationMode;
   status: "guarded_no_actual_results";
   validation_rules: readonly [
     "extract_numeric_claims",
@@ -1227,6 +1331,7 @@ export interface AgentToolLoopPlan {
   model_calls: false;
   numeric_source_guard: AgentNumericSourceGuard;
   planned_step_count: number;
+  post_generation_evidence_binding: AgentPostGenerationEvidenceBindingPolicy;
   progress_stream: {
     events: AgentToolLoopProgressEvent[];
     exposes_chain_of_thought: false;
@@ -1371,12 +1476,17 @@ export interface ProductAgentReleaseGatePlan {
     deterministic_calculation_count: number;
     failure_code: "UNSOURCED_NUMERIC_CLAIM";
     planned_tool_result_source_count: number;
+    post_generation_sourced_probe_allowed: boolean;
+    post_generation_unsourced_probe_blocked: boolean;
+    post_generation_validation: AgentPostGenerationValidationMode;
+    post_generation_validator_route: "POST /agent/runs/validate-answer";
     requires_calculation_ref: true;
     requires_source_record_ref: true;
     validation_rules: AgentNumericSourceGuard["validation_rules"];
   };
   numeric_tool_loop_plan: AgentToolLoopPlan;
   persistent_writes: false;
+  post_generation_evidence_binding: AgentPostGenerationEvidenceBindingPolicy;
   release_checks: Array<{
     check: ProductAgentReleaseGateCheck;
     evidence: string;
@@ -1384,7 +1494,7 @@ export interface ProductAgentReleaseGatePlan {
   }>;
   release_gate: {
     blockers: string[];
-    gate_status: "blocked_live_post_generation_validation";
+    gate_status: "blocked_live_evidence_binding";
     no_live_release_claim: true;
     required_signoffs: readonly ["product", "agent", "data_quality"];
   };
@@ -1401,6 +1511,8 @@ export interface ProductAgentReleaseGatePlan {
     no_frontend_rendering: boolean;
     no_live_execution: boolean;
     numeric_sources_restricted: boolean;
+    post_generation_sourced_numeric_claim_allowed: boolean;
+    post_generation_unsourced_numeric_claim_blocked: boolean;
     silent_selection_allowed: false;
     tool_planning_blocked_until_clarified: boolean;
   };
@@ -1605,7 +1717,9 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         allowed_sources: ["tool_result", "deterministic_calculation"],
         concrete_numbers_allowed_without_sources: false,
         memory_numbers_allowed: false,
-        post_generation_validation: "planned",
+        post_generation_validation: "local_deterministic",
+        post_generation_validator_ready: true,
+        post_generation_validator_route: "POST /agent/runs/validate-answer",
         status: "numeric_source_guard_scaffold"
       },
       planner_ready: true,
@@ -2017,6 +2131,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     model_calls: false,
     numeric_source_guard: numericSourceGuard,
     planned_step_count: steps.length,
+    post_generation_evidence_binding: numericSourceGuard.post_generation_evidence_binding,
     progress_stream: {
       events: [
         "run.started",
@@ -2182,6 +2297,40 @@ export function createProductAgentReleaseGatePlan(
   const answerContractBlocksUnsourcedNumbers =
     answerEvidenceContract.validation_rules.includes("block_unsourced_specific_numbers") &&
     numericSourceGuard.answer_contract.failure_code === "UNSOURCED_NUMERIC_CLAIM";
+  const unsourcedNumericProbe = validatePostGenerationEvidenceBinding({
+    claims: [
+      {
+        claimId: "claim_unsourced_revenue_growth",
+        label: "fact",
+        text: "00700.HK revenue grew 12.4% to HK$100.2 billion."
+      }
+    ],
+    requestId: `${input.requestId}:post-generation-unsourced-probe`
+  });
+  const sourcedNumericProbe = validatePostGenerationEvidenceBinding({
+    claims: [
+      {
+        claimId: "claim_sourced_roe",
+        evidenceCardId: "card_00700_roe",
+        label: "fact",
+        text: "00700.HK ROE was 18.2%."
+      }
+    ],
+    evidenceCards: [
+      {
+        cardId: "card_00700_roe",
+        dataVersion: "synthetic-financial-facts-v0",
+        methodologyVersion: "deterministic-financial-growth-v0",
+        sourceRecordId: "financial-fact-00700-roe-2025"
+      }
+    ],
+    requestId: `${input.requestId}:post-generation-sourced-probe`
+  });
+  const postGenerationUnsourcedNumericClaimBlocked =
+    unsourcedNumericProbe.status === "blocked_unsourced_numeric_claim" &&
+    unsourcedNumericProbe.output_allowed === false;
+  const postGenerationSourcedNumericClaimAllowed =
+    sourcedNumericProbe.status === "passed" && sourcedNumericProbe.output_allowed;
   const deterministicCalculationsKeepModelOut =
     numericToolLoopPlan.model_calls === false &&
     numericSourceGuard.deterministic_calculations.every(
@@ -2197,9 +2346,11 @@ export function createProductAgentReleaseGatePlan(
             ? "ABC returns ambiguous candidates and no resolved instrument"
             : check === "numeric_claim_requires_tool_result_or_calculation_ref"
               ? "numeric_source_guard requires source_record_ref or calculation_ref"
-              : check === "answer_contract_blocks_unsourced_numbers"
-                ? "answer_evidence_contract validation includes block_unsourced_specific_numbers"
-                : "deterministic calculations use tool_result inputs and model_calls=false",
+              : check === "post_generation_unsourced_numeric_claim_blocked"
+                ? "validatePostGenerationEvidenceBinding blocks an unsourced numeric financial claim"
+                : check === "answer_contract_blocks_unsourced_numbers"
+                  ? "answer_evidence_contract validation includes block_unsourced_specific_numbers"
+                  : "deterministic calculations use tool_result inputs and model_calls=false",
       status: "planned_no_write"
     })
   );
@@ -2239,20 +2390,24 @@ export function createProductAgentReleaseGatePlan(
       failure_code: numericSourceGuard.answer_contract.failure_code,
       planned_tool_result_source_count:
         numericSourceGuard.planned_tool_result_sources.length,
+      post_generation_sourced_probe_allowed: postGenerationSourcedNumericClaimAllowed,
+      post_generation_unsourced_probe_blocked: postGenerationUnsourcedNumericClaimBlocked,
+      post_generation_validation: numericSourceGuard.post_generation_validation,
+      post_generation_validator_route: numericSourceGuard.post_generation_evidence_binding.route,
       requires_calculation_ref: numericSourceGuard.answer_contract.requires_calculation_ref,
       requires_source_record_ref: numericSourceGuard.answer_contract.requires_source_record_ref,
       validation_rules: numericSourceGuard.validation_rules
     },
     numeric_tool_loop_plan: numericToolLoopPlan,
     persistent_writes: false,
+    post_generation_evidence_binding: numericSourceGuard.post_generation_evidence_binding,
     release_checks: releaseChecks,
     release_gate: {
       blockers: [
-        "actual_post_generation_numeric_extraction_missing",
         "live_evidence_binding_missing",
         "frontend_clarification_ui_missing"
       ],
-      gate_status: "blocked_live_post_generation_validation",
+      gate_status: "blocked_live_evidence_binding",
       no_live_release_claim: true,
       required_signoffs: ["product", "agent", "data_quality"]
     },
@@ -2269,6 +2424,8 @@ export function createProductAgentReleaseGatePlan(
       no_frontend_rendering: true,
       no_live_execution: true,
       numeric_sources_restricted: numericSourcesRestricted,
+      post_generation_sourced_numeric_claim_allowed: postGenerationSourcedNumericClaimAllowed,
+      post_generation_unsourced_numeric_claim_blocked: postGenerationUnsourcedNumericClaimBlocked,
       silent_selection_allowed: false,
       tool_planning_blocked_until_clarified: toolPlanningBlockedUntilClarified
     },
@@ -3367,7 +3524,8 @@ function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSou
       tool_name: tool.name,
       version: tool.version
     })),
-    post_generation_validation: "planned",
+    post_generation_evidence_binding: createPostGenerationEvidenceBindingPolicy(),
+    post_generation_validation: "local_deterministic",
     status: "guarded_no_actual_results",
     validation_rules: [
       "extract_numeric_claims",
@@ -3377,6 +3535,221 @@ function createNumericSourceGuard(tools: AgentRunToolContext[]): AgentNumericSou
     ],
     version: NUMERIC_SOURCE_GUARD_VERSION
   };
+}
+
+export function validatePostGenerationEvidenceBinding(
+  input: ValidatePostGenerationEvidenceBindingInput
+): AgentPostGenerationEvidenceBindingValidation {
+  const asOf = input.asOf?.trim() || new Date("2026-06-21T00:00:00.000Z").toISOString();
+  const evidenceCards = new Map(
+    (input.evidenceCards ?? []).map((card) => [card.cardId, card] as const)
+  );
+  const calculations = new Map(
+    (input.calculations ?? []).map((calculation) => [calculation.calculationId, calculation] as const)
+  );
+  const claims = normalizePostGenerationClaims(input);
+  const numericClaims = claims
+    .map((claim, index) =>
+      validatePostGenerationNumericClaim(claim, index, evidenceCards, calculations)
+    )
+    .filter(
+      (claim): claim is AgentPostGenerationNumericClaimValidation =>
+        claim !== undefined && claim.financial_context
+    );
+  const blockedClaimCount = numericClaims.filter(
+    (claim) => claim.binding_status === "missing_source_binding"
+  ).length;
+  const outputAllowed = blockedClaimCount === 0;
+
+  return {
+    actual_tool_execution: false,
+    as_of: asOf,
+    blocked_claim_count: blockedClaimCount,
+    failure_code: outputAllowed ? undefined : "UNSOURCED_NUMERIC_CLAIM",
+    live_evidence_binding: false,
+    model_calls: false,
+    numeric_claims: numericClaims,
+    output_allowed: outputAllowed,
+    persistent_writes: false,
+    request_id: input.requestId,
+    route: "POST /agent/runs/validate-answer",
+    sql_emitted: false,
+    status: outputAllowed ? "passed" : "blocked_unsourced_numeric_claim",
+    validation_rules: createPostGenerationEvidenceBindingPolicy().validation_rules,
+    version: POST_GENERATION_EVIDENCE_BINDING_VERSION
+  };
+}
+
+function createPostGenerationEvidenceBindingPolicy(): AgentPostGenerationEvidenceBindingPolicy {
+  return {
+    allowed_binding_refs: ["evidence_card", "source_record", "deterministic_calculation"],
+    failure_code: "UNSOURCED_NUMERIC_CLAIM",
+    live_evidence_binding: false,
+    local_deterministic_validation: true,
+    model_calls: false,
+    route: "POST /agent/runs/validate-answer",
+    status: "validator_ready",
+    validation_rules: [
+      "extract_post_generation_numeric_claims",
+      "require_source_record_or_calculation_binding",
+      "block_unsourced_financial_numbers",
+      "mark_missing_numbers_unknown"
+    ],
+    version: POST_GENERATION_EVIDENCE_BINDING_VERSION
+  };
+}
+
+function normalizePostGenerationClaims(
+  input: ValidatePostGenerationEvidenceBindingInput
+): AgentAnswerDraftClaimInput[] {
+  if (input.claims !== undefined && input.claims.length > 0) {
+    return input.claims;
+  }
+
+  const answerText = input.answerText?.trim();
+
+  return answerText !== undefined && answerText.length > 0
+    ? [
+        {
+          claimId: "answer_text",
+          text: answerText
+        }
+      ]
+    : [];
+}
+
+function validatePostGenerationNumericClaim(
+  claim: AgentAnswerDraftClaimInput,
+  index: number,
+  evidenceCards: Map<string, AgentAnswerEvidenceCardInput>,
+  calculations: Map<string, AgentAnswerCalculationRefInput>
+): AgentPostGenerationNumericClaimValidation | undefined {
+  const numericValues = extractConcreteNumericValues(claim.text);
+
+  if (numericValues.length === 0) {
+    return undefined;
+  }
+
+  const financialContext = hasFinancialNumericContext(claim, numericValues);
+  const binding = resolvePostGenerationBinding(claim, evidenceCards, calculations);
+
+  return {
+    binding_status: financialContext ? binding.status : "bound_source_record",
+    calculation_id: claim.calculationId,
+    claim_id: claim.claimId?.trim() || `claim_${index + 1}`,
+    evidence_card_id: claim.evidenceCardId,
+    financial_context: financialContext,
+    missing_fields: financialContext ? binding.missingFields : [],
+    numeric_values: numericValues,
+    source_record_id: binding.sourceRecordId ?? claim.sourceRecordId,
+    text: claim.text
+  };
+}
+
+function resolvePostGenerationBinding(
+  claim: AgentAnswerDraftClaimInput,
+  evidenceCards: Map<string, AgentAnswerEvidenceCardInput>,
+  calculations: Map<string, AgentAnswerCalculationRefInput>
+): {
+  missingFields: string[];
+  sourceRecordId?: string;
+  status: AgentPostGenerationNumericClaimBindingStatus;
+} {
+  if (claim.evidenceCardId !== undefined) {
+    const card = evidenceCards.get(claim.evidenceCardId);
+
+    if (
+      card !== undefined &&
+      card.sourceRecordId.trim().length > 0 &&
+      card.dataVersion.trim().length > 0 &&
+      card.methodologyVersion.trim().length > 0
+    ) {
+      return {
+        missingFields: [],
+        sourceRecordId: card.sourceRecordId,
+        status: "bound_evidence_card"
+      };
+    }
+
+    return {
+      missingFields: ["evidence_card.source_record_id", "evidence_card.data_version", "evidence_card.methodology_version"],
+      status: "missing_source_binding"
+    };
+  }
+
+  if (claim.calculationId !== undefined) {
+    const calculation = calculations.get(claim.calculationId);
+
+    if (
+      calculation !== undefined &&
+      calculation.methodologyVersion.trim().length > 0 &&
+      calculation.sourceRecordIds.length > 0
+    ) {
+      return {
+        missingFields: [],
+        sourceRecordId: calculation.sourceRecordIds[0],
+        status: "bound_calculation"
+      };
+    }
+
+    return {
+      missingFields: ["calculation.source_record_ids", "calculation.methodology_version"],
+      status: "missing_source_binding"
+    };
+  }
+
+  if (
+    claim.sourceRecordId !== undefined &&
+    claim.sourceRecordId.trim().length > 0 &&
+    claim.dataVersion !== undefined &&
+    claim.dataVersion.trim().length > 0 &&
+    claim.methodologyVersion !== undefined &&
+    claim.methodologyVersion.trim().length > 0
+  ) {
+    return {
+      missingFields: [],
+      sourceRecordId: claim.sourceRecordId,
+      status: "bound_source_record"
+    };
+  }
+
+  return {
+    missingFields: ["source_record_id", "data_version", "methodology_version"],
+    status: "missing_source_binding"
+  };
+}
+
+function extractConcreteNumericValues(text: string): string[] {
+  const matches = text.matchAll(
+    /(?:HK\$|US\$|RMB|CNY|HKD|USD|\$|¥|£|€)?\s*[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:%|bps?|x|倍|元|港元|美元|億元|亿|million|billion|m|bn)?/giu
+  );
+
+  return [...matches]
+    .map((match) => match[0].trim())
+    .filter((value) => value.length > 0)
+    .filter((value) => !/^(?:19|20)\d{2}$/u.test(value));
+}
+
+function hasFinancialNumericContext(
+  claim: AgentAnswerDraftClaimInput,
+  numericValues: string[]
+): boolean {
+  if (claim.label === "calculation" || claim.label === "fact") {
+    return true;
+  }
+
+  const text = claim.text.toLowerCase();
+  const hasCurrencyOrPercent = numericValues.some((value) =>
+    /(?:HK\$|US\$|RMB|CNY|HKD|USD|\$|¥|£|€|%|bps?|x|倍|元|港元|美元|億元|亿|million|billion|m|bn)/iu.test(
+      value
+    )
+  );
+  const hasFinancialTerm =
+    /revenue|roe|eps|p\/?e|price|market cap|net income|cash flow|margin|profit|dividend|yield|growth|return|risk|ratio|turnover|volume|share price|nav|ebitda|cagr|收入|营收|營收|利润|利潤|股价|股價|市值|成交|回报|回報|收益|现金流|現金流|股息|估值|市盈率|毛利率|净利率|淨利率|资产|資產|负债|負債|成本|费用|費用/u.test(
+      text
+    );
+
+  return hasCurrencyOrPercent || hasFinancialTerm;
 }
 
 function createAnswerEvidenceContract(input: {

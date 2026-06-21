@@ -11,6 +11,13 @@ const requiredValidationRules = [
   "block_model_memory_numbers",
   "label_missing_numbers_unknown"
 ];
+const requiredPostGenerationValidationRules = [
+  "extract_post_generation_numeric_claims",
+  "require_source_record_or_calculation_binding",
+  "block_unsourced_financial_numbers",
+  "mark_missing_numbers_unknown"
+];
+const requiredBindingRefs = ["evidence_card", "source_record", "deterministic_calculation"];
 const requiredToolResultSourceFields = [
   "tool_name",
   "version",
@@ -119,8 +126,16 @@ function validateContract(value) {
     errors.push("concrete_claims_allowed_now must be false");
   }
 
-  if (value.post_generation_validation !== "planned") {
-    errors.push("post_generation_validation must be planned");
+  if (value.post_generation_validation !== "local_deterministic") {
+    errors.push("post_generation_validation must be local_deterministic");
+  }
+
+  if (value.post_generation_validator_ready !== true) {
+    errors.push("post_generation_validator_ready must be true");
+  }
+
+  if (value.post_generation_validator_route !== "POST /agent/runs/validate-answer") {
+    errors.push("post_generation_validator_route must be POST /agent/runs/validate-answer");
   }
 
   errors.push(...validateStringArray(value.allowed_sources, allowedSources, "allowed_sources"));
@@ -191,7 +206,60 @@ function validateContract(value) {
     }
   }
 
+  errors.push(...validatePostGenerationEvidenceBinding(value.post_generation_evidence_binding));
+
   errors.push(...validateNoSecrets(value));
+
+  return errors;
+}
+
+function validatePostGenerationEvidenceBinding(value) {
+  if (!isRecord(value)) {
+    return ["post_generation_evidence_binding must be an object"];
+  }
+
+  const errors = [];
+
+  if (value.version !== "2026-06-22.phase3.post-generation-evidence-binding.v0") {
+    errors.push("post_generation_evidence_binding.version must match validator version");
+  }
+
+  if (value.status !== "validator_ready") {
+    errors.push("post_generation_evidence_binding.status must be validator_ready");
+  }
+
+  if (value.route !== "POST /agent/runs/validate-answer") {
+    errors.push("post_generation_evidence_binding.route must be POST /agent/runs/validate-answer");
+  }
+
+  for (const field of ["live_evidence_binding", "model_calls"]) {
+    if (value[field] !== false) {
+      errors.push(`post_generation_evidence_binding.${field} must be false`);
+    }
+  }
+
+  if (value.local_deterministic_validation !== true) {
+    errors.push("post_generation_evidence_binding.local_deterministic_validation must be true");
+  }
+
+  if (value.failure_code !== "UNSOURCED_NUMERIC_CLAIM") {
+    errors.push("post_generation_evidence_binding.failure_code must be UNSOURCED_NUMERIC_CLAIM");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.allowed_binding_refs,
+      requiredBindingRefs,
+      "post_generation_evidence_binding.allowed_binding_refs"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.validation_rules,
+      requiredPostGenerationValidationRules,
+      "post_generation_evidence_binding.validation_rules"
+    )
+  );
 
   return errors;
 }

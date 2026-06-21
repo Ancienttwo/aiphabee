@@ -9,6 +9,7 @@ const requiredChecks = [
   "ambiguous_security_blocks_tool_planning",
   "silent_security_selection_blocked",
   "numeric_claim_requires_tool_result_or_calculation_ref",
+  "post_generation_unsourced_numeric_claim_blocked",
   "answer_contract_blocks_unsourced_numbers",
   "deterministic_calculations_keep_model_out"
 ];
@@ -16,6 +17,7 @@ const requiredOutputFields = [
   "ambiguous_security_gate",
   "numeric_evidence_gate",
   "answer_contract_gate",
+  "post_generation_evidence_binding",
   "release_checks",
   "validation"
 ];
@@ -35,15 +37,12 @@ const requiredCoveredItems = [
   "security_ambiguity_no_silent_selection",
   "numeric_claims_evidence_bound"
 ];
-const requiredBlockers = [
-  "actual_post_generation_numeric_extraction_missing",
-  "live_evidence_binding_missing",
-  "frontend_clarification_ui_missing"
-];
+const requiredBlockers = ["live_evidence_binding_missing", "frontend_clarification_ui_missing"];
 const requiredLinkedContracts = [
   "deploy/agent/pre-tool-call-resolution.contract.json",
   "deploy/agent/numeric-source-guard.contract.json",
   "deploy/agent/answer-evidence-contract.contract.json",
+  "deploy/governance/post-generation-evidence-binding.contract.json",
   "deploy/database/migrations.contract.json"
 ];
 const forbiddenTextPatterns = [
@@ -204,8 +203,8 @@ function validateReleaseGate(value) {
 
   const errors = [];
 
-  if (value.gate_status !== "blocked_live_post_generation_validation") {
-    errors.push("release_gate.gate_status must be blocked_live_post_generation_validation");
+  if (value.gate_status !== "blocked_live_evidence_binding") {
+    errors.push("release_gate.gate_status must be blocked_live_evidence_binding");
   }
 
   if (value.no_live_release_claim !== true) {

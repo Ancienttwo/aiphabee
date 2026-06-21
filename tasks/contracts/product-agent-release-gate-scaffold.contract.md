@@ -24,6 +24,7 @@ numbers.
 - Concrete financial numbers must require either:
   - `tool_result` with `source_record_id`
   - `deterministic_calculation` with calculation reference
+  - post-generation evidence card / source record binding before answer output
 - Numeric sources must block:
   - `model_memory`
   - `training_data`
@@ -39,8 +40,7 @@ numbers.
 
 ## Non-Goals
 
-- No live post-generation numeric extraction.
-- No live evidence binding.
+- No live evidence binding writes.
 - No frontend clarification UI.
 - No production release signoff.
 - No actual model/tool execution.
