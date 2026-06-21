@@ -88,6 +88,101 @@ interface PublicDocsBody {
   };
 }
 
+interface SupportRuntimeBody {
+  data: {
+    default_sensitive_content_access: boolean;
+    frontend: boolean;
+    help_center_route: string;
+    investigation_route: string;
+    live_billing_provider_reads: boolean;
+    live_log_reads: boolean;
+    persistent_writes: boolean;
+    request_id_required: boolean;
+    route: string;
+    sensitive_fields_forbidden_by_default: string[];
+    sql_emitted: boolean;
+    status: string;
+    support_agent_required: boolean;
+    support_help_topics: string[];
+    support_lookup_fields: string[];
+  };
+  ok: true;
+}
+
+interface SupportHelpCenterBody {
+  data: {
+    capability: {
+      status: string;
+    };
+    doc_path: string;
+    help_topics: Array<{
+      escalation_path: string;
+      request_id_recommended: boolean;
+      topic_code: string;
+    }>;
+    live_chat_enabled: boolean;
+    persistent_writes: boolean;
+    request_id_visible: boolean;
+    route: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface SupportInvestigationPlanBody {
+  data: {
+    audit: {
+      audit_event: string;
+      support_agent_id: string;
+      table: string;
+      write_status: string;
+    };
+    capability: {
+      status: string;
+    };
+    help_center: {
+      category: string;
+      doc_path: string;
+    };
+    investigation: {
+      allowed_lookup_fields: string[];
+      billing_trace: {
+        request_id_join: boolean;
+        usage_event_id: string;
+      };
+      live_billing_provider_reads: boolean;
+      live_log_reads: boolean;
+      target_request_id: string;
+    };
+    persistent_writes: boolean;
+    privacy: {
+      default_sensitive_content_access: boolean;
+      forbidden_fields: string[];
+      include_sensitive_content_requested: boolean;
+      sensitive_content_released: boolean;
+    };
+    request_id: string;
+    request_id_visible: boolean;
+    sql_emitted: boolean;
+    status: string;
+    support_ticket: {
+      ticket_status: string;
+    };
+    validation: {
+      required_context_present: boolean;
+      sensitive_request_blocked: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface AccountRuntimeBody {
   data: {
     auth_provider_calls: boolean;
@@ -4235,6 +4330,167 @@ describe("worker runtime", () => {
     });
     expect(body.data.capability.status).toBe("public_status_docs_scaffold");
     expect(body.usage.rows).toBe(4);
+  });
+
+  it("serves support runtime capabilities for request_id investigation", async () => {
+    const response = await app.request("/support/runtime", {
+      headers: {
+        "x-request-id": "req-support-runtime"
+      }
+    });
+    const body = (await response.json()) as SupportRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      default_sensitive_content_access: false,
+      frontend: false,
+      help_center_route: "GET /support/help-center",
+      investigation_route: "POST /support/request-id-investigation/plan",
+      live_billing_provider_reads: false,
+      live_log_reads: false,
+      persistent_writes: false,
+      request_id_required: true,
+      route: "GET /support/runtime",
+      sql_emitted: false,
+      status: "support_request_id_investigation_scaffold",
+      support_agent_required: true
+    });
+    expect(body.data.support_lookup_fields).toEqual(
+      expect.arrayContaining(["request_id", "tool_name", "usage_event_id", "invoice_line_id"])
+    );
+    expect(body.data.sensitive_fields_forbidden_by_default).toEqual(
+      expect.arrayContaining(["raw_prompt", "generated_answer", "payment_method"])
+    );
+  });
+
+  it("serves help center topics with request_id escalation path", async () => {
+    const response = await app.request("/support/help-center", {
+      headers: {
+        "x-request-id": "req-support-help"
+      }
+    });
+    const body = (await response.json()) as SupportHelpCenterBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      doc_path: "docs/public/help-center.md",
+      live_chat_enabled: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "GET /support/help-center",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.help_topics.map((topic) => topic.topic_code)).toEqual([
+      "account_billing",
+      "mcp_connection",
+      "data_quality",
+      "usage_quota",
+      "privacy_account",
+      "incident_status"
+    ]);
+    expect(
+      body.data.help_topics.every(
+        (topic) => topic.escalation_path === "POST /support/request-id-investigation/plan"
+      )
+    ).toBe(true);
+    expect(body.data.capability.status).toBe("support_request_id_investigation_scaffold");
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans request_id support investigation without sensitive content access", async () => {
+    const response = await app.request("/support/request-id-investigation/plan", {
+      body: JSON.stringify({
+        category: "mcp_connection",
+        reason: "customer_reported_auth_required",
+        support_agent_id: "support_agent_001",
+        target_request_id: "req_mcp_123",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-support-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SupportInvestigationPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      persistent_writes: false,
+      request_id: "req-support-plan",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.audit).toMatchObject({
+      audit_event: "support.request_id_investigation.plan",
+      support_agent_id: "support_agent_001",
+      table: "audit.support_investigation_event",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.investigation).toMatchObject({
+      live_billing_provider_reads: false,
+      live_log_reads: false,
+      target_request_id: "req_mcp_123"
+    });
+    expect(body.data.investigation.billing_trace).toMatchObject({
+      request_id_join: true,
+      usage_event_id: "usage_event_req_mcp_123"
+    });
+    expect(body.data.privacy).toMatchObject({
+      default_sensitive_content_access: false,
+      include_sensitive_content_requested: false,
+      sensitive_content_released: false
+    });
+    expect(body.data.privacy.forbidden_fields).toContain("raw_prompt");
+    expect(body.data.capability.status).toBe("support_request_id_investigation_scaffold");
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("blocks support investigation when context is missing or sensitive content is requested", async () => {
+    const missingResponse = await app.request("/support/request-id-investigation/plan", {
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-support-missing"
+      },
+      method: "POST"
+    });
+    const sensitiveResponse = await app.request("/support/request-id-investigation/plan", {
+      body: JSON.stringify({
+        include_sensitive_content: true,
+        support_agent_id: "support_agent_001",
+        target_request_id: "req_mcp_123"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-support-sensitive"
+      },
+      method: "POST"
+    });
+    const missingBody = (await missingResponse.json()) as SupportInvestigationPlanBody;
+    const sensitiveBody = (await sensitiveResponse.json()) as SupportInvestigationPlanBody;
+
+    expect(missingResponse.status).toBe(200);
+    expect(missingBody.data.status).toBe("blocked_missing_context");
+    expect(missingBody.data.validation.required_context_present).toBe(false);
+    expect(missingBody.data.support_ticket.ticket_status).toBe("blocked");
+    expect(missingBody.usage.rows).toBe(0);
+    expect(sensitiveResponse.status).toBe(200);
+    expect(sensitiveBody.data.status).toBe("blocked_sensitive_content_request");
+    expect(sensitiveBody.data.validation.sensitive_request_blocked).toBe(true);
+    expect(sensitiveBody.data.privacy).toMatchObject({
+      include_sensitive_content_requested: true,
+      sensitive_content_released: false
+    });
+    expect(sensitiveBody.usage.rows).toBe(0);
   });
 
   it("serves account runtime capabilities without auth provider calls", async () => {

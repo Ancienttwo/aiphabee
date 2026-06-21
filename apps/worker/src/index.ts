@@ -182,6 +182,11 @@ import {
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
 import {
+  createSupportRequestIdInvestigationPlan,
+  getSupportHelpCenter,
+  getSupportOperationsCapabilities
+} from "@aiphabee/support-ops";
+import {
   GET_SECURITY_HISTORY_VERSION,
   GetSecurityProfileInputError,
   GetSecurityHistoryInputError,
@@ -526,6 +531,115 @@ app.get("/public/docs", (c) => {
           cached: false,
           credits: 0,
           rows: docsManifest.documents.length
+        }
+      }
+    )
+  );
+});
+
+app.get("/support/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getSupportOperationsCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "support-ops",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.get("/support/help-center", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const helpCenter = getSupportHelpCenter();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...helpCenter,
+        capability: getSupportOperationsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: helpCenter.version,
+        methodologyVersion: helpCenter.version,
+        provenance: [
+          {
+            data_version: helpCenter.version,
+            methodology_version: helpCenter.version,
+            source: "support-ops",
+            source_record_id: "help-center"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: helpCenter.help_topics.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/support/request-id-investigation/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createSupportRequestIdInvestigationPlan({
+    category: normalizeString(body.category ?? body.topic_code ?? body.topicCode),
+    includeSensitiveContent: body.include_sensitive_content === true || body.includeSensitiveContent === true,
+    reason: normalizeString(body.reason),
+    requestId,
+    supportAgentId: normalizeString(body.support_agent_id ?? body.supportAgentId),
+    targetRequestId: normalizeString(body.target_request_id ?? body.targetRequestId ?? body.request_id ?? body.requestId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getSupportOperationsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "support-ops",
+            source_record_id: "support-request-id-investigation-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? 1 : 0
         }
       }
     )

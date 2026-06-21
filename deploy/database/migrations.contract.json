@@ -322,6 +322,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621123000_support_request_id_investigation_scaffold.sql",
+      "purpose": "Create empty support ticket, support investigation audit, and governance scaffolds for request ID investigation without enabling live log or billing provider reads.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.support_ticket",
+        "audit.support_investigation_event",
+        "governance.support_request_id_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

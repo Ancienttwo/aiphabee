@@ -1,0 +1,85 @@
+{
+  "version": "2026-06-21.phase3.support-request-id-investigation-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/support-ops",
+  "runtime_route": "GET /support/runtime",
+  "help_center_route": "GET /support/help-center",
+  "investigation_route": "POST /support/request-id-investigation/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_log_reads": false,
+  "live_billing_provider_reads": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "request_id_required": true,
+  "request_id_visible": true,
+  "support_agent_required": true,
+  "default_sensitive_content_access": false,
+  "support_help_topics": [
+    "account_billing",
+    "mcp_connection",
+    "data_quality",
+    "usage_quota",
+    "privacy_account",
+    "incident_status"
+  ],
+  "support_lookup_fields": [
+    "request_id",
+    "route",
+    "tool_name",
+    "dataset",
+    "data_version",
+    "methodology_version",
+    "error_code",
+    "usage_credits",
+    "usage_rows",
+    "usage_event_id",
+    "ledger_entry_id",
+    "invoice_line_id",
+    "status_component",
+    "as_of"
+  ],
+  "forbidden_default_fields": [
+    "raw_prompt",
+    "generated_answer",
+    "raw_email",
+    "password",
+    "oauth_access_token",
+    "oauth_refresh_token",
+    "session_secret",
+    "api_key_material",
+    "payment_method",
+    "portfolio_holdings",
+    "document_body",
+    "personal_contact_detail"
+  ],
+  "planned_sources": [
+    "standard_response_envelope",
+    "mcp_error_detail",
+    "usage_ledger_event",
+    "usage_billing_reconciliation",
+    "public_status_component"
+  ],
+  "help_center_document": {
+    "path": "docs/public/help-center.md",
+    "required_sections": [
+      "Account And Billing",
+      "MCP Connection",
+      "Data Quality",
+      "Usage And Quota",
+      "Privacy And Account",
+      "Incident Status"
+    ]
+  },
+  "tables": [
+    "core.support_ticket",
+    "audit.support_investigation_event",
+    "governance.support_request_id_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json",
+    "deploy/mcp/error-codes.contract.json",
+    "deploy/public-ops/public-status-docs.contract.json"
+  ]
+}
