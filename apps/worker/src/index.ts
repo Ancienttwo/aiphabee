@@ -105,6 +105,14 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  ResearchRunInputError,
+  createResearchRunSavePlan,
+  getResearchRuntimeCapabilities,
+  type ResearchRunEvidenceInput,
+  type ResearchRunJsonValue,
+  type ResearchRunToolCallInput
+} from "@aiphabee/research-runtime";
+import {
   getServingStoreExecutionAdapterCapabilities,
   getServingStoreQueryPlannerCapabilities,
   getServingStoreQualityReleaseCapabilities,
@@ -1367,6 +1375,116 @@ app.post("/documents/diff-announcements", async (c) => {
       }
     )
   );
+});
+
+app.get("/research/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getResearchRuntimeCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "research-run-save-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.research-run-save-scaffold.v0",
+      provenance: [
+        {
+          data_version: "research-run-save-scaffold-v0",
+          methodology_version: "2026-06-21.phase2.research-run-save-scaffold.v0",
+          source: "research-runtime",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/research/runs/save/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createResearchRunSavePlan({
+      answerHash: normalizeString(body.answer_hash ?? body.answerHash),
+      asOf: normalizeString(body.as_of ?? body.asOf),
+      channel: normalizeResearchChannel(body.channel),
+      evidenceRecords: normalizeResearchEvidenceRecords(
+        body.evidence_records ?? body.evidenceRecords
+      ),
+      modelProvider: normalizeString(body.model_provider ?? body.modelProvider),
+      modelVersion: normalizeString(body.model_version ?? body.modelVersion),
+      parameters: normalizeResearchParameters(body.parameters),
+      promptTemplateId: normalizeString(
+        body.prompt_template_id ?? body.promptTemplateId
+      ),
+      promptVersion: normalizeString(body.prompt_version ?? body.promptVersion),
+      question: normalizeString(body.question),
+      requestId,
+      runId: normalizeString(body.run_id ?? body.runId),
+      toolCalls: normalizeResearchToolCalls(body.tool_calls ?? body.toolCalls),
+      userId: normalizeString(body.user_id ?? body.userId),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getResearchRuntimeCapabilities()
+        },
+        {
+          asOf: result.as_of,
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof ResearchRunInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          dataVersion: "research-run-save-scaffold-v0",
+          methodologyVersion:
+            "2026-06-21.phase2.research-run-save-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "research run save plan failed", {
+        asOf: new Date().toISOString(),
+        dataVersion: "research-run-save-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase2.research-run-save-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
 });
 
 app.post("/gateway/access-check", async (c) => {
@@ -3582,6 +3700,114 @@ function normalizeString(value: unknown): string | undefined {
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeResearchChannel(value: unknown): "api" | "mcp" | "web" | undefined {
+  return value === "api" || value === "mcp" || value === "web" ? value : undefined;
+}
+
+function normalizeResearchToolCalls(
+  value: unknown
+): ResearchRunToolCallInput[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => ({
+      dataVersion: normalizeString(item.data_version ?? item.dataVersion),
+      input: normalizeResearchJsonValue(item.input ?? item.input_snapshot ?? item.inputSnapshot),
+      inputSchemaId: normalizeString(item.input_schema_id ?? item.inputSchemaId),
+      methodologyVersion: normalizeString(
+        item.methodology_version ?? item.methodologyVersion
+      ),
+      outputSchemaId: normalizeString(item.output_schema_id ?? item.outputSchemaId),
+      requestId: normalizeString(item.request_id ?? item.requestId),
+      toolCallId: normalizeString(item.tool_call_id ?? item.toolCallId),
+      toolName: normalizeString(item.tool_name ?? item.toolName),
+      toolVersion: normalizeString(item.tool_version ?? item.toolVersion)
+    }));
+}
+
+function normalizeResearchEvidenceRecords(
+  value: unknown
+): ResearchRunEvidenceInput[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => {
+      const rawLocation = item.document_location ?? item.documentLocation;
+      const documentLocation = isPlainRecord(rawLocation)
+        ? {
+            anchor: normalizeString(rawLocation.anchor),
+            documentId: normalizeString(rawLocation.document_id ?? rawLocation.documentId),
+            page: normalizeOptionalInteger(rawLocation.page),
+            paragraph: normalizeOptionalInteger(rawLocation.paragraph),
+            sourceRecordId: normalizeString(
+              rawLocation.source_record_id ?? rawLocation.sourceRecordId
+            )
+          }
+        : undefined;
+
+      return {
+        citationLabel: normalizeString(item.citation_label ?? item.citationLabel),
+        dataVersion: normalizeString(item.data_version ?? item.dataVersion),
+        documentLocation,
+        evidenceRecordId: normalizeString(
+          item.evidence_record_id ?? item.evidenceRecordId
+        ),
+        methodologyVersion: normalizeString(
+          item.methodology_version ?? item.methodologyVersion
+        ),
+        sourceRecordIds: normalizeStringArray(
+          item.source_record_ids ?? item.sourceRecordIds
+        )
+      };
+    });
+}
+
+function normalizeResearchParameters(
+  value: unknown
+): Record<string, ResearchRunJsonValue> | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value)
+    .map(([key, rawValue]) => [key, normalizeResearchJsonValue(rawValue)] as const)
+    .filter((entry): entry is readonly [string, ResearchRunJsonValue] => entry[1] !== undefined);
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function normalizeResearchJsonValue(value: unknown): ResearchRunJsonValue | undefined {
+  if (value === null || typeof value === "boolean" || typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeResearchJsonValue(item))
+      .filter((item): item is ResearchRunJsonValue => item !== undefined);
+  }
+
+  if (isPlainRecord(value)) {
+    const entries = Object.entries(value)
+      .map(([key, rawValue]) => [key, normalizeResearchJsonValue(rawValue)] as const)
+      .filter((entry): entry is readonly [string, ResearchRunJsonValue] => entry[1] !== undefined);
+
+    return Object.fromEntries(entries);
+  }
+
+  return undefined;
 }
 
 function normalizeStringArray(value: unknown): string[] | undefined {

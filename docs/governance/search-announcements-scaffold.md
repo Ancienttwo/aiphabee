@@ -114,5 +114,6 @@ Observed search behavior:
   disabled.
 - Cross-period document diff and numeric extraction are covered separately by
   `docs/governance/announcement-diff-extraction-scaffold.md`.
-- Saved research runs and replay are not implemented.
+- Research run save-plan is covered separately by
+  `docs/governance/research-run-save-scaffold.md`; replay execution remains open.
 - Frontend research-library UI remains delegated.

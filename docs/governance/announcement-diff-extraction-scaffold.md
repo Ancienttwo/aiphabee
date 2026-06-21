@@ -45,7 +45,7 @@ Reason:
 - PRD DOC-04 requires extracted values to bind to original locations and pass
   schema validation.
 - The repo does not yet have live original document fetch, parser output, or
-  durable research-run persistence.
+  replay execution.
 - A deterministic scaffold can lock the route, payload shape, validation
   invariant, and source-location binding before live document ingestion lands.
 
@@ -55,7 +55,8 @@ Tradeoff:
   testable now.
 - Real PDF/HTML parsing, extraction confidence, parser drift, and review UI are
   still future work.
-- Saved run persistence and replay remain the next research-library bottleneck.
+- Saved run replay and data/model/parameter diffing remain the next
+  research-library bottleneck.
 
 ## Verification
 

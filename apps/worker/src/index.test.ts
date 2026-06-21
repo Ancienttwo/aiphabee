@@ -1428,6 +1428,111 @@ interface EvidenceRecordPlanBody {
   };
 }
 
+interface ResearchRuntimeBody {
+  data: {
+    immutable_report_snapshot: boolean;
+    live_db_writes: boolean;
+    replay_seed_ready: boolean;
+    required_fields: string[];
+    route: string;
+    runtime_route: string;
+    sql_emitted: boolean;
+    status: string;
+    supported_snapshots: string[];
+    tables: string[];
+    tool_name: string;
+  };
+  ok: true;
+}
+
+interface ResearchRunSavePlanBody {
+  data: {
+    answer_snapshot: {
+      answer_hash?: string;
+      output_hash_recorded: boolean;
+    };
+    capability: {
+      immutable_report_snapshot: boolean;
+      live_db_writes: boolean;
+      replay_seed_ready: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    evidence_snapshot: {
+      evidence_record_count: number;
+      records: Array<{
+        document_location?: {
+          document_id?: string;
+          page?: number;
+          paragraph?: number;
+          source_record_id?: string;
+        };
+        evidence_record_id: string;
+        source_record_ids: string[];
+      }>;
+      snapshot_hash: string;
+    };
+    immutable_report_snapshot: boolean;
+    live_db_writes: boolean;
+    model_snapshot: {
+      model_provider: string;
+      model_version: string;
+      prompt_template_id?: string;
+      prompt_version: string;
+    };
+    persistence_plan: {
+      old_report_mutation_allowed: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    question_snapshot: {
+      question: string;
+      question_hash: string;
+    };
+    replay_seed: {
+      deterministic_replay_ready: boolean;
+      replay_route: string;
+      replay_status: string;
+      snapshot_id: string;
+    };
+    research_run_id: string;
+    schema_validation: {
+      errors: string[];
+      required_fields: string[];
+      valid: boolean;
+    };
+    snapshot_id: string;
+    sql_emitted: boolean;
+    status: string;
+    tool_input_snapshot: {
+      tool_call_count: number;
+      tool_calls: Array<{
+        input_hash: string;
+        input_schema_id?: string;
+        input_snapshot: unknown;
+        request_id: string;
+        tool_name: string;
+      }>;
+    };
+    toolName: string;
+    user: {
+      source: string;
+      user_id: string;
+    };
+    workspace: {
+      source: string;
+      workspace_id: string;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -4915,6 +5020,225 @@ describe("worker runtime", () => {
     const body = (await response.json()) as ErrorBody;
 
     expect(response.status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("serves research run save capabilities without live writes", async () => {
+    const response = await app.request("/research/runtime", {
+      headers: {
+        "x-request-id": "req-research-runtime"
+      }
+    });
+    const body = (await response.json()) as ResearchRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      immutable_report_snapshot: true,
+      live_db_writes: false,
+      replay_seed_ready: true,
+      route: "POST /research/runs/save/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "research_run_save_scaffold",
+      tool_name: "save_research_run"
+    });
+    expect(body.data.required_fields).toEqual([
+      "question",
+      "tool_calls",
+      "evidence_records",
+      "model_version",
+      "prompt_version"
+    ]);
+    expect(body.data.supported_snapshots).toEqual([
+      "question",
+      "tool_inputs",
+      "evidence_records",
+      "model_version",
+      "prompt_version"
+    ]);
+    expect(body.data.tables).toEqual([
+      "core.research_run",
+      "core.research_run_tool_call",
+      "core.research_run_evidence_snapshot",
+      "core.research_run_model_snapshot"
+    ]);
+  });
+
+  it("plans complete research run snapshots for replay without writes", async () => {
+    const response = await app.request("/research/runs/save/plan", {
+      body: JSON.stringify({
+        answer_hash: "answer_hash_00700_revenue",
+        evidence_records: [
+          {
+            citation_label: "Tencent FY2024 annual results financial highlights",
+            data_version:
+              "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0",
+            document_location: {
+              anchor: "financial-highlights",
+              document_id: "doc_ann_00700_20250320_results",
+              page: 4,
+              paragraph: 2,
+              source_record_id: "src_announcement_00700_20250320_results"
+            },
+            evidence_record_id: "evidence_doc_diff_00700_fy2024",
+            methodology_version:
+              "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0",
+            source_record_ids: ["src_announcement_00700_20250320_results"]
+          }
+        ],
+        model_provider: "cloudflare_ai_gateway",
+        model_version: "gpt-5.4-dry-run",
+        prompt_template_id: "research-summary-v0",
+        prompt_version: "prompt.research-summary.v0",
+        question:
+          "Compare Tencent annual revenue and operating profit across periods.",
+        run_id: "run_00700_research",
+        tool_calls: [
+          {
+            data_version:
+              "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0",
+            input: {
+              base_document_id: "doc_ann_00700_20240320_results",
+              comparison_document_id: "doc_ann_00700_20250320_results"
+            },
+            input_schema_id: "tool.diff_announcements.input.v0",
+            methodology_version:
+              "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0",
+            output_schema_id: "tool.diff_announcements.output.v0",
+            request_id: "req-diff-announcements",
+            tool_call_id: "tool_call_diff_announcements_1",
+            tool_name: "diff_announcements",
+            tool_version:
+              "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0"
+          }
+        ],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-save"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ResearchRunSavePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      answer_snapshot: {
+        answer_hash: "answer_hash_00700_revenue",
+        output_hash_recorded: true
+      },
+      immutable_report_snapshot: true,
+      live_db_writes: false,
+      model_snapshot: {
+        model_provider: "cloudflare_ai_gateway",
+        model_version: "gpt-5.4-dry-run",
+        prompt_template_id: "research-summary-v0",
+        prompt_version: "prompt.research-summary.v0"
+      },
+      research_run_id: "run_00700_research",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "save_research_run"
+    });
+    expect(body.data.capability).toMatchObject({
+      immutable_report_snapshot: true,
+      live_db_writes: false,
+      replay_seed_ready: true,
+      route: "POST /research/runs/save/plan",
+      status: "research_run_save_scaffold",
+      tool_name: "save_research_run"
+    });
+    expect(body.data.schema_validation).toEqual({
+      errors: [],
+      required_fields: [
+        "question",
+        "tool_calls",
+        "evidence_records",
+        "model_version",
+        "prompt_version"
+      ],
+      valid: true
+    });
+    expect(body.data.persistence_plan).toMatchObject({
+      old_report_mutation_allowed: false,
+      sql_emitted: false,
+      write_status: "planned_no_write"
+    });
+    expect(body.data.tool_input_snapshot).toMatchObject({
+      tool_call_count: 1,
+      tool_calls: [
+        {
+          input_schema_id: "tool.diff_announcements.input.v0",
+          request_id: "req-diff-announcements",
+          tool_name: "diff_announcements"
+        }
+      ]
+    });
+    expect(body.data.tool_input_snapshot.tool_calls[0]?.input_hash).toMatch(
+      /^[a-f0-9]{8}$/u
+    );
+    expect(body.data.evidence_snapshot).toMatchObject({
+      evidence_record_count: 1,
+      records: [
+        {
+          document_location: {
+            document_id: "doc_ann_00700_20250320_results",
+            page: 4,
+            paragraph: 2,
+            source_record_id: "src_announcement_00700_20250320_results"
+          },
+          evidence_record_id: "evidence_doc_diff_00700_fy2024",
+          source_record_ids: ["src_announcement_00700_20250320_results"]
+        }
+      ]
+    });
+    expect(body.data.snapshot_id).toBe(
+      `research_snapshot_${body.data.evidence_snapshot.snapshot_hash}`
+    );
+    expect(body.data.replay_seed).toEqual({
+      deterministic_replay_ready: true,
+      replay_route: "POST /research/runs/replay/plan",
+      replay_status: "planned",
+      snapshot_id: body.data.snapshot_id
+    });
+    expect(body.data.question_snapshot.question_hash).toMatch(/^[a-f0-9]{8}$/u);
+    expect(body.data.user).toEqual({
+      source: "request",
+      user_id: "user_internal_alpha"
+    });
+    expect(body.data.workspace).toEqual({
+      source: "request",
+      workspace_id: "workspace_research"
+    });
+    expect(body.usage.rows).toBe(3);
+  });
+
+  it("rejects incomplete research run save plans with standard errors", async () => {
+    const response = await app.request("/research/runs/save/plan", {
+      body: JSON.stringify({
+        evidence_records: [],
+        model_version: "gpt-5.4-dry-run",
+        prompt_version: "prompt.research-summary.v0",
+        question: "Compare Tencent",
+        tool_calls: []
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-save-invalid"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
   });
