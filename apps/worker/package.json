@@ -31,6 +31,7 @@
     "@aiphabee/serving-store": "file:../../packages/serving-store",
     "@aiphabee/tool-registry": "file:../../packages/tool-registry",
     "@aiphabee/usage-ledger": "file:../../packages/usage-ledger",
+    "@aiphabee/watchlist-runtime": "file:../../packages/watchlist-runtime",
     "@aiphabee/workbench": "file:../../packages/workbench",
     "hono": "^4.12.26"
   },

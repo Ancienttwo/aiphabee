@@ -286,6 +286,132 @@ interface UsageHighCostReservationPlanBody {
   };
 }
 
+interface WatchlistRuntimeBody {
+  data: {
+    create_alert_scope: string;
+    dedupe_ready: boolean;
+    event_queue: string;
+    explicit_confirmation_required: boolean;
+    frequency_controls: boolean;
+    frontend: boolean;
+    independent_scope_required: boolean;
+    live_tool_execution: boolean;
+    notification_fanout: boolean;
+    persistent_writes: boolean;
+    quiet_period_controls: boolean;
+    route: string;
+    runtime_route: string;
+    source_required: boolean;
+    sql_emitted: boolean;
+    status: string;
+    supported_alert_kinds: string[];
+    supported_channels: string[];
+    supported_frequencies: string[];
+    tables: string[];
+  };
+  ok: true;
+}
+
+interface WatchlistAlertsPlanBody {
+  data: {
+    alert_rule: {
+      alert_kinds: string[];
+      explicit_confirmation: boolean;
+      idempotency_key: string;
+      independent_scope: string;
+      table: string;
+      write_status: string;
+    };
+    capability: {
+      explicit_confirmation_required: boolean;
+      route: string;
+      status: string;
+    };
+    channels: string[];
+    dedupe: {
+      duplicate_policy: string;
+      source_record_id_required: boolean;
+      window_minutes: number;
+    };
+    evaluation_plan: {
+      announcement_alert: {
+        live_tool_execution: boolean;
+        source_tool: string;
+        status: string;
+      };
+      metric_alert: {
+        live_tool_execution: boolean;
+        metric_ids: string[];
+        source_tool: string;
+        status: string;
+      };
+      price_alert: {
+        condition: {
+          comparator: string;
+          field: string;
+          threshold?: number;
+        };
+        live_tool_execution: boolean;
+        source_tool: string;
+        status: string;
+      };
+    };
+    frequency: {
+      frequency: string;
+      max_notifications_per_period: number;
+      quiet_period: {
+        enabled: boolean;
+        end?: string;
+        start?: string;
+        timezone: string;
+      };
+    };
+    frontend: boolean;
+    live_tool_execution: boolean;
+    notification: {
+      channels: string[];
+      evidence_required: boolean;
+      event_queue: string;
+      fanout_status: string;
+      notification_write_status: string;
+    };
+    persistence_plan: {
+      live_db_writes: boolean;
+      queue_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+    validation: {
+      explicit_confirmation_provided: boolean;
+      explicit_confirmation_required: boolean;
+      idempotency_key_required: boolean;
+      required_context_present: boolean;
+      scope_required: string;
+    };
+    watchlist: {
+      instrument_id?: string;
+      security_query?: string;
+      watchlist_id: string;
+      watchlist_item_table: string;
+      watchlist_table: string;
+      write_status: string;
+    };
+    workspace: {
+      user_id: string;
+      workspace_id: string;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface UsageQuotaPlanBody {
   data: {
     billing_traceability: {
@@ -3611,6 +3737,177 @@ describe("worker runtime", () => {
     expect(body.data.capability.status).toBe("high_cost_usage_reservation_scaffold");
     expect(body.data.double_charge_guard.same_request_reuses_reservation).toBe(true);
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("serves watchlist alert capabilities without live fanout", async () => {
+    const response = await app.request("/watchlist/runtime", {
+      headers: {
+        "x-request-id": "req-watchlist-runtime"
+      }
+    });
+    const body = (await response.json()) as WatchlistRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      create_alert_scope: "alerts.write",
+      dedupe_ready: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      explicit_confirmation_required: true,
+      frequency_controls: true,
+      frontend: false,
+      independent_scope_required: true,
+      live_tool_execution: false,
+      notification_fanout: false,
+      persistent_writes: false,
+      quiet_period_controls: true,
+      route: "POST /watchlist/alerts/plan",
+      runtime_route: "GET /watchlist/runtime",
+      source_required: true,
+      sql_emitted: false,
+      status: "watchlist_alerts_scaffold"
+    });
+    expect(body.data.supported_alert_kinds).toEqual(["price", "announcement", "metric"]);
+    expect(body.data.supported_frequencies).toEqual(["realtime", "daily", "weekly"]);
+    expect(body.data.tables).toEqual([
+      "core.watchlist",
+      "core.watchlist_item",
+      "core.watchlist_alert_rule",
+      "core.watchlist_alert_event"
+    ]);
+  });
+
+  it("plans watchlist price announcement and metric alerts with dedupe controls", async () => {
+    const response = await app.request("/watchlist/alerts/plan", {
+      body: JSON.stringify({
+        alert_kinds: ["price", "announcement", "metric"],
+        channels: ["in_app", "email"],
+        condition: {
+          comparator: "changed_by_percent",
+          metric_id: "net_margin",
+          price_field: "close",
+          threshold: 5
+        },
+        explicit_confirmation: true,
+        frequency: "daily",
+        idempotency_key: "alert-idem-00700-daily",
+        instrument_id: "instrument_hk_00700",
+        metric_ids: ["return_on_equity"],
+        quiet_hours_end: "08:30",
+        quiet_hours_start: "21:30",
+        timezone: "Asia/Hong_Kong",
+        user_id: "user_internal_alpha",
+        watchlist_id: "watchlist_alpha_hk",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-watchlist-alerts"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WatchlistAlertsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_tool_execution: false,
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_watchlist_alerts"
+    });
+    expect(body.data.capability).toMatchObject({
+      explicit_confirmation_required: true,
+      route: "POST /watchlist/alerts/plan",
+      status: "watchlist_alerts_scaffold"
+    });
+    expect(body.data.alert_rule).toMatchObject({
+      alert_kinds: ["price", "announcement", "metric"],
+      explicit_confirmation: true,
+      idempotency_key: "alert-idem-00700-daily",
+      independent_scope: "alerts.write",
+      table: "core.watchlist_alert_rule",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.watchlist).toMatchObject({
+      instrument_id: "instrument_hk_00700",
+      watchlist_id: "watchlist_alpha_hk",
+      watchlist_item_table: "core.watchlist_item",
+      watchlist_table: "core.watchlist",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.frequency).toEqual({
+      frequency: "daily",
+      max_notifications_per_period: 1,
+      quiet_period: {
+        enabled: true,
+        end: "08:30",
+        start: "21:30",
+        timezone: "Asia/Hong_Kong"
+      }
+    });
+    expect(body.data.dedupe).toMatchObject({
+      duplicate_policy: "suppress_same_source_within_window",
+      source_record_id_required: true,
+      window_minutes: 1440
+    });
+    expect(body.data.evaluation_plan).toMatchObject({
+      announcement_alert: {
+        live_tool_execution: false,
+        source_tool: "search_announcements",
+        status: "planned_no_write"
+      },
+      metric_alert: {
+        live_tool_execution: false,
+        metric_ids: ["net_margin", "return_on_equity"],
+        source_tool: "get_financial_ratios",
+        status: "planned_no_write"
+      },
+      price_alert: {
+        condition: {
+          comparator: "changed_by_percent",
+          field: "close",
+          threshold: 5
+        },
+        live_tool_execution: false,
+        source_tool: "get_quote_snapshot",
+        status: "planned_no_write"
+      }
+    });
+    expect(body.data.notification).toEqual({
+      channels: ["in_app", "email"],
+      evidence_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write",
+      notification_write_status: "planned_no_write"
+    });
+    expect(body.data.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.watchlist",
+        "core.watchlist_item",
+        "core.watchlist_alert_rule",
+        "core.watchlist_alert_event"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.validation).toEqual({
+      explicit_confirmation_provided: true,
+      explicit_confirmation_required: true,
+      idempotency_key_required: true,
+      required_context_present: true,
+      scope_required: "alerts.write"
+    });
+    expect(body.usage).toEqual({
+      cached: false,
+      credits: 0,
+      rows: 6
+    });
   });
 
   it("serves analytics tool capabilities without frontend or live data", async () => {

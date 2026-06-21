@@ -179,6 +179,17 @@ import {
   type UsageQuotaPlanCode
 } from "@aiphabee/usage-ledger";
 import {
+  WATCHLIST_ALERT_CHANNELS,
+  WATCHLIST_ALERT_FREQUENCIES,
+  WATCHLIST_ALERT_KINDS,
+  createWatchlistAlertsPlan,
+  getWatchlistRuntimeCapabilities,
+  type WatchlistAlertChannel,
+  type WatchlistAlertConditionInput,
+  type WatchlistAlertFrequency,
+  type WatchlistAlertKind
+} from "@aiphabee/watchlist-runtime";
+import {
   createStockWorkbenchAnnouncementSearch,
   createStockWorkbenchSnapshot,
   getStockWorkbenchCapabilities
@@ -232,6 +243,35 @@ interface AgentRunRequestBody {
   promptVersion?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
+  workspace_id?: unknown;
+  workspaceId?: unknown;
+}
+
+interface WatchlistAlertsRequestBody {
+  alert_kinds?: unknown;
+  alertKinds?: unknown;
+  channels?: unknown;
+  condition?: unknown;
+  explicit_confirmation?: unknown;
+  explicitConfirmation?: unknown;
+  frequency?: unknown;
+  idempotency_key?: unknown;
+  idempotencyKey?: unknown;
+  instrument_id?: unknown;
+  instrumentId?: unknown;
+  metric_ids?: unknown;
+  metricIds?: unknown;
+  quiet_hours_end?: unknown;
+  quiet_hours_start?: unknown;
+  quietHoursEnd?: unknown;
+  quietHoursStart?: unknown;
+  security_query?: unknown;
+  securityQuery?: unknown;
+  timezone?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  watchlist_id?: unknown;
+  watchlistId?: unknown;
   workspace_id?: unknown;
   workspaceId?: unknown;
 }
@@ -933,6 +973,79 @@ app.post("/usage/high-cost/reservation/plan", async (c) => {
           credits: 0,
           rows: plan.status === "planned_no_write" ? 1 : 0
         }
+      }
+    )
+  );
+});
+
+app.get("/watchlist/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getWatchlistRuntimeCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "watchlist-alerts-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.watchlist-alerts-scaffold.v0",
+      provenance: [
+        {
+          data_version: "watchlist-alerts-scaffold-v0",
+          methodology_version: "2026-06-21.phase2.watchlist-alerts-scaffold.v0",
+          source: "watchlist-runtime",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/watchlist/alerts/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as WatchlistAlertsRequestBody;
+  const plan = createWatchlistAlertsPlan({
+    alertKinds: normalizeWatchlistAlertKinds(body.alert_kinds ?? body.alertKinds),
+    channels: normalizeWatchlistAlertChannels(body.channels),
+    condition: normalizeWatchlistAlertCondition(body.condition),
+    explicitConfirmation: normalizeOptionalBoolean(
+      body.explicit_confirmation ?? body.explicitConfirmation
+    ),
+    frequency: normalizeWatchlistAlertFrequency(body.frequency),
+    idempotencyKey: normalizeString(body.idempotency_key ?? body.idempotencyKey),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    metricIds: normalizeStringArray(body.metric_ids ?? body.metricIds),
+    quietHoursEnd: normalizeString(body.quiet_hours_end ?? body.quietHoursEnd),
+    quietHoursStart: normalizeString(body.quiet_hours_start ?? body.quietHoursStart),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    timezone: normalizeString(body.timezone),
+    userId: normalizeString(body.user_id ?? body.userId),
+    watchlistId: normalizeString(body.watchlist_id ?? body.watchlistId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getWatchlistRuntimeCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
       }
     )
   );
@@ -4699,6 +4812,72 @@ function normalizeHighCostUsageExecutionStatus(
   value: unknown
 ): HighCostUsageExecutionStatus | undefined {
   return value === "failed" || value === "planned" || value === "succeeded" ? value : undefined;
+}
+
+function normalizeWatchlistAlertKinds(value: unknown): WatchlistAlertKind[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const kinds = value.filter(
+    (kind): kind is WatchlistAlertKind =>
+      typeof kind === "string" && WATCHLIST_ALERT_KINDS.includes(kind as WatchlistAlertKind)
+  );
+
+  return kinds.length > 0 ? [...new Set(kinds)] : undefined;
+}
+
+function normalizeWatchlistAlertChannels(value: unknown): WatchlistAlertChannel[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const channels = value.filter(
+    (channel): channel is WatchlistAlertChannel =>
+      typeof channel === "string" &&
+      WATCHLIST_ALERT_CHANNELS.includes(channel as WatchlistAlertChannel)
+  );
+
+  return channels.length > 0 ? [...new Set(channels)] : undefined;
+}
+
+function normalizeWatchlistAlertFrequency(value: unknown): WatchlistAlertFrequency | undefined {
+  return typeof value === "string" &&
+    WATCHLIST_ALERT_FREQUENCIES.includes(value as WatchlistAlertFrequency)
+    ? (value as WatchlistAlertFrequency)
+    : undefined;
+}
+
+function normalizeWatchlistAlertCondition(
+  value: unknown
+): WatchlistAlertConditionInput | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    comparator: normalizeWatchlistAlertComparator(value.comparator),
+    metricId: normalizeString(value.metric_id ?? value.metricId),
+    priceField: normalizeWatchlistPriceField(value.price_field ?? value.priceField),
+    threshold: normalizeOptionalNumber(value.threshold)
+  };
+}
+
+function normalizeWatchlistAlertComparator(
+  value: unknown
+): WatchlistAlertConditionInput["comparator"] | undefined {
+  return value === "above" ||
+    value === "below" ||
+    value === "changed_by_percent" ||
+    value === "changed_by_value"
+    ? value
+    : undefined;
+}
+
+function normalizeWatchlistPriceField(
+  value: unknown
+): WatchlistAlertConditionInput["priceField"] | undefined {
+  return value === "close" || value === "last" || value === "volume" ? value : undefined;
 }
 
 function normalizeString(value: unknown): string | undefined {

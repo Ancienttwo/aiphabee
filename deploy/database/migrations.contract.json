@@ -201,6 +201,20 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621105000_watchlist_alerts_scaffold.sql",
+      "purpose": "Create empty watchlist and alert rule/event scaffolds for price, announcement, and metric reminders without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.watchlist",
+        "core.watchlist_item",
+        "core.watchlist_alert_rule",
+        "core.watchlist_alert_event",
+        "governance.watchlist_alerts_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -1,0 +1,73 @@
+{
+  "version": "2026-06-21.phase2.watchlist-alerts-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/watchlist-runtime",
+  "runtime_route": "GET /watchlist/runtime",
+  "route": "POST /watchlist/alerts/plan",
+  "tool_name": "plan_watchlist_alerts",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_tool_execution": false,
+  "notification_fanout": false,
+  "queue_writes": false,
+  "sql_emitted": false,
+  "event_queue": "AIPHABEE_EVENTS_QUEUE",
+  "create_alert_scope": "alerts.write",
+  "explicit_confirmation_required": true,
+  "independent_scope_required": true,
+  "idempotency_key_required": true,
+  "dedupe_required": true,
+  "frequency_controls_required": true,
+  "quiet_period_controls_required": true,
+  "source_record_required": true,
+  "supported_alert_kinds": [
+    "price",
+    "announcement",
+    "metric"
+  ],
+  "supported_frequencies": [
+    "realtime",
+    "daily",
+    "weekly"
+  ],
+  "supported_channels": [
+    "in_app",
+    "email",
+    "webhook"
+  ],
+  "required_output_fields": [
+    "watchlist",
+    "alert_rule",
+    "dedupe",
+    "frequency",
+    "evaluation_plan",
+    "notification",
+    "persistence_plan",
+    "validation"
+  ],
+  "tables": [
+    "core.watchlist",
+    "core.watchlist_item",
+    "core.watchlist_alert_rule",
+    "core.watchlist_alert_event"
+  ],
+  "covered_prd_items": [
+    "RES-05",
+    "US-W09",
+    "create_alert",
+    "alerts.write"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/oauth-pkce.contract.json",
+    "deploy/mcp/api-key.contract.json",
+    "deploy/database/migrations.contract.json"
+  ],
+  "forbidden_payloads": [
+    "raw_contact",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}
