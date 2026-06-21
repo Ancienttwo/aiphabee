@@ -371,6 +371,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621127000_field_authorization_config_scaffold.sql",
+      "purpose": "Create empty operational field authorization change, approval audit, and governance scaffolds with policy version and effective-time controls without enabling live policy writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.field_authorization_change",
+        "audit.field_authorization_approval",
+        "governance.field_authorization_config_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

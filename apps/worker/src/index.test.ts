@@ -3492,6 +3492,19 @@ interface GatewayRuntimeBody {
     field_entitlement_enforcement: {
       dimensions: string[];
       live_policy_source: boolean;
+      operations_config: {
+        approval_required: boolean;
+        default_deny_preserved: boolean;
+        effective_time_required: boolean;
+        frontend: boolean;
+        live_db_reads: boolean;
+        persistent_writes: boolean;
+        policy_version_required: boolean;
+        route: string;
+        runtime_route: string;
+        sql_emitted: boolean;
+        status: string;
+      };
       policy_source: {
         compiles_to_gateway_policy: boolean;
         default_rights_status: string;
@@ -3620,6 +3633,68 @@ interface GatewayRuntimeBody {
     };
   };
   ok: true;
+}
+
+interface FieldAuthorizationConfigPlanBody {
+  data: {
+    approval: {
+      required: boolean;
+      status: string;
+      table: string;
+      write_status: string;
+    };
+    capability: {
+      status: string;
+    };
+    change: {
+      channel: string;
+      dataset: string;
+      effective_at: string;
+      field_pattern: string;
+      operator_id: string;
+      plan: string;
+      policy_version: string;
+      target_status: string;
+      table: string;
+      workspace_id?: string;
+      write_status: string;
+    };
+    default_deny_preserved: boolean;
+    frontend: boolean;
+    live_db_reads: boolean;
+    persistent_writes: boolean;
+    policy_effect: {
+      activation_status: string;
+      compiles_to_gateway_policy: boolean;
+      data_entitlement_row: {
+        channel: string;
+        dataset: string;
+        field_pattern: string;
+        rights_policy_version: string;
+        status: string;
+        table: string;
+      };
+      versioned_cache_key_required: boolean;
+      workspace_entitlement_row?: {
+        table: string;
+        valid_from: string;
+        workspace_id: string;
+      };
+    };
+    request_id: string;
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      approval_required: boolean;
+      effective_time_required: boolean;
+      policy_version_required: boolean;
+      required_context_present: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface RestrictedExportPlanBody {
@@ -10771,6 +10846,19 @@ describe("worker runtime", () => {
         "export"
       ],
       live_policy_source: false,
+      operations_config: {
+        approval_required: true,
+        default_deny_preserved: true,
+        effective_time_required: true,
+        frontend: false,
+        live_db_reads: false,
+        persistent_writes: false,
+        policy_version_required: true,
+        route: "POST /gateway/field-authorizations/changes/plan",
+        runtime_route: "GET /gateway/runtime",
+        sql_emitted: false,
+        status: "field_authorization_config_scaffold"
+      },
       policy_source: {
         compiles_to_gateway_policy: true,
         default_rights_status: "default_deny",
@@ -10917,6 +11005,92 @@ describe("worker runtime", () => {
       ],
       weighted_credits: true
     });
+  });
+
+  it("plans operational field authorization changes with approval and effective time", async () => {
+    const response = await app.request("/gateway/field-authorizations/changes/plan", {
+      body: JSON.stringify({
+        approval_status: "approved",
+        approved_by: "compliance_001",
+        as_of: "2026-06-21T00:00:00.000Z",
+        channel: "mcp",
+        dataset: "hk_equity_quote",
+        effective_at: "2026-06-22T00:00:00.000Z",
+        export_allowed: false,
+        field_pattern: "quote.close",
+        max_window_days: 31,
+        operator_id: "ops_001",
+        plan: "developer",
+        policy_version: "rights-policy-20260622",
+        reason: "Developer MCP delayed close authorization",
+        target_status: "approved",
+        workspace_id: "ws_developer_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-field-auth-config"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as FieldAuthorizationConfigPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      default_deny_preserved: true,
+      frontend: false,
+      live_db_reads: false,
+      persistent_writes: false,
+      request_id: "req-field-auth-config",
+      sql_emitted: false,
+      status: "scheduled"
+    });
+    expect(body.data.approval).toMatchObject({
+      required: true,
+      status: "approved",
+      table: "audit.field_authorization_approval",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.change).toMatchObject({
+      channel: "mcp",
+      dataset: "hk_equity_quote",
+      effective_at: "2026-06-22T00:00:00.000Z",
+      field_pattern: "quote.close",
+      operator_id: "ops_001",
+      plan: "developer",
+      policy_version: "rights-policy-20260622",
+      target_status: "approved",
+      table: "core.field_authorization_change",
+      workspace_id: "ws_developer_alpha",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.policy_effect).toMatchObject({
+      activation_status: "scheduled",
+      compiles_to_gateway_policy: true,
+      data_entitlement_row: {
+        channel: "mcp",
+        dataset: "hk_equity_quote",
+        field_pattern: "quote.close",
+        rights_policy_version: "rights-policy-20260622",
+        status: "approved",
+        table: "core.data_entitlement"
+      },
+      versioned_cache_key_required: true,
+      workspace_entitlement_row: {
+        table: "core.workspace_entitlement",
+        valid_from: "2026-06-22T00:00:00.000Z",
+        workspace_id: "ws_developer_alpha"
+      }
+    });
+    expect(body.data.validation).toEqual({
+      approval_required: true,
+      effective_time_required: true,
+      policy_version_required: true,
+      required_context_present: true
+    });
+    expect(body.data.capability.status).toBe("field_authorization_config_scaffold");
+    expect(body.usage.rows).toBe(1);
   });
 
   it("serves data runtime schema capabilities without live market data", async () => {

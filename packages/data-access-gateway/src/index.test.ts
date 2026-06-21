@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
+  createFieldAuthorizationConfigChangePlan,
   createRestrictedExportPlan,
   createPolicyFromEntitlementRows,
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest,
+  getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
   getRestrictedExportCapabilities,
   getServingResultEnvelopeCapabilities
@@ -575,6 +577,131 @@ describe("data access gateway", () => {
       supported_formats: ["csv", "image", "pdf"],
       uses_data_access_gateway: true,
       watermark_required: true
+    });
+  });
+
+  it("plans field authorization config changes with approval, version, and effective time", () => {
+    const pending = createFieldAuthorizationConfigChangePlan({
+      approvalStatus: "pending",
+      asOf: "2026-06-21T00:00:00.000Z",
+      channel: "mcp",
+      dataset: "hk_equity_quote",
+      effectiveAt: "2026-06-22T00:00:00.000Z",
+      exportAllowed: false,
+      fieldPattern: "quote.close",
+      maxWindowDays: 31,
+      operatorId: "ops_001",
+      plan: "developer",
+      policyVersion: "rights-policy-20260622",
+      reason: "Developer MCP can receive delayed close only",
+      requestId: "req_field_auth_pending",
+      targetStatus: "approved",
+      workspaceId: "ws_developer_alpha"
+    });
+    const scheduled = createFieldAuthorizationConfigChangePlan({
+      approvalStatus: "approved",
+      approvedBy: "compliance_001",
+      asOf: "2026-06-21T00:00:00.000Z",
+      channel: "mcp",
+      dataset: "hk_equity_quote",
+      effectiveAt: "2026-06-22T00:00:00.000Z",
+      fieldPattern: "quote.close",
+      operatorId: "ops_001",
+      plan: "developer",
+      policyVersion: "rights-policy-20260622",
+      requestId: "req_field_auth_scheduled",
+      targetStatus: "approved",
+      workspaceId: "ws_developer_alpha"
+    });
+    const active = createFieldAuthorizationConfigChangePlan({
+      approvalStatus: "approved",
+      approvedBy: "compliance_001",
+      asOf: "2026-06-23T00:00:00.000Z",
+      channel: "web",
+      dataset: "financial_facts",
+      effectiveAt: "2026-06-22T00:00:00.000Z",
+      exportAllowed: true,
+      fieldPattern: "financial_facts.revenue",
+      operatorId: "ops_001",
+      plan: "pro",
+      policyVersion: "rights-policy-20260622",
+      requestId: "req_field_auth_active",
+      targetStatus: "approved"
+    });
+    const missing = createFieldAuthorizationConfigChangePlan({
+      requestId: "req_field_auth_missing"
+    });
+
+    expect(pending).toMatchObject({
+      default_deny_preserved: true,
+      frontend: false,
+      live_db_reads: false,
+      persistent_writes: false,
+      request_id: "req_field_auth_pending",
+      sql_emitted: false,
+      status: "awaiting_approval"
+    });
+    expect(pending.approval).toMatchObject({
+      required: true,
+      status: "pending",
+      table: "audit.field_authorization_approval",
+      write_status: "planned_no_write"
+    });
+    expect(pending.change).toMatchObject({
+      channel: "mcp",
+      dataset: "hk_equity_quote",
+      effective_at: "2026-06-22T00:00:00.000Z",
+      field_pattern: "quote.close",
+      operator_id: "ops_001",
+      plan: "developer",
+      policy_version: "rights-policy-20260622",
+      target_status: "approved",
+      table: "core.field_authorization_change",
+      workspace_id: "ws_developer_alpha",
+      write_status: "planned_no_write"
+    });
+    expect(pending.policy_effect).toMatchObject({
+      active_only_after_effective_at: true,
+      activation_status: "awaiting_approval",
+      compiles_to_gateway_policy: true,
+      data_entitlement_row: {
+        channel: "mcp",
+        dataset: "hk_equity_quote",
+        export_allowed: false,
+        field_pattern: "quote.close",
+        rights_policy_version: "rights-policy-20260622",
+        status: "approved",
+        table: "core.data_entitlement",
+        time_range_days: 31
+      },
+      versioned_cache_key_required: true,
+      workspace_entitlement_row: {
+        status: "approved",
+        table: "core.workspace_entitlement",
+        valid_from: "2026-06-22T00:00:00.000Z",
+        workspace_id: "ws_developer_alpha"
+      }
+    });
+    expect(scheduled.status).toBe("scheduled");
+    expect(active.status).toBe("active_preview");
+    expect(active.policy_effect.workspace_entitlement_row).toBeUndefined();
+    expect(missing.status).toBe("blocked_missing_context");
+    expect(missing.validation.required_context_present).toBe(false);
+  });
+
+  it("reports field authorization config capabilities", () => {
+    expect(getFieldAuthorizationConfigCapabilities()).toMatchObject({
+      approval_required: true,
+      default_deny_preserved: true,
+      effective_time_required: true,
+      frontend: false,
+      live_db_reads: false,
+      persistent_writes: false,
+      policy_version_required: true,
+      route: "POST /gateway/field-authorizations/changes/plan",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "field_authorization_config_scaffold"
     });
   });
 

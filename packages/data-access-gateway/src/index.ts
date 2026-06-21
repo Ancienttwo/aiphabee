@@ -20,6 +20,8 @@ export const DATA_ACCESS_GATEWAY_VERSION =
   "2026-06-20.phase1.serving-result-envelope-scaffold.v0";
 export const RESTRICTED_EXPORT_VERSION =
   "2026-06-21.phase3.restricted-export-scaffold.v0";
+export const FIELD_AUTHORIZATION_CONFIG_VERSION =
+  "2026-06-21.phase3.field-authorization-config-scaffold.v0";
 export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
@@ -47,6 +49,13 @@ export type RestrictedExportStatus =
   | "blocked_missing_scope"
   | "blocked_unsupported_format"
   | "planned_no_write";
+export type FieldAuthorizationApprovalStatus = "approved" | "pending" | "rejected";
+export type FieldAuthorizationConfigStatus =
+  | "active_preview"
+  | "awaiting_approval"
+  | "blocked_missing_context"
+  | "rejected"
+  | "scheduled";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -174,6 +183,104 @@ export interface RestrictedExportPlanInput {
     to: string;
   };
   workspaceId?: string;
+}
+
+export interface FieldAuthorizationConfigChangeInput {
+  approvalStatus?: FieldAuthorizationApprovalStatus;
+  approvedBy?: string;
+  asOf?: string;
+  channel?: DataAccessChannel;
+  dataset?: string;
+  effectiveAt?: string;
+  expiresAt?: string;
+  exportAllowed?: boolean;
+  fieldPattern?: string;
+  maxWindowDays?: number;
+  operatorId?: string;
+  plan?: string;
+  policyVersion?: string;
+  reason?: string;
+  requestId: string;
+  targetStatus?: DataAccessFieldStatus;
+  workspaceId?: string;
+}
+
+export interface FieldAuthorizationConfigChangePlan {
+  approval: {
+    approval_id: string;
+    approved_by?: string;
+    required: true;
+    status: FieldAuthorizationApprovalStatus;
+    table: "audit.field_authorization_approval";
+    write_status: "planned_no_write";
+  };
+  change: {
+    change_id: string;
+    channel: DataAccessChannel;
+    dataset: string;
+    effective_at: string;
+    expires_at?: string;
+    export_allowed: boolean;
+    field_pattern: string;
+    max_window_days?: number;
+    operator_id: string;
+    plan: string;
+    policy_version: string;
+    reason?: string;
+    target_status: DataAccessFieldStatus;
+    table: "core.field_authorization_change";
+    workspace_id?: string;
+    write_status: "planned_no_write";
+  };
+  default_deny_preserved: true;
+  frontend: false;
+  live_db_reads: false;
+  persistent_writes: false;
+  policy_effect: {
+    active_only_after_effective_at: true;
+    activation_status: FieldAuthorizationConfigStatus;
+    compiles_to_gateway_policy: true;
+    data_entitlement_row: {
+      channel: DataAccessChannel;
+      dataset: string;
+      entitlement_id: string;
+      export_allowed: boolean;
+      field_pattern: string;
+      rights_policy_version: string;
+      source_record_id: string;
+      status: DataAccessFieldStatus;
+      table: "core.data_entitlement";
+      time_range_days?: number;
+    };
+    versioned_cache_key_required: true;
+    workspace_entitlement_row?: {
+      entitlement_id: string;
+      source_record_id: string;
+      status: DataAccessFieldStatus;
+      table: "core.workspace_entitlement";
+      valid_from: string;
+      valid_to?: string;
+      workspace_entitlement_id: string;
+      workspace_id: string;
+    };
+  };
+  request_id: string;
+  sql_emitted: false;
+  status: FieldAuthorizationConfigStatus;
+  tables: readonly [
+    "core.data_entitlement",
+    "core.workspace_entitlement",
+    "core.field_authorization_change",
+    "audit.field_authorization_approval",
+    "governance.field_authorization_config_contract"
+  ];
+  validation: {
+    approval_required: true;
+    effective_time_required: true;
+    policy_version_required: true;
+    required_context_present: boolean;
+  };
+  version: typeof FIELD_AUTHORIZATION_CONFIG_VERSION;
 }
 
 export interface DataAccessDecision {
@@ -305,6 +412,14 @@ export const DEFAULT_DATA_ACCESS_POLICY: DataAccessPolicy = {
   methodologyVersion: DATA_ACCESS_GATEWAY_VERSION,
   rightsPolicyVersion: "gate0-default-deny-v0"
 };
+
+const FIELD_AUTHORIZATION_CONFIG_TABLES: FieldAuthorizationConfigChangePlan["tables"] = [
+  "core.data_entitlement",
+  "core.workspace_entitlement",
+  "core.field_authorization_change",
+  "audit.field_authorization_approval",
+  "governance.field_authorization_config_contract"
+];
 
 export function evaluateDataAccessRequest(
   request: DataAccessRequest,
@@ -762,6 +877,125 @@ export function createPolicyFromEntitlementRows(
   };
 }
 
+export function createFieldAuthorizationConfigChangePlan(
+  input: FieldAuthorizationConfigChangeInput
+): FieldAuthorizationConfigChangePlan {
+  const operatorId = input.operatorId ?? "operator_unresolved";
+  const dataset = input.dataset ?? "dataset_unresolved";
+  const fieldPattern = input.fieldPattern ?? "field_unresolved";
+  const channel = input.channel ?? "web";
+  const plan = input.plan ?? "plan_unresolved";
+  const targetStatus = input.targetStatus ?? "default_deny";
+  const policyVersion = input.policyVersion ?? "policy_version_unresolved";
+  const effectiveAt = input.effectiveAt ?? "effective_at_unresolved";
+  const approvalStatus = input.approvalStatus ?? "pending";
+  const changeId = `field_auth_change_${sanitizeForId(input.requestId)}_${sanitizeForId(
+    dataset
+  )}_${sanitizeForId(fieldPattern)}_${channel}`;
+  const entitlementId = `data_entitlement_${sanitizeForId(policyVersion)}_${sanitizeForId(
+    dataset
+  )}_${sanitizeForId(channel)}_${sanitizeForId(fieldPattern)}`;
+  const requiredContextPresent =
+    input.operatorId !== undefined &&
+    input.operatorId.length > 0 &&
+    input.dataset !== undefined &&
+    input.dataset.length > 0 &&
+    input.fieldPattern !== undefined &&
+    input.fieldPattern.length > 0 &&
+    input.channel !== undefined &&
+    input.plan !== undefined &&
+    input.plan.length > 0 &&
+    input.targetStatus !== undefined &&
+    input.policyVersion !== undefined &&
+    input.policyVersion.length > 0 &&
+    input.effectiveAt !== undefined &&
+    input.effectiveAt.length > 0;
+  const status = getFieldAuthorizationConfigStatus({
+    approvalStatus,
+    asOf: input.asOf,
+    effectiveAt: input.effectiveAt,
+    requiredContextPresent
+  });
+  const workspaceEntitlementRow =
+    input.workspaceId === undefined || input.workspaceId.length === 0
+      ? undefined
+      : {
+          entitlement_id: entitlementId,
+          source_record_id: changeId,
+          status: targetStatus,
+          table: "core.workspace_entitlement" as const,
+          valid_from: effectiveAt,
+          valid_to: input.expiresAt,
+          workspace_entitlement_id: `workspace_entitlement_${sanitizeForId(
+            input.workspaceId
+          )}_${sanitizeForId(entitlementId)}`,
+          workspace_id: input.workspaceId
+        };
+
+  return {
+    approval: {
+      approval_id: `field_auth_approval_${sanitizeForId(input.requestId)}`,
+      approved_by: input.approvedBy,
+      required: true,
+      status: approvalStatus,
+      table: "audit.field_authorization_approval",
+      write_status: "planned_no_write"
+    },
+    change: {
+      change_id: changeId,
+      channel,
+      dataset,
+      effective_at: effectiveAt,
+      expires_at: input.expiresAt,
+      export_allowed: input.exportAllowed === true,
+      field_pattern: fieldPattern,
+      max_window_days: input.maxWindowDays,
+      operator_id: operatorId,
+      plan,
+      policy_version: policyVersion,
+      reason: input.reason,
+      target_status: targetStatus,
+      table: "core.field_authorization_change",
+      workspace_id: input.workspaceId,
+      write_status: "planned_no_write"
+    },
+    default_deny_preserved: true,
+    frontend: false,
+    live_db_reads: false,
+    persistent_writes: false,
+    policy_effect: {
+      active_only_after_effective_at: true,
+      activation_status: status,
+      compiles_to_gateway_policy: true,
+      data_entitlement_row: {
+        channel,
+        dataset,
+        entitlement_id: entitlementId,
+        export_allowed: input.exportAllowed === true,
+        field_pattern: fieldPattern,
+        rights_policy_version: policyVersion,
+        source_record_id: changeId,
+        status: targetStatus,
+        table: "core.data_entitlement",
+        time_range_days: input.maxWindowDays
+      },
+      versioned_cache_key_required: true,
+      workspace_entitlement_row: workspaceEntitlementRow
+    },
+    request_id: input.requestId,
+    sql_emitted: false,
+    status,
+    tables: FIELD_AUTHORIZATION_CONFIG_TABLES,
+    validation: {
+      approval_required: true,
+      effective_time_required: true,
+      policy_version_required: true,
+      required_context_present: requiredContextPresent
+    },
+    version: FIELD_AUTHORIZATION_CONFIG_VERSION
+  };
+}
+
 export function getRestrictedExportCapabilities() {
   return {
     artifact_writes: false,
@@ -775,6 +1009,24 @@ export function getRestrictedExportCapabilities() {
     uses_data_access_gateway: true,
     watermark_required: true,
     version: RESTRICTED_EXPORT_VERSION
+  };
+}
+
+export function getFieldAuthorizationConfigCapabilities() {
+  return {
+    approval_required: true,
+    default_deny_preserved: true,
+    effective_time_required: true,
+    frontend: false,
+    live_db_reads: false,
+    persistent_writes: false,
+    policy_version_required: true,
+    route: "POST /gateway/field-authorizations/changes/plan" as const,
+    runtime_route: "GET /gateway/runtime" as const,
+    sql_emitted: false,
+    status: "field_authorization_config_scaffold" as const,
+    tables: FIELD_AUTHORIZATION_CONFIG_TABLES,
+    version: FIELD_AUTHORIZATION_CONFIG_VERSION
   };
 }
 
@@ -1230,4 +1482,36 @@ function combineEntitlementStatuses(
   }
 
   return "default_deny";
+}
+
+function getFieldAuthorizationConfigStatus(input: {
+  approvalStatus: FieldAuthorizationApprovalStatus;
+  asOf?: string;
+  effectiveAt?: string;
+  requiredContextPresent: boolean;
+}): FieldAuthorizationConfigStatus {
+  if (!input.requiredContextPresent) {
+    return "blocked_missing_context";
+  }
+
+  if (input.approvalStatus === "rejected") {
+    return "rejected";
+  }
+
+  if (input.approvalStatus !== "approved") {
+    return "awaiting_approval";
+  }
+
+  const asOfTime = Date.parse(input.asOf ?? "1970-01-01T00:00:00.000Z");
+  const effectiveAtTime = Date.parse(input.effectiveAt ?? "");
+
+  if (!Number.isNaN(asOfTime) && !Number.isNaN(effectiveAtTime) && effectiveAtTime > asOfTime) {
+    return "scheduled";
+  }
+
+  return "active_preview";
+}
+
+function sanitizeForId(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unset";
 }

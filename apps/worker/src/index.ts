@@ -62,11 +62,16 @@ import {
 import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
+  createFieldAuthorizationConfigChangePlan,
   createRestrictedExportPlan,
   getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
+  getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
-  getServingResultEnvelopeCapabilities
+  getServingResultEnvelopeCapabilities,
+  type DataAccessChannel,
+  type DataAccessFieldStatus,
+  type FieldAuthorizationApprovalStatus
 } from "@aiphabee/data-access-gateway";
 import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
 import {
@@ -1239,6 +1244,7 @@ app.get("/gateway/runtime", (c) => {
             "export"
           ],
           live_policy_source: false,
+          operations_config: getFieldAuthorizationConfigCapabilities(),
           policy_source: getEntitlementPolicySourceCapabilities(),
           status: "scaffold",
           workspace_isolation: true
@@ -1304,6 +1310,63 @@ app.get("/gateway/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/gateway/field-authorizations/changes/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createFieldAuthorizationConfigChangePlan({
+    approvalStatus: normalizeFieldAuthorizationApprovalStatus(
+      body.approval_status ?? body.approvalStatus
+    ),
+    approvedBy: normalizeString(body.approved_by ?? body.approvedBy),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    channel: normalizeDataAccessChannel(body.channel),
+    dataset: normalizeString(body.dataset),
+    effectiveAt: normalizeString(body.effective_at ?? body.effectiveAt),
+    expiresAt: normalizeString(body.expires_at ?? body.expiresAt),
+    exportAllowed: normalizeOptionalBoolean(body.export_allowed ?? body.exportAllowed),
+    fieldPattern: normalizeString(body.field_pattern ?? body.fieldPattern),
+    maxWindowDays: normalizeOptionalNumber(body.max_window_days ?? body.maxWindowDays),
+    operatorId: normalizeString(body.operator_id ?? body.operatorId),
+    plan: normalizeString(body.plan ?? body.plan_code ?? body.planCode),
+    policyVersion: normalizeString(body.policy_version ?? body.policyVersion),
+    reason: normalizeString(body.reason),
+    requestId,
+    targetStatus: normalizeDataAccessFieldStatus(body.target_status ?? body.targetStatus),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getFieldAuthorizationConfigCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "field-authorization-config",
+            source_record_id: "field-authorization-config-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "blocked_missing_context" ? 0 : 1
         }
       }
     )
@@ -6616,6 +6679,24 @@ function normalizeUsageQuotaPlanCode(value: unknown): UsageQuotaPlanCode | undef
 
 function normalizeUsageLedgerChannel(value: unknown): UsageLedgerChannel | undefined {
   return isDataAccessChannel(value) ? value : undefined;
+}
+
+function normalizeDataAccessChannel(value: unknown): DataAccessChannel | undefined {
+  return isDataAccessChannel(value) ? value : undefined;
+}
+
+function normalizeDataAccessFieldStatus(value: unknown): DataAccessFieldStatus | undefined {
+  return value === "approved" || value === "blocked" || value === "default_deny"
+    ? value
+    : undefined;
+}
+
+function normalizeFieldAuthorizationApprovalStatus(
+  value: unknown
+): FieldAuthorizationApprovalStatus | undefined {
+  return value === "approved" || value === "pending" || value === "rejected"
+    ? value
+    : undefined;
 }
 
 function normalizePartnerReconciliationFormat(
