@@ -16,7 +16,7 @@
       "purpose": "Future long-running research tasks and resumable jobs.",
       "required_by_sprint": "2.4",
       "smoke_test": "Create a dry-run workflow task and observe terminal state.",
-      "provisioned": false
+      "provisioned": true
     },
     {
       "name": "AIPHABEE_EVENTS_QUEUE",
@@ -32,7 +32,7 @@
       "purpose": "Future scheduled reconciliation, freshness checks, and housekeeping.",
       "required_by_sprint": "3.2",
       "smoke_test": "Invoke scheduled handler locally and record run status.",
-      "provisioned": false
+      "provisioned": true
     },
     {
       "name": "AIPHABEE_RUN_COORDINATOR",

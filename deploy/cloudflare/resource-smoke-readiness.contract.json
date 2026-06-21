@@ -119,7 +119,9 @@
     "account_label": "chris_cloudflare_account",
     "provisioned_bindings": [
       "aiphabee-worker",
+      "AIPHABEE_RESEARCH_WORKFLOW",
       "AIPHABEE_EVENTS_QUEUE",
+      "AIPHABEE_MAINTENANCE_CRON",
       "AIPHABEE_RUN_COORDINATOR",
       "AIPHABEE_ARTIFACTS",
       "AIPHABEE_CONFIG",
@@ -127,6 +129,8 @@
     ],
     "resource_names": {
       "worker": "aiphabee-worker",
+      "workflow": "aiphabee-research-workflow",
+      "cron": "*/30 * * * *",
       "queue": "aiphabee-events-queue",
       "durable_object_namespace": "AiphaBeeRunCoordinator",
       "r2_bucket": "aiphabee-artifacts",
@@ -147,6 +151,14 @@
         "result": "AiphaBeeRunCoordinator migration + state smoke passed"
       },
       {
+        "surface": "workflow_instance_execution",
+        "result": "AiphaBeeResearchWorkflow create + KV evidence smoke passed"
+      },
+      {
+        "surface": "cron_handler_smoke",
+        "result": "AIPHABEE_MAINTENANCE_CRON scheduled handler config + KV evidence smoke passed"
+      },
+      {
         "surface": "r2_bucket_list",
         "result": "aiphabee-artifacts found"
       },
@@ -160,14 +172,6 @@
       }
     ],
     "blocked_bindings": [
-      {
-        "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
-        "reason": "workflow_requires_worker_workflow_class"
-      },
-      {
-        "binding_name": "AIPHABEE_MAINTENANCE_CRON",
-        "reason": "cron_trigger_not_configured"
-      },
       {
         "binding_name": "AIPHABEE_AI_GATEWAY",
         "reason": "ai_gateway_api_auth_error"
@@ -203,6 +207,16 @@
         "result": "passed"
       },
       {
+        "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
+        "surface": "workflow_instance_execution",
+        "result": "passed"
+      },
+      {
+        "binding_name": "AIPHABEE_MAINTENANCE_CRON",
+        "surface": "cron_handler_smoke",
+        "result": "passed"
+      },
+      {
         "binding_name": "AIPHABEE_CONFIG",
         "surface": "kv_put_get_delete",
         "result": "passed"
@@ -220,14 +234,9 @@
     ],
     "remaining_surfaces": [
       {
-        "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
-        "surface": "workflow_instance_execution",
-        "reason": "workflow_requires_worker_workflow_class"
-      },
-      {
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
-        "surface": "cron_trigger_smoke",
-        "reason": "cron_trigger_not_configured"
+        "surface": "cron_natural_trigger_evidence",
+        "reason": "cron handler and deploy config smoke passed, but natural scheduled event evidence is not claimed"
       },
       {
         "binding_name": "AIPHABEE_AI_GATEWAY",
@@ -250,6 +259,7 @@
   "not_claimed": [
     "cloudflare_resources_created",
     "full_cloudflare_binding_smoke",
+    "cron_natural_trigger_evidence",
     "hyperdrive_select_1_smoke",
     "provider_secret_rotation_smoke"
   ]

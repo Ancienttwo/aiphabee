@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import app, { AiphaBeeRunCoordinator } from "./index";
+import app, { AiphaBeeResearchWorkflow, AiphaBeeRunCoordinator } from "./index";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -59,6 +59,46 @@ interface CloudflareDurableObjectSmokeBody {
     operation_count?: number;
     response_hash?: string;
     state_key_hash?: string;
+    status: string;
+    surface: string;
+    value_hash?: string;
+  };
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
+interface CloudflareWorkflowSmokeBody {
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+  workflow_result: {
+    binding_name: string;
+    evidence_key_hash?: string;
+    failure_code?: string;
+    instance_id_hash?: string;
+    operation_count?: number;
+    response_hash?: string;
+    status: string;
+    surface: string;
+    value_hash?: string;
+  };
+}
+
+interface CloudflareCronSmokeBody {
+  cron_result: {
+    binding_name: string;
+    cron_hash?: string;
+    evidence_key_hash?: string;
+    failure_code?: string;
+    operation_count?: number;
+    scheduled_time_hash?: string;
     status: string;
     surface: string;
     value_hash?: string;
@@ -6279,6 +6319,76 @@ function createDurableObjectState() {
   };
 }
 
+function createWorkflowSmokeEnv() {
+  const kvStore = new Map<string, string>();
+  const kv = {
+    delete: vi.fn(async (key: string) => {
+      kvStore.delete(key);
+    }),
+    get: vi.fn(async (key: string) => kvStore.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      kvStore.set(key, value);
+    })
+  };
+  const workflow = {
+    create: vi.fn(
+      async (options?: {
+        id?: string;
+        params?: {
+          evidence_key?: string;
+          value_hash?: string;
+        };
+      }) => {
+        if (typeof options?.params?.evidence_key === "string") {
+          kvStore.set(
+            options.params.evidence_key,
+            JSON.stringify({
+              status: "executed",
+              value_hash: options.params.value_hash
+            })
+          );
+        }
+
+        return {
+          id: options?.id ?? "workflow-smoke-test",
+          status: vi.fn(async () => ({ status: "complete" }))
+        };
+      }
+    )
+  };
+
+  return {
+    env: {
+      AIPHABEE_CONFIG: kv,
+      AIPHABEE_RESEARCH_WORKFLOW: workflow
+    },
+    kv,
+    kvStore,
+    workflow
+  };
+}
+
+function createCronSmokeEnv() {
+  const kvStore = new Map<string, string>();
+  const kv = {
+    delete: vi.fn(async (key: string) => {
+      kvStore.delete(key);
+    }),
+    get: vi.fn(async (key: string) => kvStore.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      kvStore.set(key, value);
+    })
+  };
+
+  return {
+    env: {
+      AIPHABEE_CONFIG: kv
+    },
+    kv,
+    kvStore
+  };
+}
+
 describe("worker runtime", () => {
   it("serves a no-store health response", async () => {
     const response = await app.request(
@@ -6620,6 +6730,228 @@ describe("worker runtime", () => {
       "aiphabee-smoke/runtime/do-state/test-message"
     );
     expect(storageMap.size).toBe(0);
+  });
+
+  it("rejects the Workflow smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/workflows/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-workflow-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-workflow-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/workflows/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports a missing Workflow binding", async () => {
+    const response = await app.request("/cloudflare/workflows/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-workflow-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareWorkflowSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_RESEARCH_WORKFLOW"]);
+    expect(body.workflow_result).toMatchObject({
+      binding_name: "AIPHABEE_RESEARCH_WORKFLOW",
+      failure_code: "missing_workflow_binding",
+      status: "missing_binding",
+      surface: "workflow_instance_execution"
+    });
+  });
+
+  it("creates a Workflow instance and verifies Workflow-written smoke evidence", async () => {
+    const { env, kv, kvStore, workflow } = createWorkflowSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/workflows/smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-workflow-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareWorkflowSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-workflow-ok",
+      route: "POST /cloudflare/workflows/smoke",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.workflow_result).toMatchObject({
+      binding_name: "AIPHABEE_RESEARCH_WORKFLOW",
+      operation_count: 3,
+      status: "passed",
+      surface: "workflow_instance_execution"
+    });
+    expect(body.workflow_result.instance_id_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(workflow.create).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.delete).toHaveBeenCalledTimes(1);
+    expect(kvStore.size).toBe(0);
+    expect(serialized).not.toContain("/runtime/workflow/");
+  });
+
+  it("records Workflow smoke evidence from the Workflow class", async () => {
+    const { env, kv, kvStore } = createWorkflowSmokeEnv();
+    const workflow = new AiphaBeeResearchWorkflow({} as never, env);
+    const step = {
+      do: vi.fn(async (_name: string, callback: () => Promise<unknown>) => callback())
+    };
+    const result = await workflow.run(
+      {
+        instanceId: "workflow-instance-test",
+        payload: {
+          evidence_key: "aiphabee-smoke/runtime/workflow/test-message",
+          issued_at: "2026-06-22T00:00:00.000Z",
+          kind: "aiphabee.workflow.smoke.v1",
+          smoke_id: "test-message",
+          value_hash:
+            "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        timestamp: new Date("2026-06-22T00:00:00.000Z"),
+        workflowName: "AiphaBeeResearchWorkflow"
+      },
+      step as never
+    );
+
+    expect(result).toMatchObject({
+      operation_count: 1,
+      status: "ok",
+      value_hash:
+        "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    });
+    expect(step.do).toHaveBeenCalledTimes(1);
+    expect(kv.put).toHaveBeenCalledTimes(1);
+    expect(kvStore.get("aiphabee-smoke/runtime/workflow/test-message")).toContain(
+      "\"status\":\"executed\""
+    );
+  });
+
+  it("rejects the Cron smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/cron/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-cron-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-cron-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/cron/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing KV for the Cron smoke route", async () => {
+    const response = await app.request("/cloudflare/cron/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-cron-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareCronSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_CONFIG"]);
+    expect(body.cron_result).toMatchObject({
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      failure_code: "missing_kv_binding",
+      status: "missing_binding",
+      surface: "cron_handler_smoke"
+    });
+  });
+
+  it("runs the Cron handler smoke path through KV evidence", async () => {
+    const { env, kv, kvStore } = createCronSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/cron/smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-cron-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareCronSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-cron-ok",
+      route: "POST /cloudflare/cron/smoke",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.cron_result).toMatchObject({
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      operation_count: 3,
+      status: "passed",
+      surface: "cron_handler_smoke"
+    });
+    expect(kv.put).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.delete).toHaveBeenCalledTimes(1);
+    expect(kvStore.size).toBe(0);
+    expect(serialized).not.toContain("/runtime/cron/");
+    expect(serialized).not.toContain("*/30 * * * *");
+  });
+
+  it("registers the scheduled handler smoke task with waitUntil", async () => {
+    const { env, kv, kvStore } = createCronSmokeEnv();
+    const tasks: Promise<unknown>[] = [];
+    const waitUntil = vi.fn((task: Promise<unknown>) => {
+      tasks.push(task);
+    });
+
+    app.scheduled(
+      {
+        cron: "*/30 * * * *",
+        scheduledTime: Date.parse("2026-06-22T00:00:00.000Z"),
+        type: "scheduled"
+      },
+      env,
+      { waitUntil }
+    );
+
+    await Promise.all(tasks);
+
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    expect(kv.put).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.delete).toHaveBeenCalledTimes(1);
+    expect(kvStore.size).toBe(0);
   });
 
   it("keeps the root route inside the scaffold-only boundary", async () => {

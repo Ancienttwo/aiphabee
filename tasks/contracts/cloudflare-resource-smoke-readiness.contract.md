@@ -6,7 +6,9 @@ Create a no-secret readiness harness for Sprint 0.4 Cloudflare resource live
 smoke and record partial external provisioning plus KV/R2/D1 functional smoke
 evidence plus Worker runtime KV/R2/D1 binding smoke and Queue publish/consume
 smoke plus Durable Object state smoke without claiming full Cloudflare resource
-or binding-smoke completion.
+or binding-smoke completion. This slice now also covers Workflow create/KV
+evidence smoke and Cron handler/config smoke while leaving natural Cron trigger
+evidence unclaimed.
 
 ## Inputs
 
@@ -36,6 +38,10 @@ or binding-smoke completion.
   Worker consumer and KV evidence marker cleanup
 - Durable Object functional evidence for `AiphaBeeRunCoordinator` migration and
   synthetic storage put/get/delete through `AIPHABEE_RUN_COORDINATOR`
+- Workflow functional evidence for `AiphaBeeResearchWorkflow` create plus
+  synthetic KV evidence through `AIPHABEE_RESEARCH_WORKFLOW`
+- Cron handler/config evidence for deployed `triggers.crons` plus scheduled
+  handler KV evidence through `AIPHABEE_MAINTENANCE_CRON`
 
 ## Acceptance
 
@@ -57,6 +63,12 @@ or binding-smoke completion.
 - Durable Object smoke route requires `x-aiphabee-smoke`, routes through the
   `AIPHABEE_RUN_COORDINATOR` namespace, proves storage put/get/delete, and
   returns only hashes/status/counts.
+- Workflow smoke route requires `x-aiphabee-smoke`, creates an
+  `AIPHABEE_RESEARCH_WORKFLOW` instance, verifies Workflow-written KV evidence,
+  cleans it up, and returns only hashes/status/counts.
+- Cron smoke route requires `x-aiphabee-smoke`, exercises the shared scheduled
+  handler logic, verifies KV evidence cleanup, and returns only
+  hashes/status/counts without claiming a natural scheduled event fired.
 - Full repository check includes the readiness gate.
 - No Cloudflare token, account id, raw API response, or resource id is written
   to committed files.

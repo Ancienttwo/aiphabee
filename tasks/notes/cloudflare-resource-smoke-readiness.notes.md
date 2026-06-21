@@ -19,6 +19,11 @@
   handler, with temporary producer/consumer config and KV evidence cleanup.
 - Added `AiphaBeeRunCoordinator` Durable Object plus a guarded state smoke route
   with temporary migration/binding config and storage put/get/delete proof.
+- Added `AiphaBeeResearchWorkflow` plus a guarded Workflow smoke route with
+  temporary Workflow binding config, `create()` execution, and KV evidence
+  cleanup.
+- Added a module Worker `scheduled` handler plus a guarded Cron handler smoke
+  route with temporary `triggers.crons` config and KV evidence cleanup.
 
 ## External Evidence
 
@@ -38,14 +43,21 @@
 - Durable Object `AiphaBeeRunCoordinator` passed migration and
   `POST /cloudflare/durable-objects/smoke` state put/get/delete with sanitized
   hashes/status/operation counts only.
+- Workflow `AiphaBeeResearchWorkflow` passed `POST
+  /cloudflare/workflows/smoke` create + KV evidence with sanitized
+  hashes/status/operation counts only.
+- Cron passed deployed `triggers.crons` config plus `POST
+  /cloudflare/cron/smoke` scheduled handler KV evidence with sanitized
+  hashes/status/operation counts only.
 - AI Gateway creation hit a Cloudflare API authentication error in the available
   context.
-- Workflow, Cron, and Hyperdrive remain blocked by workflow class, schedule
-  config, and Postgres origin prerequisites.
+- Hyperdrive remains blocked by Postgres origin prerequisites. Natural Cron
+  trigger evidence remains unclaimed.
 
 ## What Was Not Claimed
 
-- No Workflow, Cron, AI Gateway, or Hyperdrive resource was created.
+- No AI Gateway or Hyperdrive resource was created.
+- No natural Cron trigger event was observed or claimed.
 - No Hyperdrive `SELECT 1` was executed.
 - No OTLP export, product eval-store write/read, or provider secret rotation
   smoke was executed.

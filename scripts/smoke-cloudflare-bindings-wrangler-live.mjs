@@ -26,8 +26,11 @@ const smokePrefix = "aiphabee-smoke";
 const smokeId = `smoke_${Date.now()}_${randomUUID().replace(/-/gu, "").slice(0, 12)}`;
 const resourceNames = contract.partial_provisioning?.resource_names ?? {};
 const durableObjectClassName = "AiphaBeeRunCoordinator";
+const workflowClassName = "AiphaBeeResearchWorkflow";
+const maintenanceCron = "*/30 * * * *";
 const requiredResourceNames = [
   "worker",
+  "workflow",
   "queue",
   "kv_namespace_title",
   "r2_bucket",
@@ -57,7 +60,9 @@ if (dryRun) {
         "d1_create_insert_select_delete_drop",
         "worker_runtime_binding_smoke",
         "queue_publish_consume_smoke",
-        "durable_object_state_smoke"
+        "durable_object_state_smoke",
+        "workflow_instance_execution",
+        "cron_handler_smoke"
       ],
       required_env: requiredEnv,
       required_resource_names: requiredResourceNames,
@@ -348,6 +353,20 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "durable_object_worker_runtime_prerequisite_failed",
           key: durableObjectClassName,
           surface: "durable_object_state_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_RESEARCH_WORKFLOW",
+          detail: "worker runtime URL missing before workflow smoke",
+          failureCode: "workflow_worker_runtime_prerequisite_failed",
+          key: workflowClassName,
+          surface: "workflow_instance_execution"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_MAINTENANCE_CRON",
+          detail: "worker runtime URL missing before cron smoke",
+          failureCode: "cron_worker_runtime_prerequisite_failed",
+          key: maintenanceCron,
+          surface: "cron_handler_smoke"
         })
       ];
     }
@@ -370,6 +389,20 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "durable_object_worker_runtime_prerequisite_failed",
           key: durableObjectClassName,
           surface: "durable_object_state_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_RESEARCH_WORKFLOW",
+          detail: "worker runtime binding smoke failed before workflow smoke",
+          failureCode: "workflow_worker_runtime_prerequisite_failed",
+          key: workflowClassName,
+          surface: "workflow_instance_execution"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_MAINTENANCE_CRON",
+          detail: "worker runtime binding smoke failed before cron smoke",
+          failureCode: "cron_worker_runtime_prerequisite_failed",
+          key: maintenanceCron,
+          surface: "cron_handler_smoke"
         })
       ];
     }
@@ -377,7 +410,9 @@ async function smokeWorkerRuntimeBindings() {
     return [
       workerRuntimeResult,
       await smokeQueuePublishConsume(workerUrl),
-      await smokeDurableObjectState(workerUrl)
+      await smokeDurableObjectState(workerUrl),
+      await smokeWorkflowInstanceExecution(workerUrl),
+      await smokeCronHandler(workerUrl)
     ];
   } catch (error) {
     return [
@@ -401,6 +436,20 @@ async function smokeWorkerRuntimeBindings() {
         failureCode: "durable_object_worker_runtime_command_failed",
         key: durableObjectClassName,
         surface: "durable_object_state_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_RESEARCH_WORKFLOW",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "workflow_worker_runtime_command_failed",
+        key: workflowClassName,
+        surface: "workflow_instance_execution"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_MAINTENANCE_CRON",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "cron_worker_runtime_command_failed",
+        key: maintenanceCron,
+        surface: "cron_handler_smoke"
       })
     ];
   } finally {
@@ -556,6 +605,94 @@ async function smokeDurableObjectState(workerUrl) {
   };
 }
 
+async function smokeWorkflowInstanceExecution(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/workflows/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "AIPHABEE_RESEARCH_WORKFLOW",
+      detail: JSON.stringify({
+        http_status: response.status,
+        missing_bindings: Array.isArray(body?.missing_bindings) ? body.missing_bindings : [],
+        status: body?.status,
+        workflow_result: body?.workflow_result
+          ? {
+              failure_code: body.workflow_result.failure_code,
+              status: body.workflow_result.status,
+              surface: body.workflow_result.surface
+            }
+          : undefined
+      }),
+      failureCode: "workflow_instance_execution_route_failed",
+      key: workflowClassName,
+      surface: "workflow_instance_execution"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_RESEARCH_WORKFLOW",
+    operation_count:
+      typeof body.workflow_result?.operation_count === "number"
+        ? body.workflow_result.operation_count
+        : 3,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.workflow_result ?? {})),
+    status: "passed",
+    surface: "workflow_instance_execution"
+  };
+}
+
+async function smokeCronHandler(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/cron/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "AIPHABEE_MAINTENANCE_CRON",
+      detail: JSON.stringify({
+        cron_result: body?.cron_result
+          ? {
+              failure_code: body.cron_result.failure_code,
+              status: body.cron_result.status,
+              surface: body.cron_result.surface
+            }
+          : undefined,
+        http_status: response.status,
+        missing_bindings: Array.isArray(body?.missing_bindings) ? body.missing_bindings : [],
+        status: body?.status
+      }),
+      failureCode: "cron_handler_route_failed",
+      key: maintenanceCron,
+      surface: "cron_handler_smoke"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_MAINTENANCE_CRON",
+    operation_count:
+      typeof body.cron_result?.operation_count === "number" ? body.cron_result.operation_count : 3,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.cron_result ?? {})),
+    status: "passed",
+    surface: "cron_handler_smoke"
+  };
+}
+
 async function resolveKvNamespaceId(title) {
   const result = await runWrangler(["kv", "namespace", "list"]);
   const namespaces = JSON.parse(result.stdout);
@@ -621,6 +758,17 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
         new_classes: [durableObjectClassName]
       }
     ],
+    workflows: [
+      {
+        binding: "AIPHABEE_RESEARCH_WORKFLOW",
+        name: resourceNames.workflow,
+        class_name: workflowClassName,
+        schedules: [maintenanceCron]
+      }
+    ],
+    triggers: {
+      crons: [maintenanceCron]
+    },
     kv_namespaces: [
       {
         binding: "AIPHABEE_CONFIG",

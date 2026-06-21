@@ -6,8 +6,9 @@ Date: 2026-06-22
 
 This slice records partial Sprint 0.4 Cloudflare external provisioning and
 partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
-smoke, Queue publish/consume smoke, and Durable Object state smoke without
-claiming complete Cloudflare binding smoke.
+smoke, Queue publish/consume smoke, Durable Object state smoke, Workflow
+instance execution smoke, and Cron handler smoke without claiming complete
+Cloudflare binding smoke.
 
 ## P1 Architecture Map
 
@@ -15,17 +16,19 @@ claiming complete Cloudflare binding smoke.
   Workers, Workflows, Queues, Cron, Durable Objects, R2, KV, AI Gateway, and
   Hyperdrive as the deployment substrate.
 - Current contract: `deploy/cloudflare/bindings.contract.json` remains
-  `planned`; `aiphabee-worker`, `AIPHABEE_EVENTS_QUEUE`,
-  `AIPHABEE_ARTIFACTS`, `AIPHABEE_CONFIG`, and `AIPHABEE_EVAL_STORE` are
-  marked provisioned by names only.
+  `planned`; `aiphabee-worker`, `AIPHABEE_RESEARCH_WORKFLOW`,
+  `AIPHABEE_EVENTS_QUEUE`, `AIPHABEE_MAINTENANCE_CRON`,
+  `AIPHABEE_RUN_COORDINATOR`, `AIPHABEE_ARTIFACTS`, `AIPHABEE_CONFIG`, and
+  `AIPHABEE_EVAL_STORE` are marked provisioned by names only.
 - Readiness contract:
   `deploy/cloudflare/resource-smoke-readiness.contract.json`.
 - Live smoke command: `npm run smoke:cloudflare-resources-live`.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: creating Workflow/Cron/AI Gateway/Hyperdrive resources, running
-  Hyperdrive `SELECT 1`, OTLP export, or rotating provider secrets.
+- Out of scope: AI Gateway/Hyperdrive resource completion, natural Cron trigger
+  evidence, running Hyperdrive `SELECT 1`, OTLP export, or rotating provider
+  secrets.
 
 ## P2 Concrete Trace
 
@@ -70,6 +73,15 @@ claiming complete Cloudflare binding smoke.
     exported `AiphaBeeRunCoordinator` Durable Object class with a migration.
     `POST /cloudflare/durable-objects/smoke` routes to a named object and proves
     storage put/get/delete without returning object ids or state keys.
+15. The temporary Worker config binds `AIPHABEE_RESEARCH_WORKFLOW` to the
+    exported `AiphaBeeResearchWorkflow` class. `POST
+    /cloudflare/workflows/smoke` calls `env.AIPHABEE_RESEARCH_WORKFLOW.create()`,
+    the Workflow writes KV evidence, the route verifies and deletes the marker,
+    and the response returns only hashes/status/counts.
+16. The same config declares `triggers.crons`. `POST /cloudflare/cron/smoke`
+    exercises the shared `scheduled` handler logic with KV evidence cleanup.
+    This proves handler/config smoke, not that a natural scheduled event has
+    already fired.
 
 ## P3 Decision
 
@@ -77,9 +89,10 @@ The existing binding contract is intentionally names-only. The smallest
 coherent update is to record the resources that now exist and prove
 resource-level KV/R2/D1 write-read-delete through Wrangler, prove Worker
 runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
-consumer, and prove Durable Object state put/get/delete while keeping the
-overall resource smoke item unchecked until the remaining Cloudflare classes
-pass their own live smokes.
+consumer, prove Durable Object state put/get/delete, prove Workflow
+`create()`/KV evidence, and prove Cron handler/config execution while keeping
+the overall resource smoke item unchecked until the remaining Cloudflare
+classes pass their own live smokes.
 
 At 10x scale this fails first on partial provisioning and token scope drift:
 some resources may exist while D1/Durable Object list permissions are missing.
@@ -90,7 +103,9 @@ contracts do not become secret or environment ledgers.
 
 Wrangler functional smoke also fails first on eventual consistency and cleanup
 gaps. The KV check therefore retries reads briefly, and all mutating operations
-use synthetic `aiphabee-smoke` keys/objects/rows with cleanup.
+use synthetic `aiphabee-smoke` keys/objects/rows with cleanup. Workflow
+execution also uses KV evidence because `create()` may return before the
+instance has reached a terminal state.
 
 ## Verification Surface
 
@@ -128,16 +143,22 @@ completed the following names-only provisioning and verification:
   `POST /cloudflare/durable-objects/smoke` state put/get/delete through a
   temporary no-id Wrangler config; output contained only hashes, status fields,
   and operation counts.
+- Workflow `AiphaBeeResearchWorkflow` passed `create()` plus KV evidence smoke
+  through `POST /cloudflare/workflows/smoke`; output contained only hashes,
+  status fields, and operation counts.
+- Cron passed deployed `triggers.crons` config plus scheduled handler KV
+  evidence through `POST /cloudflare/cron/smoke`; output contained only hashes,
+  status fields, and operation counts.
 
 The AI Gateway create attempt returned a Cloudflare API authentication error in
-the available API context. Workflow, Cron trigger, and Hyperdrive remain
-unprovisioned because they require a workflow class, schedule config, or a
-Postgres origin decision before safe creation.
+the available API context. Hyperdrive remains unprovisioned because it requires
+a Postgres origin decision before safe creation. Natural Cron trigger evidence
+is not claimed by this slice.
 
 ## Residual Gaps
 
 - Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
   required resource classes are provisioned.
-- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1`,
-  Workflow execution, and Cron trigger execution are not claimed.
+- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1`, AI Gateway
+  model request smoke, and natural Cron trigger evidence are not claimed.
 - Provider secret rotation/revocation remains unchecked.
