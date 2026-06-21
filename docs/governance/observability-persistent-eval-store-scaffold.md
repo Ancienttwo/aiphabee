@@ -8,15 +8,15 @@
 > `tasks/contracts/observability-persistent-eval-store-scaffold.contract.md`
 
 This slice adds a no-secret scaffold for persistent eval records and OTLP
-destination configuration. It does not export telemetry or write to a real
-persistent store.
+destination configuration. The D1 resource now exists by name, but this slice
+does not export telemetry or write to the persistent store.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
 | Eval-store schema | `packages/observability` | Projects `run.eval` into prompt-free records |
-| Eval-store binding | `AIPHABEE_EVAL_STORE` | Planned D1 binding, not provisioned |
+| Eval-store binding | `AIPHABEE_EVAL_STORE` | D1 resource provisioned by name; Worker binding, write/read smoke, and writes remain disabled |
 | OTLP destination | `OTLP_EXPORTER_OTLP_ENDPOINT`, `OTLP_EXPORTER_OTLP_HEADERS` | Names-only env contract, no values |
 | Runtime capability | `GET /observability/runtime` | Reports planned/configured status and disables writes/export |
 | Contract checker | `scripts/check-observability-contract.mjs` | Validates event sinks, env schema, and binding manifest |
@@ -40,7 +40,8 @@ Runtime capability trace:
 2. Worker checks whether `AIPHABEE_EVAL_STORE`,
    `OTLP_EXPORTER_OTLP_ENDPOINT`, and `OTLP_EXPORTER_OTLP_HEADERS` are present.
 3. Worker returns:
-   - `eval_store.status=planned` and `writes_enabled=false` by default;
+   - `eval_store.status=planned` in local runtime until the Worker binding is
+     configured, with `writes_enabled=false` by default;
    - `otlp_destination.status=planned` and `live_export_enabled=false` by
      default;
    - required env and binding names for future live setup.
@@ -51,7 +52,8 @@ Selected guarded scaffold over live OTLP/D1 writes.
 
 Reason:
 
-- No approved OTLP endpoint, header secret, or D1 database is provisioned.
+- No approved OTLP endpoint, header secret, Worker D1 binding, or eval
+  write/read path is configured.
 - Live export would create deployment/secret dependencies outside repo-local
   control.
 - Current model execution is still guarded, so model token/cost metrics would be
@@ -102,8 +104,7 @@ Observed `/observability/runtime` fields:
 ## Residual Gaps
 
 - Real OTLP destination and header secret are not configured.
-- D1 eval-store database is not provisioned.
-- Persistent write/read smoke, dashboards, alerting, and retention policy are
-  absent.
+- Worker D1 binding configuration, persistent write/read smoke, dashboards,
+  alerting, and retention policy are absent.
 - Real model token/cost/latency telemetry remains blocked until model execution
   exists.

@@ -132,7 +132,7 @@ function validateContract(value, envValue, bindingValue) {
   }
 
   if (value.status !== "local_contract") {
-    errors.push("status must be local_contract until provider sinks are provisioned");
+    errors.push("status must be local_contract until live writes/export are enabled");
   }
 
   if (!Array.isArray(value.event_types)) {
@@ -223,8 +223,8 @@ function validateContract(value, envValue, bindingValue) {
       }
     }
 
-    if (!["wired", "planned"].includes(String(sink.status))) {
-      errors.push(`sinks[${index}].status must be wired or planned`);
+    if (!["wired", "planned", "provisioned_no_writes"].includes(String(sink.status))) {
+      errors.push(`sinks[${index}].status must be wired, planned, or provisioned_no_writes`);
     }
 
     if (Object.prototype.hasOwnProperty.call(sink, "live_export_enabled")) {
@@ -272,8 +272,8 @@ function validateEvalStoreSink(sink, bindingValue) {
     return ["eval_store sink must be present"];
   }
 
-  if (sink.status !== "planned") {
-    errors.push("eval_store must remain planned until a real binding is provisioned");
+  if (sink.status !== "provisioned_no_writes") {
+    errors.push("eval_store must be provisioned_no_writes until live write/read smoke passes");
   }
 
   if (sink.binding_name !== evalStoreBindingName) {
@@ -282,6 +282,10 @@ function validateEvalStoreSink(sink, bindingValue) {
 
   if (sink.binding_type !== "d1") {
     errors.push("eval_store.binding_type must be d1");
+  }
+
+  if (sink.binding_provisioned !== true) {
+    errors.push("eval_store.binding_provisioned must be true after D1 provisioning");
   }
 
   if (sink.persistent !== true) {
@@ -308,8 +312,8 @@ function validateEvalStoreSink(sink, bindingValue) {
       errors.push(`${evalStoreBindingName} binding type must be d1`);
     }
 
-    if (binding.provisioned !== false) {
-      errors.push(`${evalStoreBindingName} must remain unprovisioned in this slice`);
+    if (binding.provisioned !== true) {
+      errors.push(`${evalStoreBindingName} must be provisioned after Cloudflare D1 creation`);
     }
   }
 

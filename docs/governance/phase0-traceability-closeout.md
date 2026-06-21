@@ -306,8 +306,9 @@ Completed:
 
 - `packages/observability` now projects `run.eval` into prompt-free eval-store
   records and provides an eval-store sink interface.
-- `deploy/cloudflare/bindings.contract.json` now includes planned D1 binding
-  `AIPHABEE_EVAL_STORE`.
+- `deploy/cloudflare/bindings.contract.json` includes D1 binding
+  `AIPHABEE_EVAL_STORE`; the resource now exists by name, while Worker
+  write/read smoke remains disabled.
 - `deploy/env/*` now includes names-only OTLP endpoint/header variables.
 - `scripts/check-observability-contract.mjs` validates OTLP env names and the
   eval-store binding contract.

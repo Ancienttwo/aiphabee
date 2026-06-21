@@ -87,10 +87,11 @@
     },
     {
       "name": "eval_store",
-      "status": "planned",
-      "purpose": "Future persistent evaluation store for run quality and regression analytics.",
+      "status": "provisioned_no_writes",
+      "purpose": "Future persistent evaluation store for run quality and regression analytics; D1 resource exists but Worker writes remain disabled.",
       "binding_name": "AIPHABEE_EVAL_STORE",
       "binding_type": "d1",
+      "binding_provisioned": true,
       "schema_version": "2026-06-20.phase0.eval-store.v0",
       "persistent": true,
       "writes_enabled": false

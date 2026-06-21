@@ -83,7 +83,9 @@ const forbiddenTextPatterns = [
   /postgres(?:ql)?:\/\//iu,
   /Bearer\s+[A-Za-z0-9._-]{20,}/u,
   /gh[pousr]_[A-Za-z0-9_]{20,}/u,
-  /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
+  /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u,
+  /\b[a-f0-9]{32}\b/iu,
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/iu
 ];
 
 const contract = readJson(contractPath);
@@ -188,6 +190,7 @@ function validateContract(
   );
   errors.push(...validateExpectedResources(value.expected_resources));
   errors.push(...validateBindingsContract(bindingsValue));
+  errors.push(...validatePartialProvisioning(value.partial_provisioning, bindingsValue));
   errors.push(...validateEnvSchema(envValue));
   errors.push(...validatePackageScripts(packageValue));
   errors.push(...validateSmokeScript(smokeScriptValue));
@@ -271,6 +274,133 @@ function validateBindingsContract(value) {
   if (value.status !== "planned") {
     errors.push("bindings contract must remain planned until resources are provisioned");
   }
+
+  return errors;
+}
+
+function validatePartialProvisioning(value, bindingsValue) {
+  const errors = [];
+
+  if (!isRecord(bindingsValue) || !Array.isArray(bindingsValue.bindings)) {
+    return errors;
+  }
+
+  const bindings = bindingsValue.bindings.filter(isRecord);
+  const provisionedBindingNames = bindings
+    .filter((binding) => binding.provisioned === true)
+    .map((binding) => binding.name)
+    .filter((name) => typeof name === "string");
+  const plannedBindingNames = bindings
+    .filter((binding) => binding.provisioned === false)
+    .map((binding) => binding.name)
+    .filter((name) => typeof name === "string");
+
+  if (provisionedBindingNames.length > 1 && !isRecord(value)) {
+    return [
+      "partial_provisioning must be present once external resources are partially provisioned"
+    ];
+  }
+
+  if (typeof value === "undefined") {
+    return errors;
+  }
+
+  if (!isRecord(value)) {
+    return ["partial_provisioning must be an object"];
+  }
+
+  if (value.status !== "partial_external_provisioned") {
+    errors.push("partial_provisioning.status must be partial_external_provisioned");
+  }
+
+  if (typeof value.observed_at !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value.observed_at)) {
+    errors.push("partial_provisioning.observed_at must be YYYY-MM-DD");
+  }
+
+  if (typeof value.account_label !== "string" || value.account_label.length === 0) {
+    errors.push("partial_provisioning.account_label must be a non-empty string");
+  } else if (/^[a-f0-9]{32}$/iu.test(value.account_label)) {
+    errors.push("partial_provisioning.account_label must not be a raw account id");
+  }
+
+  errors.push(
+    ...validateExactStringArray(
+      value.provisioned_bindings,
+      provisionedBindingNames,
+      "partial_provisioning.provisioned_bindings"
+    )
+  );
+
+  if (!isRecord(value.resource_names)) {
+    errors.push("partial_provisioning.resource_names must be an object");
+  } else {
+    for (const [key, resourceName] of Object.entries(value.resource_names)) {
+      if (typeof key !== "string" || key.length === 0) {
+        errors.push("partial_provisioning.resource_names keys must be non-empty strings");
+      }
+
+      if (typeof resourceName !== "string" || resourceName.length === 0) {
+        errors.push(`partial_provisioning.resource_names.${key} must be a non-empty string`);
+      }
+    }
+  }
+
+  if (!Array.isArray(value.live_smoke_results) || value.live_smoke_results.length === 0) {
+    errors.push("partial_provisioning.live_smoke_results must be a non-empty array");
+  } else {
+    for (const [index, result] of value.live_smoke_results.entries()) {
+      if (!isRecord(result)) {
+        errors.push(`partial_provisioning.live_smoke_results[${index}] must be an object`);
+        continue;
+      }
+
+      for (const field of ["surface", "result"]) {
+        if (typeof result[field] !== "string" || result[field].length === 0) {
+          errors.push(
+            `partial_provisioning.live_smoke_results[${index}].${field} must be a non-empty string`
+          );
+        }
+      }
+    }
+  }
+
+  if (!Array.isArray(value.blocked_bindings)) {
+    errors.push("partial_provisioning.blocked_bindings must be an array");
+  } else {
+    const blockedBindingNames = [];
+
+    for (const [index, blocked] of value.blocked_bindings.entries()) {
+      if (!isRecord(blocked)) {
+        errors.push(`partial_provisioning.blocked_bindings[${index}] must be an object`);
+        continue;
+      }
+
+      if (typeof blocked.binding_name !== "string" || blocked.binding_name.length === 0) {
+        errors.push(
+          `partial_provisioning.blocked_bindings[${index}].binding_name must be a non-empty string`
+        );
+      } else {
+        blockedBindingNames.push(blocked.binding_name);
+      }
+
+      if (typeof blocked.reason !== "string" || blocked.reason.length === 0) {
+        errors.push(
+          `partial_provisioning.blocked_bindings[${index}].reason must be a non-empty string`
+        );
+      }
+    }
+
+    errors.push(
+      ...validateExactStringArray(
+        blockedBindingNames,
+        plannedBindingNames,
+        "partial_provisioning.blocked_bindings.binding_name"
+      )
+    );
+  }
+
+  errors.push(...validateForbiddenKeys(value, "partial_provisioning"));
+  errors.push(...validateNoSecrets(value).map((error) => `partial_provisioning ${error}`));
 
   return errors;
 }
@@ -397,6 +527,68 @@ function validateStringArray(value, requiredValues, fieldName) {
     if (!value.includes(requiredValue)) {
       errors.push(`${fieldName} missing ${requiredValue}`);
     }
+  }
+
+  return errors;
+}
+
+function validateExactStringArray(value, expectedValues, fieldName) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    return [`${fieldName} must be an array of strings`];
+  }
+
+  const errors = [];
+  const actual = [...new Set(value)].sort();
+  const expected = [...new Set(expectedValues)].sort();
+  const missing = expected.filter((item) => !actual.includes(item));
+  const unexpected = actual.filter((item) => !expected.includes(item));
+
+  if (actual.length !== value.length) {
+    errors.push(`${fieldName} must not contain duplicates`);
+  }
+
+  if (missing.length > 0) {
+    errors.push(`${fieldName} missing ${missing.join(", ")}`);
+  }
+
+  if (unexpected.length > 0) {
+    errors.push(`${fieldName} contains unexpected ${unexpected.join(", ")}`);
+  }
+
+  return errors;
+}
+
+function validateForbiddenKeys(value, path) {
+  const errors = [];
+  const forbiddenKeys = new Set([
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "raw_response",
+    "account_id",
+    "resource_id",
+    "env_value",
+    "id"
+  ]);
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      errors.push(...validateForbiddenKeys(item, `${path}[${index}]`));
+    });
+    return errors;
+  }
+
+  if (!isRecord(value)) {
+    return errors;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    if (forbiddenKeys.has(key)) {
+      errors.push(`${path}.${key} must not be committed`);
+    }
+
+    errors.push(...validateForbiddenKeys(child, `${path}.${key}`));
   }
 
   return errors;

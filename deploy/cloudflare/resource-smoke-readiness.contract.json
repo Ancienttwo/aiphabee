@@ -111,6 +111,69 @@
     "resource_id",
     "env_value"
   ],
+  "partial_provisioning": {
+    "status": "partial_external_provisioned",
+    "observed_at": "2026-06-22",
+    "account_label": "chris_cloudflare_account",
+    "provisioned_bindings": [
+      "aiphabee-worker",
+      "AIPHABEE_EVENTS_QUEUE",
+      "AIPHABEE_ARTIFACTS",
+      "AIPHABEE_CONFIG",
+      "AIPHABEE_EVAL_STORE"
+    ],
+    "resource_names": {
+      "worker": "aiphabee-worker",
+      "queue": "aiphabee-events-queue",
+      "r2_bucket": "aiphabee-artifacts",
+      "kv_namespace_title": "AIPHABEE_CONFIG",
+      "d1_database": "AIPHABEE_EVAL_STORE"
+    },
+    "live_smoke_results": [
+      {
+        "surface": "worker_health",
+        "result": "GET /health returned status=ok"
+      },
+      {
+        "surface": "queue_list",
+        "result": "aiphabee-events-queue found"
+      },
+      {
+        "surface": "r2_bucket_list",
+        "result": "aiphabee-artifacts found"
+      },
+      {
+        "surface": "kv_namespace_list",
+        "result": "AIPHABEE_CONFIG found"
+      },
+      {
+        "surface": "d1_database_list",
+        "result": "AIPHABEE_EVAL_STORE found"
+      }
+    ],
+    "blocked_bindings": [
+      {
+        "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
+        "reason": "workflow_requires_worker_workflow_class"
+      },
+      {
+        "binding_name": "AIPHABEE_MAINTENANCE_CRON",
+        "reason": "cron_trigger_not_configured"
+      },
+      {
+        "binding_name": "AIPHABEE_RUN_COORDINATOR",
+        "reason": "durable_object_requires_worker_class_and_migration"
+      },
+      {
+        "binding_name": "AIPHABEE_AI_GATEWAY",
+        "reason": "ai_gateway_api_auth_error"
+      },
+      {
+        "binding_name": "AIPHABEE_HYPERDRIVE",
+        "reason": "hyperdrive_requires_postgres_origin"
+      }
+    ]
+  },
   "tracker_items_remaining_unchecked": [
     "Cloudflare resources provisioned + binding smoke tests",
     "Hyperdrive-backed Postgres/Supabase live connection smoke",

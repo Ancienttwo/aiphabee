@@ -9,11 +9,28 @@
   package scripts, smoke script, and tracker status.
 - Added names-only env variables for Workflow, Durable Object namespace, D1
   database, and Hyperdrive config names.
+- Recorded partial external provisioning evidence without committing Cloudflare
+  account ids or resource ids.
+- Marked names-only provisioned bindings for Worker, Queue, R2, KV, and D1.
+
+## External Evidence
+
+- Worker `aiphabee-worker` deployed and `/health` returned `status=ok`.
+- Queue `aiphabee-events-queue` was created and listed.
+- R2 bucket `aiphabee-artifacts` was created and listed.
+- KV namespace title `AIPHABEE_CONFIG` was created and listed.
+- D1 database `AIPHABEE_EVAL_STORE` was created and listed.
+- AI Gateway creation hit a Cloudflare API authentication error in the available
+  context.
+- Workflow, Cron, Durable Object, and Hyperdrive remain blocked by Worker
+  workflow class, schedule config, Durable Object class/migration, and Postgres
+  origin prerequisites.
 
 ## What Was Not Claimed
 
-- No Cloudflare resources were created.
 - No binding write/read smoke was executed.
+- No Workflow, Cron, Durable Object, AI Gateway, or Hyperdrive resource was
+  created.
 - No Hyperdrive `SELECT 1` was executed.
 - No OTLP export, eval-store write/read, or provider secret rotation smoke was
   executed.

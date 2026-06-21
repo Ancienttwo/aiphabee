@@ -7,12 +7,14 @@
 
 ## Decisions
 
-- Used D1 as the planned persistent eval-store binding because eval records are
-  small, queryable, and tied to run-quality review.
+- Used D1 as the persistent eval-store binding because eval records are small,
+  queryable, and tied to run-quality review.
 - Added OTLP endpoint and header env names only; no endpoint, token, or header
   value is committed.
 - Kept Worker runtime `writes_enabled=false` and `live_export_enabled=false`.
 - Split tracker wording so live destination/write smoke remains unchecked.
+- Recorded that the D1 resource exists by name while Worker binding writes stay
+  disabled.
 
 ## Verification
 
@@ -28,6 +30,6 @@
 ## Residual Blockers
 
 - No real OTLP endpoint/header is configured.
-- No D1 eval-store database is provisioned.
+- No Worker D1 binding write/read path is configured.
 - No persistent write/read smoke or dashboard exists.
 - Real token/cost/latency metrics remain blocked until model calls exist.

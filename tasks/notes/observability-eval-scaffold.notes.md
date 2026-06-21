@@ -7,8 +7,8 @@
 ## Decisions
 
 - Enabled Worker observability and traces in `apps/worker/wrangler.jsonc`.
-- Added a local structured JSON event contract instead of provisioning OTLP or a
-  persistent eval store.
+- Added a local structured JSON event contract instead of enabling OTLP export
+  or persistent eval writes.
 - Kept prompt content, API keys, tokens, secrets, and passwords out of telemetry
   events.
 - Used deterministic event IDs based on `request_id` and event type for local
@@ -30,7 +30,8 @@
 ## Residual Blockers
 
 - No OTLP destination is provisioned.
-- No persistent eval store is implemented.
+- D1 eval-store resource now exists by name, but no Worker binding write/read
+  path is implemented.
 - Real token/cost/latency telemetry remains blocked until real model execution is
   wired.
 - Dashboards, alerts, and retention policy are absent.

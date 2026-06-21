@@ -18,14 +18,14 @@ configuration without enabling live export or writes.
 - In scope:
   - eval-store record schema;
   - eval-store sink interface and tests;
-  - planned Cloudflare D1 eval-store binding;
+  - Cloudflare D1 eval-store binding name and guarded provisioned state;
   - names-only OTLP env schema/templates;
   - observability contract checker coverage;
   - Worker `/observability/runtime` capability route;
   - tracker/governance updates.
 - Out of scope:
   - real OTLP endpoint calls;
-  - real D1 database provisioning;
+  - Worker D1 binding configuration;
   - persistent write/read smoke;
   - dashboarding or alerting;
   - real model token/cost/latency metrics;
@@ -61,7 +61,7 @@ exit_criteria:
   content_checks:
     - "Eval store schema exists and does not include prompt or secret fields"
     - "OTLP endpoint/header env names are names-only"
-    - "Cloudflare binding contract includes planned AIPHABEE_EVAL_STORE"
+    - "Cloudflare binding contract includes AIPHABEE_EVAL_STORE"
     - "Worker /observability/runtime reports writes/export disabled"
     - "Tracker keeps live OTLP/export/write smoke unchecked"
   commands_succeed:

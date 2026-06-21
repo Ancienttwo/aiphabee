@@ -20,7 +20,7 @@ the no-secret OTLP/eval-store destination scaffold.
 | Event contract | `deploy/observability/events.contract.json` | Names event types, required fields, forbidden prompt/secret fields, sink status, OTLP env names, and eval-store binding |
 | Contract check | `scripts/check-observability-contract.mjs` | Validates manifest shape, env schema, Cloudflare binding, and required event/sink coverage |
 | Worker route | `POST /agent/runs/dry-run` | Emits structured events for success, validation rejection, and unexpected errors |
-| External sinks | Guarded scaffold | OTLP endpoint and D1 eval store are named, but live export/write remains disabled |
+| External sinks | Guarded scaffold | OTLP endpoint and D1 eval store are named; D1 resource exists by name, but Worker binding write/read and live export remain disabled |
 
 ## P2 Concrete Trace
 
@@ -63,8 +63,8 @@ Reason:
 Tradeoff:
 
 - This completes the Sprint 0.4 local OTel/log/eval scaffold leaf.
-- It does not complete persistent eval analytics, dashboards, alerts, or external
-  telemetry export.
+- It does not complete persistent eval writes/reads, analytics, dashboards,
+  alerts, or external telemetry export.
 
 ## Verification
 
@@ -96,7 +96,8 @@ x-aiphabee-telemetry-run-id: dry_req-smoke-otel
 ## Residual Gaps
 
 - Live OTLP destination and credentials are not configured.
-- Persistent eval store write/read smoke and retention policy are not implemented.
+- Persistent eval store Worker binding, write/read smoke, and retention policy
+  are not implemented.
 - Real model token/cost/latency metrics remain blocked until model execution
   exists.
 - Dashboarding, alerting, and production log routing remain unimplemented.
