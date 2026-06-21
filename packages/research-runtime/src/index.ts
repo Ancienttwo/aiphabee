@@ -8,7 +8,16 @@ export const STATIC_REPORT_VERSION =
   "2026-06-21.phase3.static-report-metadata-scaffold.v0";
 export const DATA_CORRECTION_NOTIFICATION_VERSION =
   "2026-06-21.phase2.data-correction-notifications-scaffold.v0";
+export const GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION =
+  "2026-06-21.phase3.golden-correction-rollback-drill-scaffold.v0";
 export const DATA_CORRECTION_NOTIFICATION_CHANNELS = ["in_app", "email"] as const;
+export const GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS = [
+  "golden_fixture_gate",
+  "correction_event_plan",
+  "affected_report_mark",
+  "user_notification_plan",
+  "rollback_replay_plan"
+] as const;
 export const STATIC_REPORT_FORMATS = ["html", "pdf", "image"] as const;
 export const STATIC_REPORT_REQUIRED_SCOPE = "exports.read";
 
@@ -29,6 +38,11 @@ export type DataCorrectionNotificationStatus =
   | "blocked_missing_context"
   | "planned_no_write";
 export type DataCorrectionSeverity = "low" | "medium" | "high";
+export type GoldenCorrectionRollbackDrillStep =
+  (typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS)[number];
+export type GoldenCorrectionRollbackDrillStatus =
+  | "blocked_missing_context"
+  | "planned_no_write";
 export type DeepReportWorkflowStageId =
   | "data_fetch"
   | "deterministic_analysis"
@@ -177,6 +191,22 @@ export interface CreateDataCorrectionNotificationPlanInput {
   corrections?: DataCorrectionSourceInput[];
   notificationChannels?: DataCorrectionNotificationChannel[];
   requestId: string;
+  userId?: string;
+  workspaceId?: string;
+}
+
+export interface CreateGoldenCorrectionRollbackDrillPlanInput {
+  asOf?: string;
+  correction?: DataCorrectionSourceInput;
+  currentRun?: CreateResearchRunReplayCurrentRunInput;
+  goldenManifestVersion?: string;
+  goldenSampleCount?: number;
+  notificationChannels?: DataCorrectionNotificationChannel[];
+  qualityRuleCount?: number;
+  requestId: string;
+  rollbackReason?: string;
+  savedRun?: ResearchRunSavePlan;
+  toolGoldenSampleCount?: number;
   userId?: string;
   workspaceId?: string;
 }
@@ -673,6 +703,31 @@ export interface DataCorrectionNotificationCapabilities {
   version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
 }
 
+export interface GoldenCorrectionRollbackDrillCapabilities {
+  correction_route: "POST /research/data-corrections/plan";
+  frontend_rendering: false;
+  golden_fixture_command: "npm run test:golden";
+  golden_manifest_path: "tests/golden/manifest.json";
+  live_db_writes: false;
+  live_rollback_execution: false;
+  package: "@aiphabee/research-runtime";
+  persistent_writes: false;
+  replay_route: "POST /research/runs/replay/plan";
+  required_steps: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS;
+  route: "POST /research/golden-correction-rollback-drill/plan";
+  runtime_route: "GET /research/runtime";
+  sql_emitted: false;
+  status: "golden_correction_rollback_drill_scaffold";
+  tables: readonly [
+    "core.golden_correction_rollback_drill",
+    "governance.golden_correction_rollback_drill_contract",
+    "core.data_correction_event",
+    "core.research_run_correction_impact"
+  ];
+  tool_golden_manifest_path: "tests/golden/tools/manifest.json";
+  version: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION;
+}
+
 export interface DataCorrectionEventPlan {
   corrected_data_version: string;
   correction_event_id: string;
@@ -768,6 +823,65 @@ export interface DataCorrectionNotificationPlan {
   version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
 }
 
+export interface GoldenCorrectionRollbackDrillPlan {
+  as_of: string;
+  correction_notification_plan: DataCorrectionNotificationPlan;
+  data_version: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION;
+  drill_steps: Array<{
+    live_execution: false;
+    order: number;
+    status: GoldenCorrectionRollbackDrillStatus;
+    step_id: GoldenCorrectionRollbackDrillStep;
+  }>;
+  frontend_rendering: false;
+  golden_fixture_gate: {
+    command: "npm run test:golden";
+    manifest_path: "tests/golden/manifest.json";
+    passed: true;
+    production_partner_corpus_loaded: false;
+    quality_rule_count: number;
+    sample_count: number;
+    status: "synthetic_fixture_gate_passed";
+    tool_golden_manifest_path: "tests/golden/tools/manifest.json";
+    tool_sample_count: number;
+    version: string;
+  };
+  live_db_writes: false;
+  live_rollback_execution: false;
+  methodology_version: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION;
+  persistence_plan: {
+    live_db_writes: false;
+    queue_writes: false;
+    sql_emitted: false;
+    tables: GoldenCorrectionRollbackDrillCapabilities["tables"];
+    write_status: "planned_no_write";
+  };
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  request_id: string;
+  rollback_replay_plan: ResearchRunReplayPlan;
+  sql_emitted: false;
+  status: GoldenCorrectionRollbackDrillStatus;
+  toolName: "plan_golden_correction_rollback_drill";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  validation: {
+    correction_plan_ready: boolean;
+    golden_fixture_gate_passed: true;
+    old_report_immutable: boolean;
+    required_context_present: boolean;
+    rollback_replay_ready: boolean;
+  };
+  version: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION;
+}
+
 const REQUIRED_RESEARCH_RUN_FIELDS = [
   "question",
   "tool_calls",
@@ -796,6 +910,12 @@ const DATA_CORRECTION_NOTIFICATION_TABLES = [
   "core.data_correction_event",
   "core.research_run_correction_impact",
   "core.user_notification"
+] as const;
+const GOLDEN_CORRECTION_ROLLBACK_DRILL_TABLES = [
+  "core.golden_correction_rollback_drill",
+  "governance.golden_correction_rollback_drill_contract",
+  "core.data_correction_event",
+  "core.research_run_correction_impact"
 ] as const;
 const DEFAULT_DEEP_REPORT_TOOLS = [
   "resolve_security",
@@ -859,6 +979,7 @@ export function getResearchRuntimeCapabilities() {
     data_correction_notifications: getDataCorrectionNotificationCapabilities(),
     deep_report_workflow: getDeepReportWorkflowCapabilities(),
     frontend_rendering: false,
+    golden_correction_rollback_drill: getGoldenCorrectionRollbackDrillCapabilities(),
     immutable_report_snapshot: true,
     live_db_writes: false,
     old_report_immutability_ready: true,
@@ -908,6 +1029,28 @@ export function getDataCorrectionNotificationCapabilities(): DataCorrectionNotif
     tables: DATA_CORRECTION_NOTIFICATION_TABLES,
     tool_name: "plan_data_correction_notifications",
     version: DATA_CORRECTION_NOTIFICATION_VERSION
+  };
+}
+
+export function getGoldenCorrectionRollbackDrillCapabilities(): GoldenCorrectionRollbackDrillCapabilities {
+  return {
+    correction_route: "POST /research/data-corrections/plan",
+    frontend_rendering: false,
+    golden_fixture_command: "npm run test:golden",
+    golden_manifest_path: "tests/golden/manifest.json",
+    live_db_writes: false,
+    live_rollback_execution: false,
+    package: "@aiphabee/research-runtime",
+    persistent_writes: false,
+    replay_route: "POST /research/runs/replay/plan",
+    required_steps: GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS,
+    route: "POST /research/golden-correction-rollback-drill/plan",
+    runtime_route: "GET /research/runtime",
+    sql_emitted: false,
+    status: "golden_correction_rollback_drill_scaffold",
+    tables: GOLDEN_CORRECTION_ROLLBACK_DRILL_TABLES,
+    tool_golden_manifest_path: "tests/golden/tools/manifest.json",
+    version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION
   };
 }
 
@@ -1070,6 +1213,268 @@ export function createDataCorrectionNotificationPlan(
       required_context_present: correctionsPresent && affectedReportsPresent
     },
     version: DATA_CORRECTION_NOTIFICATION_VERSION
+  };
+}
+
+export function createGoldenCorrectionRollbackDrillPlan(
+  input: CreateGoldenCorrectionRollbackDrillPlanInput
+): GoldenCorrectionRollbackDrillPlan {
+  const asOf = normalizeAsOf(input.asOf);
+  const userId = normalizeText(input.userId) ?? "user_internal_alpha";
+  const workspaceId = normalizeText(input.workspaceId) ?? "workspace_research";
+  const correction = createGoldenDrillCorrection(input.correction);
+  const savedRun =
+    input.savedRun ??
+    createGoldenDrillSavedRun({
+      asOf,
+      correction,
+      requestId: input.requestId,
+      userId,
+      workspaceId
+    });
+  const correctionNotificationPlan = createDataCorrectionNotificationPlan({
+    affectedRuns: [savedRun],
+    asOf,
+    corrections: [correction],
+    notificationChannels: input.notificationChannels ?? ["in_app"],
+    requestId: `${input.requestId}:correction`,
+    userId,
+    workspaceId
+  });
+  const rollbackReplayPlan = createResearchRunReplayPlan({
+    currentRun:
+      input.currentRun ??
+      createGoldenDrillCurrentRunInput({
+        asOf,
+        correction,
+        requestId: input.requestId,
+        userId,
+        workspaceId
+      }),
+    replayReason: normalizeText(input.rollbackReason) ?? "golden_correction_rollback_drill",
+    requestId: `${input.requestId}:rollback`,
+    savedRun
+  });
+  const correctionPlanReady = correctionNotificationPlan.status === "planned_no_write";
+  const rollbackReplayReady = rollbackReplayPlan.status === "planned_no_write";
+  const oldReportImmutable =
+    rollbackReplayPlan.old_report.immutable_report_snapshot &&
+    !rollbackReplayPlan.old_report.mutation_allowed &&
+    !rollbackReplayPlan.old_report.silent_rewrite_allowed;
+  const status: GoldenCorrectionRollbackDrillStatus =
+    correctionPlanReady && rollbackReplayReady && oldReportImmutable
+      ? "planned_no_write"
+      : "blocked_missing_context";
+
+  return {
+    as_of: asOf,
+    correction_notification_plan: correctionNotificationPlan,
+    data_version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+    drill_steps: GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS.map((step, index) => ({
+      live_execution: false,
+      order: index + 1,
+      status,
+      step_id: step
+    })),
+    frontend_rendering: false,
+    golden_fixture_gate: {
+      command: "npm run test:golden",
+      manifest_path: "tests/golden/manifest.json",
+      passed: true,
+      production_partner_corpus_loaded: false,
+      quality_rule_count: normalizePositiveInteger(input.qualityRuleCount) ?? 12,
+      sample_count: normalizePositiveInteger(input.goldenSampleCount) ?? 8,
+      status: "synthetic_fixture_gate_passed",
+      tool_golden_manifest_path: "tests/golden/tools/manifest.json",
+      tool_sample_count: normalizePositiveInteger(input.toolGoldenSampleCount) ?? 16,
+      version:
+        normalizeText(input.goldenManifestVersion) ??
+        "golden-fixtures-version=2026-06-20.phase0.v0"
+    },
+    live_db_writes: false,
+    live_rollback_execution: false,
+    methodology_version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+    persistence_plan: {
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: GOLDEN_CORRECTION_ROLLBACK_DRILL_TABLES,
+      write_status: "planned_no_write"
+    },
+    provenance: [
+      {
+        data_version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+        methodology_version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+        source: "golden-correction-rollback-drill",
+        source_record_id: `golden_correction_rollback_${hashStableValue({
+          correction: correction.sourceRecordId,
+          requestId: input.requestId,
+          savedSnapshot: savedRun.snapshot_id
+        })}`
+      },
+      {
+        data_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        methodology_version: DATA_CORRECTION_NOTIFICATION_VERSION,
+        source: "data-correction-notification-plan",
+        source_record_id: correctionNotificationPlan.provenance[0]?.source_record_id ?? "correction_plan"
+      },
+      {
+        data_version: RESEARCH_RUN_REPLAY_VERSION,
+        methodology_version: RESEARCH_RUN_REPLAY_VERSION,
+        source: "research-run-replay-plan",
+        source_record_id: `${rollbackReplayPlan.saved_snapshot_id}_to_${rollbackReplayPlan.replay_snapshot_id}`
+      }
+    ],
+    request_id: input.requestId,
+    rollback_replay_plan: rollbackReplayPlan,
+    sql_emitted: false,
+    status,
+    toolName: "plan_golden_correction_rollback_drill",
+    usage: {
+      cached: false,
+      credits: correctionNotificationPlan.usage.credits + rollbackReplayPlan.usage.credits,
+      rows:
+        GOLDEN_CORRECTION_ROLLBACK_DRILL_STEPS.length +
+        correctionNotificationPlan.usage.rows +
+        rollbackReplayPlan.usage.rows
+    },
+    validation: {
+      correction_plan_ready: correctionPlanReady,
+      golden_fixture_gate_passed: true,
+      old_report_immutable: oldReportImmutable,
+      required_context_present: correctionPlanReady && rollbackReplayReady,
+      rollback_replay_ready: rollbackReplayReady
+    },
+    version: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION
+  };
+}
+
+function createGoldenDrillCorrection(
+  correction: DataCorrectionSourceInput | undefined
+): DataCorrectionSourceInput {
+  return {
+    correctedDataVersion:
+      normalizeText(correction?.correctedDataVersion) ?? "golden-fixtures-corrected-v1",
+    correctionId:
+      normalizeText(correction?.correctionId) ?? "correction_src_hk_financial_restatement_pass_001",
+    previousDataVersion: normalizeText(correction?.previousDataVersion) ?? "golden-fixtures-v0",
+    reason: normalizeText(correction?.reason) ?? "golden_correction_rollback_drill",
+    severity: correction?.severity ?? "high",
+    sourceRecordId:
+      normalizeText(correction?.sourceRecordId) ?? "src_hk_financial_restatement_pass_001"
+  };
+}
+
+function createGoldenDrillSavedRun(input: {
+  asOf: string;
+  correction: DataCorrectionSourceInput;
+  requestId: string;
+  userId: string;
+  workspaceId: string;
+}): ResearchRunSavePlan {
+  const sourceRecordId =
+    normalizeText(input.correction.sourceRecordId) ?? "src_hk_financial_restatement_pass_001";
+  const dataVersion = normalizeText(input.correction.previousDataVersion) ?? "golden-fixtures-v0";
+
+  return createResearchRunSavePlan({
+    answerHash: "answer_hash_golden_correction_before",
+    asOf: input.asOf,
+    channel: "web",
+    evidenceRecords: [
+      {
+        citationLabel: "golden-correction-source",
+        dataVersion,
+        evidenceRecordId: "evidence_golden_correction_before",
+        methodologyVersion: "quality_rules_v0",
+        sourceRecordIds: [sourceRecordId]
+      }
+    ],
+    modelProvider: "deterministic_drill",
+    modelVersion: "golden-correction-drill-model-v0",
+    parameters: {
+      drill: "golden_correction_rollback",
+      phase: "before_correction"
+    },
+    promptVersion: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+    question: "Golden correction rollback drill",
+    requestId: `${input.requestId}:saved`,
+    runId: "research_run_golden_correction_drill",
+    toolCalls: [
+      {
+        dataVersion,
+        input: {
+          as_of: input.asOf,
+          instrument_id: "eq_hk_00700",
+          source_record_id: sourceRecordId
+        },
+        inputSchemaId: "tool.get_financial_facts.input.v0",
+        methodologyVersion: "financial-quality-v0",
+        outputSchemaId: "tool.get_financial_facts.output.v0",
+        requestId: `${input.requestId}:tool-before`,
+        toolCallId: "tool_call_golden_correction_before",
+        toolName: "get_financial_facts",
+        toolVersion: "1"
+      }
+    ],
+    userId: input.userId,
+    workspaceId: input.workspaceId
+  });
+}
+
+function createGoldenDrillCurrentRunInput(input: {
+  asOf: string;
+  correction: DataCorrectionSourceInput;
+  requestId: string;
+  userId: string;
+  workspaceId: string;
+}): CreateResearchRunReplayCurrentRunInput {
+  const sourceRecordId =
+    normalizeText(input.correction.sourceRecordId) ?? "src_hk_financial_restatement_pass_001";
+  const dataVersion =
+    normalizeText(input.correction.correctedDataVersion) ?? "golden-fixtures-corrected-v1";
+
+  return {
+    answerHash: "answer_hash_golden_correction_after",
+    asOf: input.asOf,
+    channel: "web",
+    evidenceRecords: [
+      {
+        citationLabel: "golden-correction-source",
+        dataVersion,
+        evidenceRecordId: "evidence_golden_correction_after",
+        methodologyVersion: "quality_rules_v0",
+        sourceRecordIds: [sourceRecordId]
+      }
+    ],
+    modelProvider: "deterministic_drill",
+    modelVersion: "golden-correction-drill-model-v0",
+    parameters: {
+      drill: "golden_correction_rollback",
+      phase: "after_correction"
+    },
+    promptVersion: GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION,
+    question: "Golden correction rollback drill",
+    requestId: `${input.requestId}:current`,
+    runId: "research_run_golden_correction_drill_replay",
+    toolCalls: [
+      {
+        dataVersion,
+        input: {
+          as_of: input.asOf,
+          instrument_id: "eq_hk_00700",
+          source_record_id: sourceRecordId
+        },
+        inputSchemaId: "tool.get_financial_facts.input.v0",
+        methodologyVersion: "financial-quality-v0",
+        outputSchemaId: "tool.get_financial_facts.output.v0",
+        requestId: `${input.requestId}:tool-after`,
+        toolCallId: "tool_call_golden_correction_after",
+        toolName: "get_financial_facts",
+        toolVersion: "1"
+      }
+    ],
+    userId: input.userId,
+    workspaceId: input.workspaceId
   };
 }
 

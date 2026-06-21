@@ -172,11 +172,13 @@ import {
   createDeepReportWorkflowPlan,
   ResearchRunInputError,
   createDataCorrectionNotificationPlan,
+  createGoldenCorrectionRollbackDrillPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
   createStaticReportPlan,
   getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
+  getGoldenCorrectionRollbackDrillCapabilities,
   getResearchRuntimeCapabilities,
   getStaticReportCapabilities,
   type CreateResearchRunReplayCurrentRunInput,
@@ -392,6 +394,28 @@ interface DataCorrectionNotificationRequestBody {
   corrections?: unknown;
   notification_channels?: unknown;
   notificationChannels?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  workspace_id?: unknown;
+  workspaceId?: unknown;
+}
+
+interface GoldenCorrectionRollbackDrillRequestBody {
+  as_of?: unknown;
+  asOf?: unknown;
+  correction?: unknown;
+  golden_manifest_version?: unknown;
+  goldenManifestVersion?: unknown;
+  golden_sample_count?: unknown;
+  goldenSampleCount?: unknown;
+  notification_channels?: unknown;
+  notificationChannels?: unknown;
+  quality_rule_count?: unknown;
+  qualityRuleCount?: unknown;
+  rollback_reason?: unknown;
+  rollbackReason?: unknown;
+  tool_golden_sample_count?: unknown;
+  toolGoldenSampleCount?: unknown;
   user_id?: unknown;
   userId?: unknown;
   workspace_id?: unknown;
@@ -2558,6 +2582,57 @@ app.post("/research/data-corrections/plan", async (c) => {
       {
         ...plan,
         capability: getDataCorrectionNotificationCapabilities()
+      },
+      {
+        asOf: plan.as_of,
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
+  );
+});
+
+app.post("/research/golden-correction-rollback-drill/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as GoldenCorrectionRollbackDrillRequestBody;
+  const correction = normalizeDataCorrectionInputs(
+    body.correction === undefined ? undefined : [body.correction]
+  )?.[0];
+  const plan = createGoldenCorrectionRollbackDrillPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    correction,
+    goldenManifestVersion: normalizeString(
+      body.golden_manifest_version ?? body.goldenManifestVersion
+    ),
+    goldenSampleCount: normalizeOptionalNumber(
+      body.golden_sample_count ?? body.goldenSampleCount
+    ),
+    notificationChannels: normalizeDataCorrectionNotificationChannels(
+      body.notification_channels ?? body.notificationChannels
+    ),
+    qualityRuleCount: normalizeOptionalNumber(
+      body.quality_rule_count ?? body.qualityRuleCount
+    ),
+    requestId,
+    rollbackReason: normalizeString(body.rollback_reason ?? body.rollbackReason),
+    toolGoldenSampleCount: normalizeOptionalNumber(
+      body.tool_golden_sample_count ?? body.toolGoldenSampleCount
+    ),
+    userId: normalizeString(body.user_id ?? body.userId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getGoldenCorrectionRollbackDrillCapabilities()
       },
       {
         asOf: plan.as_of,

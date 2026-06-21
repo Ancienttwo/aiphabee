@@ -418,6 +418,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql",
+      "purpose": "Create empty golden correction rollback drill and governance scaffolds for fixture-gated correction and replay planning without enabling live rollback execution or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.golden_correction_rollback_drill",
+        "governance.golden_correction_rollback_drill_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

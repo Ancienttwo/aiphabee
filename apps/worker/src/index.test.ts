@@ -2670,6 +2670,23 @@ interface ResearchRuntimeBody {
       tables: string[];
       tool_name: string;
     };
+    golden_correction_rollback_drill: {
+      correction_route: string;
+      frontend_rendering: boolean;
+      golden_fixture_command: string;
+      golden_manifest_path: string;
+      live_db_writes: boolean;
+      live_rollback_execution: boolean;
+      persistent_writes: boolean;
+      replay_route: string;
+      required_steps: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      tables: string[];
+      tool_golden_manifest_path: string;
+    };
     deep_report_workflow: {
       citation_validation_required: boolean;
       evidence_index_required: boolean;
@@ -3130,6 +3147,79 @@ interface DataCorrectionNotificationPlanBody {
   };
   ok: true;
   usage: {
+    rows: number;
+  };
+}
+
+interface GoldenCorrectionRollbackDrillPlanBody {
+  data: {
+    capability: ResearchRuntimeBody["data"]["golden_correction_rollback_drill"];
+    correction_notification_plan: Omit<DataCorrectionNotificationPlanBody["data"], "capability">;
+    drill_steps: Array<{
+      live_execution: boolean;
+      order: number;
+      status: string;
+      step_id: string;
+    }>;
+    frontend_rendering: boolean;
+    golden_fixture_gate: {
+      command: string;
+      manifest_path: string;
+      passed: boolean;
+      production_partner_corpus_loaded: boolean;
+      quality_rule_count: number;
+      sample_count: number;
+      status: string;
+      tool_golden_manifest_path: string;
+      tool_sample_count: number;
+      version: string;
+    };
+    live_db_writes: boolean;
+    live_rollback_execution: boolean;
+    persistence_plan: {
+      live_db_writes: boolean;
+      queue_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    request_id: string;
+    rollback_replay_plan: {
+      diff_summary: {
+        changed: boolean;
+        data_changed: boolean;
+      };
+      old_report: {
+        immutable_report_snapshot: boolean;
+        mutation_allowed: boolean;
+        preserved_snapshot_id: string;
+        silent_rewrite_allowed: boolean;
+      };
+      replay_execution: {
+        execution_status: string;
+        live_model_call: boolean;
+        live_tool_execution: boolean;
+        sql_emitted: boolean;
+      };
+      replay_snapshot_id: string;
+      saved_snapshot_id: string;
+      sql_emitted: boolean;
+      status: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+    validation: {
+      correction_plan_ready: boolean;
+      golden_fixture_gate_passed: boolean;
+      old_report_immutable: boolean;
+      required_context_present: boolean;
+      rollback_replay_ready: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
     rows: number;
   };
 }
@@ -9523,6 +9613,34 @@ describe("worker runtime", () => {
       "core.research_run_correction_impact",
       "core.user_notification"
     ]);
+    expect(body.data.golden_correction_rollback_drill).toMatchObject({
+      correction_route: "POST /research/data-corrections/plan",
+      frontend_rendering: false,
+      golden_fixture_command: "npm run test:golden",
+      golden_manifest_path: "tests/golden/manifest.json",
+      live_db_writes: false,
+      live_rollback_execution: false,
+      persistent_writes: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/golden-correction-rollback-drill/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "golden_correction_rollback_drill_scaffold",
+      tool_golden_manifest_path: "tests/golden/tools/manifest.json"
+    });
+    expect(body.data.golden_correction_rollback_drill.required_steps).toEqual([
+      "golden_fixture_gate",
+      "correction_event_plan",
+      "affected_report_mark",
+      "user_notification_plan",
+      "rollback_replay_plan"
+    ]);
+    expect(body.data.golden_correction_rollback_drill.tables).toEqual([
+      "core.golden_correction_rollback_drill",
+      "governance.golden_correction_rollback_drill_contract",
+      "core.data_correction_event",
+      "core.research_run_correction_impact"
+    ]);
     expect(body.data.static_report_artifact).toMatchObject({
       artifact_writes: false,
       data_delay_required: true,
@@ -10268,6 +10386,116 @@ describe("worker runtime", () => {
       required_context_present: true
     });
     expect(body.usage.rows).toBe(4);
+  });
+
+  it("plans a golden correction rollback drill without live writes", async () => {
+    const response = await app.request("/research/golden-correction-rollback-drill/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-21T11:00:00+08:00",
+        golden_manifest_version: "golden-fixtures-version=2026-06-20.phase0.v0",
+        golden_sample_count: 8,
+        notification_channels: ["in_app", "email"],
+        quality_rule_count: 12,
+        tool_golden_sample_count: 16
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-golden-correction-rollback-drill"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as GoldenCorrectionRollbackDrillPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_rollback_execution: false,
+      request_id: "req-golden-correction-rollback-drill",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_golden_correction_rollback_drill"
+    });
+    expect(body.data.capability).toMatchObject({
+      correction_route: "POST /research/data-corrections/plan",
+      golden_fixture_command: "npm run test:golden",
+      live_rollback_execution: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/golden-correction-rollback-drill/plan",
+      status: "golden_correction_rollback_drill_scaffold"
+    });
+    expect(body.data.golden_fixture_gate).toMatchObject({
+      command: "npm run test:golden",
+      manifest_path: "tests/golden/manifest.json",
+      passed: true,
+      production_partner_corpus_loaded: false,
+      quality_rule_count: 12,
+      sample_count: 8,
+      status: "synthetic_fixture_gate_passed",
+      tool_golden_manifest_path: "tests/golden/tools/manifest.json",
+      tool_sample_count: 16
+    });
+    expect(body.data.drill_steps.map((step) => step.step_id)).toEqual([
+      "golden_fixture_gate",
+      "correction_event_plan",
+      "affected_report_mark",
+      "user_notification_plan",
+      "rollback_replay_plan"
+    ]);
+    expect(body.data.correction_notification_plan).toMatchObject({
+      notification_fanout: false,
+      status: "planned_no_write",
+      validation: {
+        affected_reports_present: true,
+        corrections_present: true,
+        required_context_present: true
+      }
+    });
+    expect(body.data.correction_notification_plan.affected_reports.count).toBe(1);
+    expect(body.data.correction_notification_plan.notification_plan.channels).toEqual([
+      "in_app",
+      "email"
+    ]);
+    expect(body.data.rollback_replay_plan).toMatchObject({
+      diff_summary: {
+        changed: true,
+        data_changed: true
+      },
+      old_report: {
+        immutable_report_snapshot: true,
+        mutation_allowed: false,
+        silent_rewrite_allowed: false
+      },
+      replay_execution: {
+        execution_status: "planned_no_write",
+        live_model_call: false,
+        live_tool_execution: false,
+        sql_emitted: false
+      },
+      status: "planned_no_write"
+    });
+    expect(body.data.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.golden_correction_rollback_drill",
+        "governance.golden_correction_rollback_drill_contract",
+        "core.data_correction_event",
+        "core.research_run_correction_impact"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.validation).toEqual({
+      correction_plan_ready: true,
+      golden_fixture_gate_passed: true,
+      old_report_immutable: true,
+      required_context_present: true,
+      rollback_replay_ready: true
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
   });
 
   it("rejects incomplete research run replay plans with standard errors", async () => {

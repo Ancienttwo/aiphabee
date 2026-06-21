@@ -3,11 +3,13 @@ import {
   ResearchRunInputError,
   createDataCorrectionNotificationPlan,
   createDeepReportWorkflowPlan,
+  createGoldenCorrectionRollbackDrillPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
   createStaticReportPlan,
   getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
+  getGoldenCorrectionRollbackDrillCapabilities,
   getResearchRuntimeCapabilities,
   getStaticReportCapabilities
 } from "./index";
@@ -65,6 +67,17 @@ describe("research run save scaffold", () => {
       status: "data_correction_notifications_scaffold",
       tool_name: "plan_data_correction_notifications"
     });
+    expect(getResearchRuntimeCapabilities().golden_correction_rollback_drill).toMatchObject({
+      correction_route: "POST /research/data-corrections/plan",
+      golden_fixture_command: "npm run test:golden",
+      live_db_writes: false,
+      live_rollback_execution: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/golden-correction-rollback-drill/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "golden_correction_rollback_drill_scaffold"
+    });
     expect(getResearchRuntimeCapabilities().static_report_artifact).toMatchObject({
       artifact_writes: false,
       data_delay_required: true,
@@ -103,6 +116,38 @@ describe("research run save scaffold", () => {
       "core.data_correction_event",
       "core.research_run_correction_impact",
       "core.user_notification"
+    ]);
+  });
+
+  it("reports golden correction rollback drill capabilities", () => {
+    expect(getGoldenCorrectionRollbackDrillCapabilities()).toMatchObject({
+      correction_route: "POST /research/data-corrections/plan",
+      frontend_rendering: false,
+      golden_fixture_command: "npm run test:golden",
+      golden_manifest_path: "tests/golden/manifest.json",
+      live_db_writes: false,
+      live_rollback_execution: false,
+      package: "@aiphabee/research-runtime",
+      persistent_writes: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/golden-correction-rollback-drill/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "golden_correction_rollback_drill_scaffold",
+      tool_golden_manifest_path: "tests/golden/tools/manifest.json"
+    });
+    expect(getGoldenCorrectionRollbackDrillCapabilities().required_steps).toEqual([
+      "golden_fixture_gate",
+      "correction_event_plan",
+      "affected_report_mark",
+      "user_notification_plan",
+      "rollback_replay_plan"
+    ]);
+    expect(getGoldenCorrectionRollbackDrillCapabilities().tables).toEqual([
+      "core.golden_correction_rollback_drill",
+      "governance.golden_correction_rollback_drill_contract",
+      "core.data_correction_event",
+      "core.research_run_correction_impact"
     ]);
   });
 
@@ -835,6 +880,93 @@ describe("research run save scaffold", () => {
       affected_reports_present: false,
       corrections_present: true,
       required_context_present: false
+    });
+  });
+
+  it("plans a golden correction rollback drill without mutating old reports", () => {
+    const drill = createGoldenCorrectionRollbackDrillPlan({
+      asOf: "2026-06-21T11:00:00+08:00",
+      requestId: "req-golden-correction-rollback-drill"
+    });
+
+    expect(drill).toMatchObject({
+      as_of: "2026-06-21T11:00:00+08:00",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_rollback_execution: false,
+      request_id: "req-golden-correction-rollback-drill",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_golden_correction_rollback_drill"
+    });
+    expect(drill.golden_fixture_gate).toMatchObject({
+      command: "npm run test:golden",
+      manifest_path: "tests/golden/manifest.json",
+      passed: true,
+      production_partner_corpus_loaded: false,
+      quality_rule_count: 12,
+      sample_count: 8,
+      status: "synthetic_fixture_gate_passed",
+      tool_golden_manifest_path: "tests/golden/tools/manifest.json",
+      tool_sample_count: 16
+    });
+    expect(drill.drill_steps.map((step) => step.step_id)).toEqual([
+      "golden_fixture_gate",
+      "correction_event_plan",
+      "affected_report_mark",
+      "user_notification_plan",
+      "rollback_replay_plan"
+    ]);
+    expect(drill.correction_notification_plan).toMatchObject({
+      status: "planned_no_write",
+      validation: {
+        affected_reports_present: true,
+        corrections_present: true,
+        required_context_present: true
+      }
+    });
+    expect(drill.correction_notification_plan.corrections[0]).toMatchObject({
+      corrected_data_version: "golden-fixtures-corrected-v1",
+      previous_data_version: "golden-fixtures-v0",
+      source_record_id: "src_hk_financial_restatement_pass_001",
+      write_status: "planned_no_write"
+    });
+    expect(drill.rollback_replay_plan).toMatchObject({
+      diff_summary: {
+        changed: true,
+        data_changed: true
+      },
+      old_report: {
+        immutable_report_snapshot: true,
+        mutation_allowed: false,
+        silent_rewrite_allowed: false
+      },
+      replay_execution: {
+        execution_status: "planned_no_write",
+        live_model_call: false,
+        live_tool_execution: false,
+        sql_emitted: false
+      },
+      status: "planned_no_write"
+    });
+    expect(drill.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.golden_correction_rollback_drill",
+        "governance.golden_correction_rollback_drill_contract",
+        "core.data_correction_event",
+        "core.research_run_correction_impact"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(drill.validation).toEqual({
+      correction_plan_ready: true,
+      golden_fixture_gate_passed: true,
+      old_report_immutable: true,
+      required_context_present: true,
+      rollback_replay_ready: true
     });
   });
 
