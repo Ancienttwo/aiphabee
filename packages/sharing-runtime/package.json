@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aiphabee/account-runtime": "file:../account-runtime",
     "@aiphabee/data-access-gateway": "file:../data-access-gateway",
     "@aiphabee/data-contracts": "file:../data-contracts"
   }

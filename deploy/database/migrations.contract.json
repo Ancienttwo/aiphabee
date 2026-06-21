@@ -506,6 +506,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622000000_privacy_share_release_gate_scaffold.sql",
+      "purpose": "Create empty privacy/share release gate scaffolds for personal data delivery, retention holds, and private sharing no-expansion checks without enabling live export, share generation, DB writes, or frontend rendering.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.privacy_share_release_gate",
+        "governance.privacy_share_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

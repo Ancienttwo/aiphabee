@@ -5,6 +5,12 @@ import {
   type DataQualityState,
   type RestrictedExportPlan
 } from "@aiphabee/data-access-gateway";
+import {
+  createAccountDataRequestPlan,
+  getAccountDataRequestCapabilities,
+  type AccountDataRequestCapabilities,
+  type AccountDataRequestPlan
+} from "@aiphabee/account-runtime";
 import type { ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 
 export const PRIVATE_SHARING_VERSION =
@@ -25,6 +31,20 @@ export const PRIVATE_SHARE_TABLES = [
   "core.private_share_link",
   "audit.private_share_event",
   "governance.private_sharing_contract"
+] as const;
+export const PRIVACY_SHARE_RELEASE_GATE_VERSION =
+  "2026-06-22.phase3.privacy-share-release-gate-scaffold.v0";
+export const PRIVACY_SHARE_RELEASE_GATE_CHECKS = [
+  "personal_data_download_delivery_is_scoped_and_no_write",
+  "personal_data_delete_respects_retention_holds",
+  "share_link_rechecks_recipient_entitlement",
+  "share_link_effective_fields_are_intersection",
+  "share_link_does_not_expand_rights",
+  "private_link_has_expiry_watermark_and_no_public_index"
+] as const;
+export const PRIVACY_SHARE_RELEASE_GATE_TABLES = [
+  "core.privacy_share_release_gate",
+  "governance.privacy_share_release_gate_contract"
 ] as const;
 
 export type PrivateShareLinkStatus =
@@ -138,6 +158,125 @@ export interface PrivateShareLinkPlan {
   };
 }
 
+export interface PrivacyShareReleaseGatePlanInput {
+  accountId?: string;
+  asOf?: string;
+  creatorAccountId?: string;
+  creatorPlan?: string;
+  creatorScopes?: string[];
+  creatorWorkspaceId?: string;
+  dataset?: string;
+  expiresInHours?: number;
+  fields?: string[];
+  recipientAccountId?: string;
+  recipientPlan?: string;
+  recipientScopes?: string[];
+  recipientWorkspaceId?: string;
+  requestId: string;
+  requestedAt?: string;
+  requestedRows?: number;
+  requestScopes?: string[];
+  retentionPolicyVersion?: string;
+  runId?: string;
+  timeRange?: {
+    from: string;
+    to: string;
+  };
+  verifiedBy?: string;
+  workspaceId?: string;
+}
+
+export interface PrivacyShareReleaseGateCapabilities {
+  account_data_request_route: "POST /account/data-requests/plan";
+  account_data_runtime_route: "GET /account/runtime";
+  account_data_secure_delivery_required: true;
+  frontend: false;
+  live_data_access: false;
+  live_data_export: false;
+  live_db_writes: false;
+  package: "@aiphabee/sharing-runtime";
+  persistent_writes: false;
+  private_share_route: "POST /sharing/private-links/plan";
+  recipient_data_rights_expansion: false;
+  recipient_entitlement_recheck: true;
+  required_checks: typeof PRIVACY_SHARE_RELEASE_GATE_CHECKS;
+  route: "POST /sharing/release-gates/privacy-share/plan";
+  runtime_route: "GET /sharing/runtime";
+  share_expands_recipient_rights: false;
+  sql_emitted: false;
+  status: "privacy_share_release_gate_scaffold";
+  tables: typeof PRIVACY_SHARE_RELEASE_GATE_TABLES;
+  version: typeof PRIVACY_SHARE_RELEASE_GATE_VERSION;
+  watermark_required: true;
+}
+
+export interface PrivacyShareReleaseGatePlan {
+  account_data_request_gate: {
+    capability: AccountDataRequestCapabilities;
+    delete_plan: AccountDataRequestPlan;
+    download_plan: AccountDataRequestPlan;
+    retention_controls: {
+      delete_allowed_scopes: readonly string[];
+      download_secure_delivery_required: boolean;
+      retention_hold_scopes: readonly string[];
+      retained_for_audit_scopes: string[];
+      unsupported_scopes_blocked: boolean;
+    };
+  };
+  capability: PrivacyShareReleaseGateCapabilities;
+  frontend: false;
+  live_data_access: false;
+  live_data_export: false;
+  live_db_writes: false;
+  persistent_writes: false;
+  private_share_gate: {
+    capability: ReturnType<typeof getPrivateSharingCapabilities>;
+    no_expansion_policy: {
+      effective_fields: string[];
+      recipient_allowed_fields: string[];
+      recipient_data_rights_expansion: false;
+      recipient_entitlement_rechecked: true;
+      redacted_fields: string[];
+      requested_fields: string[];
+      share_expands_recipient_rights: false;
+    };
+    plan: PrivateShareLinkPlan;
+  };
+  release_checks: Array<{
+    check: (typeof PRIVACY_SHARE_RELEASE_GATE_CHECKS)[number];
+    evidence: string;
+    status: "planned_no_write";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_privacy_delivery_job_missing",
+      "live_retention_policy_source_missing",
+      "live_share_handle_generation_missing",
+      "external_privacy_legal_signoff_missing",
+      "frontend_privacy_share_release_ui_missing"
+    ];
+    gate_status: "blocked_live_privacy_share_validation";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["security", "privacy", "data_governance", "legal"];
+  };
+  request_id: string;
+  route: "POST /sharing/release-gates/privacy-share/plan";
+  sql_emitted: false;
+  status: "planned_no_write";
+  tables: typeof PRIVACY_SHARE_RELEASE_GATE_TABLES;
+  validation: {
+    all_checks_passed: boolean;
+    live_release_claimed: false;
+    personal_data_delete_respects_retention_holds: boolean;
+    personal_data_download_delivery_is_scoped_and_no_write: boolean;
+    private_link_has_expiry_watermark_and_no_public_index: boolean;
+    share_link_does_not_expand_rights: boolean;
+    share_link_effective_fields_are_intersection: boolean;
+    share_link_rechecks_recipient_entitlement: boolean;
+  };
+  version: typeof PRIVACY_SHARE_RELEASE_GATE_VERSION;
+}
+
 export function getPrivateSharingCapabilities() {
   return {
     artifact_writes: false,
@@ -168,6 +307,32 @@ export function getPrivateSharingCapabilities() {
     tables: PRIVATE_SHARE_TABLES,
     uses_data_access_gateway: true,
     version: PRIVATE_SHARING_VERSION,
+    watermark_required: true
+  };
+}
+
+export function getPrivacyShareReleaseGateCapabilities(): PrivacyShareReleaseGateCapabilities {
+  return {
+    account_data_request_route: "POST /account/data-requests/plan",
+    account_data_runtime_route: "GET /account/runtime",
+    account_data_secure_delivery_required: true,
+    frontend: false,
+    live_data_access: false,
+    live_data_export: false,
+    live_db_writes: false,
+    package: "@aiphabee/sharing-runtime",
+    persistent_writes: false,
+    private_share_route: "POST /sharing/private-links/plan",
+    recipient_data_rights_expansion: false,
+    recipient_entitlement_recheck: true,
+    required_checks: PRIVACY_SHARE_RELEASE_GATE_CHECKS,
+    route: "POST /sharing/release-gates/privacy-share/plan",
+    runtime_route: "GET /sharing/runtime",
+    share_expands_recipient_rights: false,
+    sql_emitted: false,
+    status: "privacy_share_release_gate_scaffold",
+    tables: PRIVACY_SHARE_RELEASE_GATE_TABLES,
+    version: PRIVACY_SHARE_RELEASE_GATE_VERSION,
     watermark_required: true
   };
 }
@@ -341,6 +506,198 @@ export function createPrivateShareLinkPlan(
   };
 }
 
+export function createPrivacyShareReleaseGatePlan(
+  input: PrivacyShareReleaseGatePlanInput
+): PrivacyShareReleaseGatePlan {
+  const requestId = normalizeText(input.requestId) ?? "request_unattributed";
+  const asOf = normalizeAsOf(input.asOf ?? input.requestedAt);
+  const accountId =
+    normalizeText(input.accountId ?? input.creatorAccountId) ?? "acct_privacy_owner";
+  const workspaceId =
+    normalizeText(input.workspaceId ?? input.creatorWorkspaceId) ?? "ws_privacy_owner";
+  const creatorAccountId = normalizeText(input.creatorAccountId) ?? accountId;
+  const creatorWorkspaceId = normalizeText(input.creatorWorkspaceId) ?? workspaceId;
+  const recipientAccountId = normalizeText(input.recipientAccountId) ?? "acct_privacy_recipient";
+  const recipientWorkspaceId =
+    normalizeText(input.recipientWorkspaceId) ?? "ws_privacy_recipient";
+  const retentionPolicyVersion =
+    normalizeText(input.retentionPolicyVersion) ?? "retention-policy-scaffold-v0";
+  const requestedScopes = normalizeStringList(input.requestScopes, [
+    "account_profile",
+    "authorized_memory",
+    "subscription_billing",
+    "usage_ledger",
+    "audit_log"
+  ]);
+  const requestedFields = normalizeFields(
+    input.fields ?? ["synthetic_profile.company_name", "synthetic_profile.revenue"]
+  );
+  const creatorScopes = normalizeStringList(input.creatorScopes, [PRIVATE_SHARING_REQUIRED_SCOPE]);
+  const recipientScopes = normalizeStringList(input.recipientScopes, [
+    PRIVATE_SHARING_REQUIRED_SCOPE
+  ]);
+  const sharePolicy = createSyntheticPrivateSharePolicy(creatorWorkspaceId, recipientWorkspaceId);
+  const downloadPlan = createAccountDataRequestPlan({
+    accountId,
+    action: "download",
+    requestedAt: asOf,
+    requestId: `${requestId}:personal-data-download`,
+    requestScopes: requestedScopes,
+    retentionPolicyVersion,
+    verifiedBy: input.verifiedBy,
+    workspaceId
+  });
+  const deletePlan = createAccountDataRequestPlan({
+    accountId,
+    action: "delete",
+    requestedAt: asOf,
+    requestId: `${requestId}:personal-data-delete`,
+    requestScopes: requestedScopes,
+    retentionPolicyVersion,
+    verifiedBy: input.verifiedBy,
+    workspaceId
+  });
+  const sharePlan = createPrivateShareLinkPlan(
+    {
+      asOf,
+      creatorAccountId,
+      creatorPlan: input.creatorPlan,
+      creatorScopes,
+      creatorWorkspaceId,
+      dataset: input.dataset,
+      expiresInHours: input.expiresInHours ?? 24,
+      fields: requestedFields,
+      recipientAccountId,
+      recipientPlan: input.recipientPlan,
+      recipientScopes,
+      recipientWorkspaceId,
+      requestId: `${requestId}:private-share-no-expansion`,
+      requestedRows: input.requestedRows ?? 1,
+      runId: input.runId,
+      timeRange: input.timeRange
+    },
+    sharePolicy
+  );
+  const retainedForAuditScopes = deletePlan.execution_plan
+    .filter((step) => step.action === "retain")
+    .map((step) => step.scope);
+  const expectedEffectiveFields = sharePlan.access_policy.creator_allowed_fields.filter((field) =>
+    sharePlan.access_policy.recipient_allowed_fields.includes(field)
+  );
+  const validation = {
+    personal_data_download_delivery_is_scoped_and_no_write:
+      downloadPlan.status === "planned_no_write" &&
+      downloadPlan.persistent_writes === false &&
+      downloadPlan.sql_emitted === false &&
+      downloadPlan.delivery.secure_delivery_required &&
+      downloadPlan.delivery.download_status === "planned_no_write" &&
+      downloadPlan.request.scopes.length > 0 &&
+      downloadPlan.request.unsupported_scopes.length === 0,
+    personal_data_delete_respects_retention_holds:
+      deletePlan.status === "planned_no_write" &&
+      deletePlan.persistent_writes === false &&
+      deletePlan.sql_emitted === false &&
+      deletePlan.request.unsupported_scopes.length === 0 &&
+      deletePlan.retention_policy.retention_hold_scopes.every(
+        (scope) => !deletePlan.request.scopes.includes(scope) || retainedForAuditScopes.includes(scope)
+      ),
+    share_link_rechecks_recipient_entitlement:
+      sharePlan.access_policy.recipient_entitlement_rechecked === true &&
+      sharePlan.gateway_decisions.recipient.status === "planned_no_write",
+    share_link_effective_fields_are_intersection:
+      arraysEqual(sharePlan.access_policy.effective_fields, expectedEffectiveFields) &&
+      sharePlan.access_policy.redacted_fields.every(
+        (field) => !sharePlan.access_policy.effective_fields.includes(field)
+      ),
+    share_link_does_not_expand_rights:
+      sharePlan.access_policy.share_expands_recipient_rights === false &&
+      sharePlan.access_policy.recipient_data_rights_expansion === false,
+    private_link_has_expiry_watermark_and_no_public_index:
+      sharePlan.validation.expiry_within_limit &&
+      sharePlan.watermark.required === true &&
+      sharePlan.link.link_handle_materialized === false &&
+      sharePlan.link.public_indexing === false &&
+      sharePlan.persistent_writes === false
+  };
+  const allChecksPassed = Object.values(validation).every(Boolean);
+  const releaseChecks = PRIVACY_SHARE_RELEASE_GATE_CHECKS.map((check) => ({
+    check,
+    evidence:
+      check === "personal_data_download_delivery_is_scoped_and_no_write"
+        ? "account data download planner returns secure JSON delivery, scoped request items, no SQL, and planned_no_write"
+        : check === "personal_data_delete_respects_retention_holds"
+          ? "account data delete planner retains subscription_billing, usage_ledger, and audit_log under retention policy"
+          : check === "share_link_rechecks_recipient_entitlement"
+            ? "private share planner runs a recipient Data Gateway export check before link materialization"
+            : check === "share_link_effective_fields_are_intersection"
+              ? "private share effective fields equal creator and recipient allowed-field intersection"
+              : check === "share_link_does_not_expand_rights"
+                ? "private share access policy keeps recipient_data_rights_expansion=false and share_expands_recipient_rights=false"
+                : "private share plan requires expiry, watermark, private visibility, no public indexing, and no link handle materialization",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    account_data_request_gate: {
+      capability: getAccountDataRequestCapabilities(),
+      delete_plan: deletePlan,
+      download_plan: downloadPlan,
+      retention_controls: {
+        delete_allowed_scopes: deletePlan.retention_policy.delete_allowed_scopes,
+        download_secure_delivery_required: downloadPlan.delivery.secure_delivery_required,
+        retention_hold_scopes: deletePlan.retention_policy.retention_hold_scopes,
+        retained_for_audit_scopes: retainedForAuditScopes,
+        unsupported_scopes_blocked:
+          downloadPlan.request.unsupported_scopes.length === 0 &&
+          deletePlan.request.unsupported_scopes.length === 0
+      }
+    },
+    capability: getPrivacyShareReleaseGateCapabilities(),
+    frontend: false,
+    live_data_access: false,
+    live_data_export: false,
+    live_db_writes: false,
+    persistent_writes: false,
+    private_share_gate: {
+      capability: getPrivateSharingCapabilities(),
+      no_expansion_policy: {
+        effective_fields: sharePlan.access_policy.effective_fields,
+        recipient_allowed_fields: sharePlan.access_policy.recipient_allowed_fields,
+        recipient_data_rights_expansion: false,
+        recipient_entitlement_rechecked: true,
+        redacted_fields: sharePlan.access_policy.redacted_fields,
+        requested_fields: sharePlan.access_policy.requested_fields,
+        share_expands_recipient_rights: false
+      },
+      plan: sharePlan
+    },
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_privacy_delivery_job_missing",
+        "live_retention_policy_source_missing",
+        "live_share_handle_generation_missing",
+        "external_privacy_legal_signoff_missing",
+        "frontend_privacy_share_release_ui_missing"
+      ],
+      gate_status: "blocked_live_privacy_share_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["security", "privacy", "data_governance", "legal"]
+    },
+    request_id: requestId,
+    route: "POST /sharing/release-gates/privacy-share/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: PRIVACY_SHARE_RELEASE_GATE_TABLES,
+    validation: {
+      ...validation,
+      all_checks_passed: allChecksPassed,
+      live_release_claimed: false
+    },
+    version: PRIVACY_SHARE_RELEASE_GATE_VERSION
+  };
+}
+
 export function createSyntheticPrivateSharePolicy(
   creatorWorkspaceId = "ws_synthetic_share_creator",
   recipientWorkspaceId = "ws_synthetic_share_recipient"
@@ -453,6 +810,18 @@ function normalizeFields(fields: string[] | undefined): string[] {
     .filter((field) => field.length > 0);
 
   return [...new Set(normalized)].sort();
+}
+
+function normalizeStringList(values: string[] | undefined, fallback: string[]): string[] {
+  const normalized = (values ?? fallback)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  return [...new Set(normalized)];
+}
+
+function arraysEqual(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => right[index] === value);
 }
 
 function normalizeText(value: string | undefined): string | undefined {

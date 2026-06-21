@@ -195,6 +195,15 @@ interface PrivateSharingRuntimeBody {
     required_scope: string;
     route: string;
     runtime_route: string;
+    privacy_share_release_gate: {
+      route: string;
+      status: string;
+      account_data_request_route: string;
+      private_share_route: string;
+      recipient_data_rights_expansion: boolean;
+      share_expands_recipient_rights: boolean;
+      required_checks: string[];
+    };
     status: string;
     supported_statuses: string[];
     uses_data_access_gateway: boolean;
@@ -256,6 +265,70 @@ interface PrivateShareLinkPlanBody {
     watermark: {
       required: boolean;
       text: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface PrivacyShareReleaseGatePlanBody {
+  data: {
+    account_data_request_gate: {
+      delete_plan: {
+        execution_plan: Array<{
+          action: string;
+          scope: string;
+        }>;
+        status: string;
+      };
+      download_plan: {
+        delivery: {
+          download_status: string;
+          secure_delivery_required: boolean;
+        };
+        status: string;
+      };
+    };
+    capability: {
+      status: string;
+    };
+    private_share_gate: {
+      no_expansion_policy: {
+        effective_fields: string[];
+        recipient_data_rights_expansion: boolean;
+        recipient_entitlement_rechecked: boolean;
+        redacted_fields: string[];
+        share_expands_recipient_rights: boolean;
+      };
+      plan: {
+        link: {
+          public_indexing: boolean;
+          url: string;
+        };
+      };
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_id: string;
+    route: string;
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      all_checks_passed: boolean;
+      personal_data_delete_respects_retention_holds: boolean;
+      personal_data_download_delivery_is_scoped_and_no_write: boolean;
+      private_link_has_expiry_watermark_and_no_public_index: boolean;
+      share_link_does_not_expand_rights: boolean;
+      share_link_effective_fields_are_intersection: boolean;
+      share_link_rechecks_recipient_entitlement: boolean;
     };
   };
   ok: true;
@@ -5846,6 +5919,14 @@ describe("worker runtime", () => {
       required_scope: "exports.read",
       route: "POST /sharing/private-links/plan",
       runtime_route: "GET /sharing/runtime",
+      privacy_share_release_gate: {
+        account_data_request_route: "POST /account/data-requests/plan",
+        private_share_route: "POST /sharing/private-links/plan",
+        recipient_data_rights_expansion: false,
+        route: "POST /sharing/release-gates/privacy-share/plan",
+        share_expands_recipient_rights: false,
+        status: "privacy_share_release_gate_scaffold"
+      },
       status: "private_share_link_scaffold",
       uses_data_access_gateway: true,
       watermark_required: true
@@ -5938,6 +6019,81 @@ describe("worker runtime", () => {
     });
     expect(body.data.validation.required_context_present).toBe(true);
     expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans privacy/share release gate with personal-data retention and no share expansion", async () => {
+    const response = await app.request("/sharing/release-gates/privacy-share/plan", {
+      body: JSON.stringify({
+        account_id: "acct_privacy",
+        as_of: "2026-06-22T00:00:00.000Z",
+        creator_account_id: "acct_creator",
+        creator_scopes: ["exports.read"],
+        creator_workspace_id: "ws_creator",
+        fields: ["synthetic_profile.company_name", "synthetic_profile.revenue"],
+        recipient_account_id: "acct_recipient",
+        recipient_scopes: ["exports.read"],
+        recipient_workspace_id: "ws_recipient",
+        request_scopes: ["account_profile", "subscription_billing", "usage_ledger", "audit_log"],
+        retention_policy_version: "retention-v1",
+        workspace_id: "ws_privacy"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-privacy-share-gate"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PrivacyShareReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      request_id: "req-privacy-share-gate",
+      route: "POST /sharing/release-gates/privacy-share/plan",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.account_data_request_gate.download_plan).toMatchObject({
+      delivery: {
+        download_status: "planned_no_write",
+        secure_delivery_required: true
+      },
+      status: "planned_no_write"
+    });
+    expect(body.data.account_data_request_gate.delete_plan.execution_plan).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "retain", scope: "subscription_billing" }),
+        expect.objectContaining({ action: "retain", scope: "usage_ledger" }),
+        expect.objectContaining({ action: "retain", scope: "audit_log" })
+      ])
+    );
+    expect(body.data.private_share_gate.no_expansion_policy).toMatchObject({
+      effective_fields: ["synthetic_profile.company_name"],
+      recipient_data_rights_expansion: false,
+      recipient_entitlement_rechecked: true,
+      redacted_fields: ["synthetic_profile.revenue"],
+      share_expands_recipient_rights: false
+    });
+    expect(body.data.private_share_gate.plan.link).toMatchObject({
+      public_indexing: false,
+      url: "not_generated"
+    });
+    expect(body.data.validation).toMatchObject({
+      all_checks_passed: true,
+      personal_data_delete_respects_retention_holds: true,
+      personal_data_download_delivery_is_scoped_and_no_write: true,
+      private_link_has_expiry_watermark_and_no_public_index: true,
+      share_link_does_not_expand_rights: true,
+      share_link_effective_fields_are_intersection: true,
+      share_link_rechecks_recipient_entitlement: true
+    });
+    expect(body.data.release_gate).toMatchObject({
+      gate_status: "blocked_live_privacy_share_validation",
+      no_live_release_claim: true
+    });
+    expect(body.data.capability.status).toBe("privacy_share_release_gate_scaffold");
+    expect(body.usage.rows).toBe(body.data.release_checks.length);
   });
 
   it("serves account runtime capabilities without auth provider calls", async () => {

@@ -210,7 +210,9 @@ import {
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
 import {
+  createPrivacyShareReleaseGatePlan,
   createPrivateShareLinkPlan,
+  getPrivacyShareReleaseGateCapabilities,
   getPrivateSharingCapabilities
 } from "@aiphabee/sharing-runtime";
 import {
@@ -727,11 +729,15 @@ app.post("/support/request-id-investigation/plan", async (c) => {
 app.get("/sharing/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   const capability = getPrivateSharingCapabilities();
+  const privacyShareReleaseGate = getPrivacyShareReleaseGateCapabilities();
 
   c.header("Cache-Control", "no-store");
 
   return c.json(
-    createSuccessEnvelope(capability, {
+    createSuccessEnvelope({
+      ...capability,
+      privacy_share_release_gate: privacyShareReleaseGate
+    }, {
       asOf: new Date().toISOString(),
       dataVersion: capability.version,
       methodologyVersion: capability.version,
@@ -811,6 +817,68 @@ app.post("/sharing/private-links/plan", async (c) => {
         usage: plan.usage
       }
     )
+  );
+});
+
+app.post("/sharing/release-gates/privacy-share/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const timeRange = isTimeRange(body.time_range)
+    ? body.time_range
+    : isTimeRange(body.timeRange)
+      ? body.timeRange
+      : undefined;
+  const plan = createPrivacyShareReleaseGatePlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    creatorAccountId: normalizeString(body.creator_account_id ?? body.creatorAccountId),
+    creatorPlan: normalizeString(body.creator_plan ?? body.creatorPlan ?? body.plan),
+    creatorScopes: normalizeStringArray(body.creator_scopes ?? body.creatorScopes ?? body.scopes),
+    creatorWorkspaceId: normalizeString(body.creator_workspace_id ?? body.creatorWorkspaceId),
+    dataset: normalizeString(body.dataset),
+    expiresInHours: normalizeOptionalNumber(body.expires_in_hours ?? body.expiresInHours),
+    fields: normalizeStringArray(body.fields),
+    recipientAccountId: normalizeString(body.recipient_account_id ?? body.recipientAccountId),
+    recipientPlan: normalizeString(body.recipient_plan ?? body.recipientPlan ?? body.plan),
+    recipientScopes: normalizeStringArray(body.recipient_scopes ?? body.recipientScopes),
+    recipientWorkspaceId: normalizeString(body.recipient_workspace_id ?? body.recipientWorkspaceId),
+    requestId,
+    requestedAt: normalizeString(body.requested_at ?? body.requestedAt),
+    requestedRows:
+      normalizeOptionalNumber(body.requested_rows ?? body.requestedRows) ?? undefined,
+    requestScopes: normalizeStringArray(body.request_scopes ?? body.requestScopes ?? body.data_scopes),
+    retentionPolicyVersion: normalizeString(
+      body.retention_policy_version ?? body.retentionPolicyVersion
+    ),
+    runId: normalizeString(body.run_id ?? body.runId),
+    timeRange,
+    verifiedBy: normalizeString(body.verified_by ?? body.verifiedBy),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(plan, {
+      asOf: new Date().toISOString(),
+      dataVersion: plan.version,
+      methodologyVersion: plan.version,
+      provenance: [
+        {
+          data_version: plan.version,
+          methodology_version: plan.version,
+          source: "sharing-runtime",
+          source_record_id: "privacy-share-release-gate-plan"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: plan.release_checks.length
+      }
+    })
   );
 });
 
