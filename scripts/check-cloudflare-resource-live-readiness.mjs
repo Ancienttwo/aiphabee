@@ -44,12 +44,12 @@ const requiredOutputFields = [
 ];
 const requiredFunctionalSurfaces = [
   ["aiphabee-worker", "worker_runtime_binding_smoke"],
+  ["AIPHABEE_EVENTS_QUEUE", "queue_publish_consume_smoke"],
   ["AIPHABEE_CONFIG", "kv_put_get_delete"],
   ["AIPHABEE_ARTIFACTS", "r2_put_get_delete"],
   ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"]
 ];
 const requiredRemainingFunctionalSurfaces = [
-  ["AIPHABEE_EVENTS_QUEUE", "queue_publish_consume_smoke"],
   ["AIPHABEE_RESEARCH_WORKFLOW", "workflow_instance_execution"],
   ["AIPHABEE_MAINTENANCE_CRON", "cron_trigger_smoke"],
   ["AIPHABEE_RUN_COORDINATOR", "durable_object_state_smoke"],
@@ -593,11 +593,16 @@ function validateFunctionalSmokeScript(value) {
     "d1",
     "execute",
     "/cloudflare/bindings/smoke",
+    "/cloudflare/queues/smoke",
     "cloudflare-bindings-runtime-v1",
     "worker_runtime_binding_smoke",
+    "queue_publish_consume_smoke",
     "kv_namespaces",
     "r2_buckets",
     "d1_databases",
+    "queues",
+    "producers",
+    "consumers",
     "functional_results",
     "forbidden_output_fields",
     "raw_response"

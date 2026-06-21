@@ -191,6 +191,11 @@
         "result": "passed"
       },
       {
+        "binding_name": "AIPHABEE_EVENTS_QUEUE",
+        "surface": "queue_publish_consume_smoke",
+        "result": "passed"
+      },
+      {
         "binding_name": "AIPHABEE_CONFIG",
         "surface": "kv_put_get_delete",
         "result": "passed"
@@ -207,11 +212,6 @@
       }
     ],
     "remaining_surfaces": [
-      {
-        "binding_name": "AIPHABEE_EVENTS_QUEUE",
-        "surface": "queue_publish_consume_smoke",
-        "reason": "queue_api_token_or_worker_consumer_smoke_required"
-      },
       {
         "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
         "surface": "workflow_instance_execution",
@@ -248,7 +248,6 @@
   "not_claimed": [
     "cloudflare_resources_created",
     "full_cloudflare_binding_smoke",
-    "queue_publish_consume_smoke",
     "hyperdrive_select_1_smoke",
     "provider_secret_rotation_smoke"
   ]

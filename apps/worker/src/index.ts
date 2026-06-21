@@ -293,6 +293,7 @@ interface WorkerBindings {
   AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
+  AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: unknown;
   APP_ENV?: string;
   APP_VERSION?: string;
@@ -322,6 +323,20 @@ interface RuntimeD1Database {
   prepare(query: string): RuntimeD1PreparedStatement;
 }
 
+interface RuntimeQueue {
+  send(body: unknown): Promise<void>;
+}
+
+interface RuntimeQueueBatch {
+  messages: RuntimeQueueMessage[];
+  queue: string;
+}
+
+interface RuntimeQueueMessage {
+  ack?(): void;
+  body: unknown;
+}
+
 type CloudflareBindingSmokeStatus = "failed" | "missing_binding" | "passed";
 
 interface CloudflareBindingSmokeResult {
@@ -338,6 +353,25 @@ interface CloudflareBindingSmokeResult {
     | "r2_runtime_put_get_delete";
   table_hash?: string;
   value_hash?: string;
+}
+
+interface CloudflareQueueSmokePayload {
+  evidence_key: string;
+  issued_at: string;
+  kind: typeof CLOUDFLARE_QUEUE_SMOKE_KIND;
+  message_hash: string;
+  smoke_id: string;
+}
+
+interface CloudflareQueueSmokeResult {
+  binding_name: "AIPHABEE_EVENTS_QUEUE";
+  detail_hash?: string;
+  evidence_key_hash?: string;
+  failure_code?: string;
+  message_hash?: string;
+  operation_count?: number;
+  status: CloudflareBindingSmokeStatus;
+  surface: "queue_publish_consume_smoke";
 }
 
 interface AgentRunRequestBody {
@@ -534,7 +568,11 @@ const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
 const CLOUDFLARE_BINDING_SMOKE_HEADER = "x-aiphabee-smoke";
 const CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE = "cloudflare-bindings-runtime-v1";
 const CLOUDFLARE_BINDING_SMOKE_ROUTE = "/cloudflare/bindings/smoke";
+const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
+const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
+const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
+const CLOUDFLARE_QUEUE_SMOKE_POLL_MS = 500;
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -620,6 +658,43 @@ app.post(CLOUDFLARE_BINDING_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     failedResults.length === 0 ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_QUEUE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_QUEUE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const queueResult = await runCloudflareQueueSmoke(c.env ?? {});
+  const bodyWithoutHash = {
+    missing_bindings: missingQueueSmokeBindings(queueResult),
+    queue_result: queueResult,
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_QUEUE_SMOKE_ROUTE}`,
+    status: queueResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    queueResult.status === "passed" ? 200 : 424
   );
 });
 
@@ -7633,7 +7708,11 @@ app.post("/evidence/records/plan", async (c) => {
   }
 });
 
-export default app;
+const worker = Object.assign(app, {
+  queue: handleCloudflareQueueBatch
+});
+
+export default worker;
 
 async function runCloudflareBindingRuntimeSmoke(
   env: WorkerBindings
@@ -7645,6 +7724,91 @@ async function runCloudflareBindingRuntimeSmoke(
   results.push(await smokeRuntimeD1(env.AIPHABEE_EVAL_STORE));
 
   return results;
+}
+
+async function runCloudflareQueueSmoke(env: WorkerBindings): Promise<CloudflareQueueSmokeResult> {
+  const queue = env.AIPHABEE_EVENTS_QUEUE;
+  const config = env.AIPHABEE_CONFIG;
+  const surface = "queue_publish_consume_smoke";
+
+  if (!isRuntimeQueue(queue)) {
+    return missingCloudflareQueueResult("missing_queue_binding");
+  }
+
+  if (!isRuntimeKvNamespace(config)) {
+    return missingCloudflareQueueResult("missing_kv_binding");
+  }
+
+  const smokeId = crypto.randomUUID();
+  const evidenceKey = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/queue/${smokeId}`;
+  const messageHash = await hashRuntimeSmokeString(`${CLOUDFLARE_QUEUE_SMOKE_KIND}:${smokeId}`);
+  const payload: CloudflareQueueSmokePayload = {
+    evidence_key: evidenceKey,
+    issued_at: new Date().toISOString(),
+    kind: CLOUDFLARE_QUEUE_SMOKE_KIND,
+    message_hash: messageHash,
+    smoke_id: smokeId
+  };
+
+  try {
+    await queue.send(payload);
+    const evidence = await readQueueSmokeEvidence(config, evidenceKey);
+
+    if (evidence === null) {
+      return failedCloudflareQueueResult({
+        detail: "queue consumer did not write smoke evidence before timeout",
+        failureCode: "queue_consume_timeout",
+        key: evidenceKey
+      });
+    }
+
+    await config.delete(evidenceKey);
+
+    return {
+      binding_name: "AIPHABEE_EVENTS_QUEUE",
+      evidence_key_hash: await hashRuntimeSmokeString(evidenceKey),
+      message_hash: messageHash,
+      operation_count: 3,
+      status: "passed",
+      surface
+    };
+  } catch (error) {
+    await config.delete(evidenceKey).catch(() => undefined);
+
+    return failedCloudflareQueueResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "queue_publish_consume_failed",
+      key: evidenceKey
+    });
+  }
+}
+
+async function handleCloudflareQueueBatch(
+  batch: RuntimeQueueBatch,
+  env: WorkerBindings
+): Promise<void> {
+  const config = env.AIPHABEE_CONFIG;
+
+  if (!isRuntimeKvNamespace(config)) {
+    throw new Error("AIPHABEE_CONFIG binding is required for queue smoke evidence");
+  }
+
+  for (const message of batch.messages) {
+    if (!isCloudflareQueueSmokePayload(message.body)) {
+      continue;
+    }
+
+    await config.put(
+      message.body.evidence_key,
+      JSON.stringify({
+        consumed_at: new Date().toISOString(),
+        message_hash: message.body.message_hash,
+        queue: batch.queue,
+        status: "consumed"
+      })
+    );
+    message.ack?.();
+  }
 }
 
 async function smokeRuntimeKv(value: unknown): Promise<CloudflareBindingSmokeResult> {
@@ -7819,6 +7983,63 @@ async function smokeRuntimeD1(value: unknown): Promise<CloudflareBindingSmokeRes
   }
 }
 
+function missingCloudflareQueueResult(failureCode: string): CloudflareQueueSmokeResult {
+  return {
+    binding_name: "AIPHABEE_EVENTS_QUEUE",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "queue_publish_consume_smoke"
+  };
+}
+
+function missingQueueSmokeBindings(result: CloudflareQueueSmokeResult): string[] {
+  if (result.status !== "missing_binding") {
+    return [];
+  }
+
+  if (result.failure_code === "missing_kv_binding") {
+    return ["AIPHABEE_CONFIG"];
+  }
+
+  return ["AIPHABEE_EVENTS_QUEUE"];
+}
+
+async function failedCloudflareQueueResult({
+  detail,
+  failureCode,
+  key
+}: {
+  detail: string;
+  failureCode: string;
+  key: string;
+}): Promise<CloudflareQueueSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_EVENTS_QUEUE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    evidence_key_hash: await hashRuntimeSmokeString(key),
+    failure_code: failureCode,
+    status: "failed",
+    surface: "queue_publish_consume_smoke"
+  };
+}
+
+async function readQueueSmokeEvidence(
+  config: RuntimeKvNamespace,
+  evidenceKey: string
+): Promise<string | null> {
+  for (let attempt = 1; attempt <= CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS; attempt += 1) {
+    const evidence = await config.get(evidenceKey);
+
+    if (evidence !== null) {
+      return evidence;
+    }
+
+    await sleepRuntimeSmoke(CLOUDFLARE_QUEUE_SMOKE_POLL_MS);
+  }
+
+  return null;
+}
+
 function missingCloudflareBindingResult(
   bindingName: CloudflareBindingSmokeResult["binding_name"],
   surface: CloudflareBindingSmokeResult["surface"]
@@ -7876,6 +8097,22 @@ function isRuntimeD1Database(value: unknown): value is RuntimeD1Database {
   return isPlainRecord(value) && typeof value.prepare === "function";
 }
 
+function isRuntimeQueue(value: unknown): value is RuntimeQueue {
+  return isPlainRecord(value) && typeof value.send === "function";
+}
+
+function isCloudflareQueueSmokePayload(value: unknown): value is CloudflareQueueSmokePayload {
+  return (
+    isPlainRecord(value) &&
+    value.kind === CLOUDFLARE_QUEUE_SMOKE_KIND &&
+    typeof value.evidence_key === "string" &&
+    value.evidence_key.startsWith(`${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/queue/`) &&
+    typeof value.message_hash === "string" &&
+    value.message_hash.startsWith("sha256:") &&
+    typeof value.smoke_id === "string"
+  );
+}
+
 async function hashRuntimeSmokeString(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
 
@@ -7894,6 +8131,10 @@ function sanitizeRuntimeSmokeDetail(value: string): string {
       /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu,
       "[REDACTED_UUID]"
     );
+}
+
+function sleepRuntimeSmoke(ms: number): Promise<void> {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
 function normalizePostGenerationEvidenceBindingInput(

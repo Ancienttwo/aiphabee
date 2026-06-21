@@ -4,8 +4,8 @@
 
 Create a no-secret readiness harness for Sprint 0.4 Cloudflare resource live
 smoke and record partial external provisioning plus KV/R2/D1 functional smoke
-evidence plus Worker runtime KV/R2/D1 binding smoke without claiming full
-Cloudflare resource or binding-smoke completion.
+evidence plus Worker runtime KV/R2/D1 binding smoke and Queue publish/consume
+smoke without claiming full Cloudflare resource or binding-smoke completion.
 
 ## Inputs
 
@@ -31,6 +31,8 @@ Cloudflare resource or binding-smoke completion.
 - Worker runtime functional evidence for KV runtime put/get/delete, R2 runtime
   put/get/delete, and D1 runtime create/insert/select/delete/drop through a
   temporary no-id Wrangler binding config
+- Queue functional evidence for synthetic publish/consume through a temporary
+  Worker consumer and KV evidence marker cleanup
 
 ## Acceptance
 
@@ -46,6 +48,9 @@ Cloudflare resource or binding-smoke completion.
 - Worker runtime binding smoke route requires `x-aiphabee-smoke`, returns only
   hashes/status/operation counts, and is deployed through a temporary untracked
   Wrangler config that resolves KV/D1 ids at runtime.
+- Queue smoke route requires `x-aiphabee-smoke`, sends a synthetic message to
+  `AIPHABEE_EVENTS_QUEUE`, verifies consumer-written KV evidence, removes the
+  temporary Worker consumer registration, and returns only hashes/status/counts.
 - Full repository check includes the readiness gate.
 - No Cloudflare token, account id, raw API response, or resource id is written
   to committed files.

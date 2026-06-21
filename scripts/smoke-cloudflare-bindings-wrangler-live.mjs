@@ -27,6 +27,7 @@ const smokeId = `smoke_${Date.now()}_${randomUUID().replace(/-/gu, "").slice(0, 
 const resourceNames = contract.partial_provisioning?.resource_names ?? {};
 const requiredResourceNames = [
   "worker",
+  "queue",
   "kv_namespace_title",
   "r2_bucket",
   "d1_database"
@@ -53,7 +54,8 @@ if (dryRun) {
         "kv_put_get_delete",
         "r2_put_get_delete",
         "d1_create_insert_select_delete_drop",
-        "worker_runtime_binding_smoke"
+        "worker_runtime_binding_smoke",
+        "queue_publish_consume_smoke"
       ],
       required_env: requiredEnv,
       required_resource_names: requiredResourceNames,
@@ -84,7 +86,7 @@ const results = [];
 results.push(await smokeKv());
 results.push(await smokeR2());
 results.push(await smokeD1());
-results.push(await smokeWorkerRuntimeBindings());
+results.push(...await smokeWorkerRuntimeBindings());
 
 const failed = results.filter((result) => result.status !== "passed");
 emit(
@@ -323,76 +325,163 @@ async function smokeWorkerRuntimeBindings() {
     const workerUrl = extractWorkersDevUrl(deployResult.stdout);
 
     if (!hasValue(workerUrl)) {
-      return failedResult({
-        bindingName: "aiphabee-worker",
-        detail: "wrangler deploy output did not include a workers.dev route",
-        failureCode: "worker_runtime_url_missing",
-        key: workerName,
-        surface: "worker_runtime_binding_smoke"
-      });
-    }
-
-    const response = await fetch(`${workerUrl}/cloudflare/bindings/smoke`, {
-      headers: {
-        "x-aiphabee-smoke": runtimeSmokeHeaderValue,
-        "x-request-id": `req-${smokeId}`
-      },
-      method: "POST"
-    });
-    const body = await response.json();
-
-    if (response.status !== 200 || body?.status !== "ok") {
-      return failedResult({
-        bindingName: "aiphabee-worker",
-        detail: JSON.stringify({
-          http_status: response.status,
-          missing_bindings: Array.isArray(body?.missing_bindings)
-            ? body.missing_bindings
-            : [],
-          runtime_results: Array.isArray(body?.runtime_results)
-            ? body.runtime_results.map((result) => ({
-                binding_name: result?.binding_name,
-                failure_code: result?.failure_code,
-                status: result?.status,
-                surface: result?.surface
-              }))
-            : [],
-          status: body?.status
+      return [
+        failedResult({
+          bindingName: "aiphabee-worker",
+          detail: "wrangler deploy output did not include a workers.dev route",
+          failureCode: "worker_runtime_url_missing",
+          key: workerName,
+          surface: "worker_runtime_binding_smoke"
         }),
-        failureCode: "worker_runtime_route_failed",
-        key: workerName,
-        surface: "worker_runtime_binding_smoke"
-      });
+        failedResult({
+          bindingName: "AIPHABEE_EVENTS_QUEUE",
+          detail: "worker runtime URL missing before queue smoke",
+          failureCode: "queue_worker_runtime_prerequisite_failed",
+          key: resourceNames.queue,
+          surface: "queue_publish_consume_smoke"
+        })
+      ];
     }
 
-    return {
-      binding_name: "aiphabee-worker",
-      operation_count: Array.isArray(body.runtime_results)
-        ? body.runtime_results.reduce(
-            (count, result) =>
-              count + (typeof result?.operation_count === "number" ? result.operation_count : 0),
-            1
-          )
-        : 1,
-      response_hash: hasValue(body.response_hash)
-        ? body.response_hash
-        : hashString(JSON.stringify(body.runtime_results ?? [])),
-      status: "passed",
-      surface: "worker_runtime_binding_smoke"
-    };
+    const workerRuntimeResult = await smokeWorkerRuntimeRoute(workerUrl);
+
+    if (workerRuntimeResult.status !== "passed") {
+      return [
+        workerRuntimeResult,
+        failedResult({
+          bindingName: "AIPHABEE_EVENTS_QUEUE",
+          detail: "worker runtime binding smoke failed before queue smoke",
+          failureCode: "queue_worker_runtime_prerequisite_failed",
+          key: resourceNames.queue,
+          surface: "queue_publish_consume_smoke"
+        })
+      ];
+    }
+
+    return [workerRuntimeResult, await smokeQueuePublishConsume(workerUrl)];
   } catch (error) {
-    return failedResult({
-      bindingName: "aiphabee-worker",
-      detail: error instanceof Error ? error.message : String(error),
-      failureCode: "worker_runtime_command_failed",
-      key: workerName,
-      surface: "worker_runtime_binding_smoke"
-    });
+    return [
+      failedResult({
+        bindingName: "aiphabee-worker",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "worker_runtime_command_failed",
+        key: workerName,
+        surface: "worker_runtime_binding_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_EVENTS_QUEUE",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "queue_worker_runtime_command_failed",
+        key: resourceNames.queue,
+        surface: "queue_publish_consume_smoke"
+      })
+    ];
   } finally {
+    await runWrangler(
+      ["queues", "consumer", "worker", "remove", resourceNames.queue, workerName],
+      { allowFailure: true, input: "y\n" }
+    );
+
     if (configPath) {
       await rm(configPath, { force: true });
     }
   }
+}
+
+async function smokeWorkerRuntimeRoute(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/bindings/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "aiphabee-worker",
+      detail: JSON.stringify({
+        http_status: response.status,
+        missing_bindings: Array.isArray(body?.missing_bindings)
+          ? body.missing_bindings
+          : [],
+        runtime_results: Array.isArray(body?.runtime_results)
+          ? body.runtime_results.map((result) => ({
+              binding_name: result?.binding_name,
+              failure_code: result?.failure_code,
+              status: result?.status,
+              surface: result?.surface
+            }))
+          : [],
+        status: body?.status
+      }),
+      failureCode: "worker_runtime_route_failed",
+      key: resourceNames.worker,
+      surface: "worker_runtime_binding_smoke"
+    });
+  }
+
+  return {
+    binding_name: "aiphabee-worker",
+    operation_count: Array.isArray(body.runtime_results)
+      ? body.runtime_results.reduce(
+          (count, result) =>
+            count + (typeof result?.operation_count === "number" ? result.operation_count : 0),
+          1
+        )
+      : 1,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.runtime_results ?? [])),
+    status: "passed",
+    surface: "worker_runtime_binding_smoke"
+  };
+}
+
+async function smokeQueuePublishConsume(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/queues/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "AIPHABEE_EVENTS_QUEUE",
+      detail: JSON.stringify({
+        http_status: response.status,
+        missing_bindings: Array.isArray(body?.missing_bindings) ? body.missing_bindings : [],
+        queue_result: body?.queue_result
+          ? {
+              failure_code: body.queue_result.failure_code,
+              status: body.queue_result.status,
+              surface: body.queue_result.surface
+            }
+          : undefined,
+        status: body?.status
+      }),
+      failureCode: "queue_publish_consume_route_failed",
+      key: resourceNames.queue,
+      surface: "queue_publish_consume_smoke"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_EVENTS_QUEUE",
+    operation_count:
+      typeof body.queue_result?.operation_count === "number"
+        ? body.queue_result.operation_count
+        : 3,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.queue_result ?? {})),
+    status: "passed",
+    surface: "queue_publish_consume_smoke"
+  };
 }
 
 async function resolveKvNamespaceId(title) {
@@ -464,7 +553,23 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
         database_name: resourceNames.d1_database,
         database_id: d1DatabaseId
       }
-    ]
+    ],
+    queues: {
+      consumers: [
+        {
+          queue: resourceNames.queue,
+          max_batch_size: 1,
+          max_batch_timeout: 1,
+          max_retries: 1
+        }
+      ],
+      producers: [
+        {
+          binding: "AIPHABEE_EVENTS_QUEUE",
+          queue: resourceNames.queue
+        }
+      ]
+    }
   };
 
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);

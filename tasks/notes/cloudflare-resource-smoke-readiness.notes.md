@@ -15,6 +15,8 @@
 - Added a live-only Wrangler functional smoke for KV, R2, and D1.
 - Added a guarded Worker runtime binding smoke route and extended the Wrangler
   smoke to deploy `aiphabee-worker` with temporary KV/R2/D1 bindings.
+- Added a guarded Queue publish/consume smoke route and module Worker queue
+  handler, with temporary producer/consumer config and KV evidence cleanup.
 
 ## External Evidence
 
@@ -29,6 +31,8 @@
   create/insert/select/delete/drop.
 - Worker `POST /cloudflare/bindings/smoke` passed runtime KV/R2/D1 binding
   smoke with sanitized hashes/status/operation counts only.
+- Worker `POST /cloudflare/queues/smoke` passed Queue publish/consume through
+  a temporary Worker consumer and sanitized hashes/status/operation counts only.
 - AI Gateway creation hit a Cloudflare API authentication error in the available
   context.
 - Workflow, Cron, Durable Object, and Hyperdrive remain blocked by Worker
@@ -37,7 +41,6 @@
 
 ## What Was Not Claimed
 
-- No Queue publish/consume smoke was executed.
 - No Workflow, Cron, Durable Object, AI Gateway, or Hyperdrive resource was
   created.
 - No Hyperdrive `SELECT 1` was executed.

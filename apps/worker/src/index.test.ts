@@ -33,6 +33,24 @@ interface CloudflareBindingSmokeBody {
   synthetic_prefix: string;
 }
 
+interface CloudflareQueueSmokeBody {
+  missing_bindings: string[];
+  queue_result: {
+    binding_name: string;
+    evidence_key_hash?: string;
+    failure_code?: string;
+    message_hash?: string;
+    operation_count?: number;
+    status: string;
+    surface: string;
+  };
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
 interface PublicRuntimeBody {
   data: {
     auth_required: boolean;
@@ -6154,6 +6172,44 @@ function createRuntimeBindingSmokeEnv() {
   };
 }
 
+function createQueueSmokeEnv() {
+  const kvStore = new Map<string, string>();
+  const kv = {
+    delete: vi.fn(async (key: string) => {
+      kvStore.delete(key);
+    }),
+    get: vi.fn(async (key: string) => kvStore.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      kvStore.set(key, value);
+    })
+  };
+  const queue = {
+    send: vi.fn(async (body: unknown) => {
+      const payload = body as { evidence_key?: string; message_hash?: string };
+
+      if (typeof payload.evidence_key === "string") {
+        kvStore.set(
+          payload.evidence_key,
+          JSON.stringify({
+            message_hash: payload.message_hash,
+            status: "consumed"
+          })
+        );
+      }
+    })
+  };
+
+  return {
+    env: {
+      AIPHABEE_CONFIG: kv,
+      AIPHABEE_EVENTS_QUEUE: queue
+    },
+    kv,
+    kvStore,
+    queue
+  };
+}
+
 describe("worker runtime", () => {
   it("serves a no-store health response", async () => {
     const response = await app.request(
@@ -6265,6 +6321,117 @@ describe("worker runtime", () => {
     expect(serialized).not.toContain("/runtime/kv/");
     expect(serialized).not.toContain("/runtime/r2/");
     expect(serialized).not.toContain("aiphabee_smoke_runtime");
+  });
+
+  it("rejects the Cloudflare queue smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/queues/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-queue-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-queue-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/queues/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing bindings for the Cloudflare queue smoke route", async () => {
+    const response = await app.request("/cloudflare/queues/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-queue-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareQueueSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_EVENTS_QUEUE"]);
+    expect(body.queue_result).toMatchObject({
+      binding_name: "AIPHABEE_EVENTS_QUEUE",
+      failure_code: "missing_queue_binding",
+      status: "missing_binding",
+      surface: "queue_publish_consume_smoke"
+    });
+  });
+
+  it("publishes and verifies a consumed Cloudflare Queue smoke message", async () => {
+    const { env, kv, kvStore, queue } = createQueueSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/queues/smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-queue-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareQueueSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-queue-ok",
+      route: "POST /cloudflare/queues/smoke",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.queue_result).toMatchObject({
+      binding_name: "AIPHABEE_EVENTS_QUEUE",
+      operation_count: 3,
+      status: "passed",
+      surface: "queue_publish_consume_smoke"
+    });
+    expect(body.queue_result.message_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(queue.send).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.delete).toHaveBeenCalledTimes(1);
+    expect(kvStore.size).toBe(0);
+    expect(serialized).not.toContain("/runtime/queue/");
+  });
+
+  it("writes Cloudflare Queue consumer smoke evidence to KV", async () => {
+    const { env, kv } = createQueueSmokeEnv();
+    const ack = vi.fn();
+
+    await app.queue(
+      {
+        messages: [
+          {
+            ack,
+            body: {
+              evidence_key: "aiphabee-smoke/runtime/queue/test-message",
+              issued_at: "2026-06-22T00:00:00.000Z",
+              kind: "aiphabee.queue.smoke.v1",
+              message_hash:
+                "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              smoke_id: "test-message"
+            }
+          }
+        ],
+        queue: "aiphabee-events-queue"
+      },
+      env
+    );
+
+    expect(kv.put).toHaveBeenCalledWith(
+      "aiphabee-smoke/runtime/queue/test-message",
+      expect.stringContaining("\"status\":\"consumed\"")
+    );
+    expect(ack).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the root route inside the scaffold-only boundary", async () => {
