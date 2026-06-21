@@ -147,6 +147,7 @@ import {
   createMcpProtocolPlan,
   createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
+  createMcpTargetClientsConsoleReleaseGatePlan,
   getMcpAuthLimitsReleaseGateCapabilities,
   getMcpApiKeyCapabilities,
   getMcpCompatibilityStatusCapabilities,
@@ -156,6 +157,7 @@ import {
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
   getMcpStandardErrorDefinition,
+  getMcpTargetClientsConsoleReleaseGateCapabilities,
   MCP_STANDARD_ERROR_CODES_VERSION,
   type McpStandardErrorCode
 } from "@aiphabee/mcp-runtime";
@@ -3104,6 +3106,57 @@ app.post("/mcp/release-gates/auth-limits/plan", async (c) => {
       {
         dataVersion: "mcp-auth-limits-release-gate-scaffold-v0",
         methodologyVersion: "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
+        source: "mcp-runtime"
+      }
+    );
+  }
+});
+
+app.post("/mcp/release-gates/target-clients-console/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpTargetClientsConsoleReleaseGatePlan({
+      clientName: normalizeString(body.client_name ?? body.clientName),
+      clientVersion: normalizeString(body.client_version ?? body.clientVersion),
+      origin: c.req.header("origin") ?? normalizeString(body.origin),
+      pendingCredits: normalizeOptionalNumber(body.pending_credits ?? body.pendingCredits),
+      requestId,
+      usagePlanCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+      usedCredits: normalizeOptionalNumber(body.used_credits ?? body.usedCredits),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpTargetClientsConsoleReleaseGateCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(
+      c,
+      error,
+      requestId,
+      "MCP target clients and Console release gate plan failed",
+      {
+        dataVersion: "mcp-target-clients-console-release-gate-scaffold-v0",
+        methodologyVersion:
+          "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
         source: "mcp-runtime"
       }
     );

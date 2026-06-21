@@ -8,6 +8,8 @@ import {
   MCP_REVOCATION_ENFORCEMENT_VERSION,
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
+  MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS,
+  MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
   MCP_TOOL_LIMITER_VERSION,
   McpRuntimeInputError,
   createMcpAuthLimitsReleaseGatePlan,
@@ -21,6 +23,7 @@ import {
   createMcpProtocolPlan,
   createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
+  createMcpTargetClientsConsoleReleaseGatePlan,
   getMcpApiKeyCapabilities,
   getMcpAuthLimitsReleaseGateCapabilities,
   getMcpOAuthCapabilities,
@@ -28,7 +31,8 @@ import {
   getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
-  getMcpStandardErrorDefinition
+  getMcpStandardErrorDefinition,
+  getMcpTargetClientsConsoleReleaseGateCapabilities
 } from "./index";
 
 describe("mcp endpoint default-deny scaffold", () => {
@@ -116,7 +120,14 @@ describe("mcp endpoint default-deny scaffold", () => {
       mcp_auth_limits_release_gate_route: "POST /mcp/release-gates/auth-limits/plan",
       mcp_auth_limits_release_gate_version:
         "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
+      mcp_target_clients_console_release_gate_ready: true,
+      mcp_target_clients_console_release_gate_route:
+        "POST /mcp/release-gates/target-clients-console/plan",
+      mcp_target_clients_console_release_gate_version:
+        "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
+      mcp_target_client_e2e_matrix_ready: true,
       mcp_target_protocol_version: "2025-03-26",
+      developer_console_reconciliation_ready: true,
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
       mcp_tool_limiter_ready: true,
@@ -181,6 +192,17 @@ describe("mcp endpoint default-deny scaffold", () => {
       "cursor_pagination_bypass_blocked",
       "quota_and_limit_bypass_blocked",
       "standard_error_codes_stable"
+    ]);
+    expect(
+      getMcpRuntimeCapabilities().mcp_target_clients_console_release_gate_required_checks
+    ).toEqual([
+      "target_client_matrix_present",
+      "inspector_and_sdk_smoke_vectors_planned",
+      "first_call_guide_under_10_minute_target",
+      "console_reconciliation_fields_present",
+      "request_usage_scope_and_key_reconciliation_ready",
+      "compatibility_status_linked",
+      "no_live_console_or_client_claim"
     ]);
   });
 
@@ -592,6 +614,182 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(plan.usage).toMatchObject({
       credits: 0,
       request_id: "req-mcp-auth-limits-release-gate",
+      rows: 7,
+      usage_reconciliation_status: "planned_no_live"
+    });
+  });
+
+  it("plans MCP target-client and Developer Console reconciliation release gate", () => {
+    const plan = createMcpTargetClientsConsoleReleaseGatePlan({
+      clientName: "mcp-inspector",
+      clientVersion: "0.16.0",
+      requestId: "req-mcp-target-clients-console-release-gate",
+      usagePlanCode: "developer",
+      usedCredits: 12,
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION).toBe(
+      "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0"
+    );
+    expect(getMcpTargetClientsConsoleReleaseGateCapabilities()).toMatchObject({
+      compatibility_status_route: "GET /mcp/compatibility/status",
+      console_reconciliation_ready: true,
+      developer_console_live: false,
+      first_call_time_target_minutes: 10,
+      live_client_e2e_passed: false,
+      live_console_log_store: false,
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      route: "POST /mcp/release-gates/target-clients-console/plan",
+      runtime_route: "GET /mcp/runtime",
+      status: "mcp_target_clients_console_release_gate_scaffold",
+      target_client_matrix_ready: true,
+      target_protocol_version: "2025-03-26",
+      version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
+    });
+    expect(getMcpTargetClientsConsoleReleaseGateCapabilities().required_checks).toEqual(
+      MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS
+    );
+    expect(plan).toMatchObject({
+      data_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+      developer_console_live: false,
+      frontend_rendering: false,
+      live_client_e2e_passed: false,
+      live_console_log_store: false,
+      live_db_writes: false,
+      live_sdk_inspector_smoke: false,
+      live_tool_execution: false,
+      live_usage_ledger_reads: false,
+      methodology_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /mcp/release-gates/target-clients-console/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
+    });
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "target_client_matrix_present",
+      "inspector_and_sdk_smoke_vectors_planned",
+      "first_call_guide_under_10_minute_target",
+      "console_reconciliation_fields_present",
+      "request_usage_scope_and_key_reconciliation_ready",
+      "compatibility_status_linked",
+      "no_live_console_or_client_claim"
+    ]);
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(plan.target_client_gate).toMatchObject({
+      first_call_time_target_minutes: 10,
+      live_client_e2e_passed: false
+    });
+    expect(plan.target_client_gate.matrix.map((client) => client.client_name)).toEqual([
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ]);
+    expect(
+      plan.target_client_gate.matrix.every(
+        (client) =>
+          client.connection_guide_artifact === "docs/public/mcp.md" &&
+          client.first_call_time_target_minutes === 10 &&
+          client.live_e2e_passed === false &&
+          client.planned_checks.includes("console_reconciliation")
+      )
+    ).toBe(true);
+    expect(plan.console_reconciliation_gate).toMatchObject({
+      api_key_runtime_route: "GET /mcp/api-keys/runtime",
+      console_live: false,
+      log_store_live: false,
+      request_id_visible: true,
+      scope_visibility: true,
+      status_source: "GET /mcp/compatibility/status",
+      usage_ledger_reads_live: false
+    });
+    expect(plan.console_reconciliation_gate.required_fields).toEqual([
+      "request_id",
+      "workspace_id",
+      "client_name",
+      "client_version",
+      "credential_kind",
+      "credential_reference",
+      "scope",
+      "tool_name",
+      "tool_version",
+      "status",
+      "standard_error_code",
+      "credits",
+      "credits_remaining",
+      "usage_event_id",
+      "data_version",
+      "methodology_version",
+      "source_record_id"
+    ]);
+    expect(plan.console_reconciliation_gate.forbidden_fields).toEqual([
+      "raw_api_key",
+      "oauth_access_token",
+      "oauth_refresh_token",
+      "raw_prompt",
+      "raw_generated_answer",
+      "raw_document_body",
+      "payment_identifier",
+      "personal_contact"
+    ]);
+    expect(plan.compatibility_gate).toMatchObject({
+      status_route: "GET /mcp/compatibility/status",
+      target_protocol_version: "2025-03-26"
+    });
+    expect(plan.compatibility_gate.inspector.live_inspector_smoke).toBe(false);
+    expect(plan.compatibility_gate.sdk.live_sdk_smoke).toBe(false);
+    expect(plan.protocol_gate).toMatchObject({
+      route: "POST /mcp/release-gates/protocol/plan",
+      schema_compatibility_gate: {
+        requested_tool_name: "get_quote_snapshot",
+        required_scope: "quotes:read"
+      }
+    });
+    expect(plan.protocol_gate.usage).toMatchObject({
+      request_id: "req-mcp-target-clients-console-release-gate:protocol",
+      request_id_visible: true
+    });
+    expect(plan.auth_limits_gate.oauth_scope_gate.authorize_plan.consent).toMatchObject({
+      clear_scope_display: true,
+      requested_scope_count: 3
+    });
+    expect(plan.auth_limits_gate.api_key_gate.rotate_plan.api_key).toMatchObject({
+      live_secret_generated: false,
+      old_key_future_calls_denied_after_rotation: true
+    });
+    expect(plan.auth_limits_gate.error_stability_gate.limiter_error_codes).toEqual([
+      "RATE_LIMITED",
+      "BUDGET_EXCEEDED"
+    ]);
+    expect(Object.values(plan.validation).every(Boolean)).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      blockers: [
+        "live_target_client_e2e_missing",
+        "developer_console_ui_missing",
+        "live_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "public_status_page_deploy_missing"
+      ],
+      gate_status: "blocked_live_mcp_target_clients_console_validation",
+      no_live_release_claim: true,
+      required_signoffs: [
+        "platform",
+        "developer-relations",
+        "support",
+        "billing",
+        "data-rights"
+      ]
+    });
+    expect(plan.usage).toMatchObject({
+      credits: 0,
+      request_id: "req-mcp-target-clients-console-release-gate",
       rows: 7,
       usage_reconciliation_status: "planned_no_live"
     });

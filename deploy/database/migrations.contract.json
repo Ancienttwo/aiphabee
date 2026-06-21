@@ -484,6 +484,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql",
+      "purpose": "Create empty MCP target-client e2e and Developer Console reconciliation release gate scaffolds without enabling live client smoke, Console UI, log-store reads, ledger reads, or tool execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_target_clients_console_release_gate",
+        "governance.mcp_target_clients_console_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -1,0 +1,143 @@
+{
+  "version": "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp/release-gates/target-clients-console/plan",
+  "protocol_route": "POST /mcp",
+  "compatibility_status_route": "GET /mcp/compatibility/status",
+  "standard_response_envelope": true,
+  "developer_console_live": false,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_client_e2e_passed": false,
+  "live_console_log_store": false,
+  "live_db_writes": false,
+  "live_sdk_inspector_smoke": false,
+  "live_tool_execution": false,
+  "live_usage_ledger_reads": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "required_runtime_capability_fields": [
+    "mcp_target_clients_console_release_gate_ready",
+    "mcp_target_clients_console_release_gate_route",
+    "mcp_target_clients_console_release_gate_version",
+    "mcp_target_clients_console_release_gate_required_checks",
+    "mcp_target_client_e2e_matrix_ready",
+    "developer_console_reconciliation_ready",
+    "developer_console_live",
+    "mcp_compatibility_status_route",
+    "mcp_live_client_e2e_passed",
+    "usage_request_id_visible",
+    "usage_reconciliation_ready"
+  ],
+  "required_checks": [
+    "target_client_matrix_present",
+    "inspector_and_sdk_smoke_vectors_planned",
+    "first_call_guide_under_10_minute_target",
+    "console_reconciliation_fields_present",
+    "request_usage_scope_and_key_reconciliation_ready",
+    "compatibility_status_linked",
+    "no_live_console_or_client_claim"
+  ],
+  "required_output_fields": [
+    "target_client_gate",
+    "console_reconciliation_gate",
+    "compatibility_gate",
+    "protocol_gate",
+    "auth_limits_gate",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "target_client_policy": {
+    "target_protocol_version": "2025-03-26",
+    "time_to_first_call_target_minutes": 10,
+    "connection_guide_artifact": "docs/public/mcp.md",
+    "target_clients": [
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ],
+    "live_e2e_passed": false,
+    "planned_checks": [
+      "connectivity",
+      "initialize",
+      "tools/list",
+      "tools/call",
+      "console_reconciliation"
+    ]
+  },
+  "console_reconciliation_policy": {
+    "console_live": false,
+    "log_store_live": false,
+    "usage_ledger_reads_live": false,
+    "request_id_visible": true,
+    "scope_visibility": true,
+    "status_source": "GET /mcp/compatibility/status",
+    "required_fields": [
+      "request_id",
+      "workspace_id",
+      "client_name",
+      "client_version",
+      "credential_kind",
+      "credential_reference",
+      "scope",
+      "tool_name",
+      "tool_version",
+      "status",
+      "standard_error_code",
+      "credits",
+      "credits_remaining",
+      "usage_event_id",
+      "data_version",
+      "methodology_version",
+      "source_record_id"
+    ],
+    "forbidden_fields": [
+      "raw_api_key",
+      "oauth_access_token",
+      "oauth_refresh_token",
+      "raw_prompt",
+      "raw_generated_answer",
+      "raw_document_body",
+      "payment_identifier",
+      "personal_contact"
+    ]
+  },
+  "release_gate": {
+    "gate_status": "blocked_live_mcp_target_clients_console_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "platform",
+      "developer-relations",
+      "support",
+      "billing",
+      "data-rights"
+    ],
+    "blockers": [
+      "live_target_client_e2e_missing",
+      "developer_console_ui_missing",
+      "live_console_log_store_missing",
+      "live_usage_ledger_reads_missing",
+      "public_status_page_deploy_missing"
+    ]
+  },
+  "tables": [
+    "core.mcp_target_clients_console_release_gate",
+    "governance.mcp_target_clients_console_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "mcp_target_client_e2e",
+    "developer_console_reconciliation"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/compatibility.contract.json",
+    "deploy/mcp/protocol-release-gate.contract.json",
+    "deploy/mcp/auth-limits-release-gate.contract.json",
+    "deploy/mcp/usage-envelope.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

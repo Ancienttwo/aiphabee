@@ -44,6 +44,8 @@ export const MCP_PROTOCOL_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0";
 export const MCP_AUTH_LIMITS_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0";
+export const MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0";
 export const MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION = "2025-03-26";
 export const MCP_COMPATIBILITY_MONITORED_PROTOCOL_VERSIONS = [
   "2025-03-26",
@@ -66,6 +68,15 @@ export const MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS = [
   "cursor_pagination_bypass_blocked",
   "quota_and_limit_bypass_blocked",
   "standard_error_codes_stable"
+] as const;
+export const MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS = [
+  "target_client_matrix_present",
+  "inspector_and_sdk_smoke_vectors_planned",
+  "first_call_guide_under_10_minute_target",
+  "console_reconciliation_fields_present",
+  "request_usage_scope_and_key_reconciliation_ready",
+  "compatibility_status_linked",
+  "no_live_console_or_client_claim"
 ] as const;
 
 export const MCP_SUPPORTED_METHODS = [
@@ -345,6 +356,18 @@ export interface CreateMcpProtocolReleaseGatePlanInput {
 
 export interface CreateMcpAuthLimitsReleaseGatePlanInput {
   allowedOrigins?: readonly string[];
+  origin?: string;
+  pendingCredits?: number;
+  requestId: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
+}
+
+export interface CreateMcpTargetClientsConsoleReleaseGatePlanInput {
+  allowedOrigins?: readonly string[];
+  clientName?: string;
+  clientVersion?: string;
   origin?: string;
   pendingCredits?: number;
   requestId: string;
@@ -1407,7 +1430,16 @@ export function getMcpRuntimeCapabilities() {
       MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS,
     mcp_auth_limits_release_gate_route: "POST /mcp/release-gates/auth-limits/plan" as const,
     mcp_auth_limits_release_gate_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+    mcp_target_clients_console_release_gate_ready: true,
+    mcp_target_clients_console_release_gate_required_checks:
+      MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS,
+    mcp_target_clients_console_release_gate_route:
+      "POST /mcp/release-gates/target-clients-console/plan" as const,
+    mcp_target_clients_console_release_gate_version:
+      MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+    mcp_target_client_e2e_matrix_ready: true,
     mcp_target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
+    developer_console_reconciliation_ready: true,
     live_tool_execution: false,
     mcp_api_redistribution_rights_confirmed: false,
     oauth_authorize_route: "POST /mcp/oauth/authorize/plan" as const,
@@ -2218,6 +2250,251 @@ export function createMcpAuthLimitsReleaseGatePlan(
     usage: createMcpUsageSummary(input, 0, releaseChecks.length),
     validation,
     version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION
+  };
+}
+
+export function getMcpTargetClientsConsoleReleaseGateCapabilities() {
+  return {
+    compatibility_status_route: "GET /mcp/compatibility/status" as const,
+    console_reconciliation_ready: true,
+    developer_console_live: false,
+    first_call_time_target_minutes: 10,
+    live_client_e2e_passed: false,
+    live_console_log_store: false,
+    package: "@aiphabee/mcp-runtime" as const,
+    protocol_route: "POST /mcp" as const,
+    required_checks: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS,
+    route: "POST /mcp/release-gates/target-clients-console/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    status: "mcp_target_clients_console_release_gate_scaffold" as const,
+    target_client_matrix_ready: true,
+    target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
+    version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
+  };
+}
+
+export function createMcpTargetClientsConsoleReleaseGatePlan(
+  input: CreateMcpTargetClientsConsoleReleaseGatePlanInput
+) {
+  const origin = normalizeText(input.origin) ?? DEFAULT_MCP_ALLOWED_ORIGINS[0];
+  const allowedOrigins = input.allowedOrigins ?? DEFAULT_MCP_ALLOWED_ORIGINS;
+  const compatibilityPlan = createMcpCompatibilityStatusPlan({
+    requestId: `${input.requestId}:compatibility`
+  });
+  const protocolGate = createMcpProtocolReleaseGatePlan({
+    allowedOrigins,
+    clientName: input.clientName ?? "mcp-target-client-release-gate",
+    clientVersion: input.clientVersion ?? MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+    origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:protocol`,
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const authLimitsGate = createMcpAuthLimitsReleaseGatePlan({
+    allowedOrigins,
+    origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:auth-limits`,
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const targetClientMatrix = compatibilityPlan.target_clients.map((client) => ({
+    client_name: client.name,
+    connection_guide_artifact: "docs/public/mcp.md",
+    first_call_time_target_minutes: 10,
+    live_e2e_passed: client.live_e2e_passed,
+    planned_checks: [
+      "connectivity",
+      "initialize",
+      "tools/list",
+      "tools/call",
+      "console_reconciliation"
+    ],
+    status: client.status
+  }));
+  const consoleReconciliationFields = [
+    "request_id",
+    "workspace_id",
+    "client_name",
+    "client_version",
+    "credential_kind",
+    "credential_reference",
+    "scope",
+    "tool_name",
+    "tool_version",
+    "status",
+    "standard_error_code",
+    "credits",
+    "credits_remaining",
+    "usage_event_id",
+    "data_version",
+    "methodology_version",
+    "source_record_id"
+  ] as const;
+  const consoleForbiddenFields = [
+    "raw_api_key",
+    "oauth_access_token",
+    "oauth_refresh_token",
+    "raw_prompt",
+    "raw_generated_answer",
+    "raw_document_body",
+    "payment_identifier",
+    "personal_contact"
+  ] as const;
+  const consoleReconciliationGate = {
+    api_key_rotation_route: "POST /mcp/api-keys/rotate/plan" as const,
+    api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
+    console_live: false,
+    forbidden_fields: consoleForbiddenFields,
+    log_store_live: false,
+    oauth_revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+    request_id_visible: true,
+    required_fields: consoleReconciliationFields,
+    route: "Developer Console: MCP usage ledger view" as const,
+    scope_visibility: true,
+    status_source: "GET /mcp/compatibility/status" as const,
+    usage_ledger_reads_live: false
+  };
+  const capability = getMcpTargetClientsConsoleReleaseGateCapabilities();
+  const validation = {
+    compatibility_status_linked:
+      compatibilityPlan.status_route === "GET /mcp/compatibility/status" &&
+      compatibilityPlan.status_page.shows_last_successful_client_smoke &&
+      compatibilityPlan.status_page.shows_protocol_version,
+    console_reconciliation_fields_present:
+      consoleReconciliationFields.includes("request_id") &&
+      consoleReconciliationFields.includes("credits_remaining") &&
+      consoleReconciliationFields.includes("scope") &&
+      consoleReconciliationFields.includes("credential_reference") &&
+      consoleReconciliationFields.includes("standard_error_code") &&
+      consoleForbiddenFields.includes("raw_api_key") &&
+      consoleReconciliationGate.console_live === false,
+    first_call_guide_under_10_minute_target:
+      targetClientMatrix.every((client) => client.first_call_time_target_minutes <= 10) &&
+      targetClientMatrix.every(
+        (client) => client.connection_guide_artifact === "docs/public/mcp.md"
+      ),
+    inspector_and_sdk_smoke_vectors_planned:
+      compatibilityPlan.inspector.required_checks.includes("connectivity") &&
+      compatibilityPlan.inspector.required_checks.includes("tools_tab") &&
+      compatibilityPlan.sdk.production_channel === "typescript-sdk-v1.x" &&
+      compatibilityPlan.test_vectors.some(
+        (vector) => vector.name === "usage_and_request_id" && vector.local_contract_ready
+      ),
+    no_live_console_or_client_claim:
+      compatibilityPlan.live_client_e2e_passed === false &&
+      compatibilityPlan.inspector.live_inspector_smoke === false &&
+      compatibilityPlan.sdk.live_sdk_smoke === false &&
+      consoleReconciliationGate.console_live === false &&
+      consoleReconciliationGate.log_store_live === false &&
+      consoleReconciliationGate.usage_ledger_reads_live === false,
+    request_usage_scope_and_key_reconciliation_ready:
+      protocolGate.usage.request_id === `${input.requestId}:protocol` &&
+      protocolGate.usage.request_id_visible &&
+      authLimitsGate.oauth_scope_gate.authorize_plan.consent.clear_scope_display &&
+      authLimitsGate.api_key_gate.rotate_plan.api_key.live_secret_generated === false &&
+      authLimitsGate.error_stability_gate.standard_error_codes.includes("BUDGET_EXCEEDED"),
+    target_client_matrix_present:
+      ["mcp_inspector", "typescript_sdk_client", "claude_desktop", "cursor", "chatgpt_connector"].every(
+        (clientName) => targetClientMatrix.some((client) => client.client_name === clientName)
+      ) && targetClientMatrix.every((client) => client.live_e2e_passed === false)
+  };
+  const releaseChecks = capability.required_checks.map((check) => ({
+    check,
+    evidence:
+      check === "target_client_matrix_present"
+        ? "Compatibility status enumerates Inspector, TypeScript SDK, Claude Desktop, Cursor, and ChatGPT Connector target rows"
+        : check === "inspector_and_sdk_smoke_vectors_planned"
+          ? "Inspector and TypeScript SDK required checks plus usage/request_id vectors are present but marked no-live"
+          : check === "first_call_guide_under_10_minute_target"
+            ? "Each target client matrix row points at docs/public/mcp.md with a 10 minute time-to-first-call target"
+            : check === "console_reconciliation_fields_present"
+              ? "Console reconciliation contract includes request_id, scope, credential reference, usage, error, and provenance fields while excluding secrets and sensitive payloads"
+              : check === "request_usage_scope_and_key_reconciliation_ready"
+                ? "Protocol usage envelope, OAuth scope display, API key lifecycle metadata, and stable errors are linked for Console reconciliation"
+                : check === "compatibility_status_linked"
+                  ? "Release gate links target-client rows to GET /mcp/compatibility/status and status page metadata"
+                  : "The gate explicitly keeps Developer Console UI, log store, usage ledger reads, SDK/Inspector smoke, and target-client e2e as non-live blockers",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    auth_limits_gate: {
+      api_key_gate: authLimitsGate.api_key_gate,
+      error_stability_gate: authLimitsGate.error_stability_gate,
+      oauth_scope_gate: authLimitsGate.oauth_scope_gate
+    },
+    capability,
+    compatibility_gate: {
+      inspector: compatibilityPlan.inspector,
+      monitored_protocol_versions: compatibilityPlan.monitored_protocol_versions,
+      sdk: compatibilityPlan.sdk,
+      status_page: compatibilityPlan.status_page,
+      status_route: compatibilityPlan.status_route,
+      target_clients: compatibilityPlan.target_clients,
+      target_protocol_version: compatibilityPlan.target_protocol_version,
+      test_vectors: compatibilityPlan.test_vectors
+    },
+    console_reconciliation_gate: consoleReconciliationGate,
+    data_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+    developer_console_live: false,
+    frontend_rendering: false,
+    live_client_e2e_passed: false,
+    live_console_log_store: false,
+    live_db_writes: false,
+    live_sdk_inspector_smoke: false,
+    live_tool_execution: false,
+    live_usage_ledger_reads: false,
+    methodology_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+    model_calls: false,
+    persistent_writes: false,
+    protocol_gate: {
+      route: protocolGate.route,
+      schema_compatibility_gate: protocolGate.schema_compatibility_gate,
+      usage: protocolGate.usage
+    },
+    provenance: [
+      {
+        data_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+        methodology_version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
+        source: "mcp-runtime",
+        source_record_id: "mcp_target_clients_console_release_gate"
+      }
+    ],
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_target_client_e2e_missing",
+        "developer_console_ui_missing",
+        "live_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "public_status_page_deploy_missing"
+      ],
+      gate_status: "blocked_live_mcp_target_clients_console_validation",
+      no_live_release_claim: true,
+      required_signoffs: [
+        "platform",
+        "developer-relations",
+        "support",
+        "billing",
+        "data-rights"
+      ]
+    },
+    request_id: input.requestId,
+    route: "POST /mcp/release-gates/target-clients-console/plan" as const,
+    sql_emitted: false,
+    status: "planned_no_write" as const,
+    target_client_gate: {
+      first_call_time_target_minutes: 10,
+      live_client_e2e_passed: false,
+      matrix: targetClientMatrix
+    },
+    usage: createMcpUsageSummary(input, 0, releaseChecks.length),
+    validation,
+    version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
   };
 }
 
