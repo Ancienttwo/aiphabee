@@ -3606,6 +3606,18 @@ interface GatewayRuntimeBody {
       max_rows: number;
       max_window_days: number;
     };
+    data_coverage_release_gate: {
+      coverage_policy_loaded: boolean;
+      frontend: boolean;
+      live_partner_data_reads: boolean;
+      persistent_writes: boolean;
+      required_coverage_domains: string[];
+      required_freshness_tiers: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+    };
     live_data_access: boolean;
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
@@ -3775,6 +3787,48 @@ interface P0RightsMatrixCoverageBody {
       required_p0_tool_count: number;
       tool_count: number;
       tool_count_matches_registry: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface DataCoverageReleaseGateBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    coverage_domains: Array<{
+      domain: string;
+      evidence_surfaces: string[];
+      live_partner_rows_loaded: boolean;
+      status: string;
+    }>;
+    coverage_policy_version: string;
+    freshness_markers: Array<{
+      label_required: boolean;
+      live_partner_rows_loaded: boolean;
+      min_delay_minutes?: number;
+      tier: string;
+    }>;
+    live_partner_data_reads: boolean;
+    persistent_writes: boolean;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      live_partner_coverage_loaded: boolean;
+      required_signoffs: string[];
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      all_required_coverage_domains_present: boolean;
+      all_required_freshness_tiers_present: boolean;
+      coverage_domain_count: number;
+      freshness_tier_count: number;
     };
   };
   ok: true;
@@ -11130,6 +11184,23 @@ describe("worker runtime", () => {
       workspace_isolation: true
     });
     expect(body.data.contract).toBe("deploy/gateway/access.contract.json");
+    expect(body.data.data_coverage_release_gate).toMatchObject({
+      coverage_policy_loaded: false,
+      frontend: false,
+      live_partner_data_reads: false,
+      persistent_writes: false,
+      required_coverage_domains: [
+        "corporate_actions",
+        "financial_restatements",
+        "delistings",
+        "identifier_history"
+      ],
+      required_freshness_tiers: ["realtime", "delayed", "eod"],
+      route: "GET /gateway/data-coverage/release-gate",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "data_coverage_release_gate_scaffold"
+    });
     expect(body.data.default_rights_status).toBe("default_deny");
     expect(body.data.channels.mcp).toBe("default_deny");
     expect(body.data.error_codes).toContain("DATA_NOT_LICENSED");
@@ -11384,6 +11455,78 @@ describe("worker runtime", () => {
       tool_count_matches_registry: true
     });
     expect(body.usage.rows).toBe(25);
+  });
+
+  it("serves data coverage release gate for freshness and coverage labels", async () => {
+    const response = await app.request("/gateway/data-coverage/release-gate", {
+      headers: {
+        "x-request-id": "req-data-coverage-release-gate"
+      }
+    });
+    const body = (await response.json()) as DataCoverageReleaseGateBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      coverage_policy_version: "coverage-policy-scaffold-v0",
+      live_partner_data_reads: false,
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "data_coverage_release_gate_scaffold"
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "GET /gateway/data-coverage/release-gate",
+      status: "data_coverage_release_gate_scaffold"
+    });
+    expect(body.data.freshness_markers.map((marker) => marker.tier)).toEqual([
+      "realtime",
+      "delayed",
+      "eod"
+    ]);
+    expect(body.data.freshness_markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label_required: true,
+          live_partner_rows_loaded: false,
+          min_delay_minutes: 15,
+          tier: "delayed"
+        })
+      ])
+    );
+    expect(body.data.coverage_domains.map((domain) => domain.domain)).toEqual([
+      "corporate_actions",
+      "financial_restatements",
+      "delistings",
+      "identifier_history"
+    ]);
+    expect(body.data.coverage_domains).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "identifier_history",
+          evidence_surfaces: ["resolve_security", "get_security_history"],
+          live_partner_rows_loaded: false,
+          status: "scaffold_covered_no_live_partner_rows"
+        })
+      ])
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "partner_coverage_files_missing",
+        "live_freshness_policy_not_loaded",
+        "golden_coverage_not_signed_off"
+      ],
+      gate_status: "blocked_live_partner_coverage",
+      live_partner_coverage_loaded: false,
+      required_signoffs: ["data_engineering", "data_partner", "quality_owner"]
+    });
+    expect(body.data.validation).toMatchObject({
+      all_required_coverage_domains_present: true,
+      all_required_freshness_tiers_present: true,
+      coverage_domain_count: 4,
+      freshness_tier_count: 3
+    });
+    expect(body.usage.rows).toBe(7);
   });
 
   it("plans operational field authorization changes with approval and effective time", async () => {

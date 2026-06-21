@@ -407,6 +407,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621130000_data_coverage_release_gate_scaffold.sql",
+      "purpose": "Create empty data freshness and coverage release gate scaffolds for realtime/delayed/EOD labels, company actions, restatements, delistings, and identifier history without loading live partner rows.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.data_coverage_release_gate",
+        "governance.data_coverage_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

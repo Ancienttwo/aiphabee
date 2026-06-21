@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
+  createDataCoverageReleaseGateReport,
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
@@ -8,6 +9,7 @@ import {
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest,
+  getDataCoverageReleaseGateCapabilities,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
@@ -806,6 +808,94 @@ describe("data access gateway", () => {
       gate_status: "blocked_external_rights_matrix",
       partner_signed_matrix_loaded: false,
       required_signoffs: ["data_partner", "commercial_owner", "legal_compliance"]
+    });
+  });
+
+  it("reports data coverage release gate capabilities without live partner rows", () => {
+    expect(getDataCoverageReleaseGateCapabilities()).toMatchObject({
+      coverage_policy_loaded: false,
+      frontend: false,
+      live_partner_data_reads: false,
+      package: "@aiphabee/data-access-gateway",
+      persistent_writes: false,
+      route: "GET /gateway/data-coverage/release-gate",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "data_coverage_release_gate_scaffold"
+    });
+    expect(getDataCoverageReleaseGateCapabilities().required_freshness_tiers).toEqual([
+      "realtime",
+      "delayed",
+      "eod"
+    ]);
+    expect(getDataCoverageReleaseGateCapabilities().required_coverage_domains).toEqual([
+      "corporate_actions",
+      "financial_restatements",
+      "delistings",
+      "identifier_history"
+    ]);
+  });
+
+  it("builds a data coverage release gate report for freshness and history coverage", () => {
+    const report = createDataCoverageReleaseGateReport({
+      asOf: "2026-06-21T14:00:00.000Z",
+      coveragePolicyVersion: "coverage-policy-v0"
+    });
+
+    expect(report).toMatchObject({
+      coverage_policy_version: "coverage-policy-v0",
+      frontend: false,
+      live_partner_data_reads: false,
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "data_coverage_release_gate_scaffold"
+    });
+    expect(report.freshness_markers.map((marker) => marker.tier)).toEqual([
+      "realtime",
+      "delayed",
+      "eod"
+    ]);
+    expect(report.freshness_markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label_required: true,
+          live_partner_rows_loaded: false,
+          min_delay_minutes: 15,
+          tier: "delayed"
+        })
+      ])
+    );
+    expect(report.coverage_domains.map((domain) => domain.domain)).toEqual([
+      "corporate_actions",
+      "financial_restatements",
+      "delistings",
+      "identifier_history"
+    ]);
+    expect(report.coverage_domains).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "delistings",
+          evidence_surfaces: ["resolve_security", "get_security_profile", "get_security_history"],
+          live_partner_rows_loaded: false,
+          status: "scaffold_covered_no_live_partner_rows"
+        })
+      ])
+    );
+    expect(report.release_gate).toMatchObject({
+      blockers: [
+        "partner_coverage_files_missing",
+        "live_freshness_policy_not_loaded",
+        "golden_coverage_not_signed_off"
+      ],
+      gate_status: "blocked_live_partner_coverage",
+      live_partner_coverage_loaded: false,
+      required_signoffs: ["data_engineering", "data_partner", "quality_owner"]
+    });
+    expect(report.validation).toMatchObject({
+      all_required_coverage_domains_present: true,
+      all_required_freshness_tiers_present: true,
+      coverage_domain_count: 4,
+      freshness_tier_count: 3
     });
   });
 

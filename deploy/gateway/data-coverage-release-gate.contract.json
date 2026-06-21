@@ -1,0 +1,53 @@
+{
+  "version": "2026-06-21.phase3.data-coverage-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-access-gateway",
+  "runtime_route": "GET /gateway/runtime",
+  "route": "GET /gateway/data-coverage/release-gate",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_partner_data_reads": false,
+  "coverage_policy_loaded": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_sprint_3_3_items": [
+    "realtime_delayed_eod_labels",
+    "corporate_actions_restatements_delistings_identifier_history_coverage"
+  ],
+  "required_freshness_tiers": ["realtime", "delayed", "eod"],
+  "required_coverage_domains": [
+    "corporate_actions",
+    "financial_restatements",
+    "delistings",
+    "identifier_history"
+  ],
+  "required_output_fields": [
+    "freshness_markers",
+    "coverage_domains",
+    "release_gate",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_partner_coverage",
+    "live_partner_coverage_required": true,
+    "required_signoffs": ["data_engineering", "data_partner", "quality_owner"],
+    "blockers": [
+      "partner_coverage_files_missing",
+      "live_freshness_policy_not_loaded",
+      "golden_coverage_not_signed_off"
+    ]
+  },
+  "tables": [
+    "core.data_coverage_release_gate",
+    "governance.data_coverage_release_gate_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/tools/get-quote-snapshot.contract.json",
+    "deploy/tools/get-price-history.contract.json",
+    "deploy/tools/get-corporate-actions.contract.json",
+    "deploy/tools/get-financial-facts.contract.json",
+    "deploy/tools/security-history.contract.json"
+  ]
+}

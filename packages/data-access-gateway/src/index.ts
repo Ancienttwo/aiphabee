@@ -24,8 +24,17 @@ export const FIELD_AUTHORIZATION_CONFIG_VERSION =
   "2026-06-21.phase3.field-authorization-config-scaffold.v0";
 export const P0_RIGHTS_MATRIX_COVERAGE_VERSION =
   "2026-06-21.phase3.p0-rights-matrix-coverage-scaffold.v0";
+export const DATA_COVERAGE_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.data-coverage-release-gate-scaffold.v0";
 export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
 export const P0_RIGHTS_MATRIX_SURFACES = ["web", "mcp", "export", "enterprise"] as const;
+export const DATA_COVERAGE_FRESHNESS_TIERS = ["realtime", "delayed", "eod"] as const;
+export const DATA_COVERAGE_DOMAINS = [
+  "corporate_actions",
+  "financial_restatements",
+  "delistings",
+  "identifier_history"
+] as const;
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -61,6 +70,9 @@ export type FieldAuthorizationConfigStatus =
   | "scheduled";
 export type P0RightsMatrixSurface = (typeof P0_RIGHTS_MATRIX_SURFACES)[number];
 export type P0RightsMatrixReleaseGateStatus = "blocked_external_rights_matrix";
+export type DataCoverageFreshnessTier = (typeof DATA_COVERAGE_FRESHNESS_TIERS)[number];
+export type DataCoverageDomain = (typeof DATA_COVERAGE_DOMAINS)[number];
+export type DataCoverageReleaseGateStatus = "blocked_live_partner_coverage";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -216,6 +228,11 @@ export interface P0RightsMatrixCoverageInput {
   toolNames: string[];
 }
 
+export interface DataCoverageReleaseGateInput {
+  asOf?: string;
+  coveragePolicyVersion?: string;
+}
+
 export interface FieldAuthorizationConfigChangePlan {
   approval: {
     approval_id: string;
@@ -353,6 +370,72 @@ export interface P0RightsMatrixCoverageReport {
     tool_count_matches_registry: boolean;
   };
   version: typeof P0_RIGHTS_MATRIX_COVERAGE_VERSION;
+}
+
+export interface DataCoverageReleaseGateCapabilities {
+  coverage_policy_loaded: false;
+  frontend: false;
+  live_partner_data_reads: false;
+  package: "@aiphabee/data-access-gateway";
+  persistent_writes: false;
+  required_coverage_domains: typeof DATA_COVERAGE_DOMAINS;
+  required_freshness_tiers: typeof DATA_COVERAGE_FRESHNESS_TIERS;
+  route: "GET /gateway/data-coverage/release-gate";
+  runtime_route: "GET /gateway/runtime";
+  sql_emitted: false;
+  status: "data_coverage_release_gate_scaffold";
+  tables: readonly [
+    "core.data_coverage_release_gate",
+    "governance.data_coverage_release_gate_contract"
+  ];
+  version: typeof DATA_COVERAGE_RELEASE_GATE_VERSION;
+}
+
+export interface DataCoverageReleaseGateReport {
+  as_of: string;
+  capability: DataCoverageReleaseGateCapabilities;
+  coverage_domains: Array<{
+    blocks_release_until_verified: true;
+    coverage_required: true;
+    domain: DataCoverageDomain;
+    evidence_surfaces: readonly string[];
+    live_partner_rows_loaded: false;
+    status: "scaffold_covered_no_live_partner_rows";
+    tables: readonly string[];
+  }>;
+  coverage_policy_version: string;
+  frontend: false;
+  freshness_markers: Array<{
+    display_label: string;
+    label_required: true;
+    live_partner_rows_loaded: false;
+    min_delay_minutes?: number;
+    release_state: "contracted_no_live_partner_rows";
+    supported_tool_surfaces: readonly string[];
+    tier: DataCoverageFreshnessTier;
+  }>;
+  live_partner_data_reads: false;
+  persistent_writes: false;
+  release_gate: {
+    blockers: readonly [
+      "partner_coverage_files_missing",
+      "live_freshness_policy_not_loaded",
+      "golden_coverage_not_signed_off"
+    ];
+    gate_status: DataCoverageReleaseGateStatus;
+    live_partner_coverage_loaded: false;
+    required_signoffs: readonly ["data_engineering", "data_partner", "quality_owner"];
+  };
+  sql_emitted: false;
+  status: "data_coverage_release_gate_scaffold";
+  tables: DataCoverageReleaseGateCapabilities["tables"];
+  validation: {
+    all_required_coverage_domains_present: boolean;
+    all_required_freshness_tiers_present: boolean;
+    coverage_domain_count: number;
+    freshness_tier_count: number;
+  };
+  version: typeof DATA_COVERAGE_RELEASE_GATE_VERSION;
 }
 
 export interface DataAccessDecision {
@@ -496,10 +579,90 @@ const P0_RIGHTS_MATRIX_COVERAGE_TABLES: P0RightsMatrixCoverageCapabilities["tabl
   "core.p0_rights_matrix_entry",
   "governance.p0_rights_matrix_contract"
 ];
+const DATA_COVERAGE_RELEASE_GATE_TABLES: DataCoverageReleaseGateCapabilities["tables"] = [
+  "core.data_coverage_release_gate",
+  "governance.data_coverage_release_gate_contract"
+];
 const P0_RIGHTS_MATRIX_REQUIRED_SIGNOFFS: P0RightsMatrixCoverageReport["release_gate"]["required_signoffs"] = [
   "data_partner",
   "commercial_owner",
   "legal_compliance"
+];
+const DATA_COVERAGE_REQUIRED_SIGNOFFS: DataCoverageReleaseGateReport["release_gate"]["required_signoffs"] = [
+  "data_engineering",
+  "data_partner",
+  "quality_owner"
+];
+const DATA_COVERAGE_RELEASE_BLOCKERS: DataCoverageReleaseGateReport["release_gate"]["blockers"] = [
+  "partner_coverage_files_missing",
+  "live_freshness_policy_not_loaded",
+  "golden_coverage_not_signed_off"
+];
+const DATA_COVERAGE_FRESHNESS_MARKERS: DataCoverageReleaseGateReport["freshness_markers"] = [
+  {
+    display_label: "Realtime",
+    label_required: true,
+    live_partner_rows_loaded: false,
+    min_delay_minutes: 0,
+    release_state: "contracted_no_live_partner_rows",
+    supported_tool_surfaces: ["get_quote_snapshot"],
+    tier: "realtime"
+  },
+  {
+    display_label: "Delayed",
+    label_required: true,
+    live_partner_rows_loaded: false,
+    min_delay_minutes: 15,
+    release_state: "contracted_no_live_partner_rows",
+    supported_tool_surfaces: ["get_quote_snapshot", "get_price_history"],
+    tier: "delayed"
+  },
+  {
+    display_label: "EOD",
+    label_required: true,
+    live_partner_rows_loaded: false,
+    release_state: "contracted_no_live_partner_rows",
+    supported_tool_surfaces: ["get_quote_snapshot", "get_price_history", "get_market_calendar"],
+    tier: "eod"
+  }
+];
+const DATA_COVERAGE_DOMAIN_COVERAGE: DataCoverageReleaseGateReport["coverage_domains"] = [
+  {
+    blocks_release_until_verified: true,
+    coverage_required: true,
+    domain: "corporate_actions",
+    evidence_surfaces: ["get_corporate_actions", "corporate_action_adjustment_engine"],
+    live_partner_rows_loaded: false,
+    status: "scaffold_covered_no_live_partner_rows",
+    tables: ["core.corporate_action", "core.price_adjustment_factor"]
+  },
+  {
+    blocks_release_until_verified: true,
+    coverage_required: true,
+    domain: "financial_restatements",
+    evidence_surfaces: ["get_financial_facts", "financial_restatement_engine"],
+    live_partner_rows_loaded: false,
+    status: "scaffold_covered_no_live_partner_rows",
+    tables: ["core.financial_statement", "core.financial_fact", "core.financial_restatement"]
+  },
+  {
+    blocks_release_until_verified: true,
+    coverage_required: true,
+    domain: "delistings",
+    evidence_surfaces: ["resolve_security", "get_security_profile", "get_security_history"],
+    live_partner_rows_loaded: false,
+    status: "scaffold_covered_no_live_partner_rows",
+    tables: ["core.security_master", "core.listing", "core.identifier_history"]
+  },
+  {
+    blocks_release_until_verified: true,
+    coverage_required: true,
+    domain: "identifier_history",
+    evidence_surfaces: ["resolve_security", "get_security_history"],
+    live_partner_rows_loaded: false,
+    status: "scaffold_covered_no_live_partner_rows",
+    tables: ["core.identifier_history", "core.security_name_history"]
+  }
 ];
 const P0_RIGHTS_MATRIX_DATASET_FIELDS: P0RightsMatrixCoverageReport["dataset_field_coverage"] = [
   {
@@ -1228,6 +1391,62 @@ export function createP0RightsMatrixCoverageReport(
       tool_count_matches_registry: uniqueToolNames.length === 16
     },
     version: P0_RIGHTS_MATRIX_COVERAGE_VERSION
+  };
+}
+
+export function getDataCoverageReleaseGateCapabilities(): DataCoverageReleaseGateCapabilities {
+  return {
+    coverage_policy_loaded: false,
+    frontend: false,
+    live_partner_data_reads: false,
+    package: "@aiphabee/data-access-gateway",
+    persistent_writes: false,
+    required_coverage_domains: DATA_COVERAGE_DOMAINS,
+    required_freshness_tiers: DATA_COVERAGE_FRESHNESS_TIERS,
+    route: "GET /gateway/data-coverage/release-gate",
+    runtime_route: "GET /gateway/runtime",
+    sql_emitted: false,
+    status: "data_coverage_release_gate_scaffold",
+    tables: DATA_COVERAGE_RELEASE_GATE_TABLES,
+    version: DATA_COVERAGE_RELEASE_GATE_VERSION
+  };
+}
+
+export function createDataCoverageReleaseGateReport(
+  input: DataCoverageReleaseGateInput = {}
+): DataCoverageReleaseGateReport {
+  return {
+    as_of: normalizeOptionalIdentifier(input.asOf, "as_of_unresolved"),
+    capability: getDataCoverageReleaseGateCapabilities(),
+    coverage_domains: DATA_COVERAGE_DOMAIN_COVERAGE,
+    coverage_policy_version: normalizeOptionalIdentifier(
+      input.coveragePolicyVersion,
+      "coverage_policy_unresolved"
+    ),
+    frontend: false,
+    freshness_markers: DATA_COVERAGE_FRESHNESS_MARKERS,
+    live_partner_data_reads: false,
+    persistent_writes: false,
+    release_gate: {
+      blockers: DATA_COVERAGE_RELEASE_BLOCKERS,
+      gate_status: "blocked_live_partner_coverage",
+      live_partner_coverage_loaded: false,
+      required_signoffs: DATA_COVERAGE_REQUIRED_SIGNOFFS
+    },
+    sql_emitted: false,
+    status: "data_coverage_release_gate_scaffold",
+    tables: DATA_COVERAGE_RELEASE_GATE_TABLES,
+    validation: {
+      all_required_coverage_domains_present: DATA_COVERAGE_DOMAINS.every((domain) =>
+        DATA_COVERAGE_DOMAIN_COVERAGE.some((entry) => entry.domain === domain)
+      ),
+      all_required_freshness_tiers_present: DATA_COVERAGE_FRESHNESS_TIERS.every((tier) =>
+        DATA_COVERAGE_FRESHNESS_MARKERS.some((entry) => entry.tier === tier)
+      ),
+      coverage_domain_count: DATA_COVERAGE_DOMAIN_COVERAGE.length,
+      freshness_tier_count: DATA_COVERAGE_FRESHNESS_MARKERS.length
+    },
+    version: DATA_COVERAGE_RELEASE_GATE_VERSION
   };
 }
 

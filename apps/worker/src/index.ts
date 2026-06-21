@@ -66,11 +66,13 @@ import {
 import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
+  createDataCoverageReleaseGateReport,
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
   getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
+  getDataCoverageReleaseGateCapabilities,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
@@ -1259,6 +1261,7 @@ app.get("/gateway/runtime", (c) => {
         ],
         channels: DEFAULT_DATA_ACCESS_POLICY.channels,
         contract: "deploy/gateway/access.contract.json",
+        data_coverage_release_gate: getDataCoverageReleaseGateCapabilities(),
         default_rights_status: DEFAULT_DATA_ACCESS_POLICY.defaultFieldStatus,
         error_codes: [
           "DATA_NOT_LICENSED",
@@ -3480,6 +3483,38 @@ app.get("/gateway/rights-matrix/p0/coverage", (c) => {
         cached: false,
         credits: 0,
         rows: report.tool_coverage.length + report.dataset_field_coverage.length
+      }
+    })
+  );
+});
+
+app.get("/gateway/data-coverage/release-gate", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = createDataCoverageReleaseGateReport({
+    asOf: new Date().toISOString(),
+    coveragePolicyVersion: "coverage-policy-scaffold-v0"
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(report, {
+      asOf: report.as_of,
+      dataVersion: report.version,
+      methodologyVersion: report.version,
+      provenance: [
+        {
+          data_version: report.version,
+          methodology_version: report.version,
+          source: "data-access-gateway",
+          source_record_id: "data-coverage-release-gate"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: report.freshness_markers.length + report.coverage_domains.length
       }
     })
   );
