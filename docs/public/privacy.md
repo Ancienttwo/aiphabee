@@ -8,6 +8,9 @@ AiphaBee should collect and process only the account, workspace, product usage,
 research, support, and billing metadata needed to provide the service and comply
 with security, audit, and retention obligations.
 
+AiphaBee does not collect risk tolerance answers to produce automated
+suitability conclusions.
+
 ## Authorized Memory
 
 Session memory is limited to user-authorized preferences and consent records,

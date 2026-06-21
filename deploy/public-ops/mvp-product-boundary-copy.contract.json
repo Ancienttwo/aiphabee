@@ -1,0 +1,105 @@
+{
+  "version": "2026-06-22.phase0.mvp-product-boundary-copy.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/public-ops",
+  "review_source": "docs/researches/AiphaBee_PRD_v1.0.md#14.2",
+  "tracker_item": "Sprint 0.1 MVP product boundary copy",
+  "governance_doc": "docs/governance/mvp-product-boundary-copy.md",
+  "frontend": false,
+  "live_type4_written_opinion": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "publish_surface_files": [
+    "docs/public/api.md",
+    "docs/public/help-center.md",
+    "docs/public/mcp.md",
+    "docs/public/privacy.md",
+    "docs/public/terms.md",
+    "apps/web/src/components/Disclaimer.tsx",
+    "apps/web/src/components/Footer.tsx",
+    "apps/web/src/components/MarketSentimentPanel.tsx",
+    "apps/web/src/data/ipos.ts",
+    "apps/web/src/lib/mock-api.ts",
+    "apps/web/src/routes/dashboard.tsx",
+    "apps/web/src/routes/index.tsx",
+    "apps/web/src/routes/ipos/$ipoId.tsx",
+    "apps/web/src/routes/ipos/index.tsx"
+  ],
+  "evidence_files": [
+    "docs/governance/mvp-product-boundary-copy.md",
+    "deploy/public-ops/compliance-ops-release-gate.contract.json",
+    "apps/web/src/lib/mock-api.test.ts"
+  ],
+  "allowed_positioning_terms": [
+    "research",
+    "analysis",
+    "data_explanation",
+    "研究",
+    "分析",
+    "数据解释"
+  ],
+  "prohibited_positioning_claims": [
+    "stock_pick",
+    "investment_advice",
+    "smart_investment_adviser",
+    "personalized_buy_sell_hold_recommendation",
+    "position_sizing_advice",
+    "suitability_conclusion",
+    "risk_tolerance_collection_for_suitability",
+    "guaranteed_return",
+    "copy_trading",
+    "order_execution"
+  ],
+  "required_copy_evidence": [
+    "research_analysis_data_explanation_positioning",
+    "non_advice_disclaimer",
+    "no_buy_sell_hold_recommendation",
+    "no_risk_tolerance_suitability_collection"
+  ],
+  "boundary_assertions": {
+    "uses_research_analysis_data_explanation": true,
+    "no_stock_pick_or_smart_adviser_claims": true,
+    "no_personalized_buy_sell_hold_instructions": true,
+    "no_risk_tolerance_collection_for_suitability": true,
+    "no_position_sizing_rebalancing_stop_loss_or_order_execution": true
+  },
+  "scan_policy": {
+    "include_public_docs": true,
+    "include_user_visible_web_source": true,
+    "exclude_reference_material": [
+      "docs/AiphaBee Design System/**"
+    ],
+    "allowed_negative_contexts": [
+      "not",
+      "does not",
+      "NOT",
+      "不构成",
+      "不提供",
+      "不输出",
+      "不收集",
+      "禁止",
+      "non-advice",
+      "original kit",
+      "reframed"
+    ]
+  },
+  "release_gate": {
+    "gate_status": "blocked_external_type4_written_opinion",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "product",
+      "compliance",
+      "legal"
+    ],
+    "blockers": [
+      "type4_written_opinion_missing",
+      "external_compliance_signoff_missing",
+      "gate0_decision_memo_signature_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/public-ops/compliance-ops-release-gate.contract.json",
+    "docs/public/terms.md",
+    "docs/public/privacy.md"
+  ]
+}

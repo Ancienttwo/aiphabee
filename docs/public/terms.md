@@ -7,6 +7,8 @@ Status: local publication draft requiring legal review.
 AiphaBee provides research tooling, data organization, deterministic analysis,
 and evidence-linked explanations. The service does not provide trading,
 portfolio management, personalized investment advice, or execution services.
+It does not collect risk tolerance answers to produce automated suitability
+conclusions.
 
 ## Data Rights
 
