@@ -547,6 +547,24 @@ interface UsageRuntimeBody {
       status: string;
       usage_ledger_link_required: boolean;
     };
+    partner_reconciliation_report: {
+      billing_provider_calls: boolean;
+      display_fields: string[];
+      export_formats: string[];
+      frontend: boolean;
+      group_by: string[];
+      live_ledger_reads: boolean;
+      partner_sla_report: boolean;
+      persistent_writes: boolean;
+      raw_personal_contact_included: boolean;
+      request_id_visible: boolean;
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      supported_cadences: string[];
+      trace_fields: string[];
+    };
     billing_provider_reconciliation: boolean;
     channels: string[];
     display_fields: string[];
@@ -605,6 +623,79 @@ interface UsageBillingReconciliationPlanBody {
       support_investigation_by_request_id: boolean;
       traceable_call_count: number;
       traceable_to_call: boolean;
+    };
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface UsagePartnerReconciliationReportPlanBody {
+  data: {
+    audit: {
+      audit_event: string;
+      write_status: string;
+    };
+    billing_provider_calls: boolean;
+    capability: {
+      status: string;
+    };
+    export: {
+      artifact_writes: boolean;
+      raw_payment_identifiers_included: boolean;
+      raw_personal_contact_included: boolean;
+      selected_format: string;
+    };
+    frontend: boolean;
+    live_ledger_reads: boolean;
+    partner_id: string;
+    persistent_writes: boolean;
+    privacy: {
+      credential_material_included: boolean;
+      raw_email_included: boolean;
+      raw_payment_identifier_included: boolean;
+    };
+    report: {
+      export_status: string;
+      group_by: string[];
+      source: string;
+      table: string;
+    };
+    request_id: string;
+    request_id_visible: boolean;
+    rows: Array<{
+      backfill_count: number;
+      channel: string;
+      credits: number;
+      data_delay_minutes_max: number;
+      dataset: string;
+      missing_rows: number;
+      package_code: string;
+      request_ids: string[];
+      sla_status: string;
+      usage_count: number;
+      usage_event_ids: string[];
+      user_id: string;
+    }>;
+    sla: {
+      daily_weekly_report: boolean;
+      status: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    summary: {
+      credit_total: number;
+      dataset_count: number;
+      line_count: number;
+      missing_rows: number;
+      usage_count_total: number;
+      user_count: number;
+    };
+    traceability: {
+      traceable_to_usage_ledger: boolean;
+      traceable_usage_event_count: number;
     };
     workspace_id: string;
   };
@@ -5141,6 +5232,33 @@ describe("worker runtime", () => {
       "ledger_entry_id",
       "invoice_line_id"
     ]);
+    expect(body.data.partner_reconciliation_report).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      partner_sla_report: true,
+      persistent_writes: false,
+      raw_personal_contact_included: false,
+      request_id_visible: true,
+      route: "POST /usage/partner-reconciliation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_reconciliation_report_scaffold"
+    });
+    expect(body.data.partner_reconciliation_report.group_by).toEqual([
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
+    ]);
+    expect(body.data.partner_reconciliation_report.trace_fields).toEqual([
+      "request_id",
+      "usage_event_id",
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
+    ]);
     expect(body.data.high_cost_reservation).toMatchObject({
       failure_refund_required: true,
       live_ledger_writes: false,
@@ -5284,6 +5402,129 @@ describe("worker runtime", () => {
       traceable_to_call: true
     });
     expect(body.data.capability.status).toBe("usage_billing_reconciliation_scaffold");
+    expect(body.usage.rows).toBe(2);
+  });
+
+  it("plans partner reconciliation reports for dataset/channel/package/user usage export", async () => {
+    const response = await app.request("/usage/partner-reconciliation/plan", {
+      body: JSON.stringify({
+        cadence: "weekly",
+        format: "csv",
+        partner_id: "partner_hk_data",
+        period_end: "2026-06-08T00:00:00.000Z",
+        period_start: "2026-06-01T00:00:00.000Z",
+        usage_rows: [
+          {
+            channel: "mcp",
+            credits: 8,
+            dataset: "hk_equity_quote",
+            metered_rows: 120,
+            package_code: "developer",
+            request_id: "req_mcp_001",
+            usage_count: 3,
+            usage_event_id: "usage_event_req_mcp_001",
+            user_id: "user_ops_001"
+          },
+          {
+            backfill_count: 1,
+            channel: "mcp",
+            credits: 2,
+            data_delay_minutes: 10,
+            dataset: "hk_equity_quote",
+            metered_rows: 20,
+            missing_rows: 2,
+            package_code: "developer",
+            request_id: "req_mcp_002",
+            usage_count: 1,
+            usage_event_id: "usage_event_req_mcp_002",
+            user_id: "user_ops_001"
+          },
+          {
+            channel: "web",
+            credits: 5,
+            dataset: "financial_facts",
+            metered_rows: 50,
+            package_code: "pro",
+            request_id: "req_web_001",
+            usage_count: 2,
+            usage_event_id: "usage_event_req_web_001",
+            user_id: "user_ops_002"
+          }
+        ],
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-partner-reconciliation"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsagePartnerReconciliationReportPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      partner_id: "partner_hk_data",
+      persistent_writes: false,
+      request_id: "req-usage-partner-reconciliation",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.report).toMatchObject({
+      export_status: "planned_no_write",
+      group_by: ["dataset", "channel", "package_code", "user_id"],
+      source: "usage_ledger_snapshot",
+      table: "core.partner_reconciliation_report"
+    });
+    expect(body.data.rows).toHaveLength(2);
+    expect(body.data.rows[1]).toMatchObject({
+      backfill_count: 1,
+      channel: "mcp",
+      credits: 10,
+      data_delay_minutes_max: 10,
+      dataset: "hk_equity_quote",
+      missing_rows: 2,
+      package_code: "developer",
+      request_ids: ["req_mcp_001", "req_mcp_002"],
+      sla_status: "exception",
+      usage_count: 4,
+      usage_event_ids: ["usage_event_req_mcp_001", "usage_event_req_mcp_002"],
+      user_id: "user_ops_001"
+    });
+    expect(body.data.summary).toMatchObject({
+      credit_total: 15,
+      dataset_count: 2,
+      line_count: 2,
+      missing_rows: 2,
+      usage_count_total: 6,
+      user_count: 2
+    });
+    expect(body.data.sla).toMatchObject({
+      daily_weekly_report: true,
+      status: "attention_required"
+    });
+    expect(body.data.traceability).toMatchObject({
+      traceable_to_usage_ledger: true,
+      traceable_usage_event_count: 3
+    });
+    expect(body.data.export).toMatchObject({
+      artifact_writes: false,
+      raw_payment_identifiers_included: false,
+      raw_personal_contact_included: false,
+      selected_format: "csv"
+    });
+    expect(body.data.privacy).toMatchObject({
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_payment_identifier_included: false
+    });
+    expect(body.data.capability.status).toBe("partner_reconciliation_report_scaffold");
     expect(body.usage.rows).toBe(2);
   });
 

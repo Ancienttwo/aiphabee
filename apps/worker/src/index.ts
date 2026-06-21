@@ -209,14 +209,20 @@ import {
   USAGE_QUOTA_CHANNELS,
   USAGE_QUOTA_PLAN_CODES,
   createHighCostUsageReservationPlan,
+  createPartnerReconciliationReportPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   getHighCostUsageReservationCapabilities,
+  getPartnerReconciliationReportCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageLedgerEventWriterCapabilities,
   getUsageQuotaDisplayCapabilities,
   type HighCostUsageExecutionStatus,
+  type PartnerReconciliationReportCadence,
+  type PartnerReconciliationReportFormat,
+  type PartnerReconciliationUsageRowInput,
   type UsageBillingLedgerEntryInput,
+  type UsageLedgerChannel,
   type UsageQuotaChannel,
   type UsageQuotaPlanCode
 } from "@aiphabee/usage-ledger";
@@ -1314,7 +1320,8 @@ app.get("/usage/runtime", (c) => {
       {
         ...getUsageQuotaDisplayCapabilities(),
         billing_reconciliation: getUsageBillingReconciliationCapabilities(),
-        high_cost_reservation: getHighCostUsageReservationCapabilities()
+        high_cost_reservation: getHighCostUsageReservationCapabilities(),
+        partner_reconciliation_report: getPartnerReconciliationReportCapabilities()
       },
       {
         asOf: new Date().toISOString(),
@@ -1428,6 +1435,52 @@ app.post("/usage/billing/reconciliation/plan", async (c) => {
           cached: false,
           credits: 0,
           rows: plan.invoice_lines.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/usage/partner-reconciliation/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createPartnerReconciliationReportPlan({
+    cadence: normalizePartnerReconciliationCadence(body.cadence),
+    format: normalizePartnerReconciliationFormat(body.format),
+    partnerId: normalizeString(body.partner_id ?? body.partnerId),
+    periodEnd: normalizeString(body.period_end ?? body.periodEnd),
+    periodStart: normalizeString(body.period_start ?? body.periodStart),
+    requestId,
+    usageRows: normalizePartnerReconciliationUsageRows(body.usage_rows ?? body.usageRows),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getPartnerReconciliationReportCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "partner-reconciliation-report",
+            source_record_id: "partner-reconciliation-report-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.rows.length
         }
       }
     )
@@ -6030,6 +6083,38 @@ function normalizeUsageBillingLedgerEntries(
   return entries.length > 0 ? entries : undefined;
 }
 
+function normalizePartnerReconciliationUsageRows(
+  value: unknown
+): PartnerReconciliationUsageRowInput[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const rows = value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => ({
+      backfillCount: normalizeOptionalNumber(item.backfill_count ?? item.backfillCount),
+      channel: normalizeUsageLedgerChannel(item.channel),
+      credits: normalizeOptionalNumber(item.credits),
+      dataDelayMinutes: normalizeOptionalNumber(
+        item.data_delay_minutes ?? item.dataDelayMinutes
+      ),
+      dataset: normalizeString(item.dataset),
+      errorCount: normalizeOptionalNumber(item.error_count ?? item.errorCount),
+      meteredRows: normalizeOptionalNumber(item.metered_rows ?? item.meteredRows),
+      missingRows: normalizeOptionalNumber(item.missing_rows ?? item.missingRows),
+      packageCode: normalizeUsageQuotaPlanCode(
+        item.package_code ?? item.packageCode ?? item.plan_code ?? item.planCode
+      ),
+      requestId: normalizeString(item.request_id ?? item.requestId),
+      usageCount: normalizeOptionalNumber(item.usage_count ?? item.usageCount),
+      usageEventId: normalizeString(item.usage_event_id ?? item.usageEventId),
+      userId: normalizeString(item.user_id ?? item.userId)
+    }));
+
+  return rows.length > 0 ? rows : undefined;
+}
+
 function normalizeAgentWorkflowTaskKind(value: unknown): AgentWorkflowTaskKind | undefined {
   return typeof value === "string" &&
     AGENT_WORKFLOW_TASK_KINDS.includes(value as AgentWorkflowTaskKind)
@@ -6527,6 +6612,22 @@ function normalizeUsageQuotaPlanCode(value: unknown): UsageQuotaPlanCode | undef
   return USAGE_QUOTA_PLAN_CODES.includes(value as UsageQuotaPlanCode)
     ? (value as UsageQuotaPlanCode)
     : undefined;
+}
+
+function normalizeUsageLedgerChannel(value: unknown): UsageLedgerChannel | undefined {
+  return isDataAccessChannel(value) ? value : undefined;
+}
+
+function normalizePartnerReconciliationFormat(
+  value: unknown
+): PartnerReconciliationReportFormat | undefined {
+  return value === "csv" || value === "json" ? value : undefined;
+}
+
+function normalizePartnerReconciliationCadence(
+  value: unknown
+): PartnerReconciliationReportCadence | undefined {
+  return value === "daily" || value === "weekly" ? value : undefined;
 }
 
 function normalizeQuoteSnapshotMode(value: unknown): QuoteSnapshotMode | undefined {

@@ -1,0 +1,72 @@
+{
+  "version": "2026-06-21.phase3.partner-reconciliation-report-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/usage-ledger",
+  "runtime_route": "GET /usage/runtime",
+  "route": "POST /usage/partner-reconciliation/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_ledger_reads": false,
+  "persistent_writes": false,
+  "billing_provider_calls": false,
+  "sql_emitted": false,
+  "request_id_visible": true,
+  "partner_sla_report": true,
+  "export_formats": ["csv", "json"],
+  "supported_cadences": ["daily", "weekly"],
+  "group_by": ["dataset", "channel", "package_code", "user_id"],
+  "required_trace_fields": [
+    "request_id",
+    "usage_event_id",
+    "dataset",
+    "channel",
+    "package_code",
+    "user_id"
+  ],
+  "required_sla_fields": [
+    "data_delay_minutes",
+    "missing_rows",
+    "error_count",
+    "backfill_count"
+  ],
+  "required_request_fields": [
+    "partner_id",
+    "workspace_id",
+    "period_start",
+    "period_end",
+    "usage_rows"
+  ],
+  "planned_outputs": [
+    "report",
+    "rows",
+    "summary",
+    "sla",
+    "traceability",
+    "export",
+    "privacy",
+    "audit"
+  ],
+  "forbidden_payloads": [
+    "raw_email",
+    "raw_personal_contact",
+    "payment_identifier",
+    "credential_material",
+    "raw_prompt",
+    "generated_answer"
+  ],
+  "tables": [
+    "core.workspace",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.partner_reconciliation_report",
+    "core.partner_reconciliation_report_line",
+    "audit.partner_reconciliation_event",
+    "governance.partner_reconciliation_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json",
+    "deploy/usage/quota-display.contract.json",
+    "deploy/gateway/restricted-exports.contract.json"
+  ]
+}

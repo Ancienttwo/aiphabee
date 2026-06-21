@@ -6,6 +6,8 @@ export const USAGE_BILLING_RECONCILIATION_VERSION =
   "2026-06-21.phase2.usage-billing-reconciliation-scaffold.v0";
 export const HIGH_COST_USAGE_RESERVATION_VERSION =
   "2026-06-21.phase2.high-cost-usage-reservation-scaffold.v0";
+export const PARTNER_RECONCILIATION_REPORT_VERSION =
+  "2026-06-21.phase3.partner-reconciliation-report-scaffold.v0";
 
 export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
 export const USAGE_QUOTA_PLAN_CODES = [
@@ -15,6 +17,14 @@ export const USAGE_QUOTA_PLAN_CODES = [
   "developer",
   "team",
   "enterprise"
+] as const;
+export const PARTNER_RECONCILIATION_REPORT_FORMATS = ["csv", "json"] as const;
+export const PARTNER_RECONCILIATION_REPORT_CADENCES = ["daily", "weekly"] as const;
+export const PARTNER_RECONCILIATION_REPORT_GROUP_BY = [
+  "dataset",
+  "channel",
+  "package_code",
+  "user_id"
 ] as const;
 
 export type UsageLedgerBillableState = "blocked" | "posted" | "preview" | "reversed" | "waived";
@@ -37,6 +47,15 @@ export type HighCostUsageReservationStatus =
   | "blocked_missing_context"
   | "confirmation_required"
   | "planned_no_write";
+export type PartnerReconciliationReportCadence =
+  (typeof PARTNER_RECONCILIATION_REPORT_CADENCES)[number];
+export type PartnerReconciliationReportFormat =
+  (typeof PARTNER_RECONCILIATION_REPORT_FORMATS)[number];
+export type PartnerReconciliationReportStatus =
+  | "blocked_empty_usage"
+  | "blocked_missing_context"
+  | "planned_no_write";
+export type PartnerReconciliationSlaStatus = "exception" | "ok";
 export type UsageQuotaDisplayStatus = "blocked_missing_workspace" | "planned_no_write";
 
 export interface UsageLedgerEventPlanInput {
@@ -267,6 +286,155 @@ export interface UsageBillingReconciliationPlan {
   workspace_id: string;
 }
 
+export interface PartnerReconciliationUsageRowInput {
+  backfillCount?: number;
+  channel?: UsageLedgerChannel;
+  credits?: number;
+  dataDelayMinutes?: number;
+  dataset?: string;
+  errorCount?: number;
+  meteredRows?: number;
+  missingRows?: number;
+  packageCode?: UsageQuotaPlanCode;
+  requestId?: string;
+  usageCount?: number;
+  usageEventId?: string;
+  userId?: string;
+}
+
+export interface PartnerReconciliationReportPlanInput {
+  cadence?: PartnerReconciliationReportCadence;
+  format?: PartnerReconciliationReportFormat;
+  partnerId?: string;
+  periodEnd?: string;
+  periodStart?: string;
+  requestId: string;
+  usageRows?: PartnerReconciliationUsageRowInput[];
+  workspaceId?: string;
+}
+
+export interface PartnerReconciliationReportPlan {
+  audit: {
+    audit_event: "usage.partner_reconciliation.plan";
+    audit_event_id: string;
+    table: "audit.partner_reconciliation_event";
+    write_status: "blocked_no_rows" | "planned_no_write";
+  };
+  billing_provider_calls: false;
+  export: {
+    artifact_writes: false;
+    raw_payment_identifiers_included: false;
+    raw_personal_contact_included: false;
+    selected_format: PartnerReconciliationReportFormat;
+    supported_formats: typeof PARTNER_RECONCILIATION_REPORT_FORMATS;
+  };
+  frontend: false;
+  live_ledger_reads: false;
+  partner_id: string;
+  period: {
+    cadence: PartnerReconciliationReportCadence;
+    period_end: string;
+    period_start: string;
+  };
+  persistent_writes: false;
+  privacy: {
+    credential_material_included: false;
+    raw_email_included: false;
+    raw_payment_identifier_included: false;
+    user_identifier_policy: "user_id_or_account_id_only";
+  };
+  report: {
+    columns: readonly [
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id",
+      "usage_count",
+      "credits",
+      "metered_rows",
+      "request_ids",
+      "usage_event_ids",
+      "data_delay_minutes_max",
+      "missing_rows",
+      "error_count",
+      "backfill_count",
+      "sla_status"
+    ];
+    export_status: "blocked_no_rows" | "planned_no_write";
+    group_by: typeof PARTNER_RECONCILIATION_REPORT_GROUP_BY;
+    report_id: string;
+    source: "usage_ledger_snapshot";
+    table: "core.partner_reconciliation_report";
+  };
+  request_id: string;
+  request_id_visible: true;
+  rows: Array<{
+    backfill_count: number;
+    channel: UsageLedgerChannel;
+    credits: number;
+    data_delay_minutes_max: number;
+    dataset: string;
+    error_count: number;
+    line_id: string;
+    metered_rows: number;
+    missing_rows: number;
+    package_code: UsageQuotaPlanCode;
+    request_ids: string[];
+    sla_status: PartnerReconciliationSlaStatus;
+    table: "core.partner_reconciliation_report_line";
+    usage_count: number;
+    usage_event_ids: string[];
+    user_id: string;
+  }>;
+  sla: {
+    daily_weekly_report: true;
+    required_fields: readonly [
+      "data_delay_minutes",
+      "missing_rows",
+      "error_count",
+      "backfill_count"
+    ];
+    status: "attention_required" | "blocked_no_rows" | "ok";
+  };
+  sql_emitted: false;
+  status: PartnerReconciliationReportStatus;
+  summary: {
+    backfill_count: number;
+    credit_total: number;
+    dataset_count: number;
+    delayed_line_count: number;
+    error_count: number;
+    line_count: number;
+    metered_row_total: number;
+    missing_rows: number;
+    usage_count_total: number;
+    user_count: number;
+  };
+  tables: readonly [
+    "core.workspace",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.partner_reconciliation_report",
+    "core.partner_reconciliation_report_line",
+    "audit.partner_reconciliation_event",
+    "governance.partner_reconciliation_contract"
+  ];
+  traceability: {
+    required_fields: readonly [
+      "request_id",
+      "usage_event_id",
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
+    ];
+    traceable_to_usage_ledger: boolean;
+    traceable_usage_event_count: number;
+  };
+  version: typeof PARTNER_RECONCILIATION_REPORT_VERSION;
+  workspace_id: string;
+}
+
 export interface HighCostUsageReservationPlanInput {
   estimatedCredits?: number;
   executionStatus?: HighCostUsageExecutionStatus;
@@ -336,6 +504,16 @@ const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["table
   "core.usage_reconciliation_batch",
   "core.subscription_invoice",
   "core.subscription_invoice_line"
+];
+
+const PARTNER_RECONCILIATION_REPORT_TABLES: PartnerReconciliationReportPlan["tables"] = [
+  "core.workspace",
+  "core.usage_event",
+  "core.usage_ledger_entry",
+  "core.partner_reconciliation_report",
+  "core.partner_reconciliation_report_line",
+  "audit.partner_reconciliation_event",
+  "governance.partner_reconciliation_contract"
 ];
 
 const HIGH_COST_USAGE_RESERVATION_TABLES: HighCostUsageReservationPlan["tables"] = [
@@ -501,6 +679,49 @@ export function getUsageBillingReconciliationCapabilities() {
       "invoice_line_id"
     ] as const,
     version: USAGE_BILLING_RECONCILIATION_VERSION
+  };
+}
+
+export function getPartnerReconciliationReportCapabilities() {
+  return {
+    billing_provider_calls: false,
+    display_fields: [
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id",
+      "usage_count",
+      "credits",
+      "metered_rows",
+      "data_delay_minutes_max",
+      "missing_rows",
+      "error_count",
+      "backfill_count",
+      "request_ids"
+    ] as const,
+    export_formats: PARTNER_RECONCILIATION_REPORT_FORMATS,
+    frontend: false,
+    group_by: PARTNER_RECONCILIATION_REPORT_GROUP_BY,
+    live_ledger_reads: false,
+    partner_sla_report: true,
+    persistent_writes: false,
+    raw_personal_contact_included: false,
+    request_id_visible: true,
+    route: "POST /usage/partner-reconciliation/plan" as const,
+    runtime_route: "GET /usage/runtime" as const,
+    sql_emitted: false,
+    status: "partner_reconciliation_report_scaffold" as const,
+    supported_cadences: PARTNER_RECONCILIATION_REPORT_CADENCES,
+    tables: PARTNER_RECONCILIATION_REPORT_TABLES,
+    trace_fields: [
+      "request_id",
+      "usage_event_id",
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
+    ] as const,
+    version: PARTNER_RECONCILIATION_REPORT_VERSION
   };
 }
 
@@ -763,6 +984,122 @@ export function createUsageBillingReconciliationPlan(
   };
 }
 
+export function createPartnerReconciliationReportPlan(
+  input: PartnerReconciliationReportPlanInput
+): PartnerReconciliationReportPlan {
+  const partnerId = input.partnerId ?? "partner_unresolved";
+  const workspaceId = input.workspaceId ?? "workspace_unresolved";
+  const reportId = `partner_reconciliation_${sanitizeId(partnerId)}_${sanitizeId(
+    input.requestId
+  )}`;
+  const usageRows = input.usageRows ?? [];
+  const traceableUsageEventCount = usageRows.filter(isTraceablePartnerUsageRow).length;
+  const groupedRows = aggregatePartnerReconciliationRows(reportId, usageRows);
+  const missingContext =
+    input.partnerId === undefined ||
+    input.partnerId.length === 0 ||
+    input.workspaceId === undefined ||
+    input.workspaceId.length === 0 ||
+    input.periodStart === undefined ||
+    input.periodStart.length === 0 ||
+    input.periodEnd === undefined ||
+    input.periodEnd.length === 0 ||
+    traceableUsageEventCount !== usageRows.length;
+  const status: PartnerReconciliationReportStatus =
+    usageRows.length === 0
+      ? "blocked_empty_usage"
+      : missingContext
+        ? "blocked_missing_context"
+        : "planned_no_write";
+  const summary = summarizePartnerReconciliationRows(groupedRows);
+
+  return {
+    audit: {
+      audit_event: "usage.partner_reconciliation.plan",
+      audit_event_id: `partner_reconciliation_audit_${sanitizeId(input.requestId)}`,
+      table: "audit.partner_reconciliation_event",
+      write_status: status === "blocked_empty_usage" ? "blocked_no_rows" : "planned_no_write"
+    },
+    billing_provider_calls: false,
+    export: {
+      artifact_writes: false,
+      raw_payment_identifiers_included: false,
+      raw_personal_contact_included: false,
+      selected_format: input.format ?? "csv",
+      supported_formats: PARTNER_RECONCILIATION_REPORT_FORMATS
+    },
+    frontend: false,
+    live_ledger_reads: false,
+    partner_id: partnerId,
+    period: {
+      cadence: input.cadence ?? "weekly",
+      period_end: input.periodEnd ?? "period_end_unresolved",
+      period_start: input.periodStart ?? "period_start_unresolved"
+    },
+    persistent_writes: false,
+    privacy: {
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_payment_identifier_included: false,
+      user_identifier_policy: "user_id_or_account_id_only"
+    },
+    report: {
+      columns: [
+        "dataset",
+        "channel",
+        "package_code",
+        "user_id",
+        "usage_count",
+        "credits",
+        "metered_rows",
+        "request_ids",
+        "usage_event_ids",
+        "data_delay_minutes_max",
+        "missing_rows",
+        "error_count",
+        "backfill_count",
+        "sla_status"
+      ],
+      export_status: status === "planned_no_write" ? "planned_no_write" : "blocked_no_rows",
+      group_by: PARTNER_RECONCILIATION_REPORT_GROUP_BY,
+      report_id: reportId,
+      source: "usage_ledger_snapshot",
+      table: "core.partner_reconciliation_report"
+    },
+    request_id: input.requestId,
+    request_id_visible: true,
+    rows: groupedRows,
+    sla: {
+      daily_weekly_report: true,
+      required_fields: ["data_delay_minutes", "missing_rows", "error_count", "backfill_count"],
+      status:
+        usageRows.length === 0
+          ? "blocked_no_rows"
+          : summary.delayed_line_count > 0 || summary.missing_rows > 0 || summary.error_count > 0
+            ? "attention_required"
+            : "ok"
+    },
+    sql_emitted: false,
+    status,
+    summary,
+    tables: PARTNER_RECONCILIATION_REPORT_TABLES,
+    traceability: {
+      required_fields: [
+        "request_id",
+        "usage_event_id",
+        "dataset",
+        "channel",
+        "package_code",
+        "user_id"
+      ],
+      traceable_to_usage_ledger: usageRows.length > 0 && traceableUsageEventCount === usageRows.length,
+      traceable_usage_event_count: traceableUsageEventCount
+    },
+    version: PARTNER_RECONCILIATION_REPORT_VERSION,
+    workspace_id: workspaceId
+  };
+}
+
 function createUsageEventId(
   requestId: string,
   operation: UsageLedgerOperation,
@@ -815,10 +1152,120 @@ function normalizeAmountMinor(value: number | undefined): number {
     : 0;
 }
 
+function normalizeNonNegativeCount(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
+}
+
 function isTraceableLedgerEntry(entry: UsageBillingLedgerEntryInput): boolean {
   return (
     entry.requestId.length > 0 &&
     entry.usageEventId.length > 0 &&
     entry.ledgerEntryId.length > 0
   );
+}
+
+function isTraceablePartnerUsageRow(row: PartnerReconciliationUsageRowInput): boolean {
+  return (
+    row.requestId !== undefined &&
+    row.requestId.length > 0 &&
+    row.usageEventId !== undefined &&
+    row.usageEventId.length > 0 &&
+    row.dataset !== undefined &&
+    row.dataset.length > 0 &&
+    row.userId !== undefined &&
+    row.userId.length > 0
+  );
+}
+
+function aggregatePartnerReconciliationRows(
+  reportId: string,
+  rows: PartnerReconciliationUsageRowInput[]
+): PartnerReconciliationReportPlan["rows"] {
+  const groups = new Map<string, Omit<PartnerReconciliationReportPlan["rows"][number], "line_id">>();
+
+  for (const row of rows) {
+    const dataset = row.dataset ?? "dataset_unresolved";
+    const channel = row.channel ?? "web";
+    const packageCode = row.packageCode ?? "free";
+    const userId = row.userId ?? "user_unresolved";
+    const groupKey = [dataset, channel, packageCode, userId].map(sanitizeId).join("__");
+    const usageCount = normalizeNonNegativeCount(row.usageCount) || 1;
+    const credits = normalizeCreditCount(row.credits);
+    const meteredRows = normalizeNonNegativeCount(row.meteredRows);
+    const dataDelayMinutes = normalizeNonNegativeCount(row.dataDelayMinutes);
+    const missingRows = normalizeNonNegativeCount(row.missingRows);
+    const errorCount = normalizeNonNegativeCount(row.errorCount);
+    const backfillCount = normalizeNonNegativeCount(row.backfillCount);
+    const existing = groups.get(groupKey);
+
+    if (existing === undefined) {
+      groups.set(groupKey, {
+        backfill_count: backfillCount,
+        channel,
+        credits,
+        data_delay_minutes_max: dataDelayMinutes,
+        dataset,
+        error_count: errorCount,
+        metered_rows: meteredRows,
+        missing_rows: missingRows,
+        package_code: packageCode,
+        request_ids: uniqueStrings([row.requestId]),
+        sla_status:
+          dataDelayMinutes > 0 || missingRows > 0 || errorCount > 0 ? "exception" : "ok",
+        table: "core.partner_reconciliation_report_line",
+        usage_count: usageCount,
+        usage_event_ids: uniqueStrings([row.usageEventId]),
+        user_id: userId
+      });
+      continue;
+    }
+
+    existing.backfill_count += backfillCount;
+    existing.credits += credits;
+    existing.data_delay_minutes_max = Math.max(existing.data_delay_minutes_max, dataDelayMinutes);
+    existing.error_count += errorCount;
+    existing.metered_rows += meteredRows;
+    existing.missing_rows += missingRows;
+    existing.request_ids = uniqueStrings([...existing.request_ids, row.requestId]);
+    existing.sla_status =
+      existing.data_delay_minutes_max > 0 || existing.missing_rows > 0 || existing.error_count > 0
+        ? "exception"
+        : "ok";
+    existing.usage_count += usageCount;
+    existing.usage_event_ids = uniqueStrings([...existing.usage_event_ids, row.usageEventId]);
+  }
+
+  return [...groups.values()]
+    .sort((left, right) =>
+      [left.dataset, left.channel, left.package_code, left.user_id]
+        .join("\u0000")
+        .localeCompare([right.dataset, right.channel, right.package_code, right.user_id].join("\u0000"))
+    )
+    .map((row, index) => ({
+      ...row,
+      line_id: `partner_reconciliation_line_${sanitizeId(reportId)}_${index + 1}`
+    }));
+}
+
+function summarizePartnerReconciliationRows(
+  rows: PartnerReconciliationReportPlan["rows"]
+): PartnerReconciliationReportPlan["summary"] {
+  return {
+    backfill_count: rows.reduce((total, row) => total + row.backfill_count, 0),
+    credit_total: rows.reduce((total, row) => total + row.credits, 0),
+    dataset_count: new Set(rows.map((row) => row.dataset)).size,
+    delayed_line_count: rows.filter((row) => row.data_delay_minutes_max > 0).length,
+    error_count: rows.reduce((total, row) => total + row.error_count, 0),
+    line_count: rows.length,
+    metered_row_total: rows.reduce((total, row) => total + row.metered_rows, 0),
+    missing_rows: rows.reduce((total, row) => total + row.missing_rows, 0),
+    usage_count_total: rows.reduce((total, row) => total + row.usage_count, 0),
+    user_count: new Set(rows.map((row) => row.user_id)).size
+  };
+}
+
+function uniqueStrings(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => value !== undefined && value.length > 0))];
 }

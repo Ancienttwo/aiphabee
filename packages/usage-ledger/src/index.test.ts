@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   createHighCostUsageReservationPlan,
+  createPartnerReconciliationReportPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
   getHighCostUsageReservationCapabilities,
+  getPartnerReconciliationReportCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageQuotaDisplayCapabilities,
   getUsageLedgerEventWriterCapabilities
@@ -163,6 +165,36 @@ describe("usage ledger event writer scaffold", () => {
       "usage_event_id",
       "ledger_entry_id",
       "invoice_line_id"
+    ]);
+  });
+
+  it("reports partner reconciliation report capabilities", () => {
+    expect(getPartnerReconciliationReportCapabilities()).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      partner_sla_report: true,
+      persistent_writes: false,
+      raw_personal_contact_included: false,
+      request_id_visible: true,
+      route: "POST /usage/partner-reconciliation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_reconciliation_report_scaffold"
+    });
+    expect(getPartnerReconciliationReportCapabilities().group_by).toEqual([
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
+    ]);
+    expect(getPartnerReconciliationReportCapabilities().trace_fields).toEqual([
+      "request_id",
+      "usage_event_id",
+      "dataset",
+      "channel",
+      "package_code",
+      "user_id"
     ]);
   });
 
@@ -326,6 +358,162 @@ describe("usage ledger event writer scaffold", () => {
     expect(missing.status).toBe("blocked_missing_context");
     expect(missing.traceability.traceable_to_call).toBe(false);
     expect(missing.invoice_lines).toHaveLength(0);
+  });
+
+  it("plans partner reconciliation reports by dataset, channel, package, user, and usage", () => {
+    const plan = createPartnerReconciliationReportPlan({
+      cadence: "weekly",
+      format: "csv",
+      partnerId: "partner_hk_data",
+      periodEnd: "2026-06-08T00:00:00.000Z",
+      periodStart: "2026-06-01T00:00:00.000Z",
+      requestId: "req_partner_reconciliation",
+      usageRows: [
+        {
+          channel: "mcp",
+          credits: 8,
+          dataset: "hk_equity_quote",
+          meteredRows: 120,
+          packageCode: "developer",
+          requestId: "req_mcp_001",
+          usageCount: 3,
+          usageEventId: "usage_event_req_mcp_001",
+          userId: "user_ops_001"
+        },
+        {
+          backfillCount: 1,
+          channel: "mcp",
+          credits: 2,
+          dataDelayMinutes: 10,
+          dataset: "hk_equity_quote",
+          meteredRows: 20,
+          missingRows: 2,
+          packageCode: "developer",
+          requestId: "req_mcp_002",
+          usageCount: 1,
+          usageEventId: "usage_event_req_mcp_002",
+          userId: "user_ops_001"
+        },
+        {
+          channel: "web",
+          credits: 5,
+          dataset: "financial_facts",
+          meteredRows: 50,
+          packageCode: "pro",
+          requestId: "req_web_001",
+          usageCount: 2,
+          usageEventId: "usage_event_req_web_001",
+          userId: "user_ops_002"
+        }
+      ],
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      partner_id: "partner_hk_data",
+      persistent_writes: false,
+      request_id: "req_partner_reconciliation",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(plan.report).toMatchObject({
+      export_status: "planned_no_write",
+      group_by: ["dataset", "channel", "package_code", "user_id"],
+      source: "usage_ledger_snapshot",
+      table: "core.partner_reconciliation_report"
+    });
+    expect(plan.rows).toHaveLength(2);
+    expect(plan.rows[0]).toMatchObject({
+      channel: "web",
+      credits: 5,
+      dataset: "financial_facts",
+      package_code: "pro",
+      sla_status: "ok",
+      usage_count: 2,
+      user_id: "user_ops_002"
+    });
+    expect(plan.rows[1]).toMatchObject({
+      backfill_count: 1,
+      channel: "mcp",
+      credits: 10,
+      data_delay_minutes_max: 10,
+      dataset: "hk_equity_quote",
+      missing_rows: 2,
+      package_code: "developer",
+      request_ids: ["req_mcp_001", "req_mcp_002"],
+      sla_status: "exception",
+      usage_count: 4,
+      usage_event_ids: ["usage_event_req_mcp_001", "usage_event_req_mcp_002"],
+      user_id: "user_ops_001"
+    });
+    expect(plan.summary).toEqual({
+      backfill_count: 1,
+      credit_total: 15,
+      dataset_count: 2,
+      delayed_line_count: 1,
+      error_count: 0,
+      line_count: 2,
+      metered_row_total: 190,
+      missing_rows: 2,
+      usage_count_total: 6,
+      user_count: 2
+    });
+    expect(plan.sla).toMatchObject({
+      daily_weekly_report: true,
+      status: "attention_required"
+    });
+    expect(plan.traceability).toMatchObject({
+      traceable_to_usage_ledger: true,
+      traceable_usage_event_count: 3
+    });
+    expect(plan.export).toMatchObject({
+      artifact_writes: false,
+      raw_payment_identifiers_included: false,
+      raw_personal_contact_included: false,
+      selected_format: "csv"
+    });
+    expect(plan.privacy).toMatchObject({
+      credential_material_included: false,
+      raw_email_included: false,
+      raw_payment_identifier_included: false
+    });
+  });
+
+  it("blocks partner reconciliation reports without rows or traceable context", () => {
+    const empty = createPartnerReconciliationReportPlan({
+      partnerId: "partner_hk_data",
+      periodEnd: "2026-06-08T00:00:00.000Z",
+      periodStart: "2026-06-01T00:00:00.000Z",
+      requestId: "req_partner_empty",
+      workspaceId: "ws_internal_alpha"
+    });
+    const missingTrace = createPartnerReconciliationReportPlan({
+      partnerId: "partner_hk_data",
+      periodEnd: "2026-06-08T00:00:00.000Z",
+      periodStart: "2026-06-01T00:00:00.000Z",
+      requestId: "req_partner_missing_trace",
+      usageRows: [
+        {
+          channel: "api",
+          dataset: "hk_equity_quote",
+          packageCode: "developer",
+          requestId: "req_api_001",
+          userId: "user_ops_001"
+        }
+      ],
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(empty.status).toBe("blocked_empty_usage");
+    expect(empty.report.export_status).toBe("blocked_no_rows");
+    expect(empty.sla.status).toBe("blocked_no_rows");
+    expect(missingTrace.status).toBe("blocked_missing_context");
+    expect(missingTrace.traceability.traceable_to_usage_ledger).toBe(false);
   });
 
   it("plans confirmed high-cost pre-debits without live ledger writes", () => {

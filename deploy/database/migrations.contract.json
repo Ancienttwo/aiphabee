@@ -358,6 +358,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621126000_partner_reconciliation_report_scaffold.sql",
+      "purpose": "Create empty partner reconciliation report, report line, audit event, and governance scaffolds for dataset/channel/package/user usage export planning without enabling live ledger reads or writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.partner_reconciliation_report",
+        "core.partner_reconciliation_report_line",
+        "audit.partner_reconciliation_event",
+        "governance.partner_reconciliation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
