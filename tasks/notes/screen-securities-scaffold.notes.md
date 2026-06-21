@@ -29,7 +29,8 @@ ANA-04, and US-W05.
 - No live universe execution.
 - No MCP registration.
 - No high-cost queueing.
-- No ratio percentiles or return/risk/Beta calculations.
+- Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`.
+- Return/risk/Beta is covered by `docs/governance/returns-risk-scaffold.md`.
 
 ## Verification
 

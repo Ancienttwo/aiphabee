@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateReturnsRisk,
   compareSecurities,
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities
 } from "./index";
@@ -261,6 +263,96 @@ describe("compare securities scaffold", () => {
     expect(result.status).toBe("blocked_resolution");
     expect(result.resolve_security?.status).toBe("ambiguous");
     expect(result.ratios.every((ratio) => ratio.blocked_reason === "security_resolution_required")).toBe(
+      true
+    );
+  });
+
+  it("reports returns/risk capabilities", () => {
+    expect(getReturnsRiskCapabilities()).toMatchObject({
+      formula_version: "returns-risk-v0",
+      frontend_rendering: false,
+      golden_tolerance: 0.000001,
+      live_data_access: false,
+      price_history_fields: ["close", "return", "drawdown"],
+      requires_benchmark_for_beta: true,
+      route: "POST /analytics/returns-risk",
+      status: "returns_risk_scaffold",
+      tool_name: "calculate_returns_risk"
+    });
+  });
+
+  it("computes deterministic returns/risk metrics with benchmark beta", () => {
+    const result = calculateReturnsRisk({
+      benchmarkSecurityQuery: "00700.HK",
+      requestId: "req_returns_risk_001",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      benchmark_history_status: "found",
+      benchmark_instrument_id: "eq_hk_00700",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      price_history_status: "found",
+      status: "computed",
+      toolName: "calculate_returns_risk"
+    });
+    expect(result.window).toMatchObject({
+      annualization_factor: 252,
+      beta_method: "sample_covariance_over_sample_variance",
+      from: "2026-01-05",
+      max_rows: 3,
+      price_basis: "close",
+      return_field: "return",
+      row_count: 3,
+      to: "2026-01-07",
+      volatility_method: "sample_standard_deviation"
+    });
+    expect(result.definitions[0]).toMatchObject({
+      formula: "last_close / first_close - 1",
+      formula_version: "returns-risk-v0",
+      metric_id: "total_return",
+      tolerance: 0.000001
+    });
+    expect(result.metrics.map((metric) => [metric.metric_id, metric.status, metric.value])).toEqual([
+      ["total_return", "computed", 0.012195],
+      ["average_daily_return", "computed", 0.007267],
+      ["volatility_daily", "computed", 0.002301],
+      ["volatility_annualized", "computed", 0.036523],
+      ["max_drawdown", "computed", 0],
+      ["beta", "computed", 1]
+    ]);
+    expect(result.metrics.every((metric) => metric.tolerance === 0.000001)).toBe(true);
+  });
+
+  it("computes return/risk metrics while blocking beta without benchmark", () => {
+    const result = calculateReturnsRisk({
+      requestId: "req_returns_risk_no_benchmark",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.metrics.find((metric) => metric.metric_id === "beta")).toMatchObject({
+      blocked_reason: "benchmark_required",
+      status: "blocked"
+    });
+    expect(result.metrics.find((metric) => metric.metric_id === "total_return")).toMatchObject({
+      status: "computed",
+      value: 0.012195
+    });
+  });
+
+  it("blocks ambiguous returns/risk securities without guessing", () => {
+    const result = calculateReturnsRisk({
+      benchmarkSecurityQuery: "00700.HK",
+      requestId: "req_returns_risk_ambiguous",
+      securityQuery: "ABC"
+    });
+
+    expect(result.status).toBe("blocked_resolution");
+    expect(result.resolve_security?.status).toBe("ambiguous");
+    expect(result.metrics.every((metric) => metric.blocked_reason === "security_resolution_required")).toBe(
       true
     );
   });

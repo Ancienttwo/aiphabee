@@ -5,7 +5,10 @@ import {
   type GetFinancialFactsResult
 } from "@aiphabee/financial-facts";
 import {
+  getPriceHistory,
   getQuoteSnapshot,
+  type GetPriceHistoryResult,
+  type PriceHistoryRow,
   type GetQuoteSnapshotResult
 } from "@aiphabee/market-data";
 import {
@@ -22,6 +25,8 @@ export const SCREEN_SECURITIES_VERSION =
   "2026-06-21.phase2.screen-securities-scaffold.v0";
 export const FINANCIAL_RATIOS_VERSION =
   "2026-06-21.phase2.financial-ratios-scaffold.v0";
+export const RETURNS_RISK_VERSION =
+  "2026-06-21.phase2.returns-risk-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -221,6 +226,82 @@ export interface FinancialRatiosResult {
   };
 }
 
+export type ReturnsRiskMetricStatus = "blocked" | "computed";
+export type ReturnsRiskMetricId =
+  | "average_daily_return"
+  | "beta"
+  | "max_drawdown"
+  | "total_return"
+  | "volatility_annualized"
+  | "volatility_daily";
+
+export interface ReturnsRiskInput {
+  adjustment?: string;
+  asOf?: string;
+  benchmarkInstrumentId?: string;
+  benchmarkSecurityQuery?: string;
+  from?: string;
+  instrumentId?: string;
+  requestId: string;
+  securityQuery?: string;
+  to?: string;
+}
+
+export interface ReturnsRiskDefinition {
+  formula: string;
+  formula_version: typeof RETURNS_RISK_FORMULA_VERSION;
+  metric_id: ReturnsRiskMetricId;
+  required_inputs: string[];
+  tolerance: typeof RETURNS_RISK_TOLERANCE;
+  unit: "coefficient" | "ratio";
+}
+
+export interface ReturnsRiskMetric {
+  blocked_reason?: string;
+  formula_version: typeof RETURNS_RISK_FORMULA_VERSION;
+  metric_id: ReturnsRiskMetricId;
+  source_record_ids: string[];
+  status: ReturnsRiskMetricStatus;
+  tolerance: typeof RETURNS_RISK_TOLERANCE;
+  unit: "coefficient" | "ratio";
+  value?: number;
+}
+
+export interface ReturnsRiskResult {
+  as_of: string;
+  benchmark_history_status?: GetPriceHistoryResult["status"];
+  benchmark_instrument_id?: string;
+  data_version: typeof RETURNS_RISK_VERSION;
+  definitions: ReturnsRiskDefinition[];
+  frontend_rendering: false;
+  instrument_id?: string;
+  live_data_access: false;
+  methodology_version: typeof RETURNS_RISK_VERSION;
+  metrics: ReturnsRiskMetric[];
+  price_history_status: GetPriceHistoryResult["status"];
+  resolve_benchmark?: ResolveSecurityResult;
+  resolve_security?: ResolveSecurityResult;
+  status: "blocked_history" | "blocked_resolution" | "computed" | "partial";
+  toolName: "calculate_returns_risk";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  window: {
+    adjustment: string;
+    annualization_factor: typeof RETURNS_RISK_ANNUALIZATION_FACTOR;
+    beta_method: "sample_covariance_over_sample_variance";
+    from: string;
+    max_rows: typeof RETURNS_RISK_LIMIT;
+    price_basis: "close";
+    return_field: "return";
+    row_count: number;
+    to: string;
+    volatility_method: "sample_standard_deviation";
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -230,6 +311,13 @@ interface ResolvedComparisonSurface {
 
 const DEFAULT_FINANCIAL_FROM = "2023-12-31";
 const DEFAULT_FINANCIAL_TO = "2023-12-31";
+const DEFAULT_RETURNS_RISK_ADJUSTMENT = "total_return_adjusted";
+const DEFAULT_RETURNS_RISK_FROM = "2026-01-05";
+const DEFAULT_RETURNS_RISK_TO = "2026-01-07";
+const RETURNS_RISK_ANNUALIZATION_FACTOR = 252;
+const RETURNS_RISK_FORMULA_VERSION = "returns-risk-v0";
+const RETURNS_RISK_LIMIT = 3;
+const RETURNS_RISK_TOLERANCE = 0.000001;
 const DEFAULT_SCREEN_UNIVERSE = ["00700.HK", "08001.HK", "00001.HK"];
 const FINANCIAL_RATIO_FORMULA_VERSION = "financial-ratios-v0";
 const REQUIRED_FINANCIAL_METRICS: FinancialFactMetric[] = [
@@ -287,6 +375,56 @@ const FINANCIAL_RATIO_PEER_DISTRIBUTION: Record<FinancialRatioMetricId, number[]
   return_on_assets: [0.01, 0.03, 0.05, 0.073386, 0.11],
   return_on_equity: [0.04, 0.08, 0.12, 0.13915, 0.21]
 };
+const RETURNS_RISK_DEFINITIONS: ReturnsRiskDefinition[] = [
+  {
+    formula: "last_close / first_close - 1",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "total_return",
+    required_inputs: ["close"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "ratio"
+  },
+  {
+    formula: "sum(daily_return) / count(daily_return)",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "average_daily_return",
+    required_inputs: ["return"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "ratio"
+  },
+  {
+    formula: "sample_standard_deviation(daily_return)",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "volatility_daily",
+    required_inputs: ["return"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "ratio"
+  },
+  {
+    formula: "volatility_daily * sqrt(252)",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "volatility_annualized",
+    required_inputs: ["return"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "ratio"
+  },
+  {
+    formula: "min(drawdown)",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "max_drawdown",
+    required_inputs: ["drawdown"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "ratio"
+  },
+  {
+    formula: "sample_covariance(security_return, benchmark_return) / sample_variance(benchmark_return)",
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: "beta",
+    required_inputs: ["security_return", "benchmark_return"],
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: "coefficient"
+  }
+];
 
 export function getCompareSecuritiesCapabilities() {
   return {
@@ -334,6 +472,24 @@ export function getFinancialRatiosCapabilities() {
     supported_metrics: FINANCIAL_RATIO_DEFINITIONS.map((definition) => definition.metric_id),
     tool_name: "get_financial_ratios" as const,
     version: FINANCIAL_RATIOS_VERSION
+  };
+}
+
+export function getReturnsRiskCapabilities() {
+  return {
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    frontend_rendering: false,
+    golden_tolerance: RETURNS_RISK_TOLERANCE,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    point_in_time: true,
+    price_history_fields: ["close", "return", "drawdown"] as const,
+    requires_benchmark_for_beta: true,
+    route: "POST /analytics/returns-risk" as const,
+    status: "returns_risk_scaffold" as const,
+    supported_metrics: RETURNS_RISK_DEFINITIONS.map((definition) => definition.metric_id),
+    tool_name: "calculate_returns_risk" as const,
+    version: RETURNS_RISK_VERSION
   };
 }
 
@@ -556,6 +712,141 @@ export function getFinancialRatios(input: FinancialRatioInput): FinancialRatiosR
       rows: facts.usage.rows + (resolution?.usage.rows ?? 0) + ratios.length
     }
   };
+}
+
+export function calculateReturnsRisk(input: ReturnsRiskInput): ReturnsRiskResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const from = input.from ?? DEFAULT_RETURNS_RISK_FROM;
+  const to = input.to ?? DEFAULT_RETURNS_RISK_TO;
+  const adjustment = input.adjustment ?? DEFAULT_RETURNS_RISK_ADJUSTMENT;
+  const resolution =
+    input.instrumentId === undefined && input.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.securityQuery
+        })
+      : undefined;
+  const instrumentId = input.instrumentId ?? resolution?.selectedInstrumentId;
+  const benchmarkResolution =
+    input.benchmarkInstrumentId === undefined && input.benchmarkSecurityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.benchmarkSecurityQuery
+        })
+      : undefined;
+  const benchmarkInstrumentId =
+    input.benchmarkInstrumentId ?? benchmarkResolution?.selectedInstrumentId;
+
+  if (instrumentId === undefined) {
+    return createReturnsRiskResult({
+      asOf,
+      benchmarkInstrumentId,
+      benchmarkResolution,
+      benchmarkStatus: undefined,
+      history: undefined,
+      instrumentId,
+      metrics: createBlockedReturnsRiskMetrics("security_resolution_required", []),
+      priceHistoryStatus: "not_found",
+      resolution,
+      status: "blocked_resolution",
+      usageCredits: (resolution?.usage.credits ?? 0) + (benchmarkResolution?.usage.credits ?? 0),
+      usageRows: (resolution?.usage.rows ?? 0) + (benchmarkResolution?.usage.rows ?? 0),
+      window: createReturnsRiskWindow(from, to, adjustment, 0)
+    });
+  }
+
+  const history = getPriceHistory({
+    adjustment,
+    fields: ["close", "return", "drawdown"],
+    from,
+    instrumentId,
+    limit: RETURNS_RISK_LIMIT,
+    to
+  });
+  const sourceRecordIds = createPriceHistorySourceRecordIds(history);
+
+  if (history.status !== "found" || history.history === undefined) {
+    return createReturnsRiskResult({
+      asOf,
+      benchmarkInstrumentId,
+      benchmarkResolution,
+      benchmarkStatus: undefined,
+      history,
+      instrumentId,
+      metrics: createBlockedReturnsRiskMetrics(`price_history_${history.status}`, sourceRecordIds),
+      priceHistoryStatus: history.status,
+      resolution,
+      status: "blocked_history",
+      usageCredits:
+        history.usage.credits + (resolution?.usage.credits ?? 0) + (benchmarkResolution?.usage.credits ?? 0),
+      usageRows:
+        history.usage.rows + (resolution?.usage.rows ?? 0) + (benchmarkResolution?.usage.rows ?? 0),
+      window: createReturnsRiskWindow(from, to, adjustment, history.history?.rowCount ?? 0)
+    });
+  }
+
+  const baseMetrics = createReturnsRiskBaseMetrics(history.history.rows, sourceRecordIds);
+  let benchmarkHistory: GetPriceHistoryResult | undefined;
+  let betaMetric: ReturnsRiskMetric;
+
+  if (benchmarkInstrumentId === undefined) {
+    betaMetric = createBlockedReturnsRiskMetric(
+      "beta",
+      "benchmark_required",
+      sourceRecordIds
+    );
+  } else {
+    benchmarkHistory = getPriceHistory({
+      adjustment,
+      fields: ["return"],
+      from,
+      instrumentId: benchmarkInstrumentId,
+      limit: RETURNS_RISK_LIMIT,
+      to
+    });
+    const benchmarkSourceRecordIds = createPriceHistorySourceRecordIds(benchmarkHistory);
+    const betaSourceRecordIds = Array.from(
+      new Set([...sourceRecordIds, ...benchmarkSourceRecordIds])
+    ).sort();
+
+    betaMetric =
+      benchmarkHistory.status === "found" && benchmarkHistory.history !== undefined
+        ? createBetaMetric(history.history.rows, benchmarkHistory.history.rows, betaSourceRecordIds)
+        : createBlockedReturnsRiskMetric(
+            "beta",
+            `benchmark_history_${benchmarkHistory.status}`,
+            betaSourceRecordIds
+          );
+  }
+
+  const metrics = [...baseMetrics, betaMetric];
+  const computedCount = metrics.filter((metric) => metric.status === "computed").length;
+
+  return createReturnsRiskResult({
+    asOf,
+    benchmarkInstrumentId,
+    benchmarkResolution,
+    benchmarkStatus: benchmarkHistory?.status,
+    history,
+    instrumentId,
+    metrics,
+    priceHistoryStatus: history.status,
+    resolution,
+    status: computedCount === metrics.length ? "computed" : "partial",
+    usageCredits:
+      history.usage.credits +
+      (benchmarkHistory?.usage.credits ?? 0) +
+      (resolution?.usage.credits ?? 0) +
+      (benchmarkResolution?.usage.credits ?? 0) +
+      (computedCount > 0 ? 1 : 0),
+    usageRows:
+      history.usage.rows +
+      (benchmarkHistory?.usage.rows ?? 0) +
+      (resolution?.usage.rows ?? 0) +
+      (benchmarkResolution?.usage.rows ?? 0) +
+      metrics.length,
+    window: createReturnsRiskWindow(from, to, adjustment, history.history.rowCount)
+  });
 }
 
 function createInvalidInputResult(
@@ -854,6 +1145,255 @@ function createFinancialRatioAnomalyPolicy(): FinancialRatioDefinition["anomaly_
     quality_hold: "blocked",
     zero_denominator: "blocked"
   };
+}
+
+function createReturnsRiskResult(params: {
+  asOf: string;
+  benchmarkInstrumentId: string | undefined;
+  benchmarkResolution: ResolveSecurityResult | undefined;
+  benchmarkStatus: GetPriceHistoryResult["status"] | undefined;
+  history: GetPriceHistoryResult | undefined;
+  instrumentId: string | undefined;
+  metrics: ReturnsRiskMetric[];
+  priceHistoryStatus: GetPriceHistoryResult["status"];
+  resolution: ResolveSecurityResult | undefined;
+  status: ReturnsRiskResult["status"];
+  usageCredits: number;
+  usageRows: number;
+  window: ReturnsRiskResult["window"];
+}): ReturnsRiskResult {
+  return {
+    as_of: params.asOf,
+    benchmark_history_status: params.benchmarkStatus,
+    benchmark_instrument_id: params.benchmarkInstrumentId,
+    data_version: RETURNS_RISK_VERSION,
+    definitions: RETURNS_RISK_DEFINITIONS,
+    frontend_rendering: false,
+    instrument_id: params.instrumentId,
+    live_data_access: false,
+    methodology_version: RETURNS_RISK_VERSION,
+    metrics: params.metrics,
+    price_history_status: params.priceHistoryStatus,
+    resolve_benchmark: params.benchmarkResolution,
+    resolve_security: params.resolution,
+    status: params.status,
+    toolName: "calculate_returns_risk",
+    usage: {
+      cached: false,
+      credits: params.usageCredits,
+      rows: params.usageRows
+    },
+    window: params.window
+  };
+}
+
+function createReturnsRiskWindow(
+  from: string,
+  to: string,
+  adjustment: string,
+  rowCount: number
+): ReturnsRiskResult["window"] {
+  return {
+    adjustment,
+    annualization_factor: RETURNS_RISK_ANNUALIZATION_FACTOR,
+    beta_method: "sample_covariance_over_sample_variance",
+    from,
+    max_rows: RETURNS_RISK_LIMIT,
+    price_basis: "close",
+    return_field: "return",
+    row_count: rowCount,
+    to,
+    volatility_method: "sample_standard_deviation"
+  };
+}
+
+function createReturnsRiskBaseMetrics(
+  rows: PriceHistoryRow[],
+  sourceRecordIds: string[]
+): ReturnsRiskMetric[] {
+  const sortedRows = [...rows].sort((left, right) => left.date.localeCompare(right.date));
+  const returns = sortedRows
+    .map((row) => getFiniteHistoryField(row, "return"))
+    .filter((value): value is number => value !== undefined);
+  const drawdowns = sortedRows
+    .map((row) => getFiniteHistoryField(row, "drawdown"))
+    .filter((value): value is number => value !== undefined);
+  const firstClose = getFiniteHistoryField(sortedRows[0], "close");
+  const lastClose = getFiniteHistoryField(sortedRows[sortedRows.length - 1], "close");
+  const volatilityDaily = sampleStandardDeviation(returns);
+
+  return [
+    firstClose === undefined || lastClose === undefined || firstClose === 0
+      ? createBlockedReturnsRiskMetric("total_return", "missing_close", sourceRecordIds)
+      : createComputedReturnsRiskMetric(
+          "total_return",
+          lastClose / firstClose - 1,
+          sourceRecordIds
+        ),
+    returns.length === 0
+      ? createBlockedReturnsRiskMetric("average_daily_return", "missing_return", sourceRecordIds)
+      : createComputedReturnsRiskMetric("average_daily_return", average(returns), sourceRecordIds),
+    volatilityDaily === undefined
+      ? createBlockedReturnsRiskMetric(
+          "volatility_daily",
+          "insufficient_return_observations",
+          sourceRecordIds
+        )
+      : createComputedReturnsRiskMetric("volatility_daily", volatilityDaily, sourceRecordIds),
+    volatilityDaily === undefined
+      ? createBlockedReturnsRiskMetric(
+          "volatility_annualized",
+          "insufficient_return_observations",
+          sourceRecordIds
+        )
+      : createComputedReturnsRiskMetric(
+          "volatility_annualized",
+          volatilityDaily * Math.sqrt(RETURNS_RISK_ANNUALIZATION_FACTOR),
+          sourceRecordIds
+        ),
+    drawdowns.length === 0
+      ? createBlockedReturnsRiskMetric("max_drawdown", "missing_drawdown", sourceRecordIds)
+      : createComputedReturnsRiskMetric("max_drawdown", Math.min(...drawdowns), sourceRecordIds)
+  ];
+}
+
+function createBetaMetric(
+  securityRows: PriceHistoryRow[],
+  benchmarkRows: PriceHistoryRow[],
+  sourceRecordIds: string[]
+): ReturnsRiskMetric {
+  const securityReturnsByDate = new Map(
+    securityRows
+      .map((row) => [row.date, getFiniteHistoryField(row, "return")] as const)
+      .filter((entry): entry is readonly [string, number] => entry[1] !== undefined)
+  );
+  const pairs = benchmarkRows.flatMap((row) => {
+    const securityReturn = securityReturnsByDate.get(row.date);
+    const benchmarkReturn = getFiniteHistoryField(row, "return");
+
+    return securityReturn === undefined || benchmarkReturn === undefined
+      ? []
+      : [{ benchmarkReturn, securityReturn }];
+  });
+
+  if (pairs.length < 2) {
+    return createBlockedReturnsRiskMetric("beta", "insufficient_overlap", sourceRecordIds);
+  }
+
+  const securityReturns = pairs.map((pair) => pair.securityReturn);
+  const benchmarkReturns = pairs.map((pair) => pair.benchmarkReturn);
+  const benchmarkVariance = sampleVariance(benchmarkReturns);
+
+  if (benchmarkVariance === undefined) {
+    return createBlockedReturnsRiskMetric("beta", "insufficient_overlap", sourceRecordIds);
+  }
+
+  if (benchmarkVariance === 0) {
+    return createBlockedReturnsRiskMetric("beta", "zero_benchmark_variance", sourceRecordIds);
+  }
+
+  return createComputedReturnsRiskMetric(
+    "beta",
+    sampleCovariance(securityReturns, benchmarkReturns) / benchmarkVariance,
+    sourceRecordIds
+  );
+}
+
+function createComputedReturnsRiskMetric(
+  metricId: ReturnsRiskMetricId,
+  value: number,
+  sourceRecordIds: string[]
+): ReturnsRiskMetric {
+  const definition = getReturnsRiskDefinition(metricId);
+
+  return {
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: metricId,
+    source_record_ids: sourceRecordIds,
+    status: "computed",
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: definition.unit,
+    value: roundMetric(value)
+  };
+}
+
+function createBlockedReturnsRiskMetrics(
+  blockedReason: string,
+  sourceRecordIds: string[]
+): ReturnsRiskMetric[] {
+  return RETURNS_RISK_DEFINITIONS.map((definition) =>
+    createBlockedReturnsRiskMetric(definition.metric_id, blockedReason, sourceRecordIds)
+  );
+}
+
+function createBlockedReturnsRiskMetric(
+  metricId: ReturnsRiskMetricId,
+  blockedReason: string,
+  sourceRecordIds: string[]
+): ReturnsRiskMetric {
+  const definition = getReturnsRiskDefinition(metricId);
+
+  return {
+    blocked_reason: blockedReason,
+    formula_version: RETURNS_RISK_FORMULA_VERSION,
+    metric_id: metricId,
+    source_record_ids: sourceRecordIds,
+    status: "blocked",
+    tolerance: RETURNS_RISK_TOLERANCE,
+    unit: definition.unit
+  };
+}
+
+function getReturnsRiskDefinition(metricId: ReturnsRiskMetricId): ReturnsRiskDefinition {
+  const definition = RETURNS_RISK_DEFINITIONS.find((candidate) => candidate.metric_id === metricId);
+
+  if (definition === undefined) {
+    throw new Error(`Unknown returns/risk metric ${metricId}`);
+  }
+
+  return definition;
+}
+
+function getFiniteHistoryField(
+  row: PriceHistoryRow | undefined,
+  field: "close" | "drawdown" | "return"
+): number | undefined {
+  const value = row?.fields[field];
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function createPriceHistorySourceRecordIds(history: GetPriceHistoryResult): string[] {
+  return history.provenance.map((item) => item.source_record_id).sort();
+}
+
+function average(values: number[]): number {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function sampleStandardDeviation(values: number[]): number | undefined {
+  const variance = sampleVariance(values);
+  return variance === undefined ? undefined : Math.sqrt(variance);
+}
+
+function sampleVariance(values: number[]): number | undefined {
+  if (values.length < 2) {
+    return undefined;
+  }
+
+  const mean = average(values);
+  return values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
+}
+
+function sampleCovariance(leftValues: number[], rightValues: number[]): number {
+  const leftMean = average(leftValues);
+  const rightMean = average(rightValues);
+  return (
+    leftValues.reduce(
+      (sum, leftValue, index) => sum + (leftValue - leftMean) * (rightValues[index] - rightMean),
+      0
+    ) /
+    (leftValues.length - 1)
+  );
 }
 
 function normalizeScreenConditions(

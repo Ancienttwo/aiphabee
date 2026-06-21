@@ -19,10 +19,12 @@ import {
   type AgentRunSkeletonInput
 } from "@aiphabee/agent-runtime";
 import {
+  calculateReturnsRisk,
   compareSecurities,
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities,
   type ScreenSecuritiesCondition
@@ -694,6 +696,7 @@ app.get("/analytics/runtime", (c) => {
   const capability = getCompareSecuritiesCapabilities();
   const screenCapability = getScreenSecuritiesCapabilities();
   const financialRatiosCapability = getFinancialRatiosCapabilities();
+  const returnsRiskCapability = getReturnsRiskCapabilities();
 
   return c.json(
     createSuccessEnvelope(
@@ -701,11 +704,17 @@ app.get("/analytics/runtime", (c) => {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
         financial_ratios: financialRatiosCapability,
+        returns_risk: returnsRiskCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
         live_data_access: false,
         route: capability.route,
-        routes: [capability.route, screenCapability.route, financialRatiosCapability.route],
+        routes: [
+          capability.route,
+          screenCapability.route,
+          financialRatiosCapability.route,
+          returnsRiskCapability.route
+        ],
         status: "analytics_tools_scaffold"
       },
       {
@@ -726,6 +735,53 @@ app.get("/analytics/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.post("/analytics/returns-risk", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const returnsRisk = calculateReturnsRisk({
+    adjustment: normalizeString(body.adjustment),
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    benchmarkInstrumentId: normalizeString(
+      body.benchmark_instrument_id ?? body.benchmarkInstrumentId
+    ),
+    benchmarkSecurityQuery: normalizeString(
+      body.benchmark_security_query ?? body.benchmarkSecurityQuery
+    ),
+    from: normalizeString(body.from),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    to: normalizeString(body.to)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...returnsRisk,
+        capability: getReturnsRiskCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: returnsRisk.data_version,
+        methodologyVersion: returnsRisk.methodology_version,
+        provenance: [
+          {
+            data_version: returnsRisk.data_version,
+            methodology_version: returnsRisk.methodology_version,
+            source: "analytics-returns-risk",
+            source_record_id: "returns-risk"
+          }
+        ],
+        requestId,
+        usage: returnsRisk.usage
       }
     )
   );

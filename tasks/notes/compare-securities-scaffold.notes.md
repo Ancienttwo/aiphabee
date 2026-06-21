@@ -26,8 +26,8 @@ the first ANA-02 comparability surface.
 
 - No frontend comparison UI.
 - `screen_securities` is covered by `docs/governance/screen-securities-scaffold.md`.
-- No financial-ratio percentile engine.
-- No return/risk/Beta engine.
+- Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`.
+- Return/risk/Beta is covered by `docs/governance/returns-risk-scaffold.md`.
 - No MCP registration.
 - No live data access or SQL execution.
 

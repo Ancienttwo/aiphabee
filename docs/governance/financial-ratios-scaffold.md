@@ -95,7 +95,8 @@ Observed ratio behavior:
 
 ## Residual Gaps
 
-- Return/risk/Beta calculations are not implemented.
+- Return/risk/Beta calculations are covered by
+  `docs/governance/returns-risk-scaffold.md`.
 - Peer/index/history percentile comparison beyond ratio scaffold metadata is not
   implemented.
 - Frontend comparison, screening, and ratio UI remains delegated.

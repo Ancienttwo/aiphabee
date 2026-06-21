@@ -34,4 +34,5 @@ Complete the backend-only Sprint 2.1 `get_financial_ratios` scaffold:
 - Package and Worker targeted tests pass.
 - Worker and package typecheck/build pass.
 - Local Worker smoke proves computed ratios and percentile metadata.
-- Sprint tracker row is checked only for deterministic ratios; return/risk/Beta remains open.
+- Sprint tracker row is checked only for deterministic ratios; return/risk/Beta
+  is covered by `tasks/contracts/returns-risk-scaffold.contract.md`.

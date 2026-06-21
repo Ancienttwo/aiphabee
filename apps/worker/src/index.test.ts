@@ -183,6 +183,13 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    returns_risk: {
+      formula_version: string;
+      golden_tolerance: number;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     screen_securities: {
       editable_conditions: boolean;
       preview_execution: boolean;
@@ -196,6 +203,42 @@ interface AnalyticsRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface ReturnsRiskBody {
+  data: {
+    benchmark_history_status?: string;
+    benchmark_instrument_id?: string;
+    capability: {
+      formula_version: string;
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    metrics: Array<{
+      blocked_reason?: string;
+      metric_id: string;
+      status: string;
+      tolerance: number;
+      value?: number;
+    }>;
+    price_history_status: string;
+    status: string;
+    toolName: string;
+    window: {
+      annualization_factor: number;
+      beta_method: string;
+      row_count: number;
+      volatility_method: string;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface FinancialRatiosBody {
@@ -1892,6 +1935,13 @@ describe("worker runtime", () => {
       status: "financial_ratios_scaffold",
       tool_name: "get_financial_ratios"
     });
+    expect(body.data.returns_risk).toMatchObject({
+      formula_version: "returns-risk-v0",
+      golden_tolerance: 0.000001,
+      route: "POST /analytics/returns-risk",
+      status: "returns_risk_scaffold",
+      tool_name: "calculate_returns_risk"
+    });
     expect(body.data.screen_securities).toMatchObject({
       editable_conditions: true,
       preview_execution: true,
@@ -1944,6 +1994,53 @@ describe("worker runtime", () => {
     expect(body.data.capability).toMatchObject({
       formula_version: "financial-ratios-v0",
       route: "POST /analytics/financial-ratios"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("computes returns/risk metrics with benchmark beta", async () => {
+    const response = await app.request("/analytics/returns-risk", {
+      body: JSON.stringify({
+        benchmark_security_query: "00700.HK",
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-returns-risk"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ReturnsRiskBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      benchmark_history_status: "found",
+      benchmark_instrument_id: "eq_hk_00700",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      price_history_status: "found",
+      status: "computed",
+      toolName: "calculate_returns_risk"
+    });
+    expect(body.data.window).toMatchObject({
+      annualization_factor: 252,
+      beta_method: "sample_covariance_over_sample_variance",
+      row_count: 3,
+      volatility_method: "sample_standard_deviation"
+    });
+    expect(body.data.metrics.map((metric) => [metric.metric_id, metric.status, metric.value])).toEqual([
+      ["total_return", "computed", 0.012195],
+      ["average_daily_return", "computed", 0.007267],
+      ["volatility_daily", "computed", 0.002301],
+      ["volatility_annualized", "computed", 0.036523],
+      ["max_drawdown", "computed", 0],
+      ["beta", "computed", 1]
+    ]);
+    expect(body.data.capability).toMatchObject({
+      formula_version: "returns-risk-v0",
+      route: "POST /analytics/returns-risk"
     });
     expect(body.usage.rows).toBeGreaterThan(0);
   });

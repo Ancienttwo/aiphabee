@@ -83,5 +83,6 @@ Observed screen behavior:
 - Broad NLP and model-assisted parsing are not implemented.
 - Live universe execution and high-cost queueing are not implemented.
 - Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`;
-  return/risk/Beta engines are not implemented.
+  return/risk/Beta engines are covered by
+  `docs/governance/returns-risk-scaffold.md`.
 - Tool registry/MCP exposure remains pending.

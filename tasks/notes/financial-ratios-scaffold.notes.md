@@ -29,7 +29,8 @@ Implemented the Sprint 2.1 backend `get_financial_ratios` scaffold.
 - No valuation multiples.
 - No live peer constituents.
 - No MCP registration.
-- No return/risk/Beta calculations.
+- Return/risk/Beta calculations are covered by
+  `docs/governance/returns-risk-scaffold.md`.
 
 ## Verification
 

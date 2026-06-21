@@ -1,0 +1,64 @@
+{
+  "version": "2026-06-21.phase2.returns-risk-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/returns-risk",
+  "tool_name": "calculate_returns_risk",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_2_1_items": [
+    "ANA-07"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_price_history"
+  ],
+  "calculation_contract": {
+    "formula_version": "returns-risk-v0",
+    "golden_tolerance": 0.000001,
+    "point_in_time": true,
+    "max_price_history_rows": 3,
+    "default_window": {
+      "from": "2026-01-05",
+      "to": "2026-01-07",
+      "adjustment": "total_return_adjusted"
+    },
+    "supported_metrics": [
+      "total_return",
+      "average_daily_return",
+      "volatility_daily",
+      "volatility_annualized",
+      "max_drawdown",
+      "beta"
+    ],
+    "required_price_history_fields": [
+      "close",
+      "return",
+      "drawdown"
+    ],
+    "beta": {
+      "requires_benchmark": true,
+      "method": "sample_covariance_over_sample_variance",
+      "blocked_reasons": [
+        "benchmark_required",
+        "benchmark_history_not_found",
+        "insufficient_overlap",
+        "zero_benchmark_variance"
+      ]
+    },
+    "volatility_method": "sample_standard_deviation",
+    "annualization_factor": 252,
+    "required_output_fields": [
+      "definitions",
+      "metrics",
+      "formula_version",
+      "tolerance",
+      "source_record_ids",
+      "blocked_reason",
+      "window"
+    ]
+  }
+}
