@@ -61,6 +61,11 @@ import {
   getEvidenceServiceCapabilities
 } from "@aiphabee/evidence-lineage";
 import {
+  getDocumentToolsCapabilities,
+  getSearchAnnouncementsCapabilities,
+  searchAnnouncements
+} from "@aiphabee/document-tools";
+import {
   FinancialFactsInputError,
   getFinancialFacts,
   getFinancialFactsCapabilities,
@@ -1151,6 +1156,79 @@ app.post("/workbench/stock/announcements", async (c) => {
         ],
         requestId,
         usage: announcementSearch.usage
+      }
+    )
+  );
+});
+
+app.get("/documents/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capabilities = getDocumentToolsCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capabilities, {
+      asOf: new Date().toISOString(),
+      dataVersion: capabilities.version,
+      methodologyVersion: capabilities.version,
+      provenance: [
+        {
+          data_version: capabilities.version,
+          methodology_version: capabilities.version,
+          source: "document-tools-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/documents/search-announcements", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = searchAnnouncements({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    categories: normalizeStringArray(body.categories ?? body.announcement_categories),
+    from: normalizeString(body.from ?? body.published_from ?? body.publishedFrom),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    keyword: normalizeString(body.keyword ?? body.query),
+    language: normalizeString(body.language),
+    limit: normalizeOptionalInteger(body.limit),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    to: normalizeString(body.to ?? body.published_to ?? body.publishedTo)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...result,
+        capability: getSearchAnnouncementsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: result.data_version,
+        methodologyVersion: result.methodology_version,
+        provenance: [
+          {
+            data_version: result.data_version,
+            methodology_version: result.methodology_version,
+            source: "document-search-announcements",
+            source_record_id: "search-announcements"
+          }
+        ],
+        requestId,
+        usage: result.usage
       }
     )
   );

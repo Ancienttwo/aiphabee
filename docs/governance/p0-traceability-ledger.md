@@ -100,7 +100,7 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| DOC-01 公告检索 | AIP-P0-DOC-01 | Document Engineering | 2.2 | Announcement index search tests | Sprint 2.2 exit: search by company/date/category/keyword works | Not started |
+| DOC-01 公告检索 | AIP-P0-DOC-01 | Document Engineering | 2.2 | Announcement index search tests | Sprint 2.2 exit: search by company/date/category/keyword works | Backend scaffold complete via `search_announcements`; live index/pgvector/frontend remain open |
 | DOC-02 原文定位摘录 | AIP-P0-DOC-02 | Document Engineering / Product | 2.2 | Citation locator tests | Sprint 2.2 exit: excerpts locate to page/paragraph/source record | Not started |
 | DOC-03 文档作不可信数据 | AIP-P0-DOC-03 | Security Engineering / Document | 2.2 / Always-on A3 | Prompt-injection fixture tests | Sprint 2.2 exit: document text cannot change system/tool policy | Not started |
 | RES-01 保存完整 run | AIP-P0-RES-01 | Product Engineering / Platform | 2.2 | Run persistence and replay contract tests | Sprint 2.2 exit: saved run includes question/tools/evidence/model/prompt versions | Not started |

@@ -155,7 +155,9 @@ Announcement search behavior:
 
 ## Residual Gaps
 
-- Full Phase 2 announcement/document search tools are not implemented.
+- Full Phase 2 `get_announcement`, semantic search, document diffing, and
+  research replay tools are not implemented; `search_announcements` is covered
+  separately by `docs/governance/search-announcements-scaffold.md`.
 - Valuation multiples remain blocked until a market cap/share-count source is
   added.
 - Frontend workbench rendering remains delegated.

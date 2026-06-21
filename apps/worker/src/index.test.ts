@@ -505,6 +505,84 @@ interface WorkbenchAnnouncementSearchBody {
   };
 }
 
+interface DocumentRuntimeBody {
+  data: {
+    package: string;
+    route: string;
+    runtime_route: string;
+    search_announcements: {
+      evidence_locator_ready: boolean;
+      original_document_fetch: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+      untrusted_document_policy: boolean;
+      vector_search: boolean;
+    };
+    status: string;
+  };
+  ok: true;
+}
+
+interface SearchAnnouncementsBody {
+  data: {
+    capability: {
+      evidence_locator_ready: boolean;
+      original_document_fetch: boolean;
+      route: string;
+      status: string;
+      untrusted_document_policy: boolean;
+      vector_search: boolean;
+    };
+    document_trust_policy: {
+      content_is_untrusted_data: boolean;
+      prompt_injection_isolated: boolean;
+      scripts_executable: boolean;
+    };
+    evidence_locator_ready: boolean;
+    filters: {
+      date_basis: string;
+      from: string;
+      keyword?: string;
+      to: string;
+    };
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    original_document_fetch: boolean;
+    resolve_security?: {
+      status: string;
+    };
+    results: Array<{
+      category: string;
+      document_id: string;
+      evidence_locator: {
+        anchor: string;
+        external_href_authority: boolean;
+        locator_type: string;
+        original_url: string;
+        page: number;
+      };
+      language: string;
+      matched_fields: string[];
+      published_at: string;
+      source_record_id: string;
+      title: string;
+      untrusted_document: boolean;
+    }>;
+    row_count: number;
+    search_engine: string;
+    status: string;
+    toolName: string;
+    vector_search: boolean;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
 interface WorkbenchStockSnapshotBody {
   data: {
     announcement_search: {
@@ -2638,6 +2716,124 @@ describe("worker runtime", () => {
       title: "Dividend Timetable Update"
     });
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("serves document tool capabilities", async () => {
+    const response = await app.request("/documents/runtime", {
+      headers: {
+        "x-request-id": "req-documents-runtime"
+      }
+    });
+    const body = (await response.json()) as DocumentRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      package: "@aiphabee/document-tools",
+      route: "POST /documents/search-announcements",
+      runtime_route: "GET /documents/runtime",
+      status: "document_tools_scaffold"
+    });
+    expect(body.data.search_announcements).toMatchObject({
+      evidence_locator_ready: true,
+      original_document_fetch: false,
+      route: "POST /documents/search-announcements",
+      status: "search_announcements_scaffold",
+      tool_name: "search_announcements",
+      untrusted_document_policy: true,
+      vector_search: false
+    });
+  });
+
+  it("searches announcements by company, date, category, and keyword", async () => {
+    const response = await app.request("/documents/search-announcements", {
+      body: JSON.stringify({
+        categories: ["dividend"],
+        from: "2026-01-01",
+        keyword: "timetable",
+        security_query: "00700.HK",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-search-announcements"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SearchAnnouncementsBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      evidence_locator_ready: true,
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 1,
+      search_engine: "synthetic_filter_scaffold",
+      status: "found",
+      toolName: "search_announcements",
+      vector_search: false
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /documents/search-announcements",
+      untrusted_document_policy: true,
+      vector_search: false
+    });
+    expect(body.data.filters).toMatchObject({
+      date_basis: "published_at",
+      from: "2026-01-01",
+      keyword: "timetable",
+      to: "2026-01-07"
+    });
+    expect(body.data.document_trust_policy).toEqual({
+      content_is_untrusted_data: true,
+      prompt_injection_isolated: true,
+      scripts_executable: false
+    });
+    expect(body.data.results[0]).toMatchObject({
+      category: "dividend",
+      document_id: "doc_ann_00700_20260103_dividend",
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        external_href_authority: false,
+        locator_type: "synthetic_original_locator",
+        original_url:
+          "urn:aiphabee:synthetic:announcement:ann_00700_20260103_dividend#page=2&anchor=dividend-timetable",
+        page: 2
+      },
+      language: "en",
+      matched_fields: ["title", "summary"],
+      source_record_id: "src_announcement_00700_20260103_dividend",
+      title: "Dividend Timetable Update",
+      untrusted_document: true
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("does not silently choose an ambiguous announcement security", async () => {
+    const response = await app.request("/documents/search-announcements", {
+      body: JSON.stringify({
+        keyword: "results",
+        security_query: "ABC"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-search-announcements-ambiguous"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SearchAnnouncementsBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_resolution");
+    expect(body.data.resolve_security?.status).toBe("ambiguous");
+    expect(body.data.instrument_id).toBeUndefined();
+    expect(body.data.results).toEqual([]);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("does not silently choose an ambiguous workbench security", async () => {
