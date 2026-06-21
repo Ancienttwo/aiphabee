@@ -1,29 +1,33 @@
-# Search Announcements Scaffold Notes
+# Get Announcement Scaffold Notes
 
 ## Summary
 
-Implemented the Sprint 2.2 backend `search_announcements` scaffold for DOC-01.
+Implemented the Sprint 2.2 backend `get_announcement` scaffold for DOC-02 /
+US-W06.
 
 ## Current State
 
 - `@aiphabee/document-tools` exposes:
-  - `getDocumentToolsCapabilities()`
-  - `getSearchAnnouncementsCapabilities()`
-  - `searchAnnouncements()`
-- `GET /documents/runtime` reports the document tool surface.
-- `POST /documents/search-announcements` returns a standard envelope with:
-  - company/security resolution
-  - published date/category/keyword/language filters
-  - title, published date, category, language, and summary
-  - `document_id`, `source_record_id`, page, anchor, and synthetic locator
+  - `getAnnouncementCapabilities()`
+  - `getAnnouncement()`
+- `GET /documents/runtime` now reports both `search_announcements` and
+  `get_announcement`.
+- `POST /documents/get-announcement` returns a standard envelope with:
+  - `document_id` lookup
+  - optional section filtering
+  - bounded authorized excerpts
+  - `document_id`, page, paragraph, anchor, synthetic locator, and
+    `source_record_id`
+  - source metadata linking back to the announcement row
   - untrusted document policy metadata
-- Ambiguous security queries return `blocked_resolution`.
+- Unknown documents return `not_found` with no fabricated excerpt.
+- Unknown requested sections return `section_not_found` with allowed sections.
 
 ## Non-Goals
 
-- `get_announcement` excerpt retrieval is covered by the separate
-  `get-announcement-scaffold` slice.
 - No live original document fetch.
+- No full-document return.
+- No complete DOC-03 sanitizer for scripts/hidden text.
 - No pgvector search.
 - No cross-period document diff.
 - No saved research run persistence or replay.
@@ -34,6 +38,7 @@ Implemented the Sprint 2.2 backend `search_announcements` scaffold for DOC-01.
 Passed:
 
 - `npm run check:search-announcements`
+- `npm run check:get-announcement`
 - `npm run test -- packages/document-tools/src/index.test.ts apps/worker/src/index.test.ts`
 - `npm run typecheck --workspace @aiphabee/document-tools`
 - `npm run typecheck --workspace @aiphabee/worker`
@@ -42,14 +47,14 @@ Passed:
 - `npm run test`
 - `npm run test:golden`
 - `npm run lint`
-- Worker smoke for runtime capability, matching announcement search, and
-  ambiguous security blocking
+- Worker smoke for runtime capability, found `get_announcement` excerpt, and
+  missing-document non-fabrication
 - `scripts/check-task-workflow.sh --strict`
 
 Observed residual:
 
 - Root `npm run check` was run. All lint/typecheck/test/golden/contract checks,
-  including `check:search-announcements`, passed before it failed at
+  including `check:get-announcement`, passed before it failed at
   `@aiphabee/web` `vite build` under Node `v22.12.0` because
   `@cloudflare/vite-plugin` requires `node:module.registerHooks`.
 - No `apps/web` files were changed in this backend slice.

@@ -519,6 +519,16 @@ interface DocumentRuntimeBody {
       untrusted_document_policy: boolean;
       vector_search: boolean;
     };
+    get_announcement: {
+      allowed_excerpt_scope: string;
+      evidence_locator_ready: boolean;
+      original_document_fetch: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+      untrusted_document_policy: boolean;
+      vector_search: boolean;
+    };
     status: string;
   };
   ok: true;
@@ -572,6 +582,68 @@ interface SearchAnnouncementsBody {
     }>;
     row_count: number;
     search_engine: string;
+    status: string;
+    toolName: string;
+    vector_search: boolean;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface GetAnnouncementBody {
+  data: {
+    allowed_sections: string[];
+    capability: {
+      allowed_excerpt_scope: string;
+      evidence_locator_ready: boolean;
+      original_document_fetch: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+      untrusted_document_policy: boolean;
+      vector_search: boolean;
+    };
+    document_id?: string;
+    document_trust_policy: {
+      content_is_untrusted_data: boolean;
+      prompt_injection_isolated: boolean;
+      scripts_executable: boolean;
+    };
+    excerpts: Array<{
+      authorization: {
+        excerpt_scope: string;
+        full_text_returned: boolean;
+        max_excerpt_chars: number;
+        truncated: boolean;
+      };
+      evidence_locator: {
+        anchor: string;
+        document_id: string;
+        external_href_authority: boolean;
+        locator_type: string;
+        original_url: string;
+        page: number;
+        paragraph: number;
+        source_record_id: string;
+      };
+      excerpt: string;
+      section_id: string;
+      section_title: string;
+      untrusted_document: boolean;
+    }>;
+    excerpts_authorized: boolean;
+    frontend_rendering: boolean;
+    full_document_returned: boolean;
+    live_data_access: boolean;
+    original_document_fetch: boolean;
+    row_count: number;
+    source?: {
+      source_record_id: string;
+      symbol: string;
+    };
     status: string;
     toolName: string;
     vector_search: boolean;
@@ -2744,6 +2816,16 @@ describe("worker runtime", () => {
       untrusted_document_policy: true,
       vector_search: false
     });
+    expect(body.data.get_announcement).toMatchObject({
+      allowed_excerpt_scope: "synthetic_excerpt_allowlist",
+      evidence_locator_ready: true,
+      original_document_fetch: false,
+      route: "POST /documents/get-announcement",
+      status: "get_announcement_scaffold",
+      tool_name: "get_announcement",
+      untrusted_document_policy: true,
+      vector_search: false
+    });
   });
 
   it("searches announcements by company, date, category, and keyword", async () => {
@@ -2833,6 +2915,96 @@ describe("worker runtime", () => {
     expect(body.data.resolve_security?.status).toBe("ambiguous");
     expect(body.data.instrument_id).toBeUndefined();
     expect(body.data.results).toEqual([]);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("returns authorized announcement excerpts with source locators", async () => {
+    const response = await app.request("/documents/get-announcement", {
+      body: JSON.stringify({
+        document_id: "doc_ann_00700_20260103_dividend",
+        max_excerpt_chars: 120,
+        sections: ["dividend_timetable"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-get-announcement"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as GetAnnouncementBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      document_id: "doc_ann_00700_20260103_dividend",
+      excerpts_authorized: true,
+      frontend_rendering: false,
+      full_document_returned: false,
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 1,
+      status: "found",
+      toolName: "get_announcement",
+      vector_search: false
+    });
+    expect(body.data.capability).toMatchObject({
+      allowed_excerpt_scope: "synthetic_excerpt_allowlist",
+      route: "POST /documents/get-announcement",
+      tool_name: "get_announcement",
+      untrusted_document_policy: true
+    });
+    expect(body.data.document_trust_policy).toEqual({
+      content_is_untrusted_data: true,
+      prompt_injection_isolated: true,
+      scripts_executable: false
+    });
+    expect(body.data.excerpts[0]).toMatchObject({
+      authorization: {
+        excerpt_scope: "synthetic_excerpt_allowlist",
+        full_text_returned: false,
+        max_excerpt_chars: 120
+      },
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        document_id: "doc_ann_00700_20260103_dividend",
+        external_href_authority: false,
+        locator_type: "synthetic_excerpt_locator",
+        original_url:
+          "urn:aiphabee:synthetic:announcement:ann_00700_20260103_dividend#page=2&paragraph=3&anchor=dividend-timetable",
+        page: 2,
+        paragraph: 3,
+        source_record_id: "src_announcement_00700_20260103_dividend"
+      },
+      section_id: "dividend_timetable",
+      section_title: "Dividend timetable",
+      untrusted_document: true
+    });
+    expect(body.data.excerpts[0]?.excerpt.length).toBeLessThanOrEqual(120);
+    expect(body.data.source).toMatchObject({
+      source_record_id: "src_announcement_00700_20260103_dividend",
+      symbol: "00700.HK"
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("does not fabricate missing announcement documents", async () => {
+    const response = await app.request("/documents/get-announcement", {
+      body: JSON.stringify({
+        document_id: "doc_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-get-announcement-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as GetAnnouncementBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("not_found");
+    expect(body.data.excerpts).toEqual([]);
     expect(body.usage.rows).toBe(0);
   });
 

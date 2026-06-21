@@ -63,7 +63,7 @@ owner: "Planner / PM"
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
-| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 1 / 9 | ☐ |
+| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 2 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
@@ -265,7 +265,7 @@ owner: "Planner / PM"
 - [x] 财务三表关键事实与趋势后端 aggregate scaffold：`@aiphabee/workbench` 聚合 `get_financial_facts`，返回 period/currency/unit/published_at/restatement_version metadata 与 data-quality status，frontend trend table/live facts 未启用（STK-03）
 - [x] 估值/盈利能力派生指标后端 scaffold：`@aiphabee/workbench` `derived_metrics` section 输出公式版本、指标定义、source inputs、异常策略与 blocked reason；净利率/ROA/ROE/资产周转/权益乘数从 `get_financial_facts` deterministic 计算，P/E、P/S、P/B 在缺少 market cap/share-count authority 时返回 `market_cap_unavailable`，frontend display/live valuation data 未启用（STK-04、依赖指标库）
 - [x] 公司行动时间线后端 aggregate scaffold：`@aiphabee/workbench` 聚合 `get_corporate_actions`，返回 dividend/split/consolidation/rights/placement/buyback timeline、adjustment impact metadata、source/evidence summary 与 section status，frontend timeline/live partner rows 未启用（STK-05）
-- [x] 公告检索入口后端 scaffold：`@aiphabee/workbench` 新增 `announcement_search` section + `POST /workbench/stock/announcements`，支持 security/date/category/keyword/limit 过滤，返回 source_record_id、document_id、page、anchor、synthetic original locator，ambiguous security `blocked_resolution`；live original document fetch / full Phase 2 `search_announcements` + `get_announcement` 工具 / frontend rendering 未启用（STK-06）
+- [x] 公告检索入口后端 scaffold：`@aiphabee/workbench` 新增 `announcement_search` section + `POST /workbench/stock/announcements`，支持 security/date/category/keyword/limit 过滤，返回 source_record_id、document_id、page、anchor、synthetic original locator，ambiguous security `blocked_resolution`；live original document fetch / Phase 2 semantic/diff/replay 工具 / frontend rendering 未启用，Phase 2 `search_announcements` + `get_announcement` 后端 surface 已由 Sprint 2.2 独立覆盖（STK-06）
 - [x] 内部账号 + 手动套餐 + 登录/会话/设备管理 scaffold：`@aiphabee/account-runtime` capability + `GET /account/runtime` + `POST /account/session/plan` no-write planner + `deploy/account/session.contract.json` + `npm run check:account-runtime`，覆盖 email/passwordless/social login method contract、session/device revoke plan、manual plan assignment plan、`core.account` / `core.workspace` / `core.workspace_membership` / `core.subscription_plan` / `core.workspace_subscription` table linkage；live identity provider / cookie issuance / DB writes / billing provider / frontend account UI 未启用（ACC-01、§18.2）
 - [x] Web Agent 与 MCP 配额/用量展示后端 scaffold：`@aiphabee/usage-ledger` quota display capability + `GET /usage/runtime` + `POST /usage/quota/plan` no-read/no-write planner + `deploy/usage/quota-display.contract.json` + `npm run check:usage-quota-display`，覆盖 Web Agent/MCP channel、request_id、plan_code、period、credit limit、used/pending/remaining credits 与 5-minute freshness target；live ledger reads / billing reconciliation / persistent writes / frontend quota UI 未启用（ACC-04）
 - [x] 评估集 v1 + WVRO instrumentation scaffold：`@aiphabee/observability` `eval_v1` + `run.eval.eval_v1` payload + `GET /observability/runtime` eval v1 capability + `POST /observability/eval-v1/plan` no-write planner + `deploy/observability/eval-v1.contract.json` + `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes / live OTLP export / frontend analytics dashboard / production partner-approved corpus / automatic answer grading 未启用（§16.3、§A4、§4.3）
@@ -297,7 +297,7 @@ owner: "Planner / PM"
 **目标：** 公告检索与原文定位 + 研究 run 保存与重放。
 
 - [x] `search_announcements` 后端 scaffold：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，支持 company/security resolution、published_at 日期范围、category、keyword、language、limit 过滤，返回 title / published_at / category / language / summary / `document_id` / `source_record_id` / page / anchor / synthetic locator，并对歧义证券返回 `blocked_resolution`；live original document fetch / pgvector search / frontend UI 未启用（DOC-01）
-- [ ] `get_announcement`：原文定位与授权范围内摘录（DOC-02、US-W06）
+- [x] `get_announcement` 后端 scaffold：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，支持 `document_id` + optional sections + `max_excerpt_chars`，返回 allowed sections、bounded authorized excerpts、title/source metadata、`document_id` / `source_record_id` / page / paragraph / anchor / synthetic locator，并对未知文档返回 `not_found`、未知 section 返回 `section_not_found`；live original document fetch / full document return / complete DOC-03 sanitizer / frontend UI 未启用（DOC-02、US-W06）
 - [ ] 公告作为不可信数据处理，去脚本/隐藏文本（DOC-03、§A3）
 - [ ] pgvector 公告/文件检索（§11.4 搜索）
 - [ ] 跨期公告差异与关键数字抽取，抽取值绑定原文位置 + Schema 校验（DOC-04）
@@ -306,7 +306,7 @@ owner: "Planner / PM"
 - [ ] 旧报告不被新数据静默改写（RES-02、§8.5）
 - [ ] 研究库 Web UI（PRD §5.1 研究库）
 
-**退出门槛 DoD：** ☐ 引用可定位到页/段　☐ 文档内恶意指令不触发工具　☐ 保存 run 可重放并显示差异
+**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☐ 文档内恶意指令不触发工具　☐ 保存 run 可重放并显示差异
 
 ### Sprint 2.3 — Remote MCP OAuth + Developer Console　⬜
 **目标：** 对外 Remote MCP 产品（依赖 Gate 0 的 MCP 再分发权）。
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bu | 完成 `get-announcement-scaffold`：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，覆盖 `document_id` lookup、optional sections、authorized bounded excerpts、page/paragraph/source_record synthetic locator、unknown document/section non-fabrication 与 untrusted document policy；live original document fetch/full document return/complete DOC-03 sanitizer/frontend 未启用，Sprint 2.2 更新为 2/9 |
 | 2026-06-21 | 1.0bt | 完成 `search-announcements-scaffold`：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，覆盖 company/date/category/keyword/language filters、title/published_at/category/language/summary rows、document/source locator metadata、untrusted document policy 与 ambiguous security blocking；live original document fetch/pgvector/frontend 未启用，Sprint 2.2 更新为 1/9 |
 | 2026-06-21 | 1.0bs | 完成 `high-cost-analytics-queue-scaffold`：新增 `plan_high_cost_analytics`、`GET /analytics/runtime` capability、`POST /analytics/high-cost/plan`、`deploy/analytics/high-cost-analytics-queue.contract.json` 与 `npm run check:high-cost-analytics`，覆盖 screen/compare PRD 权重、`>=8` 高成本阈值、`analytics_high_cost` 独立池、普通池保护、confirmation/pre-debit/failure-refund/idempotency/enqueue plan metadata；durable queue writes/live limiter/live ledger/MCP limiter/frontend confirmation 未启用，Sprint 2.1 更新为 8/9 |
 | 2026-06-21 | 1.0br | 完成 `point-in-time-screening-safeguard`：扩展 `screen_securities` 与 `POST /analytics/screen-securities` 接收 `classification_as_of`，返回 `point_in_time_guard`、requested/classification/security-master as-of metadata、`uses_latest_classification=false`，并在未来分类数据进入历史筛选时返回 `blocked_future_data`；`deploy/analytics/screen-securities.contract.json` 与 `npm run check:screen-securities` 固化 `block_future_classification` policy；frontend UI/live historical constituents-industry-name/MCP registration 未启用，Sprint 2.1 更新为 7/9 |

@@ -39,7 +39,9 @@ STK-01, STK-02, STK-03, STK-04, STK-05, and STK-06.
 - No fabricated valuation values when market cap/share-count authority is
   absent.
 - No live original announcement/document fetch.
-- No full Phase 2 `search_announcements` / `get_announcement` tool behavior.
+- No Phase 2 semantic search, document diff, or research replay behavior;
+  `search_announcements` and `get_announcement` are covered by dedicated
+  Sprint 2.2 document-tool slices.
 
 ## Verification
 

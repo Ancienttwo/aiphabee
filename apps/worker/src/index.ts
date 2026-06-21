@@ -61,6 +61,8 @@ import {
   getEvidenceServiceCapabilities
 } from "@aiphabee/evidence-lineage";
 import {
+  getAnnouncement,
+  getAnnouncementCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
   searchAnnouncements
@@ -1225,6 +1227,46 @@ app.post("/documents/search-announcements", async (c) => {
             methodology_version: result.methodology_version,
             source: "document-search-announcements",
             source_record_id: "search-announcements"
+          }
+        ],
+        requestId,
+        usage: result.usage
+      }
+    )
+  );
+});
+
+app.post("/documents/get-announcement", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = getAnnouncement({
+    documentId: normalizeString(body.document_id ?? body.documentId),
+    maxExcerptChars: normalizeOptionalInteger(
+      body.max_excerpt_chars ?? body.maxExcerptChars
+    ),
+    requestId,
+    sections: normalizeStringArray(body.sections)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...result,
+        capability: getAnnouncementCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: result.data_version,
+        methodologyVersion: result.methodology_version,
+        provenance: [
+          {
+            data_version: result.data_version,
+            methodology_version: result.methodology_version,
+            source: "document-get-announcement",
+            source_record_id: result.source?.source_record_id ?? "get-announcement"
           }
         ],
         requestId,

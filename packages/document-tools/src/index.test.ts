@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  getAnnouncement,
+  getAnnouncementCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
   searchAnnouncements
@@ -14,6 +16,17 @@ describe("search announcements scaffold", () => {
       route: "POST /documents/search-announcements",
       runtime_route: "GET /documents/runtime",
       status: "document_tools_scaffold"
+    });
+    expect(getAnnouncementCapabilities()).toMatchObject({
+      allowed_excerpt_scope: "synthetic_excerpt_allowlist",
+      evidence_locator_ready: true,
+      max_excerpt_chars: 400,
+      original_document_fetch: false,
+      route: "POST /documents/get-announcement",
+      status: "get_announcement_scaffold",
+      tool_name: "get_announcement",
+      untrusted_document_policy: true,
+      vector_search: false
     });
     expect(getSearchAnnouncementsCapabilities()).toMatchObject({
       date_basis: "published_at",
@@ -125,5 +138,97 @@ describe("search announcements scaffold", () => {
     expect(result.row_count).toBe(0);
     expect(result.total_count).toBe(0);
     expect(result.usage.credits).toBe(0);
+  });
+});
+
+describe("get announcement scaffold", () => {
+  it("returns authorized excerpts with page and paragraph locators", () => {
+    const result = getAnnouncement({
+      documentId: "doc_ann_00700_20260103_dividend",
+      requestId: "req_get_announcement",
+      sections: ["dividend_timetable"]
+    });
+
+    expect(result).toMatchObject({
+      document_id: "doc_ann_00700_20260103_dividend",
+      excerpts_authorized: true,
+      frontend_rendering: false,
+      full_document_returned: false,
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 1,
+      status: "found",
+      toolName: "get_announcement",
+      vector_search: false
+    });
+    expect(result.allowed_sections).toEqual(["document_summary", "dividend_timetable"]);
+    expect(result.excerpts[0]).toMatchObject({
+      authorization: {
+        excerpt_scope: "synthetic_excerpt_allowlist",
+        full_text_returned: false,
+        max_excerpt_chars: 240,
+        truncated: false
+      },
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        document_id: "doc_ann_00700_20260103_dividend",
+        external_href_authority: false,
+        locator_type: "synthetic_excerpt_locator",
+        original_url:
+          "urn:aiphabee:synthetic:announcement:ann_00700_20260103_dividend#page=2&paragraph=3&anchor=dividend-timetable",
+        page: 2,
+        paragraph: 3,
+        source_record_id: "src_announcement_00700_20260103_dividend"
+      },
+      section_id: "dividend_timetable",
+      section_title: "Dividend timetable",
+      untrusted_document: true
+    });
+    expect(result.document_trust_policy).toEqual({
+      content_is_untrusted_data: true,
+      prompt_injection_isolated: true,
+      scripts_executable: false
+    });
+    expect(result.source).toMatchObject({
+      category: "dividend",
+      source_record_id: "src_announcement_00700_20260103_dividend",
+      symbol: "00700.HK"
+    });
+    expect(result.usage.rows).toBe(1);
+  });
+
+  it("caps excerpts to the requested authorized length", () => {
+    const result = getAnnouncement({
+      documentId: "doc_ann_00700_20260103_dividend",
+      maxExcerptChars: 80,
+      requestId: "req_get_announcement_truncated",
+      sections: ["dividend_timetable"]
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.excerpts[0]?.excerpt.length).toBeLessThanOrEqual(80);
+    expect(result.excerpts[0]?.authorization).toMatchObject({
+      max_excerpt_chars: 80,
+      truncated: true
+    });
+  });
+
+  it("does not fabricate missing documents or sections", () => {
+    const missingDocument = getAnnouncement({
+      documentId: "doc_missing",
+      requestId: "req_get_announcement_missing"
+    });
+    const missingSection = getAnnouncement({
+      documentId: "doc_ann_00700_20260103_dividend",
+      requestId: "req_get_announcement_section_missing",
+      sections: ["financial_highlights"]
+    });
+
+    expect(missingDocument.status).toBe("not_found");
+    expect(missingDocument.row_count).toBe(0);
+    expect(missingDocument.usage.credits).toBe(0);
+    expect(missingSection.status).toBe("section_not_found");
+    expect(missingSection.allowed_sections).toEqual(["document_summary", "dividend_timetable"]);
+    expect(missingSection.excerpts).toEqual([]);
   });
 });

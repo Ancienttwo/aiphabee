@@ -61,8 +61,9 @@ Reason:
 - Frontend rendering is explicitly delegated.
 - Valuation multiples require market cap/share-count authority; this scaffold
   exposes the formula and blocks those metrics instead of fabricating inputs.
-- STK-06 only needs a basic workbench entry in this sprint; the full
-  `search_announcements` / `get_announcement` tool pair remains in Phase 2.
+- STK-06 only needs a basic workbench entry in this sprint; the dedicated
+  `search_announcements` / `get_announcement` tool pair is covered by Sprint
+  2.2 document-tool surfaces.
 
 Tradeoff:
 
@@ -155,9 +156,10 @@ Announcement search behavior:
 
 ## Residual Gaps
 
-- Full Phase 2 `get_announcement`, semantic search, document diffing, and
-  research replay tools are not implemented; `search_announcements` is covered
-  separately by `docs/governance/search-announcements-scaffold.md`.
+- Full Phase 2 semantic search, document diffing, and research replay tools are
+  not implemented; `search_announcements` and `get_announcement` are covered
+  separately by `docs/governance/search-announcements-scaffold.md` and
+  `docs/governance/get-announcement-scaffold.md`.
 - Valuation multiples remain blocked until a market cap/share-count source is
   added.
 - Frontend workbench rendering remains delegated.

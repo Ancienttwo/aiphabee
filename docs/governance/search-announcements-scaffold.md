@@ -105,7 +105,8 @@ Observed search behavior:
 
 ## Residual Gaps
 
-- `get_announcement` original locator/excerpt retrieval is not implemented.
+- `get_announcement` original locator/excerpt retrieval is covered separately by
+  `docs/governance/get-announcement-scaffold.md`.
 - pgvector/semantic announcement search is not implemented.
 - Cross-period document diff and numeric extraction are not implemented.
 - Saved research runs and replay are not implemented.
