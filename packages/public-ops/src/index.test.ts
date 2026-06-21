@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createComplianceOpsReleaseGatePlan,
+  createPublicationEconomicsReleaseGatePlan,
   getPublicDocsManifest,
   getPublicOperationsCapabilities,
   getPublicStatusPage
@@ -37,6 +38,15 @@ describe("public operations scaffold", () => {
       live_kill_switch_flag_source: false,
       route: "POST /public/release-gates/compliance-ops/plan",
       status: "compliance_ops_release_gate_scaffold"
+    });
+    expect(getPublicOperationsCapabilities().publication_economics_release_gate).toMatchObject({
+      frontend: false,
+      live_deployment_verified: false,
+      live_finance_signoff: false,
+      live_legal_approval: false,
+      route: "POST /public/release-gates/publication-economics/plan",
+      status: "publication_economics_release_gate_scaffold",
+      unit_economics_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.5"
     });
   });
 
@@ -203,5 +213,103 @@ describe("public operations scaffold", () => {
     expect(plan.release_checks.find((check) => check.check === "marketing_copy_forbidden_advice_claims_absent")).toMatchObject({
       status: "planned_no_write"
     });
+  });
+
+  it("plans the publication and unit economics release gate without live deployment claims", () => {
+    const plan = createPublicationEconomicsReleaseGatePlan({
+      asOf: "2026-06-22T00:30:00.000Z",
+      requestId: "req_publication_economics"
+    });
+
+    expect(plan).toMatchObject({
+      frontend: false,
+      live_deployment_verified: false,
+      live_finance_signoff: false,
+      live_legal_approval: false,
+      persistent_writes: false,
+      request_id: "req_publication_economics",
+      route: "POST /public/release-gates/publication-economics/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        docs_manifest_publication_ready: true,
+        help_center_manifest_ready: true,
+        live_release_claimed: false,
+        package_pricing_catalog_present: true,
+        privacy_terms_publication_ready: true,
+        public_status_page_ready: true,
+        unit_economics_positive: true,
+        writes_blocked: true
+      },
+      version: "2026-06-22.phase3.publication-economics-release-gate-scaffold.v0"
+    });
+    expect(plan.capability).toMatchObject({
+      account_pricing_route: "GET /account/package-pricing",
+      help_center_route: "GET /support/help-center",
+      route: "POST /public/release-gates/publication-economics/plan",
+      status: "publication_economics_release_gate_scaffold"
+    });
+    expect(plan.docs_publication.public_status_page.status_page).toMatchObject({
+      publication_status: "local_scaffold_ready",
+      route: "GET /public/status"
+    });
+    expect(plan.docs_publication.docs_manifest.documents.map((document) => document.kind)).toEqual([
+      "api_reference",
+      "mcp_reference",
+      "privacy_policy",
+      "terms_of_service"
+    ]);
+    expect(plan.docs_publication.help_center).toMatchObject({
+      doc_path: "docs/public/help-center.md",
+      live_chat_enabled: false,
+      route: "GET /support/help-center"
+    });
+    expect(plan.docs_publication.help_center.help_topics).toHaveLength(6);
+    expect(plan.package_pricing.catalog.plans.map((pricePlan) => pricePlan.plan_code)).toEqual([
+      "pro",
+      "developer"
+    ]);
+    expect(plan.unit_economics.plans.find((pricePlan) => pricePlan.plan_code === "pro")).toMatchObject({
+      contribution_margin_positive: true,
+      contribution_margin_ratio_bps: 7149,
+      target_margin_ratio_bps: 7000
+    });
+    expect(plan.unit_economics.plans.find((pricePlan) => pricePlan.plan_code === "developer")).toMatchObject({
+      contribution_margin_positive: true,
+      contribution_margin_ratio_bps: 6119,
+      target_margin_ratio_bps: 6000
+    });
+    expect(plan.validation.unit_economics_positive).toBe(true);
+  });
+
+  it("can fail the publication economics gate when expected usage breaks contribution margin", () => {
+    const plan = createPublicationEconomicsReleaseGatePlan({
+      expectedUsageProfile: {
+        developer: {
+          data_license_allocation_minor: 40000,
+          data_usage_cost_minor: 16000,
+          direct_support_cost_minor: 8000,
+          llm_token_cost_minor: 12000,
+          payment_fee_minor: 3000,
+          usage_credits: 10000
+        },
+        pro: {
+          data_license_allocation_minor: 20000,
+          data_usage_cost_minor: 4000,
+          direct_support_cost_minor: 3000,
+          llm_token_cost_minor: 5000,
+          payment_fee_minor: 1000,
+          usage_credits: 5000
+        }
+      },
+      requestId: "req_publication_economics_negative"
+    });
+
+    expect(plan.validation.unit_economics_positive).toBe(false);
+    expect(plan.validation.all_checks_passed).toBe(false);
+    expect(plan.unit_economics.plans.every((pricePlan) => pricePlan.contribution_margin_positive)).toBe(
+      false
+    );
   });
 });

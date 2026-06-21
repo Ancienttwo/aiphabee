@@ -176,6 +176,7 @@ import {
 } from "@aiphabee/observability";
 import {
   createComplianceOpsReleaseGatePlan,
+  createPublicationEconomicsReleaseGatePlan,
   getPublicDocsManifest,
   getPublicOperationsCapabilities,
   getPublicStatusPage
@@ -654,6 +655,45 @@ app.post("/public/release-gates/compliance-ops/plan", async (c) => {
           methodology_version: plan.version,
           source: "public-ops",
           source_record_id: "compliance-ops-release-gate-plan"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: plan.release_checks.length
+      }
+    })
+  );
+});
+
+app.post("/public/release-gates/publication-economics/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const body = (await c.req.json<Record<string, unknown>>().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  const plan = createPublicationEconomicsReleaseGatePlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    expectedUsageProfile: normalizeExpectedUsageProfile(
+      body.expected_usage_profile ?? body.expectedUsageProfile
+    ),
+    requestId
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(plan, {
+      asOf: plan.docs_publication.public_status_page.as_of,
+      dataVersion: plan.version,
+      methodologyVersion: plan.version,
+      provenance: [
+        {
+          data_version: plan.version,
+          methodology_version: plan.version,
+          source: "public-ops",
+          source_record_id: "publication-economics-release-gate-plan"
         }
       ],
       requestId,
@@ -7534,6 +7574,73 @@ function normalizeWatchlistPriceField(
 
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeExpectedUsageProfile(
+  value: unknown
+):
+  | Partial<
+      Record<
+        "pro" | "developer",
+        {
+          cloudflare_db_search_cost_minor?: number;
+          data_license_allocation_minor?: number;
+          data_usage_cost_minor?: number;
+          direct_support_cost_minor?: number;
+          llm_token_cost_minor?: number;
+          payment_fee_minor?: number;
+          usage_credits?: number;
+        }
+      >
+    >
+  | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  const result: Partial<
+    Record<
+      "pro" | "developer",
+      {
+        cloudflare_db_search_cost_minor?: number;
+        data_license_allocation_minor?: number;
+        data_usage_cost_minor?: number;
+        direct_support_cost_minor?: number;
+        llm_token_cost_minor?: number;
+        payment_fee_minor?: number;
+        usage_credits?: number;
+      }
+    >
+  > = {};
+
+  for (const planCode of ["pro", "developer"] as const) {
+    const raw = value[planCode];
+    if (!isPlainRecord(raw)) {
+      continue;
+    }
+
+    result[planCode] = {
+      cloudflare_db_search_cost_minor: normalizeOptionalNumber(
+        raw.cloudflare_db_search_cost_minor ?? raw.cloudflareDbSearchCostMinor
+      ),
+      data_license_allocation_minor: normalizeOptionalNumber(
+        raw.data_license_allocation_minor ?? raw.dataLicenseAllocationMinor
+      ),
+      data_usage_cost_minor: normalizeOptionalNumber(
+        raw.data_usage_cost_minor ?? raw.dataUsageCostMinor
+      ),
+      direct_support_cost_minor: normalizeOptionalNumber(
+        raw.direct_support_cost_minor ?? raw.directSupportCostMinor
+      ),
+      llm_token_cost_minor: normalizeOptionalNumber(
+        raw.llm_token_cost_minor ?? raw.llmTokenCostMinor
+      ),
+      payment_fee_minor: normalizeOptionalNumber(raw.payment_fee_minor ?? raw.paymentFeeMinor),
+      usage_credits: normalizeOptionalNumber(raw.usage_credits ?? raw.usageCredits)
+    };
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 function normalizeUsageBillingLedgerEntries(

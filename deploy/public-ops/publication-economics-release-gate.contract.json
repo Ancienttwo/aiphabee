@@ -1,0 +1,143 @@
+{
+  "version": "2026-06-22.phase3.publication-economics-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/public-ops",
+  "runtime_route": "GET /public/runtime",
+  "route": "POST /public/release-gates/publication-economics/plan",
+  "standard_response_envelope": true,
+  "public_status_route": "GET /public/status",
+  "docs_route": "GET /public/docs",
+  "help_center_route": "GET /support/help-center",
+  "account_pricing_route": "GET /account/package-pricing",
+  "covered_sprint_3_3_items": [
+    "public_status_help_privacy_terms_publication",
+    "positive_unit_economics_for_expected_usage"
+  ],
+  "frontend": false,
+  "live_deployment_verified": false,
+  "live_legal_approval": false,
+  "live_finance_signoff": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "publication_artifacts": {
+    "status_page": {
+      "publication_status": "local_scaffold_ready",
+      "request_id_visible": true,
+      "live_incident_feed": false,
+      "required_component": "public_documentation"
+    },
+    "documents": [
+      {
+        "kind": "api_reference",
+        "path": "docs/public/api.md",
+        "publication_status": "local_draft_ready"
+      },
+      {
+        "kind": "mcp_reference",
+        "path": "docs/public/mcp.md",
+        "publication_status": "local_draft_ready"
+      },
+      {
+        "kind": "privacy_policy",
+        "path": "docs/public/privacy.md",
+        "publication_status": "local_draft_ready",
+        "legal_review_required": true,
+        "required_section": "Retention And Deletion"
+      },
+      {
+        "kind": "terms_of_service",
+        "path": "docs/public/terms.md",
+        "publication_status": "local_draft_ready",
+        "legal_review_required": true,
+        "required_section": "Research Not Advice"
+      }
+    ],
+    "help_center": {
+      "path": "docs/public/help-center.md",
+      "topic_count": 6,
+      "required_topics": [
+        "account_billing",
+        "mcp_connection",
+        "data_quality",
+        "usage_quota",
+        "privacy_account",
+        "incident_status"
+      ],
+      "live_chat_enabled": false
+    }
+  },
+  "unit_economics": {
+    "source": "docs/researches/AiphaBee_PRD_v1.0.md#15.5",
+    "formula": "subscription_and_overage_revenue_minus_direct_costs",
+    "currency": "HKD",
+    "target_margin_bps": {
+      "pro": 7000,
+      "developer": 6000
+    },
+    "plans": [
+      {
+        "plan_code": "pro",
+        "validation_price_minor": 22800,
+        "expected_usage_credits": 5000,
+        "total_direct_cost_minor": 6500,
+        "contribution_margin_minor": 16300,
+        "contribution_margin_ratio_bps": 7149,
+        "contribution_margin_positive": true
+      },
+      {
+        "plan_code": "developer",
+        "validation_price_minor": 68800,
+        "expected_usage_credits": 10000,
+        "total_direct_cost_minor": 26700,
+        "contribution_margin_minor": 42100,
+        "contribution_margin_ratio_bps": 6119,
+        "contribution_margin_positive": true
+      }
+    ]
+  },
+  "required_checks": [
+    "public_status_page_scaffold_published",
+    "help_center_manifest_published",
+    "privacy_and_terms_publication_ready",
+    "package_pricing_catalog_present",
+    "unit_economics_positive_for_expected_usage",
+    "live_publication_and_finance_writes_blocked"
+  ],
+  "required_output_fields": [
+    "docs_publication",
+    "package_pricing",
+    "unit_economics",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "tables": [
+    "core.publication_economics_release_gate",
+    "audit.publication_economics_drill_event",
+    "governance.publication_economics_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_publication_economics_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "legal",
+      "finance",
+      "ops",
+      "support"
+    ],
+    "blockers": [
+      "live_public_status_page_deployment_missing",
+      "live_help_center_deployment_missing",
+      "final_privacy_terms_legal_approval_missing",
+      "live_pricing_provider_missing",
+      "finance_unit_economics_signoff_missing",
+      "frontend_public_release_surface_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/public-ops/public-status-docs.contract.json",
+    "deploy/support/request-id-investigation.contract.json",
+    "deploy/account/package-pricing.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

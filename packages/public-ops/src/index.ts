@@ -1,4 +1,12 @@
 import {
+  getPackagePricingCatalog,
+  getPackagePricingCapabilities,
+  type PackagePricingCatalog,
+  type PackagePricingCatalogPlan,
+  type PackagePricingCapabilities,
+  type PackagePricingPlanCode
+} from "@aiphabee/account-runtime";
+import {
   createAgentKillSwitchPlan,
   type AgentKillSwitchPlan
 } from "@aiphabee/agent-runtime";
@@ -8,7 +16,9 @@ import {
 } from "@aiphabee/observability";
 import {
   createSupportRequestIdInvestigationPlan,
+  getSupportHelpCenter,
   getSupportOperationsCapabilities,
+  type SupportHelpCenter,
   type SupportOperationsCapabilities,
   type SupportRequestIdInvestigationPlan
 } from "@aiphabee/support-ops";
@@ -17,6 +27,8 @@ export const PUBLIC_OPERATIONS_VERSION =
   "2026-06-21.phase3.public-status-docs-scaffold.v0";
 export const COMPLIANCE_OPS_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.compliance-ops-release-gate-scaffold.v0";
+export const PUBLICATION_ECONOMICS_RELEASE_GATE_VERSION =
+  "2026-06-22.phase3.publication-economics-release-gate-scaffold.v0";
 
 export const PUBLIC_DOCUMENT_KINDS = [
   "api_reference",
@@ -61,6 +73,19 @@ export const COMPLIANCE_OPS_RELEASE_GATE_TABLES = [
   "audit.compliance_ops_drill_event",
   "governance.compliance_ops_release_gate_contract"
 ] as const;
+export const PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS = [
+  "public_status_page_scaffold_published",
+  "help_center_manifest_published",
+  "privacy_and_terms_publication_ready",
+  "package_pricing_catalog_present",
+  "unit_economics_positive_for_expected_usage",
+  "live_publication_and_finance_writes_blocked"
+] as const;
+export const PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES = [
+  "core.publication_economics_release_gate",
+  "audit.publication_economics_drill_event",
+  "governance.publication_economics_release_gate_contract"
+] as const;
 
 export type PublicDocumentKind = (typeof PUBLIC_DOCUMENT_KINDS)[number];
 export type PublicStatusComponentId = (typeof PUBLIC_STATUS_COMPONENTS)[number];
@@ -93,6 +118,27 @@ export interface ComplianceOpsReleaseGateCapabilities {
   version: typeof COMPLIANCE_OPS_RELEASE_GATE_VERSION;
 }
 
+export interface PublicationEconomicsReleaseGateCapabilities {
+  account_pricing_route: "GET /account/package-pricing";
+  docs_route: "GET /public/docs";
+  frontend: false;
+  help_center_route: "GET /support/help-center";
+  live_deployment_verified: false;
+  live_finance_signoff: false;
+  live_legal_approval: false;
+  package: "@aiphabee/public-ops";
+  persistent_writes: false;
+  public_status_route: "GET /public/status";
+  required_checks: typeof PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS;
+  route: "POST /public/release-gates/publication-economics/plan";
+  runtime_route: "GET /public/runtime";
+  sql_emitted: false;
+  status: "publication_economics_release_gate_scaffold";
+  tables: typeof PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES;
+  unit_economics_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.5";
+  version: typeof PUBLICATION_ECONOMICS_RELEASE_GATE_VERSION;
+}
+
 export interface PublicOperationsCapabilities {
   auth_required: false;
   compliance_ops_release_gate: ComplianceOpsReleaseGateCapabilities;
@@ -103,6 +149,7 @@ export interface PublicOperationsCapabilities {
   live_incident_feed: false;
   package: "@aiphabee/public-ops";
   persistent_writes: false;
+  publication_economics_release_gate: PublicationEconomicsReleaseGateCapabilities;
   request_id_visible: true;
   route: "GET /public/runtime";
   sql_emitted: false;
@@ -117,6 +164,12 @@ export interface PublicOperationsCapabilities {
   version: typeof PUBLIC_OPERATIONS_VERSION;
 }
 
+export interface PublicationEconomicsReleaseGatePlanInput {
+  asOf?: string;
+  expectedUsageProfile?: Partial<Record<PackagePricingPlanCode, UnitEconomicsExpectedUsageInput>>;
+  requestId: string;
+}
+
 export interface ComplianceOpsReleaseGatePlanInput {
   asOf?: string;
   marketingCopySnippets?: string[];
@@ -124,6 +177,98 @@ export interface ComplianceOpsReleaseGatePlanInput {
   supportAgentId?: string;
   targetRequestId?: string;
   workspaceId?: string;
+}
+
+export interface UnitEconomicsExpectedUsageInput {
+  cloudflare_db_search_cost_minor?: number;
+  data_license_allocation_minor?: number;
+  data_usage_cost_minor?: number;
+  direct_support_cost_minor?: number;
+  llm_token_cost_minor?: number;
+  payment_fee_minor?: number;
+  usage_credits?: number;
+}
+
+export interface UnitEconomicsPlan {
+  assumptions_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.5";
+  contribution_margin_minor: number;
+  contribution_margin_positive: boolean;
+  contribution_margin_ratio_bps: number;
+  currency: "HKD";
+  expected_usage: {
+    cloudflare_db_search_cost_minor: number;
+    data_license_allocation_minor: number;
+    data_usage_cost_minor: number;
+    direct_support_cost_minor: number;
+    llm_token_cost_minor: number;
+    payment_fee_minor: number;
+    usage_credits: number;
+  };
+  plan_code: PackagePricingPlanCode;
+  target_margin_ratio_bps: number;
+  total_direct_cost_minor: number;
+  validation_price_minor: number;
+}
+
+export interface PublicationEconomicsReleaseGatePlan {
+  capability: PublicationEconomicsReleaseGateCapabilities;
+  docs_publication: {
+    docs_manifest: PublicDocsManifest;
+    help_center: SupportHelpCenter;
+    public_status_page: PublicStatusPage;
+  };
+  frontend: false;
+  live_deployment_verified: false;
+  live_finance_signoff: false;
+  live_legal_approval: false;
+  package_pricing: {
+    catalog: PackagePricingCatalog;
+    capability: PackagePricingCapabilities;
+  };
+  persistent_writes: false;
+  release_checks: Array<{
+    check: (typeof PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS)[number];
+    evidence: string;
+    status: "planned_no_write";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_public_status_page_deployment_missing",
+      "live_help_center_deployment_missing",
+      "final_privacy_terms_legal_approval_missing",
+      "live_pricing_provider_missing",
+      "finance_unit_economics_signoff_missing",
+      "frontend_public_release_surface_missing"
+    ];
+    gate_status: "blocked_live_publication_economics_validation";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["legal", "finance", "ops", "support"];
+  };
+  request_id: string;
+  route: "POST /public/release-gates/publication-economics/plan";
+  sql_emitted: false;
+  status: "planned_no_write";
+  tables: typeof PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES;
+  unit_economics: {
+    plans: readonly [UnitEconomicsPlan, UnitEconomicsPlan];
+    source_formula: "subscription_and_overage_revenue_minus_direct_costs";
+    target: {
+      b2c_paid_margin_bps: 7000;
+      developer_mcp_margin_bps: 6000;
+    };
+  };
+  validation: {
+    all_checks_passed: boolean;
+    docs_manifest_publication_ready: boolean;
+    help_center_manifest_ready: boolean;
+    live_release_claimed: false;
+    package_pricing_catalog_present: boolean;
+    privacy_terms_publication_ready: boolean;
+    public_status_page_ready: boolean;
+    unit_economics_positive: boolean;
+    writes_blocked: boolean;
+  };
+  version: typeof PUBLICATION_ECONOMICS_RELEASE_GATE_VERSION;
 }
 
 export interface ComplianceOpsReleaseGatePlan {
@@ -414,6 +559,29 @@ export function getComplianceOpsReleaseGateCapabilities(): ComplianceOpsReleaseG
   };
 }
 
+export function getPublicationEconomicsReleaseGateCapabilities(): PublicationEconomicsReleaseGateCapabilities {
+  return {
+    account_pricing_route: "GET /account/package-pricing",
+    docs_route: "GET /public/docs",
+    frontend: false,
+    help_center_route: "GET /support/help-center",
+    live_deployment_verified: false,
+    live_finance_signoff: false,
+    live_legal_approval: false,
+    package: "@aiphabee/public-ops",
+    persistent_writes: false,
+    public_status_route: "GET /public/status",
+    required_checks: PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS,
+    route: "POST /public/release-gates/publication-economics/plan",
+    runtime_route: "GET /public/runtime",
+    sql_emitted: false,
+    status: "publication_economics_release_gate_scaffold",
+    tables: PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES,
+    unit_economics_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.5",
+    version: PUBLICATION_ECONOMICS_RELEASE_GATE_VERSION
+  };
+}
+
 export function getPublicOperationsCapabilities(): PublicOperationsCapabilities {
   return {
     auth_required: false,
@@ -425,6 +593,7 @@ export function getPublicOperationsCapabilities(): PublicOperationsCapabilities 
     live_incident_feed: false,
     package: "@aiphabee/public-ops",
     persistent_writes: false,
+    publication_economics_release_gate: getPublicationEconomicsReleaseGateCapabilities(),
     request_id_visible: true,
     route: "GET /public/runtime",
     sql_emitted: false,
@@ -433,6 +602,149 @@ export function getPublicOperationsCapabilities(): PublicOperationsCapabilities 
     status_route: "GET /public/status",
     tables: PUBLIC_OPERATIONS_TABLES,
     version: PUBLIC_OPERATIONS_VERSION
+  };
+}
+
+export function createPublicationEconomicsReleaseGatePlan(
+  input: PublicationEconomicsReleaseGatePlanInput
+): PublicationEconomicsReleaseGatePlan {
+  const requestId = normalizeIdentifier(input.requestId, "request_unattributed");
+  const asOf = input.asOf ?? "runtime_as_of_unresolved";
+  const publicStatusPage = getPublicStatusPage({
+    asOf,
+    requestId: `${requestId}:public-status`
+  });
+  const docsManifest = getPublicDocsManifest({ requestId: `${requestId}:public-docs` });
+  const helpCenter = getSupportHelpCenter();
+  const packagePricingCatalog = getPackagePricingCatalog();
+  const unitEconomicsPlans = packagePricingCatalog.plans.map((plan) =>
+    createUnitEconomicsPlan(plan, input.expectedUsageProfile?.[plan.plan_code])
+  ) as [UnitEconomicsPlan, UnitEconomicsPlan];
+  const publicStatusPageReady =
+    publicStatusPage.status_page.publication_status === "local_scaffold_ready" &&
+    publicStatusPage.components.some((component) => component.component_id === "public_documentation") &&
+    publicStatusPage.request_id_visible;
+  const docsManifestPublicationReady =
+    docsManifest.documents.length === PUBLIC_DOCUMENT_KINDS.length &&
+    docsManifest.documents.every(
+      (document) =>
+        document.publication_status === "local_draft_ready" &&
+        document.path.startsWith("docs/public/") &&
+        document.required_sections.length > 0
+    );
+  const helpCenterManifestReady =
+    helpCenter.doc_path === "docs/public/help-center.md" &&
+    helpCenter.help_topics.length >= 6 &&
+    helpCenter.help_topics.some((topic) => topic.topic_code === "account_billing") &&
+    helpCenter.help_topics.some((topic) => topic.topic_code === "incident_status") &&
+    helpCenter.live_chat_enabled === false;
+  const privacyTermsPublicationReady =
+    docsManifest.documents.some(
+      (document) =>
+        document.kind === "privacy_policy" &&
+        document.legal_review_required &&
+        document.required_sections.includes("retention_and_deletion")
+    ) &&
+    docsManifest.documents.some(
+      (document) =>
+        document.kind === "terms_of_service" &&
+        document.legal_review_required &&
+        document.required_sections.includes("research_not_advice")
+    );
+  const packagePricingCatalogPresent =
+    packagePricingCatalog.plans.some((plan) => plan.plan_code === "pro") &&
+    packagePricingCatalog.plans.some((plan) => plan.plan_code === "developer") &&
+    packagePricingCatalog.plans.every((plan) => plan.price_status === "validation_assumption_not_final_quote");
+  const proUnitEconomics = unitEconomicsPlans.find((plan) => plan.plan_code === "pro");
+  const developerUnitEconomics = unitEconomicsPlans.find((plan) => plan.plan_code === "developer");
+  const unitEconomicsPositive =
+    unitEconomicsPlans.every((plan) => plan.contribution_margin_positive) &&
+    proUnitEconomics !== undefined &&
+    proUnitEconomics.contribution_margin_ratio_bps >= 7000 &&
+    developerUnitEconomics !== undefined &&
+    developerUnitEconomics.contribution_margin_ratio_bps >= 6000;
+  const writesBlocked =
+    publicStatusPage.persistent_writes === false &&
+    docsManifest.persistent_writes === false &&
+    helpCenter.persistent_writes === false &&
+    packagePricingCatalog.persistent_writes === false &&
+    packagePricingCatalog.billing_provider_calls === false;
+  const validation = {
+    docs_manifest_publication_ready: docsManifestPublicationReady,
+    help_center_manifest_ready: helpCenterManifestReady,
+    package_pricing_catalog_present: packagePricingCatalogPresent,
+    privacy_terms_publication_ready: privacyTermsPublicationReady,
+    public_status_page_ready: publicStatusPageReady,
+    unit_economics_positive: unitEconomicsPositive,
+    writes_blocked: writesBlocked
+  };
+  const allChecksPassed = Object.values(validation).every(Boolean);
+  const releaseChecks = PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS.map((check) => ({
+    check,
+    evidence:
+      check === "public_status_page_scaffold_published"
+        ? "GET /public/status returns local_scaffold_ready components with public_documentation and request_id visibility"
+        : check === "help_center_manifest_published"
+          ? "GET /support/help-center exposes docs/public/help-center.md topics including billing and incident status"
+          : check === "privacy_and_terms_publication_ready"
+            ? "docs manifest includes privacy and terms local drafts with required legal-review sections"
+            : check === "package_pricing_catalog_present"
+              ? "GET /account/package-pricing exposes Pro and Developer validation prices and entitlements"
+              : check === "unit_economics_positive_for_expected_usage"
+                ? "synthetic expected-usage model computes positive contribution margin against PRD §15.5 targets"
+                : "live deployment, legal approval, finance signoff, pricing provider, SQL, and persistent writes remain blocked",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    capability: getPublicationEconomicsReleaseGateCapabilities(),
+    docs_publication: {
+      docs_manifest: docsManifest,
+      help_center: helpCenter,
+      public_status_page: publicStatusPage
+    },
+    frontend: false,
+    live_deployment_verified: false,
+    live_finance_signoff: false,
+    live_legal_approval: false,
+    package_pricing: {
+      catalog: packagePricingCatalog,
+      capability: getPackagePricingCapabilities()
+    },
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_public_status_page_deployment_missing",
+        "live_help_center_deployment_missing",
+        "final_privacy_terms_legal_approval_missing",
+        "live_pricing_provider_missing",
+        "finance_unit_economics_signoff_missing",
+        "frontend_public_release_surface_missing"
+      ],
+      gate_status: "blocked_live_publication_economics_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["legal", "finance", "ops", "support"]
+    },
+    request_id: requestId,
+    route: "POST /public/release-gates/publication-economics/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES,
+    unit_economics: {
+      plans: unitEconomicsPlans,
+      source_formula: "subscription_and_overage_revenue_minus_direct_costs",
+      target: {
+        b2c_paid_margin_bps: 7000,
+        developer_mcp_margin_bps: 6000
+      }
+    },
+    validation: {
+      ...validation,
+      all_checks_passed: allChecksPassed,
+      live_release_claimed: false
+    },
+    version: PUBLICATION_ECONOMICS_RELEASE_GATE_VERSION
   };
 }
 
@@ -627,6 +939,75 @@ export function createComplianceOpsReleaseGatePlan(
       live_release_claimed: false
     },
     version: COMPLIANCE_OPS_RELEASE_GATE_VERSION
+  };
+}
+
+function createUnitEconomicsPlan(
+  plan: PackagePricingCatalogPlan,
+  overrides: UnitEconomicsExpectedUsageInput | undefined
+): UnitEconomicsPlan {
+  const defaults = getDefaultExpectedUsage(plan.plan_code);
+  const expectedUsage = {
+    cloudflare_db_search_cost_minor:
+      overrides?.cloudflare_db_search_cost_minor ?? defaults.cloudflare_db_search_cost_minor,
+    data_license_allocation_minor:
+      overrides?.data_license_allocation_minor ?? defaults.data_license_allocation_minor,
+    data_usage_cost_minor: overrides?.data_usage_cost_minor ?? defaults.data_usage_cost_minor,
+    direct_support_cost_minor:
+      overrides?.direct_support_cost_minor ?? defaults.direct_support_cost_minor,
+    llm_token_cost_minor: overrides?.llm_token_cost_minor ?? defaults.llm_token_cost_minor,
+    payment_fee_minor: overrides?.payment_fee_minor ?? defaults.payment_fee_minor,
+    usage_credits: overrides?.usage_credits ?? defaults.usage_credits
+  };
+  const totalDirectCostMinor =
+    expectedUsage.data_license_allocation_minor +
+    expectedUsage.data_usage_cost_minor +
+    expectedUsage.llm_token_cost_minor +
+    expectedUsage.cloudflare_db_search_cost_minor +
+    expectedUsage.payment_fee_minor +
+    expectedUsage.direct_support_cost_minor;
+  const contributionMarginMinor = plan.amount_minor - totalDirectCostMinor;
+  const contributionMarginRatioBps = Math.round(
+    (contributionMarginMinor / plan.amount_minor) * 10000
+  );
+
+  return {
+    assumptions_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.5",
+    contribution_margin_minor: contributionMarginMinor,
+    contribution_margin_positive: contributionMarginMinor > 0,
+    contribution_margin_ratio_bps: contributionMarginRatioBps,
+    currency: "HKD",
+    expected_usage: expectedUsage,
+    plan_code: plan.plan_code,
+    target_margin_ratio_bps: plan.plan_code === "developer" ? 6000 : 7000,
+    total_direct_cost_minor: totalDirectCostMinor,
+    validation_price_minor: plan.amount_minor
+  };
+}
+
+function getDefaultExpectedUsage(
+  planCode: PackagePricingPlanCode
+): UnitEconomicsPlan["expected_usage"] {
+  if (planCode === "developer") {
+    return {
+      cloudflare_db_search_cost_minor: 2500,
+      data_license_allocation_minor: 8800,
+      data_usage_cost_minor: 3900,
+      direct_support_cost_minor: 3200,
+      llm_token_cost_minor: 6100,
+      payment_fee_minor: 2200,
+      usage_credits: 10000
+    };
+  }
+
+  return {
+    cloudflare_db_search_cost_minor: 600,
+    data_license_allocation_minor: 2300,
+    data_usage_cost_minor: 700,
+    direct_support_cost_minor: 700,
+    llm_token_cost_minor: 1500,
+    payment_fee_minor: 700,
+    usage_credits: 5000
   };
 }
 

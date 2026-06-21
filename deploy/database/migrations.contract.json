@@ -553,6 +553,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622004000_publication_economics_release_gate_scaffold.sql",
+      "purpose": "Create empty public publication and unit economics release gate scaffolds for status/help/privacy/terms publication and positive expected-usage contribution margin without enabling live deployment, legal approval, finance signoff, pricing provider, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.publication_economics_release_gate",
+        "audit.publication_economics_drill_event",
+        "governance.publication_economics_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

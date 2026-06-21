@@ -26,6 +26,10 @@ interface PublicRuntimeBody {
     live_deployment_verified: boolean;
     live_incident_feed: boolean;
     persistent_writes: boolean;
+    publication_economics_release_gate: {
+      route: string;
+      status: string;
+    };
     request_id_visible: boolean;
     route: string;
     sql_emitted: boolean;
@@ -152,6 +156,74 @@ interface ComplianceOpsReleaseGatePlanBody {
     request_id: string;
     route: string;
     status: string;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface PublicationEconomicsReleaseGatePlanBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    docs_publication: {
+      docs_manifest: {
+        documents: Array<{
+          kind: string;
+          path: string;
+          publication_status: string;
+        }>;
+      };
+      help_center: {
+        doc_path: string;
+        help_topics: Array<{
+          topic_code: string;
+        }>;
+        live_chat_enabled: boolean;
+      };
+      public_status_page: {
+        status_page: {
+          publication_status: string;
+        };
+      };
+    };
+    frontend: boolean;
+    live_deployment_verified: boolean;
+    live_finance_signoff: boolean;
+    live_legal_approval: boolean;
+    package_pricing: {
+      catalog: {
+        plans: Array<{
+          amount_minor: number;
+          plan_code: string;
+        }>;
+      };
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_id: string;
+    route: string;
+    status: string;
+    unit_economics: {
+      plans: Array<{
+        contribution_margin_positive: boolean;
+        contribution_margin_ratio_bps: number;
+        plan_code: string;
+        target_margin_ratio_bps: number;
+      }>;
+    };
     validation: Record<string, boolean>;
     version: string;
   };
@@ -5915,6 +5987,10 @@ describe("worker runtime", () => {
       route: "POST /public/release-gates/compliance-ops/plan",
       status: "compliance_ops_release_gate_scaffold"
     });
+    expect(body.data.publication_economics_release_gate).toMatchObject({
+      route: "POST /public/release-gates/publication-economics/plan",
+      status: "publication_economics_release_gate_scaffold"
+    });
   });
 
   it("serves public status page components with evidence routes", async () => {
@@ -6090,6 +6166,101 @@ describe("worker runtime", () => {
     });
     expect(body.data.validation.all_checks_passed).toBe(true);
     expect(body.data.validation.live_release_claimed).toBe(false);
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans public publication and unit economics release gate without live writes", async () => {
+    const response = await app.request("/public/release-gates/publication-economics/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-22T00:30:00.000Z"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-publication-economics-release-gate"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PublicationEconomicsReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        route: "POST /public/release-gates/publication-economics/plan",
+        status: "publication_economics_release_gate_scaffold"
+      },
+      frontend: false,
+      live_deployment_verified: false,
+      live_finance_signoff: false,
+      live_legal_approval: false,
+      request_id: "req-publication-economics-release-gate",
+      route: "POST /public/release-gates/publication-economics/plan",
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        docs_manifest_publication_ready: true,
+        help_center_manifest_ready: true,
+        live_release_claimed: false,
+        package_pricing_catalog_present: true,
+        privacy_terms_publication_ready: true,
+        public_status_page_ready: true,
+        unit_economics_positive: true,
+        writes_blocked: true
+      },
+      version: "2026-06-22.phase3.publication-economics-release-gate-scaffold.v0"
+    });
+    expect(body.data.docs_publication.public_status_page.status_page).toMatchObject({
+      publication_status: "local_scaffold_ready"
+    });
+    expect(body.data.docs_publication.docs_manifest.documents.map((document) => document.kind)).toEqual([
+      "api_reference",
+      "mcp_reference",
+      "privacy_policy",
+      "terms_of_service"
+    ]);
+    expect(body.data.docs_publication.help_center).toMatchObject({
+      doc_path: "docs/public/help-center.md",
+      live_chat_enabled: false
+    });
+    expect(body.data.docs_publication.help_center.help_topics).toHaveLength(6);
+    expect(body.data.package_pricing.catalog.plans.map((plan) => plan.plan_code)).toEqual([
+      "pro",
+      "developer"
+    ]);
+    expect(body.data.unit_economics.plans.find((plan) => plan.plan_code === "pro")).toMatchObject({
+      contribution_margin_positive: true,
+      contribution_margin_ratio_bps: 7149,
+      target_margin_ratio_bps: 7000
+    });
+    expect(body.data.unit_economics.plans.find((plan) => plan.plan_code === "developer")).toMatchObject({
+      contribution_margin_positive: true,
+      contribution_margin_ratio_bps: 6119,
+      target_margin_ratio_bps: 6000
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "public_status_page_scaffold_published",
+      "help_center_manifest_published",
+      "privacy_and_terms_publication_ready",
+      "package_pricing_catalog_present",
+      "unit_economics_positive_for_expected_usage",
+      "live_publication_and_finance_writes_blocked"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "live_public_status_page_deployment_missing",
+        "live_help_center_deployment_missing",
+        "final_privacy_terms_legal_approval_missing",
+        "live_pricing_provider_missing",
+        "finance_unit_economics_signoff_missing",
+        "frontend_public_release_surface_missing"
+      ],
+      gate_status: "blocked_live_publication_economics_validation",
+      no_live_release_claim: true
+    });
     expect(body.usage.rows).toBe(6);
   });
 
