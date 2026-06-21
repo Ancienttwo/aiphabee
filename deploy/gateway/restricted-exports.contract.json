@@ -1,0 +1,47 @@
+{
+  "version": "2026-06-21.phase3.restricted-export-scaffold.v0",
+  "status": "local_contract",
+  "capability_name": "restricted_exports",
+  "route": "POST /gateway/exports/plan",
+  "runtime_route": "GET /gateway/runtime",
+  "covered_sprint_3_1_items": ["ANA-08"],
+  "supported_formats": ["csv", "image", "pdf"],
+  "required_scope": "exports.read",
+  "scope_required": true,
+  "high_risk_scope": true,
+  "uses_data_access_gateway": true,
+  "export_channel": "export",
+  "export_requested": true,
+  "field_authorization_required": true,
+  "row_limit_required": true,
+  "watermark_required": true,
+  "required_watermark_fields": [
+    "request_id",
+    "workspace_id",
+    "dataset",
+    "rights_policy_version",
+    "as_of"
+  ],
+  "required_statuses": [
+    "planned_no_write",
+    "blocked_missing_scope",
+    "blocked_gateway_denied",
+    "blocked_unsupported_format"
+  ],
+  "required_error_codes": [
+    "SCOPE_DENIED",
+    "DATA_NOT_LICENSED",
+    "TOO_MANY_ROWS",
+    "OUT_OF_RANGE",
+    "DATA_QUALITY_HOLD"
+  ],
+  "required_database_tables": [
+    "core.restricted_export_request",
+    "audit.restricted_export_event",
+    "governance.restricted_export_contract"
+  ],
+  "live_data_access": false,
+  "artifact_writes": false,
+  "persistent_writes": false,
+  "frontend": false
+}

@@ -3033,6 +3033,18 @@ interface GatewayRuntimeBody {
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
     rights_policy_version: string;
+    restricted_exports: {
+      artifact_writes: boolean;
+      frontend: boolean;
+      high_risk_scope: string;
+      live_data_access: boolean;
+      route: string;
+      scope_required: boolean;
+      status: string;
+      supported_formats: string[];
+      uses_data_access_gateway: boolean;
+      watermark_required: boolean;
+    };
     serving_result_envelope: {
       envelope_fields: readonly string[];
       live_data_access: boolean;
@@ -3129,6 +3141,57 @@ interface GatewayRuntimeBody {
     };
   };
   ok: true;
+}
+
+interface RestrictedExportPlanBody {
+  data: {
+    artifact: {
+      csv: string;
+      generated: boolean;
+      image: string;
+      pdf: string;
+      r2_write: boolean;
+    };
+    capability: {
+      high_risk_scope: string;
+      route: string;
+      scope_required: boolean;
+      status: string;
+      supported_formats: string[];
+      watermark_required: boolean;
+    };
+    gateway_decision: {
+      allowed_fields: string[];
+      denied_fields: Array<{
+        field: string;
+        reason: string;
+      }>;
+      export_requested: boolean;
+      status: string;
+    };
+    live_data_access: boolean;
+    persistent_writes: boolean;
+    row_policy: {
+      max_rows: number;
+      requested_rows: number;
+      served_rows: number;
+    };
+    scope: {
+      granted: boolean;
+      required: string;
+    };
+    status: string;
+    toolName: string;
+    watermark: {
+      fields: string[];
+      required: boolean;
+      text: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface DataRuntimeBody {
@@ -9528,6 +9591,18 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
+    expect(body.data.restricted_exports).toMatchObject({
+      artifact_writes: false,
+      frontend: false,
+      high_risk_scope: "exports.read",
+      live_data_access: false,
+      route: "POST /gateway/exports/plan",
+      scope_required: true,
+      status: "restricted_export_scaffold",
+      supported_formats: ["csv", "image", "pdf"],
+      uses_data_access_gateway: true,
+      watermark_required: true
+    });
     expect(body.data.serving_result_envelope).toMatchObject({
       envelope_fields: ["as_of", "market_status", "provenance", "usage"],
       live_data_access: false,
@@ -9805,6 +9880,124 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("DATA_QUALITY_HOLD");
+  });
+
+  it("plans restricted CSV exports with field redaction, row policy, and watermark", async () => {
+    const response = await app.request("/gateway/exports/plan", {
+      body: JSON.stringify({
+        dataset: "synthetic_profile",
+        fields: [
+          "synthetic_profile.company_name",
+          "synthetic_profile.revenue"
+        ],
+        format: "csv",
+        plan: "pro",
+        requested_rows: 20,
+        scopes: ["exports.read"],
+        time_range: {
+          from: "2024-01-01",
+          to: "2024-01-31"
+        },
+        workspace_id: "ws_synthetic_export"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-restricted-export"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as RestrictedExportPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      artifact: {
+        csv: "planned_no_write",
+        generated: false,
+        image: "not_requested",
+        pdf: "not_requested",
+        r2_write: false
+      },
+      live_data_access: false,
+      persistent_writes: false,
+      row_policy: {
+        max_rows: 100,
+        requested_rows: 20,
+        served_rows: 20
+      },
+      scope: {
+        granted: true,
+        required: "exports.read"
+      },
+      status: "planned_no_write",
+      toolName: "restricted_export_plan",
+      watermark: {
+        required: true
+      }
+    });
+    expect(body.data.gateway_decision).toMatchObject({
+      allowed_fields: ["synthetic_profile.company_name"],
+      denied_fields: [
+        {
+          field: "synthetic_profile.revenue",
+          reason: "field_default_deny"
+        }
+      ],
+      export_requested: true,
+      status: "allow_with_redactions"
+    });
+    expect(body.data.capability).toMatchObject({
+      high_risk_scope: "exports.read",
+      route: "POST /gateway/exports/plan",
+      scope_required: true,
+      status: "restricted_export_scaffold",
+      watermark_required: true
+    });
+    expect(body.data.watermark.text).toContain("req-restricted-export");
+    expect(body.usage.rows).toBe(20);
+  });
+
+  it("blocks restricted exports without exports.read or over row limits", async () => {
+    const missingScope = await app.request("/gateway/exports/plan", {
+      body: JSON.stringify({
+        dataset: "synthetic_profile",
+        fields: ["synthetic_profile.company_name"],
+        format: "pdf",
+        plan: "pro",
+        requested_rows: 1,
+        scopes: [],
+        workspace_id: "ws_synthetic_export"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-restricted-export-no-scope"
+      },
+      method: "POST"
+    });
+    const tooManyRows = await app.request("/gateway/exports/plan", {
+      body: JSON.stringify({
+        dataset: "synthetic_profile",
+        fields: ["synthetic_profile.company_name"],
+        format: "image",
+        plan: "pro",
+        requestedRows: 101,
+        scopes: ["exports.read"],
+        workspaceId: "ws_synthetic_export"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-restricted-export-too-many"
+      },
+      method: "POST"
+    });
+    const missingScopeBody = (await missingScope.json()) as ErrorBody;
+    const tooManyRowsBody = (await tooManyRows.json()) as ErrorBody;
+
+    expect(missingScope.status).toBe(403);
+    expect(missingScopeBody.error.code).toBe("SCOPE_DENIED");
+    expect(tooManyRows.status).toBe(400);
+    expect(tooManyRowsBody.error.code).toBe("TOO_MANY_ROWS");
   });
 
   it("serves secret store capabilities without secret values", async () => {

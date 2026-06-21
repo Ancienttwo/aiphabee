@@ -18,6 +18,9 @@ import {
 
 export const DATA_ACCESS_GATEWAY_VERSION =
   "2026-06-20.phase1.serving-result-envelope-scaffold.v0";
+export const RESTRICTED_EXPORT_VERSION =
+  "2026-06-21.phase3.restricted-export-scaffold.v0";
+export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -38,6 +41,12 @@ export type DataQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type DataAccessServingResultStatus =
   | "result_blocked"
   | "result_deferred";
+export type RestrictedExportFormat = (typeof RESTRICTED_EXPORT_FORMATS)[number];
+export type RestrictedExportStatus =
+  | "blocked_gateway_denied"
+  | "blocked_missing_scope"
+  | "blocked_unsupported_format"
+  | "planned_no_write";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -149,6 +158,24 @@ export interface DataAccessRequest {
   workspaceId?: string;
 }
 
+export interface RestrictedExportPlanInput {
+  accountId?: string;
+  dataset: string;
+  fields: string[];
+  format?: string;
+  plan: string;
+  qualityState?: DataQualityState;
+  requestId?: string;
+  requestedRows: number;
+  runId?: string;
+  scopes?: string[];
+  timeRange?: {
+    from: string;
+    to: string;
+  };
+  workspaceId?: string;
+}
+
 export interface DataAccessDecision {
   allowedFields: string[];
   cacheKey: string;
@@ -182,6 +209,57 @@ export interface DataAccessDecision {
   usage: UsageSummary;
   usageLedger: UsageLedgerEventPlan;
   warnings: string[];
+}
+
+export interface RestrictedExportPlan {
+  artifact: {
+    csv: "not_requested" | "planned_no_write";
+    generated: false;
+    image: "not_requested" | "planned_no_write";
+    pdf: "not_requested" | "planned_no_write";
+    r2_write: false;
+  };
+  data_version: "gateway-scaffold-v0";
+  dataset: string;
+  export_format?: RestrictedExportFormat;
+  frontend: false;
+  gateway_decision?: {
+    allowed_fields: string[];
+    denied_fields: DataAccessDecision["deniedFields"];
+    error_code?: AiphaBeeErrorCode;
+    export_requested: true;
+    rights_policy_version: string;
+    status: DataAccessDecisionStatus;
+  };
+  live_data_access: false;
+  methodology_version: typeof RESTRICTED_EXPORT_VERSION;
+  persistent_writes: false;
+  provenance: ProvenanceRef[];
+  request_id: string;
+  row_policy: {
+    max_rows: number;
+    requested_rows: number;
+    served_rows: number;
+  };
+  scope: {
+    granted: boolean;
+    required: "exports.read";
+  };
+  sql_emitted: false;
+  status: RestrictedExportStatus;
+  toolName: "restricted_export_plan";
+  usage: UsageSummary;
+  watermark: {
+    fields: readonly [
+      "request_id",
+      "workspace_id",
+      "dataset",
+      "rights_policy_version",
+      "as_of"
+    ];
+    required: true;
+    text: string;
+  };
 }
 
 export interface DataAccessServingResult {
@@ -409,6 +487,80 @@ export function createDataAccessServingResult(input: {
   };
 }
 
+export function createRestrictedExportPlan(
+  input: RestrictedExportPlanInput,
+  policy: DataAccessPolicy = createSyntheticRestrictedExportPolicy()
+): RestrictedExportPlan {
+  const requestId = input.requestId ?? "request_unattributed";
+  const format = normalizeRestrictedExportFormat(input.format ?? "csv");
+  const scopeGranted = (input.scopes ?? []).includes("exports.read");
+
+  if (format === undefined) {
+    return createRestrictedExportPlanResult({
+      dataset: input.dataset,
+      format,
+      maxRows: policy.maxRows,
+      requestId,
+      requestedRows: input.requestedRows,
+      rightsPolicyVersion: policy.rightsPolicyVersion,
+      scopeGranted,
+      servedRows: 0,
+      status: "blocked_unsupported_format"
+    });
+  }
+
+  if (!scopeGranted) {
+    return createRestrictedExportPlanResult({
+      dataset: input.dataset,
+      format,
+      maxRows: policy.maxRows,
+      requestId,
+      requestedRows: input.requestedRows,
+      rightsPolicyVersion: policy.rightsPolicyVersion,
+      scopeGranted,
+      servedRows: 0,
+      status: "blocked_missing_scope"
+    });
+  }
+
+  const decision = evaluateDataAccessRequest(
+    {
+      accountId: input.accountId,
+      channel: "export",
+      dataset: input.dataset,
+      exportRequested: true,
+      occurredAt: "1970-01-01T00:00:00.000Z",
+      plan: input.plan,
+      qualityState: input.qualityState ?? "PASS",
+      requestId,
+      requestedFields: input.fields,
+      requestedRows: input.requestedRows,
+      runId: input.runId,
+      timeRange: input.timeRange,
+      workspaceId: input.workspaceId
+    },
+    policy
+  );
+  const status: RestrictedExportStatus =
+    decision.error === undefined && decision.allowedFields.length > 0
+      ? "planned_no_write"
+      : "blocked_gateway_denied";
+
+  return createRestrictedExportPlanResult({
+    dataset: input.dataset,
+    decision,
+    format,
+    maxRows: decision.limits.maxRows,
+    requestId,
+    requestedRows: input.requestedRows,
+    rightsPolicyVersion: decision.rightsPolicyVersion,
+    scopeGranted,
+    servedRows: decision.limits.servedRows,
+    status,
+    workspaceId: input.workspaceId
+  });
+}
+
 export function createSyntheticApprovedPolicy(): DataAccessPolicy {
   return {
     ...DEFAULT_DATA_ACCESS_POLICY,
@@ -430,6 +582,44 @@ export function createSyntheticApprovedPolicy(): DataAccessPolicy {
     ],
     entitlementPolicies: [],
     rightsPolicyVersion: "synthetic-policy-v0"
+  };
+}
+
+export function createSyntheticRestrictedExportPolicy(): DataAccessPolicy {
+  return {
+    ...DEFAULT_DATA_ACCESS_POLICY,
+    channels: {
+      ...DEFAULT_DATA_ACCESS_POLICY.channels,
+      export: "approved"
+    },
+    entitlementPolicies: [
+      {
+        channel: "export",
+        dataset: "synthetic_profile",
+        exportAllowed: true,
+        fieldPattern: "synthetic_profile.company_name",
+        maxWindowDays: 31,
+        plan: "pro",
+        status: "approved",
+        workspaceId: "ws_synthetic_export"
+      }
+    ],
+    fieldPolicies: [
+      {
+        channel: "export",
+        dataset: "synthetic_profile",
+        field: "synthetic_profile.company_name",
+        status: "approved"
+      },
+      {
+        channel: "export",
+        dataset: "synthetic_profile",
+        field: "synthetic_profile.revenue",
+        status: "default_deny"
+      }
+    ],
+    maxRows: 100,
+    rightsPolicyVersion: "synthetic-restricted-export-policy-v0"
   };
 }
 
@@ -572,6 +762,22 @@ export function createPolicyFromEntitlementRows(
   };
 }
 
+export function getRestrictedExportCapabilities() {
+  return {
+    artifact_writes: false,
+    frontend: false,
+    high_risk_scope: "exports.read" as const,
+    live_data_access: false,
+    route: "POST /gateway/exports/plan",
+    scope_required: true,
+    status: "restricted_export_scaffold" as const,
+    supported_formats: RESTRICTED_EXPORT_FORMATS,
+    uses_data_access_gateway: true,
+    watermark_required: true,
+    version: RESTRICTED_EXPORT_VERSION
+  };
+}
+
 export function getEntitlementPolicySourceCapabilities() {
   return {
     compiles_to_gateway_policy: true,
@@ -622,6 +828,98 @@ export function createDataAccessCacheKey(
   ];
 
   return parts.join("|");
+}
+
+function createRestrictedExportPlanResult(input: {
+  dataset: string;
+  decision?: DataAccessDecision;
+  format?: RestrictedExportFormat;
+  maxRows: number;
+  requestId: string;
+  requestedRows: number;
+  rightsPolicyVersion: string;
+  scopeGranted: boolean;
+  servedRows: number;
+  status: RestrictedExportStatus;
+  workspaceId?: string;
+}): RestrictedExportPlan {
+  const usage: UsageSummary = {
+    cached: false,
+    credits: input.status === "planned_no_write" ? 1 : 0,
+    rows: input.status === "planned_no_write" ? input.servedRows : 0
+  };
+
+  return {
+    artifact: {
+      csv: input.format === "csv" ? "planned_no_write" : "not_requested",
+      generated: false,
+      image: input.format === "image" ? "planned_no_write" : "not_requested",
+      pdf: input.format === "pdf" ? "planned_no_write" : "not_requested",
+      r2_write: false
+    },
+    data_version: "gateway-scaffold-v0",
+    dataset: input.dataset,
+    export_format: input.format,
+    frontend: false,
+    gateway_decision:
+      input.decision === undefined
+        ? undefined
+        : {
+            allowed_fields: input.decision.allowedFields,
+            denied_fields: input.decision.deniedFields,
+            error_code: input.decision.error?.code,
+            export_requested: true,
+            rights_policy_version: input.decision.rightsPolicyVersion,
+            status: input.decision.status
+          },
+    live_data_access: false,
+    methodology_version: RESTRICTED_EXPORT_VERSION,
+    persistent_writes: false,
+    provenance: [
+      {
+        data_version: "gateway-scaffold-v0",
+        methodology_version: RESTRICTED_EXPORT_VERSION,
+        source: "data-access-gateway",
+        source_record_id: "restricted-export-plan"
+      }
+    ],
+    request_id: input.requestId,
+    row_policy: {
+      max_rows: input.maxRows,
+      requested_rows: input.requestedRows,
+      served_rows: input.status === "planned_no_write" ? input.servedRows : 0
+    },
+    scope: {
+      granted: input.scopeGranted,
+      required: "exports.read"
+    },
+    sql_emitted: false,
+    status: input.status,
+    toolName: "restricted_export_plan",
+    usage,
+    watermark: {
+      fields: [
+        "request_id",
+        "workspace_id",
+        "dataset",
+        "rights_policy_version",
+        "as_of"
+      ],
+      required: true,
+      text: [
+        input.requestId,
+        input.workspaceId ?? "workspace_unattributed",
+        input.dataset,
+        input.rightsPolicyVersion
+      ].join("|")
+    }
+  };
+}
+
+function normalizeRestrictedExportFormat(
+  value: string
+): RestrictedExportFormat | undefined {
+  return RESTRICTED_EXPORT_FORMATS.find((format) => format === value);
 }
 
 function evaluateFields(

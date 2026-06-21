@@ -286,6 +286,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621120000_restricted_export_scaffold.sql",
+      "purpose": "Create empty restricted export request, audit event, and governance scaffolds for CSV, image, and PDF planning without enabling live artifact writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.restricted_export_request",
+        "audit.restricted_export_event",
+        "governance.restricted_export_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

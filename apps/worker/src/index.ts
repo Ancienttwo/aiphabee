@@ -60,6 +60,8 @@ import {
 import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
+  createRestrictedExportPlan,
+  getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
   getEntitlementPolicySourceCapabilities,
   getServingResultEnvelopeCapabilities
@@ -876,6 +878,7 @@ app.get("/gateway/runtime", (c) => {
         methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
         mcp_redistribution_surfaces: false,
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+        restricted_exports: getRestrictedExportCapabilities(),
         serving_result_envelope: getServingResultEnvelopeCapabilities(),
         serving_store: {
           execution_adapter: getServingStoreExecutionAdapterCapabilities(),
@@ -2861,6 +2864,117 @@ app.post("/gateway/access-check", async (c) => {
       requestId,
       usage: decision.usage
     })
+  );
+});
+
+app.post("/gateway/exports/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    account_id?: unknown;
+    accountId?: unknown;
+    dataset?: unknown;
+    fields?: unknown;
+    format?: unknown;
+    plan?: unknown;
+    quality_state?: unknown;
+    qualityState?: unknown;
+    requested_rows?: unknown;
+    requestedRows?: unknown;
+    run_id?: unknown;
+    runId?: unknown;
+    scopes?: unknown;
+    time_range?: unknown;
+    timeRange?: unknown;
+    workspace_id?: unknown;
+    workspaceId?: unknown;
+  };
+  const fields = Array.isArray(body.fields)
+    ? body.fields.filter((field): field is string => typeof field === "string")
+    : ["synthetic_profile.company_name"];
+  const scopes = Array.isArray(body.scopes)
+    ? body.scopes.filter((scope): scope is string => typeof scope === "string")
+    : [];
+  const timeRange = isTimeRange(body.time_range)
+    ? body.time_range
+    : isTimeRange(body.timeRange)
+      ? body.timeRange
+      : undefined;
+  const plan = createRestrictedExportPlan({
+    accountId:
+      typeof body.account_id === "string"
+        ? body.account_id
+        : typeof body.accountId === "string"
+          ? body.accountId
+          : undefined,
+    dataset: typeof body.dataset === "string" ? body.dataset : "synthetic_profile",
+    fields,
+    format: typeof body.format === "string" ? body.format : "csv",
+    plan: typeof body.plan === "string" ? body.plan : "pro",
+    qualityState: isQualityState(body.quality_state)
+      ? body.quality_state
+      : isQualityState(body.qualityState)
+        ? body.qualityState
+        : "PASS",
+    requestedRows:
+      typeof body.requested_rows === "number"
+        ? body.requested_rows
+        : typeof body.requestedRows === "number"
+          ? body.requestedRows
+          : 1,
+    requestId,
+    runId:
+      typeof body.run_id === "string"
+        ? body.run_id
+        : typeof body.runId === "string"
+          ? body.runId
+          : undefined,
+    scopes,
+    timeRange,
+    workspaceId:
+      typeof body.workspace_id === "string"
+        ? body.workspace_id
+        : typeof body.workspaceId === "string"
+          ? body.workspaceId
+          : undefined
+  });
+  const meta = {
+    asOf: new Date().toISOString(),
+    dataVersion: plan.data_version,
+    methodologyVersion: plan.methodology_version,
+    provenance: plan.provenance,
+    requestId,
+    usage: plan.usage
+  };
+
+  if (plan.status !== "planned_no_write") {
+    const code =
+      plan.status === "blocked_missing_scope" || plan.status === "blocked_unsupported_format"
+        ? "SCOPE_DENIED"
+        : plan.gateway_decision?.error_code ?? "DATA_NOT_LICENSED";
+    const status =
+      code === "DATA_NOT_LICENSED" || code === "SCOPE_DENIED"
+        ? 403
+        : code === "DATA_QUALITY_HOLD"
+          ? 409
+          : 400;
+
+    return c.json(
+      createErrorEnvelope(code, "restricted export plan was blocked", meta),
+      status
+    );
+  }
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getRestrictedExportCapabilities()
+      },
+      meta
+    )
   );
 });
 

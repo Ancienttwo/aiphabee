@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
+  createRestrictedExportPlan,
   createPolicyFromEntitlementRows,
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest,
   getEntitlementPolicySourceCapabilities,
+  getRestrictedExportCapabilities,
   getServingResultEnvelopeCapabilities
 } from "./index";
 
@@ -451,6 +453,129 @@ describe("data access gateway", () => {
     expect(exportBlocked.deniedFields[0]?.reason).toBe("export_blocked");
     expect(planBlocked.deniedFields[0]?.reason).toBe("workspace_entitlement_default_deny");
     expect(timeBlocked.deniedFields[0]?.reason).toBe("time_range_blocked");
+  });
+
+  it("plans restricted CSV exports through gateway field authorization and watermark rules", () => {
+    const plan = createRestrictedExportPlan({
+      dataset: "synthetic_profile",
+      fields: [
+        "synthetic_profile.company_name",
+        "synthetic_profile.revenue"
+      ],
+      format: "csv",
+      plan: "pro",
+      requestedRows: 20,
+      requestId: "req_export_allowed",
+      scopes: ["exports.read"],
+      timeRange: {
+        from: "2024-01-01",
+        to: "2024-01-31"
+      },
+      workspaceId: "ws_synthetic_export"
+    });
+
+    expect(plan.status).toBe("planned_no_write");
+    expect(plan.live_data_access).toBe(false);
+    expect(plan.persistent_writes).toBe(false);
+    expect(plan.scope).toEqual({
+      granted: true,
+      required: "exports.read"
+    });
+    expect(plan.gateway_decision).toMatchObject({
+      allowed_fields: ["synthetic_profile.company_name"],
+      denied_fields: [
+        {
+          field: "synthetic_profile.revenue",
+          reason: "field_default_deny"
+        }
+      ],
+      export_requested: true,
+      status: "allow_with_redactions"
+    });
+    expect(plan.row_policy).toMatchObject({
+      max_rows: 100,
+      requested_rows: 20,
+      served_rows: 20
+    });
+    expect(plan.artifact).toMatchObject({
+      csv: "planned_no_write",
+      generated: false,
+      image: "not_requested",
+      pdf: "not_requested",
+      r2_write: false
+    });
+    expect(plan.watermark).toMatchObject({
+      fields: [
+        "request_id",
+        "workspace_id",
+        "dataset",
+        "rights_policy_version",
+        "as_of"
+      ],
+      required: true
+    });
+    expect(plan.watermark.text).toContain("req_export_allowed");
+    expect(plan.usage.rows).toBe(20);
+  });
+
+  it("blocks restricted exports without exports.read scope or over row limits", () => {
+    const missingScope = createRestrictedExportPlan({
+      dataset: "synthetic_profile",
+      fields: ["synthetic_profile.company_name"],
+      format: "pdf",
+      plan: "pro",
+      requestedRows: 1,
+      requestId: "req_export_missing_scope",
+      scopes: [],
+      workspaceId: "ws_synthetic_export"
+    });
+    const tooManyRows = createRestrictedExportPlan({
+      dataset: "synthetic_profile",
+      fields: ["synthetic_profile.company_name"],
+      format: "image",
+      plan: "pro",
+      requestedRows: 101,
+      requestId: "req_export_too_many_rows",
+      scopes: ["exports.read"],
+      workspaceId: "ws_synthetic_export"
+    });
+    const unsupportedFormat = createRestrictedExportPlan({
+      dataset: "synthetic_profile",
+      fields: ["synthetic_profile.company_name"],
+      format: "xlsx",
+      plan: "pro",
+      requestedRows: 1,
+      requestId: "req_export_unsupported",
+      scopes: ["exports.read"],
+      workspaceId: "ws_synthetic_export"
+    });
+
+    expect(missingScope.status).toBe("blocked_missing_scope");
+    expect(missingScope.scope.granted).toBe(false);
+    expect(missingScope.gateway_decision).toBeUndefined();
+    expect(missingScope.artifact.pdf).toBe("planned_no_write");
+    expect(missingScope.row_policy.served_rows).toBe(0);
+    expect(tooManyRows.status).toBe("blocked_gateway_denied");
+    expect(tooManyRows.gateway_decision?.error_code).toBe("TOO_MANY_ROWS");
+    expect(tooManyRows.artifact.image).toBe("planned_no_write");
+    expect(tooManyRows.row_policy.served_rows).toBe(0);
+    expect(unsupportedFormat.status).toBe("blocked_unsupported_format");
+    expect(unsupportedFormat.export_format).toBeUndefined();
+  });
+
+  it("reports restricted export capabilities", () => {
+    expect(getRestrictedExportCapabilities()).toMatchObject({
+      artifact_writes: false,
+      frontend: false,
+      high_risk_scope: "exports.read",
+      live_data_access: false,
+      route: "POST /gateway/exports/plan",
+      scope_required: true,
+      status: "restricted_export_scaffold",
+      supported_formats: ["csv", "image", "pdf"],
+      uses_data_access_gateway: true,
+      watermark_required: true
+    });
   });
 
   it("compiles database entitlement rows into a default-deny gateway policy", () => {
