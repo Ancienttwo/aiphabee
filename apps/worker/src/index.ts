@@ -158,11 +158,14 @@ import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import {
   USAGE_QUOTA_CHANNELS,
   USAGE_QUOTA_PLAN_CODES,
+  createHighCostUsageReservationPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
+  getHighCostUsageReservationCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageLedgerEventWriterCapabilities,
   getUsageQuotaDisplayCapabilities,
+  type HighCostUsageExecutionStatus,
   type UsageBillingLedgerEntryInput,
   type UsageQuotaChannel,
   type UsageQuotaPlanCode
@@ -735,7 +738,8 @@ app.get("/usage/runtime", (c) => {
     createSuccessEnvelope(
       {
         ...getUsageQuotaDisplayCapabilities(),
-        billing_reconciliation: getUsageBillingReconciliationCapabilities()
+        billing_reconciliation: getUsageBillingReconciliationCapabilities(),
+        high_cost_reservation: getHighCostUsageReservationCapabilities()
       },
       {
         asOf: new Date().toISOString(),
@@ -855,6 +859,54 @@ app.post("/usage/billing/reconciliation/plan", async (c) => {
   );
 });
 
+app.post("/usage/high-cost/reservation/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createHighCostUsageReservationPlan({
+    estimatedCredits: normalizeOptionalNumber(body.estimated_credits ?? body.estimatedCredits),
+    executionStatus: normalizeHighCostUsageExecutionStatus(
+      body.execution_status ?? body.executionStatus
+    ),
+    requestId,
+    subscriptionId: normalizeString(body.subscription_id ?? body.subscriptionId),
+    taskId: normalizeString(body.task_id ?? body.taskId),
+    toolName: normalizeString(body.tool_name ?? body.toolName),
+    userConfirmed: normalizeOptionalBoolean(body.user_confirmed ?? body.userConfirmed),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getHighCostUsageReservationCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "high-cost-usage-reservation",
+            source_record_id: "high-cost-usage-reservation-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? 1 : 0
+        }
+      }
+    )
+  );
+});
+
 app.get("/analytics/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -919,20 +971,35 @@ app.post("/analytics/high-cost/plan", async (c) => {
   c.header("Cache-Control", "no-store");
 
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const toolName = normalizeString(body.tool_name ?? body.toolName);
+  const userConfirmed = normalizeOptionalBoolean(body.user_confirmed ?? body.userConfirmed);
   const plan = planHighCostAnalyticsQueue({
     metricCount: normalizeOptionalInteger(body.metric_count ?? body.metricCount),
     requestId,
     securities: normalizeStringArray(body.securities),
-    toolName: normalizeString(body.tool_name ?? body.toolName),
+    toolName,
     universeSize: normalizeOptionalInteger(body.universe_size ?? body.universeSize),
-    userConfirmed: normalizeOptionalBoolean(body.user_confirmed ?? body.userConfirmed)
+    userConfirmed
+  });
+  const usageReservation = createHighCostUsageReservationPlan({
+    estimatedCredits: plan.cost_estimate.credit_weight,
+    executionStatus: normalizeHighCostUsageExecutionStatus(
+      body.execution_status ?? body.executionStatus
+    ),
+    requestId,
+    subscriptionId: normalizeString(body.subscription_id ?? body.subscriptionId),
+    taskId: plan.enqueue_plan.planned_task_id ?? plan.enqueue_plan.queue_key,
+    toolName,
+    userConfirmed,
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
   });
 
   return c.json(
     createSuccessEnvelope(
       {
         ...plan,
-        capability: getHighCostAnalyticsQueueCapabilities()
+        capability: getHighCostAnalyticsQueueCapabilities(),
+        usage_reservation: usageReservation
       },
       {
         asOf: new Date().toISOString(),
@@ -4352,6 +4419,12 @@ function normalizeOptionalInteger(value: unknown): number | undefined {
 
 function normalizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeHighCostUsageExecutionStatus(
+  value: unknown
+): HighCostUsageExecutionStatus | undefined {
+  return value === "failed" || value === "planned" || value === "succeeded" ? value : undefined;
 }
 
 function normalizeString(value: unknown): string | undefined {

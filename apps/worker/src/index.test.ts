@@ -162,6 +162,18 @@ interface UsageRuntimeBody {
       status: string;
       trace_fields: string[];
     };
+    high_cost_reservation: {
+      failure_refund_required: boolean;
+      live_ledger_writes: boolean;
+      persistent_writes: boolean;
+      pre_debit_required: boolean;
+      request_id_visible: boolean;
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      usage_ledger_link_required: boolean;
+    };
     billing_provider_reconciliation: boolean;
     channels: string[];
     display_fields: string[];
@@ -222,6 +234,51 @@ interface UsageBillingReconciliationPlanBody {
       traceable_to_call: boolean;
     };
     workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface UsageHighCostReservationPlanBody {
+  data: {
+    capability: {
+      status: string;
+    };
+    double_charge_guard: {
+      idempotency_key: string;
+      same_request_reuses_reservation: boolean;
+    };
+    estimate: {
+      credits: number;
+      source: string;
+    };
+    failure_refund: {
+      refund_credits: number;
+      required: boolean;
+      status: string;
+    };
+    live_ledger_writes: boolean;
+    persistent_writes: boolean;
+    pre_debit: {
+      pre_debit_credits: number;
+      required: boolean;
+      status: string;
+    };
+    request_id: string;
+    request_id_visible: boolean;
+    reservation: {
+      status: string;
+      subscription_id: string;
+      task_id: string;
+      tool_name: string;
+      workspace_id: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    usage_ledger_link_required: boolean;
+    user_confirmed: boolean;
   };
   ok: true;
   usage: {
@@ -370,6 +427,30 @@ interface HighCostAnalyticsPlanBody {
     usage_policy: {
       failure_refund_required: boolean;
       pre_debit_required: boolean;
+      user_confirmed: boolean;
+    };
+    usage_reservation: {
+      failure_refund: {
+        refund_credits: number;
+        required: boolean;
+        status: string;
+      };
+      live_ledger_writes: boolean;
+      persistent_writes: boolean;
+      pre_debit: {
+        pre_debit_credits: number;
+        required: boolean;
+        status: string;
+      };
+      reservation: {
+        status: string;
+        subscription_id: string;
+        task_id: string;
+        tool_name: string;
+        workspace_id: string;
+      };
+      status: string;
+      usage_ledger_link_required: boolean;
       user_confirmed: boolean;
     };
   };
@@ -3110,6 +3191,18 @@ describe("worker runtime", () => {
       "ledger_entry_id",
       "invoice_line_id"
     ]);
+    expect(body.data.high_cost_reservation).toMatchObject({
+      failure_refund_required: true,
+      live_ledger_writes: false,
+      persistent_writes: false,
+      pre_debit_required: true,
+      request_id_visible: true,
+      route: "POST /usage/high-cost/reservation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "high_cost_usage_reservation_scaffold",
+      usage_ledger_link_required: true
+    });
   });
 
   it("plans Web/MCP quota display values without reads or writes", async () => {
@@ -3244,6 +3337,64 @@ describe("worker runtime", () => {
     expect(body.usage.rows).toBe(2);
   });
 
+  it("plans high-cost usage reservations with failure refunds without writes", async () => {
+    const response = await app.request("/usage/high-cost/reservation/plan", {
+      body: JSON.stringify({
+        estimated_credits: 13,
+        execution_status: "failed",
+        subscription_id: "sub_ws_internal_alpha_developer",
+        task_id: "planned_screen_securities_req_high_cost_failed",
+        tool_name: "screen_securities",
+        user_confirmed: true,
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-high-cost"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsageHighCostReservationPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      live_ledger_writes: false,
+      persistent_writes: false,
+      request_id: "req-usage-high-cost",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      usage_ledger_link_required: true,
+      user_confirmed: true
+    });
+    expect(body.data.estimate).toEqual({
+      credits: 13,
+      source: "analytics_high_cost_estimate"
+    });
+    expect(body.data.reservation).toMatchObject({
+      status: "planned_no_write",
+      subscription_id: "sub_ws_internal_alpha_developer",
+      task_id: "planned_screen_securities_req_high_cost_failed",
+      tool_name: "screen_securities",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.pre_debit).toMatchObject({
+      pre_debit_credits: 13,
+      required: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.failure_refund).toMatchObject({
+      refund_credits: 13,
+      required: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.capability.status).toBe("high_cost_usage_reservation_scaffold");
+    expect(body.data.double_charge_guard.same_request_reuses_reservation).toBe(true);
+    expect(body.usage.rows).toBe(1);
+  });
+
   it("serves analytics tool capabilities without frontend or live data", async () => {
     const response = await app.request("/analytics/runtime", {
       headers: {
@@ -3310,8 +3461,10 @@ describe("worker runtime", () => {
     const response = await app.request("/analytics/high-cost/plan", {
       body: JSON.stringify({
         securities: ["00700.HK", "00001.HK", "00005.HK", "00011.HK", "00012.HK"],
+        subscription_id: "sub_ws_internal_alpha_developer",
         tool_name: "compare_securities",
-        user_confirmed: true
+        user_confirmed: true,
+        workspace_id: "ws_internal_alpha"
       }),
       headers: {
         "content-type": "application/json",
@@ -3351,15 +3504,41 @@ describe("worker runtime", () => {
       pre_debit_required: true,
       user_confirmed: true
     });
+    expect(body.data.usage_reservation).toMatchObject({
+      live_ledger_writes: false,
+      persistent_writes: false,
+      status: "planned_no_write",
+      usage_ledger_link_required: true,
+      user_confirmed: true
+    });
+    expect(body.data.usage_reservation.reservation).toMatchObject({
+      status: "planned_no_write",
+      subscription_id: "sub_ws_internal_alpha_developer",
+      task_id: "planned_compare_securities_req-high-cost-compare:compare_securities",
+      tool_name: "compare_securities",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.usage_reservation.pre_debit).toMatchObject({
+      pre_debit_credits: 8,
+      required: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.usage_reservation.failure_refund).toMatchObject({
+      refund_credits: 0,
+      required: true,
+      status: "not_triggered"
+    });
     expect(body.usage.rows).toBe(1);
   });
 
   it("requires confirmation before queueing high-cost screen plans", async () => {
     const response = await app.request("/analytics/high-cost/plan", {
       body: JSON.stringify({
+        subscription_id: "sub_ws_internal_alpha_developer",
         tool_name: "screen_securities",
         universe_size: 500,
-        user_confirmed: false
+        user_confirmed: false,
+        workspace_id: "ws_internal_alpha"
       }),
       headers: {
         "content-type": "application/json",
@@ -3383,6 +3562,21 @@ describe("worker runtime", () => {
     });
     expect(body.data.enqueue_plan).toMatchObject({
       queue_key: "analytics-high-cost:screen_securities:req-high-cost-screen:screen_securities",
+      status: "awaiting_confirmation"
+    });
+    expect(body.data.usage_reservation).toMatchObject({
+      status: "confirmation_required",
+      user_confirmed: false
+    });
+    expect(body.data.usage_reservation.reservation).toMatchObject({
+      status: "awaiting_confirmation",
+      subscription_id: "sub_ws_internal_alpha_developer",
+      task_id: "analytics-high-cost:screen_securities:req-high-cost-screen:screen_securities",
+      tool_name: "screen_securities",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.usage_reservation.pre_debit).toMatchObject({
+      pre_debit_credits: 0,
       status: "awaiting_confirmation"
     });
   });

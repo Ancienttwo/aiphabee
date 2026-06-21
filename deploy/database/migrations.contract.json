@@ -166,6 +166,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621102000_high_cost_usage_reservation_scaffold.sql",
+      "purpose": "Create an empty high-cost usage credit reservation scaffold that links estimates, pre-debit entries, failure refunds, and request IDs without enabling live ledger writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.usage_credit_reservation",
+        "governance.high_cost_usage_reservation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

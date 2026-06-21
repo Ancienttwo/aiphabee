@@ -11,9 +11,14 @@ const requiredOutputFields = [
   "independent_pool_required",
   "queue_required",
   "enqueue_plan",
+  "usage_reservation",
   "usage_policy",
   "pre_debit_required",
   "failure_refund_required"
+];
+const requiredLinkedContracts = [
+  "deploy/usage/high-cost-reservation.contract.json",
+  "deploy/database/migrations.contract.json"
 ];
 const requiredTools = ["screen_securities", "compare_securities"];
 const forbiddenTextPatterns = [
@@ -114,6 +119,9 @@ function validateContract(value) {
   errors.push(...validateToolWeights(value.tool_weights));
   errors.push(
     ...validateStringArray(value.required_output_fields, requiredOutputFields, "required_output_fields")
+  );
+  errors.push(
+    ...validateStringArray(value.linked_contracts, requiredLinkedContracts, "linked_contracts")
   );
   errors.push(...validateNoSecrets(value));
 

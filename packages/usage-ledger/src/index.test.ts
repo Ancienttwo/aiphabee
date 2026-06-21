@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  createHighCostUsageReservationPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
+  getHighCostUsageReservationCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageQuotaDisplayCapabilities,
   getUsageLedgerEventWriterCapabilities
@@ -164,6 +166,21 @@ describe("usage ledger event writer scaffold", () => {
     ]);
   });
 
+  it("reports high-cost usage reservation capabilities", () => {
+    expect(getHighCostUsageReservationCapabilities()).toMatchObject({
+      failure_refund_required: true,
+      live_ledger_writes: false,
+      persistent_writes: false,
+      pre_debit_required: true,
+      request_id_visible: true,
+      route: "POST /usage/high-cost/reservation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "high_cost_usage_reservation_scaffold",
+      usage_ledger_link_required: true
+    });
+  });
+
   it("plans quota display values without live ledger reads", () => {
     const plan = createUsageQuotaDisplayPlan({
       accountId: "acct_internal_001",
@@ -309,5 +326,97 @@ describe("usage ledger event writer scaffold", () => {
     expect(missing.status).toBe("blocked_missing_context");
     expect(missing.traceability.traceable_to_call).toBe(false);
     expect(missing.invoice_lines).toHaveLength(0);
+  });
+
+  it("plans confirmed high-cost pre-debits without live ledger writes", () => {
+    const plan = createHighCostUsageReservationPlan({
+      estimatedCredits: 8,
+      requestId: "req_high_cost_confirmed",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      taskId: "planned_compare_securities_req_high_cost_confirmed",
+      toolName: "compare_securities",
+      userConfirmed: true,
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      live_ledger_writes: false,
+      persistent_writes: false,
+      request_id: "req_high_cost_confirmed",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      usage_ledger_link_required: true,
+      user_confirmed: true
+    });
+    expect(plan.estimate).toEqual({
+      credits: 8,
+      source: "analytics_high_cost_estimate"
+    });
+    expect(plan.pre_debit).toMatchObject({
+      pre_debit_credits: 8,
+      required: true,
+      status: "planned_no_write",
+      table: "core.usage_ledger_entry"
+    });
+    expect(plan.failure_refund).toMatchObject({
+      refund_credits: 0,
+      required: true,
+      status: "not_triggered",
+      table: "core.usage_ledger_entry"
+    });
+    expect(plan.double_charge_guard.same_request_reuses_reservation).toBe(true);
+  });
+
+  it("plans failed high-cost refunds against the same reservation", () => {
+    const plan = createHighCostUsageReservationPlan({
+      estimatedCredits: 13,
+      executionStatus: "failed",
+      requestId: "req_high_cost_failed",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      taskId: "planned_screen_securities_req_high_cost_failed",
+      toolName: "screen_securities",
+      userConfirmed: true,
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan.status).toBe("planned_no_write");
+    expect(plan.pre_debit.pre_debit_credits).toBe(13);
+    expect(plan.failure_refund).toMatchObject({
+      reason: "system_failure_or_retry",
+      refund_credits: 13,
+      required: true,
+      status: "planned_no_write"
+    });
+    expect(plan.failure_refund.ledger_entry_id).toContain(plan.reservation.reservation_id);
+  });
+
+  it("keeps unconfirmed and incomplete high-cost reservations blocked from debit", () => {
+    const unconfirmed = createHighCostUsageReservationPlan({
+      estimatedCredits: 13,
+      requestId: "req_high_cost_unconfirmed",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      taskId: "planned_screen_securities_req_high_cost_unconfirmed",
+      toolName: "screen_securities",
+      userConfirmed: false,
+      workspaceId: "ws_internal_alpha"
+    });
+    const missingContext = createHighCostUsageReservationPlan({
+      estimatedCredits: 8,
+      requestId: "req_high_cost_missing",
+      userConfirmed: true
+    });
+
+    expect(unconfirmed.status).toBe("confirmation_required");
+    expect(unconfirmed.reservation.status).toBe("awaiting_confirmation");
+    expect(unconfirmed.pre_debit).toMatchObject({
+      pre_debit_credits: 0,
+      status: "awaiting_confirmation"
+    });
+    expect(missingContext.status).toBe("blocked_missing_context");
+    expect(missingContext.pre_debit).toMatchObject({
+      pre_debit_credits: 0,
+      status: "blocked_missing_context"
+    });
   });
 });

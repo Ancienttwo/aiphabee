@@ -4,6 +4,8 @@ export const USAGE_QUOTA_DISPLAY_VERSION =
   "2026-06-21.phase1.usage-quota-display-scaffold.v0";
 export const USAGE_BILLING_RECONCILIATION_VERSION =
   "2026-06-21.phase2.usage-billing-reconciliation-scaffold.v0";
+export const HIGH_COST_USAGE_RESERVATION_VERSION =
+  "2026-06-21.phase2.high-cost-usage-reservation-scaffold.v0";
 
 export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
 export const USAGE_QUOTA_PLAN_CODES = [
@@ -30,6 +32,11 @@ export type UsageLedgerQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type UsageLedgerWriterStatus = "write_blocked" | "write_planned";
 export type UsageBillingReconciliationStatus = "blocked_missing_context" | "planned_no_write";
 export type UsageBillingTraceStatus = "mismatch" | "traceable";
+export type HighCostUsageExecutionStatus = "failed" | "planned" | "succeeded";
+export type HighCostUsageReservationStatus =
+  | "blocked_missing_context"
+  | "confirmation_required"
+  | "planned_no_write";
 export type UsageQuotaDisplayStatus = "blocked_missing_workspace" | "planned_no_write";
 
 export interface UsageLedgerEventPlanInput {
@@ -260,6 +267,68 @@ export interface UsageBillingReconciliationPlan {
   workspace_id: string;
 }
 
+export interface HighCostUsageReservationPlanInput {
+  estimatedCredits?: number;
+  executionStatus?: HighCostUsageExecutionStatus;
+  requestId: string;
+  subscriptionId?: string;
+  taskId?: string;
+  toolName?: string;
+  userConfirmed?: boolean;
+  workspaceId?: string;
+}
+
+export interface HighCostUsageReservationPlan {
+  double_charge_guard: {
+    idempotency_key: string;
+    same_request_reuses_reservation: true;
+  };
+  estimate: {
+    credits: number;
+    source: "analytics_high_cost_estimate";
+  };
+  failure_refund: {
+    ledger_entry_id: string;
+    reason: "system_failure_or_retry";
+    refund_credits: number;
+    required: true;
+    status: "not_triggered" | "planned_no_write";
+    table: "core.usage_ledger_entry";
+  };
+  live_ledger_writes: false;
+  persistent_writes: false;
+  pre_debit: {
+    ledger_entry_id: string;
+    pre_debit_credits: number;
+    required: true;
+    status: "awaiting_confirmation" | "blocked_missing_context" | "planned_no_write";
+    table: "core.usage_ledger_entry";
+  };
+  request_id: string;
+  request_id_visible: true;
+  reservation: {
+    reservation_id: string;
+    status: "awaiting_confirmation" | "blocked_missing_context" | "planned_no_write";
+    subscription_id: string;
+    table: "core.usage_credit_reservation";
+    task_id: string;
+    tool_name: string;
+    workspace_id: string;
+  };
+  sql_emitted: false;
+  status: HighCostUsageReservationStatus;
+  tables: readonly [
+    "core.workspace_subscription",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.usage_reconciliation_batch",
+    "core.usage_credit_reservation"
+  ];
+  usage_ledger_link_required: true;
+  user_confirmed: boolean;
+  version: typeof HIGH_COST_USAGE_RESERVATION_VERSION;
+}
+
 const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["tables"] = [
   "core.workspace_subscription",
   "core.usage_event",
@@ -267,6 +336,14 @@ const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["table
   "core.usage_reconciliation_batch",
   "core.subscription_invoice",
   "core.subscription_invoice_line"
+];
+
+const HIGH_COST_USAGE_RESERVATION_TABLES: HighCostUsageReservationPlan["tables"] = [
+  "core.workspace_subscription",
+  "core.usage_event",
+  "core.usage_ledger_entry",
+  "core.usage_reconciliation_batch",
+  "core.usage_credit_reservation"
 ];
 
 export function createUsageLedgerEventPlan(
@@ -427,6 +504,23 @@ export function getUsageBillingReconciliationCapabilities() {
   };
 }
 
+export function getHighCostUsageReservationCapabilities() {
+  return {
+    failure_refund_required: true,
+    live_ledger_writes: false,
+    persistent_writes: false,
+    pre_debit_required: true,
+    request_id_visible: true,
+    route: "POST /usage/high-cost/reservation/plan" as const,
+    runtime_route: "GET /usage/runtime" as const,
+    sql_emitted: false,
+    status: "high_cost_usage_reservation_scaffold" as const,
+    tables: HIGH_COST_USAGE_RESERVATION_TABLES,
+    usage_ledger_link_required: true,
+    version: HIGH_COST_USAGE_RESERVATION_VERSION
+  };
+}
+
 export function createUsageQuotaDisplayPlan(
   input: UsageQuotaDisplayPlanInput
 ): UsageQuotaDisplayPlan {
@@ -491,6 +585,93 @@ export function createUsageQuotaDisplayPlan(
     usage_snapshot_source: "synthetic_quota_snapshot",
     version: USAGE_QUOTA_DISPLAY_VERSION,
     workspace_id: workspaceId
+  };
+}
+
+export function createHighCostUsageReservationPlan(
+  input: HighCostUsageReservationPlanInput
+): HighCostUsageReservationPlan {
+  const estimatedCredits = normalizeCreditCount(input.estimatedCredits);
+  const workspaceId = input.workspaceId ?? "workspace_unresolved";
+  const subscriptionId = input.subscriptionId ?? `subscription_${sanitizeId(workspaceId)}`;
+  const toolName = input.toolName ?? "tool_unresolved";
+  const taskId = input.taskId ?? `task_${sanitizeId(input.requestId)}_${sanitizeId(toolName)}`;
+  const userConfirmed = input.userConfirmed === true;
+  const requiredContextPresent =
+    input.workspaceId !== undefined &&
+    input.workspaceId.length > 0 &&
+    input.subscriptionId !== undefined &&
+    input.subscriptionId.length > 0 &&
+    input.taskId !== undefined &&
+    input.taskId.length > 0 &&
+    input.toolName !== undefined &&
+    input.toolName.length > 0 &&
+    estimatedCredits > 0;
+  const status: HighCostUsageReservationStatus = userConfirmed
+    ? requiredContextPresent
+      ? "planned_no_write"
+      : "blocked_missing_context"
+    : "confirmation_required";
+  const reservationStatus =
+    status === "planned_no_write"
+      ? "planned_no_write"
+      : status === "confirmation_required"
+        ? "awaiting_confirmation"
+        : "blocked_missing_context";
+  const idempotencyKey = `high_cost_usage_${sanitizeId(input.requestId)}_${sanitizeId(taskId)}`;
+  const reservationId = `usage_reservation_${sanitizeId(input.requestId)}_${sanitizeId(taskId)}`;
+  const preDebitLedgerEntryId = `usage_pre_debit_${reservationId}`;
+  const refundLedgerEntryId = `usage_refund_${reservationId}`;
+  const refundTriggered = input.executionStatus === "failed" && userConfirmed;
+
+  return {
+    double_charge_guard: {
+      idempotency_key: idempotencyKey,
+      same_request_reuses_reservation: true
+    },
+    estimate: {
+      credits: estimatedCredits,
+      source: "analytics_high_cost_estimate"
+    },
+    failure_refund: {
+      ledger_entry_id: refundLedgerEntryId,
+      reason: "system_failure_or_retry",
+      refund_credits: refundTriggered ? estimatedCredits : 0,
+      required: true,
+      status: refundTriggered ? "planned_no_write" : "not_triggered",
+      table: "core.usage_ledger_entry"
+    },
+    live_ledger_writes: false,
+    persistent_writes: false,
+    pre_debit: {
+      ledger_entry_id: preDebitLedgerEntryId,
+      pre_debit_credits: status === "planned_no_write" ? estimatedCredits : 0,
+      required: true,
+      status:
+        status === "planned_no_write"
+          ? "planned_no_write"
+          : status === "confirmation_required"
+            ? "awaiting_confirmation"
+            : "blocked_missing_context",
+      table: "core.usage_ledger_entry"
+    },
+    request_id: input.requestId,
+    request_id_visible: true,
+    reservation: {
+      reservation_id: reservationId,
+      status: reservationStatus,
+      subscription_id: subscriptionId,
+      table: "core.usage_credit_reservation",
+      task_id: taskId,
+      tool_name: toolName,
+      workspace_id: workspaceId
+    },
+    sql_emitted: false,
+    status,
+    tables: HIGH_COST_USAGE_RESERVATION_TABLES,
+    usage_ledger_link_required: true,
+    user_confirmed: userConfirmed,
+    version: HIGH_COST_USAGE_RESERVATION_VERSION
   };
 }
 

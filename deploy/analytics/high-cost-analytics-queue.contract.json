@@ -52,8 +52,13 @@
     "independent_pool_required",
     "queue_required",
     "enqueue_plan",
+    "usage_reservation",
     "usage_policy",
     "pre_debit_required",
     "failure_refund_required"
+  ],
+  "linked_contracts": [
+    "deploy/usage/high-cost-reservation.contract.json",
+    "deploy/database/migrations.contract.json"
   ]
 }
