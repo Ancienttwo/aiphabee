@@ -3,11 +3,13 @@ import {
   createAgentDryRunTelemetry,
   createEvalV1RunRecord,
   createEvalStoreRecord,
+  createPerformanceAvailabilityReleaseGatePlan,
   createEvalStoreTelemetrySink,
   createInMemoryEvalStore,
   createInMemoryTelemetrySink,
   createTelemetryEventId,
   getEvalV1Capabilities,
+  getPerformanceAvailabilityReleaseGateCapabilities,
   recordTelemetryEvents
 } from "./index";
 
@@ -157,6 +159,146 @@ describe("observability scaffold", () => {
       "high_intent_action",
       "no_data_error_or_severe_hallucination_or_compliance_block"
     ]);
+  });
+
+  it("describes performance and availability release gate capabilities", () => {
+    const capabilities = getPerformanceAvailabilityReleaseGateCapabilities();
+
+    expect(capabilities).toMatchObject({
+      event_contract: "deploy/observability/events.contract.json",
+      frontend: false,
+      live_apm_provider_reads: false,
+      live_probe_reads: false,
+      live_slo_store_writes: false,
+      package: "@aiphabee/observability",
+      persistent_writes: false,
+      route: "POST /observability/release-gates/performance-availability/plan",
+      runtime_route: "GET /observability/runtime",
+      sql_emitted: false,
+      status: "performance_availability_release_gate_scaffold",
+      target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      version: "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0"
+    });
+    expect(capabilities.targets).toMatchObject({
+      core_api_availability_bps: 9990,
+      mcp_tool_cold_p95_ms: 2500,
+      mcp_tool_hot_p95_ms: 800,
+      mcp_tool_success_rate_bps: 9950,
+      simple_research_completion_p95_ms: 15000,
+      web_first_token_p95_ms: 2500
+    });
+  });
+
+  it("plans performance availability release gate SLO checks without live writes", () => {
+    const plan = createPerformanceAvailabilityReleaseGatePlan({
+      asOf: "2026-06-22T01:30:00.000Z",
+      requestId: "req-performance-availability"
+    });
+
+    expect(plan).toMatchObject({
+      as_of: "2026-06-22T01:30:00.000Z",
+      frontend: false,
+      live_apm_provider_reads: false,
+      live_probe_reads: false,
+      live_slo_store_writes: false,
+      persistent_writes: false,
+      request_id: "req-performance-availability",
+      route: "POST /observability/release-gates/performance-availability/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        core_api_availability_target_met: true,
+        live_release_claimed: false,
+        live_writes_blocked: true,
+        mcp_tool_p95_targets_met: true,
+        request_id_and_route_coverage_present: true,
+        simple_research_completion_p95_target_met: true,
+        tool_success_rate_target_met: true,
+        web_first_token_p95_target_met: true
+      },
+      version: "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0"
+    });
+    expect(plan.slo_report).toMatchObject({
+      prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      status: "synthetic_slo_report_ready",
+      window: "monthly_release_gate_fixture"
+    });
+    expect(plan.slo_report.route_coverage).toEqual([
+      "/health",
+      "/mcp",
+      "/agent/runs/stream",
+      "/agent/runs/plan"
+    ]);
+    expect(plan.slo_report.excluded_failure_categories).toEqual([
+      "user_input_error",
+      "authorization_denied"
+    ]);
+    expect(plan.slo_report.observations).toEqual([
+      expect.objectContaining({
+        metric_id: "core_api_availability_bps",
+        observed_value: 9995,
+        pass: true,
+        target_value: 9990,
+        unit: "basis_points"
+      }),
+      expect.objectContaining({
+        metric_id: "mcp_tool_hot_p95_ms",
+        observed_value: 720,
+        pass: true,
+        target_value: 800,
+        unit: "milliseconds"
+      }),
+      expect.objectContaining({
+        metric_id: "mcp_tool_cold_p95_ms",
+        observed_value: 2300,
+        pass: true,
+        target_value: 2500
+      }),
+      expect.objectContaining({
+        metric_id: "web_first_token_p95_ms",
+        observed_value: 2100,
+        pass: true,
+        target_value: 2500
+      }),
+      expect.objectContaining({
+        metric_id: "simple_research_completion_p95_ms",
+        observed_value: 13500,
+        pass: true,
+        target_value: 15000
+      }),
+      expect.objectContaining({
+        metric_id: "mcp_tool_success_rate_bps",
+        observed_value: 9970,
+        pass: true,
+        target_value: 9950,
+        unit: "basis_points"
+      })
+    ]);
+    expect(plan.release_checks).toHaveLength(7);
+    expect(plan.release_gate).toMatchObject({
+      gate_status: "blocked_live_performance_availability_validation",
+      no_live_release_claim: true
+    });
+    expect(plan.release_gate.blockers).toContain("live_apm_provider_missing");
+  });
+
+  it("fails performance availability release gate when SLO observations miss targets", () => {
+    const plan = createPerformanceAvailabilityReleaseGatePlan({
+      observations: {
+        core_api_availability_bps: 9980,
+        mcp_tool_hot_p95_ms: 900,
+        mcp_tool_success_rate_bps: 9900,
+        web_first_token_p95_ms: 3200
+      },
+      requestId: "req-performance-availability-fail"
+    });
+
+    expect(plan.validation.core_api_availability_target_met).toBe(false);
+    expect(plan.validation.mcp_tool_p95_targets_met).toBe(false);
+    expect(plan.validation.tool_success_rate_target_met).toBe(false);
+    expect(plan.validation.web_first_token_p95_target_met).toBe(false);
+    expect(plan.validation.all_checks_passed).toBe(false);
   });
 
   it("creates eval v1 records with quality metrics and WVRO eligibility", () => {

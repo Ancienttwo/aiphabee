@@ -169,8 +169,11 @@ import {
   createAgentDryRunTelemetry,
   createConsoleTelemetrySink,
   createEvalV1RunRecord,
+  createPerformanceAvailabilityReleaseGatePlan,
   getEvalV1Capabilities,
+  getPerformanceAvailabilityReleaseGateCapabilities,
   type EvalV1MetricInput,
+  type PerformanceAvailabilityObservationInput,
   type WvroHighIntentAction,
   recordTelemetryEvents
 } from "@aiphabee/observability";
@@ -4199,9 +4202,11 @@ app.get("/observability/runtime", (c) => {
           required_env: ["OTLP_EXPORTER_OTLP_ENDPOINT", "OTLP_EXPORTER_OTLP_HEADERS"],
           status:
             otlpEndpointConfigured && otlpHeadersConfigured
-              ? "configuration_detected"
-              : "planned"
+                ? "configuration_detected"
+                : "planned"
         },
+        performance_availability_release_gate:
+          getPerformanceAvailabilityReleaseGateCapabilities(),
         sinks: [
           {
             live_export_enabled: false,
@@ -4322,6 +4327,42 @@ app.post("/observability/eval-v1/plan", async (c) => {
         }
       }
     )
+  );
+});
+
+app.post("/observability/release-gates/performance-availability/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createPerformanceAvailabilityReleaseGatePlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    observations: normalizePerformanceAvailabilityObservations(
+      body.observations ?? body.slo_observations ?? body.sloObservations
+    ),
+    requestId
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(plan, {
+      asOf: plan.as_of,
+      dataVersion: plan.version,
+      methodologyVersion: plan.version,
+      provenance: [
+        {
+          data_version: plan.version,
+          methodology_version: plan.version,
+          source: "observability-performance-availability",
+          source_record_id: "performance-availability-release-gate-plan"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: plan.slo_report.observations.length
+      }
+    })
   );
 });
 
@@ -7574,6 +7615,35 @@ function normalizeWatchlistPriceField(
 
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizePerformanceAvailabilityObservations(
+  value: unknown
+): PerformanceAvailabilityObservationInput | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    core_api_availability_bps: normalizeOptionalNumber(
+      value.core_api_availability_bps ?? value.coreApiAvailabilityBps
+    ),
+    mcp_tool_cold_p95_ms: normalizeOptionalNumber(
+      value.mcp_tool_cold_p95_ms ?? value.mcpToolColdP95Ms
+    ),
+    mcp_tool_hot_p95_ms: normalizeOptionalNumber(
+      value.mcp_tool_hot_p95_ms ?? value.mcpToolHotP95Ms
+    ),
+    mcp_tool_success_rate_bps: normalizeOptionalNumber(
+      value.mcp_tool_success_rate_bps ?? value.mcpToolSuccessRateBps
+    ),
+    simple_research_completion_p95_ms: normalizeOptionalNumber(
+      value.simple_research_completion_p95_ms ?? value.simpleResearchCompletionP95Ms
+    ),
+    web_first_token_p95_ms: normalizeOptionalNumber(
+      value.web_first_token_p95_ms ?? value.webFirstTokenP95Ms
+    )
+  };
 }
 
 function normalizeExpectedUsageProfile(

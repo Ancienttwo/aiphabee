@@ -1,6 +1,8 @@
 export const OBSERVABILITY_EVENT_VERSION = "2026-06-20.phase0.observability.v0";
 export const EVAL_STORE_SCHEMA_VERSION = "2026-06-20.phase0.eval-store.v0";
 export const EVAL_V1_VERSION = "2026-06-21.phase1.eval-v1-wvro-scaffold.v0";
+export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION =
+  "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0";
 export const WVRO_HIGH_INTENT_ACTIONS = [
   "save_research",
   "add_to_watchlist",
@@ -26,6 +28,28 @@ export type EvalV1CriterionId =
   | "no_data_error_or_severe_hallucination_or_compliance_block";
 export type EvalV1CriterionStatus = "fail" | "pass";
 export type WvroHighIntentAction = (typeof WVRO_HIGH_INTENT_ACTIONS)[number];
+export type PerformanceAvailabilityMetricId =
+  | "core_api_availability_bps"
+  | "mcp_tool_hot_p95_ms"
+  | "mcp_tool_cold_p95_ms"
+  | "web_first_token_p95_ms"
+  | "simple_research_completion_p95_ms"
+  | "mcp_tool_success_rate_bps";
+
+export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS = [
+  "core_api_availability_target_met",
+  "mcp_tool_p95_targets_met",
+  "web_first_token_p95_target_met",
+  "simple_research_completion_p95_target_met",
+  "tool_success_rate_target_met",
+  "slo_report_request_id_and_route_coverage_present",
+  "live_apm_and_probe_writes_blocked"
+] as const;
+export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES = [
+  "core.performance_availability_release_gate",
+  "audit.performance_slo_drill_event",
+  "governance.performance_availability_release_gate_contract"
+] as const;
 
 export interface EvalV1MetricInput {
   passed?: number;
@@ -52,6 +76,15 @@ export interface EvalV1RunInput {
     unsourcedClaims?: number;
   };
   weekStart?: string;
+}
+
+export interface PerformanceAvailabilityObservationInput {
+  core_api_availability_bps?: number;
+  mcp_tool_hot_p95_ms?: number;
+  mcp_tool_cold_p95_ms?: number;
+  mcp_tool_success_rate_bps?: number;
+  simple_research_completion_p95_ms?: number;
+  web_first_token_p95_ms?: number;
 }
 
 export interface EvalV1MetricResult {
@@ -110,6 +143,32 @@ export interface EvalV1Capabilities {
   };
 }
 
+export interface PerformanceAvailabilityReleaseGateCapabilities {
+  event_contract: "deploy/observability/events.contract.json";
+  frontend: false;
+  live_apm_provider_reads: false;
+  live_probe_reads: false;
+  live_slo_store_writes: false;
+  package: "@aiphabee/observability";
+  persistent_writes: false;
+  required_checks: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS;
+  route: "POST /observability/release-gates/performance-availability/plan";
+  runtime_route: "GET /observability/runtime";
+  sql_emitted: false;
+  status: "performance_availability_release_gate_scaffold";
+  tables: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES;
+  target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1";
+  targets: {
+    core_api_availability_bps: 9990;
+    mcp_tool_cold_p95_ms: 2500;
+    mcp_tool_hot_p95_ms: 800;
+    mcp_tool_success_rate_bps: 9950;
+    simple_research_completion_p95_ms: 15000;
+    web_first_token_p95_ms: 2500;
+  };
+  version: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION;
+}
+
 export interface TelemetryEventBase {
   attributes: Record<string, boolean | number | string>;
   emitted_at: string;
@@ -161,6 +220,87 @@ export interface AgentDryRunTelemetryInput {
   requestedTools: string[];
   route: string;
   runId: string;
+}
+
+export interface PerformanceAvailabilityReleaseGatePlanInput {
+  asOf?: string;
+  observations?: PerformanceAvailabilityObservationInput;
+  requestId: string;
+}
+
+export interface PerformanceAvailabilityMetricObservation {
+  comparator: "at_least" | "at_most";
+  measured_from: "synthetic_release_gate_fixture";
+  metric_id: PerformanceAvailabilityMetricId;
+  observed_value: number;
+  pass: boolean;
+  target_value: number;
+  unit: "basis_points" | "milliseconds";
+}
+
+export interface PerformanceAvailabilityReleaseGatePlan {
+  as_of: string;
+  capability: PerformanceAvailabilityReleaseGateCapabilities;
+  frontend: false;
+  live_apm_provider_reads: false;
+  live_probe_reads: false;
+  live_slo_store_writes: false;
+  persistent_writes: false;
+  release_checks: Array<{
+    check: (typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS)[number];
+    evidence: string;
+    status: "planned_no_write";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_apm_provider_missing",
+      "live_probe_scheduler_missing",
+      "slo_metric_store_missing",
+      "load_test_run_artifact_missing",
+      "frontend_first_token_live_measurement_missing",
+      "ops_sre_signoff_missing"
+    ];
+    gate_status: "blocked_live_performance_availability_validation";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["ops", "sre", "product"];
+  };
+  request_id: string;
+  route: "POST /observability/release-gates/performance-availability/plan";
+  slo_report: {
+    excluded_failure_categories: readonly ["user_input_error", "authorization_denied"];
+    observations: readonly [
+      PerformanceAvailabilityMetricObservation,
+      PerformanceAvailabilityMetricObservation,
+      PerformanceAvailabilityMetricObservation,
+      PerformanceAvailabilityMetricObservation,
+      PerformanceAvailabilityMetricObservation,
+      PerformanceAvailabilityMetricObservation
+    ];
+    prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1";
+    route_coverage: readonly [
+      "/health",
+      "/mcp",
+      "/agent/runs/stream",
+      "/agent/runs/plan"
+    ];
+    status: "synthetic_slo_report_ready";
+    window: "monthly_release_gate_fixture";
+  };
+  sql_emitted: false;
+  status: "planned_no_write";
+  tables: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES;
+  validation: {
+    all_checks_passed: boolean;
+    core_api_availability_target_met: boolean;
+    live_release_claimed: false;
+    live_writes_blocked: boolean;
+    mcp_tool_p95_targets_met: boolean;
+    request_id_and_route_coverage_present: boolean;
+    simple_research_completion_p95_target_met: boolean;
+    tool_success_rate_target_met: boolean;
+    web_first_token_p95_target_met: boolean;
+  };
+  version: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION;
 }
 
 export interface TelemetrySink {
@@ -361,6 +501,34 @@ export function createTelemetryEventId(
   return `${requestId}:${eventType}`;
 }
 
+export function getPerformanceAvailabilityReleaseGateCapabilities(): PerformanceAvailabilityReleaseGateCapabilities {
+  return {
+    event_contract: "deploy/observability/events.contract.json",
+    frontend: false,
+    live_apm_provider_reads: false,
+    live_probe_reads: false,
+    live_slo_store_writes: false,
+    package: "@aiphabee/observability",
+    persistent_writes: false,
+    required_checks: PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS,
+    route: "POST /observability/release-gates/performance-availability/plan",
+    runtime_route: "GET /observability/runtime",
+    sql_emitted: false,
+    status: "performance_availability_release_gate_scaffold",
+    tables: PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES,
+    target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+    targets: {
+      core_api_availability_bps: 9990,
+      mcp_tool_cold_p95_ms: 2500,
+      mcp_tool_hot_p95_ms: 800,
+      mcp_tool_success_rate_bps: 9950,
+      simple_research_completion_p95_ms: 15000,
+      web_first_token_p95_ms: 2500
+    },
+    version: PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION
+  };
+}
+
 export function getEvalV1Capabilities(): EvalV1Capabilities {
   return {
     event_type: "run.eval",
@@ -400,6 +568,96 @@ export function getEvalV1Capabilities(): EvalV1Capabilities {
         "no_data_error_or_severe_hallucination_or_compliance_block"
       ]
     }
+  };
+}
+
+export function createPerformanceAvailabilityReleaseGatePlan(
+  input: PerformanceAvailabilityReleaseGatePlanInput
+): PerformanceAvailabilityReleaseGatePlan {
+  const requestId = normalizeIdentifier(input.requestId, "request_unattributed");
+  const asOf = input.asOf ?? "runtime_as_of_unresolved";
+  const capability = getPerformanceAvailabilityReleaseGateCapabilities();
+  const observations = createPerformanceAvailabilityObservations(input.observations);
+  const byMetric = new Map(observations.map((observation) => [observation.metric_id, observation]));
+  const validation = {
+    core_api_availability_target_met:
+      byMetric.get("core_api_availability_bps")?.pass === true,
+    live_writes_blocked: true,
+    mcp_tool_p95_targets_met:
+      byMetric.get("mcp_tool_hot_p95_ms")?.pass === true &&
+      byMetric.get("mcp_tool_cold_p95_ms")?.pass === true,
+    request_id_and_route_coverage_present:
+      requestId.length > 0 &&
+      observations.every((observation) => observation.metric_id.length > 0) &&
+      ["/health", "/mcp", "/agent/runs/stream", "/agent/runs/plan"].length === 4,
+    simple_research_completion_p95_target_met:
+      byMetric.get("simple_research_completion_p95_ms")?.pass === true,
+    tool_success_rate_target_met:
+      byMetric.get("mcp_tool_success_rate_bps")?.pass === true,
+    web_first_token_p95_target_met:
+      byMetric.get("web_first_token_p95_ms")?.pass === true
+  };
+  const allChecksPassed = Object.values(validation).every(Boolean);
+  const releaseChecks = PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS.map((check) => ({
+    check,
+    evidence:
+      check === "core_api_availability_target_met"
+        ? "synthetic /health monthly availability observation is at least 99.9%"
+        : check === "mcp_tool_p95_targets_met"
+          ? "synthetic MCP hot-path and cold/complex tool P95 observations are within PRD §12.1 thresholds"
+          : check === "web_first_token_p95_target_met"
+            ? "synthetic Web first-token P95 observation is below 2.5 seconds"
+            : check === "simple_research_completion_p95_target_met"
+              ? "synthetic simple research completion P95 observation is below 15 seconds"
+              : check === "tool_success_rate_target_met"
+                ? "synthetic MCP tool success-rate observation excludes user-input and authorization errors and stays above 99.5%"
+                : check === "slo_report_request_id_and_route_coverage_present"
+                  ? "SLO report carries request_id and covers /health, /mcp, /agent/runs/stream, and /agent/runs/plan"
+                  : "live APM/provider reads, probes, SLO store writes, SQL, and persistent writes remain disabled",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    as_of: asOf,
+    capability,
+    frontend: false,
+    live_apm_provider_reads: false,
+    live_probe_reads: false,
+    live_slo_store_writes: false,
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_apm_provider_missing",
+        "live_probe_scheduler_missing",
+        "slo_metric_store_missing",
+        "load_test_run_artifact_missing",
+        "frontend_first_token_live_measurement_missing",
+        "ops_sre_signoff_missing"
+      ],
+      gate_status: "blocked_live_performance_availability_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["ops", "sre", "product"]
+    },
+    request_id: requestId,
+    route: "POST /observability/release-gates/performance-availability/plan",
+    slo_report: {
+      excluded_failure_categories: ["user_input_error", "authorization_denied"],
+      observations,
+      prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      route_coverage: ["/health", "/mcp", "/agent/runs/stream", "/agent/runs/plan"],
+      status: "synthetic_slo_report_ready",
+      window: "monthly_release_gate_fixture"
+    },
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES,
+    validation: {
+      ...validation,
+      all_checks_passed: allChecksPassed,
+      live_release_claimed: false
+    },
+    version: PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION
   };
 }
 
@@ -459,6 +717,82 @@ export function createEvalV1RunRecord(input: EvalV1RunInput): EvalV1RunRecord {
   };
 }
 
+function createPerformanceAvailabilityObservations(
+  input: PerformanceAvailabilityObservationInput | undefined
+): PerformanceAvailabilityReleaseGatePlan["slo_report"]["observations"] {
+  return [
+    createPerformanceObservation(
+      "core_api_availability_bps",
+      input?.core_api_availability_bps,
+      9995,
+      9990,
+      "at_least",
+      "basis_points"
+    ),
+    createPerformanceObservation(
+      "mcp_tool_hot_p95_ms",
+      input?.mcp_tool_hot_p95_ms,
+      720,
+      800,
+      "at_most",
+      "milliseconds"
+    ),
+    createPerformanceObservation(
+      "mcp_tool_cold_p95_ms",
+      input?.mcp_tool_cold_p95_ms,
+      2300,
+      2500,
+      "at_most",
+      "milliseconds"
+    ),
+    createPerformanceObservation(
+      "web_first_token_p95_ms",
+      input?.web_first_token_p95_ms,
+      2100,
+      2500,
+      "at_most",
+      "milliseconds"
+    ),
+    createPerformanceObservation(
+      "simple_research_completion_p95_ms",
+      input?.simple_research_completion_p95_ms,
+      13500,
+      15000,
+      "at_most",
+      "milliseconds"
+    ),
+    createPerformanceObservation(
+      "mcp_tool_success_rate_bps",
+      input?.mcp_tool_success_rate_bps,
+      9970,
+      9950,
+      "at_least",
+      "basis_points"
+    )
+  ];
+}
+
+function createPerformanceObservation(
+  metricId: PerformanceAvailabilityMetricId,
+  inputValue: number | undefined,
+  defaultValue: number,
+  targetValue: number,
+  comparator: PerformanceAvailabilityMetricObservation["comparator"],
+  unit: PerformanceAvailabilityMetricObservation["unit"]
+): PerformanceAvailabilityMetricObservation {
+  const observedValue = normalizeNumericObservation(inputValue, defaultValue);
+
+  return {
+    comparator,
+    measured_from: "synthetic_release_gate_fixture",
+    metric_id: metricId,
+    observed_value: observedValue,
+    pass: comparator === "at_least" ? observedValue >= targetValue : observedValue <= targetValue,
+    target_value: targetValue,
+    unit
+  };
+}
+
 function createQualityMetric(
   metricId: EvalV1QualityMetricId,
   input?: EvalV1MetricInput
@@ -507,6 +841,19 @@ function normalizeHighIntentActions(
 function normalizeCount(value: number | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return 0;
+  }
+
+  return Math.max(0, Math.trunc(value));
+}
+
+function normalizeIdentifier(value: string | undefined, fallback: string): string {
+  const normalized = value?.trim();
+  return normalized && normalized.length > 0 ? normalized : fallback;
+}
+
+function normalizeNumericObservation(value: number | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
   }
 
   return Math.max(0, Math.trunc(value));

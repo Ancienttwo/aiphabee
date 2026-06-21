@@ -1,0 +1,126 @@
+{
+  "version": "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/observability",
+  "runtime_route": "GET /observability/runtime",
+  "route": "POST /observability/release-gates/performance-availability/plan",
+  "standard_response_envelope": true,
+  "event_contract": "deploy/observability/events.contract.json",
+  "target_source": "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+  "covered_sprint_3_3_items": [
+    "core_api_availability",
+    "mcp_tool_p95",
+    "web_first_token_p95",
+    "simple_research_completion_p95",
+    "mcp_tool_success_rate"
+  ],
+  "frontend": false,
+  "live_apm_provider_reads": false,
+  "live_probe_reads": false,
+  "live_slo_store_writes": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "targets": {
+    "core_api_availability_bps": 9990,
+    "mcp_tool_hot_p95_ms": 800,
+    "mcp_tool_cold_p95_ms": 2500,
+    "web_first_token_p95_ms": 2500,
+    "simple_research_completion_p95_ms": 15000,
+    "mcp_tool_success_rate_bps": 9950
+  },
+  "synthetic_observations": [
+    {
+      "metric_id": "core_api_availability_bps",
+      "observed_value": 9995,
+      "target_value": 9990,
+      "comparator": "at_least",
+      "unit": "basis_points"
+    },
+    {
+      "metric_id": "mcp_tool_hot_p95_ms",
+      "observed_value": 720,
+      "target_value": 800,
+      "comparator": "at_most",
+      "unit": "milliseconds"
+    },
+    {
+      "metric_id": "mcp_tool_cold_p95_ms",
+      "observed_value": 2300,
+      "target_value": 2500,
+      "comparator": "at_most",
+      "unit": "milliseconds"
+    },
+    {
+      "metric_id": "web_first_token_p95_ms",
+      "observed_value": 2100,
+      "target_value": 2500,
+      "comparator": "at_most",
+      "unit": "milliseconds"
+    },
+    {
+      "metric_id": "simple_research_completion_p95_ms",
+      "observed_value": 13500,
+      "target_value": 15000,
+      "comparator": "at_most",
+      "unit": "milliseconds"
+    },
+    {
+      "metric_id": "mcp_tool_success_rate_bps",
+      "observed_value": 9970,
+      "target_value": 9950,
+      "comparator": "at_least",
+      "unit": "basis_points"
+    }
+  ],
+  "route_coverage": [
+    "/health",
+    "/mcp",
+    "/agent/runs/stream",
+    "/agent/runs/plan"
+  ],
+  "excluded_failure_categories": [
+    "user_input_error",
+    "authorization_denied"
+  ],
+  "required_checks": [
+    "core_api_availability_target_met",
+    "mcp_tool_p95_targets_met",
+    "web_first_token_p95_target_met",
+    "simple_research_completion_p95_target_met",
+    "tool_success_rate_target_met",
+    "slo_report_request_id_and_route_coverage_present",
+    "live_apm_and_probe_writes_blocked"
+  ],
+  "required_output_fields": [
+    "slo_report",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "tables": [
+    "core.performance_availability_release_gate",
+    "audit.performance_slo_drill_event",
+    "governance.performance_availability_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_performance_availability_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "ops",
+      "sre",
+      "product"
+    ],
+    "blockers": [
+      "live_apm_provider_missing",
+      "live_probe_scheduler_missing",
+      "slo_metric_store_missing",
+      "load_test_run_artifact_missing",
+      "frontend_first_token_live_measurement_missing",
+      "ops_sre_signoff_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/observability/events.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

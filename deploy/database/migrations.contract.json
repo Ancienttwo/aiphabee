@@ -565,6 +565,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622005000_performance_availability_release_gate_scaffold.sql",
+      "purpose": "Create empty performance and availability release gate scaffolds for core API availability, MCP tool P95, Web first token P95, simple research P95, and tool success-rate SLO checks without enabling live APM reads, probe scheduling, SLO store writes, load-test artifacts, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.performance_availability_release_gate",
+        "audit.performance_slo_drill_event",
+        "governance.performance_availability_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

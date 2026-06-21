@@ -5325,6 +5325,15 @@ interface ObservabilityRuntimeBody {
       required_env: string[];
       status: string;
     };
+    performance_availability_release_gate: {
+      route: string;
+      status: string;
+      targets: {
+        core_api_availability_bps: number;
+        mcp_tool_success_rate_bps: number;
+        web_first_token_p95_ms: number;
+      };
+    };
     sinks: Array<{
       live_export_enabled: boolean;
       name: string;
@@ -5332,6 +5341,50 @@ interface ObservabilityRuntimeBody {
     }>;
   };
   ok: true;
+}
+
+interface PerformanceAvailabilityReleaseGatePlanBody {
+  data: {
+    as_of: string;
+    capability: {
+      route: string;
+      status: string;
+    };
+    frontend: boolean;
+    live_apm_provider_reads: boolean;
+    live_probe_reads: boolean;
+    live_slo_store_writes: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_id: string;
+    route: string;
+    slo_report: {
+      excluded_failure_categories: string[];
+      observations: Array<{
+        metric_id: string;
+        observed_value: number;
+        pass: boolean;
+        target_value: number;
+        unit: string;
+      }>;
+      route_coverage: string[];
+      status: string;
+    };
+    status: string;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface EvalV1PlanBody {
@@ -14873,9 +14926,131 @@ describe("worker runtime", () => {
       "OTLP_EXPORTER_OTLP_ENDPOINT",
       "OTLP_EXPORTER_OTLP_HEADERS"
     ]);
+    expect(body.data.performance_availability_release_gate).toMatchObject({
+      route: "POST /observability/release-gates/performance-availability/plan",
+      status: "performance_availability_release_gate_scaffold",
+      targets: {
+        core_api_availability_bps: 9990,
+        mcp_tool_success_rate_bps: 9950,
+        web_first_token_p95_ms: 2500
+      }
+    });
     expect(body.data.sinks.every((sink) => sink.live_export_enabled === false)).toBe(
       true
     );
+  });
+
+  it("plans performance availability release gate SLO checks without live writes", async () => {
+    const response = await app.request(
+      "/observability/release-gates/performance-availability/plan",
+      {
+        body: JSON.stringify({
+          as_of: "2026-06-22T01:30:00.000Z"
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req-performance-availability-release-gate"
+        },
+        method: "POST"
+      }
+    );
+    const body = (await response.json()) as PerformanceAvailabilityReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      as_of: "2026-06-22T01:30:00.000Z",
+      capability: {
+        route: "POST /observability/release-gates/performance-availability/plan",
+        status: "performance_availability_release_gate_scaffold"
+      },
+      frontend: false,
+      live_apm_provider_reads: false,
+      live_probe_reads: false,
+      live_slo_store_writes: false,
+      request_id: "req-performance-availability-release-gate",
+      route: "POST /observability/release-gates/performance-availability/plan",
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        core_api_availability_target_met: true,
+        live_release_claimed: false,
+        live_writes_blocked: true,
+        mcp_tool_p95_targets_met: true,
+        request_id_and_route_coverage_present: true,
+        simple_research_completion_p95_target_met: true,
+        tool_success_rate_target_met: true,
+        web_first_token_p95_target_met: true
+      },
+      version: "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0"
+    });
+    expect(body.data.slo_report).toMatchObject({
+      status: "synthetic_slo_report_ready"
+    });
+    expect(body.data.slo_report.route_coverage).toEqual([
+      "/health",
+      "/mcp",
+      "/agent/runs/stream",
+      "/agent/runs/plan"
+    ]);
+    expect(body.data.slo_report.excluded_failure_categories).toEqual([
+      "user_input_error",
+      "authorization_denied"
+    ]);
+    expect(body.data.slo_report.observations.map((observation) => observation.metric_id)).toEqual([
+      "core_api_availability_bps",
+      "mcp_tool_hot_p95_ms",
+      "mcp_tool_cold_p95_ms",
+      "web_first_token_p95_ms",
+      "simple_research_completion_p95_ms",
+      "mcp_tool_success_rate_bps"
+    ]);
+    expect(
+      body.data.slo_report.observations.find(
+        (observation) => observation.metric_id === "mcp_tool_hot_p95_ms"
+      )
+    ).toMatchObject({
+      observed_value: 720,
+      pass: true,
+      target_value: 800,
+      unit: "milliseconds"
+    });
+    expect(
+      body.data.slo_report.observations.find(
+        (observation) => observation.metric_id === "mcp_tool_success_rate_bps"
+      )
+    ).toMatchObject({
+      observed_value: 9970,
+      pass: true,
+      target_value: 9950,
+      unit: "basis_points"
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "core_api_availability_target_met",
+      "mcp_tool_p95_targets_met",
+      "web_first_token_p95_target_met",
+      "simple_research_completion_p95_target_met",
+      "tool_success_rate_target_met",
+      "slo_report_request_id_and_route_coverage_present",
+      "live_apm_and_probe_writes_blocked"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "live_apm_provider_missing",
+        "live_probe_scheduler_missing",
+        "slo_metric_store_missing",
+        "load_test_run_artifact_missing",
+        "frontend_first_token_live_measurement_missing",
+        "ops_sre_signoff_missing"
+      ],
+      gate_status: "blocked_live_performance_availability_validation",
+      no_live_release_claim: true
+    });
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans eval v1 quality metrics and WVRO eligibility without writes", async () => {
