@@ -1676,7 +1676,7 @@ export interface AiGatewayLiveSmokeResult {
   prompt_hash: string;
   provider: "cloudflare_ai_gateway";
   response_hash: string;
-  status: "ok";
+  status: "failed_output_mismatch" | "ok";
   stream_text: AiGatewayLiveSmokeStreamOperationResult;
   version: typeof AI_GATEWAY_LIVE_SMOKE_VERSION;
 }
@@ -1766,6 +1766,10 @@ export async function runAiGatewayLiveSmoke(
     status: "passed",
     total_tokens: streamUsage.total_tokens
   };
+  const status =
+    generateOperation.exact_output_match && streamOperation.exact_output_match
+      ? "ok"
+      : "failed_output_mismatch";
 
   const responseHash = await hashAiGatewaySmokeString(
     JSON.stringify({
@@ -1790,7 +1794,7 @@ export async function runAiGatewayLiveSmoke(
     prompt_hash: await hashAiGatewaySmokeString(prompt),
     provider: "cloudflare_ai_gateway",
     response_hash: responseHash,
-    status: "ok",
+    status,
     stream_text: streamOperation,
     version: AI_GATEWAY_LIVE_SMOKE_VERSION
   };

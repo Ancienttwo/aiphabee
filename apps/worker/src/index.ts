@@ -973,7 +973,7 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
       model_provider_result: modelProviderResult,
       request_id: requestId,
       route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
-      status: "ok",
+      status: modelProviderResult.status === "ok" ? "ok" : "failed",
       version: AI_GATEWAY_LIVE_SMOKE_VERSION
     };
     const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
@@ -983,7 +983,7 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
         ...bodyWithoutHash,
         response_hash: responseHash
       },
-      200
+      modelProviderResult.status === "ok" ? 200 : 502
     );
   } catch (error) {
     const bodyWithoutHash = {

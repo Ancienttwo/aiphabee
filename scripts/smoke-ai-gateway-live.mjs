@@ -115,6 +115,10 @@ try {
     text: streamTextValue,
     usage: await streamResult.usage
   });
+  const status =
+    generateOperation.exact_output_match && streamOperation.exact_output_match
+      ? "ok"
+      : "failed_output_mismatch";
   const responseWithoutHash = {
     endpoint: endpointPath,
     gateway_header: "cf-aig-gateway-id",
@@ -127,7 +131,7 @@ try {
     operation_count: 2,
     prompt_hash: hashString(fixedPrompt),
     provider: "cloudflare_ai_gateway",
-    status: "ok",
+    status,
     stream_text: streamOperation
   };
 
@@ -136,7 +140,7 @@ try {
       ...responseWithoutHash,
       response_hash: hashString(JSON.stringify(responseWithoutHash))
     },
-    0
+    status === "ok" ? 0 : 1
   );
 } catch (error) {
   emit(

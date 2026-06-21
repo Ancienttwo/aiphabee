@@ -7,6 +7,9 @@
   `generateText` and `streamText`.
 - Added guarded Worker `POST /agent/model-provider/live-smoke` route that returns
   missing env without secrets and only hash-based live proof on success.
+- Ran the CLI live smoke through transient Wrangler OAuth env; both
+  `generateText` and `streamText` returned HTTP 200, exact output match, and
+  token counts.
 - Updated provider contract to the current Cloudflare AI REST API endpoint.
 - Added env/schema/template support for `AI_GATEWAY_SMOKE_MODEL`.
 - Kept product model execution and tracker live checkboxes disabled.
@@ -32,9 +35,15 @@
 - `npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts`
 - `npm run check`
 
+## Claimed
+
+- CLI AI Gateway live request success through `npm run smoke:ai-gateway-live`
+  equivalent env.
+- AI SDK `generateText` and `streamText` both live-verified through Cloudflare AI
+  Gateway with hash-only evidence.
+
 ## Not Claimed
 
-- Live AI Gateway request success.
 - Product Worker model calls.
 - Deployed Worker AI Gateway live smoke success.
 - AI Gateway fallback/cache/rate-limit log verification.

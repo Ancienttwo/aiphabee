@@ -49,10 +49,35 @@
     "Model provider live execution smoke"
   ],
   "not_claimed": [
-    "live_ai_gateway_request_succeeded",
     "deployed_worker_live_route_smoke_succeeded",
+    "ai_gateway_cost_log_verified",
+    "ai_gateway_rate_limit_cache_fallback_log_verified",
     "fallback_log_verified",
     "persistent_cost_log_verified",
     "tracker_live_smoke_completed"
-  ]
+  ],
+  "latest_cli_live_smoke": {
+    "observed_at": "2026-06-22T07:20:00+08:00",
+    "status": "ok",
+    "method": "ai_sdk_openai_compatible",
+    "http_statuses": [200, 200],
+    "generate_text_exact_output_match": true,
+    "stream_text_exact_output_match": true,
+    "generate_text_tokens": {
+      "input_tokens": 49,
+      "output_tokens": 12,
+      "total_tokens": 61
+    },
+    "stream_text_tokens": {
+      "input_tokens": 49,
+      "output_tokens": 12,
+      "total_tokens": 61
+    },
+    "stream_text_chunk_count": 11,
+    "gateway_id_hash": "sha256:37a8eec1ce19687d132fe29051dca629d164e2c4958ba141d5f4133a33f0688f",
+    "model_hash": "sha256:e5c87fd81654a8c59736a9c1394a42ce28a88b09561b9faef7cc3a9d7523e2a2",
+    "prompt_hash": "sha256:cc0738fbdc07b7efb612df1099584e63ecee327e4d0f0bba22ad28e6707ce156",
+    "output_hash": "sha256:52d2532a33eb1ce82ca41f0a425edd6a975af763e53a8657ed096a1847e6a590",
+    "response_hash": "sha256:ff2af979fe25d61a65e71f92ce920fce59aa86ac24409cae7071ac277c143f3d"
+  }
 }
