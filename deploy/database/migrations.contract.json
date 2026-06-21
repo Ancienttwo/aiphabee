@@ -251,6 +251,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621113000_agent_kill_switch_scaffold.sql",
+      "purpose": "Create empty Agent kill switch state and governance scaffolds without enabling live flag reads or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_kill_switch_state",
+        "governance.agent_kill_switch_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

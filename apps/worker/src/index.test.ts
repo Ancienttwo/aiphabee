@@ -1440,6 +1440,19 @@ interface AgentRuntimeBody {
       };
       streaming_transport: string;
     };
+    kill_switch: {
+      actual_tool_execution: boolean;
+      frontend: boolean;
+      live_flag_reads: boolean;
+      model_calls: boolean;
+      model_kill_switch_ready: boolean;
+      persistent_writes: boolean;
+      route: string;
+      safe_degradation_ready: boolean;
+      status: string;
+      tool_kill_switch_ready: boolean;
+      version: string;
+    };
     workflow_tasks: {
       actual_workflow_execution: boolean;
       binding: string;
@@ -1468,6 +1481,53 @@ interface AgentRuntimeBody {
     };
   };
   ok: true;
+}
+
+interface AgentKillSwitchPlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      live_flag_reads: boolean;
+      model_kill_switch_ready: boolean;
+      route: string;
+      safe_degradation_ready: boolean;
+      status: string;
+      tool_kill_switch_ready: boolean;
+    };
+    decision: {
+      degraded: boolean;
+      degradation_mode: string;
+      model_calls_allowed: boolean;
+      model_request_blocked: boolean;
+      safe_degradation_required: boolean;
+      tool_execution_allowed: boolean;
+      tool_execution_blocked: boolean;
+    };
+    frontend: boolean;
+    live_flag_reads: boolean;
+    model_calls: boolean;
+    persistent_writes: boolean;
+    reason?: string;
+    route: string;
+    safe_degradation: {
+      deterministic_calculation_allowed: boolean;
+      evidence_required_for_reused_outputs: boolean;
+      partial_answer_allowed: boolean;
+      unknown_label_required: boolean;
+      user_visible_state: boolean;
+    };
+    status: string;
+    switch_state: {
+      model_kill_switch: boolean;
+      target: string;
+      tool_kill_switch: boolean;
+    };
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface ToolRuntimeBody {
@@ -3129,6 +3189,21 @@ interface AgentToolLoopPlanBody {
       };
     };
     chain_of_thought_exposed: boolean;
+    kill_switch: {
+      decision: {
+        degraded: boolean;
+        degradation_mode: string;
+        model_request_blocked: boolean;
+        safe_degradation_required: boolean;
+        tool_execution_blocked: boolean;
+      };
+      reason?: string;
+      switch_state: {
+        model_kill_switch: boolean;
+        target: string;
+        tool_kill_switch: boolean;
+      };
+    };
     max_parallel_tools: number;
     model_calls: boolean;
     failure_recovery_policy: {
@@ -5491,6 +5566,18 @@ describe("worker runtime", () => {
       status: "workflow_task_scaffold",
       task_id_visible: true
     });
+    expect(body.data.kill_switch).toMatchObject({
+      actual_tool_execution: false,
+      frontend: false,
+      live_flag_reads: false,
+      model_calls: false,
+      model_kill_switch_ready: true,
+      persistent_writes: false,
+      route: "POST /agent/kill-switch/plan",
+      safe_degradation_ready: true,
+      status: "kill_switch_scaffold",
+      tool_kill_switch_ready: true
+    });
     expect(body.data.registered_tools).toHaveLength(9);
     expect(body.data.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -5501,6 +5588,67 @@ describe("worker runtime", () => {
     expect(body.data.surfaces.model_calls).toBe(false);
     expect(body.data.surfaces.market_data).toBe(false);
     expect(body.data.surfaces.mcp_redistribution).toBe(false);
+  });
+
+  it("plans model/tool kill switch safe degradation without live flags", async () => {
+    const response = await app.request("/agent/kill-switch/plan", {
+      body: JSON.stringify({
+        kill_switch_reason: "provider incident",
+        model_kill_switch: true,
+        tool_kill_switch: true
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-kill-switch-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentKillSwitchPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        live_flag_reads: false,
+        model_kill_switch_ready: true,
+        route: "POST /agent/kill-switch/plan",
+        safe_degradation_ready: true,
+        status: "kill_switch_scaffold",
+        tool_kill_switch_ready: true
+      },
+      decision: {
+        degraded: true,
+        degradation_mode: "no_model_no_tools",
+        model_calls_allowed: false,
+        model_request_blocked: true,
+        safe_degradation_required: true,
+        tool_execution_allowed: false,
+        tool_execution_blocked: true
+      },
+      frontend: false,
+      live_flag_reads: false,
+      model_calls: false,
+      persistent_writes: false,
+      reason: "provider incident",
+      route: "POST /agent/kill-switch/plan",
+      safe_degradation: {
+        deterministic_calculation_allowed: true,
+        evidence_required_for_reused_outputs: true,
+        partial_answer_allowed: true,
+        unknown_label_required: true,
+        user_visible_state: true
+      },
+      status: "planned_no_live_kill_switch",
+      switch_state: {
+        model_kill_switch: true,
+        target: "all",
+        tool_kill_switch: true
+      }
+    });
+    expect(body.data.version).toBe("2026-06-21.phase2.kill-switch-scaffold.v0");
+    expect(body.usage.rows).toBe(1);
   });
 
   it("serves shared tool registry capabilities without tool execution", async () => {
@@ -9620,6 +9768,54 @@ describe("worker runtime", () => {
         )
     ).toBe(true);
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("degrades ToolLoopAgent planning when the tool kill switch is tripped", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        kill_switch_reason: "tool provider incident",
+        prompt: "Explain 00700.HK revenue and price trend",
+        tool_kill_switch: true,
+        tools: ["resolve_security", "get_quote_snapshot"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-tool-loop-kill-switch"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentToolLoopPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("degraded_kill_switch");
+    expect(body.data.model_calls).toBe(false);
+    expect(body.data.actual_tool_execution).toBe(false);
+    expect(body.data.kill_switch).toMatchObject({
+      decision: {
+        degraded: true,
+        degradation_mode: "no_model_no_tools",
+        model_request_blocked: false,
+        safe_degradation_required: true,
+        tool_execution_blocked: true
+      },
+      reason: "tool provider incident",
+      switch_state: {
+        model_kill_switch: false,
+        target: "tool",
+        tool_kill_switch: true
+      }
+    });
+    expect(body.data.planned_step_count).toBe(1);
+    expect(body.data.steps).toEqual([
+      expect.objectContaining({
+        phase: "answer_contract",
+        public_label: "Return safe degraded response while tool execution is disabled",
+        tool_calls: []
+      })
+    ]);
+    expect(body.usage.rows).toBe(1);
   });
 
   it("plans a resumable Workflow task for long-running Agent work", async () => {

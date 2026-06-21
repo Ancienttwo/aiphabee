@@ -1,0 +1,74 @@
+{
+  "version": "2026-06-21.phase2.kill-switch-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/kill-switch/plan",
+  "agent_plan_route": "POST /agent/runs/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "live_flag_reads": false,
+  "persistent_writes": false,
+  "safe_degradation_ready": true,
+  "model_kill_switch_ready": true,
+  "tool_kill_switch_ready": true,
+  "covered_sprint_2_4_items": [
+    "US-O04",
+    "model_kill_switch",
+    "tool_kill_switch",
+    "safe_degradation"
+  ],
+  "required_runtime_capability_fields": [
+    "actual_tool_execution",
+    "frontend",
+    "live_flag_reads",
+    "model_calls",
+    "model_kill_switch_ready",
+    "persistent_writes",
+    "route",
+    "safe_degradation_ready",
+    "status",
+    "tool_kill_switch_ready",
+    "version"
+  ],
+  "required_plan_fields": [
+    "switch_state",
+    "decision",
+    "safe_degradation",
+    "live_flag_reads",
+    "persistent_writes",
+    "route",
+    "status",
+    "version"
+  ],
+  "required_decision_fields": [
+    "degraded",
+    "degradation_mode",
+    "model_request_blocked",
+    "tool_execution_blocked",
+    "safe_degradation_required",
+    "tool_execution_allowed",
+    "model_calls_allowed"
+  ],
+  "degradation_modes": [
+    "normal_no_live",
+    "tool_only_no_model",
+    "no_model_no_tools"
+  ],
+  "targets": [
+    "model",
+    "tool",
+    "all",
+    "none"
+  ],
+  "tables": [
+    "core.agent_kill_switch_state",
+    "governance.agent_kill_switch_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/agent/tool-loop-planner.contract.json"
+  ]
+}

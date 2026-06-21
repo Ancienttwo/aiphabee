@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  AGENT_KILL_SWITCH_VERSION,
   AgentRuntimeInputError,
+  createAgentKillSwitchPlan,
   createAgentRunSkeleton,
   createAiSdkStopCondition,
   createPreToolCallResolution,
@@ -21,6 +23,19 @@ describe("agent runtime scaffold", () => {
     });
     expect(capabilities.surfaces.model_calls).toBe(false);
     expect(capabilities.surfaces.market_data).toBe(false);
+    expect(capabilities.kill_switch).toMatchObject({
+      actual_tool_execution: false,
+      frontend: false,
+      live_flag_reads: false,
+      model_calls: false,
+      model_kill_switch_ready: true,
+      persistent_writes: false,
+      route: "POST /agent/kill-switch/plan",
+      safe_degradation_ready: true,
+      status: "kill_switch_scaffold",
+      tool_kill_switch_ready: true,
+      version: "2026-06-21.phase2.kill-switch-scaffold.v0"
+    });
     expect(capabilities.run_context).toMatchObject({
       context_ready: true,
       entitlement_policy_source: "synthetic_default_deny",
@@ -259,6 +274,88 @@ describe("agent runtime scaffold", () => {
     ]);
   });
 
+  it("plans model/tool kill switch safe degradation without live flags", () => {
+    expect(AGENT_KILL_SWITCH_VERSION).toBe(
+      "2026-06-21.phase2.kill-switch-scaffold.v0"
+    );
+
+    const plan = createAgentKillSwitchPlan({
+      killSwitchReason: "provider incident",
+      modelKillSwitch: true,
+      requestId: "req-agent-kill-switch",
+      toolKillSwitch: true
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      decision: {
+        degraded: true,
+        degradation_mode: "no_model_no_tools",
+        model_calls_allowed: false,
+        model_request_blocked: true,
+        safe_degradation_required: true,
+        tool_execution_blocked: true,
+        tool_execution_allowed: false
+      },
+      frontend: false,
+      live_flag_reads: false,
+      model_calls: false,
+      persistent_writes: false,
+      reason: "provider incident",
+      route: "POST /agent/kill-switch/plan",
+      safe_degradation: {
+        deterministic_calculation_allowed: true,
+        evidence_required_for_reused_outputs: true,
+        partial_answer_allowed: true,
+        unknown_label_required: true,
+        user_visible_state: true
+      },
+      status: "planned_no_live_kill_switch",
+      switch_state: {
+        model_kill_switch: true,
+        target: "all",
+        tool_kill_switch: true
+      },
+      version: AGENT_KILL_SWITCH_VERSION
+    });
+  });
+
+  it("degrades tool loop planning when tool execution kill switch is tripped", () => {
+    const plan = createToolLoopAgentPlan({
+      killSwitchReason: "tool provider incident",
+      prompt: "Explain 00700.HK revenue and price trend",
+      requestId: "req-agent-kill-switch-plan",
+      requestedTools: ["resolve_security", "get_quote_snapshot"],
+      toolKillSwitch: true
+    });
+
+    expect(plan.status).toBe("degraded_kill_switch");
+    expect(plan.model_calls).toBe(false);
+    expect(plan.actual_tool_execution).toBe(false);
+    expect(plan.kill_switch).toMatchObject({
+      decision: {
+        degradation_mode: "no_model_no_tools",
+        safe_degradation_required: true,
+        tool_execution_blocked: true
+      },
+      reason: "tool provider incident",
+      switch_state: {
+        model_kill_switch: false,
+        target: "tool",
+        tool_kill_switch: true
+      }
+    });
+    expect(plan.planned_step_count).toBe(1);
+    expect(plan.steps).toEqual([
+      expect.objectContaining({
+        kind: "answer_contract",
+        phase: "answer_contract",
+        public_label: "Return safe degraded response while tool execution is disabled",
+        tool_calls: []
+      })
+    ]);
+  });
+
   it("plans no-model tool loop steps with public progress and stop rules", () => {
     const plan = createToolLoopAgentPlan({
       maxSteps: 6,
@@ -280,6 +377,16 @@ describe("agent runtime scaffold", () => {
     expect(plan.status).toBe("planned_no_model");
     expect(plan.model_calls).toBe(false);
     expect(plan.actual_tool_execution).toBe(false);
+    expect(plan.kill_switch).toMatchObject({
+      decision: {
+        degraded: false,
+        degradation_mode: "normal_no_live",
+        safe_degradation_required: false
+      },
+      switch_state: {
+        target: "none"
+      }
+    });
     expect(plan.chain_of_thought_exposed).toBe(false);
     expect(plan.max_parallel_tools).toBe(3);
     expect(plan.planned_step_count).toBe(6);

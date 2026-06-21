@@ -18,6 +18,7 @@ import {
   AGENT_RUNTIME_LIMITS,
   AGENT_WORKFLOW_NOTIFICATION_CHANNELS,
   AGENT_WORKFLOW_TASK_KINDS,
+  createAgentKillSwitchPlan,
   createAgentRunSkeleton,
   createPreToolCallResolution,
   createToolLoopAgentPlan,
@@ -227,6 +228,10 @@ interface AgentRunRequestBody {
   max_tokens?: unknown;
   max_wall_clock_ms?: unknown;
   methodology?: unknown;
+  kill_switch_reason?: unknown;
+  killSwitchReason?: unknown;
+  model_kill_switch?: unknown;
+  modelKillSwitch?: unknown;
   model_tier?: unknown;
   modelTier?: unknown;
   plan?: unknown;
@@ -237,6 +242,8 @@ interface AgentRunRequestBody {
   time_range?: unknown;
   timeRange?: unknown;
   tools?: unknown;
+  tool_kill_switch?: unknown;
+  toolKillSwitch?: unknown;
   user_id?: unknown;
   userId?: unknown;
   notification_channels?: unknown;
@@ -3038,6 +3045,37 @@ app.get("/agent/runtime", (c) => {
   );
 });
 
+app.post("/agent/kill-switch/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentKillSwitchPlan({
+    killSwitchReason: normalizeString(body.kill_switch_reason ?? body.killSwitchReason),
+    modelKillSwitch: normalizeOptionalBoolean(body.model_kill_switch ?? body.modelKillSwitch),
+    requestId,
+    toolKillSwitch: normalizeOptionalBoolean(body.tool_kill_switch ?? body.toolKillSwitch)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentRuntimeCapabilities().kill_switch
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
+  );
+});
+
 app.post("/agent/runs/stream", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -4888,7 +4926,9 @@ function createAgentRunInput(
     maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : undefined,
     maxWallClockMs:
       typeof body.max_wall_clock_ms === "number" ? body.max_wall_clock_ms : undefined,
+    killSwitchReason: normalizeString(body.kill_switch_reason ?? body.killSwitchReason),
     methodology: typeof body.methodology === "string" ? body.methodology : undefined,
+    modelKillSwitch: normalizeOptionalBoolean(body.model_kill_switch ?? body.modelKillSwitch),
     modelTier:
       typeof body.model_tier === "string"
         ? body.model_tier
@@ -4911,6 +4951,7 @@ function createAgentRunInput(
           ? body.securityQuery
           : undefined,
     timeRange: normalizeAgentTimeRange(body.time_range ?? body.timeRange),
+    toolKillSwitch: normalizeOptionalBoolean(body.tool_kill_switch ?? body.toolKillSwitch),
     userId:
       typeof body.user_id === "string"
         ? body.user_id

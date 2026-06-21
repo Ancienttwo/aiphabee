@@ -30,6 +30,8 @@ export const MODEL_ROUTING_AUDIT_VERSION =
   "2026-06-21.phase1.model-routing-audit-scaffold.v0";
 export const AGENT_WORKFLOW_TASK_VERSION =
   "2026-06-21.phase2.workflow-task-scaffold.v0";
+export const AGENT_KILL_SWITCH_VERSION =
+  "2026-06-21.phase2.kill-switch-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -73,6 +75,8 @@ export interface AgentRunSkeletonInput {
   maxSteps?: number;
   maxTokens?: number;
   maxWallClockMs?: number;
+  killSwitchReason?: string;
+  modelKillSwitch?: boolean;
   modelTier?: string;
   methodology?: string;
   plan?: string;
@@ -85,6 +89,7 @@ export interface AgentRunSkeletonInput {
     end?: string;
     start?: string;
   };
+  toolKillSwitch?: boolean;
   userId?: string;
   workspaceId?: string;
 }
@@ -102,6 +107,19 @@ export interface AgentRuntimeCapabilities {
   };
   limits: typeof AGENT_RUNTIME_LIMITS;
   model_provider: "not_configured";
+  kill_switch: {
+    actual_tool_execution: false;
+    frontend: false;
+    live_flag_reads: false;
+    model_calls: false;
+    model_kill_switch_ready: true;
+    persistent_writes: false;
+    route: "POST /agent/kill-switch/plan";
+    safe_degradation_ready: true;
+    status: "kill_switch_scaffold";
+    tool_kill_switch_ready: true;
+    version: typeof AGENT_KILL_SWITCH_VERSION;
+  };
   pre_tool_call_resolution: {
     actual_tool_execution: false;
     clarification_supported: true;
@@ -682,6 +700,59 @@ export interface AgentModelRoutingAuditPolicy {
   version: typeof MODEL_ROUTING_AUDIT_VERSION;
 }
 
+export type AgentKillSwitchTarget = "all" | "model" | "none" | "tool";
+export type AgentKillSwitchDegradationMode =
+  | "normal_no_live"
+  | "no_model_no_tools"
+  | "tool_only_no_model";
+
+export interface AgentKillSwitchPlan {
+  actual_tool_execution: false;
+  data_version: typeof AGENT_KILL_SWITCH_VERSION;
+  decision: {
+    degraded: boolean;
+    degradation_mode: AgentKillSwitchDegradationMode;
+    model_calls_allowed: false;
+    model_request_blocked: boolean;
+    safe_degradation_required: boolean;
+    tool_execution_blocked: boolean;
+    tool_execution_allowed: boolean;
+  };
+  frontend: false;
+  live_flag_reads: false;
+  methodology_version: typeof AGENT_KILL_SWITCH_VERSION;
+  model_calls: false;
+  persistent_writes: false;
+  provenance: Array<{
+    data_version: typeof AGENT_KILL_SWITCH_VERSION;
+    methodology_version: typeof AGENT_KILL_SWITCH_VERSION;
+    source: "agent-kill-switch";
+    source_record_id: string;
+  }>;
+  reason?: string;
+  request_id: string;
+  route: "POST /agent/kill-switch/plan";
+  safe_degradation: {
+    deterministic_calculation_allowed: true;
+    evidence_required_for_reused_outputs: true;
+    partial_answer_allowed: true;
+    unknown_label_required: true;
+    user_visible_state: true;
+  };
+  status: "planned_no_live_kill_switch";
+  switch_state: {
+    model_kill_switch: boolean;
+    target: AgentKillSwitchTarget;
+    tool_kill_switch: boolean;
+  };
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: 1;
+  };
+  version: typeof AGENT_KILL_SWITCH_VERSION;
+}
+
 export interface AgentToolLoopToolCallPlan {
   allow_arbitrary_sql: false;
   allow_arbitrary_url: false;
@@ -715,7 +786,10 @@ export type AgentToolLoopProgressEvent =
   | "tool.step.planned"
   | "run.completed"
   | "run.stopped";
-export type AgentToolLoopStatus = "planned_no_model" | "stopped_budget";
+export type AgentToolLoopStatus =
+  | "degraded_kill_switch"
+  | "planned_no_model"
+  | "stopped_budget";
 
 export type PreToolCallResolutionStatus =
   | "needs_clarification"
@@ -876,6 +950,7 @@ export interface AgentToolLoopPlan {
   budget_stop_policy: AgentBudgetStopPolicy;
   chain_of_thought_exposed: false;
   failure_recovery_policy: AgentFailureRecoveryPolicy;
+  kill_switch: AgentKillSwitchPlan;
   max_parallel_tools: typeof AGENT_RUNTIME_LIMITS.maxParallelTools;
   model_routing_audit: AgentModelRoutingAuditPolicy;
   model_calls: false;
@@ -1026,6 +1101,19 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       target_version: AI_SDK_TARGET_VERSION
     },
     limits: AGENT_RUNTIME_LIMITS,
+    kill_switch: {
+      actual_tool_execution: false,
+      frontend: false,
+      live_flag_reads: false,
+      model_calls: false,
+      model_kill_switch_ready: true,
+      persistent_writes: false,
+      route: "POST /agent/kill-switch/plan",
+      safe_degradation_ready: true,
+      status: "kill_switch_scaffold",
+      tool_kill_switch_ready: true,
+      version: AGENT_KILL_SWITCH_VERSION
+    },
     model_provider: "not_configured",
     pre_tool_call_resolution: {
       actual_tool_execution: false,
@@ -1265,12 +1353,90 @@ export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSk
   };
 }
 
+export function createAgentKillSwitchPlan(input: {
+  killSwitchReason?: string;
+  modelKillSwitch?: boolean;
+  requestId: string;
+  toolKillSwitch?: boolean;
+}): AgentKillSwitchPlan {
+  const modelKillSwitch = input.modelKillSwitch === true;
+  const toolKillSwitch = input.toolKillSwitch === true;
+  const target = createKillSwitchTarget(modelKillSwitch, toolKillSwitch);
+  const degraded = modelKillSwitch || toolKillSwitch;
+
+  return {
+    actual_tool_execution: false,
+    data_version: AGENT_KILL_SWITCH_VERSION,
+    decision: {
+      degraded,
+      degradation_mode: createKillSwitchDegradationMode(modelKillSwitch, toolKillSwitch),
+      model_calls_allowed: false,
+      model_request_blocked: modelKillSwitch,
+      safe_degradation_required: degraded,
+      tool_execution_blocked: toolKillSwitch,
+      tool_execution_allowed: !toolKillSwitch
+    },
+    frontend: false,
+    live_flag_reads: false,
+    methodology_version: AGENT_KILL_SWITCH_VERSION,
+    model_calls: false,
+    persistent_writes: false,
+    provenance: [
+      {
+        data_version: AGENT_KILL_SWITCH_VERSION,
+        methodology_version: AGENT_KILL_SWITCH_VERSION,
+        source: "agent-kill-switch",
+        source_record_id: `agent_kill_switch_${target}`
+      }
+    ],
+    reason: normalizeOptionalText(input.killSwitchReason),
+    request_id: input.requestId,
+    route: "POST /agent/kill-switch/plan",
+    safe_degradation: {
+      deterministic_calculation_allowed: true,
+      evidence_required_for_reused_outputs: true,
+      partial_answer_allowed: true,
+      unknown_label_required: true,
+      user_visible_state: true
+    },
+    status: "planned_no_live_kill_switch",
+    switch_state: {
+      model_kill_switch: modelKillSwitch,
+      target,
+      tool_kill_switch: toolKillSwitch
+    },
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: 1
+    },
+    version: AGENT_KILL_SWITCH_VERSION
+  };
+}
+
 export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentToolLoopPlan {
   const skeleton = createAgentRunSkeleton(input);
   const preToolCallResolution = createPreToolCallResolution(input);
   const retryPolicy = createRetryPolicy();
+  const killSwitch = createAgentKillSwitchPlan({
+    killSwitchReason: input.killSwitchReason,
+    modelKillSwitch: input.modelKillSwitch,
+    requestId: input.requestId,
+    toolKillSwitch: input.toolKillSwitch
+  });
   const naturalSteps =
-    preToolCallResolution.clarification_required
+    killSwitch.decision.tool_execution_blocked
+      ? [
+          createStep(
+            1,
+            "answer_contract",
+            "answer_contract",
+            "Return safe degraded response while tool execution is disabled",
+            [],
+            retryPolicy
+          )
+        ]
+      : preToolCallResolution.clarification_required
       ? [
           createStep(
             1,
@@ -1316,6 +1482,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     budget_stop_policy: budgetStopPolicy,
     chain_of_thought_exposed: false,
     failure_recovery_policy: failureRecoveryPolicy,
+    kill_switch: killSwitch,
     max_parallel_tools: AGENT_RUNTIME_LIMITS.maxParallelTools,
     model_routing_audit: modelRoutingAudit,
     model_calls: false,
@@ -1341,7 +1508,9 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     run_context: skeleton.run_context,
     run_id: skeleton.run_id,
     status:
-      budgetStopPolicy.decision.status === "stop_before_execution"
+      killSwitch.decision.safe_degradation_required
+        ? "degraded_kill_switch"
+        : budgetStopPolicy.decision.status === "stop_before_execution"
         ? "stopped_budget"
         : "planned_no_model",
     steps,
@@ -2827,6 +2996,40 @@ function normalizeText(value: string | undefined, fallback: string, field: strin
   }
 
   return normalized;
+}
+
+function createKillSwitchTarget(
+  modelKillSwitch: boolean,
+  toolKillSwitch: boolean
+): AgentKillSwitchTarget {
+  if (modelKillSwitch && toolKillSwitch) {
+    return "all";
+  }
+
+  if (modelKillSwitch) {
+    return "model";
+  }
+
+  if (toolKillSwitch) {
+    return "tool";
+  }
+
+  return "none";
+}
+
+function createKillSwitchDegradationMode(
+  modelKillSwitch: boolean,
+  toolKillSwitch: boolean
+): AgentKillSwitchDegradationMode {
+  if (toolKillSwitch) {
+    return "no_model_no_tools";
+  }
+
+  if (modelKillSwitch) {
+    return "tool_only_no_model";
+  }
+
+  return "normal_no_live";
 }
 
 function normalizeUserIdentity(value: string | undefined): AgentRunContext["user"] {
