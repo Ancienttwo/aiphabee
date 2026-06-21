@@ -1,0 +1,92 @@
+{
+  "version": "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "status_route": "GET /mcp/compatibility/status",
+  "protocol_route": "POST /mcp",
+  "transport": "streamable_http",
+  "target_protocol_version": "2025-03-26",
+  "monitored_protocol_versions": [
+    "2025-03-26",
+    "2025-11-25"
+  ],
+  "frontend": false,
+  "public_status_page_live": false,
+  "live_client_e2e_passed": false,
+  "live_inspector_smoke": false,
+  "live_sdk_smoke": false,
+  "covered_sprint_2_3_items": [
+    "MCP-12",
+    "official_inspector",
+    "official_sdk",
+    "target_clients",
+    "status_page",
+    "as_of_delay_source_display"
+  ],
+  "official_targets": {
+    "inspector": "@modelcontextprotocol/inspector",
+    "inspector_command": "npx @modelcontextprotocol/inspector",
+    "typescript_sdk_channel": "typescript-sdk-v1.x",
+    "typescript_sdk_latest_seen_v1_release": "v1.29.0",
+    "typescript_sdk_v2_status": "pre_alpha_not_targeted"
+  },
+  "required_runtime_capability_fields": [
+    "mcp_compatibility_status_ready",
+    "mcp_compatibility_status_route",
+    "mcp_compatibility_status_version",
+    "mcp_live_client_e2e_passed",
+    "mcp_target_protocol_version",
+    "monitored_protocol_versions"
+  ],
+  "required_status_fields": [
+    "version",
+    "status",
+    "target_protocol_version",
+    "monitored_protocol_versions",
+    "inspector",
+    "sdk",
+    "target_clients",
+    "test_vectors",
+    "status_page",
+    "release_gate"
+  ],
+  "required_inspector_checks": [
+    "connectivity",
+    "capability_negotiation",
+    "tools_tab",
+    "error_responses"
+  ],
+  "required_target_clients": [
+    "mcp_inspector",
+    "typescript_sdk_client",
+    "claude_desktop",
+    "cursor",
+    "chatgpt_connector"
+  ],
+  "required_test_vectors": [
+    "streamable_http_post",
+    "initialize_negotiation",
+    "tools_list",
+    "tools_call_schema_validation",
+    "structured_content_text_fallback",
+    "oauth_pkce",
+    "api_key_lifecycle",
+    "pagination_limits",
+    "standard_errors",
+    "usage_and_request_id",
+    "as_of_delay_source_display"
+  ],
+  "status_page": {
+    "route": "GET /mcp/compatibility/status",
+    "shows_protocol_version": true,
+    "shows_last_successful_client_smoke": true,
+    "shows_open_incidents": true,
+    "public_status_page_live": false
+  },
+  "release_gate": {
+    "local_contract_required": "npm run check:mcp-compatibility",
+    "remote_mcp_rights_required": true,
+    "live_client_smoke_required_before_ga": true
+  }
+}

@@ -94,6 +94,7 @@ import {
 } from "@aiphabee/market-data";
 import {
   McpRuntimeInputError,
+  createMcpCompatibilityStatusPlan,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
   createMcpApiKeyRotatePlan,
@@ -102,6 +103,7 @@ import {
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
   getMcpApiKeyCapabilities,
+  getMcpCompatibilityStatusCapabilities,
   getMcpOAuthCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
@@ -1603,6 +1605,30 @@ app.get("/mcp/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.get("/mcp/compatibility/status", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const plan = createMcpCompatibilityStatusPlan({ requestId });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getMcpCompatibilityStatusCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
   );
 });
 

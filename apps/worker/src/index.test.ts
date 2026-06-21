@@ -1636,6 +1636,11 @@ interface McpRuntimeBody {
     live_tool_execution: boolean;
     max_row_limit_enforced: boolean;
     mcp_api_redistribution_rights_confirmed: boolean;
+    mcp_compatibility_status_ready: boolean;
+    mcp_compatibility_status_route: string;
+    mcp_compatibility_status_version: string;
+    mcp_live_client_e2e_passed: boolean;
+    mcp_target_protocol_version: string;
     oauth_authorize_route: string;
     oauth_live: boolean;
     oauth_pkce_ready: boolean;
@@ -1672,12 +1677,70 @@ interface McpRuntimeBody {
     usage_remaining_ready: boolean;
     usage_request_id_visible: boolean;
     usage_reconciliation_ready: boolean;
+    monitored_protocol_versions: string[];
     supported_oauth_scopes: string[];
     supported_methods: string[];
     transport: string;
     web_rights_do_not_imply_mcp: boolean;
   };
   ok: true;
+}
+
+interface McpCompatibilityStatusBody {
+  data: {
+    capability: {
+      live_client_e2e_passed: boolean;
+      production_sdk_channel: string;
+      public_status_page_live: boolean;
+      status: string;
+      status_route: string;
+      target_protocol_version: string;
+    };
+    inspector: {
+      live_inspector_smoke: boolean;
+      planned_command: string;
+      required_checks: string[];
+      target: string;
+    };
+    live_client_e2e_passed: boolean;
+    monitored_protocol_versions: string[];
+    protocol_route: string;
+    release_gate: {
+      live_client_smoke_required_before_ga: boolean;
+      local_contract_required: string;
+      remote_mcp_rights_required: boolean;
+    };
+    sdk: {
+      latest_seen_v1_release: string;
+      live_sdk_smoke: boolean;
+      production_channel: string;
+      v2_channel_status: string;
+    };
+    status: string;
+    status_page: {
+      public_status_page_live: boolean;
+      route: string;
+      shows_last_successful_client_smoke: boolean;
+      shows_open_incidents: boolean;
+      shows_protocol_version: boolean;
+    };
+    target_clients: Array<{
+      live_e2e_passed: boolean;
+      name: string;
+      status: string;
+    }>;
+    target_protocol_version: string;
+    test_vectors: Array<{
+      live_smoke_passed: boolean;
+      local_contract_ready: boolean;
+      name: string;
+    }>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface McpProtocolPlanBody {
@@ -5893,6 +5956,12 @@ describe("worker runtime", () => {
       live_tool_execution: false,
       max_row_limit_enforced: true,
       mcp_api_redistribution_rights_confirmed: false,
+      mcp_compatibility_status_ready: true,
+      mcp_compatibility_status_route: "GET /mcp/compatibility/status",
+      mcp_compatibility_status_version:
+        "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
+      mcp_live_client_e2e_passed: false,
+      mcp_target_protocol_version: "2025-03-26",
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_live: false,
       oauth_pkce_ready: true,
@@ -5933,6 +6002,7 @@ describe("worker runtime", () => {
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
     });
+    expect(body.data.monitored_protocol_versions).toEqual(["2025-03-26", "2025-11-25"]);
     expect(body.data.supported_methods).toEqual([
       "initialize",
       "tools/list",
@@ -5967,6 +6037,92 @@ describe("worker runtime", () => {
       retry_after_required: true,
       source_record_id: "mcp_error_rate_limited"
     });
+  });
+
+  it("serves MCP compatibility status without live SDK or Inspector smoke", async () => {
+    const response = await app.request("/mcp/compatibility/status", {
+      headers: {
+        "x-request-id": "req-mcp-compatibility-status"
+      }
+    });
+    const body = (await response.json()) as McpCompatibilityStatusBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      live_client_e2e_passed: false,
+      protocol_route: "POST /mcp",
+      release_gate: {
+        live_client_smoke_required_before_ga: true,
+        local_contract_required: "npm run check:mcp-compatibility",
+        remote_mcp_rights_required: true
+      },
+      sdk: {
+        latest_seen_v1_release: "v1.29.0",
+        live_sdk_smoke: false,
+        production_channel: "typescript-sdk-v1.x",
+        v2_channel_status: "pre_alpha_not_targeted"
+      },
+      status: "planned_no_live_compatibility_status",
+      status_page: {
+        public_status_page_live: false,
+        route: "GET /mcp/compatibility/status",
+        shows_last_successful_client_smoke: true,
+        shows_open_incidents: true,
+        shows_protocol_version: true
+      },
+      target_protocol_version: "2025-03-26",
+      version: "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0"
+    });
+    expect(body.data.capability).toMatchObject({
+      live_client_e2e_passed: false,
+      production_sdk_channel: "typescript-sdk-v1.x",
+      public_status_page_live: false,
+      status: "mcp_compatibility_status_scaffold",
+      status_route: "GET /mcp/compatibility/status",
+      target_protocol_version: "2025-03-26"
+    });
+    expect(body.data.monitored_protocol_versions).toEqual(["2025-03-26", "2025-11-25"]);
+    expect(body.data.inspector).toEqual({
+      live_inspector_smoke: false,
+      planned_command: "npx @modelcontextprotocol/inspector",
+      required_checks: [
+        "connectivity",
+        "capability_negotiation",
+        "tools_tab",
+        "error_responses"
+      ],
+      target: "@modelcontextprotocol/inspector"
+    });
+    expect(body.data.target_clients.map((client) => client.name)).toEqual([
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ]);
+    expect(body.data.target_clients.every((client) => client.live_e2e_passed === false)).toBe(
+      true
+    );
+    expect(body.data.test_vectors.map((vector) => vector.name)).toEqual([
+      "streamable_http_post",
+      "initialize_negotiation",
+      "tools_list",
+      "tools_call_schema_validation",
+      "structured_content_text_fallback",
+      "oauth_pkce",
+      "api_key_lifecycle",
+      "pagination_limits",
+      "standard_errors",
+      "usage_and_request_id",
+      "as_of_delay_source_display"
+    ]);
+    expect(body.data.test_vectors.every((vector) => vector.local_contract_ready)).toBe(true);
+    expect(body.data.test_vectors.every((vector) => vector.live_smoke_passed === false)).toBe(
+      true
+    );
+    expect(body.usage.rows).toBe(0);
   });
 
   it("serves MCP OAuth PKCE capabilities with revocable scope catalog", async () => {

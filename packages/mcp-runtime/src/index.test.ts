@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MCP_COMPATIBILITY_STATUS_VERSION,
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
   MCP_TOOL_LIMITER_VERSION,
@@ -7,6 +8,7 @@ import {
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
   createMcpApiKeyRotatePlan,
+  createMcpCompatibilityStatusPlan,
   createMcpOAuthAuthorizePlan,
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
@@ -81,6 +83,12 @@ describe("mcp endpoint default-deny scaffold", () => {
       standard_error_codes_ready: true,
       budget_limit_plan_ready: true,
       concurrency_limit_plan_ready: true,
+      mcp_compatibility_status_ready: true,
+      mcp_compatibility_status_route: "GET /mcp/compatibility/status",
+      mcp_compatibility_status_version:
+        "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
+      mcp_live_client_e2e_passed: false,
+      mcp_target_protocol_version: "2025-03-26",
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
       mcp_tool_limiter_ready: true,
@@ -133,6 +141,85 @@ describe("mcp endpoint default-deny scaffold", () => {
         queue_name: "mcp-high-cost"
       }
     ]);
+    expect(getMcpRuntimeCapabilities().monitored_protocol_versions).toEqual([
+      "2025-03-26",
+      "2025-11-25"
+    ]);
+  });
+
+  it("plans MCP compatibility status without live client smoke", () => {
+    const plan = createMcpCompatibilityStatusPlan({
+      requestId: "req-mcp-compatibility"
+    });
+
+    expect(MCP_COMPATIBILITY_STATUS_VERSION).toBe(
+      "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0"
+    );
+    expect(plan).toMatchObject({
+      data_version: MCP_COMPATIBILITY_STATUS_VERSION,
+      inspector: {
+        live_inspector_smoke: false,
+        planned_command: "npx @modelcontextprotocol/inspector",
+        target: "@modelcontextprotocol/inspector"
+      },
+      live_client_e2e_passed: false,
+      methodology_version: MCP_COMPATIBILITY_STATUS_VERSION,
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      request_id: "req-mcp-compatibility",
+      runtime_route: "GET /mcp/runtime",
+      sdk: {
+        latest_seen_v1_release: "v1.29.0",
+        live_sdk_smoke: false,
+        production_channel: "typescript-sdk-v1.x",
+        v2_channel_status: "pre_alpha_not_targeted"
+      },
+      status: "planned_no_live_compatibility_status",
+      status_page: {
+        public_status_page_live: false,
+        route: "GET /mcp/compatibility/status",
+        shows_last_successful_client_smoke: true,
+        shows_open_incidents: true,
+        shows_protocol_version: true
+      },
+      target_protocol_version: "2025-03-26",
+      usage: {
+        credits: 0,
+        rows: 0,
+        usage_reconciliation_status: "planned_no_live"
+      },
+      version: MCP_COMPATIBILITY_STATUS_VERSION
+    });
+    expect(plan.monitored_protocol_versions).toEqual(["2025-03-26", "2025-11-25"]);
+    expect(plan.inspector.required_checks).toEqual([
+      "connectivity",
+      "capability_negotiation",
+      "tools_tab",
+      "error_responses"
+    ]);
+    expect(plan.target_clients.map((client) => client.name)).toEqual([
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ]);
+    expect(plan.target_clients.every((client) => client.live_e2e_passed === false)).toBe(true);
+    expect(plan.test_vectors.map((vector) => vector.name)).toEqual([
+      "streamable_http_post",
+      "initialize_negotiation",
+      "tools_list",
+      "tools_call_schema_validation",
+      "structured_content_text_fallback",
+      "oauth_pkce",
+      "api_key_lifecycle",
+      "pagination_limits",
+      "standard_errors",
+      "usage_and_request_id",
+      "as_of_delay_source_display"
+    ]);
+    expect(plan.test_vectors.every((vector) => vector.local_contract_ready)).toBe(true);
+    expect(plan.test_vectors.every((vector) => vector.live_smoke_passed === false)).toBe(true);
   });
 
   it("maps MCP runtime input failures to stable PRD standard errors", () => {
