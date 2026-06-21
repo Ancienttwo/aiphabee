@@ -50,8 +50,8 @@ Reason:
 
 - Sprint 1.4 workbench announcement search is a stock-workbench section.
 - Sprint 2.2 introduces document/research tools that now include dedicated
-  excerpt retrieval, sanitizer, and semantic search scaffolds, with diffing and
-  saved run replay still separate.
+  excerpt retrieval, sanitizer, semantic search, and diff extraction scaffolds,
+  with saved run replay still separate.
 - Keeping the document-tool surface separate avoids coupling Phase 2 document
   contracts to the workbench snapshot shape.
 
@@ -112,6 +112,7 @@ Observed search behavior:
 - Semantic document search is covered by
   `docs/governance/semantic-document-search-scaffold.md`; live pgvector remains
   disabled.
-- Cross-period document diff and numeric extraction are not implemented.
+- Cross-period document diff and numeric extraction are covered separately by
+  `docs/governance/announcement-diff-extraction-scaffold.md`.
 - Saved research runs and replay are not implemented.
 - Frontend research-library UI remains delegated.

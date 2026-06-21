@@ -61,8 +61,10 @@ import {
   getEvidenceServiceCapabilities
 } from "@aiphabee/evidence-lineage";
 import {
+  diffAnnouncements,
   getAnnouncement,
   getAnnouncementCapabilities,
+  getDiffAnnouncementsCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
   getSearchDocumentsCapabilities,
@@ -1314,6 +1316,50 @@ app.post("/documents/search-documents", async (c) => {
             methodology_version: result.methodology_version,
             source: "document-search-documents",
             source_record_id: "search-documents"
+          }
+        ],
+        requestId,
+        usage: result.usage
+      }
+    )
+  );
+});
+
+app.post("/documents/diff-announcements", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = diffAnnouncements({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    baseDocumentId: normalizeString(body.base_document_id ?? body.baseDocumentId),
+    comparisonDocumentId: normalizeString(
+      body.comparison_document_id ?? body.comparisonDocumentId
+    ),
+    requestId,
+    sections: normalizeStringArray(body.sections)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...result,
+        capability: getDiffAnnouncementsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: result.data_version,
+        methodologyVersion: result.methodology_version,
+        provenance: [
+          {
+            data_version: result.data_version,
+            methodology_version: result.methodology_version,
+            source: "document-diff-announcements",
+            source_record_id:
+              result.documents.comparison?.source_record_id ??
+              result.documents.base?.source_record_id ??
+              "diff-announcements"
           }
         ],
         requestId,

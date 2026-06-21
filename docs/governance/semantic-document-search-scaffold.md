@@ -110,6 +110,7 @@ Observed root check residual:
 
 - Live pgvector index, embeddings, and SQL execution are not implemented.
 - Cloudflare Vectorize is not used.
-- Cross-period document diff and numeric extraction are not implemented.
+- Cross-period document diff and numeric extraction are covered separately by
+  `docs/governance/announcement-diff-extraction-scaffold.md`.
 - Saved research runs and replay are not implemented.
 - Frontend research-library UI remains delegated.

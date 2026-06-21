@@ -6,13 +6,15 @@ import {
 export const DOCUMENT_TOOLS_VERSION =
   "2026-06-21.phase2.search-announcements-scaffold.v0";
 export const DOCUMENT_TOOLS_RUNTIME_VERSION =
-  "2026-06-21.phase2.semantic-document-search-scaffold.v0";
+  "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0";
 export const GET_ANNOUNCEMENT_VERSION =
   "2026-06-21.phase2.get-announcement-scaffold.v0";
 export const DOCUMENT_SANITIZER_VERSION =
   "2026-06-21.phase2.document-sanitizer-scaffold.v0";
 export const DOCUMENT_SEMANTIC_SEARCH_VERSION =
   "2026-06-21.phase2.semantic-document-search-scaffold.v0";
+export const DOCUMENT_DIFF_EXTRACTION_VERSION =
+  "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0";
 
 export type SearchAnnouncementCategory = "buyback" | "dividend" | "results";
 export type SearchAnnouncementLanguage = "en" | "zh-Hant";
@@ -25,6 +27,9 @@ export type DocumentSanitizationRemovedItem =
   | "suspicious_instruction";
 export type DocumentSanitizationStatus = "clean" | "sanitized";
 export type SearchDocumentsStatus = "found" | "not_found";
+export type DiffAnnouncementsStatus = "found" | "not_found" | "schema_invalid";
+export type ExtractedNumericFieldId = "operating_profit" | "revenue";
+export type ExtractedNumericDocumentRole = "base" | "comparison";
 
 export interface DocumentTrustPolicy {
   content_is_untrusted_data: true;
@@ -67,6 +72,14 @@ export interface SearchDocumentsInput {
   query?: string;
   requestId: string;
   to?: string;
+}
+
+export interface DiffAnnouncementsInput {
+  asOf?: string;
+  baseDocumentId?: string;
+  comparisonDocumentId?: string;
+  requestId: string;
+  sections?: string[];
 }
 
 export interface AnnouncementEvidenceLocator {
@@ -287,6 +300,106 @@ export interface SearchDocumentsResult {
   vector_search: true;
 }
 
+export interface ExtractedAnnouncementNumericValue {
+  document_id: string;
+  document_role: ExtractedNumericDocumentRole;
+  evidence_locator: AnnouncementExcerptLocator;
+  field_id: ExtractedNumericFieldId;
+  label: string;
+  period: string;
+  schema_valid: true;
+  scale: "billion";
+  section_id: string;
+  source_record_id: string;
+  unit: "HKD billion";
+  untrusted_document: true;
+  value: number;
+  value_type: "reported_numeric";
+}
+
+export interface AnnouncementNumericDiff {
+  absolute_change: number;
+  base_period: string;
+  base_value: number;
+  comparison_period: string;
+  comparison_value: number;
+  direction: "decrease" | "flat" | "increase";
+  evidence_locators: {
+    base: AnnouncementExcerptLocator;
+    comparison: AnnouncementExcerptLocator;
+  };
+  field_id: ExtractedNumericFieldId;
+  label: string;
+  percent_change: number;
+  schema_valid: true;
+  unit: "HKD billion";
+}
+
+export interface DiffAnnouncementsResult {
+  as_of: string;
+  comparison_engine: "synthetic_schema_bound_numeric_diff";
+  data_version: typeof DOCUMENT_DIFF_EXTRACTION_VERSION;
+  diff_count: number;
+  diffs: AnnouncementNumericDiff[];
+  document_trust_policy: DocumentTrustPolicy;
+  documents: {
+    base?: {
+      announcement_id: string;
+      category: SearchAnnouncementCategory;
+      document_id: string;
+      instrument_id: string;
+      published_at: string;
+      source_record_id: string;
+      symbol: string;
+      title: string;
+    };
+    comparison?: {
+      announcement_id: string;
+      category: SearchAnnouncementCategory;
+      document_id: string;
+      instrument_id: string;
+      published_at: string;
+      source_record_id: string;
+      symbol: string;
+      title: string;
+    };
+  };
+  evidence_binding_ready: true;
+  extracted_value_count: number;
+  extracted_values: ExtractedAnnouncementNumericValue[];
+  extraction_source: "synthetic_announcement_section_fixture";
+  filters: {
+    base_document_id?: string;
+    comparison_document_id?: string;
+    sections: string[];
+  };
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof DOCUMENT_DIFF_EXTRACTION_VERSION;
+  original_document_fetch: false;
+  row_count: number;
+  sanitization_policy: DocumentSanitizationPolicy;
+  schema_validation: {
+    errors: string[];
+    required_fields: string[];
+    schema_id: "announcement_numeric_extraction_v0";
+    schema_version: typeof DOCUMENT_DIFF_EXTRACTION_VERSION;
+    valid: boolean;
+    validated_value_count: number;
+  };
+  schema_validation_ready: true;
+  sql_emitted: false;
+  status: DiffAnnouncementsStatus;
+  toolName: "diff_announcements";
+  total_count: number;
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  vector_search: false;
+}
+
 interface SyntheticAnnouncementRecord {
   announcement_id: string;
   category: SearchAnnouncementCategory;
@@ -300,9 +413,19 @@ interface SyntheticAnnouncementRecord {
   title: string;
 }
 
+interface SyntheticAnnouncementNumericFact {
+  field_id: ExtractedNumericFieldId;
+  label: string;
+  period: string;
+  scale: "billion";
+  unit: "HKD billion";
+  value: number;
+}
+
 interface SyntheticAnnouncementSection {
   anchor: string;
   excerpt: string;
+  numeric_facts?: readonly SyntheticAnnouncementNumericFact[];
   page: number;
   paragraph: number;
   section_id: string;
@@ -341,6 +464,23 @@ const SYNTHETIC_ANNOUNCEMENTS: readonly SyntheticAnnouncementRecord[] = [
     summary: "Annual results announcement with financial highlights and FY metrics.",
     symbol: "00700.HK",
     title: "Annual Results Announcement for the Year Ended 31 December 2023"
+  },
+  {
+    announcement_id: "ann_00700_20250320_results",
+    category: "results",
+    evidence_locator: createAnnouncementLocator(
+      "ann_00700_20250320_results",
+      "src_announcement_00700_20250320_results",
+      4,
+      "financial-highlights"
+    ),
+    instrument_id: "eq_hk_00700",
+    language: "en",
+    published_at: "2025-03-20T18:30:00+08:00",
+    source_record_id: "src_announcement_00700_20250320_results",
+    summary: "Annual results announcement with FY2024 financial highlights.",
+    symbol: "00700.HK",
+    title: "Annual Results Announcement for the Year Ended 31 December 2024"
   },
   {
     announcement_id: "ann_00700_20260103_dividend",
@@ -503,8 +643,35 @@ export function getSearchDocumentsCapabilities() {
   };
 }
 
+export function getDiffAnnouncementsCapabilities() {
+  return {
+    comparison_engine: "synthetic_schema_bound_numeric_diff" as const,
+    evidence_binding_ready: true,
+    frontend_rendering: false,
+    live_data_access: false,
+    numeric_fields: ["revenue", "operating_profit"] as const,
+    original_document_fetch: false,
+    package: "@aiphabee/document-tools" as const,
+    required_inputs: ["base_document_id", "comparison_document_id"] as const,
+    route: "POST /documents/diff-announcements" as const,
+    schema_id: "announcement_numeric_extraction_v0" as const,
+    schema_validation_ready: true,
+    status: "diff_announcements_scaffold" as const,
+    supported_inputs: [
+      "base_document_id",
+      "comparison_document_id",
+      "sections"
+    ] as const,
+    tool_name: "diff_announcements" as const,
+    untrusted_document_policy: true,
+    version: DOCUMENT_DIFF_EXTRACTION_VERSION,
+    vector_search: false
+  };
+}
+
 export function getDocumentToolsCapabilities() {
   return {
+    diff_announcements: getDiffAnnouncementsCapabilities(),
     document_sanitizer: getDocumentSanitizerCapabilities(),
     frontend_rendering: false,
     get_announcement: getAnnouncementCapabilities(),
@@ -514,7 +681,8 @@ export function getDocumentToolsCapabilities() {
     routes: [
       "POST /documents/search-announcements",
       "POST /documents/get-announcement",
-      "POST /documents/search-documents"
+      "POST /documents/search-documents",
+      "POST /documents/diff-announcements"
     ] as const,
     runtime_route: "GET /documents/runtime" as const,
     search_announcements: getSearchAnnouncementsCapabilities(),
@@ -761,6 +929,66 @@ export function searchDocuments(input: SearchDocumentsInput): SearchDocumentsRes
   };
 }
 
+export function diffAnnouncements(
+  input: DiffAnnouncementsInput
+): DiffAnnouncementsResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const baseDocumentId = normalizeSingleDocumentId(input.baseDocumentId);
+  const comparisonDocumentId = normalizeSingleDocumentId(input.comparisonDocumentId);
+  const sections = normalizeSections(input.sections);
+  const filters: DiffAnnouncementsResult["filters"] = {
+    base_document_id: baseDocumentId,
+    comparison_document_id: comparisonDocumentId,
+    sections
+  };
+  const baseDocument =
+    baseDocumentId === undefined ? undefined : findSyntheticDocument(baseDocumentId);
+  const comparisonDocument =
+    comparisonDocumentId === undefined
+      ? undefined
+      : findSyntheticDocument(comparisonDocumentId);
+
+  if (baseDocument === undefined || comparisonDocument === undefined) {
+    return createDiffAnnouncementsResult({
+      asOf,
+      baseDocument,
+      comparisonDocument,
+      diffs: [],
+      extractedValues: [],
+      filters,
+      schemaErrors: [],
+      status: "not_found"
+    });
+  }
+
+  const baseValues = createExtractedNumericValues(baseDocument, "base", sections);
+  const comparisonValues = createExtractedNumericValues(
+    comparisonDocument,
+    "comparison",
+    sections
+  );
+  const extractedValues = [...baseValues, ...comparisonValues];
+  const schemaErrors = extractedValues.flatMap(validateExtractedNumericValueSchema);
+  const diffs = createNumericDiffs(baseValues, comparisonValues);
+  const status: DiffAnnouncementsStatus =
+    schemaErrors.length > 0
+      ? "schema_invalid"
+      : diffs.length > 0
+        ? "found"
+        : "not_found";
+
+  return createDiffAnnouncementsResult({
+    asOf,
+    baseDocument,
+    comparisonDocument,
+    diffs,
+    extractedValues,
+    filters,
+    schemaErrors,
+    status
+  });
+}
+
 function createSearchAnnouncementResultItem(
   announcement: SyntheticAnnouncementRecord,
   normalizedKeyword: string | undefined
@@ -924,6 +1152,198 @@ function createSemanticDocumentCandidate(
   };
 }
 
+function createDiffAnnouncementsResult(params: {
+  asOf: string;
+  baseDocument: SyntheticAnnouncementDocument | undefined;
+  comparisonDocument: SyntheticAnnouncementDocument | undefined;
+  diffs: AnnouncementNumericDiff[];
+  extractedValues: ExtractedAnnouncementNumericValue[];
+  filters: DiffAnnouncementsResult["filters"];
+  schemaErrors: string[];
+  status: DiffAnnouncementsStatus;
+}): DiffAnnouncementsResult {
+  return {
+    as_of: params.asOf,
+    comparison_engine: "synthetic_schema_bound_numeric_diff",
+    data_version: DOCUMENT_DIFF_EXTRACTION_VERSION,
+    diff_count: params.diffs.length,
+    diffs: params.diffs,
+    document_trust_policy: createDocumentTrustPolicy(),
+    documents: {
+      base: createDiffDocumentSummary(params.baseDocument),
+      comparison: createDiffDocumentSummary(params.comparisonDocument)
+    },
+    evidence_binding_ready: true,
+    extracted_value_count: params.extractedValues.length,
+    extracted_values: params.extractedValues,
+    extraction_source: "synthetic_announcement_section_fixture",
+    filters: params.filters,
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: DOCUMENT_DIFF_EXTRACTION_VERSION,
+    original_document_fetch: false,
+    row_count: params.diffs.length,
+    sanitization_policy: createDocumentSanitizationPolicy(),
+    schema_validation: {
+      errors: params.schemaErrors,
+      required_fields: NUMERIC_EXTRACTION_SCHEMA_REQUIRED_FIELDS,
+      schema_id: "announcement_numeric_extraction_v0",
+      schema_version: DOCUMENT_DIFF_EXTRACTION_VERSION,
+      valid: params.schemaErrors.length === 0,
+      validated_value_count: params.extractedValues.length
+    },
+    schema_validation_ready: true,
+    sql_emitted: false,
+    status: params.status,
+    toolName: "diff_announcements",
+    total_count: params.diffs.length,
+    usage: {
+      cached: false,
+      credits: params.diffs.length > 0 ? 2 : 0,
+      rows: params.diffs.length
+    },
+    vector_search: false
+  };
+}
+
+function createDiffDocumentSummary(document: SyntheticAnnouncementDocument | undefined) {
+  if (document === undefined) {
+    return undefined;
+  }
+
+  const announcement = document.announcement;
+  return {
+    announcement_id: announcement.announcement_id,
+    category: announcement.category,
+    document_id: document.document_id,
+    instrument_id: announcement.instrument_id,
+    published_at: announcement.published_at,
+    source_record_id: announcement.source_record_id,
+    symbol: announcement.symbol,
+    title: announcement.title
+  };
+}
+
+function createExtractedNumericValues(
+  document: SyntheticAnnouncementDocument,
+  documentRole: ExtractedNumericDocumentRole,
+  requestedSections: string[]
+): ExtractedAnnouncementNumericValue[] {
+  return document.sections
+    .filter(
+      (section) =>
+        requestedSections.length === 0 || requestedSections.includes(section.section_id)
+    )
+    .flatMap((section) =>
+      (section.numeric_facts ?? []).map((fact) => ({
+        document_id: document.document_id,
+        document_role: documentRole,
+        evidence_locator: createAnnouncementExcerptLocator(
+          document.announcement.announcement_id,
+          document.announcement.source_record_id,
+          section.page,
+          section.paragraph,
+          section.anchor
+        ),
+        field_id: fact.field_id,
+        label: fact.label,
+        period: fact.period,
+        schema_valid: true as const,
+        scale: fact.scale,
+        section_id: section.section_id,
+        source_record_id: document.announcement.source_record_id,
+        unit: fact.unit,
+        untrusted_document: true as const,
+        value: fact.value,
+        value_type: "reported_numeric" as const
+      }))
+    );
+}
+
+function createNumericDiffs(
+  baseValues: ExtractedAnnouncementNumericValue[],
+  comparisonValues: ExtractedAnnouncementNumericValue[]
+): AnnouncementNumericDiff[] {
+  return baseValues
+    .map((baseValue) => {
+      const comparisonValue = comparisonValues.find(
+        (value) => value.field_id === baseValue.field_id && value.unit === baseValue.unit
+      );
+
+      if (comparisonValue === undefined) {
+        return undefined;
+      }
+
+      const absoluteChange = Number(
+        (comparisonValue.value - baseValue.value).toFixed(6)
+      );
+      const percentChange =
+        baseValue.value === 0
+          ? 0
+          : Number((absoluteChange / baseValue.value).toFixed(6));
+
+      return {
+        absolute_change: absoluteChange,
+        base_period: baseValue.period,
+        base_value: baseValue.value,
+        comparison_period: comparisonValue.period,
+        comparison_value: comparisonValue.value,
+        direction:
+          absoluteChange > 0 ? "increase" : absoluteChange < 0 ? "decrease" : "flat",
+        evidence_locators: {
+          base: baseValue.evidence_locator,
+          comparison: comparisonValue.evidence_locator
+        },
+        field_id: baseValue.field_id,
+        label: baseValue.label,
+        percent_change: percentChange,
+        schema_valid: true as const,
+        unit: baseValue.unit
+      };
+    })
+    .filter((diff): diff is AnnouncementNumericDiff => diff !== undefined);
+}
+
+const NUMERIC_EXTRACTION_SCHEMA_REQUIRED_FIELDS = [
+  "document_id",
+  "document_role",
+  "field_id",
+  "label",
+  "period",
+  "value",
+  "unit",
+  "scale",
+  "source_record_id",
+  "section_id",
+  "evidence_locator"
+];
+
+function validateExtractedNumericValueSchema(
+  value: ExtractedAnnouncementNumericValue
+): string[] {
+  const errors: string[] = [];
+
+  for (const field of NUMERIC_EXTRACTION_SCHEMA_REQUIRED_FIELDS) {
+    if (!(field in value)) {
+      errors.push(`missing required field ${field}`);
+    }
+  }
+
+  if (!Number.isFinite(value.value)) {
+    errors.push(`value for ${value.field_id} must be finite`);
+  }
+
+  if (value.evidence_locator.source_record_id !== value.source_record_id) {
+    errors.push(`locator source_record_id mismatch for ${value.field_id}`);
+  }
+
+  if (value.evidence_locator.document_id !== value.document_id) {
+    errors.push(`locator document_id mismatch for ${value.field_id}`);
+  }
+
+  return errors;
+}
+
 function createDocumentSanitizationSummary(
   excerpts: GetAnnouncementExcerpt[]
 ): GetAnnouncementResult["sanitization_summary"] {
@@ -1063,7 +1483,25 @@ function createSyntheticAnnouncementSections(
         {
           anchor: "financial-highlights",
           excerpt:
-            "The annual results announcement states revenue and operating profit highlights for the year ended 31 December 2023, with the financial metrics presented as disclosed figures rather than model estimates.",
+            "The annual results announcement states revenue of HKD 609.0 billion and operating profit of HKD 184.3 billion for the year ended 31 December 2023, with the financial metrics presented as disclosed figures rather than model estimates.",
+          numeric_facts: [
+            {
+              field_id: "revenue",
+              label: "Revenue",
+              period: "FY2023",
+              scale: "billion",
+              unit: "HKD billion",
+              value: 609
+            },
+            {
+              field_id: "operating_profit",
+              label: "Operating profit",
+              period: "FY2023",
+              scale: "billion",
+              unit: "HKD billion",
+              value: 184.3
+            }
+          ],
           page: 4,
           paragraph: 2,
           section_id: "financial_highlights",
@@ -1075,6 +1513,45 @@ function createSyntheticAnnouncementSections(
             "Management discussion describes segment performance and investment priorities. This excerpt is a bounded synthetic quote for evidence-location testing only.",
           page: 8,
           paragraph: 5,
+          section_id: "management_discussion",
+          section_title: "Management discussion"
+        }
+      ];
+    case "ann_00700_20250320_results":
+      return [
+        {
+          anchor: "financial-highlights",
+          excerpt:
+            "The annual results announcement states revenue of HKD 660.3 billion and operating profit of HKD 208.8 billion for the year ended 31 December 2024, with the financial metrics presented as disclosed figures rather than model estimates.",
+          numeric_facts: [
+            {
+              field_id: "revenue",
+              label: "Revenue",
+              period: "FY2024",
+              scale: "billion",
+              unit: "HKD billion",
+              value: 660.3
+            },
+            {
+              field_id: "operating_profit",
+              label: "Operating profit",
+              period: "FY2024",
+              scale: "billion",
+              unit: "HKD billion",
+              value: 208.8
+            }
+          ],
+          page: 4,
+          paragraph: 2,
+          section_id: "financial_highlights",
+          section_title: "Financial highlights"
+        },
+        {
+          anchor: "management-discussion",
+          excerpt:
+            "Management discussion describes segment performance and investment priorities for FY2024. This excerpt is a bounded synthetic quote for evidence-location testing only.",
+          page: 8,
+          paragraph: 6,
           section_id: "management_discussion",
           section_title: "Management discussion"
         }
@@ -1211,6 +1688,19 @@ function normalizeDocumentIds(documentIds: string[] | undefined): string[] {
       (documentId, index, values) =>
         documentId.length > 0 && values.indexOf(documentId) === index
     );
+}
+
+function normalizeSingleDocumentId(documentId: string | undefined): string | undefined {
+  const normalized = documentId?.trim();
+  return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+}
+
+function findSyntheticDocument(
+  documentId: string
+): SyntheticAnnouncementDocument | undefined {
+  return SYNTHETIC_ANNOUNCEMENT_DOCUMENTS.find(
+    (document) => document.document_id === documentId
+  );
 }
 
 function normalizeSearchQuery(query: string | undefined): string {

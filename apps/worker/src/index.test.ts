@@ -552,6 +552,18 @@ interface DocumentRuntimeBody {
       vector_search: boolean;
       vectorize_optional: boolean;
     };
+    diff_announcements: {
+      comparison_engine: string;
+      evidence_binding_ready: boolean;
+      original_document_fetch: boolean;
+      route: string;
+      schema_id: string;
+      schema_validation_ready: boolean;
+      status: string;
+      tool_name: string;
+      untrusted_document_policy: boolean;
+      vector_search: boolean;
+    };
     status: string;
   };
   ok: true;
@@ -749,6 +761,95 @@ interface SearchDocumentsBody {
       untrusted_document: boolean;
     }>;
     search_engine: string;
+    status: string;
+    toolName: string;
+    vector_search: boolean;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface DiffAnnouncementsBody {
+  data: {
+    capability: {
+      comparison_engine: string;
+      evidence_binding_ready: boolean;
+      route: string;
+      schema_id: string;
+      schema_validation_ready: boolean;
+      tool_name: string;
+      vector_search: boolean;
+    };
+    comparison_engine: string;
+    diff_count: number;
+    diffs: Array<{
+      absolute_change: number;
+      base_value: number;
+      comparison_value: number;
+      evidence_locators: {
+        base: {
+          page: number;
+          paragraph: number;
+          source_record_id: string;
+        };
+        comparison: {
+          page: number;
+          paragraph: number;
+          source_record_id: string;
+        };
+      };
+      field_id: string;
+      percent_change: number;
+      schema_valid: boolean;
+      unit: string;
+    }>;
+    document_trust_policy: {
+      content_is_untrusted_data: boolean;
+      prompt_injection_isolated: boolean;
+      scripts_executable: boolean;
+    };
+    documents: {
+      base?: {
+        document_id: string;
+        source_record_id: string;
+        symbol: string;
+      };
+      comparison?: {
+        document_id: string;
+        source_record_id: string;
+        symbol: string;
+      };
+    };
+    evidence_binding_ready: boolean;
+    extracted_value_count: number;
+    extracted_values: Array<{
+      document_id: string;
+      evidence_locator: {
+        document_id: string;
+        page: number;
+        paragraph: number;
+        source_record_id: string;
+      };
+      field_id: string;
+      schema_valid: boolean;
+      source_record_id: string;
+      value: number;
+    }>;
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    original_document_fetch: boolean;
+    row_count: number;
+    schema_validation: {
+      errors: string[];
+      schema_id: string;
+      valid: boolean;
+      validated_value_count: number;
+    };
+    schema_validation_ready: boolean;
+    sql_emitted: boolean;
     status: string;
     toolName: string;
     vector_search: boolean;
@@ -2954,6 +3055,18 @@ describe("worker runtime", () => {
       vector_search: true,
       vectorize_optional: true
     });
+    expect(body.data.diff_announcements).toMatchObject({
+      comparison_engine: "synthetic_schema_bound_numeric_diff",
+      evidence_binding_ready: true,
+      original_document_fetch: false,
+      route: "POST /documents/diff-announcements",
+      schema_id: "announcement_numeric_extraction_v0",
+      schema_validation_ready: true,
+      status: "diff_announcements_scaffold",
+      tool_name: "diff_announcements",
+      untrusted_document_policy: true,
+      vector_search: false
+    });
   });
 
   it("searches announcements by company, date, category, and keyword", async () => {
@@ -3244,6 +3357,99 @@ describe("worker runtime", () => {
     expect(body.data.status).toBe("not_found");
     expect(body.data.results).toEqual([]);
     expect(body.usage.rows).toBe(0);
+  });
+
+  it("diffs announcement key numbers with source-bound schema extraction", async () => {
+    const response = await app.request("/documents/diff-announcements", {
+      body: JSON.stringify({
+        base_document_id: "doc_ann_00700_20240320_results",
+        comparison_document_id: "doc_ann_00700_20250320_results"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-diff-announcements"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as DiffAnnouncementsBody;
+    const revenueDiff = body.data.diffs.find((diff) => diff.field_id === "revenue");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      comparison_engine: "synthetic_schema_bound_numeric_diff",
+      diff_count: 2,
+      evidence_binding_ready: true,
+      extracted_value_count: 4,
+      frontend_rendering: false,
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 2,
+      schema_validation_ready: true,
+      sql_emitted: false,
+      status: "found",
+      toolName: "diff_announcements",
+      vector_search: false
+    });
+    expect(body.data.capability).toMatchObject({
+      evidence_binding_ready: true,
+      route: "POST /documents/diff-announcements",
+      schema_id: "announcement_numeric_extraction_v0",
+      schema_validation_ready: true,
+      tool_name: "diff_announcements",
+      vector_search: false
+    });
+    expect(body.data.documents.base).toMatchObject({
+      document_id: "doc_ann_00700_20240320_results",
+      source_record_id: "src_announcement_00700_20240320_results",
+      symbol: "00700.HK"
+    });
+    expect(body.data.documents.comparison).toMatchObject({
+      document_id: "doc_ann_00700_20250320_results",
+      source_record_id: "src_announcement_00700_20250320_results",
+      symbol: "00700.HK"
+    });
+    expect(body.data.schema_validation).toMatchObject({
+      errors: [],
+      schema_id: "announcement_numeric_extraction_v0",
+      valid: true,
+      validated_value_count: 4
+    });
+    expect(body.data.extracted_values[0]).toMatchObject({
+      document_id: "doc_ann_00700_20240320_results",
+      evidence_locator: {
+        document_id: "doc_ann_00700_20240320_results",
+        page: 4,
+        paragraph: 2,
+        source_record_id: "src_announcement_00700_20240320_results"
+      },
+      field_id: "revenue",
+      schema_valid: true,
+      source_record_id: "src_announcement_00700_20240320_results",
+      value: 609
+    });
+    expect(revenueDiff).toMatchObject({
+      absolute_change: 51.3,
+      base_value: 609,
+      comparison_value: 660.3,
+      evidence_locators: {
+        base: {
+          page: 4,
+          paragraph: 2,
+          source_record_id: "src_announcement_00700_20240320_results"
+        },
+        comparison: {
+          page: 4,
+          paragraph: 2,
+          source_record_id: "src_announcement_00700_20250320_results"
+        }
+      },
+      schema_valid: true,
+      unit: "HKD billion"
+    });
+    expect(revenueDiff?.percent_change).toBeCloseTo(0.084236, 6);
+    expect(body.usage.rows).toBe(2);
   });
 
   it("does not silently choose an ambiguous workbench security", async () => {

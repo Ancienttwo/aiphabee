@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  diffAnnouncements,
   getDocumentSanitizerCapabilities,
   getAnnouncement,
   getAnnouncementCapabilities,
+  getDiffAnnouncementsCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
   getSearchDocumentsCapabilities,
@@ -54,6 +56,26 @@ describe("search announcements scaffold", () => {
       tool_name: "search_documents",
       vector_search: true,
       vectorize_optional: true
+    });
+    expect(getDiffAnnouncementsCapabilities()).toMatchObject({
+      comparison_engine: "synthetic_schema_bound_numeric_diff",
+      evidence_binding_ready: true,
+      original_document_fetch: false,
+      route: "POST /documents/diff-announcements",
+      schema_id: "announcement_numeric_extraction_v0",
+      schema_validation_ready: true,
+      status: "diff_announcements_scaffold",
+      tool_name: "diff_announcements",
+      untrusted_document_policy: true,
+      vector_search: false
+    });
+    expect(getDocumentToolsCapabilities()).toMatchObject({
+      diff_announcements: {
+        route: "POST /documents/diff-announcements",
+        status: "diff_announcements_scaffold",
+        tool_name: "diff_announcements"
+      },
+      routes: expect.arrayContaining(["POST /documents/diff-announcements"])
     });
     expect(getSearchAnnouncementsCapabilities()).toMatchObject({
       date_basis: "published_at",
@@ -262,6 +284,132 @@ describe("semantic document search scaffold", () => {
     expect(result.status).toBe("not_found");
     expect(result.result_count).toBe(0);
     expect(result.results).toEqual([]);
+    expect(result.usage.credits).toBe(0);
+  });
+});
+
+describe("announcement diff extraction scaffold", () => {
+  it("extracts schema-bound key numbers and binds them to source locators", () => {
+    const result = diffAnnouncements({
+      baseDocumentId: "doc_ann_00700_20240320_results",
+      comparisonDocumentId: "doc_ann_00700_20250320_results",
+      requestId: "req_diff_announcements"
+    });
+    const revenueDiff = result.diffs.find((diff) => diff.field_id === "revenue");
+    const operatingProfitDiff = result.diffs.find(
+      (diff) => diff.field_id === "operating_profit"
+    );
+
+    expect(result).toMatchObject({
+      comparison_engine: "synthetic_schema_bound_numeric_diff",
+      diff_count: 2,
+      evidence_binding_ready: true,
+      extracted_value_count: 4,
+      extraction_source: "synthetic_announcement_section_fixture",
+      frontend_rendering: false,
+      live_data_access: false,
+      original_document_fetch: false,
+      row_count: 2,
+      schema_validation_ready: true,
+      sql_emitted: false,
+      status: "found",
+      toolName: "diff_announcements",
+      vector_search: false
+    });
+    expect(result.documents.base).toMatchObject({
+      document_id: "doc_ann_00700_20240320_results",
+      source_record_id: "src_announcement_00700_20240320_results",
+      symbol: "00700.HK"
+    });
+    expect(result.documents.comparison).toMatchObject({
+      document_id: "doc_ann_00700_20250320_results",
+      source_record_id: "src_announcement_00700_20250320_results",
+      symbol: "00700.HK"
+    });
+    expect(result.schema_validation).toMatchObject({
+      errors: [],
+      schema_id: "announcement_numeric_extraction_v0",
+      valid: true,
+      validated_value_count: 4
+    });
+    expect(result.schema_validation.required_fields).toEqual(
+      expect.arrayContaining([
+        "document_id",
+        "field_id",
+        "value",
+        "source_record_id",
+        "evidence_locator"
+      ])
+    );
+    expect(result.extracted_values[0]).toMatchObject({
+      document_id: "doc_ann_00700_20240320_results",
+      document_role: "base",
+      evidence_locator: {
+        document_id: "doc_ann_00700_20240320_results",
+        page: 4,
+        paragraph: 2,
+        source_record_id: "src_announcement_00700_20240320_results"
+      },
+      field_id: "revenue",
+      schema_valid: true,
+      section_id: "financial_highlights",
+      unit: "HKD billion",
+      untrusted_document: true,
+      value: 609
+    });
+    expect(revenueDiff).toMatchObject({
+      absolute_change: 51.3,
+      base_period: "FY2023",
+      base_value: 609,
+      comparison_period: "FY2024",
+      comparison_value: 660.3,
+      direction: "increase",
+      evidence_locators: {
+        base: {
+          page: 4,
+          paragraph: 2,
+          source_record_id: "src_announcement_00700_20240320_results"
+        },
+        comparison: {
+          page: 4,
+          paragraph: 2,
+          source_record_id: "src_announcement_00700_20250320_results"
+        }
+      },
+      schema_valid: true,
+      unit: "HKD billion"
+    });
+    expect(revenueDiff?.percent_change).toBeCloseTo(0.084236, 6);
+    expect(operatingProfitDiff).toMatchObject({
+      absolute_change: 24.5,
+      base_value: 184.3,
+      comparison_value: 208.8,
+      field_id: "operating_profit"
+    });
+    expect(operatingProfitDiff?.percent_change).toBeCloseTo(0.132935, 6);
+    expect(result.document_trust_policy).toEqual({
+      content_is_untrusted_data: true,
+      prompt_injection_isolated: true,
+      scripts_executable: false
+    });
+    expect(result.usage).toEqual({
+      cached: false,
+      credits: 2,
+      rows: 2
+    });
+  });
+
+  it("does not fabricate diffs for missing announcement documents", () => {
+    const result = diffAnnouncements({
+      baseDocumentId: "doc_missing",
+      comparisonDocumentId: "doc_ann_00700_20250320_results",
+      requestId: "req_diff_announcements_missing"
+    });
+
+    expect(result.status).toBe("not_found");
+    expect(result.diffs).toEqual([]);
+    expect(result.extracted_values).toEqual([]);
+    expect(result.row_count).toBe(0);
     expect(result.usage.credits).toBe(0);
   });
 });

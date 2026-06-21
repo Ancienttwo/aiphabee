@@ -116,6 +116,7 @@ Observed root check residual:
 - Semantic document search is covered by
   `docs/governance/semantic-document-search-scaffold.md`; live pgvector remains
   disabled.
-- Cross-period document diff and numeric extraction are not implemented.
+- Cross-period document diff and numeric extraction are covered separately by
+  `docs/governance/announcement-diff-extraction-scaffold.md`.
 - Saved research runs and replay are not implemented.
 - Frontend research-library UI remains delegated.
