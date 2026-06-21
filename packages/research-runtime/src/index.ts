@@ -4,14 +4,25 @@ export const RESEARCH_RUN_REPLAY_VERSION =
   "2026-06-21.phase2.research-run-replay-scaffold.v0";
 export const DEEP_REPORT_WORKFLOW_VERSION =
   "2026-06-21.phase2.deep-report-workflow-scaffold.v0";
+export const STATIC_REPORT_VERSION =
+  "2026-06-21.phase3.static-report-metadata-scaffold.v0";
 export const DATA_CORRECTION_NOTIFICATION_VERSION =
   "2026-06-21.phase2.data-correction-notifications-scaffold.v0";
 export const DATA_CORRECTION_NOTIFICATION_CHANNELS = ["in_app", "email"] as const;
+export const STATIC_REPORT_FORMATS = ["html", "pdf", "image"] as const;
+export const STATIC_REPORT_REQUIRED_SCOPE = "exports.read";
 
 export type ResearchRunSaveStatus = "planned_no_write";
 export type ResearchRunReplayStatus = "planned_no_write";
 export type ResearchRunDiffCategory = "data" | "model" | "parameters";
 export type DeepReportWorkflowStatus = "planned_no_write";
+export type StaticReportFormat = (typeof STATIC_REPORT_FORMATS)[number];
+export type StaticReportStatus =
+  | "blocked_metadata_incomplete"
+  | "blocked_missing_context"
+  | "blocked_unlicensed_scope"
+  | "blocked_unsupported_format"
+  | "planned_no_write";
 export type DataCorrectionNotificationChannel =
   (typeof DATA_CORRECTION_NOTIFICATION_CHANNELS)[number];
 export type DataCorrectionNotificationStatus =
@@ -129,6 +140,25 @@ export interface CreateDeepReportWorkflowPlanInput {
   taskId?: string;
   userId?: string;
   workflowTaskId?: string;
+  workspaceId?: string;
+}
+
+export interface CreateStaticReportPlanInput {
+  asOf?: string;
+  dataDelayMinutes?: number;
+  dataVersion?: string;
+  disclaimer?: string;
+  format?: string;
+  generatedAt?: string;
+  methodologyVersion?: string;
+  reportId?: string;
+  requestId: string;
+  rightsPolicyVersion?: string;
+  scopes?: string[];
+  sections?: string[];
+  sourceRunId?: string;
+  title?: string;
+  userId?: string;
   workspaceId?: string;
 }
 
@@ -298,6 +328,100 @@ export interface DeepReportWorkflowPlan {
   workspace: {
     source: "request" | "synthetic_default";
     workspace_id: string;
+  };
+}
+
+export interface StaticReportPlan {
+  artifact: {
+    html: "not_requested" | "planned_no_write";
+    image: "not_requested" | "planned_no_write";
+    pdf: "not_requested" | "planned_no_write";
+    public_url: "not_generated";
+    r2_write: false;
+    written: false;
+  };
+  data_version: typeof STATIC_REPORT_VERSION;
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  metadata: {
+    as_of: string;
+    data_delay_minutes: number;
+    data_version: string;
+    disclaimer: string;
+    generated_at: string;
+    methodology_version: string;
+    required_fields: readonly [
+      "generated_at",
+      "data_delay_minutes",
+      "data_version",
+      "methodology_version",
+      "rights_policy_version",
+      "disclaimer"
+    ];
+    rights_policy_version: string;
+  };
+  methodology_version: typeof STATIC_REPORT_VERSION;
+  model_calls: false;
+  persistence_plan: {
+    artifact_writes: false;
+    live_db_writes: false;
+    r2_writes: false;
+    sql_emitted: false;
+    tables: typeof STATIC_REPORT_TABLES;
+    write_status: "blocked" | "planned_no_write";
+  };
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  report: {
+    format?: StaticReportFormat;
+    report_id: string;
+    sections: string[];
+    source_run_id: string;
+    static_report_allowed: boolean;
+    table: "core.static_report_artifact";
+    title: string;
+  };
+  request_id: string;
+  rights_boundary: {
+    allowed_scope_only: true;
+    field_authorization_source: "data_access_gateway_or_report_snapshot";
+    raw_partner_data_embedded: false;
+    redistribution_requires_rights_policy: true;
+    required_scope: typeof STATIC_REPORT_REQUIRED_SCOPE;
+    scope_granted: boolean;
+  };
+  sql_emitted: false;
+  status: StaticReportStatus;
+  toolName: "plan_static_report_artifact";
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  validation: {
+    metadata_complete: boolean;
+    required_context_present: boolean;
+    supported_format: boolean;
+  };
+  version: typeof STATIC_REPORT_VERSION;
+  watermark: {
+    fields: readonly [
+      "request_id",
+      "report_id",
+      "generated_at",
+      "data_delay_minutes",
+      "data_version",
+      "methodology_version",
+      "rights_policy_version",
+      "disclaimer"
+    ];
+    required: true;
+    text: string;
   };
 }
 
@@ -663,6 +787,11 @@ const DEEP_REPORT_WORKFLOW_TABLES = [
   "core.workflow_task",
   "core.workflow_task_checkpoint"
 ] as const;
+const STATIC_REPORT_TABLES = [
+  "core.static_report_artifact",
+  "audit.static_report_event",
+  "governance.static_report_contract"
+] as const;
 const DATA_CORRECTION_NOTIFICATION_TABLES = [
   "core.data_correction_event",
   "core.research_run_correction_impact",
@@ -742,6 +871,7 @@ export function getResearchRuntimeCapabilities() {
     runtime_route: "GET /research/runtime" as const,
     sql_emitted: false,
     status: "research_run_save_scaffold" as const,
+    static_report_artifact: getStaticReportCapabilities(),
     supported_diffs: ["data", "model", "parameters"] as const,
     supported_snapshots: [
       "question",
@@ -802,6 +932,40 @@ export function getDeepReportWorkflowCapabilities() {
     tool_name: "plan_deep_report_workflow" as const,
     version: DEEP_REPORT_WORKFLOW_VERSION,
     workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW" as const
+  };
+}
+
+export function getStaticReportCapabilities() {
+  return {
+    artifact_writes: false,
+    data_delay_required: true,
+    disclaimer_required: true,
+    frontend_rendering: false,
+    generated_at_required: true,
+    live_db_writes: false,
+    live_tool_execution: false,
+    metadata_required_fields: [
+      "generated_at",
+      "data_delay_minutes",
+      "data_version",
+      "methodology_version",
+      "rights_policy_version",
+      "disclaimer"
+    ] as const,
+    model_calls: false,
+    package: "@aiphabee/research-runtime" as const,
+    persistent_writes: false,
+    required_scope: STATIC_REPORT_REQUIRED_SCOPE,
+    rights_policy_required: true,
+    route: "POST /research/reports/static/plan" as const,
+    runtime_route: "GET /research/runtime" as const,
+    sql_emitted: false,
+    status: "static_report_metadata_scaffold" as const,
+    supported_formats: STATIC_REPORT_FORMATS,
+    tables: STATIC_REPORT_TABLES,
+    tool_name: "plan_static_report_artifact" as const,
+    version: STATIC_REPORT_VERSION,
+    watermark_required: true
   };
 }
 
@@ -1071,6 +1235,161 @@ export function createDeepReportWorkflowPlan(
     workspace: {
       source: workspaceId === undefined ? "synthetic_default" : "request",
       workspace_id: workspaceId ?? "workspace_research"
+    }
+  };
+}
+
+export function createStaticReportPlan(input: CreateStaticReportPlanInput): StaticReportPlan {
+  const asOf = normalizeAsOf(input.asOf);
+  const generatedAt = normalizeAsOf(input.generatedAt ?? input.asOf);
+  const dataDelayMinutes = normalizePositiveInteger(input.dataDelayMinutes);
+  const dataVersion = normalizeText(input.dataVersion) ?? STATIC_REPORT_VERSION;
+  const methodologyVersion = normalizeText(input.methodologyVersion) ?? STATIC_REPORT_VERSION;
+  const rightsPolicyVersion =
+    normalizeText(input.rightsPolicyVersion) ?? "static-report-default-deny-v0";
+  const disclaimer =
+    normalizeText(input.disclaimer) ??
+    "Generated as a static research report with delayed data; not investment advice.";
+  const format = normalizeStaticReportFormat(input.format ?? "pdf");
+  const reportHash = hashStableValue({
+    asOf,
+    dataVersion,
+    generatedAt,
+    requestId: input.requestId,
+    sourceRunId: input.sourceRunId,
+    title: input.title
+  });
+  const reportId = normalizeText(input.reportId) ?? `static_report_${reportHash}`;
+  const sourceRunId = normalizeText(input.sourceRunId);
+  const workspaceId = normalizeText(input.workspaceId);
+  const scopeGranted = (input.scopes ?? []).includes(STATIC_REPORT_REQUIRED_SCOPE);
+  const requiredContextPresent = sourceRunId !== undefined && workspaceId !== undefined;
+  const metadataComplete =
+    dataDelayMinutes !== undefined &&
+    dataVersion.length > 0 &&
+    methodologyVersion.length > 0 &&
+    rightsPolicyVersion.length > 0 &&
+    disclaimer.length > 0;
+  const supportedFormat = format !== undefined;
+  const status = getStaticReportStatus({
+    metadataComplete,
+    requiredContextPresent,
+    scopeGranted,
+    supportedFormat
+  });
+  const writeStatus = status === "planned_no_write" ? "planned_no_write" : "blocked";
+  const sections = normalizeDeepReportSections(input.sections);
+  const usageRows = status === "planned_no_write" ? 6 + sections.length : 0;
+
+  return {
+    artifact: {
+      html: format === "html" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
+      image:
+        format === "image" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
+      pdf: format === "pdf" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
+      public_url: "not_generated",
+      r2_write: false,
+      written: false
+    },
+    data_version: STATIC_REPORT_VERSION,
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    metadata: {
+      as_of: asOf,
+      data_delay_minutes: dataDelayMinutes ?? 0,
+      data_version: dataVersion,
+      disclaimer,
+      generated_at: generatedAt,
+      methodology_version: methodologyVersion,
+      required_fields: [
+        "generated_at",
+        "data_delay_minutes",
+        "data_version",
+        "methodology_version",
+        "rights_policy_version",
+        "disclaimer"
+      ],
+      rights_policy_version: rightsPolicyVersion
+    },
+    methodology_version: STATIC_REPORT_VERSION,
+    model_calls: false,
+    persistence_plan: {
+      artifact_writes: false,
+      live_db_writes: false,
+      r2_writes: false,
+      sql_emitted: false,
+      tables: STATIC_REPORT_TABLES,
+      write_status: writeStatus
+    },
+    provenance: [
+      {
+        data_version: dataVersion,
+        methodology_version: methodologyVersion,
+        source: "static-report-plan",
+        source_record_id: reportId
+      },
+      {
+        data_version: rightsPolicyVersion,
+        methodology_version: STATIC_REPORT_VERSION,
+        source: "static-report-rights-boundary",
+        source_record_id: sourceRunId ?? "source_run_missing"
+      }
+    ],
+    report: {
+      format,
+      report_id: reportId,
+      sections,
+      source_run_id: sourceRunId ?? "source_run_missing",
+      static_report_allowed: status === "planned_no_write",
+      table: "core.static_report_artifact",
+      title: normalizeText(input.title) ?? "Static Research Report"
+    },
+    request_id: input.requestId,
+    rights_boundary: {
+      allowed_scope_only: true,
+      field_authorization_source: "data_access_gateway_or_report_snapshot",
+      raw_partner_data_embedded: false,
+      redistribution_requires_rights_policy: true,
+      required_scope: STATIC_REPORT_REQUIRED_SCOPE,
+      scope_granted: scopeGranted
+    },
+    sql_emitted: false,
+    status,
+    toolName: "plan_static_report_artifact",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: usageRows
+    },
+    validation: {
+      metadata_complete: metadataComplete,
+      required_context_present: requiredContextPresent,
+      supported_format: supportedFormat
+    },
+    version: STATIC_REPORT_VERSION,
+    watermark: {
+      fields: [
+        "request_id",
+        "report_id",
+        "generated_at",
+        "data_delay_minutes",
+        "data_version",
+        "methodology_version",
+        "rights_policy_version",
+        "disclaimer"
+      ],
+      required: true,
+      text: [
+        `request_id=${input.requestId}`,
+        `report_id=${reportId}`,
+        `generated_at=${generatedAt}`,
+        `data_delay_minutes=${dataDelayMinutes ?? 0}`,
+        `data_version=${dataVersion}`,
+        `methodology_version=${methodologyVersion}`,
+        `rights_policy_version=${rightsPolicyVersion}`,
+        "disclaimer=present"
+      ].join(";")
     }
   };
 }
@@ -1417,6 +1736,36 @@ function normalizeDeepReportSections(sections: string[] | undefined): string[] {
   }
 
   return uniqueSorted(normalizedSections);
+}
+
+function normalizeStaticReportFormat(format: string | undefined): StaticReportFormat | undefined {
+  const normalized = normalizeText(format)?.toLowerCase();
+  return STATIC_REPORT_FORMATS.find((candidate) => candidate === normalized);
+}
+
+function getStaticReportStatus(input: {
+  metadataComplete: boolean;
+  requiredContextPresent: boolean;
+  scopeGranted: boolean;
+  supportedFormat: boolean;
+}): StaticReportStatus {
+  if (!input.supportedFormat) {
+    return "blocked_unsupported_format";
+  }
+
+  if (!input.requiredContextPresent) {
+    return "blocked_missing_context";
+  }
+
+  if (!input.scopeGranted) {
+    return "blocked_unlicensed_scope";
+  }
+
+  if (!input.metadataComplete) {
+    return "blocked_metadata_incomplete";
+  }
+
+  return "planned_no_write";
 }
 
 function createDeepReportEvidenceIndexRecords(

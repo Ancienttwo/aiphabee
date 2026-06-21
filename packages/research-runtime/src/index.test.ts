@@ -5,9 +5,11 @@ import {
   createDeepReportWorkflowPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  createStaticReportPlan,
   getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
-  getResearchRuntimeCapabilities
+  getResearchRuntimeCapabilities,
+  getStaticReportCapabilities
 } from "./index";
 
 describe("research run save scaffold", () => {
@@ -62,6 +64,16 @@ describe("research run save scaffold", () => {
       saved_report_notification_required: true,
       status: "data_correction_notifications_scaffold",
       tool_name: "plan_data_correction_notifications"
+    });
+    expect(getResearchRuntimeCapabilities().static_report_artifact).toMatchObject({
+      artifact_writes: false,
+      data_delay_required: true,
+      disclaimer_required: true,
+      generated_at_required: true,
+      route: "POST /research/reports/static/plan",
+      status: "static_report_metadata_scaffold",
+      tool_name: "plan_static_report_artifact",
+      watermark_required: true
     });
   });
 
@@ -121,6 +133,121 @@ describe("research run save scaffold", () => {
       "evidence_index",
       "rerun_seed"
     ]);
+  });
+
+  it("reports static report capabilities", () => {
+    expect(getStaticReportCapabilities()).toMatchObject({
+      artifact_writes: false,
+      data_delay_required: true,
+      disclaimer_required: true,
+      frontend_rendering: false,
+      generated_at_required: true,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      package: "@aiphabee/research-runtime",
+      persistent_writes: false,
+      required_scope: "exports.read",
+      rights_policy_required: true,
+      route: "POST /research/reports/static/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "static_report_metadata_scaffold",
+      tool_name: "plan_static_report_artifact",
+      watermark_required: true
+    });
+    expect(getStaticReportCapabilities().metadata_required_fields).toEqual([
+      "generated_at",
+      "data_delay_minutes",
+      "data_version",
+      "methodology_version",
+      "rights_policy_version",
+      "disclaimer"
+    ]);
+  });
+
+  it("plans static report metadata within allowed scope", () => {
+    const plan = createStaticReportPlan({
+      asOf: "2026-06-21T09:30:00+08:00",
+      dataDelayMinutes: 15,
+      dataVersion: "static-report-data-v0",
+      format: "pdf",
+      generatedAt: "2026-06-21T10:00:00+08:00",
+      methodologyVersion: "static-report-method-v0",
+      reportId: "report_00700_static",
+      requestId: "req-static-report",
+      rightsPolicyVersion: "rights-static-report-v0",
+      scopes: ["exports.read"],
+      sections: ["summary", "disclaimer"],
+      sourceRunId: "research_run_00700",
+      title: "Tencent static report",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      artifact: {
+        pdf: "planned_no_write",
+        public_url: "not_generated",
+        r2_write: false,
+        written: false
+      },
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      request_id: "req-static-report",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_static_report_artifact"
+    });
+    expect(plan.metadata).toMatchObject({
+      data_delay_minutes: 15,
+      data_version: "static-report-data-v0",
+      generated_at: "2026-06-21T10:00:00+08:00",
+      methodology_version: "static-report-method-v0",
+      rights_policy_version: "rights-static-report-v0"
+    });
+    expect(plan.metadata.disclaimer).toContain("not investment advice");
+    expect(plan.report).toMatchObject({
+      format: "pdf",
+      report_id: "report_00700_static",
+      source_run_id: "research_run_00700",
+      static_report_allowed: true,
+      table: "core.static_report_artifact"
+    });
+    expect(plan.rights_boundary).toEqual({
+      allowed_scope_only: true,
+      field_authorization_source: "data_access_gateway_or_report_snapshot",
+      raw_partner_data_embedded: false,
+      redistribution_requires_rights_policy: true,
+      required_scope: "exports.read",
+      scope_granted: true
+    });
+    expect(plan.watermark.text).toContain("data_delay_minutes=15");
+    expect(plan.usage.credits).toBe(0);
+    expect(plan.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("blocks static reports without required scope or metadata", () => {
+    const missingScope = createStaticReportPlan({
+      dataDelayMinutes: 15,
+      requestId: "req-static-report-scope",
+      scopes: [],
+      sourceRunId: "research_run_00700",
+      workspaceId: "workspace_research"
+    });
+    const missingMetadata = createStaticReportPlan({
+      dataDelayMinutes: -1,
+      requestId: "req-static-report-metadata",
+      scopes: ["exports.read"],
+      sourceRunId: "research_run_00700",
+      workspaceId: "workspace_research"
+    });
+
+    expect(missingScope.status).toBe("blocked_unlicensed_scope");
+    expect(missingScope.rights_boundary.scope_granted).toBe(false);
+    expect(missingMetadata.status).toBe("blocked_metadata_incomplete");
+    expect(missingMetadata.validation.metadata_complete).toBe(false);
   });
 
   it("plans a no-write deep report workflow with evidence index and rerun seed", () => {

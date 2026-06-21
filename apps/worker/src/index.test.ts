@@ -2508,6 +2508,19 @@ interface ResearchRuntimeBody {
       tool_name: string;
       workflow_binding: string;
     };
+    static_report_artifact: {
+      artifact_writes: boolean;
+      data_delay_required: boolean;
+      disclaimer_required: boolean;
+      generated_at_required: boolean;
+      live_db_writes: boolean;
+      required_scope: string;
+      route: string;
+      runtime_route: string;
+      status: string;
+      tool_name: string;
+      watermark_required: boolean;
+    };
     immutable_report_snapshot: boolean;
     live_db_writes: boolean;
     replay_diff_ready: boolean;
@@ -2641,6 +2654,70 @@ interface DeepReportWorkflowPlanBody {
   ok: true;
   usage: {
     credits: number;
+    rows: number;
+  };
+}
+
+interface StaticReportPlanBody {
+  data: {
+    artifact: {
+      html: string;
+      image: string;
+      pdf: string;
+      public_url: string;
+      r2_write: boolean;
+      written: boolean;
+    };
+    capability: ResearchRuntimeBody["data"]["static_report_artifact"];
+    frontend_rendering: boolean;
+    live_db_writes: boolean;
+    live_tool_execution: boolean;
+    metadata: {
+      data_delay_minutes: number;
+      data_version: string;
+      disclaimer: string;
+      generated_at: string;
+      methodology_version: string;
+      rights_policy_version: string;
+    };
+    model_calls: boolean;
+    persistence_plan: {
+      artifact_writes: boolean;
+      live_db_writes: boolean;
+      r2_writes: boolean;
+      sql_emitted: boolean;
+      write_status: string;
+    };
+    report: {
+      format: string;
+      report_id: string;
+      source_run_id: string;
+      static_report_allowed: boolean;
+      table: string;
+    };
+    request_id: string;
+    rights_boundary: {
+      allowed_scope_only: boolean;
+      raw_partner_data_embedded: boolean;
+      redistribution_requires_rights_policy: boolean;
+      required_scope: string;
+      scope_granted: boolean;
+    };
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+    validation: {
+      metadata_complete: boolean;
+      required_context_present: boolean;
+      supported_format: boolean;
+    };
+    watermark: {
+      required: boolean;
+      text: string;
+    };
+  };
+  ok: true;
+  usage: {
     rows: number;
   };
 }
@@ -8777,6 +8854,19 @@ describe("worker runtime", () => {
       "core.research_run_correction_impact",
       "core.user_notification"
     ]);
+    expect(body.data.static_report_artifact).toMatchObject({
+      artifact_writes: false,
+      data_delay_required: true,
+      disclaimer_required: true,
+      generated_at_required: true,
+      live_db_writes: false,
+      required_scope: "exports.read",
+      route: "POST /research/reports/static/plan",
+      runtime_route: "GET /research/runtime",
+      status: "static_report_metadata_scaffold",
+      tool_name: "plan_static_report_artifact",
+      watermark_required: true
+    });
   });
 
   it("plans deep report workflows with linked workflow task ids", async () => {
@@ -8932,6 +9022,108 @@ describe("worker runtime", () => {
     });
     expect(body.usage.credits).toBe(20);
     expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("plans allowed-scope static reports with required metadata", async () => {
+    const response = await app.request("/research/reports/static/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-21T09:30:00+08:00",
+        data_delay_minutes: 15,
+        data_version: "static-report-data-v0",
+        format: "pdf",
+        generated_at: "2026-06-21T10:00:00+08:00",
+        methodology_version: "static-report-method-v0",
+        report_id: "report_00700_static",
+        rights_policy_version: "rights-static-report-v0",
+        scopes: ["exports.read"],
+        sections: ["summary", "disclaimer"],
+        source_run_id: "research_run_00700",
+        title: "Tencent static report",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-static-report"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as StaticReportPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      request_id: "req-static-report",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_static_report_artifact"
+    });
+    expect(body.data.metadata).toMatchObject({
+      data_delay_minutes: 15,
+      data_version: "static-report-data-v0",
+      generated_at: "2026-06-21T10:00:00+08:00",
+      methodology_version: "static-report-method-v0",
+      rights_policy_version: "rights-static-report-v0"
+    });
+    expect(body.data.metadata.disclaimer).toContain("not investment advice");
+    expect(body.data.report).toMatchObject({
+      format: "pdf",
+      report_id: "report_00700_static",
+      source_run_id: "research_run_00700",
+      static_report_allowed: true,
+      table: "core.static_report_artifact"
+    });
+    expect(body.data.artifact).toMatchObject({
+      pdf: "planned_no_write",
+      public_url: "not_generated",
+      r2_write: false,
+      written: false
+    });
+    expect(body.data.rights_boundary).toMatchObject({
+      allowed_scope_only: true,
+      raw_partner_data_embedded: false,
+      redistribution_requires_rights_policy: true,
+      required_scope: "exports.read",
+      scope_granted: true
+    });
+    expect(body.data.persistence_plan).toMatchObject({
+      artifact_writes: false,
+      live_db_writes: false,
+      r2_writes: false,
+      sql_emitted: false,
+      write_status: "planned_no_write"
+    });
+    expect(body.data.watermark.text).toContain("data_delay_minutes=15");
+    expect(body.data.capability.status).toBe("static_report_metadata_scaffold");
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("blocks static report planning when allowed-scope evidence is missing", async () => {
+    const response = await app.request("/research/reports/static/plan", {
+      body: JSON.stringify({
+        data_delay_minutes: 15,
+        scopes: [],
+        source_run_id: "research_run_00700",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-static-report-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as StaticReportPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.data.status).toBe("blocked_unlicensed_scope");
+    expect(body.data.report.static_report_allowed).toBe(false);
+    expect(body.data.rights_boundary.scope_granted).toBe(false);
+    expect(body.data.persistence_plan.write_status).toBe("blocked");
+    expect(body.usage.rows).toBe(0);
   });
 
   it("plans complete research run snapshots for replay without writes", async () => {

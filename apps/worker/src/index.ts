@@ -161,9 +161,11 @@ import {
   createDataCorrectionNotificationPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  createStaticReportPlan,
   getDataCorrectionNotificationCapabilities,
   getDeepReportWorkflowCapabilities,
   getResearchRuntimeCapabilities,
+  getStaticReportCapabilities,
   type CreateResearchRunReplayCurrentRunInput,
   type DataCorrectionNotificationChannel,
   type DataCorrectionSeverity,
@@ -289,6 +291,17 @@ interface AgentRunRequestBody {
   question?: unknown;
   report_id?: unknown;
   reportId?: unknown;
+  data_version?: unknown;
+  dataVersion?: unknown;
+  disclaimer?: unknown;
+  format?: unknown;
+  generated_at?: unknown;
+  generatedAt?: unknown;
+  methodology_version?: unknown;
+  methodologyVersion?: unknown;
+  rights_policy_version?: unknown;
+  rightsPolicyVersion?: unknown;
+  scopes?: unknown;
   sections?: unknown;
   data_delay_minutes?: unknown;
   dataDelayMinutes?: unknown;
@@ -296,6 +309,9 @@ interface AgentRunRequestBody {
   modelVersion?: unknown;
   prompt_version?: unknown;
   promptVersion?: unknown;
+  source_run_id?: unknown;
+  sourceRunId?: unknown;
+  title?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
   workspace_id?: unknown;
@@ -2633,6 +2649,51 @@ app.post("/research/reports/deep/plan", async (c) => {
       500
     );
   }
+});
+
+app.post("/research/reports/static/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createStaticReportPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    dataDelayMinutes: normalizeOptionalInteger(body.data_delay_minutes ?? body.dataDelayMinutes),
+    dataVersion: normalizeString(body.data_version ?? body.dataVersion),
+    disclaimer: normalizeString(body.disclaimer),
+    format: normalizeString(body.format),
+    generatedAt: normalizeString(body.generated_at ?? body.generatedAt),
+    methodologyVersion: normalizeString(body.methodology_version ?? body.methodologyVersion),
+    reportId: normalizeString(body.report_id ?? body.reportId),
+    requestId,
+    rightsPolicyVersion: normalizeString(
+      body.rights_policy_version ?? body.rightsPolicyVersion
+    ),
+    scopes: normalizeStringArray(body.scopes) ?? [],
+    sections: normalizeStringArray(body.sections),
+    sourceRunId: normalizeString(body.source_run_id ?? body.sourceRunId),
+    title: normalizeString(body.title),
+    userId: normalizeString(body.user_id ?? body.userId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getStaticReportCapabilities()
+      },
+      {
+        asOf: plan.metadata.as_of,
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
+  );
 });
 
 app.get("/mcp/runtime", (c) => {

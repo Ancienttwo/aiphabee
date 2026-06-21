@@ -346,6 +346,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621125000_static_report_scaffold.sql",
+      "purpose": "Create empty static report artifact, audit event, and governance scaffolds for allowed-scope report metadata without enabling artifact writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.static_report_artifact",
+        "audit.static_report_event",
+        "governance.static_report_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
