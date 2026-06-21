@@ -1,0 +1,152 @@
+{
+  "version": "2026-06-22.gate0-p0-field-distribution-status.v0",
+  "status": "local_contract",
+  "tracker_item": "Sprint 0.1: field distribution status annotated",
+  "source_contract": "deploy/gateway/p0-rights-matrix-coverage.contract.json",
+  "runtime_source": "packages/data-access-gateway/src/index.ts",
+  "frontend": false,
+  "live_rights_matrix_reads": false,
+  "partner_signed_matrix_loaded": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "required_p0_tool_count": 16,
+  "default_unconfirmed_status": "default_deny_pending_partner_matrix",
+  "distribution_status_fields": [
+    "web_display",
+    "mcp_api_redistribution",
+    "export",
+    "derived"
+  ],
+  "required_dataset_groups": [
+    "security_master",
+    "market_calendar",
+    "quote_snapshot",
+    "price_history",
+    "corporate_actions",
+    "financial_facts",
+    "announcements",
+    "derived_analytics",
+    "evidence_lineage"
+  ],
+  "field_distribution_matrix": [
+    {
+      "dataset": "security_master",
+      "field_patterns": ["instrument_id", "symbol", "company_name", "listing_status", "currency"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "market_calendar",
+      "field_patterns": ["date", "session_status", "holiday_name", "timezone"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "quote_snapshot",
+      "field_patterns": ["last_price", "bid", "ask", "volume", "delay_minutes"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "price_history",
+      "field_patterns": ["open", "high", "low", "close", "volume", "adjustment_factor"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "corporate_actions",
+      "field_patterns": ["action_type", "effective_date", "terms", "adjustment_impact"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "financial_facts",
+      "field_patterns": ["metric_id", "period_end", "value", "currency", "restatement_version"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "announcements",
+      "field_patterns": ["document_id", "published_at", "title", "excerpt", "source_record_id"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "derived_analytics",
+      "field_patterns": ["return", "risk", "ratio", "screen_result", "event_study_metric"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    },
+    {
+      "dataset": "evidence_lineage",
+      "field_patterns": ["source_record_id", "data_version", "methodology_version", "rights_policy_version"],
+      "source_owner_status": "unconfirmed_partner_matrix_required",
+      "status": {
+        "web_display": "default_deny_pending_partner_matrix",
+        "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+        "export": "default_deny_pending_partner_matrix",
+        "derived": "default_deny_pending_partner_matrix"
+      }
+    }
+  ],
+  "p0_tool_distribution_default": {
+    "applies_to_registry_required_tools": true,
+    "web_display": "default_deny_pending_partner_matrix",
+    "mcp_api_redistribution": "default_deny_pending_partner_matrix",
+    "export": "default_deny_pending_partner_matrix",
+    "derived": "default_deny_pending_partner_matrix"
+  },
+  "not_claimed": [
+    "partner_signed_rights_matrix",
+    "hkex_vendor_license_conclusion",
+    "live_rights_matrix_reads",
+    "paid_commercial_terms",
+    "gate0_signoff"
+  ],
+  "linked_contracts": [
+    "deploy/gateway/p0-rights-matrix-coverage.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/tools/registry.contract.json",
+    "packages/data-access-gateway/src/index.ts"
+  ]
+}

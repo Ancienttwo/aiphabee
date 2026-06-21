@@ -54,7 +54,7 @@ owner: "Planner / PM"
 
 | Sprint | 主题 | 状态 | Backlog 完成度 | 退出门槛 |
 |---|---|---|---|---|
-| 0.1 | 法务·授权·监管 Gate | 🟦 | 1 / 8 | ☐ |
+| 0.1 | 法务·授权·监管 Gate | 🟦 | 2 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
 | 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |
@@ -115,7 +115,7 @@ owner: "Planner / PM"
 **目标：** 拿到可上线的「字段级权利矩阵 + 监管分类书面意见」，确定哪些字段/渠道/用途可分发。
 
 - [ ] 与数据合作方完成**字段级权利矩阵**：所有者/来源、Web 展示、MCP/API 再分发、原始 vs 派生、实时/延迟/EOD、历史范围、导出与缓存、用户类型与地区、订阅者报送、审计与终止、商业条款（PRD §14.1 全 11 维）
-- [ ] 逐字段标注分发状态：`Web 可 / MCP 可 / 导出可 / 派生可`，未确认者标 **默认拒绝**
+- [x] 逐字段标注分发状态：`Web 可 / MCP 可 / 导出可 / 派生可`，未确认者标 **默认拒绝**：`deploy/governance/p0-field-distribution-status.contract.json` + `npm run check:p0-field-distribution-status` 覆盖 9 个 P0 dataset field groups 与 16 个 rights-aware P0 tools，所有 Web/MCP/API 再分发/导出/派生状态均为 `default_deny_pending_partner_matrix`；不声明 partner 签署或 live rights reads
 - [ ] HKEX 市场数据授权确认：End-user vs Market Data Vendor Licence、非展示使用费（§14.1、脚注 HKEX）
 - [ ] 取得香港律师/合规对**具体功能**的 Type 4 / 研究工具分类书面意见（§14.2、PRD §0.4）
 - [x] 确认 MVP 产品边界文案：新增 `deploy/public-ops/mvp-product-boundary-copy.contract.json`、`scripts/check-mvp-product-boundary-copy-contract.mjs`、`docs/governance/mvp-product-boundary-copy.md` 与 `npm run check:mvp-product-boundary-copy`，扫描 `docs/public/*.md` 与当前 `apps/web` 用户可见 copy，证明使用「研究/分析/数据解释」边界、不承诺荐股/投顾、不输出个性化买入/卖出/持有建议、不收集风险承受度生成适合性结论；Type 4 书面意见、外部合规签字和 Gate 0 决议书仍未到位（§14.2）
@@ -635,7 +635,7 @@ owner: "Planner / PM"
 - [x] MCP compatibility status scaffold 已建立：`docs/governance/mcp-compatibility-status-scaffold.md`；`@aiphabee/mcp-runtime` 输出 `GET /mcp/compatibility/status` no-live 兼容性状态、official Inspector/TypeScript SDK v1.x target、target-client matrix、status-page source fields 与 US-M08 `as_of`/delay/source 测试向量，live SDK/Inspector/client e2e 与公开状态页未启用
 - [x] Subscription lifecycle audit scaffold 已建立：`docs/governance/subscription-lifecycle-audit-scaffold.md`；`@aiphabee/account-runtime` 输出 `subscription_lifecycle` capability，`/account/subscription/lifecycle/plan` 返回 upgrade/downgrade/renew/cancel/grace-period no-write audit plan，`audit.subscription_lifecycle_event` schema scaffold 已建立，live billing provider/invoice-proration-refund preview/DB writes/frontend billing UI 未启用
 - [x] Usage billing reconciliation scaffold 已建立：`docs/governance/usage-billing-reconciliation-scaffold.md`；`@aiphabee/usage-ledger` 输出 `billing_reconciliation` capability，`/usage/billing/reconciliation/plan` 返回 invoice credits vs ledger credits consistency、invoice line 到 usage ledger entry / usage event / request_id trace plan，`core.subscription_invoice` 与 `core.subscription_invoice_line` schema scaffold 已建立，live billing provider/live ledger reads/invoice writes/frontend billing UI 未启用
-- [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、PCPD 合规路径、商业条款与签字仍未到位；MVP 产品边界文案已由本地 contract/checker 验收，剩余 7 个叶子任务保持未完成
+- [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、PCPD 合规路径、商业条款与签字仍未到位；MVP 产品边界文案与逐字段分发状态已由本地 contract/checker 验收，剩余 6 个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
 - [ ] Sprint 0.4 的前端 scaffold 与 Design System baseline 已由 Claude 分支合入并通过本地 web typecheck/test/build；model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke 尚未实现
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0ed | 完成 `p0-field-distribution-status`：新增 `deploy/governance/p0-field-distribution-status.contract.json`、`scripts/check-p0-field-distribution-status-contract.mjs`、`docs/governance/p0-field-distribution-status.md`、task contract/notes 与 `npm run check:p0-field-distribution-status`；checker 复核 P0 rights matrix coverage contract、Data Access Gateway source 与 Tool Registry，证明 9 个 P0 dataset field groups 与 16 个 P0 tools 都有 Web/MCP API redistribution/export/derived 状态，且未确认时全部 default-deny；partner 签署权利矩阵 / HKEX vendor 结论 / live rights reads / 商业条款 / Gate 0 签字仍未声明，Sprint 0.1 更新为 2/8 |
 | 2026-06-22 | 1.0ec | 完成 `always-on-controls-closeout`：新增 `deploy/governance/always-on-controls.contract.json`、`scripts/check-always-on-controls-contract.mjs`、`docs/governance/always-on-controls-closeout.md`、task contract/notes 与 `npm run check:always-on-controls`；checker 复核 16 个 P0 tool schema/golden fixtures 的 standard envelope/provenance/usage、Agent claim labels/evidence strength、Gateway default-deny、Web rights 不扩展到 MCP、tool allowlist/no SQL/no URL、eval-v1 四类指标、CI Golden Regression Hook 与单 run budget graceful stop；仅勾选 §A 中 9 个本地可证明项，live rights activation / live rate limiter / live AI Gateway logs / live audit sink / real model post-generation validation 仍未声明 |
 | 2026-06-22 | 1.0eb | 完成 `mvp-product-boundary-copy`：新增 `deploy/public-ops/mvp-product-boundary-copy.contract.json`、`scripts/check-mvp-product-boundary-copy-contract.mjs`、`docs/governance/mvp-product-boundary-copy.md`、task contract/notes 与 `npm run check:mvp-product-boundary-copy`；checker 扫描 public docs 与当前 `apps/web` 用户可见 copy，证明 MVP 文案使用 research/analysis/data-explanation 定位、非投资建议声明、无 buy/sell/hold recommendation，并明确不收集 risk tolerance 生成 suitability conclusions；Type 4 书面意见 / external compliance signoff / Gate 0 决议签字仍未到位，Sprint 0.1 更新为 1/8 |
 | 2026-06-22 | 1.0ea | 完成 `load-dr-incident-drill-release-gate-scaffold`：新增 Observability load/DR/incident drill release gate capability、`POST /observability/release-gates/load-dr-incident-drill/plan`、`GET /observability/runtime` `load_dr_incident_drill_release_gate` readiness、`deploy/observability/load-dr-incident-drill-release-gate.contract.json`、`scripts/check-load-dr-incident-drill-release-gate-contract.mjs`、`core.load_dr_incident_drill_release_gate` / `audit.load_dr_incident_drill_event` / `governance.load_dr_incident_drill_release_gate_contract` empty schema scaffold 与 `npm run check:load-dr-incident-drill-release-gate`；gate 证明 synthetic load-test artifact、peak/error-rate target、DR RTO/RPO、incident tabletop、failover/rollback plan、status/communications drill 均具备本地 no-write 验收形态；live load-test artifact / live DR restore evidence / live failover execution / live incident drill evidence / live status-page drill / ops-SRE-product signoff 未启用，Sprint 3.3 更新为 17/17 |
