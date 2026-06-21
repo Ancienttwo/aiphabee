@@ -7,7 +7,9 @@
     "instrument_id": "eq_hk_00700",
     "from": "2026-01-03",
     "to": "2026-01-07",
-    "categories": ["annual_results"],
+    "categories": [
+      "annual_results"
+    ],
     "limit": 5
   },
   "expected_response": {
@@ -19,7 +21,8 @@
       {
         "source": "synthetic_tool_fixture",
         "source_record_id": "announcements:eq_hk_00700:2026-01-03:annual-results",
-        "data_version": "announcements-synthetic-v0"
+        "data_version": "announcements-synthetic-v0",
+        "methodology_version": "2026-06-21.phase2.search-announcements-scaffold.v0"
       }
     ],
     "usage": {
@@ -31,7 +34,11 @@
       "toolName": "search_announcements",
       "status": "found",
       "liveDataAccess": false,
-      "instrumentId": "eq_hk_00700"
-    }
+      "instrumentId": "eq_hk_00700",
+      "data_version": "announcements-synthetic-v0",
+      "methodology_version": "2026-06-21.phase2.search-announcements-scaffold.v0"
+    },
+    "data_version": "announcements-synthetic-v0",
+    "methodology_version": "2026-06-21.phase2.search-announcements-scaffold.v0"
   }
 }

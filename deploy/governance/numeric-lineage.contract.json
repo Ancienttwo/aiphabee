@@ -1,0 +1,40 @@
+{
+  "version": "2026-06-22.numeric-lineage-dat09.v0",
+  "status": "local_contract",
+  "tracker_item": "A1.DAT-09",
+  "scope": "registered_p0_tool_outputs_and_golden_fixtures",
+  "frontend": false,
+  "live_data_access": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "p0_tool_count": 16,
+  "required_lineage_fields": [
+    "source",
+    "source_record_id",
+    "data_version",
+    "methodology_version"
+  ],
+  "required_checks": [
+    "provenance_ref_requires_methodology_version",
+    "tool_output_schemas_require_lineage_triad",
+    "golden_manifest_source_records_include_lineage_triad",
+    "golden_fixture_envelopes_include_lineage_triad",
+    "answer_evidence_cards_require_lineage_triad",
+    "numeric_source_guard_blocks_unmapped_numbers",
+    "evidence_service_links_source_record_data_methodology"
+  ],
+  "linked_contracts": [
+    "packages/data-contracts/src/index.ts",
+    "deploy/tools/tool-schemas.contract.json",
+    "tests/golden/tools/manifest.json",
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/agent/numeric-source-guard.contract.json",
+    "deploy/tools/evidence-lineage.contract.json",
+    "deploy/evidence/service.contract.json"
+  ],
+  "known_limits": [
+    "live_partner_source_rows_not_loaded",
+    "live_route_replay_not_enabled",
+    "post_generation_model_output_parser_not_live"
+  ]
+}

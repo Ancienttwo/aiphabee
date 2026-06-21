@@ -7314,7 +7314,7 @@ app.post("/evidence/records/plan", async (c) => {
           ? sourceRecord.methodology_version
           : typeof sourceRecord.methodologyVersion === "string"
             ? sourceRecord.methodologyVersion
-            : undefined,
+            : "",
       source: typeof sourceRecord.source === "string" ? sourceRecord.source : "",
       sourceRecordId:
         typeof sourceRecord.source_record_id === "string"

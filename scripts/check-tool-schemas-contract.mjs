@@ -29,6 +29,7 @@ const requiredEnvelopeFields = [
   "provenance",
   "usage"
 ];
+const requiredLineageFields = ["source", "source_record_id", "data_version", "methodology_version"];
 const requiredErrorCodes = [
   "AUTH_REQUIRED",
   "DATA_NOT_LICENSED",
@@ -125,6 +126,17 @@ function validateContract(value) {
       "required_envelope_fields"
     )
   );
+  errors.push(
+    ...validateStringArray(
+      value.required_provenance_fields,
+      requiredLineageFields,
+      "required_provenance_fields"
+    )
+  );
+
+  if (value.numeric_lineage_required !== true) {
+    errors.push("numeric_lineage_required must be true");
+  }
 
   if (!isRecord(value.schemas)) {
     errors.push("schemas must be an object keyed by tool name");
@@ -205,14 +217,41 @@ function validateOutputSchema(toolName, schema) {
   }
 
   errors.push(
-    ...validateStringArray(schema.required, [...requiredEnvelopeFields, "data"], `${toolName}.output.required`)
+    ...validateStringArray(
+      schema.required,
+      [...requiredEnvelopeFields, "data", "data_version", "methodology_version"],
+      `${toolName}.output.required`
+    )
   );
 
+  const provenanceSchema = schema.properties?.provenance;
+
+  if (!isRecord(provenanceSchema) || provenanceSchema.type !== "array") {
+    errors.push(`${toolName}.output.properties.provenance must be an array schema`);
+  } else {
+    errors.push(
+      ...validateStringArray(
+        provenanceSchema.items?.required,
+        requiredLineageFields,
+        `${toolName}.output.properties.provenance.items.required`
+      )
+    );
+  }
+
   const dataProperties = schema.properties?.data?.properties;
+  const dataRequired = schema.properties?.data?.required;
 
   if (!isRecord(dataProperties)) {
     errors.push(`${toolName}.output.properties.data.properties must be present`);
   } else {
+    errors.push(
+      ...validateStringArray(
+        dataRequired,
+        ["toolName", "status", "liveDataAccess", "data_version", "methodology_version"],
+        `${toolName}.output.properties.data.required`
+      )
+    );
+
     if (dataProperties.toolName?.const !== toolName) {
       errors.push(`${toolName}.output data.toolName const must match tool name`);
     }
@@ -264,10 +303,10 @@ function validateStringArray(value, requiredValues, name) {
 function validateNoSecretLikeValues(value) {
   const serialized = JSON.stringify(value);
   const patterns = [
-    /sk-[A-Za-z0-9_-]+/u,
+    /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,
     /postgres(?:ql)?:\/\//iu,
-    /Bearer\s+[A-Za-z0-9._-]+/u,
-    /gh[pousr]_[A-Za-z0-9_]+/u,
+    /Bearer\s+[A-Za-z0-9._-]{20,}/u,
+    /gh[pousr]_[A-Za-z0-9_]{20,}/u,
     /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
   ];
 

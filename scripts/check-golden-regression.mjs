@@ -245,6 +245,21 @@ function validateToolManifest(value) {
 
     if (!Array.isArray(sample.source_records) || sample.source_records.length === 0) {
       errors.push(`tool_samples[${index}].source_records must be a non-empty array`);
+    } else {
+      sample.source_records.forEach((sourceRecord, sourceRecordIndex) => {
+        if (!isRecord(sourceRecord)) {
+          errors.push(`tool_samples[${index}].source_records[${sourceRecordIndex}] must be an object`);
+          return;
+        }
+
+        for (const field of ["source", "source_record_id", "data_version", "methodology_version"]) {
+          if (typeof sourceRecord[field] !== "string" || sourceRecord[field].length === 0) {
+            errors.push(
+              `tool_samples[${index}].source_records[${sourceRecordIndex}].${field} must be a non-empty string`
+            );
+          }
+        }
+      });
     }
 
     if (typeof sample.sample_id === "string") {
@@ -315,7 +330,9 @@ function validateToolFixture(sample, fixture, samplePrefix) {
     "ok",
     "request_id",
     "as_of",
+    "data_version",
     "market_status",
+    "methodology_version",
     "provenance",
     "usage",
     "data"
@@ -331,6 +348,21 @@ function validateToolFixture(sample, fixture, samplePrefix) {
 
   if (!Array.isArray(response.provenance) || response.provenance.length === 0) {
     errors.push(`${samplePrefix}: expected_response.provenance must be non-empty`);
+  } else {
+    response.provenance.forEach((sourceRecord, sourceRecordIndex) => {
+      if (!isRecord(sourceRecord)) {
+        errors.push(`${samplePrefix}: expected_response.provenance[${sourceRecordIndex}] must be an object`);
+        return;
+      }
+
+      for (const field of ["source", "source_record_id", "data_version", "methodology_version"]) {
+        if (typeof sourceRecord[field] !== "string" || sourceRecord[field].length === 0) {
+          errors.push(
+            `${samplePrefix}: expected_response.provenance[${sourceRecordIndex}].${field} must be a non-empty string`
+          );
+        }
+      }
+    });
   }
 
   if (!isRecord(response.usage)) {
@@ -354,22 +386,30 @@ function validateToolFixture(sample, fixture, samplePrefix) {
     errors.push(`${samplePrefix}: expected_response.data.liveDataAccess must be false`);
   }
 
-  const manifestSourceRecordIds = new Set(
-    sample.source_records
-      .filter(isRecord)
-      .map((record) => record.source_record_id)
-      .filter((value) => typeof value === "string")
-  );
-  const responseSourceRecordIds = new Set(
-    response.provenance
-      .filter(isRecord)
-      .map((record) => record.source_record_id)
-      .filter((value) => typeof value === "string")
-  );
+  if (response.data.data_version !== response.data_version) {
+    errors.push(`${samplePrefix}: expected_response.data.data_version must match envelope data_version`);
+  }
 
-  for (const sourceRecordId of manifestSourceRecordIds) {
-    if (!responseSourceRecordIds.has(sourceRecordId)) {
-      errors.push(`${samplePrefix}: response provenance missing ${sourceRecordId}`);
+  if (response.data.methodology_version !== response.methodology_version) {
+    errors.push(`${samplePrefix}: expected_response.data.methodology_version must match envelope methodology_version`);
+  }
+
+  for (const sourceRecord of sample.source_records.filter(isRecord)) {
+    const matchingResponseRecord = response.provenance
+      .filter(isRecord)
+      .find((record) => record.source_record_id === sourceRecord.source_record_id);
+
+    if (!matchingResponseRecord) {
+      errors.push(`${samplePrefix}: response provenance missing ${sourceRecord.source_record_id}`);
+      continue;
+    }
+
+    for (const field of ["data_version", "methodology_version"]) {
+      if (matchingResponseRecord[field] !== sourceRecord[field]) {
+        errors.push(
+          `${samplePrefix}: response provenance ${sourceRecord.source_record_id} ${field} must match manifest`
+        );
+      }
     }
   }
 

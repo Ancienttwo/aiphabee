@@ -296,7 +296,7 @@ function validateToolGoldenFixtures(value) {
           return;
         }
 
-        for (const field of ["source", "source_record_id", "data_version"]) {
+        for (const field of ["source", "source_record_id", "data_version", "methodology_version"]) {
           if (typeof record[field] !== "string" || record[field].length === 0) {
             errors.push(`${fixturePath} provenance[${recordIndex}].${field} must be a non-empty string`);
           }

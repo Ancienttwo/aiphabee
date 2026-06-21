@@ -270,6 +270,7 @@ describe("evidence-lineage tool scaffolds", () => {
         sourceRecords: [
           {
             dataVersion: "financial-facts-synthetic-v0",
+            methodologyVersion: "methodology-v0",
             source: "synthetic",
             sourceRecordId: "record-1"
           }

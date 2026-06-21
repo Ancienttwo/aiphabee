@@ -31,7 +31,7 @@ export interface ProvenanceRef {
   source: string;
   source_record_id: string;
   data_version: string;
-  methodology_version?: string;
+  methodology_version: string;
 }
 
 export interface UsageSummary {

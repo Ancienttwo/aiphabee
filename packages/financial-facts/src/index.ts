@@ -115,7 +115,7 @@ export interface GetFinancialFactsResult {
   methodologyVersion: typeof GET_FINANCIAL_FACTS_VERSION;
   provenance: Array<{
     data_version: string;
-    methodology_version?: string;
+    methodology_version: string;
     source: string;
     source_record_id: string;
   }>;

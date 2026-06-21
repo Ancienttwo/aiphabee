@@ -15,7 +15,8 @@
       {
         "source": "synthetic_tool_fixture",
         "source_record_id": "security-profile:eq_hk_00700",
-        "data_version": "security-profile-synthetic-v0"
+        "data_version": "security-profile-synthetic-v0",
+        "methodology_version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0"
       }
     ],
     "usage": {
@@ -27,7 +28,11 @@
       "toolName": "get_security_profile",
       "status": "found",
       "liveDataAccess": false,
-      "instrumentId": "eq_hk_00700"
-    }
+      "instrumentId": "eq_hk_00700",
+      "data_version": "security-profile-synthetic-v0",
+      "methodology_version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0"
+    },
+    "data_version": "security-profile-synthetic-v0",
+    "methodology_version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0"
   }
 }

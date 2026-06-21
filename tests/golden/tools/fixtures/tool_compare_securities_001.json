@@ -4,8 +4,14 @@
   "input_schema_id": "tool.compare_securities.input.v0",
   "output_schema_id": "tool.compare_securities.output.v0",
   "request": {
-    "securities": ["eq_hk_00700", "eq_hk_00001"],
-    "metrics": ["revenue", "net_margin"],
+    "securities": [
+      "eq_hk_00700",
+      "eq_hk_00001"
+    ],
+    "metrics": [
+      "revenue",
+      "net_margin"
+    ],
     "financial_from": "2023-12-31",
     "financial_to": "2023-12-31",
     "target_currency": "HKD"
@@ -19,7 +25,8 @@
       {
         "source": "synthetic_tool_fixture",
         "source_record_id": "compare-securities:eq_hk_00700:eq_hk_00001:2026-01-07",
-        "data_version": "compare-securities-synthetic-v0"
+        "data_version": "compare-securities-synthetic-v0",
+        "methodology_version": "2026-06-21.phase2.compare-securities-scaffold.v0"
       }
     ],
     "usage": {
@@ -31,7 +38,14 @@
       "toolName": "compare_securities",
       "status": "found",
       "liveDataAccess": false,
-      "securities": ["eq_hk_00700", "eq_hk_00001"]
-    }
+      "securities": [
+        "eq_hk_00700",
+        "eq_hk_00001"
+      ],
+      "data_version": "compare-securities-synthetic-v0",
+      "methodology_version": "2026-06-21.phase2.compare-securities-scaffold.v0"
+    },
+    "data_version": "compare-securities-synthetic-v0",
+    "methodology_version": "2026-06-21.phase2.compare-securities-scaffold.v0"
   }
 }

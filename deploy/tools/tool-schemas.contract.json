@@ -14,8 +14,12 @@
     "provenance",
     "usage"
   ],
-  "required_success_fields": ["data"],
-  "required_error_fields": ["error"],
+  "required_success_fields": [
+    "data"
+  ],
+  "required_error_fields": [
+    "error"
+  ],
   "schemas": {
     "resolve_security": {
       "standard_error_codes": [
@@ -29,109 +33,407 @@
         "$id": "tool.resolve_security.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "required": ["query"],
+        "required": [
+          "query"
+        ],
         "properties": {
-          "query": { "type": "string", "minLength": 1 },
-          "market": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 }
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.resolve_security.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "resolve_security" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "resolve_security"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.resolve-security-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
     },
     "get_security_profile": {
-      "standard_error_codes": ["DATA_NOT_LICENSED", "NOT_FOUND", "SCOPE_DENIED"],
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
       "input": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_security_profile.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_security_profile.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_security_profile" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_security_profile"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
     },
     "get_market_calendar": {
-      "standard_error_codes": ["NOT_FOUND", "OUT_OF_RANGE", "SCOPE_DENIED"],
+      "standard_error_codes": [
+        "NOT_FOUND",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED"
+      ],
       "input": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_market_calendar.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "required": ["market", "from", "to"],
+        "required": [
+          "market",
+          "from",
+          "to"
+        ],
         "properties": {
-          "market": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+          "market": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_market_calendar.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_market_calendar" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_market_calendar"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -149,35 +451,148 @@
         "$id": "tool.get_quote_snapshot.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "mode": { "enum": ["close", "delayed"] },
-          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "as_of": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "enum": [
+              "close",
+              "delayed"
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_quote_snapshot.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_quote_snapshot" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_quote_snapshot"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -196,39 +611,165 @@
         "$id": "tool.get_price_history.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
-        "required": ["from", "to"],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "adjustment": { "enum": ["raw", "split_adjusted", "total_return_adjusted"] },
-          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "limit": { "type": "integer", "minimum": 1 },
-          "cursor": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "adjustment": {
+            "enum": [
+              "raw",
+              "split_adjusted",
+              "total_return_adjusted"
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_price_history.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_price_history" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_price_history"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-price-history-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -247,38 +788,158 @@
         "$id": "tool.get_corporate_actions.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
-        "required": ["from", "to"],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "limit": { "type": "integer", "minimum": 1 },
-          "cursor": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_corporate_actions.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_corporate_actions" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_corporate_actions"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -298,42 +959,180 @@
         "$id": "tool.get_financial_facts.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
-        "required": ["from", "to"],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "metrics": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "statement_types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "statementTypes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
-          "limit": { "type": "integer", "minimum": 1 },
-          "cursor": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "statement_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "statementTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_financial_facts.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_financial_facts" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_financial_facts"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -353,46 +1152,183 @@
         "type": "object",
         "additionalProperties": false,
         "anyOf": [
-          { "required": ["instrument_id"] },
-          { "required": ["instrumentId"] },
-          { "required": ["security_query"] },
-          { "required": ["securityQuery"] }
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          },
+          {
+            "required": [
+              "security_query"
+            ]
+          },
+          {
+            "required": [
+              "securityQuery"
+            ]
+          }
         ],
-        "required": ["financial_from", "financial_to"],
+        "required": [
+          "financial_from",
+          "financial_to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "security_query": { "type": "string", "minLength": 1 },
-          "securityQuery": { "type": "string", "minLength": 1 },
-          "financial_from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialFrom": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financial_to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialTo": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
-          "metrics": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "security_query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "securityQuery": {
+            "type": "string",
+            "minLength": 1
+          },
+          "financial_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialFrom": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financial_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialTo": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_financial_ratios.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_financial_ratios" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_financial_ratios"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.financial-ratios-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -412,54 +1348,206 @@
         "type": "object",
         "additionalProperties": false,
         "anyOf": [
-          { "required": ["instrument_id"] },
-          { "required": ["instrumentId"] },
-          { "required": ["security_query"] },
-          { "required": ["securityQuery"] }
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          },
+          {
+            "required": [
+              "security_query"
+            ]
+          },
+          {
+            "required": [
+              "securityQuery"
+            ]
+          }
         ],
-        "required": ["from", "to"],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "security_query": { "type": "string", "minLength": 1 },
-          "securityQuery": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "published_from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "publishedFrom": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "published_to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "publishedTo": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "categories": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "security_query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "securityQuery": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "published_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishedFrom": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "published_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishedTo": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
           "announcement_categories": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "keyword": { "type": "string", "minLength": 1 },
-          "query": { "type": "string", "minLength": 1 },
-          "language": { "type": "string", "minLength": 1 },
-          "limit": { "type": "integer", "minimum": 1 }
+          "keyword": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.search_announcements.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "search_announcements" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "search_announcements"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.search-announcements-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -476,35 +1564,146 @@
         "$id": "tool.get_announcement.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["document_id"] }, { "required": ["documentId"] }],
+        "anyOf": [
+          {
+            "required": [
+              "document_id"
+            ]
+          },
+          {
+            "required": [
+              "documentId"
+            ]
+          }
+        ],
         "properties": {
-          "document_id": { "type": "string", "minLength": 1 },
-          "documentId": { "type": "string", "minLength": 1 },
-          "sections": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "max_excerpt_chars": { "type": "integer", "minimum": 1 },
-          "maxExcerptChars": { "type": "integer", "minimum": 1 }
+          "document_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "documentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "max_excerpt_chars": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxExcerptChars": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_announcement.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_announcement" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_announcement"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.get-announcement-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -524,42 +1723,168 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "universe": { "type": "string", "minLength": 1 },
-          "conditions": { "type": "array", "items": { "type": "object" } },
-          "natural_language": { "type": "string", "minLength": 1 },
-          "naturalLanguage": { "type": "string", "minLength": 1 },
-          "query": { "type": "string", "minLength": 1 },
-          "financial_from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialFrom": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financial_to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialTo": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
-          "classification_as_of": { "type": "string", "minLength": 1 },
-          "classificationAsOf": { "type": "string", "minLength": 1 },
-          "limit": { "type": "integer", "minimum": 1 }
+          "universe": {
+            "type": "string",
+            "minLength": 1
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "natural_language": {
+            "type": "string",
+            "minLength": 1
+          },
+          "naturalLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "financial_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialFrom": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financial_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialTo": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classification_as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classificationAsOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.screen_securities.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "screen_securities" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "screen_securities"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.screen-securities-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -578,41 +1903,165 @@
         "$id": "tool.compare_securities.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "required": ["securities"],
+        "required": [
+          "securities"
+        ],
         "properties": {
-          "securities": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "metrics": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "period": { "type": "string", "minLength": 1 },
-          "financial_from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialFrom": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financial_to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "financialTo": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
-          "target_currency": { "type": "string", "minLength": 1 },
-          "targetCurrency": { "type": "string", "minLength": 1 }
+          "securities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "period": {
+            "type": "string",
+            "minLength": 1
+          },
+          "financial_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialFrom": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financial_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "financialTo": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_currency": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetCurrency": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.compare_securities.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "compare_securities" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "compare_securities"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.compare-securities-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -632,48 +2081,191 @@
         "type": "object",
         "additionalProperties": false,
         "anyOf": [
-          { "required": ["instrument_id"] },
-          { "required": ["instrumentId"] },
-          { "required": ["security_query"] },
-          { "required": ["securityQuery"] }
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          },
+          {
+            "required": [
+              "security_query"
+            ]
+          },
+          {
+            "required": [
+              "securityQuery"
+            ]
+          }
         ],
-        "required": ["from", "to"],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "security_query": { "type": "string", "minLength": 1 },
-          "securityQuery": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "adjustment": { "enum": ["raw", "split_adjusted", "total_return_adjusted"] },
-          "benchmark_instrument_id": { "type": "string", "minLength": 1 },
-          "benchmarkInstrumentId": { "type": "string", "minLength": 1 },
-          "benchmark_security_query": { "type": "string", "minLength": 1 },
-          "benchmarkSecurityQuery": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "security_query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "securityQuery": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "adjustment": {
+            "enum": [
+              "raw",
+              "split_adjusted",
+              "total_return_adjusted"
+            ]
+          },
+          "benchmark_instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benchmarkInstrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benchmark_security_query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benchmarkSecurityQuery": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.calculate_returns_risk.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "calculate_returns_risk" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "calculate_returns_risk"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase2.returns-risk-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -692,86 +2284,330 @@
         "$id": "tool.get_event_timeline.input.v0",
         "type": "object",
         "additionalProperties": false,
-        "anyOf": [{ "required": ["instrument_id"] }, { "required": ["instrumentId"] }],
-        "required": ["from", "to"],
+        "anyOf": [
+          {
+            "required": [
+              "instrument_id"
+            ]
+          },
+          {
+            "required": [
+              "instrumentId"
+            ]
+          }
+        ],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "instrument_id": { "type": "string", "minLength": 1 },
-          "instrumentId": { "type": "string", "minLength": 1 },
-          "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-          "types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "limit": { "type": "integer", "minimum": 1 },
-          "cursor": { "type": "string", "minLength": 1 }
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrumentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_event_timeline.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_event_timeline" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_event_timeline"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
     },
     "get_data_lineage": {
-      "standard_error_codes": ["DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"],
+      "standard_error_codes": [
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
       "input": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_data_lineage.input.v0",
         "type": "object",
         "additionalProperties": false,
         "anyOf": [
-          { "required": ["evidence_id"] },
-          { "required": ["evidenceId"] },
-          { "required": ["record_id"] },
-          { "required": ["recordId"] }
+          {
+            "required": [
+              "evidence_id"
+            ]
+          },
+          {
+            "required": [
+              "evidenceId"
+            ]
+          },
+          {
+            "required": [
+              "record_id"
+            ]
+          },
+          {
+            "required": [
+              "recordId"
+            ]
+          }
         ],
         "properties": {
-          "evidence_id": { "type": "string", "minLength": 1 },
-          "evidenceId": { "type": "string", "minLength": 1 },
-          "record_id": { "type": "string", "minLength": 1 },
-          "recordId": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
-          "include_upstream": { "type": "boolean" },
-          "includeUpstream": { "type": "boolean" }
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "record_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
+          "include_upstream": {
+            "type": "boolean"
+          },
+          "includeUpstream": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_data_lineage.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_data_lineage" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_data_lineage"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -789,60 +2625,207 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "workspace_id": { "type": "string", "minLength": 1 },
-          "workspaceId": { "type": "string", "minLength": 1 },
-          "channel": { "enum": ["api", "export", "mcp", "web"] },
-          "tool_name": { "type": "string", "minLength": 1 },
-          "toolName": { "type": "string", "minLength": 1 },
-          "dataset": { "type": "string", "minLength": 1 },
-          "fields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "as_of": { "type": "string", "minLength": 1 },
-          "asOf": { "type": "string", "minLength": 1 },
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workspaceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel": {
+            "enum": [
+              "api",
+              "export",
+              "mcp",
+              "web"
+            ]
+          },
+          "tool_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "toolName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dataset": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1
+          },
           "time_range": {
             "type": "object",
-            "required": ["from", "to"],
+            "required": [
+              "from",
+              "to"
+            ],
             "additionalProperties": false,
             "properties": {
-              "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-              "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+              "from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
             }
           },
           "timeRange": {
             "type": "object",
-            "required": ["from", "to"],
+            "required": [
+              "from",
+              "to"
+            ],
             "additionalProperties": false,
             "properties": {
-              "from": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-              "to": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+              "from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
             }
           },
-          "requested_rows": { "type": "integer", "minimum": 1 },
-          "requestedRows": { "type": "integer", "minimum": 1 },
-          "export_requested": { "type": "boolean" },
-          "exportRequested": { "type": "boolean" },
-          "plan": { "type": "string", "minLength": 1 }
+          "requested_rows": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "requestedRows": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "export_requested": {
+            "type": "boolean"
+          },
+          "exportRequested": {
+            "type": "boolean"
+          },
+          "plan": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "tool.get_entitlements.output.v0",
         "type": "object",
-        "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "data"],
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
         "properties": {
-          "ok": { "const": true },
-          "request_id": { "type": "string", "minLength": 1 },
-          "as_of": { "type": "string", "minLength": 1 },
-          "market_status": { "type": "string" },
-          "provenance": { "type": "array" },
-          "usage": { "type": "object" },
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
           "data": {
             "type": "object",
-            "required": ["toolName", "status", "liveDataAccess"],
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
             "properties": {
-              "toolName": { "const": "get_entitlements" },
-              "status": { "type": "string" },
-              "liveDataAccess": { "const": false }
+              "toolName": {
+                "const": "get_entitlements"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
+              }
             }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -852,17 +2835,42 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "tool.error.output.v0",
     "type": "object",
-    "required": ["ok", "request_id", "as_of", "market_status", "provenance", "usage", "error"],
+    "required": [
+      "ok",
+      "request_id",
+      "as_of",
+      "market_status",
+      "provenance",
+      "usage",
+      "error"
+    ],
     "properties": {
-      "ok": { "const": false },
-      "request_id": { "type": "string", "minLength": 1 },
-      "as_of": { "type": "string", "minLength": 1 },
-      "market_status": { "type": "string" },
-      "provenance": { "type": "array" },
-      "usage": { "type": "object" },
+      "ok": {
+        "const": false
+      },
+      "request_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "as_of": {
+        "type": "string",
+        "minLength": 1
+      },
+      "market_status": {
+        "type": "string"
+      },
+      "provenance": {
+        "type": "array"
+      },
+      "usage": {
+        "type": "object"
+      },
       "error": {
         "type": "object",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "enum": [
@@ -883,9 +2891,19 @@
               "INTERNAL_ERROR"
             ]
           },
-          "message": { "type": "string", "minLength": 1 }
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
-  }
+  },
+  "required_provenance_fields": [
+    "source",
+    "source_record_id",
+    "data_version",
+    "methodology_version"
+  ],
+  "numeric_lineage_required": true
 }

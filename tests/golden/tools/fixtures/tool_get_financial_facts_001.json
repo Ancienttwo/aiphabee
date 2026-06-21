@@ -7,7 +7,10 @@
     "instrument_id": "eq_hk_00700",
     "from": "2023-12-31",
     "to": "2023-12-31",
-    "metrics": ["revenue", "net_income"]
+    "metrics": [
+      "revenue",
+      "net_income"
+    ]
   },
   "expected_response": {
     "ok": true,
@@ -18,7 +21,8 @@
       {
         "source": "synthetic_tool_fixture",
         "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
-        "data_version": "financial-facts-synthetic-v0"
+        "data_version": "financial-facts-synthetic-v0",
+        "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
       }
     ],
     "usage": {
@@ -30,7 +34,11 @@
       "toolName": "get_financial_facts",
       "status": "found",
       "liveDataAccess": false,
-      "instrumentId": "eq_hk_00700"
-    }
+      "instrumentId": "eq_hk_00700",
+      "data_version": "financial-facts-synthetic-v0",
+      "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
+    },
+    "data_version": "financial-facts-synthetic-v0",
+    "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
   }
 }

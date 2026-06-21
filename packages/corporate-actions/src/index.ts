@@ -107,7 +107,7 @@ export interface GetCorporateActionsResult {
   methodologyVersion: typeof GET_CORPORATE_ACTIONS_VERSION;
   provenance: Array<{
     data_version: string;
-    methodology_version?: string;
+    methodology_version: string;
     source: string;
     source_record_id: string;
   }>;

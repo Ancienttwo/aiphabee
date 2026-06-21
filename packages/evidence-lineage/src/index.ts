@@ -163,7 +163,7 @@ export interface GetEntitlementsResult {
 
 export interface EvidenceSourceRecordInput {
   dataVersion: string;
-  methodologyVersion?: string;
+  methodologyVersion: string;
   source: string;
   sourceRecordId: string;
 }
@@ -185,7 +185,7 @@ export interface EvidenceSourceRefPlan {
   dataVersion: string;
   evidenceRecordId: string;
   evidenceSourceRefId: string;
-  methodologyVersion?: string;
+  methodologyVersion: string;
   source: string;
   sourceRecordId: string;
 }
@@ -1203,17 +1203,23 @@ function normalizeEvidenceSourceRecords(
     const source = normalizeEvidenceServiceText(sourceRecord.source);
     const sourceRecordId = normalizeEvidenceServiceText(sourceRecord.sourceRecordId);
     const dataVersion = normalizeEvidenceServiceText(sourceRecord.dataVersion);
+    const methodologyVersion = normalizeEvidenceServiceText(sourceRecord.methodologyVersion);
 
-    if (source === undefined || sourceRecordId === undefined || dataVersion === undefined) {
+    if (
+      source === undefined ||
+      sourceRecordId === undefined ||
+      dataVersion === undefined ||
+      methodologyVersion === undefined
+    ) {
       throw new EvidenceServiceInputError(
         "SOURCE_RECORD_REQUIRED",
-        "source records require source, sourceRecordId, and dataVersion"
+        "source records require source, sourceRecordId, dataVersion, and methodologyVersion"
       );
     }
 
     return {
       dataVersion,
-      methodologyVersion: normalizeEvidenceServiceText(sourceRecord.methodologyVersion),
+      methodologyVersion,
       source,
       sourceRecordId
     };

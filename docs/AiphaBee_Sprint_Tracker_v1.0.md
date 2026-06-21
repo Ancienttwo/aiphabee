@@ -79,7 +79,7 @@ owner: "Planner / PM"
 > 这些是贯穿全程的不变量。每个 Sprint DoD 必须确认本期未让以下任一轨道回退。
 
 ### A1 证据与血缘（Evidence & Lineage）— PRD §8.4 / §9.5 / §10.3 / DAT-09
-- [ ] 任一对外数值都能映射到 `source_record_id` + `data_version` + `methodology_version`（DAT-09）
+- [x] 任一对外数值都能映射到 `source_record_id` + `data_version` + `methodology_version`：`deploy/governance/numeric-lineage.contract.json` + `npm run check:numeric-lineage` 复核 shared `ProvenanceRef.methodology_version` required、16 个 P0 tool output schema 的 `provenance[]` lineage triad、tool golden manifest/fixtures envelope + data + provenance 三层版本一致、`npm run test:golden` lineage gate、answer evidence card、numeric source guard 与 evidence lineage service；live partner source rows / live route replay / post-generation model output parser 未声明（DAT-09）
 - [x] 标准响应信封（`as_of` / `market_status` / `provenance` / `usage`）在所有工具一致：`deploy/governance/always-on-controls.contract.json` + `npm run check:always-on-controls` 校验 16 个 P0 tool output schema 与 golden tool fixtures 均保留标准 envelope、provenance、usage（§9.5）
 - [x] 答案分层「事实 / 计算 / 推断 / 未知」标签有效：`check:always-on-controls` 复核 `deploy/agent/answer-evidence-contract.contract.json` 的 claim labels 与 validation rules（AGT-06、§8.3）
 - [x] 证据强度用「强/中/弱/无法判断」而非伪信心分数：`check:always-on-controls` 复核 `evidence_strength.allowed_values=[strong,medium,weak,unknown]` 且 `confidence_score_display=false`（§8.4）
@@ -560,7 +560,7 @@ owner: "Planner / PM"
 | DAT-06 数据质量与隔离 | P0 | 0.3 / 1.1 | ☐ |
 | DAT-07 指标定义与方法论库 | P0 | 0.2 | ☐ |
 | DAT-08 数据更正与通知 | P1 | 2.4 | ☐ |
-| DAT-09 来源/血缘/证据快照 | P0 | 1.2 | ☐ |
+| DAT-09 来源/血缘/证据快照 | P0 | 1.2 | ☑ |
 | DAT-10 合作方 SLA 与对账 | P0 | 0.1 / 3.2 | ☐ |
 
 ---
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0ef | 完成 `numeric-lineage-dat09`：新增 `deploy/governance/numeric-lineage.contract.json`、`scripts/check-numeric-lineage-contract.mjs`、`docs/governance/numeric-lineage-dat09.md`、task contract/notes 与 `npm run check:numeric-lineage`；将 shared `ProvenanceRef.methodology_version` 提升为 required，补齐 16 个 P0 tool golden manifest/fixture 的 `source_record_id` + `data_version` + `methodology_version`，并增强 `npm run test:golden`、tool output schema provenance item 与 always-on controls 对 lineage triad 的校验；A1 DAT-09 与追溯矩阵 DAT-09 更新为本地 P0 tool/golden/schema 范围已完成，live partner source rows / live route replay / post-generation evidence binding 未声明 |
 | 2026-06-22 | 1.0ee | 完成 `untrusted-input-boundary`：新增 `deploy/governance/untrusted-input-boundary.contract.json`、`scripts/check-untrusted-input-boundary-contract.mjs`、`docs/governance/untrusted-input-boundary.md`、task contract/notes 与 `npm run check:untrusted-input-boundary`；checker 串联 document search/get/semantic/diff contracts、document sanitizer、Agent prompt-injection tool-denial release gate、tool enforcement 与 MCP protocol Origin gate，证明公告文档/网页 URL 尝试/用户工具请求/MCP Origin 均按不可信输入处理，系统指令只来自 runtime，任意 URL/SQL/未注册工具 pre-execution denied；live red-team / live execution proxy / frontend untrusted-content UI / live webpage sanitizer 未声明，§A3 更新 |
 | 2026-06-22 | 1.0ed | 完成 `p0-field-distribution-status`：新增 `deploy/governance/p0-field-distribution-status.contract.json`、`scripts/check-p0-field-distribution-status-contract.mjs`、`docs/governance/p0-field-distribution-status.md`、task contract/notes 与 `npm run check:p0-field-distribution-status`；checker 复核 P0 rights matrix coverage contract、Data Access Gateway source 与 Tool Registry，证明 9 个 P0 dataset field groups 与 16 个 P0 tools 都有 Web/MCP API redistribution/export/derived 状态，且未确认时全部 default-deny；partner 签署权利矩阵 / HKEX vendor 结论 / live rights reads / 商业条款 / Gate 0 签字仍未声明，Sprint 0.1 更新为 2/8 |
 | 2026-06-22 | 1.0ec | 完成 `always-on-controls-closeout`：新增 `deploy/governance/always-on-controls.contract.json`、`scripts/check-always-on-controls-contract.mjs`、`docs/governance/always-on-controls-closeout.md`、task contract/notes 与 `npm run check:always-on-controls`；checker 复核 16 个 P0 tool schema/golden fixtures 的 standard envelope/provenance/usage、Agent claim labels/evidence strength、Gateway default-deny、Web rights 不扩展到 MCP、tool allowlist/no SQL/no URL、eval-v1 四类指标、CI Golden Regression Hook 与单 run budget graceful stop；仅勾选 §A 中 9 个本地可证明项，live rights activation / live rate limiter / live AI Gateway logs / live audit sink / real model post-generation validation 仍未声明 |

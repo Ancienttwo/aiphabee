@@ -15,7 +15,8 @@
       {
         "source": "synthetic_tool_fixture",
         "source_record_id": "security:resolver:00700",
-        "data_version": "security-tools-synthetic-v0"
+        "data_version": "security-tools-synthetic-v0",
+        "methodology_version": "2026-06-21.phase1.resolve-security-tool-scaffold.v0"
       }
     ],
     "usage": {
@@ -27,7 +28,11 @@
       "toolName": "resolve_security",
       "status": "resolved",
       "liveDataAccess": false,
-      "selectedInstrumentId": "eq_hk_00700"
-    }
+      "selectedInstrumentId": "eq_hk_00700",
+      "data_version": "security-tools-synthetic-v0",
+      "methodology_version": "2026-06-21.phase1.resolve-security-tool-scaffold.v0"
+    },
+    "data_version": "security-tools-synthetic-v0",
+    "methodology_version": "2026-06-21.phase1.resolve-security-tool-scaffold.v0"
   }
 }
