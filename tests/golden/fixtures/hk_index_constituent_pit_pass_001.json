@@ -1,0 +1,44 @@
+{
+  "sample_id": "hk_index_constituent_pit_pass_001",
+  "records": [
+    {
+      "record_id": "idx_hsi_2021_member_001",
+      "record_type": "index_constituent",
+      "source_record_id": "src_hk_index_constituent_pit_pass_001",
+      "index_id": "hsi_synthetic",
+      "instrument_id": "eq_synthetic_001",
+      "valid_from": "2021-09-06",
+      "valid_to": "2022-03-06",
+      "published_at": "2021-08-20T08:00:00Z",
+      "ingested_at": "2021-08-20T08:05:00Z"
+    },
+    {
+      "record_id": "idx_hsi_2022_member_002",
+      "record_type": "index_constituent",
+      "source_record_id": "src_hk_index_constituent_pit_pass_001",
+      "index_id": "hsi_synthetic",
+      "instrument_id": "eq_synthetic_002",
+      "valid_from": "2022-03-07",
+      "published_at": "2022-02-18T08:00:00Z",
+      "ingested_at": "2022-02-18T08:05:00Z"
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-002",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "sample_id": "tool_calculate_returns_risk_001",
+  "tool_name": "calculate_returns_risk",
+  "input_schema_id": "tool.calculate_returns_risk.input.v0",
+  "output_schema_id": "tool.calculate_returns_risk.output.v0",
+  "request": {
+    "instrument_id": "eq_hk_00700",
+    "from": "2026-01-05",
+    "to": "2026-01-07",
+    "adjustment": "total_return_adjusted"
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-calculate-returns-risk",
+    "as_of": "2026-01-07T00:00:00Z",
+    "market_status": "not_applicable",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "returns-risk:eq_hk_00700:2026-01-05:2026-01-07",
+        "data_version": "returns-risk-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 5,
+      "rows": 3
+    },
+    "data": {
+      "toolName": "calculate_returns_risk",
+      "status": "found",
+      "liveDataAccess": false,
+      "instrumentId": "eq_hk_00700"
+    }
+  }
+}

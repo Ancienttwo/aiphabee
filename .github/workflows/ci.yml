@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Golden Regression Hook
+        run: npm run test:golden
+
+      - name: Env Contract
+        run: npm run check:env
+
+      - name: Cloudflare Bindings Contract
+        run: npm run check:bindings
+
+      - name: Database Migration Contract
+        run: npm run check:database
+
+      - name: Data Access Gateway Contract
+        run: npm run check:data-gateway
+
+      - name: Model Provider Contract
+        run: npm run check:model-provider
+
+      - name: Observability Contract
+        run: npm run check:observability
+
+      - name: Secret Stores Contract
+        run: npm run check:secrets
+
+      - name: Build
+        run: npm run build

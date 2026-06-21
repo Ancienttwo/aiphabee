@@ -1,0 +1,50 @@
+{
+  "version": "2026-06-21.phase3.field-authorization-config-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-access-gateway",
+  "runtime_route": "GET /gateway/runtime",
+  "route": "POST /gateway/field-authorizations/changes/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_db_reads": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "default_deny_preserved": true,
+  "approval_required": true,
+  "policy_version_required": true,
+  "effective_time_required": true,
+  "required_request_fields": [
+    "operator_id",
+    "dataset",
+    "field_pattern",
+    "channel",
+    "plan",
+    "target_status",
+    "policy_version",
+    "effective_at"
+  ],
+  "supported_approval_statuses": ["pending", "approved", "rejected"],
+  "supported_target_statuses": ["approved", "blocked", "default_deny"],
+  "planned_outputs": [
+    "change",
+    "approval",
+    "policy_effect",
+    "validation"
+  ],
+  "policy_effect_tables": [
+    "core.data_entitlement",
+    "core.workspace_entitlement"
+  ],
+  "tables": [
+    "core.data_entitlement",
+    "core.workspace_entitlement",
+    "core.field_authorization_change",
+    "audit.field_authorization_approval",
+    "governance.field_authorization_config_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/gateway/restricted-exports.contract.json"
+  ]
+}

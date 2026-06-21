@@ -1,0 +1,50 @@
+{
+  "version": "2026-06-21.phase2.document-sanitizer-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/document-tools",
+  "runtime_route": "GET /documents/runtime",
+  "applied_route": "POST /documents/get-announcement",
+  "tool_name": "document_sanitizer",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "vector_search": false,
+  "original_document_fetch": false,
+  "document_origin_tool_invocation": false,
+  "covered_sprint_2_2_items": ["DOC-03", "A3"],
+  "sanitizer_contract": {
+    "source": "synthetic_malicious_document_fixture",
+    "content_is_untrusted_data": true,
+    "prompt_injection_isolated": true,
+    "raw_excerpt_returned": false,
+    "output_contains_raw_html": false,
+    "scripts_executable": false,
+    "scripts_removed": true,
+    "hidden_text_removed": true,
+    "suspicious_instructions_neutralized": true,
+    "tool_invocation_allowed_from_document": false,
+    "raw_document_instructions_ignored": true,
+    "removed_content_classes": [
+      "script_tag",
+      "hidden_text",
+      "suspicious_instruction",
+      "html_tag"
+    ],
+    "fixture_cases": [
+      "script_tag_removed",
+      "hidden_text_removed",
+      "suspicious_tool_instruction_neutralized"
+    ],
+    "required_output_fields": [
+      "document_trust_policy",
+      "sanitization_policy",
+      "sanitization_summary",
+      "sanitization",
+      "removed_items",
+      "document_instruction_executed",
+      "raw_excerpt_returned",
+      "excerpt"
+    ]
+  }
+}

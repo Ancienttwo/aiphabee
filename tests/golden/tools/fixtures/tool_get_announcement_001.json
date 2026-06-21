@@ -1,0 +1,35 @@
+{
+  "sample_id": "tool_get_announcement_001",
+  "tool_name": "get_announcement",
+  "input_schema_id": "tool.get_announcement.input.v0",
+  "output_schema_id": "tool.get_announcement.output.v0",
+  "request": {
+    "document_id": "ann_00700_2026_annual_results",
+    "sections": ["headline", "summary"],
+    "max_excerpt_chars": 1200
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-get-announcement",
+    "as_of": "2026-01-07T00:00:00Z",
+    "market_status": "not_applicable",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "announcement:ann_00700_2026_annual_results",
+        "data_version": "announcements-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 2,
+      "rows": 1
+    },
+    "data": {
+      "toolName": "get_announcement",
+      "status": "found",
+      "liveDataAccess": false,
+      "documentId": "ann_00700_2026_annual_results"
+    }
+  }
+}

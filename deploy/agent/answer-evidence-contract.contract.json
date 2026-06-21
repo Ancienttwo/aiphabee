@@ -1,0 +1,77 @@
+{
+  "version": "2026-06-21.phase1.answer-evidence-contract-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "contract_status": "answer_evidence_contract_scaffold",
+  "evidence_card_payload": "planned",
+  "frontend_rendering": false,
+  "ordered_sections": [
+    "direct_answer",
+    "data_status",
+    "key_evidence",
+    "explanation",
+    "counter_evidence_risks",
+    "sources_methods",
+    "next_steps",
+    "disclaimer"
+  ],
+  "answer_structure_limits": {
+    "min_direct_answer_sentences": 2,
+    "max_direct_answer_sentences": 5,
+    "min_key_evidence_items": 3,
+    "max_key_evidence_items": 6,
+    "max_next_steps": 3,
+    "disclaimer_boundary": "not_a_substitute_for_runtime_controls"
+  },
+  "required_claim_labels": ["fact", "calculation", "inference", "unknown"],
+  "claim_label_rules": {
+    "text_labels_required": true,
+    "ui_labels_required": true,
+    "fact_requires_evidence_card": true,
+    "calculation_requires_calculation_ref": true,
+    "inference_requires_evidence_strength": true,
+    "unknown_requires_missing_reason": true
+  },
+  "evidence_strength": {
+    "allowed_values": ["strong", "medium", "weak", "unknown"],
+    "confidence_score_display": false
+  },
+  "evidence_card_required_fields": [
+    "card_id",
+    "claim_id",
+    "label",
+    "source_record_id",
+    "data_point",
+    "document_location",
+    "as_of",
+    "data_version",
+    "methodology_version",
+    "currency",
+    "unit",
+    "evidence_strength",
+    "warnings"
+  ],
+  "required_planned_card_sources": [
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_financial_facts",
+    "get_data_lineage"
+  ],
+  "required_validation_rules": [
+    "require_ordered_answer_sections",
+    "require_layer_label_per_claim",
+    "require_evidence_card_ref_for_fact",
+    "require_calculation_ref_for_calculation",
+    "label_missing_data_unknown",
+    "block_unsourced_specific_numbers"
+  ],
+  "linked_contracts": [
+    "deploy/agent/numeric-source-guard.contract.json",
+    "deploy/agent/tool-loop-planner.contract.json"
+  ]
+}

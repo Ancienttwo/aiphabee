@@ -1,0 +1,33 @@
+{
+  "version": "2026-06-21.phase1.pre-tool-call-resolution-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/preflight",
+  "planner_route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "clarification_supported": true,
+  "required_dimensions": ["security", "time", "currency", "methodology"],
+  "required_statuses": ["ready", "ready_with_assumptions", "needs_clarification"],
+  "required_security_behaviors": [
+    "explicit_symbol_resolution",
+    "prompt_symbol_inference",
+    "ambiguous_candidate_clarification",
+    "no_silent_security_selection"
+  ],
+  "required_time_behaviors": ["as_of_resolution", "latest_available_assumption"],
+  "supported_currencies": ["HKD", "USD", "CNY"],
+  "required_methodology_behaviors": [
+    "explicit_methodology_resolution",
+    "split_adjusted_default_assumption",
+    "latest_reported_financial_facts_assumption"
+  ],
+  "required_clarification_fields": ["field", "question", "reason", "blocking"],
+  "required_assumption_fields": ["field", "value", "reason", "source"],
+  "tool_readiness": {
+    "blocks_on_clarification": true,
+    "lists_blocked_tools": true
+  }
+}

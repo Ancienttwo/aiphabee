@@ -1,0 +1,104 @@
+{
+  "version": "2026-06-21.phase3.localized-response-contract.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "route": "POST /agent/runs/plan",
+  "runtime_route": "GET /agent/runtime",
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "frontend": false,
+  "covered_sprint_3_1_items": [
+    "AGT-11",
+    "AGT-12",
+    "financial_terminology_localization",
+    "prd_12_4"
+  ],
+  "capability_status": "localized_response_contract_scaffold",
+  "supported_locales": ["zh-Hant", "zh-Hans", "en"],
+  "default_locale": "zh-Hant",
+  "supported_response_depths": ["newbie", "professional"],
+  "default_response_depth": "professional",
+  "locale_switch_invariant": {
+    "currency": true,
+    "data_values": true,
+    "evidence_card_refs": true,
+    "methodology_versions": true,
+    "numeric_precision": true,
+    "source_record_ids": true,
+    "units": true
+  },
+  "response_depth_invariant": {
+    "conclusion": true,
+    "currency": true,
+    "data_values": true,
+    "evidence_card_refs": true,
+    "methodology_versions": true,
+    "source_record_ids": true,
+    "units": true
+  },
+  "response_depth_policy": {
+    "newbie_adds_examples": true,
+    "newbie_requires_plain_language_definition": true,
+    "professional_can_show_raw_formula_and_source_fields": true
+  },
+  "terminology_policy": {
+    "bilingual_terms_required": true,
+    "same_glossary_for_all_locales": true,
+    "unknown_terms_use_source_label": true
+  },
+  "required_glossary_terms": [
+    {
+      "metric_id": "free_cash_flow",
+      "zh_hant": "自由現金流",
+      "zh_hans": "自由现金流",
+      "en": "free cash flow",
+      "methodology_note_required": true,
+      "source_record_required_when_numeric": true
+    },
+    {
+      "metric_id": "operating_profit",
+      "zh_hant": "經營利潤",
+      "zh_hans": "经营利润",
+      "en": "operating profit",
+      "methodology_note_required": true,
+      "source_record_required_when_numeric": true
+    },
+    {
+      "metric_id": "roe",
+      "zh_hant": "股本回報率",
+      "zh_hans": "净资产收益率",
+      "en": "ROE",
+      "methodology_note_required": true,
+      "source_record_required_when_numeric": true
+    },
+    {
+      "metric_id": "total_return_adjusted",
+      "zh_hant": "總回報調整",
+      "zh_hans": "总回报调整",
+      "en": "total-return adjusted",
+      "methodology_note_required": true,
+      "source_record_required_when_numeric": true
+    },
+    {
+      "metric_id": "abnormal_return",
+      "zh_hant": "異常收益",
+      "zh_hans": "异常收益",
+      "en": "abnormal return",
+      "methodology_note_required": true,
+      "source_record_required_when_numeric": true
+    }
+  ],
+  "required_validation_rules": [
+    "require_locale_in_zh_hant_zh_hans_en",
+    "preserve_numeric_values_across_locale_switch",
+    "preserve_source_record_ids_across_locale_switch",
+    "preserve_methodology_versions_across_locale_switch",
+    "preserve_conclusion_and_evidence_across_response_depth",
+    "require_bilingual_financial_terms",
+    "require_methodology_note_for_financial_terms"
+  ],
+  "linked_contracts": [
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/agent/numeric-source-guard.contract.json"
+  ]
+}

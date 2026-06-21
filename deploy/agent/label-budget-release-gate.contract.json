@@ -1,0 +1,75 @@
+{
+  "version": "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/label-budget/plan",
+  "tool_loop_route": "POST /agent/runs/plan",
+  "analytics_high_cost_route": "POST /analytics/high-cost/plan",
+  "usage_reservation_route": "POST /usage/high-cost/reservation/plan",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_queue_writes": false,
+  "live_tool_execution": false,
+  "live_ledger_writes": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "required_claim_labels": ["fact", "calculation", "inference", "unknown"],
+  "claim_label_requirements": {
+    "fact_requires_evidence_card": true,
+    "calculation_requires_calculation_ref": true,
+    "inference_requires_evidence_strength": true,
+    "unknown_requires_missing_reason": true,
+    "confidence_score_display": false
+  },
+  "high_cost_policy": {
+    "high_cost_threshold": 8,
+    "budget_estimate_required": true,
+    "requires_confirmation_before_enqueue": true,
+    "independent_concurrency_pool": true,
+    "ordinary_pool_protected": true,
+    "pre_debit_required": true,
+    "failure_refund_required": true,
+    "usage_ledger_link_required": true
+  },
+  "required_checks": [
+    "fact_label_requires_evidence_card",
+    "inference_label_requires_evidence_strength",
+    "unknown_label_requires_missing_reason",
+    "high_cost_task_requires_budget_estimate",
+    "high_cost_task_requires_confirmation_before_enqueue",
+    "high_cost_usage_reservation_pre_debit_and_refund"
+  ],
+  "required_output_fields": [
+    "claim_label_gate",
+    "high_cost_budget_gate",
+    "release_checks",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_label_budget_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": ["product", "agent", "analytics", "billing"],
+    "blockers": [
+      "actual_generated_answer_label_parser_missing",
+      "frontend_budget_confirmation_ui_missing",
+      "live_high_cost_queue_execution_missing"
+    ]
+  },
+  "tables": [
+    "core.agent_label_budget_release_gate",
+    "governance.agent_label_budget_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "claim_labels_effective",
+    "high_cost_budget_confirmation"
+  ],
+  "linked_contracts": [
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/analytics/high-cost-analytics-queue.contract.json",
+    "deploy/usage/high-cost-reservation.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

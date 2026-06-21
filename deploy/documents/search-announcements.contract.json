@@ -1,0 +1,59 @@
+{
+  "version": "2026-06-21.phase2.search-announcements-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/document-tools",
+  "runtime_route": "GET /documents/runtime",
+  "route": "POST /documents/search-announcements",
+  "tool_name": "search_announcements",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "vector_search": false,
+  "original_document_fetch": false,
+  "covered_sprint_2_2_items": [
+    "DOC-01"
+  ],
+  "source_tools": [
+    "resolve_security"
+  ],
+  "search_contract": {
+    "source": "synthetic_announcement_fixture",
+    "date_basis": "published_at",
+    "max_limit": 5,
+    "evidence_locator_ready": true,
+    "external_href_authority": false,
+    "ambiguous_security_blocks": true,
+    "untrusted_document_policy": true,
+    "content_is_untrusted_data": true,
+    "prompt_injection_isolated": true,
+    "scripts_executable": false,
+    "supported_categories": [
+      "results",
+      "dividend",
+      "buyback"
+    ],
+    "supported_filters": [
+      "instrument_id",
+      "security_query",
+      "from",
+      "to",
+      "categories",
+      "keyword",
+      "language"
+    ],
+    "required_output_fields": [
+      "results",
+      "document_id",
+      "title",
+      "published_at",
+      "category",
+      "language",
+      "summary",
+      "source_record_id",
+      "evidence_locator",
+      "page",
+      "anchor"
+    ]
+  }
+}

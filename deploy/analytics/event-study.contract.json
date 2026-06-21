@@ -1,0 +1,76 @@
+{
+  "version": "2026-06-21.phase3.event-study-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/event-study",
+  "tool_name": "run_event_study",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_3_1_items": [
+    "ANA-06",
+    "run_event_study",
+    "event_date",
+    "event_window",
+    "benchmark",
+    "abnormal_return",
+    "missing_samples_not_silent"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_price_history"
+  ],
+  "high_cost_contract": {
+    "queue_route": "POST /analytics/high-cost/plan",
+    "prd_credit_weight_min": 20,
+    "prd_credit_weight_max": 50,
+    "requires_confirmation_before_enqueue": true,
+    "independent_pool_required": true
+  },
+  "event_study_contract": {
+    "formula_version": "event-study-v0",
+    "abnormal_return_method": "security_return_minus_benchmark_return",
+    "point_in_time": true,
+    "price_history_field": "return",
+    "sample_missing_policy": "surface_missing_dates_do_not_drop",
+    "default_event_date": "2026-01-06",
+    "default_event_id": "synthetic_00700_results_event",
+    "default_window": {
+      "pre_days": 1,
+      "post_days": 1
+    },
+    "supported_window": {
+      "max_pre_days": 2,
+      "max_post_days": 1
+    },
+    "required_output_fields": [
+      "event",
+      "event_window",
+      "benchmark",
+      "methodology",
+      "observations",
+      "missing_observations",
+      "summary",
+      "source_record_ids"
+    ],
+    "required_observation_fields": [
+      "date",
+      "relative_day",
+      "security_return",
+      "benchmark_return",
+      "abnormal_return",
+      "status",
+      "source_record_ids"
+    ],
+    "required_summary_fields": [
+      "computed_observation_count",
+      "missing_observation_count",
+      "requested_observation_count",
+      "cumulative_security_return",
+      "cumulative_benchmark_return",
+      "cumulative_abnormal_return"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "version": "2026-06-21.phase2.watchlist-briefings-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/watchlist-runtime",
+  "runtime_route": "GET /watchlist/runtime",
+  "route": "POST /watchlist/briefings/plan",
+  "tool_name": "plan_watchlist_briefing",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_tool_execution": false,
+  "notification_fanout": false,
+  "queue_writes": false,
+  "sql_emitted": false,
+  "event_queue": "AIPHABEE_EVENTS_QUEUE",
+  "material_changes_only": true,
+  "evidence_required": true,
+  "source_record_required": true,
+  "suppress_empty_briefings": true,
+  "supported_cadences": [
+    "daily",
+    "weekly"
+  ],
+  "required_output_fields": [
+    "briefing",
+    "materiality_filter",
+    "source_plan",
+    "evidence_index",
+    "notification",
+    "persistence_plan",
+    "validation"
+  ],
+  "source_tools": [
+    "get_quote_snapshot",
+    "search_announcements",
+    "get_financial_ratios"
+  ],
+  "tables": [
+    "core.watchlist_briefing",
+    "core.watchlist_briefing_item"
+  ],
+  "covered_prd_items": [
+    "RES-06",
+    "watchlist_briefing",
+    "material_changes_only",
+    "evidence_required"
+  ],
+  "linked_contracts": [
+    "deploy/watchlist/alerts.contract.json",
+    "deploy/database/migrations.contract.json"
+  ],
+  "forbidden_payloads": [
+    "raw_contact",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

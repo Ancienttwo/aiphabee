@@ -1,0 +1,467 @@
+{
+  "version": "2026-06-21.phase1.evidence-lineage-service.v0",
+  "status": "local_contract",
+  "provider": "supabase_postgres",
+  "connection_path": "cloudflare_hyperdrive",
+  "migration_directory": "supabase/migrations",
+  "hyperdrive": {
+    "binding": "AIPHABEE_HYPERDRIVE",
+    "status": "planned",
+    "wrangler_binding_requires_real_id": true,
+    "local_dev_secret_env": "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE",
+    "smoke_test": "Run read-only SELECT 1 through Hyperdrive after resource provisioning."
+  },
+  "commands": [
+    {
+      "name": "create_migration",
+      "command": "supabase migration new <name>",
+      "effect": "local_file"
+    },
+    {
+      "name": "apply_local",
+      "command": "supabase migration up --local",
+      "effect": "local_database"
+    },
+    {
+      "name": "dry_run_remote",
+      "command": "supabase db push --dry-run --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "effect": "remote_dry_run"
+    },
+    {
+      "name": "apply_remote",
+      "command": "supabase db push --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "effect": "remote_database"
+    }
+  ],
+  "migrations": [
+    {
+      "file": "supabase/migrations/20260620071000_phase0_foundation.sql",
+      "purpose": "Create non-market-data schemas and default-deny governance controls used by later data-access slices.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "governance.data_rights_channel_status",
+        "governance.phase0_migration_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "purpose": "Create empty security master and immutable raw snapshot scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.company",
+        "core.data_version_batch",
+        "core.identifier_history",
+        "core.instrument",
+        "core.listing",
+        "core.raw_snapshot",
+        "core.raw_source_batch",
+        "governance.security_master_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql",
+      "purpose": "Create empty financial facts and restatement scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.financial_fact",
+        "core.financial_restatement",
+        "core.financial_statement",
+        "governance.financial_facts_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620084000_corporate_action_adjustment_scaffold.sql",
+      "purpose": "Create empty corporate action and price adjustment scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.adjustment_methodology",
+        "core.corporate_action",
+        "core.price_adjustment_factor",
+        "governance.corporate_action_adjustment_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620085000_account_workspace_entitlement_scaffold.sql",
+      "purpose": "Create empty account, workspace, subscription, and entitlement scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.account",
+        "core.data_entitlement",
+        "core.subscription_plan",
+        "core.workspace",
+        "core.workspace_entitlement",
+        "core.workspace_membership",
+        "core.workspace_subscription",
+        "governance.account_workspace_entitlement_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620090000_usage_ledger_scaffold.sql",
+      "purpose": "Create empty usage event, credit meter, ledger, and reconciliation scaffolds for Sprint 1.1 without loading partner or market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.usage_event",
+        "core.usage_ledger_entry",
+        "core.usage_meter_rule",
+        "core.usage_reconciliation_batch",
+        "governance.usage_ledger_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260620091000_serving_store_scaffold.sql",
+      "purpose": "Create empty Serving Store projection scaffolds for Sprint 1.1 without enabling live Serving reads or loading partner market data.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.serving_dataset",
+        "core.serving_field",
+        "core.serving_record",
+        "core.serving_snapshot",
+        "governance.serving_store_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql",
+      "purpose": "Create empty Evidence and Lineage service scaffolds for Sprint 1.2 without enabling live DB writes or loading partner source records.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.evidence_record",
+        "core.evidence_source_ref",
+        "governance.evidence_lineage_service_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621100000_subscription_lifecycle_audit_scaffold.sql",
+      "purpose": "Create an empty subscription lifecycle audit event scaffold for Sprint 2.4 without enabling billing provider calls or live writes.",
+      "schemas": ["audit"],
+      "tables": [
+        "audit.subscription_lifecycle_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621101000_usage_billing_reconciliation_scaffold.sql",
+      "purpose": "Create empty subscription invoice and invoice-line scaffolds that trace billing rows to usage ledger entries and request IDs without enabling live billing provider reads or writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.subscription_invoice",
+        "core.subscription_invoice_line",
+        "governance.usage_billing_reconciliation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621102000_high_cost_usage_reservation_scaffold.sql",
+      "purpose": "Create an empty high-cost usage credit reservation scaffold that links estimates, pre-debit entries, failure refunds, and request IDs without enabling live ledger writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.usage_credit_reservation",
+        "governance.high_cost_usage_reservation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621103000_workflow_task_scaffold.sql",
+      "purpose": "Create empty Workflow task and checkpoint scaffolds for resumable long-running Agent tasks without enabling live Workflows execution or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.workflow_task",
+        "core.workflow_task_checkpoint",
+        "governance.workflow_task_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621104000_deep_report_workflow_scaffold.sql",
+      "purpose": "Create empty deep report snapshot and evidence index scaffolds linked to Workflow tasks without enabling live Workflows execution, R2 writes, or persistent report writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.deep_report_snapshot",
+        "core.deep_report_evidence_index",
+        "governance.deep_report_workflow_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621105000_watchlist_alerts_scaffold.sql",
+      "purpose": "Create empty watchlist and alert rule/event scaffolds for price, announcement, and metric reminders without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.watchlist",
+        "core.watchlist_item",
+        "core.watchlist_alert_rule",
+        "core.watchlist_alert_event",
+        "governance.watchlist_alerts_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621110000_watchlist_briefings_scaffold.sql",
+      "purpose": "Create empty watchlist briefing and briefing-item scaffolds for daily and weekly summaries without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.watchlist_briefing",
+        "core.watchlist_briefing_item",
+        "governance.watchlist_briefings_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621111000_data_correction_notifications_scaffold.sql",
+      "purpose": "Create empty data correction event, saved-report impact, and user notification scaffolds without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.data_correction_event",
+        "core.research_run_correction_impact",
+        "core.user_notification",
+        "governance.data_correction_notifications_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621112000_mcp_revocation_enforcement_scaffold.sql",
+      "purpose": "Create empty MCP credential revocation enforcement scaffolds without enabling live auth enforcement or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_credential_revocation",
+        "governance.mcp_revocation_enforcement_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621113000_agent_kill_switch_scaffold.sql",
+      "purpose": "Create empty Agent kill switch state and governance scaffolds without enabling live flag reads or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_kill_switch_state",
+        "governance.agent_kill_switch_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621114000_authorized_session_memory_scaffold.sql",
+      "purpose": "Create empty authorized session memory scaffolds for user-visible view, edit, and remove planning without enabling live reads or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.authorized_session_memory",
+        "governance.authorized_session_memory_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621115000_security_history_scaffold.sql",
+      "purpose": "Create empty security name, industry, and index constituent history scaffolds for point-in-time lookup without enabling live data access.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.security_name_history",
+        "core.security_industry_history",
+        "core.index_constituent_history",
+        "governance.security_history_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621120000_restricted_export_scaffold.sql",
+      "purpose": "Create empty restricted export request, audit event, and governance scaffolds for CSV, image, and PDF planning without enabling live artifact writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.restricted_export_request",
+        "audit.restricted_export_event",
+        "governance.restricted_export_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621121000_package_pricing_scaffold.sql",
+      "purpose": "Create empty Pro and Developer package pricing catalog, entitlement bundle, and governance scaffolds without enabling live pricing or billing provider calls.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.plan_pricing_catalog",
+        "core.plan_entitlement_bundle",
+        "governance.package_pricing_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621122000_public_operations_scaffold.sql",
+      "purpose": "Create empty public status component, public document publication, and governance scaffolds without enabling live incident feeds or live publication writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.public_status_component",
+        "core.public_document_publication",
+        "governance.public_operations_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621123000_support_request_id_investigation_scaffold.sql",
+      "purpose": "Create empty support ticket, support investigation audit, and governance scaffolds for request ID investigation without enabling live log or billing provider reads.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.support_ticket",
+        "audit.support_investigation_event",
+        "governance.support_request_id_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621124000_private_share_link_scaffold.sql",
+      "purpose": "Create empty private share link, audit event, and governance scaffolds without expanding recipient data rights or enabling live link materialization.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.private_share_link",
+        "audit.private_share_event",
+        "governance.private_sharing_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621125000_static_report_scaffold.sql",
+      "purpose": "Create empty static report artifact, audit event, and governance scaffolds for allowed-scope report metadata without enabling artifact writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.static_report_artifact",
+        "audit.static_report_event",
+        "governance.static_report_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621126000_partner_reconciliation_report_scaffold.sql",
+      "purpose": "Create empty partner reconciliation report, report line, audit event, and governance scaffolds for dataset/channel/package/user usage export planning without enabling live ledger reads or writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.partner_reconciliation_report",
+        "core.partner_reconciliation_report_line",
+        "audit.partner_reconciliation_event",
+        "governance.partner_reconciliation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621127000_field_authorization_config_scaffold.sql",
+      "purpose": "Create empty operational field authorization change, approval audit, and governance scaffolds with policy version and effective-time controls without enabling live policy writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.field_authorization_change",
+        "audit.field_authorization_approval",
+        "governance.field_authorization_config_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621128000_account_data_request_scaffold.sql",
+      "purpose": "Create empty account data download/delete request, request item, audit event, and governance scaffolds with retention-policy controls without enabling live export, live erasure, or persistent writes.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.account_data_request",
+        "core.account_data_request_item",
+        "audit.account_data_request_event",
+        "governance.account_data_request_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql",
+      "purpose": "Create empty P0 rights matrix coverage entry and governance scaffolds for Web/MCP/export/enterprise default-deny release gate coverage without loading a signed partner matrix.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.p0_rights_matrix_entry",
+        "governance.p0_rights_matrix_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621130000_data_coverage_release_gate_scaffold.sql",
+      "purpose": "Create empty data freshness and coverage release gate scaffolds for realtime/delayed/EOD labels, company actions, restatements, delistings, and identifier history without loading live partner rows.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.data_coverage_release_gate",
+        "governance.data_coverage_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql",
+      "purpose": "Create empty golden correction rollback drill and governance scaffolds for fixture-gated correction and replay planning without enabling live rollback execution or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.golden_correction_rollback_drill",
+        "governance.golden_correction_rollback_drill_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621132000_product_agent_release_gate_scaffold.sql",
+      "purpose": "Create empty product Agent release gate and governance scaffolds for ambiguous security blocking and evidence-bound numeric claims without enabling live post-generation validation or frontend rendering.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.product_agent_release_gate",
+        "governance.product_agent_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql",
+      "purpose": "Create empty Agent label budget release gate and governance scaffolds for claim-label enforcement and high-cost budget confirmation without enabling live queue execution or ledger writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_label_budget_release_gate",
+        "governance.agent_label_budget_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql",
+      "purpose": "Create empty task replay mode release gate and governance scaffolds for resumable long tasks, saved-report replay, and response-depth invariants without enabling live workflow or replay execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.task_replay_mode_release_gate",
+        "governance.task_replay_mode_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    }
+  ]
+}

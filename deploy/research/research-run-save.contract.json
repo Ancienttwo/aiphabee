@@ -1,0 +1,94 @@
+{
+  "version": "2026-06-21.phase2.research-run-save-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/research-runtime",
+  "runtime_route": "GET /research/runtime",
+  "route": "POST /research/runs/save/plan",
+  "tool_name": "save_research_run",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_db_writes": false,
+  "sql_emitted": false,
+  "immutable_report_snapshot": true,
+  "replay_seed_ready": true,
+  "covered_sprint_2_2_items": [
+    "RES-01",
+    "saved_research_run",
+    "question_snapshot",
+    "tool_input_snapshot",
+    "evidence_snapshot",
+    "model_prompt_version_snapshot"
+  ],
+  "tables": [
+    "core.research_run",
+    "core.research_run_tool_call",
+    "core.research_run_evidence_snapshot",
+    "core.research_run_model_snapshot"
+  ],
+  "required_input_fields": [
+    "question",
+    "tool_calls",
+    "evidence_records",
+    "model_version",
+    "prompt_version"
+  ],
+  "required_output_fields": [
+    "research_run_id",
+    "snapshot_id",
+    "question_snapshot",
+    "tool_input_snapshot",
+    "evidence_snapshot",
+    "model_snapshot",
+    "parameter_snapshot",
+    "schema_validation",
+    "replay_seed",
+    "persistence_plan",
+    "immutable_report_snapshot"
+  ],
+  "question_snapshot_fields": [
+    "question",
+    "question_hash"
+  ],
+  "tool_input_snapshot_fields": [
+    "tool_call_id",
+    "tool_name",
+    "tool_version",
+    "request_id",
+    "input_schema_id",
+    "output_schema_id",
+    "input_snapshot",
+    "input_hash",
+    "data_version",
+    "methodology_version"
+  ],
+  "evidence_snapshot_fields": [
+    "evidence_record_id",
+    "source_record_ids",
+    "data_version",
+    "methodology_version",
+    "document_location"
+  ],
+  "model_snapshot_fields": [
+    "model_provider",
+    "model_version",
+    "prompt_version",
+    "prompt_template_id"
+  ],
+  "parameter_snapshot_fields": [
+    "parameters",
+    "parameter_hash",
+    "parameters_recorded"
+  ],
+  "replay_seed_fields": [
+    "snapshot_id",
+    "replay_route",
+    "replay_status",
+    "deterministic_replay_ready"
+  ],
+  "forbidden_payloads": [
+    "raw_prompt",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

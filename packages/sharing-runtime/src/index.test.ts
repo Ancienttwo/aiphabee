@@ -1,0 +1,120 @@
+import { describe, expect, it } from "vitest";
+import {
+  PRIVATE_SHARE_MAX_EXPIRY_HOURS,
+  PRIVATE_SHARING_REQUIRED_SCOPE,
+  createPrivateShareLinkPlan,
+  getPrivateSharingCapabilities
+} from "./index";
+
+describe("sharing-runtime private share links", () => {
+  it("plans a private share link by rechecking recipient entitlements", () => {
+    const plan = createPrivateShareLinkPlan({
+      asOf: "2026-06-21T00:00:00.000Z",
+      creatorAccountId: "acct_creator",
+      creatorScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      creatorWorkspaceId: "ws_creator",
+      expiresInHours: 24,
+      fields: ["synthetic_profile.company_name", "synthetic_profile.revenue"],
+      recipientAccountId: "acct_recipient",
+      recipientScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      recipientWorkspaceId: "ws_recipient",
+      requestId: "req-private-share",
+      requestedRows: 5
+    });
+
+    expect(plan).toMatchObject({
+      access_policy: {
+        effective_fields: ["synthetic_profile.company_name"],
+        recipient_data_rights_expansion: false,
+        recipient_entitlement_rechecked: true,
+        redacted_fields: ["synthetic_profile.revenue"],
+        share_expands_recipient_rights: false
+      },
+      expires_at: "2026-06-22T00:00:00.000Z",
+      frontend: false,
+      link: {
+        link_handle_materialized: false,
+        public_indexing: false,
+        share_ref: "planned_no_write",
+        url: "not_generated",
+        visibility: "private_link"
+      },
+      live_data_access: false,
+      persistent_writes: false,
+      request_id: "req-private-share",
+      status: "planned_no_write"
+    });
+    expect(plan.gateway_decisions.creator.status).toBe("planned_no_write");
+    expect(plan.gateway_decisions.recipient.status).toBe("planned_no_write");
+    expect(plan.scope.creator.granted).toBe(true);
+    expect(plan.scope.recipient.granted).toBe(true);
+    expect(plan.watermark.text).toContain("req-private-share");
+    expect(plan.usage.credits).toBe(0);
+    expect(plan.usage.rows).toBe(1);
+  });
+
+  it("blocks missing recipient scope before a share can be materialized", () => {
+    const plan = createPrivateShareLinkPlan({
+      creatorAccountId: "acct_creator",
+      creatorScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      creatorWorkspaceId: "ws_creator",
+      recipientAccountId: "acct_recipient",
+      recipientScopes: [],
+      recipientWorkspaceId: "ws_recipient",
+      requestId: "req-recipient-scope"
+    });
+
+    expect(plan.status).toBe("blocked_recipient_missing_scope");
+    expect(plan.access_policy.release_state).toBe("blocked");
+    expect(plan.scope.recipient).toMatchObject({
+      granted: false,
+      required: PRIVATE_SHARING_REQUIRED_SCOPE
+    });
+  });
+
+  it("blocks invalid expiry and missing participant context", () => {
+    const invalidExpiry = createPrivateShareLinkPlan({
+      creatorAccountId: "acct_creator",
+      creatorScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      creatorWorkspaceId: "ws_creator",
+      expiresInHours: PRIVATE_SHARE_MAX_EXPIRY_HOURS + 1,
+      recipientAccountId: "acct_recipient",
+      recipientScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      recipientWorkspaceId: "ws_recipient",
+      requestId: "req-invalid-expiry"
+    });
+    const missingContext = createPrivateShareLinkPlan({
+      creatorAccountId: "acct_creator",
+      creatorScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      creatorWorkspaceId: "ws_creator",
+      recipientScopes: [PRIVATE_SHARING_REQUIRED_SCOPE],
+      requestId: "req-missing-recipient"
+    });
+
+    expect(invalidExpiry.status).toBe("blocked_invalid_expiry");
+    expect(invalidExpiry.validation.expiry_within_limit).toBe(false);
+    expect(missingContext.status).toBe("blocked_missing_context");
+    expect(missingContext.validation.required_context_present).toBe(false);
+  });
+
+  it("reports private sharing capabilities", () => {
+    const capability = getPrivateSharingCapabilities();
+
+    expect(capability).toMatchObject({
+      artifact_writes: false,
+      capability_name: "private_sharing_links",
+      frontend: false,
+      live_data_access: false,
+      persistent_writes: false,
+      recipient_data_rights_expansion: false,
+      recipient_entitlement_recheck: true,
+      required_scope: PRIVATE_SHARING_REQUIRED_SCOPE,
+      route: "POST /sharing/private-links/plan",
+      runtime_route: "GET /sharing/runtime",
+      status: "private_share_link_scaffold",
+      uses_data_access_gateway: true,
+      watermark_required: true
+    });
+    expect(capability.supported_statuses).toContain("blocked_recipient_gateway_denied");
+  });
+});

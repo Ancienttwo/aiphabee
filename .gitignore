@@ -1,6 +1,11 @@
 # Project-specific
 artifacts/
 coverage/
+dist/
+node_modules/
+.vite/
+.wrangler/
+.output/
 *.tar.gz
 *.tgz
 # External references
@@ -12,6 +17,8 @@ _ops/
 .env
 .env.*
 !.env.example
+.dev.vars*
+!.dev.vars.example
 # OS metadata
 .DS_Store
 

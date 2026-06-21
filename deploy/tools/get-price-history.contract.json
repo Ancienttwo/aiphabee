@@ -1,0 +1,67 @@
+{
+  "version": "2026-06-21.phase1.get-price-history-tool-scaffold.v0",
+  "status": "local_contract",
+  "tool_name": "get_price_history",
+  "route": "POST /tools/get-price-history",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "adjustment_methodology": true,
+  "cursor_pagination": true,
+  "max_rows_per_request": 3,
+  "supported_inputs": ["instrument_id", "from", "to", "adjustment", "fields", "limit", "cursor"],
+  "supported_adjustments": ["raw", "split_adjusted", "total_return_adjusted"],
+  "supported_fields": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "turnover",
+    "return",
+    "drawdown"
+  ],
+  "required_statuses": [
+    "found",
+    "not_found",
+    "data_not_licensed",
+    "data_quality_hold",
+    "out_of_range",
+    "too_many_rows"
+  ],
+  "required_history_fields": [
+    "instrumentId",
+    "symbol",
+    "market",
+    "exchange",
+    "currency",
+    "from",
+    "to",
+    "adjustment",
+    "adjustmentMethodology",
+    "qualityState",
+    "rows",
+    "nextCursor"
+  ],
+  "required_error_codes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "NOT_FOUND",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS",
+    "SCOPE_DENIED"
+  ],
+  "fixture_cases": [
+    "price_history_rows",
+    "field_subset",
+    "cursor_pagination",
+    "unlicensed_field",
+    "unlicensed_adjustment",
+    "quality_hold",
+    "not_found",
+    "out_of_range",
+    "too_many_rows"
+  ]
+}

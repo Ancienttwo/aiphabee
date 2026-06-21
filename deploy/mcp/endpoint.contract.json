@@ -1,0 +1,76 @@
+{
+  "version": "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp",
+  "transport": "streamable_http",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "oauth_live": false,
+  "api_key_live": false,
+  "live_tool_execution": false,
+  "mcp_api_redistribution_rights_confirmed": false,
+  "default_deny": true,
+  "web_rights_do_not_imply_mcp": true,
+  "origin_validation": true,
+  "supported_methods": [
+    "initialize",
+    "tools/list",
+    "tools/call"
+  ],
+  "covered_sprint_2_3_items": [
+    "MCP-01",
+    "streamable_http_endpoint",
+    "initialize",
+    "tools_list",
+    "tools_call",
+    "origin_validation",
+    "gate0_default_deny"
+  ],
+  "required_origin_fields": [
+    "origin",
+    "allowed_origins",
+    "required",
+    "valid"
+  ],
+  "required_rights_gate_fields": [
+    "mcp_api_redistribution_rights_confirmed",
+    "web_rights_do_not_imply_mcp",
+    "default_deny",
+    "blocked_reason"
+  ],
+  "required_protocol_fields": [
+    "json_rpc",
+    "streamable_http",
+    "supported_methods"
+  ],
+  "required_response_fields": [
+    "endpoint",
+    "transport",
+    "method",
+    "origin_check",
+    "rights_gate",
+    "response_shape",
+    "usage"
+  ],
+  "standard_error_codes": [
+    "AUTH_REQUIRED",
+    "SCOPE_DENIED",
+    "DATA_NOT_LICENSED",
+    "SYMBOL_AMBIGUOUS",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS",
+    "RATE_LIMITED",
+    "BUDGET_EXCEEDED",
+    "UPSTREAM_STALE",
+    "DATA_QUALITY_HOLD",
+    "INTERNAL_ERROR"
+  ],
+  "forbidden_payloads": [
+    "raw_partner_data",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

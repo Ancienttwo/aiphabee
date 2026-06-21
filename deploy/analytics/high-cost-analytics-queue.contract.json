@@ -1,0 +1,70 @@
+{
+  "version": "2026-06-21.phase2.high-cost-analytics-queue-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/high-cost/plan",
+  "tool_name": "plan_high_cost_analytics",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "durable_queue_writes": false,
+  "covered_sprint_2_1_items": [
+    "ANA-01",
+    "ANA-03",
+    "MCP-11",
+    "US-W10"
+  ],
+  "high_cost_policy": {
+    "independent_concurrency_pool": true,
+    "ordinary_pool_protected": true,
+    "queue_required_for_high_cost_tools": true,
+    "queue_name": "analytics-high-cost",
+    "high_cost_threshold": 8,
+    "max_parallel_high_cost": 2,
+    "max_parallel_standard": 8,
+    "durable_workflow": "planned",
+    "pre_debit_required": true,
+    "failure_refund_required": true,
+    "requires_confirmation_before_enqueue": true,
+    "usage_ledger_link_required": true
+  },
+  "tool_weights": [
+    {
+      "tool_name": "screen_securities",
+      "prd_credit_weight_min": 8,
+      "prd_credit_weight_max": 20,
+      "default_pool": "analytics_high_cost"
+    },
+    {
+      "tool_name": "compare_securities",
+      "prd_credit_weight_min": 5,
+      "prd_credit_weight_max": 15,
+      "default_pool": "analytics_standard",
+      "high_cost_threshold": 8
+    },
+    {
+      "tool_name": "run_event_study",
+      "prd_credit_weight_min": 20,
+      "prd_credit_weight_max": 50,
+      "default_pool": "analytics_high_cost"
+    }
+  ],
+  "required_output_fields": [
+    "cost_estimate",
+    "scheduling_decision",
+    "concurrency_pool",
+    "independent_pool_required",
+    "queue_required",
+    "enqueue_plan",
+    "usage_reservation",
+    "usage_policy",
+    "pre_debit_required",
+    "failure_refund_required"
+  ],
+  "linked_contracts": [
+    "deploy/usage/high-cost-reservation.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

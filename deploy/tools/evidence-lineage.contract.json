@@ -1,0 +1,97 @@
+{
+  "version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/evidence-lineage",
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "gateway_policy_compiler": true,
+  "tools": [
+    {
+      "tool_name": "get_data_lineage",
+      "route": "POST /tools/get-data-lineage",
+      "handler_ready": true,
+      "supported_inputs": ["evidence_id", "record_id", "as_of", "include_upstream"],
+      "required_statuses": ["found", "not_found", "data_quality_hold"],
+      "required_lineage_fields": [
+        "evidenceId",
+        "recordId",
+        "dataset",
+        "source",
+        "sourceBatchId",
+        "sourceRecordId",
+        "sourceRowHash",
+        "dataVersion",
+        "methodologyVersion",
+        "qualityState",
+        "version",
+        "upstream"
+      ],
+      "required_error_codes": ["DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"],
+      "fixture_cases": [
+        "lineage_by_evidence_id",
+        "lineage_by_record_id",
+        "upstream_suppressed",
+        "quality_hold",
+        "not_found",
+        "invalid_lookup"
+      ]
+    },
+    {
+      "tool_name": "get_entitlements",
+      "route": "POST /tools/get-entitlements",
+      "handler_ready": true,
+      "supported_inputs": [
+        "workspace_id",
+        "channel",
+        "tool_name",
+        "dataset",
+        "fields",
+        "as_of",
+        "time_range",
+        "requested_rows",
+        "export_requested"
+      ],
+      "required_statuses": [
+        "found",
+        "scope_denied",
+        "data_not_licensed",
+        "out_of_range",
+        "too_many_rows"
+      ],
+      "required_scope_fields": [
+        "workspaceId",
+        "plan",
+        "channel",
+        "datasets",
+        "tools",
+        "allowedFields",
+        "deniedFields",
+        "exportAllowed",
+        "delaySeconds",
+        "historyDays",
+        "maxRows",
+        "maxWindowDays",
+        "limitationCodes"
+      ],
+      "required_error_codes": [
+        "DATA_NOT_LICENSED",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS"
+      ],
+      "fixture_cases": [
+        "workspace_overview",
+        "tool_to_dataset_mapping",
+        "field_redaction",
+        "scope_denied",
+        "dataset_not_licensed",
+        "field_not_licensed",
+        "too_many_rows",
+        "out_of_range",
+        "invalid_input"
+      ]
+    }
+  ]
+}

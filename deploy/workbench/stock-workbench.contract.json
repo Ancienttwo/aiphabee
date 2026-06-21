@@ -1,0 +1,117 @@
+{
+  "version": "2026-06-21.phase1.stock-workbench-announcement-search-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/workbench",
+  "runtime_route": "GET /workbench/runtime",
+  "route": "POST /workbench/stock/snapshot",
+  "announcement_route": "POST /workbench/stock/announcements",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "actual_tool_execution": true,
+  "covered_sprint_1_4_items": [
+    "STK-01",
+    "STK-02",
+    "STK-03",
+    "STK-04",
+    "STK-05",
+    "STK-06"
+  ],
+  "sections": [
+    "security_profile",
+    "quote_snapshot",
+    "price_history",
+    "financial_facts",
+    "derived_metrics",
+    "announcement_search",
+    "corporate_actions"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_financial_facts",
+    "get_corporate_actions"
+  ],
+  "unsupported_sections": [
+    "full_announcement_document_search"
+  ],
+  "derived_metric_contract": {
+    "formula_version": "stock-workbench-derived-metrics-v0",
+    "source_tools": [
+      "get_financial_facts",
+      "get_quote_snapshot"
+    ],
+    "computed_metrics": [
+      "net_margin",
+      "return_on_assets",
+      "return_on_equity",
+      "asset_turnover",
+      "equity_multiplier"
+    ],
+    "blocked_metrics": [
+      "price_to_earnings",
+      "price_to_sales",
+      "price_to_book"
+    ],
+    "anomaly_handling": [
+      "missing_input",
+      "zero_denominator",
+      "negative_denominator",
+      "quality_hold",
+      "market_cap_unavailable"
+    ],
+    "valuation_blocked_without_market_cap": true
+  },
+  "announcement_search_contract": {
+    "route": "POST /workbench/stock/announcements",
+    "source": "synthetic_announcement_fixture",
+    "categories": [
+      "results",
+      "dividend",
+      "buyback"
+    ],
+    "filters": [
+      "instrument_id",
+      "security_query",
+      "from",
+      "to",
+      "categories",
+      "keyword",
+      "limit"
+    ],
+    "max_limit": 3,
+    "evidence_locator_ready": true,
+    "original_document_fetch": false,
+    "external_href_authority": false,
+    "locator_fields": [
+      "document_id",
+      "source_record_id",
+      "page",
+      "anchor",
+      "original_url"
+    ],
+    "ambiguous_security_blocks": true
+  },
+  "required_output_fields": [
+    "announcement_search",
+    "security_profile",
+    "quote_snapshot",
+    "price_history",
+    "financial_facts",
+    "derived_metrics",
+    "corporate_actions",
+    "data_quality",
+    "evidence",
+    "unsupported_sections"
+  ],
+  "linked_contracts": [
+    "deploy/tools/get-security-profile.contract.json",
+    "deploy/tools/get-quote-snapshot.contract.json",
+    "deploy/tools/get-price-history.contract.json",
+    "deploy/tools/get-financial-facts.contract.json",
+    "deploy/tools/get-corporate-actions.contract.json"
+  ]
+}

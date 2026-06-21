@@ -1,0 +1,53 @@
+{
+  "version": "2026-06-21.phase3.security-history-scaffold.v0",
+  "status": "local_contract",
+  "capability_name": "security_history",
+  "route": "POST /tools/get-security-history",
+  "handler_ready": true,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "standard_response_envelope": true,
+  "covered_sprint_3_1_items": ["SEC-05"],
+  "as_of_required": true,
+  "supported_history_types": [
+    "historical_names",
+    "historical_industries",
+    "historical_constituents"
+  ],
+  "point_in_time_policy": {
+    "uses_latest_name": false,
+    "uses_latest_classification": false,
+    "uses_latest_constituents": false
+  },
+  "required_statuses": ["found", "not_found"],
+  "required_error_codes": [
+    "NOT_FOUND",
+    "POINT_IN_TIME_UNAVAILABLE",
+    "SCOPE_DENIED"
+  ],
+  "required_history_fields": [
+    "activeName",
+    "activeIndustry",
+    "activeConstituentMemberships",
+    "pointInTimePolicy",
+    "coverage"
+  ],
+  "required_database_tables": [
+    "core.security_name_history",
+    "core.security_industry_history",
+    "core.index_constituent_history",
+    "governance.security_history_contract"
+  ],
+  "fixture_cases": [
+    "historical_name",
+    "historical_industry",
+    "historical_constituent",
+    "current_constituent",
+    "missing_as_of",
+    "not_found"
+  ],
+  "frontend": false,
+  "mcp_registration": false,
+  "persistent_writes": false
+}

@@ -1,0 +1,52 @@
+{
+  "version": "2026-06-21.phase2.workflow-task-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/workflows/tasks/plan",
+  "resume_route": "GET /agent/workflows/tasks/:task_id",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "actual_workflow_execution": false,
+  "live_workflow_execution": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "task_id_visible": true,
+  "resumable": true,
+  "disconnect_safe": true,
+  "notification_plan": true,
+  "workflow_binding": "AIPHABEE_RESEARCH_WORKFLOW",
+  "event_queue": "AIPHABEE_EVENTS_QUEUE",
+  "durable_object_binding": "AIPHABEE_RUN_COORDINATOR",
+  "required_request_fields": [
+    "prompt",
+    "workflow_kind",
+    "tools",
+    "user_id",
+    "workspace_id"
+  ],
+  "planned_outputs": [
+    "task",
+    "task_id",
+    "workflow",
+    "resume",
+    "notification",
+    "long_task_boundary",
+    "tool_loop_plan"
+  ],
+  "task_kinds": [
+    "deep_report",
+    "event_research",
+    "long_document",
+    "multi_company_analysis"
+  ],
+  "tables": [
+    "core.workflow_task",
+    "core.workflow_task_checkpoint"
+  ],
+  "linked_contracts": [
+    "deploy/cloudflare/bindings.contract.json",
+    "deploy/database/migrations.contract.json",
+    "deploy/agent/tool-loop-planner.contract.json"
+  ]
+}

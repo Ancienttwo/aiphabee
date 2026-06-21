@@ -1,0 +1,46 @@
+{
+  "sample_id": "hk_financial_identity_hold_001",
+  "records": [
+    {
+      "record_id": "financial_stmt_00016_2023_bad_identity",
+      "record_type": "financial_statement",
+      "source_record_id": "src_hk_financial_identity_hold_001",
+      "company_id": "co_00016",
+      "period_end": "2023-12-31",
+      "published_at": "2024-03-20T08:00:00Z",
+      "ingested_at": "2024-03-20T08:05:00Z",
+      "currency": "HKD",
+      "unit": "million",
+      "scale": 1000000,
+      "accounting_standard": "HKFRS",
+      "facts": {
+        "assets": 2500,
+        "liabilities": 1700,
+        "equity": 650
+      },
+      "tolerance": 0.001
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QU-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QF-001",
+      "expected_state": "hold"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

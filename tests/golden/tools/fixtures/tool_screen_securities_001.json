@@ -1,0 +1,38 @@
+{
+  "sample_id": "tool_screen_securities_001",
+  "tool_name": "screen_securities",
+  "input_schema_id": "tool.screen_securities.input.v0",
+  "output_schema_id": "tool.screen_securities.output.v0",
+  "request": {
+    "universe": "HK_MAIN_BOARD",
+    "query": "positive net margin and liquid large cap",
+    "financial_from": "2023-12-31",
+    "financial_to": "2023-12-31",
+    "as_of": "2026-01-07",
+    "limit": 20
+  },
+  "expected_response": {
+    "ok": true,
+    "request_id": "golden-tool-screen-securities",
+    "as_of": "2026-01-07T00:00:00Z",
+    "market_status": "not_applicable",
+    "provenance": [
+      {
+        "source": "synthetic_tool_fixture",
+        "source_record_id": "screen-securities:synthetic-hk:2026-01-07",
+        "data_version": "screen-securities-synthetic-v0"
+      }
+    ],
+    "usage": {
+      "cached": false,
+      "credits": 8,
+      "rows": 2
+    },
+    "data": {
+      "toolName": "screen_securities",
+      "status": "found",
+      "liveDataAccess": false,
+      "universe": "HK_MAIN_BOARD"
+    }
+  }
+}

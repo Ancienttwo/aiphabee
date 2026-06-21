@@ -1,0 +1,773 @@
+---
+title: "AiphaBee 交付路线图与 Sprint 进度跟踪清单"
+subtitle: "Companion tracker to PRD v1.0"
+version: "1.0"
+status: "Ready for Execution"
+source_prd: "docs/researches/AiphaBee_PRD_v1.0.md"
+last_updated: "2026-06-21"
+owner: "Planner / PM"
+---
+
+# AiphaBee 交付路线图与 Sprint 进度跟踪清单（v1.0）
+
+> **配套文档：** [`docs/researches/AiphaBee_PRD_v1.0.md`](researches/AiphaBee_PRD_v1.0.md)
+> **作用：** 把 PRD 第 18 章交付路线图 + 第 7/9/17/19 章需求拆成可勾选、可追溯、有退出门槛的 Sprint 清单。
+> **本文件不是 harness 的 `*.sprint.md` 执行工件**，而是它们之上的程序级路线图索引。每个 Sprint 真正执行时，按 `plans/sprints/<stamp>-<slug>.sprint.md` 落成有序 Backlog → `tasks/contracts/*` 执行（见文末「§F 接入 harness」）。
+
+---
+
+## ⚠️ 头号阻断假设（Premise Collapse Watch）
+
+> **本路线图假设 Gate 0 成立：数据合作方授予 Web 展示 + MCP/API 机器可读再分发 + 派生数据权，且具体功能不构成 SFC Type 4 受规管活动。**
+>
+> - 若 **MCP/API 再分发权未获授权** → 整条 MCP 产品线（Sprint 2.3、Phase 3 MCP 部分、商业模式中 Developer/MCP 收入线）**不可上线**，产品退化为「纯 Web 研究工具」。
+> - 若 **某功能被判定为 Type 4 / 投资建议** → 取消该功能或接入持牌合作方，Phase 3 GA 签字门无法通过。
+> - 因此 **Gate 0（Sprint 0.1）未通过前，不投入大规模产品代码**（PRD 0.2 决策 7）。Phase 1+ 的勾选不应早于 Phase 0 退出门槛全绿。
+
+---
+
+## 如何使用本清单
+
+- **勾选粒度：** 叶子任务用 `- [ ]`；勾上即视为「已落地且通过该任务自带验收点」。
+- **每个 Sprint 三段式：** `目标` → `Backlog（勾选项，带 PRD 需求 ID/工具名追溯）` → `退出门槛 DoD`。Sprint 内任一退出门槛不绿，不得进入下一 Sprint 的特性开发。
+- **跨 Sprint 长期轨道（§A）：** 不是一次性任务；每个 Sprint 的 DoD 都要回看 §A 是否「本期已维护」。
+- **状态图例（用于 §0 看板与小节标题）：**
+  - ⬜ 未开始　🟦 进行中　✅ 完成　⛔ 阻塞　🅿️ 暂缓/降级
+- **追溯标签：** 任务后括号内为 PRD 需求 ID（如 `MCP-04`）、工具名（如 `get_price_history`）或 PRD 章节号（如 `§10.4`）。全量映射见 §M 追溯矩阵。
+- **更新约定：** 改动后同步顶部 `last_updated`，并在 §0 看板更新 Sprint 状态格；重大延迟项写进 `tasks/todos.md` 延迟目标台账（带 tradeoff + 重启触发条件）。
+
+---
+
+## §0 进度总览看板（Dashboard）
+
+### 阶段（Phase）
+
+| Phase | 名称 | 对应 Sprint | 状态 | 退出门槛是否全绿 |
+|---|---|---|---|---|
+| 0 | 权利·监管·数据基础（**Gate**） | 0.1 – 0.4 | 🟦 | ☐ |
+| 1 | 内部 Alpha | 1.1 – 1.4 | ⬜ | ☐ |
+| 2 | 封闭 Beta | 2.1 – 2.4 | ⬜ | ☐ |
+| 3 | 公开 GA | 3.1 – 3.3 | ⬜ | ☐ |
+| 4 | 扩展（Backlog） | — | ⬜ | n/a |
+
+### Sprint
+
+| Sprint | 主题 | 状态 | Backlog 完成度 | 退出门槛 |
+|---|---|---|---|---|
+| 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
+| 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
+| 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
+| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
+| 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
+| 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
+| 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
+| 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
+| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
+| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
+| 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
+| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 9 / 9 | ☐ |
+| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 8 / 9 | ☐ |
+| 3.3 | 安全·负载·灾备·发布验收·签字门 | 🟦 | 6 / 17 | ☐ |
+
+> 北极星指标 **WVRO**（周度已验证研究成果，PRD §4.3）从 Phase 1 内部即开始埋点；激活/质量/商业 KPI（PRD §16）随 Phase 推进逐步上线。
+
+---
+
+## §A 跨 Sprint 长期轨道（Always-on Tracks）
+
+> 这些是贯穿全程的不变量。每个 Sprint DoD 必须确认本期未让以下任一轨道回退。
+
+### A1 证据与血缘（Evidence & Lineage）— PRD §8.4 / §9.5 / §10.3 / DAT-09
+- [ ] 任一对外数值都能映射到 `source_record_id` + `data_version` + `methodology_version`（DAT-09）
+- [ ] 标准响应信封（`as_of` / `market_status` / `provenance` / `usage`）在所有工具一致（§9.5）
+- [ ] 答案分层「事实 / 计算 / 推断 / 未知」标签有效（AGT-06、§8.3）
+- [ ] 证据强度用「强/中/弱/无法判断」而非伪信心分数（§8.4）
+
+### A2 数据权利运行时执行（Data Rights by Design）— PRD §14.1 / DAT-05
+- [ ] 字段级权利矩阵进入运行时，Gateway 按「渠道 × 套餐 × 字段 × 时间范围 × 导出」裁剪（DAT-05、§14.1）
+- [ ] **默认拒绝**：未明确授权的字段/渠道/用途一律不分发
+- [ ] Web 展示授权**不自动**扩展到 MCP 机器可读再分发
+
+### A3 安全与滥用防护（Security & Abuse）— PRD §13
+- [ ] 公告/网页/用户输入标记为「不可信数据」，与系统指令隔离（DOC-03、§13.2）
+- [ ] 工具 allowlist；禁止任意 SQL / 任意 URL / 未注册工具（AGT-04、§9.4）
+- [ ] 多维限流（用户 × Workspace × 客户端 × 工具 × 数据集 × IP 风险）
+- [ ] 生成后 evidence-binding 校验，拦截无来源金融数字（AGT-05）
+
+### A4 评估集与质量（Eval & Quality）— PRD §16.3 / §10.7
+- [ ] 评估集覆盖事实正确率 / 计算正确率 / 引用正确率 / 正确拒绝率（§16.3）
+- [ ] 黄金样本回归在 CI 中常驻，确定性计算与基准误差在阈值内（ANA-07、§10.7）
+- [ ] 「无来源具体金融数字」抽样 < 0.1%（§16.5）
+
+### A5 可观测性与成本（Observability & Cost）— PRD §11.3 / §12.3
+- [ ] 每 run/tool-call 审计字段齐全（用户、工具版本、数据版本、模型、Token、成本、延迟、输出哈希，§12.3）
+- [ ] AI Gateway 接管模型调用日志/成本/限流/缓存/fallback；模型变更被记录（§11.6）
+- [ ] 单 run 预算（步数/Token/行数/时间/费用）上限生效，到顶优雅停止（AGT-03）
+
+---
+
+## §1 Phase 0 — 权利·监管·数据基础（**Gate 0，阻断性**）
+
+> 退出总条件（PRD §18.1）：**P0 每个字段都有授权状态；核心黄金样本通过；产品边界得到书面确认。** 本阶段不写大规模产品代码。
+
+### Sprint 0.1 — 法务·授权·监管 Gate　⬜
+**目标：** 拿到可上线的「字段级权利矩阵 + 监管分类书面意见」，确定哪些字段/渠道/用途可分发。
+
+- [ ] 与数据合作方完成**字段级权利矩阵**：所有者/来源、Web 展示、MCP/API 再分发、原始 vs 派生、实时/延迟/EOD、历史范围、导出与缓存、用户类型与地区、订阅者报送、审计与终止、商业条款（PRD §14.1 全 11 维）
+- [ ] 逐字段标注分发状态：`Web 可 / MCP 可 / 导出可 / 派生可`，未确认者标 **默认拒绝**
+- [ ] HKEX 市场数据授权确认：End-user vs Market Data Vendor Licence、非展示使用费（§14.1、脚注 HKEX）
+- [ ] 取得香港律师/合规对**具体功能**的 Type 4 / 研究工具分类书面意见（§14.2、PRD §0.4）
+- [ ] 确认 MVP 产品边界文案：用「研究/分析/数据解释」，不承诺荐股/投顾；不收集风险承受度做适合性结论（§14.2）
+- [ ] 确认 PCPD 个人资料保障合规路径（privacy-by-design、PDPO 原则，§13.3）
+- [ ] 数据合作方商业结算维度落定（按数据集 × 渠道 × 客户类型，§15.4）
+- [ ] 产出《Gate 0 决议书》并由 CEO/商务/数据/合规签字
+
+**退出门槛 DoD：** ☐ P0 字段权利矩阵 100% 有状态　☐ Type 4 书面意见到位　☐ MCP 再分发权结论明确（成立/否决，否决则触发 §0 退化路径）　☐ 决议书签字
+
+### Sprint 0.2 — 数据契约与口径基线　🟦
+**目标：** 在写服务代码前固定证券主表、时间/复权/重述/指标的口径定义（设计 + 数据字典，不含大规模实现）。
+
+- [x] 数据合作方数据契约：字段字典、时间口径、SLA、CDC/批量同步方式（§11.5）
+- [x] **证券主表**模型：company / instrument / listing / identifier_history，公司与证券分离、代码有有效期（DAT-02、§10.2）
+- [x] **时间与版本模型**：`period_start/end`、`published_at`、`effective_at`、`ingested_at`、`restated_at`、`valid_from/to`、`data_version`（§10.3）
+- [x] point-in-time 查询规则（按 `published_at`，禁止未来数据泄漏，§10.3）
+- [x] **复权口径**定义：`raw` / `split_adjusted` / `total_return_adjusted` 及各自方法论说明（§10.4）
+- [x] **财务事实与重述**模型：reported/standardized/币种/单位/准则/版本/重述原因，不覆盖历史（DAT-03、§10.5）
+- [x] **指标定义库 v0**：`metric_id`、公式与依赖、行业适用、时间口径、缺失/负分母处理、方法版本（DAT-07、§10.6）
+- [x] 交易日历模型：港时区、半日市、恶劣天气安排（§10.2）
+- [x] 数据产品化流水线设计：Raw 快照 → 标准化 → 质量对账 → 派生 → Serving → Gateway（§10.1、DAT-01）
+
+**退出门槛 DoD：** ☑ 证券主表/时间/复权/重述/指标口径文档评审通过　☐ 数据契约签署　☑ 每个口径有「方法论版本」字段
+
+### Sprint 0.3 — 黄金样本·质量规则·商业模型　🟦
+**目标：** 建立可在 CI 常驻的黄金样本与质量规则；锁定套餐/credits/单位经济。
+
+- [x] 黄金样本集（PRD §10.7）：50–100 只跨行业跨年代含退市/复牌/供股/拆股证券
+- [x] 黄金样本：20 复杂公司行动 + 20 财务重述 + 10 代码/名称变更 + 10 多币种/双重上市 + 指数历史成分
+- [x] 自动质量规则集：主键/时间/币种/单位完整性、OHLC 关系、公司行动前后一致、三表勾稽、同比异常、公告日期逻辑、跨源对账、退市/停牌/双重上市特例（§10.7）
+- [x] 数据质量隔离机制设计：严重异常不进 Serving Store，对外返回 `DATA_QUALITY_HOLD`（DAT-06、US-O02）
+- [x] 数据更正流程设计：隔离→记录原值/新值/原因→重算派生→标记证据快照→通知→留审计（§10.8、DAT-08）
+- [x] 套餐与权益矩阵：Free/Plus/Pro/Developer/Team/Enterprise，Web 与 MCP 权益分列（§15.2）
+- [x] 加权 credits 计费模型 + 示例权重（解析 1 … 事件研究 20–50，§15.3）
+- [x] 单位经济模型：贡献毛利公式与目标（B2C>70%、Dev/MCP>60%，§15.5）
+- [x] Free 层防滥用原则：限范围/限并发/不可商业再分发（§15.2）
+
+**退出门槛 DoD：** ☑ 黄金样本可被自动校验（synthetic v0 smoke corpus）　☑ 质量规则可执行（12-rule deterministic gate）　☐ 套餐/credits/单位经济模型评审通过
+
+### Sprint 0.4 — 工程地基（脚手架·CI·Cloudflare 绑定）　🟦
+**目标：** 把 greenfield 仓库拉起到「可部署的空骨架」，建立需求→issue 追溯。
+
+- [x] 初始化 npm workspaces 与根包管理：`package.json` / `package-lock.json` / shared TypeScript + Vitest config（PRD §1.1、§11.3）
+- [ ] 初始化前端应用：TanStack Start + Vite（Claude 前端跟进，PRD §1.1、§11.3）
+- [x] Hono Worker 空运行面：`apps/worker`、Wrangler local config、`/health` route（§11.3）
+- [x] Agent Runtime 骨架：AI SDK v7 beta dry-run runtime on Cloudflare Workers（§11.3）
+- [x] Model provider / streaming scaffold：Cloudflare AI Gateway planned contract、AI SDK v7 `generateText`/`streamText` boundary、`/agent/runs/stream` guard、`npm run check:model-provider`（§11.3、§11.6）
+- [ ] Model provider live execution smoke：真实 AI Gateway request + `streamText`/`generateText` + token/cost/fallback logs（§11.3、§11.6）
+- [x] Cloudflare binding contract：Workers、Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive 命名/职责/smoke 矩阵（§11.3–§11.4）
+- [ ] Cloudflare resources provisioned + binding smoke tests：Workflows、Queues、Cron、Durable Objects、R2、KV、AI Gateway、Hyperdrive（§11.3–§11.4）
+- [x] Postgres/Supabase migration scaffold：Supabase-compatible migrations、Hyperdrive connection contract、default-deny governance schema、`npm run check:database`（§11.4）
+- [ ] Hyperdrive-backed Postgres/Supabase live connection smoke：真实 Hyperdrive binding ID + read-only `SELECT 1`（§11.4）
+- [x] CI 流水线：`npm ci` / lint / typecheck / test / build（§A4）
+- [x] 黄金样本回归挂载点：`npm run test:golden` + CI `Golden Regression Hook`（§A4）
+- [x] 黄金样本可执行 fixtures 与质量规则断言：8 个 synthetic samples、12 条 deterministic quality rules、`DATA_QUALITY_HOLD` hold 断言、strict `npm run test:golden`（§A4）
+- [x] OTel/log/eval event contract：Workers Logs + traces enabled，`run.audit` / `run.eval` 结构化事件，console sink，`npm run check:observability`（§11.3、§12.3）
+- [x] OTLP destination + persistent eval store scaffold：planned D1 `AIPHABEE_EVAL_STORE`、OTLP names-only env、eval-store record schema、`/observability/runtime` guard、`npm run check:observability`（§11.3、§12.3）
+- [ ] OTLP destination + persistent eval store live smoke：真实 OTLP export + persistent eval write/read + retention/dashboard evidence（§11.3、§12.3）
+- [x] 环境变量 names-only template：`deploy/env/.env.example`
+- [x] Env/secrets contract：dev/staging/prod names-only templates + schema + `npm run check:env`
+- [x] Provider secret stores / rotation / emergency revocation contract：Cloudflare/GitHub/Supabase planned stores、90-day cadence、30-min revocation SLA、`npm run check:secrets`（Cloudflare/GitHub/Supabase）
+- [ ] Provider secret stores provisioned + rotation/revocation smoke（Cloudflare/GitHub/Supabase）
+- [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线（Claude 前端跟进）
+- [x] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
+- [x] 建立 shared `packages/data-contracts`：标准响应信封、provenance、usage、默认拒绝错误码（§9.5–§9.6）
+- [x] 建立 PRD 每条 P0 需求 → issue/owner/测试/发布门槛 的 traceability：`docs/governance/p0-traceability-ledger.md`（§23.12，对齐本文件 §M）
+
+**退出门槛 DoD：** ☐ 空骨架可本地运行并部署到 staging　☐ CI 绿（remote run pending；local `npm run check` 已通过）　☐ 绑定连通性冒烟通过　☑ §M P0 追溯 ledger 建好（repo-local issue refs）
+
+---
+
+## §2 Phase 1 — 内部 Alpha　⬜
+
+> 退出总条件（PRD §18.2）：**核心工具在黄金样本一致；所有数字有证据；无严重权限串用；内部用户可完成端到端研究。**
+
+### Sprint 1.1 — 主真值源 + Data Access Gateway　⬜
+**目标：** Postgres 主数据落地 + 字段级权益运行时执行 + 用量账本。
+
+- [x] 证券主表 schema scaffold：`core.company` / `core.instrument` / `core.listing` / `core.identifier_history` migration + `/data/runtime` capability（DAT-02）
+- [x] Raw 不可变快照 + `data_version` 批次 schema scaffold：`core.raw_source_batch` / `core.raw_snapshot` / `core.data_version_batch`，raw 默认 `HOLD`、rights 默认 `default_deny`（DAT-01）
+- [x] 财务事实与重述 schema scaffold：`core.financial_statement` / `core.financial_fact` / `core.financial_restatement` migration + `/data/runtime` capability（DAT-03）
+- [x] 财务重述 deterministic golden engine scaffold：`@aiphabee/financial-facts` 支持版本保留、point-in-time 选择、restatement delta、identity guard，`/data/runtime` engine capability（DAT-03、§10.5）
+- [x] 公司行动与复权 schema scaffold：`core.corporate_action` / `core.adjustment_methodology` / `core.price_adjustment_factor` migration + `/data/runtime` capability（DAT-04、§10.4）
+- [x] 公司行动 deterministic adjustment engine golden scaffold：`@aiphabee/corporate-actions` 支持 split/consolidation/dividend backward-adjusted synthetic golden cases，`/data/runtime` engine capability（DAT-04、§10.4）
+- [ ] 公司行动 live adjustment engine + partner/public benchmark 黄金样本对齐（DAT-04、§10.4）
+- [x] Serving Store schema scaffold：`core.serving_dataset` / `core.serving_field` / `core.serving_snapshot` / `core.serving_record` migration + `/data/runtime` + `/gateway/runtime` capability，默认 `HOLD` / `held` / `default_deny`（§10.1、DAT-06）
+- [x] Serving read default-deny scaffold：`@aiphabee/serving-store` read planner + Gateway `servingRead` decision + `/gateway/runtime` read planner capability，default-deny / quality-hold 不触发 live read、SQL 或 served rows（§11.1、§12.2、DAT-06）
+- [x] Serving quality release isolation scaffold：`@aiphabee/serving-store` 将 `PASS/WARN/HOLD/REJECT_RAW` 映射为 `released/held/withdrawn`，`HOLD/REJECT_RAW` 对外保持 `DATA_QUALITY_HOLD`，不触发 live write/read/SQL（DAT-06）
+- [x] Data Access Gateway Serving query planner scaffold：`@aiphabee/serving-store` query planner + Gateway `servingQuery` decision + `/gateway/runtime` query planner capability，将 released snapshot + allowed fields / rows / time range / cache material 转成 no-SQL query plan（§11.1、§12.2、DAT-06）
+- [x] Serving SQL descriptor scaffold：`@aiphabee/serving-store` SQL descriptor planner + Gateway `servingSqlDescriptor` decision + `/gateway/runtime` SQL descriptor capability，将 planned query 转成 allow-listed statement id + parameter bindings，不输出 SQL text / 不执行 SQL（§11.1、§12.2、DAT-06）
+- [x] Serving SQL text compiler scaffold：`@aiphabee/serving-store` SQL text compiler + Gateway `servingSqlText` decision + `/gateway/runtime` SQL text compiler capability，将 allow-listed descriptor 转成固定 SQL text + positional bindings，不执行 SQL / 不读 Hyperdrive（§11.1、§12.2、DAT-06）
+- [x] Serving execution adapter scaffold：`@aiphabee/serving-store` execution adapter + Gateway `servingExecution` decision + `/gateway/runtime` execution adapter capability，接收 SQL text/bindings 后返回 `execution_deferred`、空 rows、no SQL execution/no live read（§11.1、§12.2、DAT-06）
+- [x] Serving result envelope scaffold：Gateway `servingResult` decision payload + `/gateway/runtime` result-envelope capability，将 blocked/deferred execution plan 绑定到 `as_of` / `market_status` / `provenance` / `usage` envelope 字段，固定 `rows=[]`、no live data/no SQL execution（§9.5、§11.1、DAT-09）
+- [x] Data Access Gateway default-deny scaffold：`packages/data-access-gateway`、`deploy/gateway/access.contract.json`、`npm run check:data-gateway`、`/gateway/runtime`、`/gateway/access-check`（§11.1、§12.2）
+- [ ] **Data Access Gateway live Serving**：真实字段裁剪 + 行数/时间范围限制 + 缓存 key 含数据版本/权限版本/字段集/口径（§11.1、§12.2）
+- [x] 字段级权益执行 scaffold：Gateway evaluator 支持 workspace / plan / channel / dataset / field / time_range / export 维度裁剪，cache key 含 workspace/export，`/gateway/runtime` capability（DAT-05、§A2）
+- [x] 字段级权益 DB policy source scaffold：`core.data_entitlement` / `core.workspace_entitlement` / `core.workspace_subscription` row snapshot 编译为 Gateway policy，active interval / wildcard field / blocked precedence / export / time range 可测，不触发 live DB read（DAT-05、§A2）
+- [ ] 字段级权益 live policy source：接入 partner rights matrix + DB entitlement rows（DAT-05、§A2）
+- [x] Usage ledger schema scaffold：`core.usage_meter_rule` / `core.usage_event` / `core.usage_reconciliation_batch` / `core.usage_ledger_entry` migration + `/gateway/runtime` capability，reconciliation target `<=5` 分钟（ACC-04、§15.3）
+- [x] Usage ledger event writer scaffold：`@aiphabee/usage-ledger` 将 Gateway decision 转成 usage event + ledger entry plan，workspace-scoped 正常调用为 `preview`，default-deny/quality-hold/missing workspace 为 `blocked`，不触发 live write/SQL/billing（ACC-04、§15.3）
+- [ ] **Usage ledger live writes + billing reconciliation**：加权 credits 记账，用量延迟 <5 分钟（ACC-04、§15.3）
+- [x] 账户/Workspace/订阅/数据权益分离 schema scaffold：`core.account` / `core.workspace` / `core.workspace_membership` / `core.subscription_plan` / `core.workspace_subscription` / `core.data_entitlement` / `core.workspace_entitlement` migration + `/data/runtime` + `/gateway/runtime` capability（ACC-02）
+- [x] 数据质量隔离 Gateway guard scaffold：`quality_state=HOLD` 在 `/gateway/access-check` 返回 `DATA_QUALITY_HOLD`，零 rows/credits（DAT-06）
+- [ ] 数据质量隔离接入真实 Serving（DAT-06，`DATA_QUALITY_HOLD`）
+
+**退出门槛 DoD：** ☐ 复权/重述黄金样本一致　☐ Gateway 默认拒绝未授权字段　☐ usage ledger 可对账到单次调用
+
+### Sprint 1.2 — Tool Registry + 原子数据工具 + 证据/血缘　⬜
+**目标：** 共享 Tool Registry 与首批 6–8 个只读原子工具 + Evidence/Lineage 服务。
+
+- [x] **共享 Tool Registry scaffold**：`@aiphabee/tool-registry` + `deploy/tools/registry.contract.json` + `npm run check:tool-registry` + `/tools/runtime`，集中 9 个 planned read-only tools 的 Schema/版本/权限/执行/测试 metadata，拒绝任意 SQL/URL 与未注册工具（PRD §11.3、AGT-04、MCP-04/08）
+- [x] `resolve_security` tool scaffold：`@aiphabee/security-tools` + `POST /tools/resolve-security` + `deploy/tools/resolve-security.contract.json` + `npm run check:security-tools`，支持代码/名称/历史名 synthetic fixture 解析到 `instrument_id`，歧义返回候选且不静默选择（SEC-01/03、MCP-04/08）
+- [x] `get_security_profile` tool scaffold：`@aiphabee/security-tools` + `POST /tools/get-security-profile` + `deploy/tools/get-security-profile.contract.json` + `npm run check:security-tools`，支持 `instrument_id` synthetic fixture 返回公司/证券档案、上市状态、币种与覆盖 metadata，覆盖 listed/suspended/delisted/not_found（SEC-04、STK-01、MCP-04/08）
+- [x] `get_market_calendar` tool scaffold：`@aiphabee/market-calendar` + `POST /tools/get-market-calendar` + `deploy/tools/get-market-calendar.contract.json` + `npm run check:market-calendar`，支持 HK synthetic date range 返回 trading day / half-day / weather closure / holiday / weekend sessions，覆盖 unsupported market、OUT_OF_RANGE 与输入错误（PRD §10.2、MCP-04/08）
+- [x] `get_quote_snapshot` tool scaffold：`@aiphabee/market-data` + `POST /tools/get-quote-snapshot` + `deploy/tools/get-quote-snapshot.contract.json` + `npm run check:market-data`，支持 synthetic delayed/close quote snapshot、字段子集、延迟 metadata、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / POINT_IN_TIME_UNAVAILABLE 标准错误（STK-02、MCP-04/08）
+- [x] `get_price_history` tool scaffold：`@aiphabee/market-data` + `POST /tools/get-price-history` + `deploy/tools/get-price-history.contract.json` + `npm run check:market-data`，支持 synthetic OHLCV/return/drawdown history、复权口径 metadata、字段子集、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（STK-02、§10.4、MCP-04/08）
+- [x] `get_corporate_actions` tool scaffold：`@aiphabee/corporate-actions` + `POST /tools/get-corporate-actions` + `deploy/tools/get-corporate-actions.contract.json` + `npm run check:corporate-actions`，支持 synthetic dividend / split / consolidation / rights / placement / buyback timeline、adjustment impact metadata、type subset、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（STK-05、DAT-04、MCP-04/08）
+- [x] `get_financial_facts` tool scaffold：`@aiphabee/financial-facts` + `POST /tools/get-financial-facts` + `deploy/tools/get-financial-facts.contract.json` + `npm run check:financial-facts`，支持 synthetic income statement / balance sheet / cash flow fact rows、期间/币种/单位/会计准则/scale/restatement version/as_of metadata、metric/statement-type subsets、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / POINT_IN_TIME_UNAVAILABLE / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（STK-03、DAT-03、MCP-04/08）
+- [x] `get_data_lineage` + `get_entitlements` tool scaffold：`@aiphabee/evidence-lineage` + `POST /tools/get-data-lineage` + `POST /tools/get-entitlements` + `deploy/tools/evidence-lineage.contract.json` + `npm run check:evidence-lineage`，支持 synthetic evidence/source record lineage、source batch/data version/methodology/formula/upstream metadata、quality hold/not found 标准错误，以及 workspace/channel/tool/dataset/field entitlement scope 自查、Gateway policy compiler/evaluator redaction、SCOPE_DENIED / DATA_NOT_LICENSED / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误（DAT-09、US-M03、MCP-04/08）
+- [x] **Evidence & Lineage Service scaffold**：`@aiphabee/evidence-lineage` no-write planner + `core.evidence_record` / `core.evidence_source_ref` migration + `GET /evidence/runtime` + `POST /evidence/records/plan` + `deploy/evidence/service.contract.json` + `npm run check:evidence-service`，支持 tool call ↔ source record / data version / methodology / user-visible citation no-write plan；live DB writes / partner source rows / MCP protocol endpoint / runtime schema serving / live route replay 未启用（§11.1、§A1）
+- [x] 所有工具输入/输出 JSON Schema + 标准响应信封 + 标准错误码：`deploy/tools/tool-schemas.contract.json` + `npm run check:tool-schemas`，覆盖 9 个 registered tools 的 `tool.<name>.input.v0` / `tool.<name>.output.v0`、标准 envelope 字段、success `data` shape、error schema enum、no arbitrary SQL/URL input property guard；runtime validator / MCP schema serving 未启用（MCP-04/08、§9.5–§9.6）
+- [x] 每个工具黄金样本回归用例：`tests/golden/tools/manifest.json` + 9 个 `tests/golden/tools/fixtures/*.json` + `npm run test:golden` 扩展，覆盖每个 registered tool 的 schema IDs、expected request/response envelope、provenance、usage、`toolName`/`status`/`liveDataAccess=false`；live route replay / partner-approved production corpus 未启用（§A4）
+
+**退出门槛 DoD：** ☐ 6–8 工具黄金样本一致　☐ 每条响应带 provenance　☐ 未注册工具/任意 SQL 被拒（AGT-04）
+
+### Sprint 1.3 — Web Agent Runtime + Ask + 证据卡片　⬜
+**目标：** AI SDK v7 多步工具循环 + 流式 + 预算/停止规则 + 证据优先答案。
+
+- [x] Agent run context scaffold：`@aiphabee/agent-runtime` dry-run `run_context` + `POST /agent/runs/dry-run` + `deploy/agent/run-context.contract.json` + `npm run check:agent-run-context`，覆盖 run/user/workspace、套餐、synthetic default-deny 权益、工具集与版本/schema/scope、预算维度、`dry_run` 模型层级；real model calls / streaming / live entitlement reads / frontend Ask 未启用（§8.1）
+- [x] ToolLoopAgent no-model planner scaffold：`@aiphabee/agent-runtime` `createToolLoopAgentPlan()` + `POST /agent/runs/plan` + `deploy/agent/tool-loop-planner.contract.json` + `npm run check:tool-loop-agent`，规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，多步计划限制 ≤6–8 steps、每步并行 ≤3 只读工具，输出 public progress event contract 且 `chain_of_thought_exposed=false`；actual tool execution / live streaming transport / real model calls / frontend Ask 未启用（AGT-01）
+- [x] Pre-tool-call resolution scaffold：`@aiphabee/agent-runtime` `createPreToolCallResolution()` + `POST /agent/runs/preflight` + `POST /agent/runs/plan` embedding + `deploy/agent/pre-tool-call-resolution.contract.json` + `npm run check:pre-tool-call-resolution`，在工具规划前解析 security / time / currency / methodology，显式 `00700.HK` 与 Tencent fixture 可解析，ABC 歧义返回 blocking clarification + candidates，不静默选择；缺省时间/币种/口径返回显式 assumptions；real NLP resolver / actual tool calls / frontend clarification UI 未启用（AGT-02）
+- [x] Budget/stop policy scaffold：`@aiphabee/agent-runtime` `budget_stop_policy` + `POST /agent/runs/plan` `stopped_budget` + `deploy/agent/budget-stop-policy.contract.json` + `npm run check:budget-stop-policy`，覆盖 steps/credits/rows/tokens/wall_clock_ms deterministic estimate、limit status、continue cost、partial graceful stop response、连续 2 次同类错误停止自动重试且不计费；actual tool execution / live usage ledger / model-cost accounting / frontend budget confirmation UI 未启用（§8.2、AGT-03）
+- [x] Tool enforcement scaffold：`@aiphabee/agent-runtime` `tool_enforcement` + planned tool-call enforcement metadata + `deploy/agent/tool-enforcement.contract.json` + `npm run check:tool-enforcement`，覆盖 registered/versioned/schema-bound/permission-scope/rights-aware/no-arbitrary-SQL/no-arbitrary-URL/read-only-no-live-data checks，`sql.query` / `http.fetch` 等未注册任意 SQL/URL 工具返回 `SCOPE_DENIED`；actual tool execution / runtime schema serving / MCP protocol endpoint / live entitlement DB reads 未启用（AGT-04）
+- [x] Numeric source guard scaffold：`@aiphabee/agent-runtime` `numeric_source_guard` + `POST /agent/runs/plan` answer-contract guard + `deploy/agent/numeric-source-guard.contract.json` + `npm run check:numeric-source-guard`，约束 concrete financial numbers 只能来自 `tool_result` 或 `deterministic_calculation`，当前 no-live 状态 `concrete_claims_allowed_now=false`，阻断 `model_memory` / `training_data` / `unverified_prompt` / `unstated_source` 并返回 `UNSOURCED_NUMERIC_CLAIM`；actual post-generation extraction / live evidence binding / frontend evidence cards 未启用（AGT-05、§8.5 禁止行为）
+- [x] Answer/evidence contract scaffold：`@aiphabee/agent-runtime` `answer_evidence_contract` + `POST /agent/runs/plan` ordered answer contract + `deploy/agent/answer-evidence-contract.contract.json` + `npm run check:answer-evidence-contract`，固定 PRD §8.3 直接回答→数据状态→关键证据→解释→反证与风险→来源与方法→下一步→免责声明顺序，限制直接回答 2–5 句、关键证据 3–6 项、下一步最多 3 项；actual generated-answer parsing / frontend rendering 未启用（§8.3）
+- [x] Answer label + evidence-card payload scaffold：`answer_evidence_contract.claim_labels` + `evidence_cards`，要求 `fact` / `calculation` / `inference` / `unknown` 文本与 UI 标签、fact 绑定 evidence card、calculation 绑定 calculation ref、inference 绑定 evidence strength、unknown 绑定 missing reason，并定义 card payload 所需 `source_record_id` / `data_point` / `document_location` / `as_of` / `data_version` / `methodology_version` / currency / unit / warnings；frontend clickable card rendering / live evidence binding 未启用（AGT-06、AGT-07）
+- [x] Failure recovery policy scaffold：`@aiphabee/agent-runtime` `failure_recovery_policy` + `POST /agent/runs/plan` per-step recovery plan + `deploy/agent/failure-recovery-policy.contract.json` + `npm run check:failure-recovery-policy`，覆盖 failed-tool-call-only partial retry、retryable/non-retryable error classes、completed step/evidence reuse、partial answer fallback、usage ledger idempotency placeholder、failed/retry attempts 不计费且 charge grain 为 `tool_call_success`；actual live retry execution / durable run-state persistence / live usage ledger writes / frontend retry UI 未启用（AGT-08）
+- [x] 模型路由 + AI Gateway audit/fallback scaffold：`@aiphabee/agent-runtime` `model_routing_audit` + `POST /agent/runs/plan` model routing/fallback audit policy + `deploy/agent/model-routing-audit.contract.json` + `npm run check:model-routing-audit`，覆盖 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、MODEL_TIMEOUT/RATE_LIMITED/UPSTREAM_5XX fallback triggers、model-change audit fields、safe reusable non-sensitive cache policy、sensitive audit redaction；live model execution / real AI Gateway request smoke / live token-cost-fallback log writes / frontend Ask rendering 未启用（§11.6、§A5）
+
+**退出门槛 DoD：** ☐ 评估集中数字 0 凭记忆生成　☐ 歧义不静默猜测　☐ 预算到顶可优雅停止并给下一步
+
+### Sprint 1.4 — 个股工作台 + 内部账号 + 评估集 v1　⬜
+**目标：** 个股工作台基础版 + 内部账号/手动套餐 + 可回归评估集。
+
+- [x] 个股档案后端 aggregate scaffold：`@aiphabee/workbench` `POST /workbench/stock/snapshot` 复用 `resolve_security` + `get_security_profile`，返回 company/security/listing/market/currency 分离 profile 与 ambiguous security `blocked_resolution`，frontend display/live data 未启用（STK-01）
+- [x] 价格/成交/回报/回撤/基准对比后端 aggregate scaffold：`@aiphabee/workbench` 聚合 `get_quote_snapshot` + `get_price_history`，返回 delayed/close quote、OHLCV/return/drawdown、`total_return_adjusted` 默认复权口径与 section status，frontend chart/live benchmark rows 未启用（STK-02）
+- [x] 财务三表关键事实与趋势后端 aggregate scaffold：`@aiphabee/workbench` 聚合 `get_financial_facts`，返回 period/currency/unit/published_at/restatement_version metadata 与 data-quality status，frontend trend table/live facts 未启用（STK-03）
+- [x] 估值/盈利能力派生指标后端 scaffold：`@aiphabee/workbench` `derived_metrics` section 输出公式版本、指标定义、source inputs、异常策略与 blocked reason；净利率/ROA/ROE/资产周转/权益乘数从 `get_financial_facts` deterministic 计算，P/E、P/S、P/B 在缺少 market cap/share-count authority 时返回 `market_cap_unavailable`，frontend display/live valuation data 未启用（STK-04、依赖指标库）
+- [x] 公司行动时间线后端 aggregate scaffold：`@aiphabee/workbench` 聚合 `get_corporate_actions`，返回 dividend/split/consolidation/rights/placement/buyback timeline、adjustment impact metadata、source/evidence summary 与 section status，frontend timeline/live partner rows 未启用（STK-05）
+- [x] 公告检索入口后端 scaffold：`@aiphabee/workbench` 新增 `announcement_search` section + `POST /workbench/stock/announcements`，支持 security/date/category/keyword/limit 过滤，返回 source_record_id、document_id、page、anchor、synthetic original locator，ambiguous security `blocked_resolution`；live original document fetch / Phase 2 semantic/diff/replay 工具 / frontend rendering 未启用，Phase 2 `search_announcements` + `get_announcement` 后端 surface 已由 Sprint 2.2 独立覆盖（STK-06）
+- [x] 内部账号 + 手动套餐 + 登录/会话/设备管理 scaffold：`@aiphabee/account-runtime` capability + `GET /account/runtime` + `POST /account/session/plan` no-write planner + `deploy/account/session.contract.json` + `npm run check:account-runtime`，覆盖 email/passwordless/social login method contract、session/device revoke plan、manual plan assignment plan、`core.account` / `core.workspace` / `core.workspace_membership` / `core.subscription_plan` / `core.workspace_subscription` table linkage；live identity provider / cookie issuance / DB writes / billing provider / frontend account UI 未启用（ACC-01、§18.2）
+- [x] Web Agent 与 MCP 配额/用量展示后端 scaffold：`@aiphabee/usage-ledger` quota display capability + `GET /usage/runtime` + `POST /usage/quota/plan` no-read/no-write planner + `deploy/usage/quota-display.contract.json` + `npm run check:usage-quota-display`，覆盖 Web Agent/MCP channel、request_id、plan_code、period、credit limit、used/pending/remaining credits 与 5-minute freshness target；live ledger reads / billing reconciliation / persistent writes / frontend quota UI 未启用（ACC-04）
+- [x] 评估集 v1 + WVRO instrumentation scaffold：`@aiphabee/observability` `eval_v1` + `run.eval.eval_v1` payload + `GET /observability/runtime` eval v1 capability + `POST /observability/eval-v1/plan` no-write planner + `deploy/observability/eval-v1.contract.json` + `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes / live OTLP export / frontend analytics dashboard / production partner-approved corpus / automatic answer grading 未启用（§16.3、§A4、§4.3）
+
+**退出门槛 DoD（= Phase 1 退出门槛）：** ☐ 内部用户端到端完成一次研究　☐ 所有展示数字有证据　☐ 无严重权限串用　☐ 核心工具黄金样本一致
+
+---
+
+## §3 Phase 2 — 封闭 Beta　⬜
+
+> 退出总条件（PRD §18.3）：**付费和配额可对账；MCP 首次调用体验达标；工具成功率和数据质量达到发布阈值。**
+
+### Sprint 2.1 — 比较 + 筛选 + 确定性分析　⬜
+**目标：** 多证券比较、自然语言筛选、确定性收益/风险计算。
+
+- [x] `compare_securities` 后端 scaffold：新增 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/compare-securities`、`deploy/analytics/compare-securities.contract.json` 与 `npm run check:compare-securities`，支持 2–5 证券、复用 `resolve_security` / `get_security_profile` / `get_quote_snapshot` / `get_financial_facts`，返回 base currency/unit、missing metrics、quality flags、source_record_ids 与 incomparable reasons；frontend comparator / MCP registration / live FX conversion / live data 未启用（ANA-01、ANA-02）
+- [x] `screen_securities` 后端 scaffold：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/screen-securities`、`deploy/analytics/screen-securities.contract.json` 与 `npm run check:screen-securities`，将 deterministic supported natural language / explicit conditions 转为可编辑结构化条件，返回 field/operator/value/time_basis/missing_value_rule/source_tool，并要求 live execution 前确认；frontend screening UI / broad NLP / model calls 未启用（ANA-03）
+- [x] 筛选命中解释后端 scaffold：`screen_securities` 复用 `compareSecurities()` synthetic universe preview，返回 `hits[].why`、matched_conditions、rank/score、rejected_rows reasons 与 explainable ranking method；live universe execution / high-cost queue / frontend expandable explanations 未启用（ANA-04、US-W05）
+- [x] `get_financial_ratios` 后端 scaffold：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/financial-ratios`、`deploy/analytics/financial-ratios.contract.json` 与 `npm run check:financial-ratios`，覆盖 revenue / net income / assets / equity 输入、`net_margin` / `return_on_assets` / `return_on_equity` / `asset_turnover` / `equity_multiplier`、公式版本、source_record_ids、blocked_reason 与 synthetic percentile metadata；frontend ratios UI / valuation multiples / live peer constituents / MCP registration 未启用（依赖指标库 §10.6）
+- [x] `calculate_returns_risk` 后端 scaffold：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/returns-risk`、`deploy/analytics/returns-risk.contract.json` 与 `npm run check:returns-risk`，覆盖 deterministic total return、average daily return、daily/annualized volatility、max drawdown、explicit-benchmark Beta、公式版本、golden tolerance `0.000001`、source_record_ids、window metadata 与 blocked_reason；frontend returns/risk UI / default live benchmark constituents / MCP registration 未启用（ANA-07）
+- [x] 按同业/指数/自身历史分位比较后端 scaffold：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/percentile-comparison`、`deploy/analytics/percentile-comparison.contract.json` 与 `npm run check:percentile-comparison`，覆盖 peer/index/history benchmark types、subject metric、benchmark_as_of、constituent_as_of、constituents/history_observations、point-in-time policy、percentile_rank 与 source_record_ids；frontend percentile UI / live peer-index constituents / MCP registration 未启用（ANA-02）
+- [x] point-in-time 防未来数据后端 guard：`screen_securities` / `POST /analytics/screen-securities` 接收 `classification_as_of`，返回 `point_in_time_guard`、`requested_as_of`、`classification_as_of`、`security_master_as_of`、`uses_latest_classification=false`，并在 `classification_as_of > as_of` 时返回 `blocked_future_data` 且不执行筛选；`deploy/analytics/screen-securities.contract.json` 与 `npm run check:screen-securities` 固化 `block_future_classification` policy；frontend UI / live historical constituents-industry-name data / MCP registration 未启用（SEC-05、ANA-03、§10.3）
+- [ ] 比较器与筛选器 Web UI（PRD §5.1 比较器/筛选器）
+- [x] 高成本筛选/比较独立并发池后端 planner：新增 `plan_high_cost_analytics`、`GET /analytics/runtime` capability、`POST /analytics/high-cost/plan`、`deploy/analytics/high-cost-analytics-queue.contract.json` 与 `npm run check:high-cost-analytics`，固化 `screen_securities` PRD 权重 8-20、`compare_securities` 权重 5-15、`>=8` 进入 `analytics_high_cost`、max_parallel 2、普通池保护、确认后才 planned enqueue、pre-debit / failure-refund / idempotency metadata；durable queue writes / live concurrency limiter / live usage-ledger debit-refund / MCP limiter / frontend confirmation UI 未启用（§12.2、MCP-11、US-W10）
+
+**退出门槛 DoD：** ☐ 确定性计算黄金样本达标　☐ 筛选条件执行前可编辑　☐ 命中原因可展开
+
+### Sprint 2.2 — 公告检索 + 研究保存/重放　⬜
+**目标：** 公告检索与原文定位 + 研究 run 保存与重放。
+
+- [x] `search_announcements` 后端 scaffold：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，支持 company/security resolution、published_at 日期范围、category、keyword、language、limit 过滤，返回 title / published_at / category / language / summary / `document_id` / `source_record_id` / page / anchor / synthetic locator，并对歧义证券返回 `blocked_resolution`；live original document fetch / pgvector search / frontend UI 未启用（DOC-01）
+- [x] `get_announcement` 后端 scaffold：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，支持 `document_id` + optional sections + `max_excerpt_chars`，返回 allowed sections、bounded authorized excerpts、title/source metadata、`document_id` / `source_record_id` / page / paragraph / anchor / synthetic locator，并对未知文档返回 `not_found`、未知 section 返回 `section_not_found`；live original document fetch / full document return / frontend UI 未启用，DOC-03 sanitizer 由后续独立项覆盖（DOC-02、US-W06）
+- [x] 公告作为不可信数据处理后端 sanitizer：扩展 `@aiphabee/document-tools` runtime `document_sanitizer` capability、`POST /documents/get-announcement` sanitized excerpt 输出、`deploy/documents/document-sanitizer.contract.json` 与 `npm run check:document-sanitizer`，覆盖 `<script>` removal、hidden text/comment removal、document-origin suspicious instruction neutralization、`document_instruction_executed=false`、`raw_excerpt_returned=false`、`removed_items` audit 与 `sanitization_summary`；webpage/user-input sanitizer/live parser/frontend UI 未启用（DOC-03、§A3）
+- [x] pgvector/semantic 公告文件检索后端 scaffold：新增 `search_documents`、`POST /documents/search-documents`、`GET /documents/runtime` capability、`deploy/documents/search-documents.contract.json` 与 `npm run check:search-documents`，覆盖 synthetic pgvector-style chunk ranking、`pgvector_first=true`、`vectorize_optional=true`、metadata filter pushdown、query/date/category/document/language/min_score/limit filters、sanitized snippets、similarity_score、rank、score_explanation、page/paragraph/source locator；live pgvector/SQL execution/Vectorize/original document fetch/frontend UI 未启用（§11.4 搜索）
+- [x] 跨期公告差异与关键数字抽取后端 scaffold：新增 `diff_announcements`、`POST /documents/diff-announcements`、`GET /documents/runtime` capability、`deploy/documents/announcement-diff-extraction.contract.json` 与 `npm run check:announcement-diff-extraction`，覆盖 FY2023/FY2024 synthetic annual results 对比、revenue/operating_profit schema-bound 抽取、`announcement_numeric_extraction_v0` 校验、base/comparison absolute/percent change 与每个抽取值/差异侧 page/paragraph/source locator；live parser/original document fetch/SQL/frontend UI 未启用（DOC-04）
+- [x] `RES-01` 保存完整研究 run 后端 save-plan scaffold：新增 `@aiphabee/research-runtime`、`GET /research/runtime`、`POST /research/runs/save/plan`、`deploy/research/research-run-save.contract.json` 与 `npm run check:research-run-save`，覆盖 question/tool input/evidence/model/prompt version snapshots、immutable `snapshot_id`、`replay_seed`、`old_report_mutation_allowed=false` 与 missing required field rejection；live DB/R2 writes/replay execution/frontend UI 未启用（RES-01、US-W08）
+- [x] 重新运行并对比差异后端 replay/diff scaffold：新增 `createResearchRunReplayPlan`、`POST /research/runs/replay/plan`、`deploy/research/research-run-replay.contract.json` 与 `npm run check:research-run-replay`，支持 saved run + current run no-write replay planning，并把差异分为 data/model/parameters；live DB/R2 reads/writes、live tool/model execution、frontend diff UI 未启用（RES-02、US-W08）
+- [x] 旧报告不被新数据静默改写后端 immutability scaffold：replay response 返回 `old_report.preserved_snapshot_id`、`mutation_allowed=false`、`silent_rewrite_allowed=false`、`immutable_report_snapshot=true` 与 no-write `replay_execution`；notification workflow/frontend research library 未启用（RES-02、§8.5）
+- [ ] 研究库 Web UI（PRD §5.1 研究库）
+
+**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☑ 文档内恶意指令不触发工具（backend sanitizer fixture）　☑ 保存 run 可重放并显示差异（backend replay/diff plan）
+
+### Sprint 2.3 — Remote MCP OAuth + Developer Console　⬜
+**目标：** 对外 Remote MCP 产品（依赖 Gate 0 的 MCP 再分发权）。
+
+> ⛔ **前置：** Sprint 0.1 的 MCP 再分发权必须为「成立」。否则本 Sprint 全部 🅿️ 暂缓。
+
+- [x] `/mcp` Streamable HTTP endpoint 后端 default-deny scaffold：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，支持 planned `initialize` / `tools/list` / `tools/call` method、Origin validation、Gate 0 `mcp_api_redistribution_rights_confirmed=false`、Web 权利不自动扩展到 MCP、未授权 `tools/list` 返回空列表、未授权 `tools/call` 返回 `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用（MCP-01、§13.2、§14.1）
+- [x] OAuth + PKCE 后端 scope/revocation scaffold：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear scope consent、scope revocable metadata、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用（MCP-02、§9.7）
+- [x] 服务端 API Key 后端 lifecycle scaffold：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/api-keys/runtime`、`POST /mcp/api-keys/create/plan`、`POST /mcp/api-keys/rotate/plan`、`POST /mcp/api-keys/revoke/plan`、`deploy/mcp/api-key.contract.json` 与 `npm run check:mcp-api-key`，覆盖 server-to-server only、hash-only storage、pepper/last-four metadata、raw key forbidden、one-time display metadata、IP allowlist validation、rotation old-key future-call denial 与 revoke future-call denial；live key generation/persistent key hash table/auth middleware/frontend console 未启用（MCP-03、ACC-06、§13.2）
+- [x] MCP `tools/call` 输入严格校验 + `structuredContent`/`outputSchema` 后端 scaffold：扩展 `@aiphabee/mcp-runtime` 接收 `params.arguments`，对 9 个 Tool Registry 工具执行 object/required/anyOf/additionalProperties=false 校验，返回 `input_schema_id`、`output_schema_id`、`input_validation`、`output_validation`、`schema_validation=validated` 与 `structured_content_required=true` no-live plan，新增 `deploy/mcp/tool-schema-validation.contract.json` 与 `npm run check:mcp-tool-schema-validation`；live tool execution/full JSON Schema engine/hosted schema registry/frontend 未启用（MCP-04、§13.2）
+- [x] 工具版本与弃用策略后端 scaffold：扩展 `@aiphabee/tool-registry` lifecycle metadata 与 `@aiphabee/mcp-runtime` `tools/list` descriptor，所有 9 个 registered tools 暴露 `publicVersion=<tool>@1`、`majorVersion=1`、`breakingChangesRequireNewMajor=true`、active deprecation status、90 天 minimum notice、180 天 previous-major support policy，新增 `deploy/mcp/tool-versioning.contract.json` 与 `npm run check:mcp-tool-versioning`；historical major routing/migration examples/Developer Console version UI/live client compatibility smoke 未启用（MCP-05、US-M06）
+- [x] 游标分页 + 最大行数 + 时间范围限制后端 scaffold：扩展 `@aiphabee/tool-registry` retrieval metadata 与 `@aiphabee/mcp-runtime` `tools/list`/`tools/call` plan，所有 9 个 registered tools 暴露 row limit guard，分页工具暴露 cursor metadata，`tools/call` 生成 `bounded_retrieval` 并在 live execution 前拒绝超行数/非法 cursor/非法或超窗口时间范围，新增 `deploy/mcp/pagination-limits.contract.json` 与 `npm run check:mcp-pagination-limits`；live auth middleware/persistent cursor store/usage-ledger reconciliation/external SDK smoke 未启用（MCP-06、US-M07）
+- [x] MCP response usage/剩余额度/request_id 后端 scaffold：扩展 `@aiphabee/mcp-runtime` usage summary 与 `tools/call` `usage_envelope`，复用 `@aiphabee/usage-ledger` quota display/event writer planner，返回 `request_id`、remaining credits、estimated credits、no-live ledger event、reconciliation target，新增 `deploy/mcp/usage-envelope.contract.json` 与 `npm run check:mcp-usage-envelope`；live auth workspace context/live ledger read-write/billing reconciliation/external SDK smoke 未启用（MCP-07、US-M05）
+- [x] 标准错误码可机器处理后端 scaffold：扩展 `@aiphabee/mcp-runtime` PRD §9.6 标准错误码 taxonomy、category、client_action、internal-code mapping 与 `GET /mcp/runtime` capability，Worker MCP 错误响应返回 `error.detail`（`category` / `client_action` / `internal_code` / `mcp_error_version` / `recoverable` / `request_id` / `retry_after_required` / `source_record_id`），新增 `deploy/mcp/error-codes.contract.json` 与 `npm run check:mcp-error-codes`；live rate/concurrency/budget limiter、Developer Console、external SDK/Inspector smoke 未启用（MCP-08，`DATA_NOT_LICENSED`/`SCOPE_DENIED` 等）
+- [x] 工具级速率/并发/预算限制后端 scaffold：扩展 `@aiphabee/mcp-runtime` `GET /mcp/runtime` limiter capability 与 `tools/call` `tool_limits` plan，覆盖 per-tool rate-limit metadata、`mcp_standard` / `mcp_high_cost` 并发池、`>=8` high-cost threshold、普通池保护、预算预扣/失败退款 metadata、`RATE_LIMITED` / `BUDGET_EXCEEDED` future error contract、high-cost planned queue metadata，新增 `deploy/mcp/tool-limiter.contract.json` 与 `npm run check:mcp-tool-limiter`；live limiter window reads/durable queue writes/usage-ledger debit-refund/Developer Console/external SDK smoke 未启用（MCP-11、§12.2）
+- [ ] Developer Console：连接向导/密钥/scope/配额/日志/示例，首调中位 <10 分钟（MCP-09、US-M01）
+- [x] 协议兼容性测试与状态页后端 scaffold：新增 `GET /mcp/compatibility/status`、`MCP_COMPATIBILITY_STATUS_VERSION`、`deploy/mcp/compatibility.contract.json` 与 `npm run check:mcp-compatibility`，固化 target protocol `2025-03-26`、monitored protocol `2025-11-25`、官方 Inspector / TypeScript SDK v1.x 目标、主流目标客户端矩阵、Streamable HTTP / initialize / tools/list / tools/call schema / structuredContent+text fallback / OAuth / API Key / pagination / standard errors / usage+request_id / `as_of`+delay+source display 测试向量；live SDK/Inspector smoke、目标客户端 e2e、公开状态页、Developer Console 未启用（MCP-12、US-M08）
+
+**退出门槛 DoD：** ☐ 主流客户端端到端首调成功　☐ 分页/限额不可绕过　☐ Console 可对账　☐ 错误码稳定
+
+### Sprint 2.4 — 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正　🟦
+**目标：** 正式计费闭环、长任务、提醒、数据更正闭环。
+
+- [x] 套餐升降级/续费/取消/宽限期可审计后端 scaffold：扩展 `@aiphabee/account-runtime` subscription lifecycle capability，新增 `POST /account/subscription/lifecycle/plan`、`audit.subscription_lifecycle_event` migration、`deploy/account/subscription-lifecycle.contract.json` 与 `npm run check:subscription-lifecycle`，覆盖 upgrade/downgrade/renew/cancel/enter_grace_period/exit_grace_period audit plan、Free/Plus/Pro/Developer/Team/Enterprise plan code、billing state transition 与 no-call billing provider block；live billing provider / invoice-proration-refund preview / DB writes / frontend billing UI 未启用（ACC-03）
+- [x] 订阅账单与 usage ledger 对账后端 scaffold：扩展 `@aiphabee/usage-ledger` billing reconciliation capability，新增 `POST /usage/billing/reconciliation/plan`、`core.subscription_invoice` / `core.subscription_invoice_line` migration、`deploy/usage/billing-reconciliation.contract.json` 与 `npm run check:usage-billing-reconciliation`，覆盖 invoice credits vs ledger credits consistency、invoice line → usage ledger entry → usage event → request_id trace、5-minute freshness target 与 support request_id investigation；live billing provider / live ledger reads / invoice writes / refunds-overage rules / frontend billing UI 未启用（ACC-04、§19.5）
+- [x] 高成本任务预估 + 预扣 + 失败退还后端 scaffold：扩展 `@aiphabee/usage-ledger` high-cost reservation capability，新增 `POST /usage/high-cost/reservation/plan`、`/analytics/high-cost/plan` `usage_reservation` link、`core.usage_credit_reservation` migration、`deploy/usage/high-cost-reservation.contract.json` 与 `npm run check:high-cost-usage-reservation`，覆盖 estimate、confirmation gate、pre-debit plan、failure-refund plan、request_id/idempotency double-charge guard 与 usage-ledger link；live ledger writes / durable queue writes / Workflow task persistence / frontend confirmation UI 未启用（US-W10、§15.3）
+- [x] 长任务转 Workflow 后端 scaffold：扩展 `@aiphabee/agent-runtime` workflow task capability，新增 `POST /agent/workflows/tasks/plan`、`GET /agent/runtime` `workflow_tasks` readiness、`core.workflow_task` / `core.workflow_task_checkpoint` migration、`deploy/agent/workflow-task.contract.json` 与 `npm run check:agent-workflow-task`，覆盖 `task_id`、resume route/handle、离开后可恢复 metadata、completion/failure notification plan、Cloudflare `AIPHABEE_RESEARCH_WORKFLOW` / `AIPHABEE_EVENTS_QUEUE` / `AIPHABEE_RUN_COORDINATOR` binding linkage 与 ToolLoopAgent plan link；live Workflows execution / task checkpoint writes / Queue notification fanout / frontend resume UI 未启用（AGT-09、§6.5）
+- [x] 深度报告 Workflow 后端 scaffold：扩展 `@aiphabee/research-runtime` `deep_report_workflow` capability，新增 `POST /research/reports/deep/plan`、`GET /research/runtime` nested capability、`core.deep_report_snapshot` / `core.deep_report_evidence_index` migration、`deploy/research/deep-report-workflow.contract.json` 与 `npm run check:deep-report-workflow`，覆盖取数→确定性分析→生成章节→引用校验→证据索引→重跑 seed、静态报告 metadata、`task_id`/Workflow task link 与 high-cost usage estimate；live Workflows execution / live tool/model execution / DB/R2/checkpoint writes / frontend report rendering 未启用（§6.5、RES-04、AGT-09）
+- [x] Watchlist + 价格/公告/指标提醒后端 scaffold：新增 `@aiphabee/watchlist-runtime`、`GET /watchlist/runtime`、`POST /watchlist/alerts/plan`、`core.watchlist` / `core.watchlist_item` / `core.watchlist_alert_rule` / `core.watchlist_alert_event` migration、`deploy/watchlist/alerts.contract.json` 与 `npm run check:watchlist-alerts`，覆盖显式确认、独立 `alerts.write` scope、idempotency key、价格/公告/指标提醒类型、去重、频率、静默期、来源证据要求与 planned notification fanout；live DB writes / Queue fanout / live tool execution / frontend watchlist UI 未启用（RES-05、US-W09、§9.3）
+- [x] 每日/每周观察列表简报后端 scaffold：扩展 `@aiphabee/watchlist-runtime` briefing capability，新增 `POST /watchlist/briefings/plan`、`GET /watchlist/runtime` nested `briefings` readiness、`core.watchlist_briefing` / `core.watchlist_briefing_item` migration、`deploy/watchlist/briefings.contract.json` 与 `npm run check:watchlist-briefings`，覆盖 daily/weekly cadence、material-change-only filter、empty briefing suppression、source evidence requirement、price/announcement/metric source plan 与 planned notification fanout；live scheduled generation / live tool execution / DB writes / Queue fanout / frontend watchlist briefing UI 未启用（RES-06）
+- [x] 数据更正闭环后端 scaffold：扩展 `@aiphabee/research-runtime` `data_correction_notifications` capability，新增 `POST /research/data-corrections/plan`、`GET /research/runtime` nested readiness、`core.data_correction_event` / `core.research_run_correction_impact` / `core.user_notification` migration、`deploy/research/data-correction-notifications.contract.json` 与 `npm run check:data-correction-notifications`，覆盖 source_record_id correction、saved-run evidence snapshot impact matching、affected saved report marking、old report immutability、in_app/email planned notification fanout；live correction discovery / DB writes / Queue fanout / live replay / frontend notification UI 未启用（DAT-08、US-O05、§10.8）
+- [x] MCP OAuth 连接/Key 撤销管理后端 scaffold：扩展 `@aiphabee/mcp-runtime` revocation enforcement capability，新增 `POST /mcp/revocations/enforce/plan`、`GET /mcp/runtime` enforcement readiness、`POST /mcp` credential context guard、`core.mcp_credential_revocation` / `governance.mcp_revocation_enforcement_contract` migration、`deploy/mcp/revocation-enforcement.contract.json` 与 `npm run check:mcp-revocation-enforcement`，覆盖 OAuth connection revoke、API key revoke/rotation old-key denial、revoked/rotated/unknown status `AUTH_REQUIRED`、tool execution/usage debit 前拒绝；live auth middleware / live credential store / persistent writes / raw credential storage 未启用（ACC-06）
+- [x] 模型/工具 Kill Switch + 安全降级后端 scaffold：扩展 `@aiphabee/agent-runtime` `kill_switch` capability，新增 `POST /agent/kill-switch/plan`、`GET /agent/runtime` readiness、`POST /agent/runs/plan` `degraded_kill_switch` 降级路径、`core.agent_kill_switch_state` / `governance.agent_kill_switch_contract` migration、`deploy/agent/kill-switch.contract.json` 与 `npm run check:agent-kill-switch`，覆盖 model/tool kill switch state、safe degradation metadata、禁用工具时无 tool call 的 answer-contract fallback；live flag source / persistent writes / model provider calls / actual tool execution / frontend UI 未启用（US-O04）
+
+**退出门槛 DoD（= Phase 2 退出门槛）：** ☐ 付费与配额可对账　☐ 工具成功率达发布阈值　☐ 数据更正能通知到已保存报告
+
+---
+
+## §4 Phase 3 — 公开 GA　⬜
+
+> 退出总条件（PRD §18.4）：**数据授权、合规、安全、性能、计费和支持全部签字；发布清单零阻断项。**
+
+### Sprint 3.1 — P0 工具收口 + 事件研究 + 多语言　⬜
+**目标：** 补齐 P0 工具、事件研究、多语言关键路径。
+
+- [x] `get_event_timeline` tool scaffold：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入与 `npm run check:event-timeline`，支持 synthetic announcement / market_event / financial_disclosure / corporate_action timeline、sourceRecordId/relatedData source links、type subset、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误；live event feed/full 16-tool catalog/event study/frontend 未启用（§9.2）
+- [x] 完整 P0 工具目录收口与一致性回归：Shared Tool Registry / tool schema contract / MCP schema validation / versioning / pagination limits / usage envelope / Agent tool enforcement / Evidence-Lineage mapping / golden fixture manifest 全部覆盖 PRD §9.2 16 个 P0 工具，新增 `deploy/tools/p0-tool-catalog.contract.json` 与 `npm run check:p0-tool-catalog` 交叉验证 `p0_tool_count=16`、`schema_pairs=16`、`golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用（§9.2 全 16 工具）
+- [x] 事件研究：新增 `@aiphabee/analytics-tools` `runEventStudy()`、`POST /analytics/event-study`、`GET /analytics/runtime` event-study capability、`deploy/analytics/event-study.contract.json`、`npm run check:event-study`，覆盖 event_date / event_window / benchmark / abnormal_return_method / observations / `missing_observations` / summary / source_record_ids，并将 `run_event_study` 纳入 high-cost analytics 20–50 credits 独立池规划；live event-study rows / queue writes / usage debits / frontend 未启用（ANA-06、`run_event_study` §9.3）
+- [x] 繁中/简中/英文关键路径 backend contract：新增 `GET /agent/runtime` `response_presentation` capability、`POST /agent/runs/plan` `locale` / `response_locale` / `language` 解析、`answer_evidence_contract.presentation` supported locales `zh-Hant` / `zh-Hans` / `en`，并以 `deploy/agent/localized-response.contract.json` + `npm run check:localized-response` 锁定 numeric values / source_record_ids / evidence refs / methodology versions / currency / units / numeric precision 不随语言切换改变；frontend 切换控件/生成式翻译未启用（AGT-11、§12.4）
+- [x] 新手/专业模式 backend contract：`POST /agent/runs/plan` 支持 `response_depth` / `responseDepth`，normalized depths 为 `newbie` / `professional`，contract 锁定只改变表达深度、plain-language examples/formula/source-field 展示策略，不改变 data values / evidence refs / methodology versions / source_record_ids / currency / units / conclusion；frontend mode switch 未启用（AGT-12、US-W07）
+- [x] 财务术语中英文与口径解释 backend glossary：`answer_evidence_contract.presentation.terminology_glossary` 覆盖 ROE / free cash flow / operating profit / total-return adjusted / abnormal return 的繁中/简中/英文名称、methodology note requirement 与 numeric source-record requirement；live generated-answer terminology validation 未启用（§12.4）
+- [x] 会话记忆仅存授权信息，可查看/编辑/删除：新增 `@aiphabee/account-runtime` `authorized_memory` capability、`POST /account/authorized-memory/plan`、`core.authorized_session_memory` / `governance.authorized_session_memory_contract` empty schema scaffold、`deploy/account/authorized-session-memory.contract.json` 与 `npm run check:authorized-session-memory`，仅允许 locale/depth/currency/workspace/tool/MCP consent/retention/briefing consent 等授权偏好，阻止 raw prompt/generated answer/financial values/raw email/password/OAuth/session secret，支持 view/upsert/delete no-write plan；frontend 控制和 live memory writes/reads 未启用（AGT-10）
+- [x] 历史成分/历史行业/历史名称：新增 `@aiphabee/security-tools` `getSecurityHistory()`、`POST /tools/get-security-history`、`deploy/tools/security-history.contract.json`、`core.security_name_history` / `core.security_industry_history` / `core.index_constituent_history` / `governance.security_history_contract` empty schema scaffold 与 `npm run check:security-history`；`as_of` 为必填，返回 active historical name / industry / index constituent memberships，锁定 `usesLatestName=false` / `usesLatestClassification=false` / `usesLatestConstituents=false`，缺少 `as_of` 返回 `POINT_IN_TIME_UNAVAILABLE`；live partner history rows / MCP registration / frontend 未启用（SEC-05）
+- [x] 导出（CSV/图片/PDF）受字段授权/行数/水印约束：新增 `@aiphabee/data-access-gateway` restricted export planner、`POST /gateway/exports/plan`、`GET /gateway/runtime` `restricted_exports` capability、`deploy/gateway/restricted-exports.contract.json`、`core.restricted_export_request` / `audit.restricted_export_event` / `governance.restricted_export_contract` empty schema scaffold 与 `npm run check:restricted-exports`；先检查高风险 `exports.read` scope，再以 `channel=export` / `exportRequested=true` 走 Gateway 字段授权、行数和时间范围裁剪，输出 CSV/image/PDF no-write artifact plan 与 request/workspace/dataset/rights/as-of watermark；live artifact writes / R2 / frontend UI 未启用（ANA-08、`exports.read`）
+
+**退出门槛 DoD：** ☑ P0 工具全量一致　☑ 事件研究样本缺失不静默删除　☑ 三语关键路径口径一致
+
+### Sprint 3.2 — 文档·状态页·隐私·分享报告·套餐正式化　⬜
+**目标：** 公开运营面与 Pro/Developer 正式套餐。
+
+- [x] Pro/Developer 套餐正式化与定价：新增 `@aiphabee/account-runtime` package pricing capability、`GET /account/package-pricing`、`GET /account/runtime` `package_pricing` readiness、`deploy/account/package-pricing.contract.json`、`scripts/check-package-pricing-contract.mjs`、`core.plan_pricing_catalog` / `core.plan_entitlement_bundle` / `governance.package_pricing_contract` empty schema scaffold 与 `npm run check:package-pricing`；锁定 PRD §15.2 validation price：Pro `HK$228/月`、Developer `HK$688+/月`，引用 usage quota Pro `5000` credits / Developer `10000` credits，Developer overage 仅做 no-write reconciliation plan；live billing provider / final quote / DB writes / frontend pricing UI 未启用（§15.2）
+- [x] 公开状态页 + API/MCP 文档 + 隐私政策 + 条款：新增 `@aiphabee/public-ops`、`GET /public/runtime`、`GET /public/status`、`GET /public/docs`、`deploy/public-ops/public-status-docs.contract.json`、`scripts/check-public-ops-contract.mjs`、`docs/public/api.md` / `mcp.md` / `privacy.md` / `terms.md` 本地发布稿、`core.public_status_component` / `core.public_document_publication` / `governance.public_operations_contract` empty schema scaffold 与 `npm run check:public-ops`；公开状态组件覆盖 Worker API / Remote MCP / Data Gateway / usage billing / public docs，并要求 request_id visible；live status page frontend / live incident feed / final legal approval / help center workflow 未启用（§18.4、§19.5）
+- [x] 帮助中心 + 支持流程，支持可用 request_id 调查：新增 `@aiphabee/support-ops`、`GET /support/runtime`、`GET /support/help-center`、`POST /support/request-id-investigation/plan`、`deploy/support/request-id-investigation.contract.json`、`scripts/check-support-ops-contract.mjs`、`docs/public/help-center.md`、`core.support_ticket` / `audit.support_investigation_event` / `governance.support_request_id_contract` empty schema scaffold 与 `npm run check:support-ops`；支持 topic 覆盖 account/billing、MCP connection、data quality、usage quota、privacy/account、incident status，request_id 调查仅允许 route/tool/data_version/methodology/error/usage/ledger/invoice/status metadata，默认阻止 raw prompt/generated answer/raw email/credential/payment/portfolio/document body/personal contact；live log reads / live billing provider reads / ticket writes / frontend help center 未启用（US-O03、§19.5）
+- [x] 私人分享链接：分享不扩大接收者数据权益：新增 `@aiphabee/sharing-runtime`、`GET /sharing/runtime`、`POST /sharing/private-links/plan`、`deploy/sharing/private-share-link.contract.json`、`scripts/check-private-sharing-contract.mjs`、`core.private_share_link` / `audit.private_share_event` / `governance.private_sharing_contract` empty schema scaffold 与 `npm run check:private-sharing`；分享计划要求 creator/recipient 均具备 `exports.read`，通过 Data Gateway `channel=export` 分别重算 creator 与 recipient 权限，实际释放字段为双方 allowed fields intersection，recipient 无权字段进入 `redacted_fields`，强制 `recipient_data_rights_expansion=false` / `share_expands_recipient_rights=false`，expiry 上限 168 小时并要求 request/share/workspace/dataset/rights/as-of watermark；live link handle / public indexing / artifact writes / DB writes / frontend 分享 UI 未启用（RES-03、§19.4）
+- [x] 允许范围内静态报告：含生成时间/数据延迟/版本/免责：扩展 `@aiphabee/research-runtime` static report artifact capability、`POST /research/reports/static/plan`、`GET /research/runtime` `static_report_artifact`、`deploy/research/static-report.contract.json`、`scripts/check-static-report-contract.mjs`、`core.static_report_artifact` / `audit.static_report_event` / `governance.static_report_contract` empty schema scaffold 与 `npm run check:static-report`；计划要求 `exports.read`、source run/workspace context、支持格式 html/pdf/image，元数据强制包含 `generated_at`、`data_delay_minutes`、`data_version`、`methodology_version`、`rights_policy_version`、`disclaimer` 并进入 watermark；live artifact/R2 writes / DB writes / model calls / live tool execution / frontend report viewer 未启用（RES-04）
+- [x] 合作方对账报表：按数据集/渠道/套餐/用户/调用量导出：扩展 `@aiphabee/usage-ledger` partner reconciliation report capability、`POST /usage/partner-reconciliation/plan`、`GET /usage/runtime` `partner_reconciliation_report`、`deploy/usage/partner-reconciliation-report.contract.json`、`scripts/check-partner-reconciliation-report-contract.mjs`、`core.partner_reconciliation_report` / `core.partner_reconciliation_report_line` / `audit.partner_reconciliation_event` / `governance.partner_reconciliation_contract` empty schema scaffold 与 `npm run check:partner-reconciliation-report`；计划按 `dataset` / `channel` / `package_code` / `user_id` 聚合 `usage_count`、credits、metered rows、request_ids、usage_event_ids，并覆盖 daily/weekly SLA 字段 `data_delay_minutes` / `missing_rows` / `error_count` / `backfill_count`；live usage-ledger reads / report writes / artifact writes / partner portal delivery / final settlement approval / frontend ops UI 未启用（US-O06、DAT-10）
+- [x] 字段授权可由运营配置，含审批/版本/生效时间：扩展 `@aiphabee/data-access-gateway` field authorization config capability、`POST /gateway/field-authorizations/changes/plan`、`GET /gateway/runtime` `field_entitlement_enforcement.operations_config`、`deploy/gateway/field-authorization-config.contract.json`、`scripts/check-field-authorization-config-contract.mjs`、`core.field_authorization_change` / `audit.field_authorization_approval` / `governance.field_authorization_config_contract` empty schema scaffold 与 `npm run check:field-authorization-config`；计划要求 operator/dataset/field/channel/plan/target_status/policy_version/effective_at，输出 approval、policy version、effective-time activation status 与 future `core.data_entitlement` / `core.workspace_entitlement` row effects，保持 default-deny until approved/effective；live policy reads/writes / approval persistence / activation job / frontend ops UI 未启用（US-O01）
+- [ ] 可访问性 WCAG 2.1 AA：图表文本摘要/键盘/高对比（§12.4）
+- [x] 账户数据下载与删除申请，符合保留策略：扩展 `@aiphabee/account-runtime` account data request capability、`POST /account/data-requests/plan`、`GET /account/runtime` `data_requests`、`deploy/account/data-request.contract.json`、`scripts/check-account-data-request-contract.mjs`、`core.account_data_request` / `core.account_data_request_item` / `audit.account_data_request_event` / `governance.account_data_request_contract` empty schema scaffold 与 `npm run check:account-data-request`；支持 download/delete request，要求 account/workspace/requested_at/retention_policy_version，下载计划 secure JSON delivery，删除计划对 eligible scopes schedule_erasure、对 subscription_billing / usage_ledger / audit_log retain，阻止 unsupported scopes，并记录 verified_by、policy_version、request_id 审计 metadata；live export / live erasure / DB writes / secure delivery materialization / frontend account privacy UI 未启用（ACC-05）
+
+**退出门槛 DoD：** ☐ 状态页/文档/隐私/条款上线　☐ 合作方对账可生成　☐ 分享不扩权
+
+### Sprint 3.3 — 安全·负载·灾备·发布验收·签字门　🟦
+**目标：** 跑通 PRD §19 全量发布验收清单并签字。
+
+**数据与授权（§19.1）**
+- [x] 所有 P0 字段/工具有权利矩阵；Web/MCP/导出/企业授权分别配置：扩展 `@aiphabee/data-access-gateway` P0 rights matrix coverage capability、`GET /gateway/rights-matrix/p0/coverage`、`GET /gateway/runtime` `p0_rights_matrix_coverage`、`deploy/gateway/p0-rights-matrix-coverage.contract.json`、`scripts/check-p0-rights-matrix-coverage-contract.mjs`、`core.p0_rights_matrix_entry` / `governance.p0_rights_matrix_contract` empty schema scaffold 与 `npm run check:p0-rights-matrix-coverage`；coverage report 从 Tool Registry 传入 16 个 P0 tools，覆盖 security_master / market_calendar / quote_snapshot / price_history / corporate_actions / financial_facts / announcements / derived_analytics / evidence_lineage dataset/field groups，并为 web/mcp/export/enterprise 四个 surface 建立 configured_default_deny slots；partner signed matrix / live entitlement reads/writes / legal-commercial signoff / frontend ops UI 未启用，release gate 保持 `blocked_external_rights_matrix`（§19.1）
+- [x] 实时/延迟/EOD 标识正确；公司行动/重述/退市/代码历史覆盖：扩展 `@aiphabee/data-access-gateway` data coverage release gate capability、`GET /gateway/data-coverage/release-gate`、`GET /gateway/runtime` `data_coverage_release_gate`、`deploy/gateway/data-coverage-release-gate.contract.json`、`scripts/check-data-coverage-release-gate-contract.mjs`、`core.data_coverage_release_gate` / `governance.data_coverage_release_gate_contract` empty schema scaffold 与 `npm run check:data-coverage-release-gate`；freshness markers 覆盖 realtime / delayed / eod 且要求显式 label，coverage domains 覆盖 corporate_actions / financial_restatements / delistings / identifier_history 并链接 quote/price、corporate action、financial facts、security history evidence surfaces；live partner rows / live freshness policy / golden signoff / frontend release UI 未启用，release gate 保持 `blocked_live_partner_coverage`（§19.1）
+- [x] 黄金样本通过；数据更正与回滚演练完成：扩展 `@aiphabee/research-runtime` `golden_correction_rollback_drill` capability，新增 `POST /research/golden-correction-rollback-drill/plan`、`GET /research/runtime` nested readiness、`deploy/research/golden-correction-rollback-drill.contract.json`、`scripts/check-golden-correction-rollback-drill-contract.mjs`、`core.golden_correction_rollback_drill` / `governance.golden_correction_rollback_drill_contract` empty schema scaffold 与 `npm run check:golden-correction-rollback-drill`；`npm run test:golden` 继续验证 8 个 synthetic quality samples、12 条 deterministic quality rules 与 16 个 tool golden fixtures，drill 串起 saved run -> data correction notification -> rollback replay plan，并保持 `old_report_mutation_allowed=false` / `silent_rewrite_allowed=false`；production partner corpus / live correction writes / Queue fanout / live rollback execution / frontend release UI 未启用（§19.1）
+
+**产品与 Agent（§19.2）**
+- [x] 证券歧义不静默选择；具体数字 100% 绑定证据/确定性计算：扩展 `@aiphabee/agent-runtime` `product_agent_release_gate` capability，新增 `POST /agent/release-gates/product-agent/plan`、`GET /agent/runtime` nested readiness、`deploy/agent/product-agent-release-gate.contract.json`、`scripts/check-product-agent-release-gate-contract.mjs`、`core.product_agent_release_gate` / `governance.product_agent_release_gate_contract` empty schema scaffold 与 `npm run check:product-agent-release-gate`；release gate 复用 `createPreToolCallResolution()` 证明 `ABC` 歧义返回 blocking clarification + candidates + `can_plan_tools=false`，复用 `createToolLoopAgentPlan()` 证明 concrete financial numbers 只能来自 `tool_result` 或 `deterministic_calculation`，并要求 fact evidence card / calculation ref；live post-generation numeric extraction / live evidence binding / frontend clarification UI 未启用，release gate 保持 `blocked_live_post_generation_validation`（§19.2）
+- [x] 事实/推断/未知标签有效；高成本任务有预算与确认：新增 Agent label/budget release gate capability、`POST /agent/release-gates/label-budget/plan`、`GET /agent/runtime` `agent_label_budget_release_gate`、`deploy/agent/label-budget-release-gate.contract.json`、`scripts/check-label-budget-release-gate-contract.mjs`、`core.agent_label_budget_release_gate` / `governance.agent_label_budget_release_gate_contract` empty schema scaffold 与 `npm run check:label-budget-release-gate`；gate 复用 `answer_evidence_contract` 验证 fact / calculation / inference / unknown 绑定要求，复用 `planHighCostAnalyticsQueue()` 验证高成本任务先 deterministic budget estimate + confirmation required，再进入 independent high-cost pool，复用 `createHighCostUsageReservationPlan()` 验证确认后 pre-debit / failure refund / idempotency no-write 计划；generated-answer label parser / frontend confirmation UI / live queue execution 未启用（§19.2）
+- [x] 长任务可恢复；保存报告可重放；新手/专业模式不改口径：新增 task replay mode release gate capability、`POST /agent/release-gates/task-replay-mode/plan`、`GET /agent/runtime` `task_replay_mode_release_gate`、`deploy/agent/task-replay-mode-release-gate.contract.json`、`scripts/check-task-replay-mode-release-gate-contract.mjs`、`core.task_replay_mode_release_gate` / `governance.task_replay_mode_release_gate_contract` empty schema scaffold 与 `npm run check:task-replay-mode-release-gate`；gate 复用 `createWorkflowTaskPlan()` 验证 `task_id` / `resume_handle` / checkpoint table / disconnect-safe resume，复用 `createResearchRunSavePlan()` + `createResearchRunReplayPlan()` 验证 deterministic replay seed / diff summary / old report immutable / no silent rewrite，复用 `createToolLoopAgentPlan()` newbie/professional 两套 response depth 验证 tool policy、numeric-source policy、evidence contract、source/methodology/data invariant 不改口径；live Workflow execution / live replay job / frontend mode switch release UI 未启用（§19.2）
+
+**MCP（§19.3）**
+- [ ] Streamable HTTP/Origin/认证通过；输入输出 Schema 兼容性测试通过
+- [ ] OAuth scope/撤销/Key 轮换通过；游标与限额不可绕过；错误码稳定
+- [ ] 主流目标客户端端到端通过；Developer Console 可对账
+
+**安全·隐私·合规（§19.4）**
+- [ ] Prompt injection 测试通过；任意 SQL/URL/未注册工具不可调用
+- [ ] 个人数据发送与保留合规；共享链接不扩权
+- [ ] 合规边界与营销文案审阅；Kill switch/事件响应/审计导出演练
+
+**运营与商业（§19.5）**
+- [ ] 套餐/credits/退款/超额规则清楚；账单与 usage ledger 一致
+- [ ] 合作方对账可生成；支持可用 request_id 调查
+- [ ] 状态页/帮助/隐私/条款已发布；单位经济在预期用量下为正
+
+**性能与可用性（§12.1）**
+- [ ] 核心 API 可用性、MCP 工具 P95、Web 首 Token P95、工具成功率 >99.5% 达标
+- [ ] 负载/灾备/事故演练完成
+
+**退出门槛 DoD（= GA 签字门）：** ☐ §19 五类清单零阻断项　☐ 数据授权/合规/安全/性能/计费/支持全部签字
+
+---
+
+## §5 Phase 4 — 扩展（Backlog，未排期）　⬜
+
+> 仅在 Gate 0 / GA 稳定后排期；持牌路径确认前不做个性化建议。
+
+- [ ] 组合分析（仅用户授权持仓，不输出交易建议，`get_portfolio_analytics` P1、§9.3）
+- [ ] `create_alert` 写操作（显式确认 + 独立 scope + 幂等键，§9.3）
+- [ ] `get_market_breadth` / `get_ownership_and_short_selling` / `get_buybacks_and_placements`（授权允许时）
+- [ ] `get_consensus_or_estimates`（仅在明确拥有再分发权时，§9.3）
+- [ ] Team/Enterprise：席位/SSO/审计/私有数据连接（ACC、MCP-10、US-O01）
+- [ ] B2B 白标与嵌入式组件（§15.1）
+- [ ] 更多港股数据域与跨市场对照
+- [ ] 持牌路径确认后探索个性化建议能力（§14.2 路线 2）
+- [ ] MCP resources/prompts 或交互式 MCP Apps（评估客户端成熟度，§18.5）
+- [ ] 用户上传文件与公开数据联读，隐私隔离（DOC-05、STK-08 自定义布局）
+
+---
+
+## §R 风险燃尽跟踪（PRD §20）
+
+> 勾上 = 该风险主要缓解措施已落地并验证。
+
+- [ ] 数据合作方无完整再分发权 → Gate 0 权利矩阵 + 默认拒绝 + 分层数据包（**头号阻断，见顶部**）
+- [ ] 功能构成投资建议/Type 4 → 限制个性化 + 书面法律意见 + 持牌合作路线
+- [ ] 30 年数据口径不一致 → 证券主表 + 版本 + 复权 + 重述 + 黄金样本
+- [ ] 模型生成虚假数字 → 工具证据绑定 + 生成后校验 + 禁止凭记忆报数
+- [ ] MCP 被用于批量抓取 → 多维限流 + credits + 异常检测 + 企业批量套餐
+- [ ] 合作方/模型供应商故障 → 数据快照 + SLA + fallback + Workflows 重试 + 状态提示
+- [ ] Cloudflare 单请求边界 → 交互/长任务分界 + Workflows/DO + 可恢复 task_id
+- [ ] 产品过于复杂致新手流失 → 模板 + 分层信息 + 默认任务而非空聊天框（§5.3）
+- [ ] 套餐成本错配致毛利为负 → 加权 credits + 预算 + 预计算 + 模型路由 + 价格实验
+- [ ] 广告/券商合作影响中立 → 商业与研究隔离 + 披露 + 不按佣金排序
+- [ ] MCP 客户端兼容差异 → 官方协议 + 兼容测试 + 文本回退 + 版本策略
+- [ ] 用户隐私泄露 → 最小化 + 加密 + 供应商评估 + 可删除记忆 + 审计
+
+---
+
+## §D 待确认决策跟踪（PRD §21）
+
+> 勾上 = 已按（或推翻）建议默认值定案。责任人见 PRD §21。
+
+| 状态 | 决策点 | 建议默认值 | 责任人 |
+|---|---|---|---|
+| ☐ | 首发数据实时/15min/EOD？ | 先延迟/EOD，实时待权利与成本明确 | 商务/数据/合规 |
+| ☐ | 覆盖哪些证券？ | 主板/GEM 普通股 + ETF，暂不含衍生品 | 产品/数据 |
+| ☐ | 30 年历史是否全量可经 MCP？ | Pro/Developer 分层，限证券数与时间范围 | 商务/产品 |
+| ☐ | 是否提供目标价/评级/盈利预测？ | 首发不做（除非有数据权 + 监管意见） | 产品/合规 |
+| ☐ | 是否支持投资组合？ | P1 仅分析不调仓，用户显式授权 | 产品/隐私 |
+| ☐ | 首发语言？ | 繁中主体验，简中同步关键路径，英文随后 | 产品/市场 |
+| ☐ | 数据库选型？ | Postgres/Supabase + Hyperdrive 为主，DO/KV/R2 辅助 | 工程 |
+| ☐ | 向量检索？ | pgvector 首发，Vectorize 后评估 | 工程/数据 |
+| ☐ | 免费 MCP 额度？ | 小额度/低并发/不可批量，目标转化 | 商业 |
+| ☐ | 是否允许外部商业应用？ | Developer 仅个人/内部，商业分发走 Team/Enterprise | 商务/法务 |
+| ☐ | 是否与券商合作？ | 可做分发/持牌路径，但不影响答案排序 | CEO/商务/合规 |
+
+---
+
+## §M 需求 → Sprint 追溯矩阵
+
+> PRD §7/§9 每条需求落在哪个 Sprint；勾上 = 该需求验收通过。覆盖 P0 为主，P1/P2 标注阶段。
+
+### 账户与证券（ACC / SEC）
+| 需求 | 优先级 | 落点 Sprint | 状态 |
+|---|---|---|---|
+| ACC-01 登录/会话/设备 | P0 | 1.4 | ☐ |
+| ACC-02 账户/Workspace/订阅/权益分离 | P0 | 1.1 | ☐ |
+| ACC-03 套餐升降级/宽限期 | P0 | 2.4 | ☐ |
+| ACC-04 Web/MCP 配额用量展示 | P0 | 1.1 / 1.4 / 2.4 | ☐ |
+| ACC-05 数据下载/删除 | P1 | 3.2 | ☑ |
+| ACC-06 MCP OAuth/Key 撤销 | P0 | 2.3 / 2.4 | ☑ |
+| SEC-01 多形式证券解析 | P0 | 1.2 | ☐ |
+| SEC-02 代码与实体分离 | P0 | 0.2 / 1.1 | ☐ |
+| SEC-03 歧义返回候选 | P0 | 1.2 | ☐ |
+| SEC-04 上市状态/币种/覆盖 | P0 | 1.2 | ☐ |
+| SEC-05 历史成分/行业/名称 | P1 | 3.1 | ☑ |
+
+### Web Agent / 个股工作台（AGT / STK）
+| 需求 | 优先级 | 落点 Sprint | 状态 |
+|---|---|---|---|
+| AGT-01 流式 + 工具进度 | P0 | 1.3 | ☐ |
+| AGT-02 调用前口径解析 | P0 | 1.3 | ☐ |
+| AGT-03 单 run 预算上限 | P0 | 1.3 | ☐ |
+| AGT-04 仅注册工具 | P0 | 1.2 / 1.3 | ☐ |
+| AGT-05 数字来自工具/计算 | P0 | 1.3 | ☐ |
+| AGT-06 事实/计算/推断/未知 | P0 | 1.3 | ☐ |
+| AGT-07 来源引用证据卡片 | P0 | 1.3 | ☐ |
+| AGT-08 失败恢复/局部重试 | P0 | 1.3 | ☐ |
+| AGT-09 长任务转 Workflow | P0 | 2.4 | ☐ |
+| AGT-10 授权记忆 | P1 | 3.1 | ☑ |
+| AGT-11 繁/简/英输出 | P1 | 3.1 | ☑ |
+| AGT-12 新手/专业模式 | P1 | 3.1 | ☑ |
+| STK-01 公司/证券档案 | P0 | 1.2 / 1.4 | ☐ |
+| STK-02 价格/回报/回撤/基准 | P0 | 1.4 | ☐ |
+| STK-03 财务三表事实趋势 | P0 | 1.4 | ☐ |
+| STK-04 估值/盈利派生指标 | P0 | 1.4 | ☐ |
+| STK-05 公司行动时间线 | P0 | 1.4 | ☐ |
+| STK-06 公告与文件检索 | P0 | 1.4 / 2.2 | ☐ |
+| STK-07 图表转研究上下文 | P1 | 3.x | ☐ |
+| STK-08 保存自定义布局 | P2 | 4 | ☐ |
+
+### 分析 / 公告 / 研究（ANA / DOC / RES）
+| 需求 | 优先级 | 落点 Sprint | 状态 |
+|---|---|---|---|
+| ANA-01 2–5 证券比较 | P0 | 2.1 | ☐ |
+| ANA-02 同业/指数/历史分位 | P0 | 2.1 | ☐ |
+| ANA-03 自然语言筛选 | P0 | 2.1 | ☐ |
+| ANA-04 命中原因可解释 | P0 | 2.1 | ☐ |
+| ANA-05 保存筛选/定期运行 | P1 | 2.4 | ☐ |
+| ANA-06 事件研究 | P1 | 3.1 | ☑ |
+| ANA-07 收益/波动/回撤/Beta | P0 | 2.1 | ☐ |
+| ANA-08 受限导出 | P1 | 3.1 | ☑ |
+| DOC-01 公告检索 | P0 | 2.2 | ☐ |
+| DOC-02 原文定位摘录 | P0 | 2.2 | ☐ |
+| DOC-03 文档作不可信数据 | P0 | 2.2 / §A3 | ☐ |
+| DOC-04 跨期差异/数字抽取 | P1 | 2.2 | ☐ |
+| DOC-05 用户上传联读 | P2 | 4 | ☐ |
+| RES-01 保存完整 run | P0 | 2.2 | ☐ |
+| RES-02 重跑对比差异 | P1 | 2.2 | ☐ |
+| RES-03 私人分享链接 | P1 | 3.2 | ☐ |
+| RES-04 静态报告 | P1 | 2.4 / 3.2 | ☐ |
+| RES-05 提醒 | P1 | 2.4 | ☐ |
+| RES-06 观察列表简报 | P1 | 2.4 | ☐ |
+
+### MCP / 数据治理（MCP / DAT）
+| 需求 | 优先级 | 落点 Sprint | 状态 |
+|---|---|---|---|
+| MCP-01 Streamable HTTP endpoint | P0 | 2.3 | ☐ |
+| MCP-02 OAuth + PKCE | P0 | 2.3 | ☐ |
+| MCP-03 服务端 API Key | P0 | 2.3 | ☐ |
+| MCP-04 输入/输出 Schema | P0 | 1.2 / 2.3 | ☐ |
+| MCP-05 版本与弃用 | P0 | 2.3 | ☐ |
+| MCP-06 分页/行数/范围限制 | P0 | 2.3 | ☐ |
+| MCP-07 usage/剩余/request_id | P0 | 2.3 | ☐ |
+| MCP-08 标准错误码 | P0 | 1.2 / 2.3 | ☐ |
+| MCP-09 Developer Console | P0 | 2.3 | ☐ |
+| MCP-10 企业审计/细粒度 scope | P1 | 4 | ☐ |
+| MCP-11 工具级速率/并发/预算 | P0 | 2.3 | ☑ |
+| MCP-12 兼容性测试/状态页 | P0 | 2.3 / 3.2 | ☑ |
+| DAT-01 不可变原始快照 | P0 | 1.1 | ☐ |
+| DAT-02 统一证券主表 | P0 | 0.2 / 1.1 | ☐ |
+| DAT-03 财务事实与重述 | P0 | 0.2 / 1.1 | ☐ |
+| DAT-04 公司行动与复权引擎 | P0 | 1.1 | ☐ |
+| DAT-05 字段级数据授权 | P0 | 0.1 / 1.1 | ☐ |
+| DAT-06 数据质量与隔离 | P0 | 0.3 / 1.1 | ☐ |
+| DAT-07 指标定义与方法论库 | P0 | 0.2 | ☐ |
+| DAT-08 数据更正与通知 | P1 | 2.4 | ☐ |
+| DAT-09 来源/血缘/证据快照 | P0 | 1.2 | ☐ |
+| DAT-10 合作方 SLA 与对账 | P0 | 0.1 / 3.2 | ☐ |
+
+---
+
+## §F 接入 harness（执行落地）
+
+本文件是**程序级路线图**。每个 Sprint 真正进入执行时，按仓库三层契约（`repo-harness docs show sprint-contracts`）落地：
+
+1. **PRD 层**（可选）：把 `docs/researches/AiphaBee_PRD_v1.0.md` 注册为 `plans/prds/<stamp>-aiphabee.prd.md`（`repo-harness-prd`）。
+2. **Sprint 层**：对将执行的某个 Sprint，生成 `plans/sprints/<stamp>-<slug>.sprint.md`（含 Source PRD + Architecture Notes + 有序 Backlog + Execution Log），把本文件对应 Sprint 的勾选项搬成有序 Backlog 行（每行带可验收 acceptance line）。命令：`scripts/sprint-backlog.sh`（存在时）。
+3. **Task Contract 层**：每条 Backlog 行经 `plans/plan-*.md` → `tasks/contracts/*.contract.md` → worktree → `verify-sprint.sh` → `tasks/reviews/*` 执行闭环。
+4. **延迟目标**：本路线图中被推迟的项写入 `tasks/todos.md`（带 tradeoff + 重启触发）。
+5. **状态回写**：Sprint 完成后回写 §0 看板与本节顶部 `status`。
+
+> 约束：本文件刻意不放在 `plans/plan-*.md` / `*.sprint.md` 等受 `check-task-workflow.sh` 校验的保留路径，避免误判为执行就绪工件。
+
+### 当前接入状态
+
+- [x] 权威 PRD 已注册为 harness PRD：`plans/prds/20260620-1302-aiphabee.prd.md`
+- [x] 程序级 tracker 已建立并对齐 PRD v1.0：`docs/AiphaBee_Sprint_Tracker_v1.0.md`
+- [x] 首个 Phase 0 执行 Sprint 已建立：`plans/sprints/20260620-1307-phase0-gate0-foundation.sprint.md`
+- [x] Gate 0 权利与监管决策包已建立：`docs/governance/gate0-rights-regulatory-decision-pack.md`
+- [x] 数据契约与方法论基线已建立：`docs/governance/data-contract-methodology-baseline.md`
+- [x] 黄金样本、质量规则与商业模型基线已建立：`docs/governance/golden-quality-commercial-baseline.md`
+- [x] 工程地基现状审计已建立：`docs/governance/engineering-foundation-audit.md`
+- [x] Phase 0 traceability closeout 已建立：`docs/governance/phase0-traceability-closeout.md`
+- [x] 非前端 runtime scaffold 已建立：`docs/governance/engineering-runtime-scaffold.md`；包含 npm workspaces、Hono Worker `/health`、shared data contracts、CI workflow、names-only env template，并通过 local checks + Wrangler health smoke
+- [x] P0 requirement traceability ledger 已建立：`docs/governance/p0-traceability-ledger.md`；53 条 P0 需求均有 repo-local issue ref、owner role、test gate、release gate
+- [x] Env/secrets contract 已建立：`docs/governance/env-secrets-contract.md`；dev/staging/prod names-only templates、schema、CI validation 已通过
+- [x] Cloudflare binding contract 已建立：`docs/governance/cloudflare-bindings-contract.md`；Workers/Workflows/Queues/Cron/DO/R2/KV/AI Gateway/Hyperdrive 命名、职责与 smoke 面已校验
+- [x] Agent Runtime scaffold 已建立：`docs/governance/agent-runtime-scaffold.md`；AI SDK v7 beta dry-run capabilities、step-limit、registered-tool policy、Worker dry-run routes 已通过本地 smoke
+- [x] Model provider / streaming scaffold 已建立：`docs/governance/model-provider-streaming-scaffold.md`；Cloudflare AI Gateway planned contract、AI SDK v7 execution APIs、`/agent/model-provider` 与 guarded `/agent/runs/stream` 已通过本地 smoke
+- [x] Golden fixtures / quality-rule gate 已建立：`docs/governance/golden-quality-rule-fixtures.md`；8 个 synthetic fixtures、12 条 deterministic rules、5 pass / 1 warn / 2 hold、strict `npm run test:golden` 已通过
+- [x] Observability/eval scaffold 已建立：`docs/governance/observability-eval-scaffold.md`；Workers Logs/traces、`run.audit`/`run.eval` 事件、console sink、CI contract check 与 dry-run telemetry headers 已通过本地 smoke
+- [x] Observability persistent eval store scaffold 已建立：`docs/governance/observability-persistent-eval-store-scaffold.md`；planned D1 eval-store binding、OTLP names-only env、eval-store record schema、`/observability/runtime` guard 已通过本地 smoke
+- [x] Postgres/Hyperdrive migration scaffold 已建立：`docs/governance/postgres-hyperdrive-migration-scaffold.md`；Supabase-compatible migration、Hyperdrive contract、default-deny governance schema、`npm run check:database` 与 `/database/runtime` 已通过本地 smoke
+- [x] Provider secret stores contract 已建立：`docs/governance/provider-secret-stores-contract.md`；Cloudflare/GitHub/Supabase planned stores、rotation/revocation runbook、`npm run check:secrets` 与 `/secrets/runtime` 已通过本地 smoke
+- [x] Data Access Gateway default-deny scaffold 已建立：`docs/governance/data-access-gateway-default-deny-scaffold.md`；default-deny rights、field redaction、row/time limit、cache key、quality hold guard、`npm run check:data-gateway` 与 Worker gateway smoke 已通过
+- [x] Security master / raw snapshot schema scaffold 已建立：`docs/governance/security-master-raw-snapshot-scaffold.md`；company/instrument/listing/identifier_history、raw_source_batch/raw_snapshot/data_version_batch、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
+- [x] Financial facts / restatement schema scaffold 已建立：`docs/governance/financial-facts-restatement-scaffold.md`；financial_statement/financial_fact/financial_restatement、restatement version links、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
+- [x] Financial restatement golden engine scaffold 已建立：`docs/governance/financial-restatement-golden-engine-scaffold.md`；`@aiphabee/financial-facts` 支持版本保留、point-in-time 选择、restatement delta、identity guard，`/data/runtime` engine capability 已通过本地 smoke
+- [x] Corporate action / adjustment schema scaffold 已建立：`docs/governance/corporate-action-adjustment-scaffold.md`；corporate_action/adjustment_methodology/price_adjustment_factor、closed-open adjustment intervals、`npm run check:database` 与 `/data/runtime` 已通过本地 smoke
+- [x] Corporate action adjustment engine golden scaffold 已建立：`docs/governance/corporate-action-adjustment-engine-golden-scaffold.md`；`@aiphabee/corporate-actions` 支持 split/consolidation/dividend backward-adjusted synthetic golden cases，`/data/runtime` engine capability 已通过本地 smoke
+- [x] Account / Workspace / entitlement schema scaffold 已建立：`docs/governance/account-workspace-entitlement-scaffold.md`；account/workspace/membership/subscription/data_entitlement/workspace_entitlement、workspace isolation、`npm run check:database` 与 `/data/runtime`、`/gateway/runtime` 已通过本地 smoke
+- [x] Usage ledger schema scaffold 已建立：`docs/governance/usage-ledger-scaffold.md`；usage_meter_rule/usage_event/usage_reconciliation_batch/usage_ledger_entry、weighted credits、5-minute reconciliation target、`npm run check:database` 与 `/gateway/runtime` 已通过本地 smoke
+- [x] Usage ledger event writer scaffold 已建立：`docs/governance/usage-ledger-event-writer-scaffold.md`；Gateway decision `usageLedger`、deterministic event/ledger IDs、preview/blocked billable states、no live writes/SQL/billing，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Field entitlement enforcement scaffold 已建立：`docs/governance/field-entitlement-enforcement-scaffold.md`；Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export，default-deny live route 与 synthetic entitlement tests 已通过
+- [x] Field entitlement DB policy source scaffold 已建立：`docs/governance/field-entitlement-policy-source-scaffold.md`；entitlement row snapshots 编译为 Gateway policy，active/expired/wildcard/blocked/export/time-range synthetic tests 与 `/gateway/runtime` capability 已通过
+- [x] Serving Store schema scaffold 已建立：`docs/governance/serving-store-schema-scaffold.md`；serving_dataset/field/snapshot/record、versioned snapshots、quality/release/default-deny posture、`/data/runtime` 与 `/gateway/runtime` 已通过本地 smoke
+- [x] Serving read default-deny scaffold 已建立：`docs/governance/serving-read-scaffold-default-deny.md`；`@aiphabee/serving-store` read planner、Gateway `servingRead` decision、default-deny/quality-hold no SQL/no rows/no live read、`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving quality release isolation scaffold 已建立：`docs/governance/serving-quality-release-isolation-scaffold.md`；`PASS/WARN -> released`、`HOLD -> held`、`REJECT_RAW -> withdrawn`、`DATA_QUALITY_HOLD`、no live write/read/SQL，`/data/runtime` 与 `/gateway/runtime` capability 已通过本地 smoke
+- [x] Data Access Gateway Serving query planner scaffold 已建立：`docs/governance/live-serving-query-planner-scaffold.md`；Gateway decision `servingQuery`、released snapshot gating、row-limit planning、cache material `serving_snapshot_id` / `release_state`、no live read/SQL，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving SQL descriptor scaffold 已建立：`docs/governance/serving-sql-descriptor-scaffold.md`；Gateway decision `servingSqlDescriptor`、allow-listed statement id、snapshot/field/time/limit bindings、no SQL text / no execute / no live read，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving SQL text compiler scaffold 已建立：`docs/governance/serving-sql-text-compiler-scaffold.md`；Gateway decision `servingSqlText`、fixed SQL template、positional bindings、no execute / no live read，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving execution adapter scaffold 已建立：`docs/governance/serving-execution-adapter-scaffold.md`；Gateway decision `servingExecution`、Hyperdrive adapter shape、`execution_deferred`、empty rows、no SQL execution / no live read，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Serving result envelope scaffold 已建立：`docs/governance/serving-result-envelope-scaffold.md`；Gateway decision `servingResult`、blocked/deferred result status、standard envelope fields `as_of` / `market_status` / `provenance` / `usage`、empty rows/no live data/no SQL execution，`/gateway/runtime` capability 已通过本地 smoke
+- [x] Agent run context scaffold 已建立：`docs/governance/agent-run-context-scaffold.md`；dry-run `run_context` 覆盖 run/user/workspace、套餐、synthetic default-deny 权益、工具版本/schema/scope、预算维度与 dry-run 模型层级，`/agent/runtime` 与 `/agent/runs/dry-run` 已通过本地 smoke
+- [x] ToolLoopAgent no-model planner scaffold 已建立：`docs/governance/tool-loop-agent-planner-scaffold.md`；`/agent/runs/plan` 规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，限制每步并行≤3只读工具，输出 public progress event contract 且不暴露 chain-of-thought
+- [x] Pre-tool-call resolution scaffold 已建立：`docs/governance/pre-tool-call-resolution-scaffold.md`；`/agent/runs/preflight` 解析 security/time/currency/methodology，ABC 歧义返回 blocking clarification + candidates，`/agent/runs/plan` 已嵌入 preflight 结果，actual tool execution/frontend clarification UI 未启用
+- [x] Budget/stop policy scaffold 已建立：`docs/governance/budget-stop-policy-scaffold.md`；`/agent/runs/plan` 输出 `budget_stop_policy`，合法预算不足返回 `stopped_budget` + partial graceful stop response + continuation cost，连续 2 次同类错误停止自动重试，actual execution/live usage ledger/frontend budget confirmation 未启用
+- [x] Tool enforcement scaffold 已建立：`docs/governance/tool-enforcement-scaffold.md`；`/agent/runs/plan` 输出 `tool_enforcement`，planned tool calls 携带 version/schema/scope/data-class/rights-aware/no-SQL/no-URL/no-live metadata，`sql.query`/`http.fetch` 等未注册任意工具返回 `SCOPE_DENIED`
+- [x] Numeric source guard scaffold 已建立：`docs/governance/numeric-source-guard-scaffold.md`；`/agent/runs/plan` 输出 `numeric_source_guard`，只允许 tool result / deterministic calculation 数字来源，no-live answer contract 禁止无来源具体金融数字并使用 `UNSOURCED_NUMERIC_CLAIM`
+- [x] Answer/evidence contract scaffold 已建立：`docs/governance/answer-evidence-contract-scaffold.md`；`/agent/runs/plan` 输出 `answer_evidence_contract`，固定 PRD §8.3 八段答案顺序、AGT-06 fact/calculation/inference/unknown 标签、AGT-07 evidence-card payload 字段与 evidence strength，不启用 frontend rendering
+- [x] Failure recovery policy scaffold 已建立：`docs/governance/failure-recovery-policy-scaffold.md`；`/agent/runs/plan` 输出 `failure_recovery_policy`，定义 failed-tool-call-only retry、completed evidence reuse、partial answer fallback、usage ledger idempotency placeholder 与 no-double-charge 计费语义
+- [x] Model routing audit scaffold 已建立：`docs/governance/model-routing-audit-scaffold.md`；`/agent/runs/plan` 输出 `model_routing_audit`，定义 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、fallback triggers、model-change audit fields、safe-cache 与 redaction 规则，live model execution 未启用
+- [x] Eval v1 WVRO scaffold 已建立：`docs/governance/eval-v1-wvro-scaffold.md`；`run.eval` 输出 `eval_v1` payload，`/observability/eval-v1/plan` 计算 fact/calculation/citation/correct-refusal metrics、WVRO eligibility 与 unsourced numeric claim target，persistent writes/live OTLP/frontend dashboard 未启用
+- [x] Internal account/session/manual-plan scaffold 已建立：`docs/governance/internal-account-session-manual-plan-scaffold.md`；`@aiphabee/account-runtime` 输出 ACC-01 capability，`/account/runtime` 与 `/account/session/plan` 返回 no-write account/session/device/manual-plan plans，raw email/password/OAuth/session secret 保持 forbidden payload class，live auth/cookie/DB writes/billing/frontend 未启用
+- [x] Usage quota display scaffold 已建立：`docs/governance/usage-quota-display-scaffold.md`；`@aiphabee/usage-ledger` 输出 Web Agent/MCP quota display capability，`/usage/runtime` 与 `/usage/quota/plan` 返回 request_id / plan_code / channel / period / credit limit / used / pending / remaining credits / freshness target，live ledger reads/billing reconciliation/persistent writes/frontend 未启用
+- [x] Stock workbench aggregate scaffold 已建立：`docs/governance/stock-workbench-aggregate-scaffold.md`；`@aiphabee/workbench` 输出 `/workbench/runtime`、`/workbench/stock/snapshot` 与 `/workbench/stock/announcements`，聚合 security profile、quote snapshot、price history、financial facts、derived metrics、announcement search 与 corporate actions，ambiguous security 不静默选择；完整 Phase 2 公告/文档工具仍未启用
+- [x] MCP standard error codes scaffold 已建立：`docs/governance/mcp-standard-error-codes-scaffold.md`；`@aiphabee/mcp-runtime` 输出 PRD §9.6 标准错误码 taxonomy、category、client_action、internal-code mapping，Worker MCP 错误响应返回 versioned `error.detail`，live limiter/Developer Console/external client smoke 未启用
+- [x] MCP tool limiter scaffold 已建立：`docs/governance/mcp-tool-limiter-scaffold.md`；`@aiphabee/mcp-runtime` 输出 MCP limiter readiness、standard/high-cost pool、rate/concurrency/budget plan、ordinary pool protection、planned high-cost queue metadata 与 `RATE_LIMITED`/`BUDGET_EXCEEDED` future enforcement contract，live limiter/durable queue/usage debit/frontend 未启用
+- [x] MCP compatibility status scaffold 已建立：`docs/governance/mcp-compatibility-status-scaffold.md`；`@aiphabee/mcp-runtime` 输出 `GET /mcp/compatibility/status` no-live 兼容性状态、official Inspector/TypeScript SDK v1.x target、target-client matrix、status-page source fields 与 US-M08 `as_of`/delay/source 测试向量，live SDK/Inspector/client e2e 与公开状态页未启用
+- [x] Subscription lifecycle audit scaffold 已建立：`docs/governance/subscription-lifecycle-audit-scaffold.md`；`@aiphabee/account-runtime` 输出 `subscription_lifecycle` capability，`/account/subscription/lifecycle/plan` 返回 upgrade/downgrade/renew/cancel/grace-period no-write audit plan，`audit.subscription_lifecycle_event` schema scaffold 已建立，live billing provider/invoice-proration-refund preview/DB writes/frontend billing UI 未启用
+- [x] Usage billing reconciliation scaffold 已建立：`docs/governance/usage-billing-reconciliation-scaffold.md`；`@aiphabee/usage-ledger` 输出 `billing_reconciliation` capability，`/usage/billing/reconciliation/plan` 返回 invoice credits vs ledger credits consistency、invoice line 到 usage ledger entry / usage event / request_id trace plan，`core.subscription_invoice` 与 `core.subscription_invoice_line` schema scaffold 已建立，live billing provider/live ledger reads/invoice writes/frontend billing UI 未启用
+- [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
+- [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
+- [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
+- [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
+- [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
+- [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract、每工具 synthetic golden fixtures 与 no-write Evidence/Lineage service scaffold 已建立；MCP protocol endpoint/runtime schema serving/live route replay/live DB writes/partner source rows 尚未实现
+- [ ] Sprint 1.3 的 Agent run context scaffold、ToolLoopAgent no-model planner scaffold、pre-tool-call resolution scaffold、budget/stop policy scaffold、tool enforcement scaffold、numeric source guard scaffold、answer/evidence contract scaffold、failure recovery policy scaffold 与 model routing audit scaffold 已建立；actual tool execution/live streaming transport、live evidence-binding、live model execution/AI Gateway request logs、live token-cost-fallback log writes 与前端 Ask/证据卡片 rendering 尚未实现
+- [ ] Sprint 2.4 已建立 ACC-03 subscription lifecycle audit scaffold、ACC-04 billing-to-usage-ledger reconciliation scaffold、high-cost usage reservation/pre-debit/failure-refund scaffold、AGT-09 workflow task_id/resume/notification scaffold、deep-report workflow backend scaffold、watchlist alerts scaffold、watchlist briefings scaffold、data-correction notifications scaffold、MCP revocation enforcement scaffold 与 agent kill-switch safe degradation scaffold；真实 billing provider、invoice/proration/refund preview、subscription/audit/invoice/ledger live writes、live ledger reads、refund/overage rules、live Workflows execution/checkpoint writes、watchlist briefing scheduled generation/fanout、data correction live discovery/DB writes/Queue fanout、MCP live auth middleware/credential store、live flag source 与 frontend UI 尚未实现
+- [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
+
+---
+
+## 变更记录
+
+| 日期 | 版本 | 变更 |
+|---|---|---|
+| 2026-06-21 | 1.0do | 完成 `task-replay-mode-release-gate-scaffold`：新增 task replay mode release gate capability、`POST /agent/release-gates/task-replay-mode/plan`、`GET /agent/runtime` `task_replay_mode_release_gate`、`deploy/agent/task-replay-mode-release-gate.contract.json`、`scripts/check-task-replay-mode-release-gate-contract.mjs`、`core.task_replay_mode_release_gate` / `governance.task_replay_mode_release_gate_contract` empty schema scaffold 与 `npm run check:task-replay-mode-release-gate`；gate 组合 `createWorkflowTaskPlan()`、`createResearchRunSavePlan()`、`createResearchRunReplayPlan()` 与 newbie/professional `createToolLoopAgentPlan()`，证明长任务 task_id/resume/checkpoint、保存报告 deterministic replay seed、old report immutable/no silent rewrite、response depth 只改 presentation 不改数据/证据/口径；live Workflow execution / live replay job / frontend mode switch release UI 未启用，Sprint 3.3 更新为 6/17 |
+| 2026-06-21 | 1.0dn | 完成 `agent-label-budget-release-gate-scaffold`：新增 Agent label/budget release gate capability、`POST /agent/release-gates/label-budget/plan`、`GET /agent/runtime` `agent_label_budget_release_gate`、`deploy/agent/label-budget-release-gate.contract.json`、`scripts/check-label-budget-release-gate-contract.mjs`、`core.agent_label_budget_release_gate` / `governance.agent_label_budget_release_gate_contract` empty schema scaffold 与 `npm run check:label-budget-release-gate`；gate 组合 `answer_evidence_contract`、`planHighCostAnalyticsQueue()` 与 `createHighCostUsageReservationPlan()`，证明 fact/calculation/inference/unknown claim bindings、categorical evidence strength、high-cost budget estimate、confirmation-before-enqueue、confirmed pre-debit/failure-refund no-write 语义；generated-answer parser / frontend confirmation UI / live queue execution 未启用，Sprint 3.3 更新为 5/17 |
+| 2026-06-21 | 1.0dm | 完成 `product-agent-release-gate-scaffold`：扩展 `@aiphabee/agent-runtime`，新增 product Agent release gate capability、`POST /agent/release-gates/product-agent/plan`、`GET /agent/runtime` `product_agent_release_gate`、`deploy/agent/product-agent-release-gate.contract.json`、`scripts/check-product-agent-release-gate-contract.mjs`、`core.product_agent_release_gate` / `governance.product_agent_release_gate_contract` empty schema scaffold 与 `npm run check:product-agent-release-gate`；gate 证明 `ABC` 歧义不静默选择且工具规划被 blocking clarification 阻断，具体金融数字必须绑定 `tool_result` source record 或 deterministic calculation ref，并复用 answer/evidence contract 阻断无来源具体数字；live post-generation numeric extraction / live evidence binding / frontend clarification UI 未启用，Sprint 3.3 更新为 4/17 |
+| 2026-06-21 | 1.0dl | 完成 `golden-correction-rollback-drill-scaffold`：扩展 `@aiphabee/research-runtime`，新增 golden correction rollback drill capability、`POST /research/golden-correction-rollback-drill/plan`、`GET /research/runtime` `golden_correction_rollback_drill`、`deploy/research/golden-correction-rollback-drill.contract.json`、`scripts/check-golden-correction-rollback-drill-contract.mjs`、`core.golden_correction_rollback_drill` / `governance.golden_correction_rollback_drill_contract` empty schema scaffold 与 `npm run check:golden-correction-rollback-drill`；drill 绑定 `npm run test:golden` 的 8 个 quality samples / 12 条 quality rules / 16 个 tool fixtures，串起 saved run -> data correction notification -> rollback replay plan，并保持 old report immutable / no silent rewrite；production partner corpus / live correction writes / Queue fanout / live rollback execution / frontend release UI 未启用，Sprint 3.3 更新为 3/17 |
+| 2026-06-21 | 1.0dk | 完成 `data-coverage-release-gate-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 data coverage release gate capability、`GET /gateway/data-coverage/release-gate`、`GET /gateway/runtime` `data_coverage_release_gate`、`deploy/gateway/data-coverage-release-gate.contract.json`、`scripts/check-data-coverage-release-gate-contract.mjs`、`core.data_coverage_release_gate` / `governance.data_coverage_release_gate_contract` empty schema scaffold 与 `npm run check:data-coverage-release-gate`；freshness markers 覆盖 realtime / delayed / eod 且要求显式 label，coverage domains 覆盖 corporate_actions / financial_restatements / delistings / identifier_history；live partner rows / live freshness policy / golden signoff 未启用，release gate 保持 blocked_live_partner_coverage，Sprint 3.3 更新为 2/17 |
+| 2026-06-21 | 1.0dj | 完成 `p0-rights-matrix-coverage-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 P0 rights matrix coverage capability、`GET /gateway/rights-matrix/p0/coverage`、`GET /gateway/runtime` `p0_rights_matrix_coverage`、`deploy/gateway/p0-rights-matrix-coverage.contract.json`、`scripts/check-p0-rights-matrix-coverage-contract.mjs`、`core.p0_rights_matrix_entry` / `governance.p0_rights_matrix_contract` empty schema scaffold 与 `npm run check:p0-rights-matrix-coverage`；从 Tool Registry 覆盖 16 个 P0 tools，覆盖 9 组 P0 dataset/field groups，并为 Web/MCP/export/enterprise surface 建立 configured_default_deny slots；partner signed matrix / live entitlement activation / external signoff 未启用，release gate 保持 blocked_external_rights_matrix，Sprint 3.3 更新为 1/17 |
+| 2026-06-21 | 1.0di | 完成 `account-data-request-scaffold`：扩展 `@aiphabee/account-runtime`，新增 account data request capability、`POST /account/data-requests/plan`、`GET /account/runtime` `data_requests`、`deploy/account/data-request.contract.json`、`scripts/check-account-data-request-contract.mjs`、`core.account_data_request` / `core.account_data_request_item` / `audit.account_data_request_event` / `governance.account_data_request_contract` empty schema scaffold 与 `npm run check:account-data-request`；下载申请计划 secure JSON delivery，删除申请按 retention policy 对 eligible scopes schedule_erasure、对 subscription_billing / usage_ledger / audit_log retain，并要求 retention_policy_version、verified_by/request_id 审计 metadata；live export / live erasure / persistent writes / secure delivery materialization / frontend account privacy UI 未启用，Sprint 3.2 更新为 8/9 |
+| 2026-06-21 | 1.0dh | 完成 `field-authorization-config-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 field authorization config capability、`POST /gateway/field-authorizations/changes/plan`、`GET /gateway/runtime` `field_entitlement_enforcement.operations_config`、`deploy/gateway/field-authorization-config.contract.json`、`scripts/check-field-authorization-config-contract.mjs`、`core.field_authorization_change` / `audit.field_authorization_approval` / `governance.field_authorization_config_contract` empty schema scaffold 与 `npm run check:field-authorization-config`；运营配置计划要求 approval、policy_version、effective_at，输出 future `core.data_entitlement` / `core.workspace_entitlement` row effects，状态区分 awaiting_approval / scheduled / active_preview / rejected / blocked_missing_context，并保持 default-deny until approved/effective；live policy reads/writes / approval persistence / activation job / frontend ops UI 未启用，Sprint 3.2 更新为 7/9 |
+| 2026-06-21 | 1.0dg | 完成 `partner-reconciliation-report-scaffold`：扩展 `@aiphabee/usage-ledger`，新增 partner reconciliation report capability、`POST /usage/partner-reconciliation/plan`、`GET /usage/runtime` `partner_reconciliation_report`、`deploy/usage/partner-reconciliation-report.contract.json`、`scripts/check-partner-reconciliation-report-contract.mjs`、`core.partner_reconciliation_report` / `core.partner_reconciliation_report_line` / `audit.partner_reconciliation_event` / `governance.partner_reconciliation_contract` empty schema scaffold 与 `npm run check:partner-reconciliation-report`；按 dataset/channel/package_code/user_id 聚合 usage_count、credits、metered_rows、request_ids、usage_event_ids，覆盖 daily/weekly SLA fields data_delay_minutes / missing_rows / error_count / backfill_count，并阻止 raw email/personal contact/payment identifier/credential/raw prompt/generated answer；live usage-ledger reads / report writes / artifact writes / partner portal delivery / final settlement approval / frontend ops UI 未启用，Sprint 3.2 更新为 6/9 |
+| 2026-06-21 | 1.0df | 完成 `static-report-scaffold`：扩展 `@aiphabee/research-runtime`，新增 static report artifact capability、`POST /research/reports/static/plan`、`GET /research/runtime` `static_report_artifact`、`deploy/research/static-report.contract.json`、`scripts/check-static-report-contract.mjs`、`core.static_report_artifact` / `audit.static_report_event` / `governance.static_report_contract` empty schema scaffold 与 `npm run check:static-report`；计划要求 `exports.read`、source run/workspace context、支持格式 html/pdf/image，元数据强制包含 generated_at / data_delay_minutes / data_version / methodology_version / rights_policy_version / disclaimer 并进入 watermark；live artifact/R2 writes / DB writes / model calls / live tool execution / frontend report viewer 未启用，Sprint 3.2 更新为 5/9 |
+| 2026-06-21 | 1.0de | 完成 `private-share-link-scaffold`：新增 `@aiphabee/sharing-runtime`、`GET /sharing/runtime`、`POST /sharing/private-links/plan`、`deploy/sharing/private-share-link.contract.json`、`scripts/check-private-sharing-contract.mjs`、`core.private_share_link` / `audit.private_share_event` / `governance.private_sharing_contract` empty schema scaffold 与 `npm run check:private-sharing`；分享计划要求 creator/recipient 均具备 `exports.read`，通过 Data Gateway `channel=export` 分别重算 creator 与 recipient 权限，实际释放字段为双方 allowed fields intersection，recipient 无权字段进入 `redacted_fields`，强制不扩大 recipient 数据权益；live link handle / public indexing / artifact writes / DB writes / frontend 分享 UI 未启用，Sprint 3.2 更新为 4/9 |
+| 2026-06-21 | 1.0dd | 完成 `support-request-id-investigation-scaffold`：新增 `@aiphabee/support-ops`、`GET /support/runtime`、`GET /support/help-center`、`POST /support/request-id-investigation/plan`、`deploy/support/request-id-investigation.contract.json`、`scripts/check-support-ops-contract.mjs`、`docs/public/help-center.md`、`core.support_ticket` / `audit.support_investigation_event` / `governance.support_request_id_contract` empty schema scaffold 与 `npm run check:support-ops`；支持 topic 覆盖 account/billing、MCP connection、data quality、usage quota、privacy/account、incident status，request_id 调查仅允许 route/tool/data_version/methodology/error/usage/ledger/invoice/status metadata，默认阻止 raw prompt/generated answer/raw email/credential/payment/portfolio/document body/personal contact；live log reads / live billing provider reads / ticket writes / frontend help center 未启用，Sprint 3.2 更新为 3/9 |
+| 2026-06-21 | 1.0dc | 完成 `public-status-docs-scaffold`：新增 `@aiphabee/public-ops`、`GET /public/runtime`、`GET /public/status`、`GET /public/docs`、`deploy/public-ops/public-status-docs.contract.json`、`scripts/check-public-ops-contract.mjs`、`docs/public/api.md` / `mcp.md` / `privacy.md` / `terms.md` 本地发布稿、`core.public_status_component` / `core.public_document_publication` / `governance.public_operations_contract` empty schema scaffold 与 `npm run check:public-ops`；公开状态组件覆盖 Worker API / Remote MCP / Data Gateway / usage billing / public docs，API/MCP/privacy/terms 文档 required sections 由 checker 校验；live status page frontend / live incident feed / final legal approval / help center workflow 未启用，Sprint 3.2 更新为 2/9 |
+| 2026-06-21 | 1.0db | 完成 `package-pricing-scaffold`：扩展 `@aiphabee/account-runtime`，新增 Pro/Developer package pricing catalog、`GET /account/package-pricing`、`GET /account/runtime` `package_pricing` capability、`deploy/account/package-pricing.contract.json`、`scripts/check-package-pricing-contract.mjs`、`core.plan_pricing_catalog` / `core.plan_entitlement_bundle` / `governance.package_pricing_contract` empty schema scaffold 与 `npm run check:package-pricing`；锁定 PRD §15.2 validation price Pro `HK$228/月`、Developer `HK$688+/月`，引用 usage quota Pro `5000` credits / Developer `10000` credits，Developer overage 仅做 no-write reconciliation plan；live billing provider / final quote / DB writes / frontend UI 未启用，Sprint 3.2 更新为 1/9 |
+| 2026-06-21 | 1.0da | 完成 `restricted-exports-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 restricted export planner、`POST /gateway/exports/plan`、`GET /gateway/runtime` `restricted_exports` capability、`deploy/gateway/restricted-exports.contract.json`、`scripts/check-restricted-exports-contract.mjs`、`core.restricted_export_request` / `audit.restricted_export_event` / `governance.restricted_export_contract` empty schema scaffold 与 `npm run check:restricted-exports`；导出先要求 `exports.read`，再通过 Gateway `channel=export` / `exportRequested=true` 执行字段授权、行数/时间范围裁剪和水印计划；live artifact writes / R2 / frontend UI 未启用，Sprint 3.1 更新为 9/9 |
+| 2026-06-21 | 1.0cz | 完成 `security-history-scaffold`：扩展 `@aiphabee/security-tools`，新增 `getSecurityHistory()`、`POST /tools/get-security-history`、`deploy/tools/security-history.contract.json`、`scripts/check-security-history-contract.mjs`、`core.security_name_history` / `core.security_industry_history` / `core.index_constituent_history` / `governance.security_history_contract` empty schema scaffold 与 `npm run check:security-history`；`as_of` 必填，返回 historical name / industry / index constituent memberships，并锁定不使用 latest name/classification/constituents 作为历史 fallback；live partner history rows / MCP registration / frontend 未启用，Sprint 3.1 更新为 8/9 |
+| 2026-06-21 | 1.0cy | 完成 `authorized-session-memory-scaffold`：扩展 `@aiphabee/account-runtime` `authorized_memory` capability，新增 `POST /account/authorized-memory/plan`、`core.authorized_session_memory` / `governance.authorized_session_memory_contract` empty schema scaffold、`deploy/account/authorized-session-memory.contract.json`、`scripts/check-authorized-session-memory-contract.mjs` 与 `npm run check:authorized-session-memory`；支持 view/upsert/delete no-write plan，仅允许授权偏好/同意信息，阻止 raw prompt/generated answer/financial values/raw email/password/OAuth/session secret；frontend 控制/live memory reads/writes 未启用，Sprint 3.1 更新为 7/9 |
+| 2026-06-21 | 1.0cx | 完成 `localized-response-contract`：扩展 `@aiphabee/agent-runtime` `response_presentation` capability 与 `answer_evidence_contract.presentation`，`POST /agent/runs/plan` 支持 `locale` / `response_locale` / `language` 和 `response_depth` / `responseDepth`，新增 `deploy/agent/localized-response.contract.json`、`scripts/check-localized-response-contract.mjs` 与 `npm run check:localized-response`；锁定繁中/简中/英文与新手/专业模式只改变表达层，numeric values / source_record_ids / evidence refs / methodology versions / currency / units / conclusion 不变，并提供 ROE/free cash flow/operating profit/total-return adjusted/abnormal return 术语表；frontend 切换控件/生成式翻译/live model 未启用，Sprint 3.1 更新为 6/9 |
+| 2026-06-21 | 1.0cw | 完成 `event-study-scaffold`：新增 `@aiphabee/analytics-tools` `runEventStudy()`、`POST /analytics/event-study`、`GET /analytics/runtime` event-study capability、`deploy/analytics/event-study.contract.json`、`scripts/check-event-study-contract.mjs` 与 `npm run check:event-study`，覆盖 event_date / event_window / benchmark / abnormal_return_method / explicit `missing_observations` / summary / source_record_ids；`run_event_study` 已纳入 high-cost analytics 20–50 credits 独立池规划；live event-study rows / queue writes / usage debits / frontend 未启用，Sprint 3.1 更新为 3/9 |
+| 2026-06-21 | 1.0cv | 完成 `p0-tool-catalog-consistency`：PRD §9.2 16 个 P0 工具已在 Shared Tool Registry、`deploy/tools/tool-schemas.contract.json`、MCP schema validation/versioning/pagination/usage contracts、Agent tool enforcement、Evidence/Lineage dataset mapping 与 golden tool fixtures 中一致收口；新增 `deploy/tools/p0-tool-catalog.contract.json`、`scripts/check-p0-tool-catalog-contract.mjs`、`npm run check:p0-tool-catalog` 与治理记录，验证 `p0_tool_count=16` / `schema_pairs=16` / `golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用，Sprint 3.1 更新为 2/9 |
+| 2026-06-21 | 1.0cu | 完成 `get-event-timeline-tool-scaffold`：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、`npm run check:event-timeline`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入，并将 shared Tool Registry/Agent/MCP registered tool count 更新为 10；支持 synthetic company+market event timeline、sourceRecordId/relatedData links、type subset、cursor pagination 与标准错误；live partner event rows/full 16-tool P0 catalog/`run_event_study`/frontend 未启用，Sprint 3.1 更新为 1/9 |
+| 2026-06-21 | 1.0ct | 完成 `agent-kill-switch-scaffold`：扩展 `@aiphabee/agent-runtime` `kill_switch` capability，新增 `POST /agent/kill-switch/plan`、`GET /agent/runtime` readiness、`POST /agent/runs/plan` `degraded_kill_switch` 降级路径、`core.agent_kill_switch_state` / `governance.agent_kill_switch_contract` migration、`deploy/agent/kill-switch.contract.json` 与 `npm run check:agent-kill-switch`，覆盖 model/tool kill switch state、safe degradation metadata、禁用工具时无 tool call 的 answer-contract fallback；live flag source/persistent writes/model provider calls/actual tool execution/frontend UI 未启用，Sprint 2.4 更新为 10/10 |
+| 2026-06-21 | 1.0cs | 完成 `mcp-revocation-enforcement-scaffold`：扩展 `@aiphabee/mcp-runtime` revocation enforcement capability，新增 `POST /mcp/revocations/enforce/plan`、`GET /mcp/runtime` enforcement readiness、`POST /mcp` credential context guard、`core.mcp_credential_revocation` / `governance.mcp_revocation_enforcement_contract` migration、`deploy/mcp/revocation-enforcement.contract.json` 与 `npm run check:mcp-revocation-enforcement`，覆盖 OAuth connection revoke、API key revoke/rotation old-key denial、revoked/rotated/unknown status `AUTH_REQUIRED`、tool execution/usage debit 前拒绝；live auth middleware/live credential store/persistent writes/raw credential storage/frontend console UI 未启用，Sprint 2.4 更新为 9/10 |
+| 2026-06-21 | 1.0cr | 完成 `data-correction-notifications-scaffold`：扩展 `@aiphabee/research-runtime` `data_correction_notifications` capability，新增 `POST /research/data-corrections/plan`、`GET /research/runtime` nested readiness、`core.data_correction_event` / `core.research_run_correction_impact` / `core.user_notification` migration、`deploy/research/data-correction-notifications.contract.json` 与 `npm run check:data-correction-notifications`，覆盖 source_record_id correction、saved-run evidence snapshot impact matching、affected saved report marking、old report immutability、in_app/email planned notification fanout；live correction discovery/DB writes/Queue fanout/live replay/frontend notification UI 未启用，Sprint 2.4 更新为 8/10 |
+| 2026-06-21 | 1.0cq | 完成 `watchlist-briefings-scaffold`：扩展 `@aiphabee/watchlist-runtime` briefing capability，新增 `POST /watchlist/briefings/plan`、`GET /watchlist/runtime` nested `briefings` readiness、`core.watchlist_briefing` / `core.watchlist_briefing_item` migration、`deploy/watchlist/briefings.contract.json` 与 `npm run check:watchlist-briefings`，覆盖 daily/weekly cadence、material-change-only filter、empty briefing suppression、source evidence requirement、price/announcement/metric source plan 与 planned notification fanout；live scheduled generation/live tool execution/DB writes/Queue fanout/frontend watchlist briefing UI 未启用，Sprint 2.4 更新为 7/10 |
+| 2026-06-21 | 1.0cp | 完成 `watchlist-alerts-scaffold`：新增 `@aiphabee/watchlist-runtime`、`GET /watchlist/runtime`、`POST /watchlist/alerts/plan`、`core.watchlist` / `core.watchlist_item` / `core.watchlist_alert_rule` / `core.watchlist_alert_event` migration、`deploy/watchlist/alerts.contract.json` 与 `npm run check:watchlist-alerts`，覆盖显式确认、独立 `alerts.write` scope、idempotency key、价格/公告/指标提醒类型、去重、频率、静默期、来源证据要求与 planned notification fanout；live DB writes/Queue fanout/live tool execution/frontend watchlist UI 未启用，Sprint 2.4 更新为 6/10 |
+| 2026-06-21 | 1.0co | 完成 `deep-report-workflow-scaffold`：扩展 `@aiphabee/research-runtime` deep report Workflow capability，新增 `POST /research/reports/deep/plan`、`GET /research/runtime` nested `deep_report_workflow` readiness、`core.deep_report_snapshot` / `core.deep_report_evidence_index` migration、`deploy/research/deep-report-workflow.contract.json` 与 `npm run check:deep-report-workflow`，覆盖取数→确定性分析→生成章节→引用校验→证据索引→重跑 seed、静态报告 metadata、`task_id`/Workflow task link 与 high-cost usage estimate；live Workflows execution/live tool or model execution/DB-R2-checkpoint writes/frontend report rendering 未启用，Sprint 2.4 更新为 5/10 |
+| 2026-06-21 | 1.0cn | 完成 `workflow-task-scaffold`：扩展 `@aiphabee/agent-runtime` workflow task capability，新增 `POST /agent/workflows/tasks/plan`、`GET /agent/runtime` `workflow_tasks` readiness、`core.workflow_task` / `core.workflow_task_checkpoint` migration、`deploy/agent/workflow-task.contract.json` 与 `npm run check:agent-workflow-task`，覆盖 `task_id`、resume route/handle、离开后可恢复 metadata、completion/failure notification plan、Cloudflare Workflows/Queue/DO binding linkage 与 ToolLoopAgent plan link；live Workflows execution/task checkpoint writes/Queue notification fanout/frontend resume UI 未启用，Sprint 2.4 更新为 4/10 |
+| 2026-06-21 | 1.0cm | 完成 `high-cost-usage-reservation-scaffold`：扩展 `@aiphabee/usage-ledger` high-cost reservation capability，新增 `POST /usage/high-cost/reservation/plan`、`/analytics/high-cost/plan` `usage_reservation` link、`core.usage_credit_reservation` migration、`deploy/usage/high-cost-reservation.contract.json` 与 `npm run check:high-cost-usage-reservation`，覆盖 estimate、confirmation gate、pre-debit plan、failure-refund plan、request_id/idempotency double-charge guard 与 usage-ledger link；live ledger writes/durable queue writes/Workflow task persistence/frontend confirmation UI 未启用，Sprint 2.4 更新为 3/10 |
+| 2026-06-21 | 1.0cl | 完成 `usage-billing-reconciliation-scaffold`：扩展 `@aiphabee/usage-ledger` billing reconciliation capability，新增 `POST /usage/billing/reconciliation/plan`、`core.subscription_invoice` / `core.subscription_invoice_line` migration、`deploy/usage/billing-reconciliation.contract.json` 与 `npm run check:usage-billing-reconciliation`，覆盖 invoice credits vs ledger credits consistency、invoice line → usage ledger entry → usage event → request_id trace、5-minute freshness target 与 support request_id investigation；live billing provider/live ledger reads/invoice writes/refunds-overage rules/frontend billing UI 未启用，Sprint 2.4 更新为 2/10 |
+| 2026-06-21 | 1.0ck | 完成 `subscription-lifecycle-audit-scaffold`：扩展 `@aiphabee/account-runtime` subscription lifecycle capability，新增 `POST /account/subscription/lifecycle/plan`、`audit.subscription_lifecycle_event` migration、`deploy/account/subscription-lifecycle.contract.json` 与 `npm run check:subscription-lifecycle`，覆盖 upgrade/downgrade/renew/cancel/enter_grace_period/exit_grace_period audit plan、Free/Plus/Pro/Developer/Team/Enterprise plan code、billing state transition 与 no-call billing provider block；live billing provider/invoice-proration-refund preview/DB writes/frontend billing UI 未启用，Sprint 2.4 更新为 1/10 |
+| 2026-06-21 | 1.0cj | 完成 `mcp-compatibility-status-scaffold`：新增 `GET /mcp/compatibility/status`、`MCP_COMPATIBILITY_STATUS_VERSION`、`deploy/mcp/compatibility.contract.json` 与 `npm run check:mcp-compatibility`，固化 target protocol `2025-03-26`、monitored protocol `2025-11-25`、official Inspector / TypeScript SDK v1.x target、target-client matrix、Streamable HTTP / initialize / tools/list / tools/call schema / structuredContent+text fallback / OAuth / API Key / pagination / standard errors / usage+request_id / `as_of`+delay+source display 测试向量；live SDK/Inspector smoke、目标客户端 e2e、公开状态页、Developer Console 未启用，Sprint 2.3 更新为 10/11 |
+| 2026-06-21 | 1.0ci | 完成 `mcp-tool-limiter-scaffold`：扩展 `@aiphabee/mcp-runtime` `GET /mcp/runtime` limiter capability 与 `tools/call` `tool_limits` plan，覆盖 per-tool rate-limit metadata、`mcp_standard` / `mcp_high_cost` 并发池、`>=8` high-cost threshold、普通池保护、预算预扣/失败退款 metadata、`RATE_LIMITED` / `BUDGET_EXCEEDED` future error contract、high-cost planned queue metadata，新增 `deploy/mcp/tool-limiter.contract.json` 与 `npm run check:mcp-tool-limiter`；live limiter window reads/durable queue writes/usage-ledger debit-refund/Developer Console/external SDK smoke 未启用，Sprint 2.3 更新为 9/11 |
+| 2026-06-21 | 1.0ch | 完成 `mcp-standard-error-codes-scaffold`：新增 `MCP_STANDARD_ERROR_CODES_VERSION`、PRD §9.6 MCP 标准错误码 taxonomy、auth/rights/data/limit/system category、client_action、internal-code mapping，并让 Worker MCP 错误响应返回 machine-readable `error.detail`；新增 `deploy/mcp/error-codes.contract.json` 与 `npm run check:mcp-error-codes`；live rate/concurrency/budget limiter、Developer Console、external SDK/Inspector smoke 未启用，Sprint 2.3 更新为 8/11 |
+| 2026-06-21 | 1.0cg | 完成 `mcp-usage-envelope-scaffold`：扩展 `@aiphabee/mcp-runtime` usage summary 与 `tools/call` `usage_envelope`，复用 `@aiphabee/usage-ledger` quota display/event writer planner，返回 `request_id`、remaining credits、estimated credits、no-live ledger event、reconciliation target，新增 `deploy/mcp/usage-envelope.contract.json` 与 `npm run check:mcp-usage-envelope`；live auth workspace context/live ledger read-write/billing reconciliation/external SDK smoke 未启用，Sprint 2.3 更新为 7/11 |
+| 2026-06-21 | 1.0cf | 完成 `mcp-pagination-limits-scaffold`：扩展 `@aiphabee/tool-registry` retrieval metadata 与 `@aiphabee/mcp-runtime` `tools/list`/`tools/call` plan，所有 9 个 registered tools 暴露 row limit guard，分页工具暴露 cursor metadata，`tools/call` 生成 `bounded_retrieval` 并在 live execution 前拒绝超行数/非法 cursor/非法或超窗口时间范围，新增 `deploy/mcp/pagination-limits.contract.json` 与 `npm run check:mcp-pagination-limits`；live auth middleware/persistent cursor store/usage-ledger reconciliation/external SDK smoke 未启用，Sprint 2.3 更新为 6/11 |
+| 2026-06-21 | 1.0ce | 完成 `mcp-tool-versioning-scaffold`：扩展 `@aiphabee/tool-registry` lifecycle metadata 与 `@aiphabee/mcp-runtime` `tools/list` descriptor，所有 9 个 registered tools 暴露 `publicVersion=<tool>@1`、`majorVersion=1`、`breakingChangesRequireNewMajor=true`、active deprecation status、90 天 minimum notice、180 天 previous-major support policy，新增 `deploy/mcp/tool-versioning.contract.json` 与 `npm run check:mcp-tool-versioning`；historical major routing/migration examples/Developer Console version UI/live client compatibility smoke 未启用，Sprint 2.3 更新为 5/11 |
+| 2026-06-21 | 1.0cd | 完成 `mcp-tool-schema-validation-scaffold`：扩展 `@aiphabee/mcp-runtime` `tools/call` planning 接收 `params.arguments`，对 9 个 Tool Registry 工具执行 object/required/anyOf/additionalProperties=false 校验，返回 `input_schema_id`、`output_schema_id`、`input_validation`、`output_validation`、`schema_validation=validated` 与 `structured_content_required=true` no-live plan，新增 `deploy/mcp/tool-schema-validation.contract.json` 与 `npm run check:mcp-tool-schema-validation`；live tool execution/full JSON Schema engine/hosted schema registry/frontend 未启用，Sprint 2.3 更新为 4/11 |
+| 2026-06-21 | 1.0cc | 完成 `mcp-api-key-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/api-keys/runtime`、`POST /mcp/api-keys/create/plan`、`POST /mcp/api-keys/rotate/plan`、`POST /mcp/api-keys/revoke/plan`、`deploy/mcp/api-key.contract.json` 与 `npm run check:mcp-api-key`，覆盖 server-to-server only、hash-only storage、pepper/last-four metadata、raw key forbidden、one-time display metadata、IP allowlist validation、rotation old-key future-call denial 与 revoke future-call denial；live key generation/persistent key hash table/auth middleware/frontend console 未启用，Sprint 2.3 更新为 3/11 |
+| 2026-06-21 | 1.0cb | 完成 `mcp-oauth-pkce-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear/revocable scope consent、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用，Sprint 2.3 更新为 2/11 |
+| 2026-06-21 | 1.0ca | 完成 `mcp-endpoint-default-deny-scaffold`：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，覆盖 planned `initialize` / `tools/list` / `tools/call`、Origin validation、Gate 0 MCP/API 再分发默认拒绝、Web rights 不自动扩展到 MCP、未授权 `tools/list` 空列表与 `tools/call` `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用，Sprint 2.3 更新为 1/11 |
+| 2026-06-21 | 1.0bz | 完成 `research-run-replay-scaffold`：扩展 `@aiphabee/research-runtime` `parameter_snapshot` 与 `createResearchRunReplayPlan`，新增 `POST /research/runs/replay/plan`、`deploy/research/research-run-replay.contract.json` 与 `npm run check:research-run-replay`，覆盖 saved/current run no-write replay、data/model/parameters diff、`old_report.preserved_snapshot_id`、`mutation_allowed=false`、`silent_rewrite_allowed=false`；live DB/R2 writes、live tool/model execution、frontend 未启用，Sprint 2.2 更新为 8/9 |
+| 2026-06-21 | 1.0by | 完成 `research-run-save-scaffold`：新增 `@aiphabee/research-runtime`、`GET /research/runtime`、`POST /research/runs/save/plan`、`deploy/research/research-run-save.contract.json` 与 `npm run check:research-run-save`，覆盖 question/tool input/evidence/model/prompt version snapshots、immutable `snapshot_id`、`replay_seed`、`old_report_mutation_allowed=false` 与 missing required field rejection；live DB/R2 writes/replay execution/frontend 未启用，Sprint 2.2 更新为 6/9 |
+| 2026-06-21 | 1.0bx | 完成 `announcement-diff-extraction-scaffold`：新增 `diff_announcements`、`POST /documents/diff-announcements`、`GET /documents/runtime` capability、`deploy/documents/announcement-diff-extraction.contract.json` 与 `npm run check:announcement-diff-extraction`，覆盖 FY2023/FY2024 synthetic annual results 对比、revenue/operating_profit schema-bound 抽取、`announcement_numeric_extraction_v0` 校验、base/comparison absolute/percent change 与 page/paragraph/source locator；live parser/original document fetch/SQL/frontend 未启用，Sprint 2.2 更新为 5/9 |
+| 2026-06-21 | 1.0bw | 完成 `semantic-document-search-scaffold`：新增 `search_documents`、`POST /documents/search-documents`、`GET /documents/runtime` capability、`deploy/documents/search-documents.contract.json` 与 `npm run check:search-documents`，覆盖 synthetic pgvector-style chunk ranking、`pgvector_first=true`、`vectorize_optional=true`、metadata filter pushdown、query/date/category/document/language/min_score/limit filters、sanitized snippets、similarity_score/rank/score_explanation 与 page/paragraph/source locator；live pgvector/SQL execution/Vectorize/original document fetch/frontend 未启用，Sprint 2.2 更新为 4/9 |
+| 2026-06-21 | 1.0bv | 完成 `document-sanitizer-scaffold`：扩展 `@aiphabee/document-tools` runtime `document_sanitizer` capability、`POST /documents/get-announcement` sanitized excerpt 输出、`deploy/documents/document-sanitizer.contract.json` 与 `npm run check:document-sanitizer`，覆盖 script/hidden text/comment removal、document-origin suspicious instruction neutralization、`document_instruction_executed=false`、`raw_excerpt_returned=false`、`removed_items` audit 与 `sanitization_summary`；webpage/user-input sanitizer/live parser/frontend 未启用，Sprint 2.2 更新为 3/9 |
+| 2026-06-21 | 1.0bu | 完成 `get-announcement-scaffold`：扩展 `@aiphabee/document-tools`、`GET /documents/runtime` capability、`POST /documents/get-announcement`、`deploy/documents/get-announcement.contract.json` 与 `npm run check:get-announcement`，覆盖 `document_id` lookup、optional sections、authorized bounded excerpts、page/paragraph/source_record synthetic locator、unknown document/section non-fabrication 与 untrusted document policy；live original document fetch/full document return/complete DOC-03 sanitizer/frontend 未启用，Sprint 2.2 更新为 2/9 |
+| 2026-06-21 | 1.0bt | 完成 `search-announcements-scaffold`：新增 `@aiphabee/document-tools`、`GET /documents/runtime`、`POST /documents/search-announcements`、`deploy/documents/search-announcements.contract.json` 与 `npm run check:search-announcements`，覆盖 company/date/category/keyword/language filters、title/published_at/category/language/summary rows、document/source locator metadata、untrusted document policy 与 ambiguous security blocking；live original document fetch/pgvector/frontend 未启用，Sprint 2.2 更新为 1/9 |
+| 2026-06-21 | 1.0bs | 完成 `high-cost-analytics-queue-scaffold`：新增 `plan_high_cost_analytics`、`GET /analytics/runtime` capability、`POST /analytics/high-cost/plan`、`deploy/analytics/high-cost-analytics-queue.contract.json` 与 `npm run check:high-cost-analytics`，覆盖 screen/compare PRD 权重、`>=8` 高成本阈值、`analytics_high_cost` 独立池、普通池保护、confirmation/pre-debit/failure-refund/idempotency/enqueue plan metadata；durable queue writes/live limiter/live ledger/MCP limiter/frontend confirmation 未启用，Sprint 2.1 更新为 8/9 |
+| 2026-06-21 | 1.0br | 完成 `point-in-time-screening-safeguard`：扩展 `screen_securities` 与 `POST /analytics/screen-securities` 接收 `classification_as_of`，返回 `point_in_time_guard`、requested/classification/security-master as-of metadata、`uses_latest_classification=false`，并在未来分类数据进入历史筛选时返回 `blocked_future_data`；`deploy/analytics/screen-securities.contract.json` 与 `npm run check:screen-securities` 固化 `block_future_classification` policy；frontend UI/live historical constituents-industry-name/MCP registration 未启用，Sprint 2.1 更新为 7/9 |
+| 2026-06-21 | 1.0bq | 完成 `percentile-comparison-scaffold`：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/percentile-comparison`、`deploy/analytics/percentile-comparison.contract.json` 与 `npm run check:percentile-comparison`，覆盖 peer/index/history benchmarks、benchmark_as_of、constituent_as_of、point-in-time policy、percentile_rank 与 source_record_ids；frontend UI/live constituents/MCP registration 未启用，Sprint 2.1 更新为 6/9 |
+| 2026-06-21 | 1.0bp | 完成 `returns-risk-scaffold`：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/returns-risk`、`deploy/analytics/returns-risk.contract.json` 与 `npm run check:returns-risk`，覆盖 deterministic total return、average daily return、daily/annualized volatility、max drawdown、explicit-benchmark Beta、formula version、golden tolerance、source_record_ids 与 window metadata；frontend UI/live benchmark constituents/MCP registration 未启用，Sprint 2.1 更新为 5/9 |
+| 2026-06-21 | 1.0bo | 完成 `financial-ratios-scaffold`：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/financial-ratios`、`deploy/analytics/financial-ratios.contract.json` 与 `npm run check:financial-ratios`，覆盖 deterministic financial ratios、formula version、source_record_ids、blocked reasons 与 synthetic percentile metadata；frontend ratios UI/valuation multiples/live peer constituents/MCP registration 未启用，Sprint 2.1 更新为 4/9 |
+| 2026-06-21 | 1.0bn | 完成 `screen-securities-scaffold`：扩展 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/screen-securities`、`deploy/analytics/screen-securities.contract.json` 与 `npm run check:screen-securities`，覆盖 deterministic natural language → editable structured conditions、field/operator/value/time_basis/missing_value_rule/source_tool 展示、live execution confirmation、synthetic preview hits、why/rejected reasons 与 explainable ranking；frontend UI/broad NLP/live universe/high-cost queue 未启用，Sprint 2.1 更新为 3/9 |
+| 2026-06-21 | 1.0bm | 完成 `compare-securities-scaffold`：新增 `@aiphabee/analytics-tools`、`GET /analytics/runtime`、`POST /analytics/compare-securities`、`deploy/analytics/compare-securities.contract.json` 与 `npm run check:compare-securities`，覆盖 2–5 securities、security resolution、quote/profile/financial facts fanout、base currency/unit、missing metrics、quality flags、source_record_ids 与 incomparable reasons；frontend comparator/MCP registration/live FX/live data 未启用，Sprint 2.1 更新为 1/9 |
+| 2026-06-21 | 1.0bl | 完成 `stock-workbench-announcement-search-scaffold`：扩展 `@aiphabee/workbench` `announcement_search` section、`POST /workbench/stock/announcements`、`GET /workbench/runtime` capability、`POST /workbench/stock/snapshot` payload 与 `deploy/workbench/stock-workbench.contract.json` / `npm run check:stock-workbench`，覆盖 STK-06 security/date/category/keyword/limit 过滤、source_record_id、document_id/page/anchor/synthetic original locator、ambiguous security blocking；live original document fetch/full Phase 2 announcement tools/frontend rendering 未启用，Sprint 1.4 更新为 9/9 |
+| 2026-06-21 | 1.0bk | 完成 `stock-workbench-derived-metrics-scaffold`：扩展 `@aiphabee/workbench` `derived_metrics` section、`GET /workbench/runtime` capability、`POST /workbench/stock/snapshot` payload 与 `deploy/workbench/stock-workbench.contract.json` / `npm run check:stock-workbench`，覆盖 STK-04 公式版本、指标定义、source inputs、异常策略、盈利能力 deterministic 计算，以及缺 market cap/share-count 时 P/E/P/S/P/B `market_cap_unavailable` 阻断；frontend rendering/live valuation data 未启用，Sprint 1.4 更新为 8/9 |
+| 2026-06-21 | 1.0bj | 完成 `stock-workbench-aggregate-scaffold`：新增 `@aiphabee/workbench`、`GET /workbench/runtime`、`POST /workbench/stock/snapshot`、`deploy/workbench/stock-workbench.contract.json` 与 `npm run check:stock-workbench`，聚合 `resolve_security` / `get_security_profile` / `get_quote_snapshot` / `get_price_history` / `get_financial_facts` / `get_corporate_actions` synthetic handlers，覆盖 STK-01/STK-02/STK-03/STK-05 后端 aggregate surface；STK-04 derived valuation metrics、STK-06 announcements、frontend rendering、live data 未启用，Sprint 1.4 更新为 7/9 |
+| 2026-06-21 | 1.0bi | 完成 `usage-quota-display-scaffold`：扩展 `@aiphabee/usage-ledger` quota display capability，新增 `GET /usage/runtime`、`POST /usage/quota/plan`、`deploy/usage/quota-display.contract.json` 与 `npm run check:usage-quota-display`，覆盖 Web Agent/MCP channel、request_id、plan_code、period、credit limit、used/pending/remaining credits 与 5-minute freshness target；live ledger reads/billing reconciliation/persistent writes/frontend quota UI 未启用，Sprint 1.4 更新为 3/9 |
+| 2026-06-21 | 1.0bh | 完成 `internal-account-session-manual-plan-scaffold`：新增 `@aiphabee/account-runtime`、`GET /account/runtime`、`POST /account/session/plan`、`deploy/account/session.contract.json` 与 `npm run check:account-runtime`，覆盖 email/passwordless/social login method contract、session/device revoke plan、manual plan assignment plan、既有 account/workspace/subscription table linkage 与 forbidden credential payload classes；live identity provider/cookie issuance/DB writes/billing provider/frontend account UI 未启用，Sprint 1.4 更新为 2/9 |
+| 2026-06-21 | 1.0bg | 完成 `eval-v1-wvro-scaffold`：新增 Observability `eval_v1` capability、`run.eval.eval_v1` payload、`POST /observability/eval-v1/plan` no-write planner、`deploy/observability/eval-v1.contract.json` 与 `npm run check:eval-v1`，覆盖 fact/calculation/citation accuracy、correct refusal rate、unsourced numeric claim target `<0.1%`、WVRO 四条件与 high-intent actions；persistent eval-store writes/live OTLP export/frontend analytics dashboard/production partner-approved corpus/automatic answer grading 未启用，Sprint 1.4 更新为 1/9 |
+| 2026-06-21 | 1.0bf | 完成 `model-routing-audit-scaffold`：新增 Agent runtime `model_routing_audit`、`POST /agent/runs/plan` model routing/fallback audit policy、`deploy/agent/model-routing-audit.contract.json` 与 `npm run check:model-routing-audit`，覆盖 lightweight/main/deterministic-code routing tiers、Cloudflare AI Gateway planned provider linkage、MODEL_TIMEOUT/RATE_LIMITED/UPSTREAM_5XX fallback、model-change audit fields、safe reusable non-sensitive cache 与 sensitive audit redaction；live model execution/real AI Gateway request smoke/live token-cost-fallback log writes/frontend Ask rendering 未启用，Sprint 1.3 更新为 10/10 |
+| 2026-06-21 | 1.0be | 完成 `failure-recovery-policy-scaffold`：新增 Agent runtime `failure_recovery_policy`、`POST /agent/runs/plan` per-step recovery plan、`deploy/agent/failure-recovery-policy.contract.json` 与 `npm run check:failure-recovery-policy`，覆盖 failed-tool-call-only partial retry、retryable/non-retryable classes、completed step/evidence reuse、partial answer fallback、usage-ledger idempotency placeholder，以及 failed/retry attempts 不计费；actual live retry execution/durable run-state persistence/live ledger writes/frontend retry UI 未启用，Sprint 1.3 更新为 9/10 |
+| 2026-06-21 | 1.0bd | 完成 `answer-evidence-contract-scaffold`：新增 Agent runtime `answer_evidence_contract`、`POST /agent/runs/plan` ordered answer/evidence contract、`deploy/agent/answer-evidence-contract.contract.json` 与 `npm run check:answer-evidence-contract`，固定 PRD §8.3 八段答案顺序、AGT-06 fact/calculation/inference/unknown 标签、AGT-07 evidence-card payload 字段、evidence strength 和 validation rules；actual generated-answer parsing/live evidence binding/frontend clickable rendering 未启用，Sprint 1.3 更新为 8/10 |
+| 2026-06-21 | 1.0bc | 完成 `numeric-source-guard-scaffold`：新增 Agent runtime `numeric_source_guard`、`POST /agent/runs/plan` answer-contract guard、`deploy/agent/numeric-source-guard.contract.json` 与 `npm run check:numeric-source-guard`，限制具体金融数字只能来自 tool result 或 deterministic calculation，当前 no-live 状态 `concrete_claims_allowed_now=false`，阻断 model_memory/training_data/unverified_prompt/unstated_source 并使用 `UNSOURCED_NUMERIC_CLAIM`；actual post-generation extraction/live evidence binding/frontend evidence cards 未启用，Sprint 1.3 更新为 6/10 |
+| 2026-06-21 | 1.0bb | 完成 `tool-enforcement-scaffold`：新增 Agent runtime `tool_enforcement`、planned tool-call enforcement metadata、`deploy/agent/tool-enforcement.contract.json` 与 `npm run check:tool-enforcement`，覆盖 registered/versioned/schema-bound/permission-scope/rights-aware/no-arbitrary-SQL/no-arbitrary-URL/read-only-no-live-data checks，`sql.query`/`http.fetch` 返回 `SCOPE_DENIED`；actual tool execution/runtime schema serving/MCP protocol endpoint/live entitlement DB reads 未启用，Sprint 1.3 更新为 5/10 |
+| 2026-06-21 | 1.0ba | 完成 `budget-stop-policy-scaffold`：新增 Agent runtime `budget_stop_policy`、`stopped_budget` 计划状态、steps/credits/rows/tokens/wall_clock_ms deterministic estimate、partial graceful stop response、continuation cost、连续 2 次同类错误停止自动重试，以及 `deploy/agent/budget-stop-policy.contract.json` / `npm run check:budget-stop-policy`；valid budget exhaustion 不再作为输入错误抛出，actual tool execution/live usage ledger/model-cost accounting/frontend budget confirmation UI 未启用，Sprint 1.3 更新为 4/10 |
+| 2026-06-21 | 1.0az | 完成 `pre-tool-call-resolution-scaffold`：新增 `createPreToolCallResolution()`、`POST /agent/runs/preflight`、`POST /agent/runs/plan` preflight embedding、`deploy/agent/pre-tool-call-resolution.contract.json` 与 `npm run check:pre-tool-call-resolution`，工具规划前解析 security/time/currency/methodology，ABC 歧义返回 blocking clarification + candidates，不静默选择；real NLP resolver/actual tool calls/frontend clarification UI 未启用，Sprint 1.3 更新为 3/10 |
+| 2026-06-21 | 1.0ay | 完成 `tool-loop-agent-planner-scaffold`：新增 `createToolLoopAgentPlan()`、`POST /agent/runs/plan`、`deploy/agent/tool-loop-planner.contract.json` 与 `npm run check:tool-loop-agent`，规划 security resolution / entitlement gate / data fetch / evidence binding / answer contract，多步计划限制 ≤6–8 steps、每步并行≤3只读工具，输出 public progress events 且不暴露 chain-of-thought；actual tool execution/live streaming transport/real model calls/frontend Ask 未启用，Sprint 1.3 更新为 2/10 |
+| 2026-06-21 | 1.0ax | 完成 `agent-run-context-scaffold`：扩展 `@aiphabee/agent-runtime` dry-run `run_context`，`POST /agent/runs/dry-run` 返回 run/user/workspace、套餐、synthetic default-deny 权益、工具版本/schema/scope、预算维度与 `dry_run` 模型层级，新增 `deploy/agent/run-context.contract.json` 与 `npm run check:agent-run-context`；real model calls/streaming/live entitlement reads/frontend Ask 未启用，Sprint 1.3 更新为 1/10 |
+| 2026-06-21 | 1.0aw | 完成 `evidence-lineage-service-scaffold`：扩展 `@aiphabee/evidence-lineage` no-write evidence record/source-ref/citation planner，新增 `GET /evidence/runtime`、`POST /evidence/records/plan`、`supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql`、`deploy/evidence/service.contract.json` 与 `npm run check:evidence-service`，支持 tool call ↔ source record/data version/methodology/user-visible citation 计划；live DB writes/partner source rows/MCP protocol endpoint/runtime schema serving/live route replay 未启用，Sprint 1.2 更新为 12/12 |
+| 2026-06-21 | 1.0av | 完成 `tool-golden-fixtures-scaffold`：新增 `tests/golden/tools/manifest.json` 与 9 个 tool expected-response fixtures，并扩展 `npm run test:golden` 校验 tool schema IDs、标准 envelope、provenance、usage、`toolName`/`status`/`liveDataAccess=false`；live route replay/partner-approved production corpus 未启用，Sprint 1.2 更新为 11/12 |
+| 2026-06-21 | 1.0au | 完成 `tool-schema-contract-scaffold`：新增 `deploy/tools/tool-schemas.contract.json` 与 `npm run check:tool-schemas`，覆盖 9 个 registered tools 的 input/output schema IDs、标准 response envelope fields、success data shape、error schema enum 与 no arbitrary SQL/URL input guard；runtime validator/MCP schema serving/golden response validation 未启用，Sprint 1.2 更新为 10/12 |
+| 2026-06-21 | 1.0at | 完成 `evidence-lineage-tools-scaffold`：新增 `@aiphabee/evidence-lineage`、`POST /tools/get-data-lineage`、`POST /tools/get-entitlements`、synthetic evidence/source lineage、source batch/data version/methodology/formula/upstream metadata、Gateway entitlement policy compiler/evaluator scope 自查、`deploy/tools/evidence-lineage.contract.json` 与 `npm run check:evidence-lineage`，`/tools/runtime` handler-ready 变为 9；durable Evidence/Lineage service/live DB entitlement reads/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 9/12 |
+| 2026-06-21 | 1.0as | 完成 `get-financial-facts-tool-scaffold`：扩展 `@aiphabee/financial-facts`、新增 `POST /tools/get-financial-facts`、synthetic standardized fact rows、period/currency/unit/accounting-standard/scale/restatement-version/as_of metadata、metric/statement-type subsets、limit/cursor、`deploy/tools/get-financial-facts.contract.json` 与 `npm run check:financial-facts`，`/tools/runtime` handler-ready 变为 7；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 8/12 |
+| 2026-06-21 | 1.0ar | 完成 `get-corporate-actions-tool-scaffold`：扩展 `@aiphabee/corporate-actions`、新增 `POST /tools/get-corporate-actions`、synthetic corporate action timeline rows、adjustment impact metadata、type subset、limit/cursor、`deploy/tools/get-corporate-actions.contract.json` 与 `npm run check:corporate-actions`，`/tools/runtime` handler-ready 变为 6；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 7/12 |
+| 2026-06-21 | 1.0aq | 完成 `get-price-history-tool-scaffold`：扩展 `@aiphabee/market-data`、新增 `POST /tools/get-price-history`、synthetic OHLCV/return/drawdown history rows、复权口径 metadata、limit/cursor、`deploy/tools/get-price-history.contract.json`，`/tools/runtime` handler-ready 变为 5；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 6/12 |
+| 2026-06-21 | 1.0ap | 完成 `get-quote-snapshot-tool-scaffold`：新增 `@aiphabee/market-data`、`POST /tools/get-quote-snapshot`、synthetic delayed/close quote fixture、字段子集、延迟 metadata、`deploy/tools/get-quote-snapshot.contract.json` 与 `npm run check:market-data`；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 5/12 |
+| 2026-06-21 | 1.0ao | 完成 `get-market-calendar-tool-scaffold`：新增 `@aiphabee/market-calendar`、`POST /tools/get-market-calendar`、HK synthetic trading/half-day/weather/holiday/weekend fixtures、`deploy/tools/get-market-calendar.contract.json` 与 `npm run check:market-calendar`；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 4/12 |
+| 2026-06-21 | 1.0an | 完成 `get-security-profile-tool-scaffold`：扩展 `@aiphabee/security-tools`、新增 `POST /tools/get-security-profile`、listed/suspended/delisted synthetic profile fixture、`deploy/tools/get-security-profile.contract.json`，`/tools/runtime` handler-ready 变为 2；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 3/12 |
+| 2026-06-21 | 1.0am | 完成 `resolve-security-tool-scaffold`：新增 `@aiphabee/security-tools`、`POST /tools/resolve-security`、synthetic code/name/history resolver、ambiguity candidates、`deploy/tools/resolve-security.contract.json` 与 `npm run check:security-tools`；live DB/partner rows/MCP endpoint 未启用，Sprint 1.2 更新为 2/12 |
+| 2026-06-21 | 1.0al | 完成 `shared-tool-registry-scaffold`：新增 `@aiphabee/tool-registry`、9 个 planned read-only tools metadata、`/tools/runtime`、`deploy/tools/registry.contract.json` 与 `npm run check:tool-registry`；agent runtime 改用共享 registry，工具执行/live data/golden fixtures 未启用，Sprint 1.2 更新为 1/12 |
+| 2026-06-20 | 1.0ak | 完成 `serving-result-envelope-scaffold`：新增 Gateway `servingResult` decision payload、Worker `/gateway/runtime` result-envelope capability 与 `serving_result_envelope_scaffold` contract guard；绑定 standard envelope fields 但不返回 live rows / 不执行 SQL，Sprint 1.1 更新为 21/26 |
+| 2026-06-20 | 1.0aj | 完成 `serving-execution-adapter-scaffold`：新增 `@aiphabee/serving-store` execution adapter planner、Gateway decision `servingExecution`、Worker `/gateway/runtime` execution adapter capability 与 `serving_execution_adapter_scaffold` contract guard；SQL execution / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 20/25 |
+| 2026-06-20 | 1.0ai | 完成 `serving-sql-text-compiler-scaffold`：新增 `@aiphabee/serving-store` SQL text compiler、Gateway decision `servingSqlText`、Worker `/gateway/runtime` SQL text compiler capability 与 `serving_sql_text_compiler_scaffold` contract guard；SQL execution / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 19/24 |
+| 2026-06-20 | 1.0ah | 完成 `serving-sql-descriptor-scaffold`：新增 `@aiphabee/serving-store` SQL descriptor planner、Gateway decision `servingSqlDescriptor`、Worker `/gateway/runtime` SQL descriptor capability 与 `serving_sql_descriptor_scaffold` contract guard；SQL text / live execution / Hyperdrive reads 未启用，Sprint 1.1 更新为 18/23 |
+| 2026-06-20 | 1.0ag | 完成 `live-serving-query-planner-scaffold`：新增 `@aiphabee/serving-store` query planner、Gateway decision `servingQuery`、Worker `/gateway/runtime` query planner capability 与 `serving_query_planner_scaffold` contract guard；live SQL / Hyperdrive reads / partner rows 未启用，Sprint 1.1 更新为 17/22 |
+| 2026-06-20 | 1.0af | 完成 `field-entitlement-policy-source-scaffold`：新增 Gateway entitlement row snapshot compiler、Worker `/gateway/runtime` policy source capability 与 `field_entitlement_policy_source_scaffold` contract guard；partner rights matrix / live DB reads 未启用，Sprint 1.1 更新为 16/21 |
+| 2026-06-20 | 1.0ae | 完成 `usage-ledger-event-writer-scaffold`：新增 `@aiphabee/usage-ledger` event writer planner、Gateway decision `usageLedger`、Worker `/gateway/runtime` capability 与 `usage_event_writer_scaffold` contract guard；live SQL / billing reconciliation / quota UI 未启用，Sprint 1.1 更新为 15/20 |
+| 2026-06-20 | 1.0ad | 完成 `serving-quality-release-isolation-scaffold`：新增 `@aiphabee/serving-store` quality release planner、Worker `/data/runtime` 与 `/gateway/runtime` capability、`serving_quality_release_isolation` contract guard；live SQL / partner rows / Serving writes 未启用，Sprint 1.1 更新为 14/19 |
+| 2026-06-20 | 1.0ac | 完成 `serving-read-scaffold-default-deny`：新增 `@aiphabee/serving-store` read planner、Gateway `servingRead` decision、Worker `/gateway/runtime` read planner capability 与 `serving_read_default_deny` contract guard；live SQL / partner rows / served rows 未启用，Sprint 1.1 更新为 13/18 |
+| 2026-06-20 | 1.0ab | 完成 `financial-restatement-golden-engine-scaffold`：新增 `@aiphabee/financial-facts` deterministic restatement engine、版本保留/point-in-time/delta/identity synthetic golden cases、Worker `/data/runtime` capability；partner financial data 与 live Serving reads 未启用，Sprint 1.1 更新为 12/17 |
+| 2026-06-20 | 1.0aa | 完成 `corporate-action-adjustment-engine-golden-scaffold`：新增 `@aiphabee/corporate-actions` deterministic adjustment engine、split/consolidation/dividend synthetic golden cases、Worker `/data/runtime` capability；partner/public benchmark parity 与 live Serving reads 未启用，Sprint 1.1 更新为 11/16 |
+| 2026-06-20 | 1.0z | 完成 `serving-store-schema-scaffold`：新增 Supabase-compatible Serving Store dataset/field/snapshot/record schema、database migration contract、Worker `/data/runtime` 与 `/gateway/runtime` capability；live Serving reads 未启用，Sprint 1.1 更新为 10/15 |
+| 2026-06-20 | 1.0y | 完成 `field-entitlement-enforcement-scaffold`：Gateway evaluator 支持 workspace/plan/channel/dataset/field/time_range/export 维度，更新 access contract/cache key/runtime；live policy source 未启用，Sprint 1.1 更新为 9/14 |
+| 2026-06-20 | 1.0x | 完成 `usage-ledger-scaffold`：新增 Supabase-compatible usage meter/event/reconciliation/ledger schema、database migration contract、Worker `/gateway/runtime`；不启用 live usage writes，Sprint 1.1 更新为 8/13 |
+| 2026-06-20 | 1.0w | 完成 `account-workspace-entitlement-scaffold`：新增 Supabase-compatible account/workspace/membership/subscription/entitlement schema、database migration contract、Worker `/data/runtime` 与 `/gateway/runtime`；不启用 live entitlement enforcement，Sprint 1.1 更新为 7/12 |
+| 2026-06-20 | 1.0v | 完成 `corporate-action-adjustment-scaffold`：新增 Supabase-compatible corporate action / adjustment methodology / price adjustment factor schema、database migration contract、Worker `/data/runtime`；不加载真实市场数据，Sprint 1.1 更新为 6/12 |
+| 2026-06-20 | 1.0u | 完成 `financial-facts-restatement-scaffold`：新增 Supabase-compatible financial statement/fact/restatement schema、database migration contract、Worker `/data/runtime`；不加载真实市场数据，Sprint 1.1 更新为 5/11 |
+| 2026-06-20 | 1.0t | 完成 `security-master-raw-snapshot-scaffold`：新增 Supabase-compatible security master/raw snapshot schema、database migration contract、Worker `/data/runtime`；不加载真实市场数据，Sprint 1.1 更新为 4/11 |
+| 2026-06-20 | 1.0s | 完成 `data-access-gateway-default-deny-scaffold`：新增 `packages/data-access-gateway`、default-deny gateway contract、`npm run check:data-gateway`、Worker `/gateway/runtime` 与 `/gateway/access-check`，覆盖 `DATA_NOT_LICENSED` / `DATA_QUALITY_HOLD` guard；真实 Serving/权益/usage ledger 仍未完成，Sprint 1.1 更新为 2/11 |
+| 2026-06-20 | 1.0r | 完成 `observability-persistent-eval-store-scaffold`：新增 eval-store record schema/sink、planned D1 `AIPHABEE_EVAL_STORE` binding、OTLP names-only env、`/observability/runtime` guard，并扩展 `check:observability`；真实 OTLP export 与 persistent write/read smoke 仍未完成，Sprint 0.4 更新为 17/23 |
+| 2026-06-20 | 1.0q | 完成 `golden-quality-rule-fixtures`：`npm run test:golden` 改为 strict fixture gate，新增 8 个 synthetic golden samples、12 条 deterministic quality rules、`DATA_QUALITY_HOLD` hold 断言；production partner corpus 与商业成本评审仍未完成，Sprint 0.4 更新为 16/22 |
+| 2026-06-20 | 1.0p | 完成 `model-provider-streaming-scaffold`：新增 model provider / AI Gateway contract、`npm run check:model-provider`、`MODEL_PROVIDER_NOT_CONFIGURED`、Worker `/agent/model-provider` 与 guarded `/agent/runs/stream`；真实 AI Gateway / `streamText` / token logs 仍未完成，Sprint 0.4 更新为 15/22 |
+| 2026-06-20 | 1.0o | 完成 `provider-secret-stores-contract`：新增 Cloudflare/GitHub/Supabase secret stores contract、rotation/revocation runbook、`npm run check:secrets`、Worker `/secrets/runtime`；真实 provider store provisioning/rotation smoke 仍未完成，Sprint 0.4 更新为 14/21 |
+| 2026-06-20 | 1.0n | 完成 `postgres-hyperdrive-migration-scaffold`：新增 Supabase-compatible migration、database migration manifest、Hyperdrive connection contract、`npm run check:database`、Worker `/database/runtime`；真实 Hyperdrive binding / `SELECT 1` smoke 仍未完成，Sprint 0.4 更新为 13/20 |
+| 2026-06-20 | 1.0m | 完成 `observability-eval-scaffold`：启用 Workers Logs/traces，新增 `packages/observability`、`run.audit`/`run.eval` 事件契约、console sink、`npm run check:observability` 与 dry-run telemetry headers；真实 OTLP destination / persistent eval store 仍未完成，Sprint 0.4 更新为 12/19 |
+| 2026-06-20 | 1.0l | 完成 `agent-runtime-scaffold`：新增 `packages/agent-runtime`、AI SDK v7 beta dry-run skeleton、Worker `/agent/runtime` 与 `/agent/runs/dry-run`，补齐 PRD §9.6 错误码；Sprint 0.4 更新为 11/18 |
+| 2026-06-20 | 1.0k | 完成 `cloudflare-bindings-contract`：新增 Cloudflare binding manifest、`npm run check:bindings` 与 CI step；真实资源 provision/smoke 仍未完成，Sprint 0.4 更新为 10/18 |
+| 2026-06-20 | 1.0j | 完成 `env-secrets-contract`：新增 env schema、dev/staging/prod names-only templates、`npm run check:env` 与 CI Env Contract；provider secret stores/rotation 仍未完成，Sprint 0.4 更新为 9/17 |
+| 2026-06-20 | 1.0i | 完成 `golden-regression-hook`：新增 `npm run test:golden`、CI Golden Regression Hook、fixture manifest validator 与 `tests/golden` 说明；fixtures 仍未完成，Sprint 0.4 更新为 8/16 |
+| 2026-06-20 | 1.0h | 完成 `p0-traceability-ledger`：新增 53 条 P0 requirement owner/issue/test/release gate ledger；Sprint 0.4 更新为 7/15，§M 需求实现状态不变 |
+| 2026-06-20 | 1.0g | 完成 `engineering-runtime-scaffold` 非前端切片：新增 npm workspaces、Hono Worker health、shared data contracts、CI、env template 与 runtime evidence；按用户指示撤出前端/TanStack/Vite，Sprint 0.4 更新为 6/15 |
+| 2026-06-20 | 1.0f | 完成 `phase0-traceability-closeout`：新增 Phase 0 证据/阻断/traceability closeout，更新 `tasks/todos.md` deferred blockers；Phase 0 Gate 仍保持未全绿 |
+| 2026-06-20 | 1.0e | 完成 `engineering-foundation-audit`：新增 PRD §23 工程地基现状审计；Sprint 0.4 完成度 1/10，其余 runtime scaffold / CI / binding / traceability 任务保持未完成 |
+| 2026-06-20 | 1.0d | 完成 `golden-quality-commercial-baseline`：新增黄金样本、质量规则、数据隔离/更正、套餐权益、credits、单位经济与 Free 防滥用基线；Sprint 0.3 设计 backlog 9/9，CI/商业评审门槛保持未绿 |
+| 2026-06-20 | 1.0c | 完成 `data-contract-methodology-baseline`：新增数据契约与口径基线、task contract 与执行计划；Sprint 0.2 设计 backlog 9/9，合作方签署门槛保持未绿 |
+| 2026-06-20 | 1.0b | 完成 `gate0-rights-regulatory-decision-pack`：新增 Gate 0 权利/监管决策包、task contract 与执行计划；外部审批项保持未勾选 |
+| 2026-06-20 | 1.0a | 建立首个 Phase 0 Gate 0 sprint 执行入口；更新看板为 Phase 0 / Sprint 0.1 进行中；仅勾选已完成的 harness 接入任务 |
+| 2026-06-20 | 1.0 | 依据 PRD v1.0 首次生成完整 Sprint 跟踪清单 |

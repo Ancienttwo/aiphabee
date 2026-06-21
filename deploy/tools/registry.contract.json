@@ -1,0 +1,118 @@
+{
+  "version": "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
+  "status": "local_contract",
+  "registry_status": "registry_scaffold",
+  "execution_ready": false,
+  "live_data_access": false,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "breaking_changes_require_new_major": true,
+  "deprecation_policy_ready": true,
+  "pagination_limits_ready": true,
+  "pagination_or_rights_bypass_blocked": true,
+  "standard_response_envelope": true,
+  "rights_aware": true,
+  "channels": ["web", "mcp", "api"],
+  "runtime_routes": ["GET /tools/runtime", "GET /agent/runtime"],
+  "required_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
+    "get_event_timeline",
+    "get_data_lineage",
+    "get_entitlements"
+  ],
+  "scaffold_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
+    "get_event_timeline",
+    "get_data_lineage",
+    "get_entitlements"
+  ],
+  "required_tool_fields": [
+    "name",
+    "version",
+    "description",
+    "channels",
+    "lifecycle",
+    "permissions",
+    "retrieval",
+    "schema",
+    "execution",
+    "testing",
+    "status"
+  ],
+  "required_schema_fields": [
+    "inputSchemaId",
+    "outputSchemaId",
+    "standardErrorCodes",
+    "standardResponseEnvelope"
+  ],
+  "required_permission_fields": ["requiredScope", "dataClasses", "rightsAware"],
+  "required_execution_fields": [
+    "mode",
+    "handlerReady",
+    "liveDataAccess",
+    "allowArbitrarySql",
+    "allowArbitraryUrl"
+  ],
+  "required_testing_fields": ["goldenFixtureReady", "requiredGoldenFixture"],
+  "required_lifecycle_fields": [
+    "publicVersion",
+    "majorVersion",
+    "breakingChangesRequireNewMajor",
+    "deprecation",
+    "compatibility"
+  ],
+  "required_deprecation_fields": [
+    "status",
+    "minimumNoticeDays",
+    "announcedAt",
+    "sunsetAt",
+    "migrationGuide"
+  ],
+  "required_retrieval_fields": [
+    "cursorPagination",
+    "rowLimit",
+    "timeRangeLimit",
+    "enforcedBeforeExecution",
+    "planOrRightsBypassBlocked"
+  ],
+  "required_row_limit_fields": ["defaultLimit", "maxLimit", "parameter"],
+  "required_cursor_pagination_fields": [
+    "enabled",
+    "parameter",
+    "cursorOpaque",
+    "cursorBoundToRequest"
+  ],
+  "required_time_range_limit_fields": [
+    "required",
+    "fromParameters",
+    "toParameters",
+    "maxWindowDays"
+  ],
+  "minimum_deprecation_notice_days": 90,
+  "previous_major_support_window_days": 180,
+  "versioning_ready": true
+}

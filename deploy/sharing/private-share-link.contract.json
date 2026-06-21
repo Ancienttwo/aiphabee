@@ -1,0 +1,50 @@
+{
+  "version": "2026-06-21.phase3.private-share-link-scaffold.v0",
+  "status": "local_contract",
+  "capability_name": "private_sharing_links",
+  "route": "POST /sharing/private-links/plan",
+  "runtime_route": "GET /sharing/runtime",
+  "covered_sprint_3_2_items": ["RES-03", "PRD §19.4"],
+  "required_scope": "exports.read",
+  "creator_scope_required": true,
+  "recipient_scope_required": true,
+  "uses_data_access_gateway": true,
+  "gateway_channel": "export",
+  "recipient_entitlement_recheck": true,
+  "recipient_data_rights_expansion": false,
+  "share_expands_recipient_rights": false,
+  "field_authorization_required": true,
+  "redaction_required_when_recipient_lacks_field": true,
+  "row_limit_required": true,
+  "max_expires_in_hours": 168,
+  "watermark_required": true,
+  "required_watermark_fields": [
+    "request_id",
+    "share_ref",
+    "creator_workspace_id",
+    "recipient_workspace_id",
+    "dataset",
+    "rights_policy_version",
+    "as_of"
+  ],
+  "required_statuses": [
+    "planned_no_write",
+    "blocked_missing_context",
+    "blocked_invalid_expiry",
+    "blocked_creator_missing_scope",
+    "blocked_recipient_missing_scope",
+    "blocked_creator_gateway_denied",
+    "blocked_recipient_gateway_denied"
+  ],
+  "required_database_tables": [
+    "core.private_share_link",
+    "audit.private_share_event",
+    "governance.private_sharing_contract"
+  ],
+  "live_data_access": false,
+  "link_handle_materialized": false,
+  "public_indexing": false,
+  "artifact_writes": false,
+  "persistent_writes": false,
+  "frontend": false
+}

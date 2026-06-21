@@ -1,0 +1,42 @@
+{
+  "version": "2026-06-21.phase1.evidence-lineage-service-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/evidence-lineage",
+  "routes": ["GET /evidence/runtime", "POST /evidence/records/plan"],
+  "tables": ["core.evidence_record", "core.evidence_source_ref"],
+  "governance_table": "governance.evidence_lineage_service_contract",
+  "live_db_writes": false,
+  "partner_source_records_loaded": false,
+  "sql_emitted": false,
+  "default_rights_status": "default_deny",
+  "standard_response_envelope": true,
+  "capabilities": [
+    "tool_call_linking",
+    "source_record_linking",
+    "data_version_linking",
+    "methodology_version_linking",
+    "user_visible_citations",
+    "citation_planner",
+    "durable_schema_ready"
+  ],
+  "required_record_fields": [
+    "evidenceRecordId",
+    "requestId",
+    "toolName",
+    "toolVersion",
+    "inputSchemaId",
+    "outputSchemaId",
+    "dataVersion",
+    "methodologyVersion",
+    "rightsState"
+  ],
+  "required_source_ref_fields": [
+    "evidenceSourceRefId",
+    "evidenceRecordId",
+    "source",
+    "sourceRecordId",
+    "dataVersion",
+    "methodologyVersion"
+  ],
+  "required_citation_fields": ["label", "sourceRecordIds", "visibility"]
+}

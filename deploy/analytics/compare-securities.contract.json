@@ -1,0 +1,53 @@
+{
+  "version": "2026-06-21.phase2.compare-securities-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/compare-securities",
+  "tool_name": "compare_securities",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_2_1_items": [
+    "ANA-01",
+    "ANA-02"
+  ],
+  "limits": {
+    "min_securities": 2,
+    "max_securities": 5
+  },
+  "source_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_quote_snapshot",
+    "get_financial_facts"
+  ],
+  "comparison_contract": {
+    "unified_currency_required": true,
+    "fx_conversion_without_rate": false,
+    "unit_alignment_required": true,
+    "incomparable_rows_explicit": true,
+    "ambiguous_security_blocks": true,
+    "point_in_time_as_of_supported": true,
+    "required_metrics": [
+      "revenue",
+      "net_income",
+      "assets",
+      "equity"
+    ],
+    "required_output_fields": [
+      "rows",
+      "unified_comparison",
+      "missing_metrics",
+      "quality_flags",
+      "source_record_ids"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/tools/resolve-security.contract.json",
+    "deploy/tools/get-security-profile.contract.json",
+    "deploy/tools/get-quote-snapshot.contract.json",
+    "deploy/tools/get-financial-facts.contract.json"
+  ]
+}

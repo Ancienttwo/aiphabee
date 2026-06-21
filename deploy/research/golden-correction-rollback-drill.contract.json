@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-21.phase3.golden-correction-rollback-drill-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/research-runtime",
+  "runtime_route": "GET /research/runtime",
+  "route": "POST /research/golden-correction-rollback-drill/plan",
+  "tool_name": "plan_golden_correction_rollback_drill",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "queue_writes": false,
+  "live_rollback_execution": false,
+  "sql_emitted": false,
+  "golden_fixture_command": "npm run test:golden",
+  "golden_manifest_path": "tests/golden/manifest.json",
+  "tool_golden_manifest_path": "tests/golden/tools/manifest.json",
+  "required_golden_sample_count": 8,
+  "required_tool_golden_sample_count": 16,
+  "required_quality_rule_count": 12,
+  "quality_rules_version": "quality_rules_v0",
+  "production_partner_corpus_loaded": false,
+  "old_report_mutation_allowed": false,
+  "silent_rewrite_allowed": false,
+  "required_steps": [
+    "golden_fixture_gate",
+    "correction_event_plan",
+    "affected_report_mark",
+    "user_notification_plan",
+    "rollback_replay_plan"
+  ],
+  "required_output_fields": [
+    "golden_fixture_gate",
+    "correction_notification_plan",
+    "rollback_replay_plan",
+    "drill_steps",
+    "validation"
+  ],
+  "tables": [
+    "core.golden_correction_rollback_drill",
+    "governance.golden_correction_rollback_drill_contract",
+    "core.data_correction_event",
+    "core.research_run_correction_impact"
+  ],
+  "covered_sprint_3_3_items": [
+    "golden_samples_pass",
+    "data_correction_rollback_drill"
+  ],
+  "linked_contracts": [
+    "deploy/research/research-run-save.contract.json",
+    "deploy/research/research-run-replay.contract.json",
+    "deploy/research/data-correction-notifications.contract.json",
+    "deploy/database/migrations.contract.json",
+    "tests/golden/manifest.json",
+    "tests/golden/tools/manifest.json"
+  ]
+}

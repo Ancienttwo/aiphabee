@@ -1,0 +1,154 @@
+{
+  "version": "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp",
+  "standard_response_envelope": true,
+  "machine_readable_errors": true,
+  "stable_error_taxonomy": true,
+  "frontend": false,
+  "live_oauth_provider": false,
+  "live_tool_execution": false,
+  "covered_sprint_2_3_items": [
+    "MCP-08",
+    "standard_error_codes",
+    "machine_readable_error_detail",
+    "client_action",
+    "retry_after_contract"
+  ],
+  "standard_error_categories": [
+    "authentication",
+    "authorization",
+    "data",
+    "limit",
+    "system"
+  ],
+  "standard_error_codes": [
+    "AUTH_REQUIRED",
+    "SCOPE_DENIED",
+    "DATA_NOT_LICENSED",
+    "SYMBOL_AMBIGUOUS",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS",
+    "RATE_LIMITED",
+    "BUDGET_EXCEEDED",
+    "UPSTREAM_STALE",
+    "DATA_QUALITY_HOLD",
+    "INTERNAL_ERROR"
+  ],
+  "required_error_detail_fields": [
+    "category",
+    "client_action",
+    "internal_code",
+    "mcp_error_version",
+    "recoverable",
+    "request_id",
+    "retry_after_required",
+    "source_record_id"
+  ],
+  "standard_error_definitions": [
+    {
+      "category": "authentication",
+      "client_action": "reauthorize",
+      "code": "AUTH_REQUIRED",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_auth_required"
+    },
+    {
+      "category": "authorization",
+      "client_action": "request_additional_scope",
+      "code": "SCOPE_DENIED",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_scope_denied"
+    },
+    {
+      "category": "authorization",
+      "client_action": "upgrade_or_reduce_scope",
+      "code": "DATA_NOT_LICENSED",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_data_not_licensed"
+    },
+    {
+      "category": "data",
+      "client_action": "select_security_candidate",
+      "code": "SYMBOL_AMBIGUOUS",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_symbol_ambiguous"
+    },
+    {
+      "category": "limit",
+      "client_action": "narrow_request",
+      "code": "OUT_OF_RANGE",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_out_of_range"
+    },
+    {
+      "category": "limit",
+      "client_action": "narrow_request",
+      "code": "TOO_MANY_ROWS",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_too_many_rows"
+    },
+    {
+      "category": "limit",
+      "client_action": "retry_after",
+      "code": "RATE_LIMITED",
+      "recoverable": true,
+      "retry_after_required": true,
+      "source_record_id": "mcp_error_rate_limited"
+    },
+    {
+      "category": "limit",
+      "client_action": "upgrade_or_shrink_task",
+      "code": "BUDGET_EXCEEDED",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_budget_exceeded"
+    },
+    {
+      "category": "data",
+      "client_action": "show_last_available_as_of",
+      "code": "UPSTREAM_STALE",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_upstream_stale"
+    },
+    {
+      "category": "data",
+      "client_action": "try_alternate_methodology_or_retry_later",
+      "code": "DATA_QUALITY_HOLD",
+      "recoverable": true,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_data_quality_hold"
+    },
+    {
+      "category": "system",
+      "client_action": "contact_support_with_request_id",
+      "code": "INTERNAL_ERROR",
+      "recoverable": false,
+      "retry_after_required": false,
+      "source_record_id": "mcp_error_internal_error"
+    }
+  ],
+  "internal_error_mappings": {
+    "API_KEY_ID_REQUIRED": "AUTH_REQUIRED",
+    "AUTHORIZATION_CODE_REQUIRED": "AUTH_REQUIRED",
+    "CODE_VERIFIER_REQUIRED": "AUTH_REQUIRED",
+    "CONNECTION_OR_TOKEN_REQUIRED": "AUTH_REQUIRED",
+    "MCP_REDISTRIBUTION_RIGHTS_REQUIRED": "DATA_NOT_LICENSED",
+    "ORIGIN_NOT_ALLOWED": "SCOPE_DENIED",
+    "ORIGIN_REQUIRED": "SCOPE_DENIED",
+    "TOOL_LIMIT_EXCEEDED": "TOO_MANY_ROWS",
+    "TOOL_NOT_REGISTERED": "SCOPE_DENIED",
+    "TOOL_SCOPE_REQUIRED": "SCOPE_DENIED",
+    "TOOL_TIME_RANGE_EXCEEDED": "OUT_OF_RANGE",
+    "UNSUPPORTED_METHOD": "OUT_OF_RANGE"
+  }
+}

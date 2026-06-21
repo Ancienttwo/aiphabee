@@ -1,0 +1,78 @@
+{
+  "version": "2026-06-20.phase1.serving-result-envelope-scaffold.v0",
+  "status": "local_contract",
+  "default_rights_status": "default_deny",
+  "rights_policy_version": "gate0-default-deny-v0",
+  "methodology_version": "2026-06-20.phase1.serving-result-envelope-scaffold.v0",
+  "channels": [
+    {
+      "name": "web",
+      "status": "default_deny"
+    },
+    {
+      "name": "mcp",
+      "status": "default_deny"
+    },
+    {
+      "name": "api",
+      "status": "default_deny"
+    },
+    {
+      "name": "export",
+      "status": "default_deny"
+    }
+  ],
+  "required_guards": [
+    "channel_rights_default_deny",
+    "field_redaction",
+    "field_entitlement_policy_source_scaffold",
+    "workspace_entitlement_default_deny",
+    "plan_entitlement",
+    "export_entitlement",
+    "row_limit",
+    "time_range_limit",
+    "quality_hold",
+    "serving_execution_adapter_scaffold",
+    "serving_quality_release_isolation",
+    "serving_query_planner_scaffold",
+    "serving_read_default_deny",
+    "serving_result_envelope_scaffold",
+    "serving_sql_descriptor_scaffold",
+    "serving_sql_text_compiler_scaffold",
+    "cache_key_versioning",
+    "provenance_required",
+    "usage_event_writer_scaffold",
+    "usage_preview"
+  ],
+  "limits": {
+    "max_rows": 500,
+    "max_window_days": 366
+  },
+  "cache_key_fields": [
+    "dataset",
+    "channel",
+    "plan",
+    "workspace_id",
+    "allowed_fields",
+    "export_requested",
+    "data_version",
+    "rights_policy_version",
+    "methodology_version",
+    "time_range",
+    "serving_snapshot_id",
+    "release_state"
+  ],
+  "error_codes": [
+    "DATA_NOT_LICENSED",
+    "DATA_QUALITY_HOLD",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS"
+  ],
+  "runtime_routes": [
+    "GET /gateway/runtime",
+    "POST /gateway/access-check"
+  ],
+  "live_data_access": false,
+  "market_data_surfaces": false,
+  "mcp_redistribution_surfaces": false
+}

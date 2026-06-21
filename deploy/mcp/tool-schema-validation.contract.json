@@ -1,0 +1,72 @@
+{
+  "version": "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "route": "POST /mcp",
+  "schema_source_contract": "deploy/tools/tool-schemas.contract.json",
+  "tool_registry_package": "@aiphabee/tool-registry",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_tool_execution": false,
+  "strict_input_validation": true,
+  "additional_properties_allowed": false,
+  "missing_required_arguments_rejected": true,
+  "unsupported_arguments_rejected": true,
+  "structured_content_required": true,
+  "structured_content_matches_output_schema": "planned_no_live",
+  "raw_text_only_response_allowed": false,
+  "covered_sprint_2_3_items": [
+    "MCP-04",
+    "strict_input_validation",
+    "additional_properties_false",
+    "structuredContent",
+    "outputSchema"
+  ],
+  "required_tool_call_fields": [
+    "input_schema_id",
+    "output_schema_id",
+    "input_validation",
+    "output_validation",
+    "schema_validation",
+    "structured_content_validation"
+  ],
+  "required_input_validation_fields": [
+    "additional_properties_allowed",
+    "arguments_valid",
+    "input_schema_id",
+    "missing_required_arguments",
+    "required_fields_present",
+    "schema_validation_status",
+    "unsupported_arguments"
+  ],
+  "required_output_validation_fields": [
+    "output_schema_id",
+    "raw_text_only_response_allowed",
+    "structured_content_matches_output_schema",
+    "structured_content_required"
+  ],
+  "validated_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
+    "get_event_timeline",
+    "get_data_lineage",
+    "get_entitlements"
+  ],
+  "forbidden_input_properties": [
+    "sql",
+    "sql_text",
+    "url",
+    "endpoint"
+  ]
+}

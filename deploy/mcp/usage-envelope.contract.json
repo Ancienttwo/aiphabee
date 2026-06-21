@@ -1,0 +1,93 @@
+{
+  "version": "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "usage_ledger_package": "@aiphabee/usage-ledger",
+  "route": "POST /mcp",
+  "runtime_route": "GET /mcp/runtime",
+  "usage_quota_contract": "deploy/usage/quota-display.contract.json",
+  "frontend": false,
+  "live_tool_execution": false,
+  "live_ledger_reads": false,
+  "persistent_writes": false,
+  "live_billing_reconciliation": false,
+  "request_id_visible": true,
+  "usage_envelope_ready": true,
+  "usage_remaining_ready": true,
+  "usage_reconciliation_ready": true,
+  "freshness_target_minutes": 5,
+  "covered_sprint_2_3_items": [
+    "MCP-07",
+    "usage",
+    "remaining_quota",
+    "request_id",
+    "usage_reconciliation"
+  ],
+  "required_runtime_capability_fields": [
+    "usage_envelope_ready",
+    "usage_envelope_version",
+    "usage_remaining_ready",
+    "usage_request_id_visible",
+    "usage_reconciliation_ready",
+    "usage_ledger_event_writer_version",
+    "usage_quota_display_version"
+  ],
+  "required_usage_summary_fields": [
+    "request_id",
+    "request_id_visible",
+    "credits",
+    "rows",
+    "credit_limit",
+    "credits_used",
+    "credits_pending",
+    "credits_remaining",
+    "freshness_target_minutes",
+    "usage_reconciliation_status"
+  ],
+  "required_tool_call_usage_envelope_fields": [
+    "request_id",
+    "request_id_visible",
+    "estimated_credits",
+    "billable_credits",
+    "credits_remaining_after_estimate",
+    "quota_display",
+    "ledger_event",
+    "reconciliation"
+  ],
+  "required_quota_fields": [
+    "request_id",
+    "credit_limit",
+    "credits_used",
+    "credits_pending",
+    "credits_remaining",
+    "plan_code"
+  ],
+  "required_ledger_event_fields": [
+    "requestId",
+    "operation",
+    "channel",
+    "dataset",
+    "meteredRows",
+    "toolName",
+    "usageEventId"
+  ],
+  "validated_methods": ["tools/call"],
+  "validated_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
+    "get_event_timeline",
+    "get_data_lineage",
+    "get_entitlements"
+  ]
+}

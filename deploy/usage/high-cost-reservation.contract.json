@@ -1,0 +1,51 @@
+{
+  "version": "2026-06-21.phase2.high-cost-usage-reservation-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/usage-ledger",
+  "runtime_route": "GET /usage/runtime",
+  "route": "POST /usage/high-cost/reservation/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_ledger_reads": false,
+  "live_ledger_writes": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "pre_debit_required": true,
+  "failure_refund_required": true,
+  "request_id_visible": true,
+  "usage_ledger_link_required": true,
+  "required_request_fields": [
+    "workspace_id",
+    "subscription_id",
+    "task_id",
+    "tool_name",
+    "estimated_credits",
+    "user_confirmed"
+  ],
+  "planned_outputs": [
+    "estimate",
+    "reservation",
+    "pre_debit",
+    "failure_refund",
+    "double_charge_guard"
+  ],
+  "tables": [
+    "core.workspace_subscription",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.usage_reconciliation_batch",
+    "core.usage_credit_reservation"
+  ],
+  "reservation_statuses": [
+    "awaiting_confirmation",
+    "blocked_missing_context",
+    "planned_no_write",
+    "refunded",
+    "settled"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json",
+    "deploy/analytics/high-cost-analytics-queue.contract.json"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "sample_id": "hk_dual_listing_warn_001",
+  "records": [
+    {
+      "record_id": "dual_listing_hk_001",
+      "record_type": "dual_listing",
+      "source_record_id": "src_hk_dual_listing_warn_001",
+      "instrument_id": "eq_dual_001",
+      "listing_id": "xhk_dual_001_hkd",
+      "venue": "XHKG",
+      "currency": "HKD",
+      "published_at": "2022-09-01T00:00:00Z",
+      "ingested_at": "2022-09-01T00:05:00Z"
+    },
+    {
+      "record_id": "dual_listing_rmb_001",
+      "record_type": "dual_listing",
+      "source_record_id": "src_hk_dual_listing_warn_001",
+      "instrument_id": "eq_dual_001",
+      "listing_id": "xhk_dual_001_rmb",
+      "venue": "XHKG",
+      "currency": "CNY",
+      "published_at": "2022-09-01T00:00:00Z",
+      "ingested_at": "2022-09-01T00:05:00Z"
+    }
+  ],
+  "assertions": [
+    {
+      "rule_id": "QK-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QT-001",
+      "expected_state": "pass"
+    },
+    {
+      "rule_id": "QE-002",
+      "expected_state": "warn"
+    },
+    {
+      "rule_id": "QL-001",
+      "expected_state": "pass"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "version": "2026-06-20.phase0.model-provider.v0",
+  "status": "local_contract",
+  "ai_sdk": {
+    "package_name": "ai",
+    "target_version": "7.0.0-beta.182",
+    "execution_apis": ["generateText", "streamText"],
+    "stop_condition": "isStepCount"
+  },
+  "gateway": {
+    "provider": "cloudflare_ai_gateway",
+    "status": "planned",
+    "gateway_id": "default",
+    "rest_api_base": "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai",
+    "routes": [
+      "POST /ai/run",
+      "POST /ai/v1/chat/completions",
+      "POST /ai/v1/responses",
+      "POST /ai/v1/messages"
+    ],
+    "required_env": [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "AI_GATEWAY_NAME"
+    ],
+    "features": ["logging", "caching", "rate_limiting", "fallback", "guardrails"],
+    "unified_billing": true
+  },
+  "execution_modes": [
+    {
+      "name": "dry_run",
+      "status": "wired",
+      "route": "POST /agent/runs/dry-run",
+      "model_calls": false
+    },
+    {
+      "name": "generate_text",
+      "status": "planned",
+      "ai_sdk_api": "generateText",
+      "route": "POST /agent/runs/generate",
+      "model_calls": false
+    },
+    {
+      "name": "stream_text",
+      "status": "guarded",
+      "ai_sdk_api": "streamText",
+      "route": "POST /agent/runs/stream",
+      "model_calls": false
+    }
+  ],
+  "policy": {
+    "model_calls_enabled": false,
+    "streaming_enabled": false,
+    "arbitrary_model_ids": false,
+    "max_steps": 6,
+    "supported_max_steps": 8,
+    "market_data_surfaces": false,
+    "mcp_redistribution_surfaces": false,
+    "requires_ai_gateway_logs": true,
+    "requires_budget_ledger": true,
+    "requires_evidence_binding": true
+  },
+  "smoke_tests": [
+    "GET /agent/model-provider returns model_calls_enabled=false",
+    "POST /agent/runs/stream returns MODEL_PROVIDER_NOT_CONFIGURED until provider is provisioned"
+  ]
+}
