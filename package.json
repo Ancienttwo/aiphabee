@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "npm@11.12.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.15.0"
   },
   "workspaces": [
     "apps/*",
@@ -102,7 +102,14 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "vitest run",
     "test:golden": "node scripts/check-golden-regression.mjs --require-fixtures",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check:brain-manifest": "repo-harness run check-brain-manifest",
+    "check:context-files": "repo-harness run check-context-files",
+    "check:deploy-sql": "repo-harness run check-deploy-sql-order",
+    "check:architecture-sync": "repo-harness run check-architecture-sync",
+    "check:task-sync": "repo-harness run check-task-sync",
+    "check:task-workflow": "repo-harness run check-task-workflow --strict",
+    "sync:brain-docs": "repo-harness run sync-brain-docs --all"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
