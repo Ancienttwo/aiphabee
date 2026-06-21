@@ -64,7 +64,7 @@ owner: "Planner / PM"
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
-| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 3 / 11 | ☐ |
+| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 4 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
@@ -316,7 +316,7 @@ owner: "Planner / PM"
 - [x] `/mcp` Streamable HTTP endpoint 后端 default-deny scaffold：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，支持 planned `initialize` / `tools/list` / `tools/call` method、Origin validation、Gate 0 `mcp_api_redistribution_rights_confirmed=false`、Web 权利不自动扩展到 MCP、未授权 `tools/list` 返回空列表、未授权 `tools/call` 返回 `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用（MCP-01、§13.2、§14.1）
 - [x] OAuth + PKCE 后端 scope/revocation scaffold：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear scope consent、scope revocable metadata、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用（MCP-02、§9.7）
 - [x] 服务端 API Key 后端 lifecycle scaffold：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/api-keys/runtime`、`POST /mcp/api-keys/create/plan`、`POST /mcp/api-keys/rotate/plan`、`POST /mcp/api-keys/revoke/plan`、`deploy/mcp/api-key.contract.json` 与 `npm run check:mcp-api-key`，覆盖 server-to-server only、hash-only storage、pepper/last-four metadata、raw key forbidden、one-time display metadata、IP allowlist validation、rotation old-key future-call denial 与 revoke future-call denial；live key generation/persistent key hash table/auth middleware/frontend console 未启用（MCP-03、ACC-06、§13.2）
-- [ ] 输入严格校验 + `structuredContent` 符合 `outputSchema`（MCP-04）
+- [x] MCP `tools/call` 输入严格校验 + `structuredContent`/`outputSchema` 后端 scaffold：扩展 `@aiphabee/mcp-runtime` 接收 `params.arguments`，对 9 个 Tool Registry 工具执行 object/required/anyOf/additionalProperties=false 校验，返回 `input_schema_id`、`output_schema_id`、`input_validation`、`output_validation`、`schema_validation=validated` 与 `structured_content_required=true` no-live plan，新增 `deploy/mcp/tool-schema-validation.contract.json` 与 `npm run check:mcp-tool-schema-validation`；live tool execution/full JSON Schema engine/hosted schema registry/frontend 未启用（MCP-04、§13.2）
 - [ ] 工具版本与弃用策略，破坏性变化走新 major（MCP-05、US-M06）
 - [ ] 游标分页 + 最大行数 + 时间范围限制，不能被绕过（MCP-06、US-M07）
 - [ ] 响应返回 usage/剩余额度/request_id（MCP-07、US-M05）
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0cd | 完成 `mcp-tool-schema-validation-scaffold`：扩展 `@aiphabee/mcp-runtime` `tools/call` planning 接收 `params.arguments`，对 9 个 Tool Registry 工具执行 object/required/anyOf/additionalProperties=false 校验，返回 `input_schema_id`、`output_schema_id`、`input_validation`、`output_validation`、`schema_validation=validated` 与 `structured_content_required=true` no-live plan，新增 `deploy/mcp/tool-schema-validation.contract.json` 与 `npm run check:mcp-tool-schema-validation`；live tool execution/full JSON Schema engine/hosted schema registry/frontend 未启用，Sprint 2.3 更新为 4/11 |
 | 2026-06-21 | 1.0cc | 完成 `mcp-api-key-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/api-keys/runtime`、`POST /mcp/api-keys/create/plan`、`POST /mcp/api-keys/rotate/plan`、`POST /mcp/api-keys/revoke/plan`、`deploy/mcp/api-key.contract.json` 与 `npm run check:mcp-api-key`，覆盖 server-to-server only、hash-only storage、pepper/last-four metadata、raw key forbidden、one-time display metadata、IP allowlist validation、rotation old-key future-call denial 与 revoke future-call denial；live key generation/persistent key hash table/auth middleware/frontend console 未启用，Sprint 2.3 更新为 3/11 |
 | 2026-06-21 | 1.0cb | 完成 `mcp-oauth-pkce-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear/revocable scope consent、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用，Sprint 2.3 更新为 2/11 |
 | 2026-06-21 | 1.0ca | 完成 `mcp-endpoint-default-deny-scaffold`：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，覆盖 planned `initialize` / `tools/list` / `tools/call`、Origin validation、Gate 0 MCP/API 再分发默认拒绝、Web rights 不自动扩展到 MCP、未授权 `tools/list` 空列表与 `tools/call` `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用，Sprint 2.3 更新为 1/11 |

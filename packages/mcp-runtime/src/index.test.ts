@@ -50,7 +50,13 @@ describe("mcp endpoint default-deny scaffold", () => {
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
       oauth_token_route: "POST /mcp/oauth/token/plan",
       scopes_revocable: true,
+      structured_content_output_schema_ready: true,
       third_party_token_passthrough: false
+    });
+    expect(getMcpRuntimeCapabilities()).toMatchObject({
+      tool_call_input_strict_validation: true,
+      tool_schema_validation_version:
+        "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0"
     });
   });
 
@@ -456,6 +462,9 @@ describe("mcp endpoint default-deny scaffold", () => {
       method: "tools/call",
       origin: "https://app.aiphabee.com",
       requestId: "req-mcp-tool-call-planned",
+      toolArguments: {
+        instrument_id: "HK:00700"
+      },
       toolName: "get_quote_snapshot"
     });
 
@@ -467,12 +476,58 @@ describe("mcp endpoint default-deny scaffold", () => {
       },
       status: "planned_no_live_execution",
       tool_call: {
+        input_schema_id: "tool.get_quote_snapshot.input.v0",
+        input_validation: {
+          additional_properties_allowed: false,
+          arguments_valid: true,
+          missing_required_arguments: [],
+          required_fields_present: true,
+          schema_validation_status: "validated",
+          unsupported_arguments: []
+        },
         live_execution: false,
+        output_schema_id: "tool.get_quote_snapshot.output.v0",
+        output_validation: {
+          raw_text_only_response_allowed: false,
+          structured_content_matches_output_schema: "planned_no_live",
+          structured_content_required: true
+        },
         requested_tool_name: "get_quote_snapshot",
         required_scope: "quotes:read",
-        schema_validation: "planned",
-        structured_content_validation: "planned"
+        schema_validation: "validated",
+        structured_content_validation: "planned_no_live"
       }
     });
+  });
+
+  it("rejects tools/call arguments that miss required schema fields", () => {
+    expect(() =>
+      createMcpProtocolPlan({
+        grantedScopes: ["quotes:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-tool-call-missing-args",
+        toolArguments: {},
+        toolName: "get_quote_snapshot"
+      })
+    ).toThrow(McpRuntimeInputError);
+  });
+
+  it("rejects tools/call arguments outside the input schema", () => {
+    expect(() =>
+      createMcpProtocolPlan({
+        grantedScopes: ["quotes:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-tool-call-extra-args",
+        toolArguments: {
+          instrument_id: "HK:00700",
+          sql: "select * from quotes"
+        },
+        toolName: "get_quote_snapshot"
+      })
+    ).toThrow(McpRuntimeInputError);
   });
 });

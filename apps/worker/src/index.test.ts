@@ -1630,6 +1630,9 @@ interface McpRuntimeBody {
     runtime_route: string;
     scopes_revocable: boolean;
     status: string;
+    structured_content_output_schema_ready: boolean;
+    tool_call_input_strict_validation: boolean;
+    tool_schema_validation_version: string;
     supported_oauth_scopes: string[];
     supported_methods: string[];
     transport: string;
@@ -5828,6 +5831,10 @@ describe("worker runtime", () => {
       runtime_route: "GET /mcp/runtime",
       scopes_revocable: true,
       status: "mcp_endpoint_default_deny_scaffold",
+      structured_content_output_schema_ready: true,
+      tool_call_input_strict_validation: true,
+      tool_schema_validation_version:
+        "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
     });

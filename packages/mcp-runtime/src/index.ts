@@ -12,6 +12,8 @@ export const MCP_OAUTH_PKCE_VERSION =
   "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0";
 export const MCP_API_KEY_VERSION =
   "2026-06-21.phase2.mcp-api-key-scaffold.v0";
+export const MCP_TOOL_SCHEMA_VALIDATION_VERSION =
+  "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0";
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -118,6 +120,9 @@ export type McpRuntimeInputErrorCode =
   | "REDIRECT_URI_REQUIRED"
   | "SCOPE_REQUIRED"
   | "TOOL_NAME_REQUIRED"
+  | "TOOL_ARGUMENT_REQUIRED"
+  | "TOOL_ARGUMENT_UNSUPPORTED"
+  | "TOOL_ARGUMENTS_OBJECT_REQUIRED"
   | "TOOL_NOT_REGISTERED"
   | "TOOL_SCOPE_REQUIRED"
   | "UNSUPPORTED_SCOPE"
@@ -148,6 +153,7 @@ export interface CreateMcpProtocolPlanInput {
   origin?: string;
   requestId: string;
   requestedScopes?: readonly string[];
+  toolArguments?: unknown;
   toolName?: string;
 }
 
@@ -213,6 +219,24 @@ export interface McpToolDescriptor {
   output_schema_id: string;
   required_scope: string;
   version: string;
+}
+
+export interface McpToolInputValidationPlan {
+  additional_properties_allowed: false;
+  arguments_valid: true;
+  input_schema_id: string;
+  missing_required_arguments: [];
+  required_fields_present: true;
+  schema_validation_status: "validated";
+  schema_validation_version: typeof MCP_TOOL_SCHEMA_VALIDATION_VERSION;
+  unsupported_arguments: [];
+}
+
+export interface McpToolStructuredContentValidationPlan {
+  output_schema_id: string;
+  raw_text_only_response_allowed: false;
+  structured_content_matches_output_schema: "planned_no_live";
+  structured_content_required: true;
 }
 
 export interface McpOAuthScopeGrant {
@@ -558,11 +582,15 @@ export interface McpProtocolPlan {
   };
   status: McpRuntimePlanStatus;
   tool_call?: {
+    input_schema_id: string;
+    input_validation: McpToolInputValidationPlan;
     live_execution: false;
+    output_schema_id: string;
+    output_validation: McpToolStructuredContentValidationPlan;
     requested_tool_name: RegisteredToolName;
     required_scope: string;
-    schema_validation: "planned";
-    structured_content_validation: "planned";
+    schema_validation: "validated";
+    structured_content_validation: "planned_no_live";
   };
   tools_list?: {
     blocked_tool_count: number;
@@ -587,6 +615,108 @@ const MCP_STANDARD_ERROR_CODES = [
   "BUDGET_EXCEEDED",
   "INTERNAL_ERROR"
 ] as const;
+
+const MCP_TOOL_INPUT_VALIDATION_RULES = {
+  get_corporate_actions: {
+    allowed: ["instrument_id", "instrumentId", "from", "to", "types", "limit", "cursor"],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: ["from", "to"]
+  },
+  get_data_lineage: {
+    allowed: [
+      "evidence_id",
+      "evidenceId",
+      "record_id",
+      "recordId",
+      "as_of",
+      "asOf",
+      "include_upstream",
+      "includeUpstream"
+    ],
+    anyOf: [["evidence_id"], ["evidenceId"], ["record_id"], ["recordId"]],
+    required: []
+  },
+  get_entitlements: {
+    allowed: [
+      "workspace_id",
+      "workspaceId",
+      "channel",
+      "tool_name",
+      "toolName",
+      "dataset",
+      "fields",
+      "as_of",
+      "asOf",
+      "time_range",
+      "timeRange",
+      "requested_rows",
+      "requestedRows",
+      "export_requested",
+      "exportRequested",
+      "plan"
+    ],
+    anyOf: [],
+    required: []
+  },
+  get_financial_facts: {
+    allowed: [
+      "instrument_id",
+      "instrumentId",
+      "from",
+      "to",
+      "metrics",
+      "statement_types",
+      "statementTypes",
+      "as_of",
+      "asOf",
+      "limit",
+      "cursor"
+    ],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: ["from", "to"]
+  },
+  get_market_calendar: {
+    allowed: ["market", "from", "to"],
+    anyOf: [],
+    required: ["market", "from", "to"]
+  },
+  get_price_history: {
+    allowed: [
+      "instrument_id",
+      "instrumentId",
+      "from",
+      "to",
+      "adjustment",
+      "fields",
+      "limit",
+      "cursor"
+    ],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: ["from", "to"]
+  },
+  get_quote_snapshot: {
+    allowed: ["instrument_id", "instrumentId", "mode", "fields", "as_of"],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: []
+  },
+  get_security_profile: {
+    allowed: ["instrument_id", "instrumentId", "as_of"],
+    anyOf: [["instrument_id"], ["instrumentId"]],
+    required: []
+  },
+  resolve_security: {
+    allowed: ["query", "market", "as_of"],
+    anyOf: [],
+    required: ["query"]
+  }
+} as const satisfies Record<
+  RegisteredToolName,
+  {
+    allowed: readonly string[];
+    anyOf: readonly (readonly string[])[];
+    required: readonly string[];
+  }
+>;
 
 export function getMcpRuntimeCapabilities() {
   return {
@@ -616,8 +746,11 @@ export function getMcpRuntimeCapabilities() {
     route: "POST /mcp" as const,
     runtime_route: "GET /mcp/runtime" as const,
     scopes_revocable: true,
+    structured_content_output_schema_ready: true,
     standard_error_codes: MCP_STANDARD_ERROR_CODES,
     status: "mcp_endpoint_default_deny_scaffold" as const,
+    tool_call_input_strict_validation: true,
+    tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
     supported_oauth_scopes: MCP_OAUTH_SCOPE_DEFINITIONS.map(
       (definition) => definition.scope
     ),
@@ -1218,14 +1351,25 @@ function createToolCallPlan(
     );
   }
 
+  const inputValidation = createToolInputValidationPlan(tool, input.toolArguments);
+
   return {
     ...basePlan,
     tool_call: {
+      input_schema_id: tool.schema.inputSchemaId,
+      input_validation: inputValidation,
       live_execution: false,
+      output_schema_id: tool.schema.outputSchemaId,
+      output_validation: {
+        output_schema_id: tool.schema.outputSchemaId,
+        raw_text_only_response_allowed: false,
+        structured_content_matches_output_schema: "planned_no_live",
+        structured_content_required: true
+      },
       requested_tool_name: tool.name,
       required_scope: tool.permissions.requiredScope,
-      schema_validation: "planned",
-      structured_content_validation: "planned"
+      schema_validation: "validated",
+      structured_content_validation: "planned_no_live"
     },
     usage: {
       cached: false,
@@ -1246,6 +1390,65 @@ function createToolDescriptors(
     required_scope: tool.permissions.requiredScope,
     version: tool.version
   }));
+}
+
+function createToolInputValidationPlan(
+  tool: RegisteredToolDefinition,
+  rawArguments: unknown
+): McpToolInputValidationPlan {
+  if (rawArguments !== undefined && !isPlainRecord(rawArguments)) {
+    throw new McpRuntimeInputError(
+      "TOOL_ARGUMENTS_OBJECT_REQUIRED",
+      "tools/call arguments must be an object"
+    );
+  }
+
+  const args = rawArguments ?? {};
+  const argumentKeys = Object.keys(args);
+  const rules = MCP_TOOL_INPUT_VALIDATION_RULES[tool.name];
+  const allowedArguments = rules.allowed as readonly string[];
+  const unsupportedArguments = argumentKeys.filter((key) => !allowedArguments.includes(key));
+
+  if (unsupportedArguments.length > 0) {
+    throw new McpRuntimeInputError(
+      "TOOL_ARGUMENT_UNSUPPORTED",
+      "tools/call arguments include fields outside the input schema",
+      {
+        inputSchemaId: tool.schema.inputSchemaId,
+        toolName: tool.name,
+        unsupportedArguments
+      }
+    );
+  }
+
+  const missingRequiredArguments = rules.required.filter((key) => !argumentKeys.includes(key));
+  const anyOfSatisfied =
+    rules.anyOf.length === 0 ||
+    rules.anyOf.some((requiredGroup) => requiredGroup.every((key) => argumentKeys.includes(key)));
+
+  if (missingRequiredArguments.length > 0 || !anyOfSatisfied) {
+    throw new McpRuntimeInputError(
+      "TOOL_ARGUMENT_REQUIRED",
+      "tools/call arguments are missing required input schema fields",
+      {
+        anyOf: rules.anyOf,
+        inputSchemaId: tool.schema.inputSchemaId,
+        missingRequiredArguments,
+        toolName: tool.name
+      }
+    );
+  }
+
+  return {
+    additional_properties_allowed: false,
+    arguments_valid: true,
+    input_schema_id: tool.schema.inputSchemaId,
+    missing_required_arguments: [],
+    required_fields_present: true,
+    schema_validation_status: "validated",
+    schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
+    unsupported_arguments: []
+  };
 }
 
 function createMcpApiKeyBasePlan(input: {
@@ -1491,4 +1694,8 @@ function normalizeMcpMethod(value: string | undefined): McpMethod | undefined {
 function normalizeText(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

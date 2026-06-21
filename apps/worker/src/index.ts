@@ -1925,6 +1925,7 @@ app.post("/mcp", async (c) => {
       origin: c.req.header("origin") ?? undefined,
       requestId,
       requestedScopes: normalizeStringArray(params.scopes ?? body.scopes),
+      toolArguments: params.arguments,
       toolName: normalizeString(params.name ?? params.tool_name ?? params.toolName)
     });
 
@@ -4399,6 +4400,9 @@ function errorCodeForMcpRuntimeError(
       return "DATA_NOT_LICENSED";
     case "TOOL_NOT_REGISTERED":
       return "NOT_FOUND";
+    case "TOOL_ARGUMENT_REQUIRED":
+    case "TOOL_ARGUMENT_UNSUPPORTED":
+    case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
     case "UNSUPPORTED_METHOD":
       return "OUT_OF_RANGE";
     case "API_KEY_NAME_REQUIRED":
@@ -4440,6 +4444,9 @@ function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 
     case "RAW_API_KEY_FORBIDDEN":
     case "REDIRECT_URI_REQUIRED":
     case "SCOPE_REQUIRED":
+    case "TOOL_ARGUMENT_REQUIRED":
+    case "TOOL_ARGUMENT_UNSUPPORTED":
+    case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
     case "UNSUPPORTED_METHOD":
     case "TOOL_NAME_REQUIRED":
       return 400;
