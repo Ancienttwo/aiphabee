@@ -4,6 +4,8 @@ import {
   createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
   getAccountRuntimeCapabilities,
+  getPackagePricingCatalog,
+  getPackagePricingCapabilities,
   getSubscriptionLifecycleCapabilities
 } from "./index";
 
@@ -26,6 +28,15 @@ describe("account runtime scaffold", () => {
     expect(getAccountRuntimeCapabilities().manual_plan_assignment.allowed_plan_codes).toContain(
       "developer"
     );
+    expect(getAccountRuntimeCapabilities().package_pricing).toMatchObject({
+      billing_provider_calls: false,
+      currency: "HKD",
+      frontend: false,
+      live_prices: false,
+      persistent_writes: false,
+      route: "GET /account/package-pricing",
+      status: "package_pricing_scaffold"
+    });
     expect(getAccountRuntimeCapabilities().authorized_memory).toMatchObject({
       actual_memory_reads: false,
       audit_event: "account.authorized_memory.plan",
@@ -49,6 +60,72 @@ describe("account runtime scaffold", () => {
         "session_secret"
       ])
     );
+  });
+
+  it("reports Pro and Developer package pricing assumptions without live billing", () => {
+    expect(getPackagePricingCapabilities()).toMatchObject({
+      billing_provider_calls: false,
+      currency: "HKD",
+      frontend: false,
+      live_prices: false,
+      package: "@aiphabee/account-runtime",
+      persistent_writes: false,
+      route: "GET /account/package-pricing",
+      runtime_route: "GET /account/runtime",
+      sql_emitted: false,
+      status: "package_pricing_scaffold",
+      version: "2026-06-21.phase3.package-pricing-scaffold.v0"
+    });
+    expect(getPackagePricingCapabilities().plan_codes).toEqual(["pro", "developer"]);
+
+    const catalog = getPackagePricingCatalog();
+    const pro = catalog.plans.find((plan) => plan.plan_code === "pro");
+    const developer = catalog.plans.find((plan) => plan.plan_code === "developer");
+
+    expect(catalog).toMatchObject({
+      billing_provider_calls: false,
+      currency: "HKD",
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(catalog.assumptions).toContain("not_final_quote");
+    expect(pro).toMatchObject({
+      amount_minor: 22800,
+      display_price: "HK$228",
+      price_status: "validation_assumption_not_final_quote"
+    });
+    expect(pro?.entitlements).toMatchObject({
+      api_key: false,
+      bulk_pagination: false,
+      full_30y_authorized_history: true,
+      p0_tools: "all"
+    });
+    expect(pro?.usage_quota).toMatchObject({
+      credit_limit: 5000,
+      quota_contract: "deploy/usage/quota-display.contract.json"
+    });
+    expect(developer).toMatchObject({
+      amount_minor: 68800,
+      display_price: "HK$688+",
+      price_status: "validation_assumption_not_final_quote"
+    });
+    expect(developer?.entitlements).toMatchObject({
+      api_key: true,
+      bulk_pagination: true,
+      multiple_mcp_connections: true,
+      pro_web_entitlements: true
+    });
+    expect(developer?.overage).toMatchObject({
+      billing_provider_calls: false,
+      enabled: true,
+      status: "planned_no_write"
+    });
+    expect(developer?.redistribution).toMatchObject({
+      commercial_external_redistribution: false,
+      export_requires_field_authorization: true,
+      partner_rights_matrix_required: true
+    });
   });
 
   it("plans an internal login session and manual workspace plan without writes", () => {

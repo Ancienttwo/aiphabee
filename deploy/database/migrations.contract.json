@@ -298,6 +298,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621121000_package_pricing_scaffold.sql",
+      "purpose": "Create empty Pro and Developer package pricing catalog, entitlement bundle, and governance scaffolds without enabling live pricing or billing provider calls.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.plan_pricing_catalog",
+        "core.plan_entitlement_bundle",
+        "governance.package_pricing_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

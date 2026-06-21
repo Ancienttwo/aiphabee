@@ -1,0 +1,76 @@
+{
+  "version": "2026-06-21.phase3.package-pricing-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/account-runtime",
+  "runtime_route": "GET /account/runtime",
+  "route": "GET /account/package-pricing",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "billing_provider_calls": false,
+  "live_prices": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "currency": "HKD",
+  "pricing_source": "docs/researches/AiphaBee_PRD_v1.0.md#15.2",
+  "price_status": "validation_assumption_not_final_quote",
+  "plan_codes": ["pro", "developer"],
+  "usage_channels": ["web_agent", "mcp"],
+  "plans": [
+    {
+      "plan_code": "pro",
+      "monthly_amount_minor": 22800,
+      "display_price": "HK$228",
+      "credit_limit": 5000,
+      "web_entitlements": [
+        "full_30y_authorized_history",
+        "comparison",
+        "screening",
+        "event_study",
+        "deep_report"
+      ],
+      "mcp_entitlements": ["higher_quota", "all_p0_tools"],
+      "overage_enabled": false,
+      "api_key": false,
+      "bulk_pagination": false
+    },
+    {
+      "plan_code": "developer",
+      "monthly_amount_minor": 68800,
+      "display_price": "HK$688+",
+      "credit_limit": 10000,
+      "web_entitlements": ["pro_web_entitlements"],
+      "mcp_entitlements": [
+        "pro_web_entitlements",
+        "multiple_connections",
+        "api_key",
+        "bulk_pagination",
+        "overage_billing"
+      ],
+      "overage_enabled": true,
+      "api_key": true,
+      "bulk_pagination": true
+    }
+  ],
+  "redistribution": {
+    "commercial_external_redistribution": false,
+    "export_requires_field_authorization": true,
+    "partner_rights_matrix_required": true
+  },
+  "validation_required_after": [
+    "data_authorization_cost_review",
+    "target_market_interview",
+    "unit_economics_margin_review"
+  ],
+  "tables": [
+    "core.subscription_plan",
+    "core.plan_pricing_catalog",
+    "core.plan_entitlement_bundle",
+    "governance.package_pricing_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/account/subscription-lifecycle.contract.json",
+    "deploy/usage/quota-display.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json"
+  ]
+}

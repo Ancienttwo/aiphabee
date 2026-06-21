@@ -40,6 +40,17 @@ interface AccountRuntimeBody {
       billing_provider_calls: boolean;
       status: string;
     };
+    package_pricing: {
+      billing_provider_calls: boolean;
+      currency: string;
+      frontend: boolean;
+      live_prices: boolean;
+      persistent_writes: boolean;
+      plan_codes: string[];
+      route: string;
+      sql_emitted: boolean;
+      status: string;
+    };
     persistent_writes: boolean;
     route: string;
     runtime_route: string;
@@ -66,6 +77,55 @@ interface AccountRuntimeBody {
     tables: string[];
   };
   ok: true;
+}
+
+interface AccountPackagePricingBody {
+  data: {
+    assumptions: string[];
+    billing_provider_calls: boolean;
+    capability: {
+      route: string;
+      status: string;
+    };
+    catalog_version: string;
+    currency: string;
+    persistent_writes: boolean;
+    plan_codes: string[];
+    plans: Array<{
+      amount_minor: number;
+      display_price: string;
+      entitlements: {
+        api_key: boolean;
+        bulk_pagination: boolean;
+        multiple_mcp_connections: boolean;
+        pro_web_entitlements: boolean;
+      };
+      overage: {
+        billing_provider_calls: boolean;
+        enabled: boolean;
+        status: string;
+      };
+      plan_code: string;
+      price_status: string;
+      redistribution: {
+        commercial_external_redistribution: boolean;
+        export_requires_field_authorization: boolean;
+        partner_rights_matrix_required: boolean;
+      };
+      usage_quota: {
+        credit_limit: number;
+        quota_contract: string;
+      };
+    }>;
+    pricing_source: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface AccountAuthorizedMemoryPlanBody {
@@ -4011,6 +4071,17 @@ describe("worker runtime", () => {
       "social_github"
     ]);
     expect(body.data.manual_plan_assignment.allowed_plan_codes).toContain("developer");
+    expect(body.data.package_pricing).toMatchObject({
+      billing_provider_calls: false,
+      currency: "HKD",
+      frontend: false,
+      live_prices: false,
+      persistent_writes: false,
+      route: "GET /account/package-pricing",
+      sql_emitted: false,
+      status: "package_pricing_scaffold"
+    });
+    expect(body.data.package_pricing.plan_codes).toEqual(["pro", "developer"]);
     expect(body.data.session_management).toMatchObject({
       cookie_issued: false,
       revoke_supported: true,
@@ -4045,6 +4116,69 @@ describe("worker runtime", () => {
     });
     expect(body.data.subscription_lifecycle.supported_actions).toContain("enter_grace_period");
     expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("serves Pro and Developer package pricing catalog without live billing", async () => {
+    const response = await app.request("/account/package-pricing", {
+      headers: {
+        "x-request-id": "req-package-pricing"
+      }
+    });
+    const body = (await response.json()) as AccountPackagePricingBody;
+    const pro = body.data.plans.find((plan) => plan.plan_code === "pro");
+    const developer = body.data.plans.find((plan) => plan.plan_code === "developer");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      billing_provider_calls: false,
+      currency: "HKD",
+      persistent_writes: false,
+      pricing_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.2",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.assumptions).toContain("not_final_quote");
+    expect(body.data.plan_codes).toEqual(["pro", "developer"]);
+    expect(body.data.capability).toMatchObject({
+      route: "GET /account/package-pricing",
+      status: "package_pricing_scaffold"
+    });
+    expect(pro).toMatchObject({
+      amount_minor: 22800,
+      display_price: "HK$228",
+      price_status: "validation_assumption_not_final_quote"
+    });
+    expect(pro?.usage_quota).toMatchObject({
+      credit_limit: 5000,
+      quota_contract: "deploy/usage/quota-display.contract.json"
+    });
+    expect(developer).toMatchObject({
+      amount_minor: 68800,
+      display_price: "HK$688+",
+      price_status: "validation_assumption_not_final_quote"
+    });
+    expect(developer?.entitlements).toMatchObject({
+      api_key: true,
+      bulk_pagination: true,
+      multiple_mcp_connections: true,
+      pro_web_entitlements: true
+    });
+    expect(developer?.overage).toMatchObject({
+      billing_provider_calls: false,
+      enabled: true,
+      status: "planned_no_write"
+    });
+    expect(developer?.redistribution).toMatchObject({
+      commercial_external_redistribution: false,
+      export_requires_field_authorization: true,
+      partner_rights_matrix_required: true
+    });
+    expect(body.usage).toMatchObject({
+      credits: 0,
+      rows: 2
+    });
   });
 
   it("plans authorized session memory view and deletion without live reads or writes", async () => {

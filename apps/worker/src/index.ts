@@ -7,6 +7,8 @@ import {
   createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
   getAccountRuntimeCapabilities,
+  getPackagePricingCatalog,
+  getPackagePricingCapabilities,
   getSubscriptionLifecycleCapabilities,
   type AccountLoginMethod,
   type AccountPlanCode,
@@ -450,6 +452,41 @@ app.get("/account/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/account/package-pricing", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const catalog = getPackagePricingCatalog();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...catalog,
+        capability: getPackagePricingCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: catalog.version,
+        methodologyVersion: catalog.version,
+        provenance: [
+          {
+            data_version: catalog.version,
+            methodology_version: catalog.version,
+            source: "account-runtime",
+            source_record_id: "package-pricing-catalog"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: catalog.plans.length
         }
       }
     )

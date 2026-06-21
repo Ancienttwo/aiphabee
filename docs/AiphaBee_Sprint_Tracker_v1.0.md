@@ -67,7 +67,7 @@ owner: "Planner / PM"
 | 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 9 / 9 | ☐ |
-| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
+| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 1 / 9 | ☐ |
 | 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
 
 > 北极星指标 **WVRO**（周度已验证研究成果，PRD §4.3）从 Phase 1 内部即开始埋点；激活/质量/商业 KPI（PRD §16）随 Phase 推进逐步上线。
@@ -367,7 +367,7 @@ owner: "Planner / PM"
 ### Sprint 3.2 — 文档·状态页·隐私·分享报告·套餐正式化　⬜
 **目标：** 公开运营面与 Pro/Developer 正式套餐。
 
-- [ ] Pro/Developer 套餐正式化与定价（§15.2）
+- [x] Pro/Developer 套餐正式化与定价：新增 `@aiphabee/account-runtime` package pricing capability、`GET /account/package-pricing`、`GET /account/runtime` `package_pricing` readiness、`deploy/account/package-pricing.contract.json`、`scripts/check-package-pricing-contract.mjs`、`core.plan_pricing_catalog` / `core.plan_entitlement_bundle` / `governance.package_pricing_contract` empty schema scaffold 与 `npm run check:package-pricing`；锁定 PRD §15.2 validation price：Pro `HK$228/月`、Developer `HK$688+/月`，引用 usage quota Pro `5000` credits / Developer `10000` credits，Developer overage 仅做 no-write reconciliation plan；live billing provider / final quote / DB writes / frontend pricing UI 未启用（§15.2）
 - [ ] 公开状态页 + API/MCP 文档 + 隐私政策 + 条款（§18.4、§19.5）
 - [ ] 帮助中心 + 支持流程，支持可用 request_id 调查（US-O03、§19.5）
 - [ ] 私人分享链接：分享不扩大接收者数据权益（RES-03、§19.4）
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0db | 完成 `package-pricing-scaffold`：扩展 `@aiphabee/account-runtime`，新增 Pro/Developer package pricing catalog、`GET /account/package-pricing`、`GET /account/runtime` `package_pricing` capability、`deploy/account/package-pricing.contract.json`、`scripts/check-package-pricing-contract.mjs`、`core.plan_pricing_catalog` / `core.plan_entitlement_bundle` / `governance.package_pricing_contract` empty schema scaffold 与 `npm run check:package-pricing`；锁定 PRD §15.2 validation price Pro `HK$228/月`、Developer `HK$688+/月`，引用 usage quota Pro `5000` credits / Developer `10000` credits，Developer overage 仅做 no-write reconciliation plan；live billing provider / final quote / DB writes / frontend UI 未启用，Sprint 3.2 更新为 1/9 |
 | 2026-06-21 | 1.0da | 完成 `restricted-exports-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 restricted export planner、`POST /gateway/exports/plan`、`GET /gateway/runtime` `restricted_exports` capability、`deploy/gateway/restricted-exports.contract.json`、`scripts/check-restricted-exports-contract.mjs`、`core.restricted_export_request` / `audit.restricted_export_event` / `governance.restricted_export_contract` empty schema scaffold 与 `npm run check:restricted-exports`；导出先要求 `exports.read`，再通过 Gateway `channel=export` / `exportRequested=true` 执行字段授权、行数/时间范围裁剪和水印计划；live artifact writes / R2 / frontend UI 未启用，Sprint 3.1 更新为 9/9 |
 | 2026-06-21 | 1.0cz | 完成 `security-history-scaffold`：扩展 `@aiphabee/security-tools`，新增 `getSecurityHistory()`、`POST /tools/get-security-history`、`deploy/tools/security-history.contract.json`、`scripts/check-security-history-contract.mjs`、`core.security_name_history` / `core.security_industry_history` / `core.index_constituent_history` / `governance.security_history_contract` empty schema scaffold 与 `npm run check:security-history`；`as_of` 必填，返回 historical name / industry / index constituent memberships，并锁定不使用 latest name/classification/constituents 作为历史 fallback；live partner history rows / MCP registration / frontend 未启用，Sprint 3.1 更新为 8/9 |
 | 2026-06-21 | 1.0cy | 完成 `authorized-session-memory-scaffold`：扩展 `@aiphabee/account-runtime` `authorized_memory` capability，新增 `POST /account/authorized-memory/plan`、`core.authorized_session_memory` / `governance.authorized_session_memory_contract` empty schema scaffold、`deploy/account/authorized-session-memory.contract.json`、`scripts/check-authorized-session-memory-contract.mjs` 与 `npm run check:authorized-session-memory`；支持 view/upsert/delete no-write plan，仅允许授权偏好/同意信息，阻止 raw prompt/generated answer/financial values/raw email/password/OAuth/session secret；frontend 控制/live memory reads/writes 未启用，Sprint 3.1 更新为 7/9 |

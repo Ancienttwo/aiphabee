@@ -4,6 +4,8 @@ export const SUBSCRIPTION_LIFECYCLE_VERSION =
   "2026-06-21.phase2.subscription-lifecycle-audit.v0";
 export const AUTHORIZED_SESSION_MEMORY_VERSION =
   "2026-06-21.phase3.authorized-session-memory-scaffold.v0";
+export const PACKAGE_PRICING_VERSION =
+  "2026-06-21.phase3.package-pricing-scaffold.v0";
 
 export const ACCOUNT_LOGIN_METHODS = [
   "email_passwordless",
@@ -39,6 +41,8 @@ export const AUTHORIZED_SESSION_MEMORY_KEYS = [
   "response_depth",
   "watchlist_briefing_consent"
 ] as const;
+export const PACKAGE_PRICING_PLAN_CODES = ["pro", "developer"] as const;
+export const PACKAGE_PRICING_USAGE_CHANNELS = ["web_agent", "mcp"] as const;
 
 export type AccountLoginMethod = (typeof ACCOUNT_LOGIN_METHODS)[number];
 export type AccountPlanCode = (typeof ACCOUNT_PLAN_CODES)[number];
@@ -46,6 +50,8 @@ export type SubscriptionLifecycleAction = (typeof SUBSCRIPTION_LIFECYCLE_ACTIONS
 export type AuthorizedSessionMemoryAction =
   (typeof AUTHORIZED_SESSION_MEMORY_ACTIONS)[number];
 export type AuthorizedSessionMemoryKey = (typeof AUTHORIZED_SESSION_MEMORY_KEYS)[number];
+export type PackagePricingPlanCode = (typeof PACKAGE_PRICING_PLAN_CODES)[number];
+export type PackagePricingUsageChannel = (typeof PACKAGE_PRICING_USAGE_CHANNELS)[number];
 export type SubscriptionBillingState =
   | "active"
   | "canceled"
@@ -136,6 +142,7 @@ export interface AccountRuntimeCapabilities {
     status: "planned_no_write";
   };
   package: "@aiphabee/account-runtime";
+  package_pricing: PackagePricingCapabilities;
   persistent_writes: false;
   route: "POST /account/session/plan";
   runtime_route: "GET /account/runtime";
@@ -153,6 +160,95 @@ export interface AccountRuntimeCapabilities {
     "core.workspace_subscription"
   ];
   version: typeof ACCOUNT_RUNTIME_VERSION;
+}
+
+export interface PackagePricingCapabilities {
+  billing_provider_calls: false;
+  currency: "HKD";
+  frontend: false;
+  live_prices: false;
+  package: "@aiphabee/account-runtime";
+  persistent_writes: false;
+  plan_codes: typeof PACKAGE_PRICING_PLAN_CODES;
+  pricing_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.2";
+  route: "GET /account/package-pricing";
+  runtime_route: "GET /account/runtime";
+  sql_emitted: false;
+  status: "package_pricing_scaffold";
+  tables: readonly [
+    "core.subscription_plan",
+    "core.plan_pricing_catalog",
+    "core.plan_entitlement_bundle",
+    "governance.package_pricing_contract"
+  ];
+  usage_channels: typeof PACKAGE_PRICING_USAGE_CHANNELS;
+  validation_required_after: readonly [
+    "data_authorization_cost_review",
+    "target_market_interview",
+    "unit_economics_margin_review"
+  ];
+  version: typeof PACKAGE_PRICING_VERSION;
+}
+
+export interface PackagePricingCatalogPlan {
+  amount_minor: number;
+  billing_period: "monthly";
+  currency: "HKD";
+  display_price: string;
+  entitlements: {
+    api_key: boolean;
+    bulk_pagination: boolean;
+    deep_report: boolean;
+    event_study: boolean;
+    full_30y_authorized_history: boolean;
+    multiple_mcp_connections: boolean;
+    p0_tools: "all";
+    pro_web_entitlements: boolean;
+  };
+  mcp_entitlements: readonly string[];
+  overage: {
+    billing_provider_calls: false;
+    enabled: boolean;
+    high_cost_confirmation_required: boolean;
+    reconciliation_contract: "deploy/usage/billing-reconciliation.contract.json";
+    status: "not_available" | "planned_no_write";
+  };
+  plan_code: PackagePricingPlanCode;
+  price_status: "validation_assumption_not_final_quote";
+  redistribution: {
+    commercial_external_redistribution: false;
+    export_requires_field_authorization: true;
+    partner_rights_matrix_required: true;
+  };
+  target_user: string;
+  usage_quota: {
+    credit_limit: number;
+    quota_contract: "deploy/usage/quota-display.contract.json";
+    quota_source: "@aiphabee/usage-ledger";
+    usage_channels: typeof PACKAGE_PRICING_USAGE_CHANNELS;
+  };
+  web_entitlements: readonly string[];
+}
+
+export interface PackagePricingCatalog {
+  assumptions: readonly [
+    "product_validation_price",
+    "not_final_quote",
+    "requires_data_authorization_cost_review",
+    "requires_target_market_interview"
+  ];
+  billing_provider_calls: false;
+  catalog_version: typeof PACKAGE_PRICING_VERSION;
+  currency: "HKD";
+  persistent_writes: false;
+  plan_codes: typeof PACKAGE_PRICING_PLAN_CODES;
+  plans: readonly [PackagePricingCatalogPlan, PackagePricingCatalogPlan];
+  pricing_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.2";
+  runtime_capability: PackagePricingCapabilities;
+  sql_emitted: false;
+  status: "planned_no_write";
+  tables: PackagePricingCapabilities["tables"];
+  version: typeof PACKAGE_PRICING_VERSION;
 }
 
 export interface SubscriptionLifecycleCapabilities {
@@ -377,6 +473,12 @@ const AUTHORIZED_SESSION_MEMORY_TABLES: AuthorizedSessionMemoryPlan["tables"] = 
   "core.workspace_membership",
   "core.authorized_session_memory"
 ];
+const PACKAGE_PRICING_TABLES: PackagePricingCapabilities["tables"] = [
+  "core.subscription_plan",
+  "core.plan_pricing_catalog",
+  "core.plan_entitlement_bundle",
+  "governance.package_pricing_contract"
+];
 
 const SUBSCRIPTION_BILLING_STATES: SubscriptionLifecycleCapabilities["billing_states"] = [
   "trialing",
@@ -404,6 +506,12 @@ const AUTHORIZED_MEMORY_FORBIDDEN_PAYLOADS: AccountRuntimeCapabilities["authoriz
   "oauth_access_token",
   "oauth_refresh_token",
   "session_secret"
+];
+
+const PACKAGE_PRICING_VALIDATION_REQUIRED: PackagePricingCapabilities["validation_required_after"] = [
+  "data_authorization_cost_review",
+  "target_market_interview",
+  "unit_economics_margin_review"
 ];
 
 export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
@@ -437,6 +545,7 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
       status: "planned_no_write"
     },
     package: "@aiphabee/account-runtime",
+    package_pricing: getPackagePricingCapabilities(),
     persistent_writes: false,
     route: "POST /account/session/plan",
     runtime_route: "GET /account/runtime",
@@ -448,6 +557,141 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
     status: "internal_account_session_manual_plan_scaffold",
     tables: ACCOUNT_TABLES,
     version: ACCOUNT_RUNTIME_VERSION
+  };
+}
+
+export function getPackagePricingCapabilities(): PackagePricingCapabilities {
+  return {
+    billing_provider_calls: false,
+    currency: "HKD",
+    frontend: false,
+    live_prices: false,
+    package: "@aiphabee/account-runtime",
+    persistent_writes: false,
+    plan_codes: PACKAGE_PRICING_PLAN_CODES,
+    pricing_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.2",
+    route: "GET /account/package-pricing",
+    runtime_route: "GET /account/runtime",
+    sql_emitted: false,
+    status: "package_pricing_scaffold",
+    tables: PACKAGE_PRICING_TABLES,
+    usage_channels: PACKAGE_PRICING_USAGE_CHANNELS,
+    validation_required_after: PACKAGE_PRICING_VALIDATION_REQUIRED,
+    version: PACKAGE_PRICING_VERSION
+  };
+}
+
+export function getPackagePricingCatalog(): PackagePricingCatalog {
+  return {
+    assumptions: [
+      "product_validation_price",
+      "not_final_quote",
+      "requires_data_authorization_cost_review",
+      "requires_target_market_interview"
+    ],
+    billing_provider_calls: false,
+    catalog_version: PACKAGE_PRICING_VERSION,
+    currency: "HKD",
+    persistent_writes: false,
+    plan_codes: PACKAGE_PRICING_PLAN_CODES,
+    plans: [
+      {
+        amount_minor: 22800,
+        billing_period: "monthly",
+        currency: "HKD",
+        display_price: "HK$228",
+        entitlements: {
+          api_key: false,
+          bulk_pagination: false,
+          deep_report: true,
+          event_study: true,
+          full_30y_authorized_history: true,
+          multiple_mcp_connections: false,
+          p0_tools: "all",
+          pro_web_entitlements: true
+        },
+        mcp_entitlements: ["higher_quota", "all_p0_tools"],
+        overage: {
+          billing_provider_calls: false,
+          enabled: false,
+          high_cost_confirmation_required: true,
+          reconciliation_contract: "deploy/usage/billing-reconciliation.contract.json",
+          status: "not_available"
+        },
+        plan_code: "pro",
+        price_status: "validation_assumption_not_final_quote",
+        redistribution: {
+          commercial_external_redistribution: false,
+          export_requires_field_authorization: true,
+          partner_rights_matrix_required: true
+        },
+        target_user: "senior_individual_investor",
+        usage_quota: {
+          credit_limit: 5000,
+          quota_contract: "deploy/usage/quota-display.contract.json",
+          quota_source: "@aiphabee/usage-ledger",
+          usage_channels: PACKAGE_PRICING_USAGE_CHANNELS
+        },
+        web_entitlements: [
+          "full_30y_authorized_history",
+          "comparison",
+          "screening",
+          "event_study",
+          "deep_report"
+        ]
+      },
+      {
+        amount_minor: 68800,
+        billing_period: "monthly",
+        currency: "HKD",
+        display_price: "HK$688+",
+        entitlements: {
+          api_key: true,
+          bulk_pagination: true,
+          deep_report: true,
+          event_study: true,
+          full_30y_authorized_history: true,
+          multiple_mcp_connections: true,
+          p0_tools: "all",
+          pro_web_entitlements: true
+        },
+        mcp_entitlements: [
+          "pro_web_entitlements",
+          "multiple_connections",
+          "api_key",
+          "bulk_pagination",
+          "overage_billing"
+        ],
+        overage: {
+          billing_provider_calls: false,
+          enabled: true,
+          high_cost_confirmation_required: true,
+          reconciliation_contract: "deploy/usage/billing-reconciliation.contract.json",
+          status: "planned_no_write"
+        },
+        plan_code: "developer",
+        price_status: "validation_assumption_not_final_quote",
+        redistribution: {
+          commercial_external_redistribution: false,
+          export_requires_field_authorization: true,
+          partner_rights_matrix_required: true
+        },
+        target_user: "ai_power_user_individual_developer",
+        usage_quota: {
+          credit_limit: 10000,
+          quota_contract: "deploy/usage/quota-display.contract.json",
+          quota_source: "@aiphabee/usage-ledger",
+          usage_channels: PACKAGE_PRICING_USAGE_CHANNELS
+        },
+        web_entitlements: ["pro_web_entitlements"]
+      }
+    ],
+    pricing_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.2",
+    runtime_capability: getPackagePricingCapabilities(),
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: PACKAGE_PRICING_TABLES,
+    version: PACKAGE_PRICING_VERSION
   };
 }
 
