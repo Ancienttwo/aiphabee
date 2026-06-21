@@ -10,7 +10,10 @@
   "live_concurrency_limiter": false,
   "live_budget_debit": false,
   "durable_queue_writes": false,
+  "ip_reputation_live": false,
+  "multidimensional_scope": true,
   "ordinary_pool_protection": true,
+  "raw_ip_stored": false,
   "high_cost_threshold": 8,
   "covered_sprint_2_3_items": [
     "MCP-11",
@@ -26,14 +29,26 @@
     "concurrency_limit_plan_ready",
     "budget_limit_plan_ready",
     "mcp_limiter_live",
+    "mcp_tool_limiter_dimensions",
+    "mcp_tool_limiter_ip_reputation_live",
     "ordinary_pool_protection",
     "mcp_limiter_error_codes",
-    "mcp_tool_limiter_pools"
+    "mcp_tool_limiter_pools",
+    "mcp_tool_limiter_raw_ip_stored"
+  ],
+  "required_scope_dimensions": [
+    "user",
+    "workspace",
+    "client",
+    "tool",
+    "dataset",
+    "ip_risk"
   ],
   "required_tool_limit_fields": [
     "limiter_version",
     "tool_name",
     "ordinary_pool_protection",
+    "scope",
     "weight",
     "rate_limit",
     "concurrency",
@@ -64,6 +79,23 @@
     "pre_debit_required",
     "failure_refund_required",
     "live_debit"
+  ],
+  "required_scope_fields": [
+    "dimension_keys",
+    "user",
+    "workspace",
+    "client",
+    "tool",
+    "dataset",
+    "ip_risk",
+    "key_material"
+  ],
+  "required_ip_risk_fields": [
+    "risk_level",
+    "source",
+    "client_ip_present",
+    "live_reputation_lookup",
+    "raw_ip_stored"
   ],
   "rate_limit": {
     "per_minute_limit": 60,

@@ -17,14 +17,26 @@ const requiredRuntimeCapabilityFields = [
   "concurrency_limit_plan_ready",
   "budget_limit_plan_ready",
   "mcp_limiter_live",
+  "mcp_tool_limiter_dimensions",
+  "mcp_tool_limiter_ip_reputation_live",
   "ordinary_pool_protection",
   "mcp_limiter_error_codes",
-  "mcp_tool_limiter_pools"
+  "mcp_tool_limiter_pools",
+  "mcp_tool_limiter_raw_ip_stored"
+];
+const requiredScopeDimensions = [
+  "user",
+  "workspace",
+  "client",
+  "tool",
+  "dataset",
+  "ip_risk"
 ];
 const requiredToolLimitFields = [
   "limiter_version",
   "tool_name",
   "ordinary_pool_protection",
+  "scope",
   "weight",
   "rate_limit",
   "concurrency",
@@ -55,6 +67,23 @@ const requiredBudgetFields = [
   "pre_debit_required",
   "failure_refund_required",
   "live_debit"
+];
+const requiredScopeFields = [
+  "dimension_keys",
+  "user",
+  "workspace",
+  "client",
+  "tool",
+  "dataset",
+  "ip_risk",
+  "key_material"
+];
+const requiredIpRiskFields = [
+  "risk_level",
+  "source",
+  "client_ip_present",
+  "live_reputation_lookup",
+  "raw_ip_stored"
 ];
 const requiredValidatedTools = ["get_price_history", "get_market_calendar"];
 const forbiddenTextPatterns = [
@@ -138,7 +167,9 @@ function validateContract(value) {
     "live_rate_limiter",
     "live_concurrency_limiter",
     "live_budget_debit",
-    "durable_queue_writes"
+    "durable_queue_writes",
+    "ip_reputation_live",
+    "raw_ip_stored"
   ]) {
     if (value[field] !== false) {
       errors.push(`${field} must be false in this scaffold`);
@@ -147,6 +178,10 @@ function validateContract(value) {
 
   if (value.ordinary_pool_protection !== true) {
     errors.push("ordinary_pool_protection must be true");
+  }
+
+  if (value.multidimensional_scope !== true) {
+    errors.push("multidimensional_scope must be true");
   }
 
   if (value.high_cost_threshold !== 8) {
@@ -165,6 +200,13 @@ function validateContract(value) {
       value.required_runtime_capability_fields,
       requiredRuntimeCapabilityFields,
       "required_runtime_capability_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_scope_dimensions,
+      requiredScopeDimensions,
+      "required_scope_dimensions"
     )
   );
   errors.push(
@@ -193,6 +235,20 @@ function validateContract(value) {
       value.required_budget_fields,
       requiredBudgetFields,
       "required_budget_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_scope_fields,
+      requiredScopeFields,
+      "required_scope_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_ip_risk_fields,
+      requiredIpRiskFields,
+      "required_ip_risk_fields"
     )
   );
   errors.push(

@@ -130,8 +130,18 @@ describe("mcp endpoint default-deny scaffold", () => {
       developer_console_reconciliation_ready: true,
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
+      mcp_tool_limiter_dimensions: [
+        "user",
+        "workspace",
+        "client",
+        "tool",
+        "dataset",
+        "ip_risk"
+      ],
+      mcp_tool_limiter_ip_reputation_live: false,
       mcp_tool_limiter_ready: true,
       mcp_tool_limiter_version: "2026-06-21.phase2.mcp-tool-limiter-scaffold.v0",
+      mcp_tool_limiter_raw_ip_stored: false,
       ordinary_pool_protection: true,
       rate_limit_plan_ready: true,
       tool_call_input_strict_validation: true,
@@ -1438,7 +1448,13 @@ describe("mcp endpoint default-deny scaffold", () => {
 
   it("plans bounded retrieval for paginated tools/call requests", () => {
     const plan = createMcpProtocolPlan({
+      accountId: "acct_mcp",
+      clientIp: "203.0.113.10",
+      clientName: "mcp-inspector",
+      clientVersion: "0.16.0",
       grantedScopes: ["prices:read"],
+      ipRiskLevel: "medium",
+      membershipId: "member_mcp",
       mcpRedistributionRightsConfirmed: true,
       method: "tools/call",
       origin: "https://app.aiphabee.com",
@@ -1557,7 +1573,8 @@ describe("mcp endpoint default-deny scaffold", () => {
       },
       durable_queue: {
         enqueue_status: "not_required",
-        idempotency_key: "mcp_tool_limit_req-mcp-tool-call-bounded_get_price_history",
+        idempotency_key:
+          "mcp_tool_limit_req-mcp-tool-call-bounded_rate_user=acct_mcp_workspace=workspace_mcp_client=mcp-inspector_tool=get_price_history_dataset=price_history_ip_risk=medium",
         live_queue_writes: false,
         queue_name: null,
         required: false
@@ -1573,6 +1590,39 @@ describe("mcp endpoint default-deny scaffold", () => {
         retry_after_seconds: null,
         status: "planned_no_live"
       },
+      scope: {
+        client: {
+          name: "mcp-inspector",
+          origin: "https://app.aiphabee.com",
+          source: "request",
+          version: "0.16.0"
+        },
+        dataset: {
+          name: "price_history",
+          source: "tool_registry_data_class"
+        },
+        dimension_keys: ["user", "workspace", "client", "tool", "dataset", "ip_risk"],
+        ip_risk: {
+          client_ip_present: true,
+          live_reputation_lookup: false,
+          raw_ip_stored: false,
+          risk_level: "medium",
+          source: "request"
+        },
+        tool: {
+          name: "get_price_history",
+          required_scope: "prices:read"
+        },
+        user: {
+          account_id: "acct_mcp",
+          membership_id: "member_mcp",
+          source: "request"
+        },
+        workspace: {
+          source: "request",
+          workspace_id: "workspace_mcp"
+        }
+      },
       tool_name: "get_price_history",
       weight: {
         credit_weight: 3,
@@ -1585,7 +1635,12 @@ describe("mcp endpoint default-deny scaffold", () => {
 
   it("plans high-cost MCP tools/call requests onto the isolated limiter pool", () => {
     const plan = createMcpProtocolPlan({
+      accountId: "acct_mcp",
+      clientIp: "203.0.113.10",
+      clientName: "typescript-sdk-client",
+      clientVersion: "1.29.0",
       grantedScopes: ["calendar:read"],
+      ipRiskLevel: "high",
       mcpRedistributionRightsConfirmed: true,
       method: "tools/call",
       origin: "https://app.aiphabee.com",
@@ -1642,7 +1697,8 @@ describe("mcp endpoint default-deny scaffold", () => {
       },
       durable_queue: {
         enqueue_status: "planned_no_live",
-        idempotency_key: "mcp_tool_limit_req-mcp-tool-call-calendar-high-cost_get_market_calendar",
+        idempotency_key:
+          "mcp_tool_limit_req-mcp-tool-call-calendar-high-cost_rate_user=acct_mcp_workspace=workspace_mcp_client=typescript-sdk-client_tool=get_market_calendar_dataset=market_calendar_ip_risk=high",
         live_queue_writes: false,
         queue_name: "mcp-high-cost",
         required: true
@@ -1657,6 +1713,39 @@ describe("mcp endpoint default-deny scaffold", () => {
         rate_limited_error_code: "RATE_LIMITED",
         retry_after_seconds: null,
         status: "planned_no_live"
+      },
+      scope: {
+        client: {
+          name: "typescript-sdk-client",
+          origin: "https://app.aiphabee.com",
+          source: "request",
+          version: "1.29.0"
+        },
+        dataset: {
+          name: "market_calendar",
+          source: "tool_registry_data_class"
+        },
+        dimension_keys: ["user", "workspace", "client", "tool", "dataset", "ip_risk"],
+        ip_risk: {
+          client_ip_present: true,
+          live_reputation_lookup: false,
+          raw_ip_stored: false,
+          risk_level: "high",
+          source: "request"
+        },
+        tool: {
+          name: "get_market_calendar",
+          required_scope: "calendar:read"
+        },
+        user: {
+          account_id: "acct_mcp",
+          membership_id: "membership_unresolved",
+          source: "request"
+        },
+        workspace: {
+          source: "request",
+          workspace_id: "workspace_mcp"
+        }
       },
       tool_name: "get_market_calendar",
       weight: {

@@ -1,0 +1,85 @@
+{
+  "version": "2026-06-22.multidimensional-rate-limit-closeout.v0",
+  "status": "local_contract",
+  "tracker_item": "A3 multidimensional rate limit",
+  "scope": "mcp_tool_call_limiter_scope",
+  "runtime_route": "GET /mcp/runtime",
+  "execution_route": "POST /mcp",
+  "frontend": false,
+  "live_limiter_window_reads": false,
+  "live_concurrency_reads": false,
+  "live_budget_debit": false,
+  "durable_queue_writes": false,
+  "raw_ip_stored": false,
+  "ip_reputation_live": false,
+  "required_dimensions": [
+    "user",
+    "workspace",
+    "client",
+    "tool",
+    "dataset",
+    "ip_risk"
+  ],
+  "required_scope_fields": [
+    "dimension_keys",
+    "user",
+    "workspace",
+    "client",
+    "tool",
+    "dataset",
+    "ip_risk",
+    "key_material"
+  ],
+  "required_ip_risk_fields": [
+    "risk_level",
+    "source",
+    "client_ip_present",
+    "live_reputation_lookup",
+    "raw_ip_stored"
+  ],
+  "required_runtime_capability_fields": [
+    "mcp_tool_limiter_dimensions",
+    "mcp_tool_limiter_ip_reputation_live",
+    "mcp_tool_limiter_raw_ip_stored",
+    "mcp_limiter_live",
+    "mcp_tool_limiter_ready",
+    "mcp_limiter_error_codes",
+    "ordinary_pool_protection"
+  ],
+  "required_tool_limit_fields": [
+    "scope",
+    "rate_limit",
+    "concurrency",
+    "budget",
+    "durable_queue",
+    "weight"
+  ],
+  "required_error_codes": [
+    "RATE_LIMITED",
+    "BUDGET_EXCEEDED"
+  ],
+  "runtime_evidence": [
+    "CreateMcpProtocolPlanInput accepts account/workspace/client/tool arguments plus client IP presence and IP risk level",
+    "McpToolLimitsPlan exposes scope.dimension_keys for user/workspace/client/tool/dataset/ip_risk",
+    "scope.key_material derives rate/concurrency/budget keys from every required dimension",
+    "durable queue idempotency key includes scoped limiter material",
+    "GET /mcp/runtime exposes limiter dimensions and no raw IP storage",
+    "POST /mcp forwards cf-connecting-ip/x-forwarded-for presence and x-aiphabee-ip-risk to the planner"
+  ],
+  "not_claimed": [
+    "live_limiter_window_reads",
+    "live_concurrency_state_reads",
+    "live_usage_ledger_debit_refund",
+    "live_ip_reputation_lookup",
+    "raw_ip_storage",
+    "anomaly_detection_model",
+    "enterprise_bulk_plan"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/tool-limiter.contract.json",
+    "packages/mcp-runtime/src/index.ts",
+    "packages/mcp-runtime/src/index.test.ts",
+    "apps/worker/src/index.ts",
+    "docs/governance/mcp-tool-limiter-scaffold.md"
+  ]
+}

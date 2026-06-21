@@ -161,6 +161,7 @@ export type McpMethod = (typeof MCP_SUPPORTED_METHODS)[number];
 export type McpOAuthScope = (typeof MCP_OAUTH_SCOPE_DEFINITIONS)[number]["scope"];
 export type McpCredentialKind = "api_key" | "oauth_connection";
 export type McpCredentialStatus = "active" | "revoked" | "rotated" | "unknown";
+export type McpIpRiskLevel = "high" | "low" | "medium" | "unknown";
 export type McpRuntimePlanStatus =
   | "planned_default_deny"
   | "planned_no_live_execution";
@@ -249,12 +250,14 @@ export class McpRuntimeInputError extends Error {
 export interface CreateMcpProtocolPlanInput {
   accountId?: string;
   allowedOrigins?: readonly string[];
+  clientIp?: string;
   clientName?: string;
   clientVersion?: string;
   connectionId?: string;
   credentialKind?: string;
   credentialStatus?: string;
   grantedScopes?: readonly string[];
+  ipRiskLevel?: string;
   keyId?: string;
   membershipId?: string;
   method?: string;
@@ -538,14 +541,54 @@ export interface McpToolLimitsPlan {
     rate_limited: false;
     rate_limited_error_code: "RATE_LIMITED";
     retry_after_seconds: null;
-    status: "planned_no_live";
+      status: "planned_no_live";
   };
+  scope: McpToolLimiterScope;
   tool_name: RegisteredToolName;
   weight: {
     credit_weight: number;
     high_cost: boolean;
     high_cost_threshold: typeof MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD;
     row_estimate: number;
+  };
+}
+
+export interface McpToolLimiterScope {
+  client: {
+    name: string;
+    origin: string;
+    source: "request" | "unresolved";
+    version: string;
+  };
+  dataset: {
+    name: string;
+    source: "tool_registry_data_class";
+  };
+  dimension_keys: readonly ["user", "workspace", "client", "tool", "dataset", "ip_risk"];
+  ip_risk: {
+    client_ip_present: boolean;
+    live_reputation_lookup: false;
+    raw_ip_stored: false;
+    risk_level: McpIpRiskLevel;
+    source: "request" | "unrated";
+  };
+  key_material: {
+    budget_key: string;
+    concurrency_key: string;
+    rate_limit_key: string;
+  };
+  tool: {
+    name: RegisteredToolName;
+    required_scope: string;
+  };
+  user: {
+    account_id: string;
+    membership_id: string;
+    source: "request" | "unresolved";
+  };
+  workspace: {
+    source: "request" | "unresolved";
+    workspace_id: string;
   };
 }
 
@@ -1487,6 +1530,15 @@ export function getMcpRuntimeCapabilities() {
     concurrency_limit_plan_ready: true,
     mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"] as const,
     mcp_limiter_live: false,
+    mcp_tool_limiter_dimensions: [
+      "user",
+      "workspace",
+      "client",
+      "tool",
+      "dataset",
+      "ip_risk"
+    ] as const,
+    mcp_tool_limiter_ip_reputation_live: false,
     mcp_tool_limiter_pools: [
       {
         high_cost: false,
@@ -1502,6 +1554,7 @@ export function getMcpRuntimeCapabilities() {
         queue_name: "mcp-high-cost"
       }
     ] as const,
+    mcp_tool_limiter_raw_ip_stored: false,
     mcp_tool_limiter_ready: true,
     mcp_tool_limiter_version: MCP_TOOL_LIMITER_VERSION,
     ordinary_pool_protection: true,
@@ -3332,6 +3385,7 @@ function createMcpToolLimitsPlan(
   const maxParallel = highCost
     ? MCP_TOOL_LIMITER_HIGH_COST_MAX_PARALLEL
     : MCP_TOOL_LIMITER_STANDARD_MAX_PARALLEL;
+  const scope = createMcpToolLimiterScope(tool, input);
 
   return {
     budget: {
@@ -3352,7 +3406,7 @@ function createMcpToolLimitsPlan(
     },
     durable_queue: {
       enqueue_status: highCost ? "planned_no_live" : "not_required",
-      idempotency_key: `mcp_tool_limit_${input.requestId}_${tool.name}`,
+      idempotency_key: `mcp_tool_limit_${toLimiterKeyPart(input.requestId)}_${toLimiterKeyPart(scope.key_material.rate_limit_key)}`,
       live_queue_writes: false,
       queue_name: highCost ? "mcp-high-cost" : null,
       required: highCost
@@ -3368,6 +3422,7 @@ function createMcpToolLimitsPlan(
       retry_after_seconds: null,
       status: "planned_no_live"
     },
+    scope,
     tool_name: tool.name,
     weight: {
       credit_weight: estimatedCredits,
@@ -3376,6 +3431,89 @@ function createMcpToolLimitsPlan(
       row_estimate: boundedRetrieval.row_limit.effective_limit
     }
   };
+}
+
+function createMcpToolLimiterScope(
+  tool: RegisteredToolDefinition,
+  input: CreateMcpProtocolPlanInput
+): McpToolLimiterScope {
+  const accountId = normalizeText(input.accountId);
+  const membershipId = normalizeText(input.membershipId);
+  const workspaceId = normalizeText(input.workspaceId);
+  const clientName = normalizeText(input.clientName);
+  const clientVersion = normalizeText(input.clientVersion);
+  const origin = normalizeText(input.origin);
+  const dataset = tool.permissions.dataClasses[0] ?? tool.name;
+  const ipRiskLevel = normalizeIpRiskLevel(input.ipRiskLevel);
+  const scopeParts = {
+    client: clientName ?? "client_unresolved",
+    dataset,
+    ipRisk: ipRiskLevel,
+    tool: tool.name,
+    user: accountId ?? "account_unresolved",
+    workspace: workspaceId ?? "workspace_unresolved"
+  };
+  const scopedKey = [
+    `user=${scopeParts.user}`,
+    `workspace=${scopeParts.workspace}`,
+    `client=${scopeParts.client}`,
+    `tool=${scopeParts.tool}`,
+    `dataset=${scopeParts.dataset}`,
+    `ip_risk=${scopeParts.ipRisk}`
+  ]
+    .map(toLimiterKeyPart)
+    .join("|");
+
+  return {
+    client: {
+      name: scopeParts.client,
+      origin: origin ?? "origin_unresolved",
+      source: clientName === undefined ? "unresolved" : "request",
+      version: clientVersion ?? "unknown"
+    },
+    dataset: {
+      name: dataset,
+      source: "tool_registry_data_class"
+    },
+    dimension_keys: ["user", "workspace", "client", "tool", "dataset", "ip_risk"],
+    ip_risk: {
+      client_ip_present: normalizeText(input.clientIp) !== undefined,
+      live_reputation_lookup: false,
+      raw_ip_stored: false,
+      risk_level: ipRiskLevel,
+      source: ipRiskLevel === "unknown" ? "unrated" : "request"
+    },
+    key_material: {
+      budget_key: `budget|${scopedKey}`,
+      concurrency_key: `concurrency|${scopedKey}`,
+      rate_limit_key: `rate|${scopedKey}`
+    },
+    tool: {
+      name: tool.name,
+      required_scope: tool.permissions.requiredScope
+    },
+    user: {
+      account_id: scopeParts.user,
+      membership_id: membershipId ?? "membership_unresolved",
+      source: accountId === undefined ? "unresolved" : "request"
+    },
+    workspace: {
+      source: workspaceId === undefined ? "unresolved" : "request",
+      workspace_id: scopeParts.workspace
+    }
+  };
+}
+
+function normalizeIpRiskLevel(value: string | undefined): McpIpRiskLevel {
+  const normalized = normalizeText(value)?.toLowerCase();
+
+  return normalized === "high" || normalized === "medium" || normalized === "low"
+    ? normalized
+    : "unknown";
+}
+
+function toLimiterKeyPart(value: string): string {
+  return value.replace(/[^A-Za-z0-9_.:=-]/gu, "_");
 }
 
 function createToolDescriptors(

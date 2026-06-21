@@ -3782,12 +3782,18 @@ app.post("/mcp", async (c) => {
   try {
     const result = createMcpProtocolPlan({
       accountId: normalizeString(params.account_id ?? params.accountId),
+      clientIp: normalizeString(
+        c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for")
+      ),
       clientName: normalizeString(params.client_name ?? params.clientName),
       clientVersion: normalizeString(params.client_version ?? params.clientVersion),
       connectionId: normalizeString(params.connection_id ?? params.connectionId),
       credentialKind: normalizeString(params.credential_kind ?? params.credentialKind),
       credentialStatus: normalizeString(params.credential_status ?? params.credentialStatus),
       grantedScopes: [],
+      ipRiskLevel: normalizeString(
+        params.ip_risk ?? params.ipRisk ?? c.req.header("x-aiphabee-ip-risk")
+      ),
       keyId: normalizeString(params.key_id ?? params.keyId),
       membershipId: normalizeString(params.membership_id ?? params.membershipId),
       method: normalizeString(body.method),
