@@ -144,10 +144,12 @@ import {
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
   getMcpApiKeyCapabilities,
   getMcpCompatibilityStatusCapabilities,
   getMcpOAuthCapabilities,
+  getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
@@ -3006,6 +3008,56 @@ app.get("/mcp/compatibility/status", (c) => {
       }
     )
   );
+});
+
+app.post("/mcp/release-gates/protocol/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpProtocolReleaseGatePlan({
+      clientName: normalizeString(body.client_name ?? body.clientName),
+      clientVersion: normalizeString(body.client_version ?? body.clientVersion),
+      origin: c.req.header("origin") ?? normalizeString(body.origin),
+      pendingCredits: normalizeOptionalNumber(body.pending_credits ?? body.pendingCredits),
+      requestId,
+      usagePlanCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+      usedCredits: normalizeOptionalNumber(body.used_credits ?? body.usedCredits),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpProtocolReleaseGateCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(
+      c,
+      error,
+      requestId,
+      "MCP protocol release gate plan failed",
+      {
+        dataVersion: "mcp-protocol-release-gate-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
+        source: "mcp-runtime"
+      }
+    );
+  }
 });
 
 app.get("/mcp/oauth/runtime", (c) => {

@@ -40,10 +40,21 @@ export const MCP_TOOL_LIMITER_RATE_LIMIT_PER_MINUTE = 60;
 export const MCP_TOOL_LIMITER_BURST_LIMIT = 10;
 export const MCP_COMPATIBILITY_STATUS_VERSION =
   "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0";
+export const MCP_PROTOCOL_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0";
 export const MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION = "2025-03-26";
 export const MCP_COMPATIBILITY_MONITORED_PROTOCOL_VERSIONS = [
   "2025-03-26",
   "2025-11-25"
+] as const;
+export const MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS = [
+  "streamable_http_initialize_contract",
+  "origin_required_and_allowed",
+  "auth_enforced_before_tool_execution",
+  "tools_list_default_deny_until_rights_confirmed",
+  "tools_call_input_schema_validation",
+  "tools_call_output_schema_contract",
+  "compatibility_vectors_present"
 ] as const;
 
 export const MCP_SUPPORTED_METHODS = [
@@ -307,6 +318,18 @@ export interface CreateMcpRevocationEnforcementPlanInput {
   revokedAt?: string;
   rotatedAt?: string;
   toolName?: string;
+}
+
+export interface CreateMcpProtocolReleaseGatePlanInput {
+  allowedOrigins?: readonly string[];
+  clientName?: string;
+  clientVersion?: string;
+  origin?: string;
+  pendingCredits?: number;
+  requestId: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
 }
 
 export interface McpToolDescriptor {
@@ -1353,6 +1376,11 @@ export function getMcpRuntimeCapabilities() {
     mcp_compatibility_status_route: "GET /mcp/compatibility/status" as const,
     mcp_compatibility_status_version: MCP_COMPATIBILITY_STATUS_VERSION,
     mcp_live_client_e2e_passed: false,
+    mcp_protocol_release_gate_ready: true,
+    mcp_protocol_release_gate_required_checks:
+      MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS,
+    mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan" as const,
+    mcp_protocol_release_gate_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
     mcp_target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
     live_tool_execution: false,
     mcp_api_redistribution_rights_confirmed: false,
@@ -1602,6 +1630,288 @@ export function createMcpCompatibilityStatusPlan(input: {
     usage,
     version: MCP_COMPATIBILITY_STATUS_VERSION
   };
+}
+
+export function getMcpProtocolReleaseGateCapabilities() {
+  return {
+    authentication_gate_ready: true,
+    compatibility_status_route: "GET /mcp/compatibility/status" as const,
+    input_output_schema_compatibility_ready: true,
+    live_auth_middleware: false,
+    live_client_e2e_passed: false,
+    package: "@aiphabee/mcp-runtime" as const,
+    protocol_route: "POST /mcp" as const,
+    required_checks: MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS,
+    route: "POST /mcp/release-gates/protocol/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    status: "mcp_protocol_release_gate_scaffold" as const,
+    streamable_http_ready: true,
+    target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
+    version: MCP_PROTOCOL_RELEASE_GATE_VERSION
+  };
+}
+
+export function createMcpProtocolReleaseGatePlan(
+  input: CreateMcpProtocolReleaseGatePlanInput
+) {
+  const origin = normalizeText(input.origin) ?? DEFAULT_MCP_ALLOWED_ORIGINS[0];
+  const allowedOrigins = input.allowedOrigins ?? DEFAULT_MCP_ALLOWED_ORIGINS;
+  const toolArguments = {
+    instrument_id: "HK:00700"
+  };
+  const initializePlan = createMcpProtocolPlan({
+    allowedOrigins,
+    clientName: input.clientName ?? "mcp-release-gate-local",
+    clientVersion: input.clientVersion ?? MCP_PROTOCOL_RELEASE_GATE_VERSION,
+    method: "initialize",
+    origin,
+    requestId: `${input.requestId}:initialize`
+  });
+  const toolsListDefaultDenyPlan = createMcpProtocolPlan({
+    allowedOrigins,
+    method: "tools/list",
+    origin,
+    requestId: `${input.requestId}:tools-list-default-deny`
+  });
+  const originDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      method: "initialize",
+      origin: "https://untrusted.example",
+      requestId: `${input.requestId}:origin-denied`
+    })
+  );
+  const authDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      connectionId: "mcp_connection_revoked",
+      credentialKind: "oauth_connection",
+      credentialStatus: "revoked",
+      grantedScopes: ["quotes:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:auth-denied`,
+      revokedAt: "2026-06-21T00:00:00.000Z",
+      toolArguments,
+      toolName: "get_quote_snapshot"
+    })
+  );
+  const rightsDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:rights-denied`,
+      toolArguments,
+      toolName: "get_quote_snapshot"
+    })
+  );
+  const invalidInputDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      connectionId: "mcp_connection_active",
+      credentialKind: "oauth_connection",
+      credentialStatus: "active",
+      grantedScopes: ["quotes:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:schema-denied`,
+      toolArguments: {
+        ...toolArguments,
+        unsupported_field: "blocked"
+      },
+      toolName: "get_quote_snapshot"
+    })
+  );
+  const toolCallPlan = createMcpProtocolPlan({
+    allowedOrigins,
+    connectionId: "mcp_connection_active",
+    credentialKind: "oauth_connection",
+    credentialStatus: "active",
+    grantedScopes: ["quotes:read"],
+    mcpRedistributionRightsConfirmed: true,
+    method: "tools/call",
+    origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:tool-call-schema`,
+    toolArguments,
+    toolName: "get_quote_snapshot",
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const compatibilityPlan = createMcpCompatibilityStatusPlan({
+    requestId: `${input.requestId}:compatibility`
+  });
+  const capability = getMcpProtocolReleaseGateCapabilities();
+  const validation = {
+    auth_enforced_before_tool_execution:
+      authDenied.code === "MCP_CREDENTIAL_REVOKED" &&
+      authDenied.standard_error_code === "AUTH_REQUIRED" &&
+      authDenied.details.enforcedBeforeToolExecution === true &&
+      toolCallPlan.revocation_enforcement?.denial.denied === false,
+    compatibility_vectors_present: [
+      "streamable_http_post",
+      "initialize_negotiation",
+      "tools_call_schema_validation",
+      "structured_content_text_fallback"
+    ].every((name) =>
+      compatibilityPlan.test_vectors.some(
+        (vector) => vector.name === name && vector.local_contract_ready
+      )
+    ),
+    no_frontend_rendering:
+      initializePlan.frontend_rendering === false &&
+      toolCallPlan.frontend_rendering === false,
+    no_live_auth_middleware:
+      authDenied.live_auth_middleware === false &&
+      toolCallPlan.revocation_enforcement?.live_auth_middleware === false,
+    no_live_client_smoke:
+      compatibilityPlan.live_client_e2e_passed === false &&
+      compatibilityPlan.inspector.live_inspector_smoke === false &&
+      compatibilityPlan.sdk.live_sdk_smoke === false,
+    no_live_tool_execution: toolCallPlan.live_tool_execution === false,
+    origin_required_and_allowed:
+      initializePlan.origin_check.required &&
+      initializePlan.origin_check.valid &&
+      originDenied.code === "ORIGIN_NOT_ALLOWED",
+    streamable_http_initialize_contract:
+      initializePlan.transport === "streamable_http" &&
+      initializePlan.protocol.streamable_http &&
+      initializePlan.initialize?.protocol_version ===
+        MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
+    tools_call_input_schema_validation:
+      toolCallPlan.tool_call?.input_validation.schema_validation_status ===
+        "validated" && invalidInputDenied.code === "TOOL_ARGUMENT_UNSUPPORTED",
+    tools_call_output_schema_contract:
+      toolCallPlan.tool_call?.output_validation
+        .structured_content_matches_output_schema === "planned_no_live" &&
+      toolCallPlan.tool_call.output_validation.structured_content_required,
+    tools_list_default_deny_until_rights_confirmed:
+      toolsListDefaultDenyPlan.tools_list?.returned_tool_count === 0 &&
+      toolsListDefaultDenyPlan.rights_gate.default_deny &&
+      rightsDenied.code === "MCP_REDISTRIBUTION_RIGHTS_REQUIRED"
+  };
+  const releaseChecks = capability.required_checks.map((check) => ({
+    check,
+    evidence:
+      check === "streamable_http_initialize_contract"
+        ? "createMcpProtocolPlan initialize returns JSON-RPC 2.0 Streamable HTTP metadata and target protocol version"
+        : check === "origin_required_and_allowed"
+          ? "trusted Origin is accepted and untrusted Origin maps to ORIGIN_NOT_ALLOWED before protocol planning"
+          : check === "auth_enforced_before_tool_execution"
+            ? "revoked OAuth credential maps to AUTH_REQUIRED before tools/call execution planning"
+            : check === "tools_list_default_deny_until_rights_confirmed"
+              ? "tools/list returns no descriptors and tools/call is blocked until MCP redistribution rights are confirmed"
+              : check === "tools_call_input_schema_validation"
+                ? "tools/call validates strict input arguments and rejects unsupported fields"
+                : check === "tools_call_output_schema_contract"
+                  ? "tools/call exposes output_schema_id and structuredContent output validation metadata"
+                  : "compatibility status exposes local Streamable HTTP, initialize, schema, and fallback vectors",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    auth_gate: {
+      active_credential_plan: toolCallPlan.revocation_enforcement,
+      denied_error: authDenied,
+      live_auth_middleware: false,
+      rights_denied_error: rightsDenied
+    },
+    capability,
+    compatibility_gate: {
+      inspector: compatibilityPlan.inspector,
+      live_client_e2e_passed: compatibilityPlan.live_client_e2e_passed,
+      monitored_protocol_versions: compatibilityPlan.monitored_protocol_versions,
+      sdk: compatibilityPlan.sdk,
+      target_clients: compatibilityPlan.target_clients,
+      target_protocol_version: compatibilityPlan.target_protocol_version,
+      test_vectors: compatibilityPlan.test_vectors
+    },
+    data_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+    frontend_rendering: false,
+    live_auth_middleware: false,
+    live_client_e2e_passed: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    methodology_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+    model_calls: false,
+    origin_gate: {
+      allowed_origin_check: initializePlan.origin_check,
+      denied_error: originDenied
+    },
+    persistent_writes: false,
+    protocol_gate: {
+      initialize: initializePlan.initialize,
+      protocol: initializePlan.protocol,
+      protocol_route: "POST /mcp",
+      transport: initializePlan.transport
+    },
+    provenance: [
+      {
+        data_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+        methodology_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+        source: "mcp-runtime",
+        source_record_id: "mcp_protocol_release_gate"
+      }
+    ],
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_oauth_provider_missing",
+        "live_auth_middleware_missing",
+        "live_sdk_inspector_smoke_missing",
+        "target_client_e2e_missing"
+      ],
+      gate_status: "blocked_live_mcp_protocol_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "security", "data-rights", "developer-relations"]
+    },
+    request_id: input.requestId,
+    route: "POST /mcp/release-gates/protocol/plan" as const,
+    schema_compatibility_gate: {
+      invalid_input_denial: invalidInputDenied,
+      input_schema_id: toolCallPlan.tool_call?.input_schema_id,
+      input_validation: toolCallPlan.tool_call?.input_validation,
+      output_schema_id: toolCallPlan.tool_call?.output_schema_id,
+      output_validation: toolCallPlan.tool_call?.output_validation,
+      requested_tool_name: toolCallPlan.tool_call?.requested_tool_name,
+      required_scope: toolCallPlan.tool_call?.required_scope,
+      schema_validation: toolCallPlan.tool_call?.schema_validation,
+      structured_content_validation: toolCallPlan.tool_call?.structured_content_validation
+    },
+    sql_emitted: false,
+    status: "planned_no_write" as const,
+    tools_list_gate: {
+      default_deny_plan: toolsListDefaultDenyPlan.tools_list,
+      rights_gate: toolsListDefaultDenyPlan.rights_gate
+    },
+    usage: createMcpUsageSummary(input, 0, releaseChecks.length),
+    validation,
+    version: MCP_PROTOCOL_RELEASE_GATE_VERSION
+  };
+}
+
+function captureMcpProtocolReleaseGateError(plan: () => McpProtocolPlan) {
+  try {
+    plan();
+  } catch (error) {
+    if (error instanceof McpRuntimeInputError) {
+      return {
+        code: error.code,
+        details: error.details,
+        live_auth_middleware: false,
+        message: error.message,
+        standard_error_code: getMcpRuntimeStandardError(error.code)
+      };
+    }
+
+    throw error;
+  }
+
+  throw new Error("expected MCP protocol release gate probe to fail");
 }
 
 export function getMcpRuntimeStandardError(

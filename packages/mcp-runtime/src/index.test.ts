@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   MCP_COMPATIBILITY_STATUS_VERSION,
+  MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS,
+  MCP_PROTOCOL_RELEASE_GATE_VERSION,
   MCP_REVOCATION_ENFORCEMENT_VERSION,
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
@@ -14,9 +16,11 @@ import {
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
   getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
+  getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
@@ -100,6 +104,10 @@ describe("mcp endpoint default-deny scaffold", () => {
       mcp_compatibility_status_version:
         "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
       mcp_live_client_e2e_passed: false,
+      mcp_protocol_release_gate_ready: true,
+      mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan",
+      mcp_protocol_release_gate_version:
+        "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
       mcp_target_protocol_version: "2025-03-26",
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
@@ -232,6 +240,142 @@ describe("mcp endpoint default-deny scaffold", () => {
     ]);
     expect(plan.test_vectors.every((vector) => vector.local_contract_ready)).toBe(true);
     expect(plan.test_vectors.every((vector) => vector.live_smoke_passed === false)).toBe(true);
+  });
+
+  it("plans MCP protocol release gate checks without live execution", () => {
+    const plan = createMcpProtocolReleaseGatePlan({
+      requestId: "req-mcp-protocol-release-gate",
+      usagePlanCode: "developer",
+      usedCredits: 12,
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(MCP_PROTOCOL_RELEASE_GATE_VERSION).toBe(
+      "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0"
+    );
+    expect(getMcpProtocolReleaseGateCapabilities()).toMatchObject({
+      authentication_gate_ready: true,
+      compatibility_status_route: "GET /mcp/compatibility/status",
+      input_output_schema_compatibility_ready: true,
+      live_auth_middleware: false,
+      live_client_e2e_passed: false,
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      route: "POST /mcp/release-gates/protocol/plan",
+      runtime_route: "GET /mcp/runtime",
+      status: "mcp_protocol_release_gate_scaffold",
+      streamable_http_ready: true,
+      target_protocol_version: "2025-03-26",
+      version: MCP_PROTOCOL_RELEASE_GATE_VERSION
+    });
+    expect(getMcpProtocolReleaseGateCapabilities().required_checks).toEqual(
+      MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS
+    );
+    expect(plan).toMatchObject({
+      data_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+      frontend_rendering: false,
+      live_auth_middleware: false,
+      live_client_e2e_passed: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      methodology_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /mcp/release-gates/protocol/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: MCP_PROTOCOL_RELEASE_GATE_VERSION
+    });
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "streamable_http_initialize_contract",
+      "origin_required_and_allowed",
+      "auth_enforced_before_tool_execution",
+      "tools_list_default_deny_until_rights_confirmed",
+      "tools_call_input_schema_validation",
+      "tools_call_output_schema_contract",
+      "compatibility_vectors_present"
+    ]);
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(plan.protocol_gate).toMatchObject({
+      protocol: {
+        json_rpc: "2.0",
+        streamable_http: true
+      },
+      protocol_route: "POST /mcp",
+      transport: "streamable_http"
+    });
+    expect(plan.protocol_gate.initialize?.protocol_version).toBe("2025-03-26");
+    expect(plan.origin_gate).toMatchObject({
+      allowed_origin_check: {
+        required: true,
+        valid: true
+      },
+      denied_error: {
+        code: "ORIGIN_NOT_ALLOWED",
+        standard_error_code: "SCOPE_DENIED"
+      }
+    });
+    expect(plan.auth_gate).toMatchObject({
+      denied_error: {
+        code: "MCP_CREDENTIAL_REVOKED",
+        standard_error_code: "AUTH_REQUIRED"
+      },
+      live_auth_middleware: false,
+      rights_denied_error: {
+        code: "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+        standard_error_code: "DATA_NOT_LICENSED"
+      }
+    });
+    expect(plan.auth_gate.active_credential_plan?.denial).toMatchObject({
+      decision: "allow_planned",
+      denied: false,
+      enforced_before_tool_execution: true
+    });
+    expect(plan.schema_compatibility_gate).toMatchObject({
+      input_schema_id: "tool.get_quote_snapshot.input.v0",
+      input_validation: {
+        additional_properties_allowed: false,
+        arguments_valid: true,
+        schema_validation_status: "validated"
+      },
+      invalid_input_denial: {
+        code: "TOOL_ARGUMENT_UNSUPPORTED",
+        standard_error_code: "OUT_OF_RANGE"
+      },
+      output_schema_id: "tool.get_quote_snapshot.output.v0",
+      output_validation: {
+        raw_text_only_response_allowed: false,
+        structured_content_matches_output_schema: "planned_no_live",
+        structured_content_required: true
+      },
+      requested_tool_name: "get_quote_snapshot",
+      required_scope: "quotes:read",
+      schema_validation: "validated",
+      structured_content_validation: "planned_no_live"
+    });
+    expect(plan.compatibility_gate.test_vectors.map((vector) => vector.name)).toContain(
+      "tools_call_schema_validation"
+    );
+    expect(Object.values(plan.validation).every(Boolean)).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      blockers: [
+        "live_oauth_provider_missing",
+        "live_auth_middleware_missing",
+        "live_sdk_inspector_smoke_missing",
+        "target_client_e2e_missing"
+      ],
+      gate_status: "blocked_live_mcp_protocol_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "security", "data-rights", "developer-relations"]
+    });
+    expect(plan.usage).toMatchObject({
+      credits: 0,
+      request_id: "req-mcp-protocol-release-gate",
+      rows: 7,
+      usage_reconciliation_status: "planned_no_live"
+    });
   });
 
   it("maps MCP runtime input failures to stable PRD standard errors", () => {

@@ -462,6 +462,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621135000_mcp_protocol_release_gate_scaffold.sql",
+      "purpose": "Create empty MCP protocol release gate and governance scaffolds for Streamable HTTP, Origin, auth pre-execution, and input/output schema compatibility checks without enabling live OAuth, client e2e, or tool execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_protocol_release_gate",
+        "governance.mcp_protocol_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

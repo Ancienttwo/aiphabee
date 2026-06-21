@@ -3544,6 +3544,10 @@ interface McpRuntimeBody {
     mcp_compatibility_status_route: string;
     mcp_compatibility_status_version: string;
     mcp_live_client_e2e_passed: boolean;
+    mcp_protocol_release_gate_ready: boolean;
+    mcp_protocol_release_gate_required_checks: string[];
+    mcp_protocol_release_gate_route: string;
+    mcp_protocol_release_gate_version: string;
     mcp_target_protocol_version: string;
     oauth_authorize_route: string;
     oauth_live: boolean;
@@ -3645,6 +3649,104 @@ interface McpCompatibilityStatusBody {
       local_contract_ready: boolean;
       name: string;
     }>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface McpProtocolReleaseGatePlanBody {
+  data: {
+    auth_gate: {
+      active_credential_plan?: {
+        denial: {
+          decision: string;
+          denied: boolean;
+          enforced_before_tool_execution: boolean;
+        };
+      };
+      denied_error: {
+        code: string;
+        standard_error_code: string;
+      };
+      live_auth_middleware: boolean;
+      rights_denied_error: {
+        code: string;
+        standard_error_code: string;
+      };
+    };
+    capability: {
+      live_auth_middleware: boolean;
+      live_client_e2e_passed: boolean;
+      route: string;
+      status: string;
+      streamable_http_ready: boolean;
+    };
+    compatibility_gate: {
+      live_client_e2e_passed: boolean;
+      target_protocol_version: string;
+      test_vectors: Array<{
+        local_contract_ready: boolean;
+        name: string;
+      }>;
+    };
+    frontend_rendering: boolean;
+    live_auth_middleware: boolean;
+    live_client_e2e_passed: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    origin_gate: {
+      allowed_origin_check: {
+        required: boolean;
+        valid: boolean;
+      };
+      denied_error: {
+        code: string;
+        standard_error_code: string;
+      };
+    };
+    protocol_gate: {
+      initialize?: {
+        protocol_version: string;
+      };
+      protocol: {
+        json_rpc: string;
+        streamable_http: boolean;
+      };
+      transport: string;
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    schema_compatibility_gate: {
+      input_schema_id?: string;
+      input_validation?: {
+        arguments_valid: boolean;
+        schema_validation_status: string;
+      };
+      invalid_input_denial: {
+        code: string;
+        standard_error_code: string;
+      };
+      output_schema_id?: string;
+      output_validation?: {
+        structured_content_matches_output_schema: string;
+        structured_content_required: boolean;
+      };
+      requested_tool_name?: string;
+      required_scope?: string;
+    };
+    status: string;
+    validation: Record<string, boolean>;
     version: string;
   };
   ok: true;
@@ -11302,6 +11404,10 @@ describe("worker runtime", () => {
       mcp_compatibility_status_version:
         "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
       mcp_live_client_e2e_passed: false,
+      mcp_protocol_release_gate_ready: true,
+      mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan",
+      mcp_protocol_release_gate_version:
+        "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
       mcp_target_protocol_version: "2025-03-26",
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_live: false,
@@ -11355,6 +11461,15 @@ describe("worker runtime", () => {
       "initialize",
       "tools/list",
       "tools/call"
+    ]);
+    expect(body.data.mcp_protocol_release_gate_required_checks).toEqual([
+      "streamable_http_initialize_contract",
+      "origin_required_and_allowed",
+      "auth_enforced_before_tool_execution",
+      "tools_list_default_deny_until_rights_confirmed",
+      "tools_call_input_schema_validation",
+      "tools_call_output_schema_contract",
+      "compatibility_vectors_present"
     ]);
     expect(body.data.supported_oauth_scopes).toContain("market.read");
     expect(body.data.standard_error_codes).toEqual([
@@ -11471,6 +11586,131 @@ describe("worker runtime", () => {
       true
     );
     expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans MCP protocol release gate without live auth or client smoke", async () => {
+    const response = await app.request("/mcp/release-gates/protocol/plan", {
+      body: JSON.stringify({
+        client_name: "mcp-inspector",
+        client_version: "0.16.0",
+        plan_code: "developer",
+        used_credits: 12,
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-protocol-release-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpProtocolReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        live_auth_middleware: false,
+        live_client_e2e_passed: false,
+        route: "POST /mcp/release-gates/protocol/plan",
+        status: "mcp_protocol_release_gate_scaffold",
+        streamable_http_ready: true
+      },
+      frontend_rendering: false,
+      live_auth_middleware: false,
+      live_client_e2e_passed: false,
+      live_tool_execution: false,
+      model_calls: false,
+      release_gate: {
+        blockers: [
+          "live_oauth_provider_missing",
+          "live_auth_middleware_missing",
+          "live_sdk_inspector_smoke_missing",
+          "target_client_e2e_missing"
+        ],
+        gate_status: "blocked_live_mcp_protocol_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["platform", "security", "data-rights", "developer-relations"]
+      },
+      status: "planned_no_write",
+      version: "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0"
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "streamable_http_initialize_contract",
+      "origin_required_and_allowed",
+      "auth_enforced_before_tool_execution",
+      "tools_list_default_deny_until_rights_confirmed",
+      "tools_call_input_schema_validation",
+      "tools_call_output_schema_contract",
+      "compatibility_vectors_present"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.protocol_gate).toMatchObject({
+      initialize: {
+        protocol_version: "2025-03-26"
+      },
+      protocol: {
+        json_rpc: "2.0",
+        streamable_http: true
+      },
+      transport: "streamable_http"
+    });
+    expect(body.data.origin_gate).toMatchObject({
+      allowed_origin_check: {
+        required: true,
+        valid: true
+      },
+      denied_error: {
+        code: "ORIGIN_NOT_ALLOWED",
+        standard_error_code: "SCOPE_DENIED"
+      }
+    });
+    expect(body.data.auth_gate).toMatchObject({
+      denied_error: {
+        code: "MCP_CREDENTIAL_REVOKED",
+        standard_error_code: "AUTH_REQUIRED"
+      },
+      live_auth_middleware: false,
+      rights_denied_error: {
+        code: "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+        standard_error_code: "DATA_NOT_LICENSED"
+      }
+    });
+    expect(body.data.auth_gate.active_credential_plan?.denial).toMatchObject({
+      decision: "allow_planned",
+      denied: false,
+      enforced_before_tool_execution: true
+    });
+    expect(body.data.schema_compatibility_gate).toMatchObject({
+      input_schema_id: "tool.get_quote_snapshot.input.v0",
+      input_validation: {
+        arguments_valid: true,
+        schema_validation_status: "validated"
+      },
+      invalid_input_denial: {
+        code: "TOOL_ARGUMENT_UNSUPPORTED",
+        standard_error_code: "OUT_OF_RANGE"
+      },
+      output_schema_id: "tool.get_quote_snapshot.output.v0",
+      output_validation: {
+        structured_content_matches_output_schema: "planned_no_live",
+        structured_content_required: true
+      },
+      requested_tool_name: "get_quote_snapshot",
+      required_scope: "quotes:read"
+    });
+    expect(body.data.compatibility_gate).toMatchObject({
+      live_client_e2e_passed: false,
+      target_protocol_version: "2025-03-26"
+    });
+    expect(body.data.compatibility_gate.test_vectors.map((vector) => vector.name)).toContain(
+      "streamable_http_post"
+    );
+    expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
+    expect(body.usage.rows).toBe(7);
   });
 
   it("serves MCP OAuth PKCE capabilities with revocable scope catalog", async () => {

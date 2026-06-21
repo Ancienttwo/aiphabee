@@ -1,0 +1,116 @@
+{
+  "version": "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp/release-gates/protocol/plan",
+  "protocol_route": "POST /mcp",
+  "compatibility_status_route": "GET /mcp/compatibility/status",
+  "standard_response_envelope": true,
+  "transport": "streamable_http",
+  "target_protocol_version": "2025-03-26",
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_auth_middleware": false,
+  "live_client_e2e_passed": false,
+  "live_db_writes": false,
+  "live_inspector_smoke": false,
+  "live_oauth_provider": false,
+  "live_sdk_smoke": false,
+  "live_tool_execution": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "required_runtime_capability_fields": [
+    "mcp_protocol_release_gate_ready",
+    "mcp_protocol_release_gate_route",
+    "mcp_protocol_release_gate_version",
+    "mcp_protocol_release_gate_required_checks",
+    "mcp_compatibility_status_ready",
+    "mcp_compatibility_status_route",
+    "mcp_live_client_e2e_passed",
+    "origin_validation",
+    "tool_call_input_strict_validation",
+    "structured_content_output_schema_ready",
+    "transport"
+  ],
+  "required_checks": [
+    "streamable_http_initialize_contract",
+    "origin_required_and_allowed",
+    "auth_enforced_before_tool_execution",
+    "tools_list_default_deny_until_rights_confirmed",
+    "tools_call_input_schema_validation",
+    "tools_call_output_schema_contract",
+    "compatibility_vectors_present"
+  ],
+  "required_output_fields": [
+    "protocol_gate",
+    "origin_gate",
+    "auth_gate",
+    "schema_compatibility_gate",
+    "compatibility_gate",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "protocol_gate_policy": {
+    "json_rpc": "2.0",
+    "streamable_http": true,
+    "initialize_protocol_version": "2025-03-26",
+    "origin_required": true,
+    "untrusted_origin_error": "ORIGIN_NOT_ALLOWED"
+  },
+  "auth_gate_policy": {
+    "active_credential_allowed": true,
+    "revoked_credential_error": "MCP_CREDENTIAL_REVOKED",
+    "revoked_standard_error": "AUTH_REQUIRED",
+    "enforced_before_tool_execution": true,
+    "rights_default_deny_error": "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+    "rights_standard_error": "DATA_NOT_LICENSED"
+  },
+  "schema_compatibility_policy": {
+    "sample_tool_name": "get_quote_snapshot",
+    "required_scope": "quotes:read",
+    "input_schema_id": "tool.get_quote_snapshot.input.v0",
+    "output_schema_id": "tool.get_quote_snapshot.output.v0",
+    "additional_properties_allowed": false,
+    "unsupported_argument_error": "TOOL_ARGUMENT_UNSUPPORTED",
+    "unsupported_argument_standard_error": "OUT_OF_RANGE",
+    "structured_content_required": true,
+    "structured_content_matches_output_schema": "planned_no_live",
+    "raw_text_only_response_allowed": false
+  },
+  "required_compatibility_vectors": [
+    "streamable_http_post",
+    "initialize_negotiation",
+    "tools_call_schema_validation",
+    "structured_content_text_fallback"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_mcp_protocol_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": ["platform", "security", "data-rights", "developer-relations"],
+    "blockers": [
+      "live_oauth_provider_missing",
+      "live_auth_middleware_missing",
+      "live_sdk_inspector_smoke_missing",
+      "target_client_e2e_missing"
+    ]
+  },
+  "tables": [
+    "core.mcp_protocol_release_gate",
+    "governance.mcp_protocol_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "mcp_streamable_http_origin_auth",
+    "mcp_input_output_schema_compatibility"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/endpoint.contract.json",
+    "deploy/mcp/tool-schema-validation.contract.json",
+    "deploy/mcp/compatibility.contract.json",
+    "deploy/mcp/error-codes.contract.json",
+    "deploy/mcp/oauth-pkce.contract.json",
+    "deploy/mcp/revocation-enforcement.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}
