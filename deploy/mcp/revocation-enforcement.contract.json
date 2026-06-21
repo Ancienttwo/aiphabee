@@ -1,0 +1,63 @@
+{
+  "version": "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "protocol_route": "POST /mcp",
+  "route": "POST /mcp/revocations/enforce/plan",
+  "oauth_revoke_route": "POST /mcp/oauth/revoke/plan",
+  "api_key_revoke_route": "POST /mcp/api-keys/revoke/plan",
+  "api_key_rotate_route": "POST /mcp/api-keys/rotate/plan",
+  "frontend": false,
+  "live_oauth_provider": false,
+  "live_api_key_auth": false,
+  "live_credential_store": false,
+  "live_tool_execution": false,
+  "persistent_writes": false,
+  "raw_credential_storage": false,
+  "immediate_denial_after_revoke": true,
+  "immediate_denial_after_rotation": true,
+  "enforced_before_tool_execution": true,
+  "enforced_before_usage_debit": true,
+  "standard_error_code": "AUTH_REQUIRED",
+  "client_action": "reauthorize",
+  "covered_sprint_2_4_items": [
+    "ACC-06",
+    "oauth_connection_revoke",
+    "api_key_revoke",
+    "api_key_rotation_old_key_denial"
+  ],
+  "required_runtime_capability_fields": [
+    "mcp_revocation_enforcement_ready",
+    "mcp_revocation_enforcement_route",
+    "mcp_revocation_enforcement_version",
+    "mcp_revocation_enforcement_live",
+    "mcp_revocation_enforcement_error_code",
+    "oauth_revoke_enforced_before_new_calls",
+    "api_key_revoke_enforced_before_new_calls",
+    "api_key_rotation_old_key_denied"
+  ],
+  "required_plan_fields": [
+    "credential",
+    "denial",
+    "live_auth_middleware",
+    "persistent_writes",
+    "route",
+    "status",
+    "version"
+  ],
+  "required_denial_fields": [
+    "decision",
+    "denied",
+    "client_action",
+    "standard_error_code",
+    "enforced_before_tool_execution",
+    "enforced_before_usage_debit",
+    "immediate_failure_after_revoke",
+    "immediate_failure_after_rotation"
+  ],
+  "credential_kinds": ["oauth_connection", "api_key"],
+  "credential_statuses": ["active", "revoked", "rotated", "unknown"],
+  "denied_statuses": ["revoked", "rotated", "unknown"],
+  "allowed_statuses": ["active"]
+}

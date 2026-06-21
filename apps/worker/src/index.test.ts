@@ -2282,7 +2282,9 @@ interface McpRuntimeBody {
     api_key_ip_allowlist_ready: boolean;
     api_key_one_time_display_ready: boolean;
     api_key_revoke_route: string;
+    api_key_revoke_enforced_before_new_calls: boolean;
     api_key_rotate_route: string;
+    api_key_rotation_old_key_denied: boolean;
     api_key_rotation_ready: boolean;
     api_key_runtime_route: string;
     breaking_changes_require_new_major: boolean;
@@ -2300,6 +2302,7 @@ interface McpRuntimeBody {
     oauth_authorize_route: string;
     oauth_live: boolean;
     oauth_pkce_ready: boolean;
+    oauth_revoke_enforced_before_new_calls: boolean;
     oauth_revoke_route: string;
     oauth_token_route: string;
     origin_validation: boolean;
@@ -2309,6 +2312,11 @@ interface McpRuntimeBody {
     route: string;
     runtime_route: string;
     scopes_revocable: boolean;
+    mcp_revocation_enforcement_error_code: string;
+    mcp_revocation_enforcement_live: boolean;
+    mcp_revocation_enforcement_ready: boolean;
+    mcp_revocation_enforcement_route: string;
+    mcp_revocation_enforcement_version: string;
     mcp_error_detail_fields: string[];
     standard_error_categories: string[];
     standard_error_code_version: string;
@@ -2638,6 +2646,41 @@ interface McpApiKeyRevokePlanBody {
       live_invalidation: boolean;
       revoke_status: string;
     };
+    route: string;
+    status: string;
+  };
+  ok: true;
+}
+
+interface McpRevocationEnforcementPlanBody {
+  data: {
+    capability: {
+      enforced_before_tool_execution: boolean;
+      live_auth_middleware: boolean;
+      route: string;
+      standard_error_code: string;
+      status: string;
+    };
+    credential: {
+      connection_id?: string;
+      credential_kind: string;
+      credential_reference: string;
+      key_id?: string;
+      raw_credential_stored: boolean;
+      status: string;
+    };
+    denial: {
+      client_action: string;
+      decision: string;
+      denied: boolean;
+      enforced_before_tool_execution: boolean;
+      enforced_before_usage_debit: boolean;
+      immediate_failure_after_revoke: boolean;
+      immediate_failure_after_rotation: boolean;
+      standard_error_code: string;
+    };
+    live_auth_middleware: boolean;
+    persistent_writes: boolean;
     route: string;
     status: string;
   };
@@ -7610,7 +7653,9 @@ describe("worker runtime", () => {
       api_key_ip_allowlist_ready: true,
       api_key_one_time_display_ready: true,
       api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_revoke_enforced_before_new_calls: true,
       api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
+      api_key_rotation_old_key_denied: true,
       api_key_runtime_route: "GET /mcp/api-keys/runtime",
       api_key_rotation_ready: true,
       breaking_changes_require_new_major: true,
@@ -7629,6 +7674,7 @@ describe("worker runtime", () => {
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_live: false,
       oauth_pkce_ready: true,
+      oauth_revoke_enforced_before_new_calls: true,
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
       oauth_token_route: "POST /mcp/oauth/token/plan",
       origin_validation: true,
@@ -7638,6 +7684,12 @@ describe("worker runtime", () => {
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
       scopes_revocable: true,
+      mcp_revocation_enforcement_error_code: "AUTH_REQUIRED",
+      mcp_revocation_enforcement_live: false,
+      mcp_revocation_enforcement_ready: true,
+      mcp_revocation_enforcement_route: "POST /mcp/revocations/enforce/plan",
+      mcp_revocation_enforcement_version:
+        "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0",
       mcp_error_detail_fields: [
         "category",
         "client_action",
@@ -8152,6 +8204,59 @@ describe("worker runtime", () => {
     });
   });
 
+  it("plans MCP revocation enforcement before tool execution", async () => {
+    const response = await app.request("/mcp/revocations/enforce/plan", {
+      body: JSON.stringify({
+        credential_kind: "oauth_connection",
+        credential_status: "revoked",
+        connection_id: "mcp_connection_revoked",
+        method: "tools/call",
+        reason: "user_disconnect",
+        revoked_at: "2026-06-21T11:20:00.000Z",
+        tool_name: "get_quote_snapshot"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-revocation-enforce"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpRevocationEnforcementPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      credential: {
+        connection_id: "mcp_connection_revoked",
+        credential_kind: "oauth_connection",
+        credential_reference: "mcp_connection_revoked",
+        raw_credential_stored: false,
+        status: "revoked"
+      },
+      denial: {
+        client_action: "reauthorize",
+        decision: "deny_revoked",
+        denied: true,
+        enforced_before_tool_execution: true,
+        enforced_before_usage_debit: true,
+        immediate_failure_after_revoke: true,
+        standard_error_code: "AUTH_REQUIRED"
+      },
+      live_auth_middleware: false,
+      persistent_writes: false,
+      route: "POST /mcp/revocations/enforce/plan",
+      status: "planned_no_live_revocation_enforcement"
+    });
+    expect(body.data.capability).toMatchObject({
+      enforced_before_tool_execution: true,
+      live_auth_middleware: false,
+      route: "POST /mcp/revocations/enforce/plan",
+      standard_error_code: "AUTH_REQUIRED",
+      status: "mcp_revocation_enforcement_scaffold"
+    });
+  });
+
   it("rejects raw API key material on MCP API key planning routes", async () => {
     const response = await app.request("/mcp/api-keys/create/plan", {
       body: JSON.stringify({
@@ -8312,6 +8417,43 @@ describe("worker runtime", () => {
       request_id: "req-mcp-tool-call",
       retry_after_required: false,
       source_record_id: "mcp_error_data_not_licensed"
+    });
+  });
+
+  it("rejects MCP calls immediately when credential context is revoked", async () => {
+    const response = await app.request("/mcp", {
+      body: JSON.stringify({
+        method: "tools/call",
+        params: {
+          credential_kind: "api_key",
+          credential_status: "rotated",
+          key_id: "mcp_key_old",
+          name: "get_quote_snapshot",
+          rotated_at: "2026-06-21T11:20:00.000Z"
+        }
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-revoked-call"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("AUTH_REQUIRED");
+    expect(body.error.detail).toMatchObject({
+      category: "authentication",
+      client_action: "reauthorize",
+      internal_code: "MCP_CREDENTIAL_REVOKED",
+      mcp_error_version: "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      recoverable: true,
+      request_id: "req-mcp-revoked-call",
+      retry_after_required: false,
+      source_record_id: "mcp_error_auth_required"
     });
   });
 

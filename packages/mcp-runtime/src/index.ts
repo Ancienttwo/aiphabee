@@ -21,6 +21,8 @@ export const MCP_OAUTH_PKCE_VERSION =
   "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0";
 export const MCP_API_KEY_VERSION =
   "2026-06-21.phase2.mcp-api-key-scaffold.v0";
+export const MCP_REVOCATION_ENFORCEMENT_VERSION =
+  "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0";
 export const MCP_TOOL_SCHEMA_VALIDATION_VERSION =
   "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0";
 export const MCP_PAGINATION_LIMITS_VERSION =
@@ -124,11 +126,15 @@ export const MCP_OAUTH_SCOPE_DEFINITIONS = [
 
 export type McpMethod = (typeof MCP_SUPPORTED_METHODS)[number];
 export type McpOAuthScope = (typeof MCP_OAUTH_SCOPE_DEFINITIONS)[number]["scope"];
+export type McpCredentialKind = "api_key" | "oauth_connection";
+export type McpCredentialStatus = "active" | "revoked" | "rotated" | "unknown";
 export type McpRuntimePlanStatus =
   | "planned_default_deny"
   | "planned_no_live_execution";
 export type McpOAuthPlanStatus = "planned_no_live_oauth";
 export type McpApiKeyPlanStatus = "planned_no_live_api_key";
+export type McpRevocationEnforcementStatus =
+  "planned_no_live_revocation_enforcement";
 export type McpStandardErrorCategory =
   | "authentication"
   | "authorization"
@@ -143,11 +149,16 @@ export type McpRuntimeInputErrorCode =
   | "CODE_CHALLENGE_METHOD_UNSUPPORTED"
   | "CODE_CHALLENGE_REQUIRED"
   | "CODE_VERIFIER_REQUIRED"
+  | "CREDENTIAL_KIND_REQUIRED"
+  | "CREDENTIAL_REFERENCE_REQUIRED"
+  | "CREDENTIAL_STATUS_REQUIRED"
+  | "CREDENTIAL_STATUS_UNSUPPORTED"
   | "CONNECTION_OR_TOKEN_REQUIRED"
   | "INVALID_API_KEY_ROTATION_DAYS"
   | "INVALID_CODE_CHALLENGE"
   | "INVALID_IP_ALLOWLIST"
   | "INVALID_REDIRECT_URI"
+  | "MCP_CREDENTIAL_REVOKED"
   | "MCP_REDISTRIBUTION_RIGHTS_REQUIRED"
   | "ORIGIN_NOT_ALLOWED"
   | "ORIGIN_REQUIRED"
@@ -207,7 +218,11 @@ export interface CreateMcpProtocolPlanInput {
   allowedOrigins?: readonly string[];
   clientName?: string;
   clientVersion?: string;
+  connectionId?: string;
+  credentialKind?: string;
+  credentialStatus?: string;
   grantedScopes?: readonly string[];
+  keyId?: string;
   membershipId?: string;
   method?: string;
   mcpRedistributionRightsConfirmed?: boolean;
@@ -215,6 +230,9 @@ export interface CreateMcpProtocolPlanInput {
   pendingCredits?: number;
   requestId: string;
   requestedScopes?: readonly string[];
+  revocationReason?: string;
+  revokedAt?: string;
+  rotatedAt?: string;
   subscriptionId?: string;
   toolArguments?: unknown;
   toolName?: string;
@@ -276,6 +294,19 @@ export interface CreateMcpApiKeyRevokePlanInput {
   rawApiKey?: string;
   reason?: string;
   requestId: string;
+}
+
+export interface CreateMcpRevocationEnforcementPlanInput {
+  connectionId?: string;
+  credentialKind?: string;
+  credentialStatus?: string;
+  keyId?: string;
+  method?: string;
+  reason?: string;
+  requestId: string;
+  revokedAt?: string;
+  rotatedAt?: string;
+  toolName?: string;
 }
 
 export interface McpToolDescriptor {
@@ -449,6 +480,53 @@ export interface McpToolLimitsPlan {
     high_cost_threshold: typeof MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD;
     row_estimate: number;
   };
+}
+
+export interface McpRevocationEnforcementPlan {
+  action: "enforce_revocation";
+  credential: {
+    connection_id?: string;
+    credential_kind: McpCredentialKind;
+    credential_reference: string;
+    key_id?: string;
+    raw_credential_stored: false;
+    status: McpCredentialStatus;
+  };
+  data_version: typeof MCP_REVOCATION_ENFORCEMENT_VERSION;
+  denial: {
+    client_action: "reauthorize";
+    decision: "allow_planned" | "deny_revoked" | "deny_rotated" | "deny_unknown";
+    denied: boolean;
+    enforced_before_tool_execution: true;
+    enforced_before_usage_debit: true;
+    immediate_failure_after_revoke: true;
+    immediate_failure_after_rotation: true;
+    standard_error_code: "AUTH_REQUIRED";
+  };
+  live_auth_middleware: false;
+  methodology_version: typeof MCP_REVOCATION_ENFORCEMENT_VERSION;
+  method?: McpMethod;
+  persistent_writes: false;
+  protocol_route: "POST /mcp";
+  provenance: Array<{
+    data_version: typeof MCP_REVOCATION_ENFORCEMENT_VERSION;
+    methodology_version: typeof MCP_REVOCATION_ENFORCEMENT_VERSION;
+    source: "mcp-revocation-enforcement";
+    source_record_id: string;
+  }>;
+  reason?: string;
+  request_id: string;
+  revoked_at?: string;
+  rotated_at?: string;
+  route: "POST /mcp/revocations/enforce/plan";
+  status: McpRevocationEnforcementStatus;
+  tool_name?: string;
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: 1;
+  };
+  version: typeof MCP_REVOCATION_ENFORCEMENT_VERSION;
 }
 
 export interface McpCompatibilityStatusPlan {
@@ -851,6 +929,7 @@ export interface McpProtocolPlan {
     source_record_id: string;
   }>;
   request_id: string;
+  revocation_enforcement?: McpRevocationEnforcementPlan;
   response_shape: {
     mcp_error_detail_fields: readonly string[];
     standard_error_categories: typeof MCP_STANDARD_ERROR_CATEGORIES;
@@ -1014,11 +1093,16 @@ const MCP_RUNTIME_INPUT_ERROR_TO_STANDARD_ERROR = {
   CODE_CHALLENGE_METHOD_UNSUPPORTED: "SCOPE_DENIED",
   CODE_CHALLENGE_REQUIRED: "SCOPE_DENIED",
   CODE_VERIFIER_REQUIRED: "AUTH_REQUIRED",
+  CREDENTIAL_KIND_REQUIRED: "AUTH_REQUIRED",
+  CREDENTIAL_REFERENCE_REQUIRED: "AUTH_REQUIRED",
+  CREDENTIAL_STATUS_REQUIRED: "AUTH_REQUIRED",
+  CREDENTIAL_STATUS_UNSUPPORTED: "AUTH_REQUIRED",
   CONNECTION_OR_TOKEN_REQUIRED: "AUTH_REQUIRED",
   INVALID_API_KEY_ROTATION_DAYS: "SCOPE_DENIED",
   INVALID_CODE_CHALLENGE: "SCOPE_DENIED",
   INVALID_IP_ALLOWLIST: "SCOPE_DENIED",
   INVALID_REDIRECT_URI: "SCOPE_DENIED",
+  MCP_CREDENTIAL_REVOKED: "AUTH_REQUIRED",
   MCP_REDISTRIBUTION_RIGHTS_REQUIRED: "DATA_NOT_LICENSED",
   ORIGIN_NOT_ALLOWED: "SCOPE_DENIED",
   ORIGIN_REQUIRED: "SCOPE_DENIED",
@@ -1151,7 +1235,9 @@ export function getMcpRuntimeCapabilities() {
     api_key_live: false,
     api_key_one_time_display_ready: true,
     api_key_revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    api_key_revoke_enforced_before_new_calls: true,
     api_key_rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+    api_key_rotation_old_key_denied: true,
     api_key_rotation_ready: true,
     api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
     breaking_changes_require_new_major: true,
@@ -1168,6 +1254,7 @@ export function getMcpRuntimeCapabilities() {
     oauth_authorize_route: "POST /mcp/oauth/authorize/plan" as const,
     oauth_live: false,
     oauth_pkce_ready: true,
+    oauth_revoke_enforced_before_new_calls: true,
     oauth_revoke_route: "POST /mcp/oauth/revoke/plan" as const,
     oauth_runtime_route: "GET /mcp/oauth/runtime" as const,
     oauth_token_route: "POST /mcp/oauth/token/plan" as const,
@@ -1182,6 +1269,11 @@ export function getMcpRuntimeCapabilities() {
     route: "POST /mcp" as const,
     runtime_route: "GET /mcp/runtime" as const,
     scopes_revocable: true,
+    mcp_revocation_enforcement_error_code: "AUTH_REQUIRED" as const,
+    mcp_revocation_enforcement_live: false,
+    mcp_revocation_enforcement_ready: true,
+    mcp_revocation_enforcement_route: "POST /mcp/revocations/enforce/plan" as const,
+    mcp_revocation_enforcement_version: MCP_REVOCATION_ENFORCEMENT_VERSION,
     structured_content_output_schema_ready: true,
     mcp_error_detail_fields: [
       "category",
@@ -1438,8 +1530,11 @@ export function getMcpApiKeyCapabilities() {
     key_prefix: "aipb_srv_" as const,
     one_time_display: true,
     package: "@aiphabee/mcp-runtime" as const,
+    revocation_enforcement_route: "POST /mcp/revocations/enforce/plan" as const,
     revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    revoke_enforced_before_new_calls: true,
     rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+    rotation_old_key_denied: true,
     rotation_supported: true,
     runtime_route: "GET /mcp/api-keys/runtime" as const,
     server_to_server_only: true,
@@ -1457,7 +1552,9 @@ export function getMcpOAuthCapabilities() {
     package: "@aiphabee/mcp-runtime" as const,
     pkce_methods: ["S256"] as const,
     redirect_uri_validation: "planned" as const,
+    revocation_enforcement_route: "POST /mcp/revocations/enforce/plan" as const,
     revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+    revoke_enforced_before_new_calls: true,
     runtime_route: "GET /mcp/oauth/runtime" as const,
     scope_catalog: MCP_OAUTH_SCOPE_DEFINITIONS,
     scopes_revocable: true,
@@ -1466,6 +1563,118 @@ export function getMcpOAuthCapabilities() {
     token_lifetime_seconds: 900,
     token_route: "POST /mcp/oauth/token/plan" as const,
     version: MCP_OAUTH_PKCE_VERSION
+  };
+}
+
+export function getMcpRevocationEnforcementCapabilities() {
+  return {
+    api_key_revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    api_key_rotation_old_key_denied: true,
+    credential_kinds: ["oauth_connection", "api_key"] as const,
+    credential_statuses: ["active", "revoked", "rotated", "unknown"] as const,
+    denied_statuses: ["revoked", "rotated", "unknown"] as const,
+    enforced_before_tool_execution: true,
+    enforced_before_usage_debit: true,
+    live_auth_middleware: false,
+    oauth_revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+    package: "@aiphabee/mcp-runtime" as const,
+    persistent_writes: false,
+    protocol_route: "POST /mcp" as const,
+    route: "POST /mcp/revocations/enforce/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    standard_error_code: "AUTH_REQUIRED" as const,
+    status: "mcp_revocation_enforcement_scaffold" as const,
+    version: MCP_REVOCATION_ENFORCEMENT_VERSION
+  };
+}
+
+export function createMcpRevocationEnforcementPlan(
+  input: CreateMcpRevocationEnforcementPlanInput
+): McpRevocationEnforcementPlan {
+  const credentialKind = normalizeMcpCredentialKind(input.credentialKind);
+  const credentialStatus = normalizeMcpCredentialStatus(input.credentialStatus);
+  const connectionId = normalizeText(input.connectionId);
+  const keyId = normalizeText(input.keyId);
+
+  if (credentialKind === undefined) {
+    throw new McpRuntimeInputError(
+      "CREDENTIAL_KIND_REQUIRED",
+      "credentialKind is required for MCP revocation enforcement"
+    );
+  }
+
+  if (credentialStatus === undefined) {
+    throw new McpRuntimeInputError(
+      "CREDENTIAL_STATUS_REQUIRED",
+      "credentialStatus is required for MCP revocation enforcement"
+    );
+  }
+
+  if (credentialKind === "oauth_connection" && connectionId === undefined) {
+    throw new McpRuntimeInputError(
+      "CREDENTIAL_REFERENCE_REQUIRED",
+      "connectionId is required for OAuth revocation enforcement"
+    );
+  }
+
+  if (credentialKind === "api_key" && keyId === undefined) {
+    throw new McpRuntimeInputError(
+      "CREDENTIAL_REFERENCE_REQUIRED",
+      "keyId is required for API key revocation enforcement"
+    );
+  }
+
+  const method = normalizeMcpMethod(input.method);
+  const decision = createRevocationDecision(credentialStatus);
+  const sourceRecordId = `mcp_revocation_${credentialKind}_${credentialStatus}`;
+
+  return {
+    action: "enforce_revocation",
+    credential: {
+      connection_id: connectionId,
+      credential_kind: credentialKind,
+      credential_reference: credentialKind === "api_key" ? keyId ?? "" : connectionId ?? "",
+      key_id: keyId,
+      raw_credential_stored: false,
+      status: credentialStatus
+    },
+    data_version: MCP_REVOCATION_ENFORCEMENT_VERSION,
+    denial: {
+      client_action: "reauthorize",
+      decision,
+      denied: decision !== "allow_planned",
+      enforced_before_tool_execution: true,
+      enforced_before_usage_debit: true,
+      immediate_failure_after_revoke: true,
+      immediate_failure_after_rotation: true,
+      standard_error_code: "AUTH_REQUIRED"
+    },
+    live_auth_middleware: false,
+    methodology_version: MCP_REVOCATION_ENFORCEMENT_VERSION,
+    method,
+    persistent_writes: false,
+    protocol_route: "POST /mcp",
+    provenance: [
+      {
+        data_version: MCP_REVOCATION_ENFORCEMENT_VERSION,
+        methodology_version: MCP_REVOCATION_ENFORCEMENT_VERSION,
+        source: "mcp-revocation-enforcement",
+        source_record_id: sourceRecordId
+      }
+    ],
+    reason: normalizeText(input.reason),
+    request_id: input.requestId,
+    revoked_at: normalizeText(input.revokedAt),
+    rotated_at: normalizeText(input.rotatedAt),
+    route: "POST /mcp/revocations/enforce/plan",
+    status: "planned_no_live_revocation_enforcement",
+    tool_name: normalizeText(input.toolName),
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: 1
+    },
+    version: MCP_REVOCATION_ENFORCEMENT_VERSION
   };
 }
 
@@ -1857,10 +2066,33 @@ export function createMcpProtocolPlan(
     usedCredits: input.usedCredits,
     workspaceId: input.workspaceId
   });
+  const revocationEnforcement = createOptionalMcpRevocationEnforcementPlan(input, method);
+  const guardedBasePlan =
+    revocationEnforcement === undefined
+      ? basePlan
+      : {
+          ...basePlan,
+          revocation_enforcement: revocationEnforcement
+        };
+
+  if (revocationEnforcement?.denial.denied === true) {
+    throw new McpRuntimeInputError(
+      "MCP_CREDENTIAL_REVOKED",
+      "MCP credential is revoked or rotated; reauthorization is required before new calls",
+      {
+        credentialKind: revocationEnforcement.credential.credential_kind,
+        credentialStatus: revocationEnforcement.credential.status,
+        decision: revocationEnforcement.denial.decision,
+        enforcedBeforeToolExecution:
+          revocationEnforcement.denial.enforced_before_tool_execution,
+        standardErrorCode: revocationEnforcement.denial.standard_error_code
+      }
+    );
+  }
 
   if (method === "initialize") {
     return {
-      ...basePlan,
+      ...guardedBasePlan,
       initialize: {
         capabilities: {
           tools: {
@@ -1880,7 +2112,7 @@ export function createMcpProtocolPlan(
     const tools = rightsConfirmed ? createToolDescriptors(REGISTERED_TOOLS) : [];
 
     return {
-      ...basePlan,
+      ...guardedBasePlan,
       tools_list: {
         blocked_tool_count: rightsConfirmed ? 0 : REGISTERED_TOOLS.length,
         returned_tool_count: tools.length,
@@ -1893,7 +2125,7 @@ export function createMcpProtocolPlan(
     };
   }
 
-  return createToolCallPlan(basePlan, input);
+  return createToolCallPlan(guardedBasePlan, input);
 }
 
 function createBasePlan(input: {
@@ -2798,6 +3030,97 @@ function isValidIpv6Cidr(value: string): boolean {
     (cidrNumber === undefined ||
       (Number.isInteger(cidrNumber) && cidrNumber >= 0 && cidrNumber <= 128))
   );
+}
+
+function createOptionalMcpRevocationEnforcementPlan(
+  input: CreateMcpProtocolPlanInput,
+  method: McpMethod
+): McpRevocationEnforcementPlan | undefined {
+  const hasCredentialContext =
+    normalizeText(input.credentialKind) !== undefined ||
+    normalizeText(input.credentialStatus) !== undefined ||
+    normalizeText(input.connectionId) !== undefined ||
+    normalizeText(input.keyId) !== undefined;
+
+  if (!hasCredentialContext) {
+    return undefined;
+  }
+
+  return createMcpRevocationEnforcementPlan({
+    connectionId: input.connectionId,
+    credentialKind: input.credentialKind,
+    credentialStatus: input.credentialStatus,
+    keyId: input.keyId,
+    method,
+    reason: input.revocationReason,
+    requestId: input.requestId,
+    revokedAt: input.revokedAt,
+    rotatedAt: input.rotatedAt,
+    toolName: input.toolName
+  });
+}
+
+function normalizeMcpCredentialKind(value: string | undefined): McpCredentialKind | undefined {
+  const normalized = normalizeText(value);
+  if (normalized === undefined) {
+    return undefined;
+  }
+
+  if (normalized === "api_key" || normalized === "oauth_connection") {
+    return normalized;
+  }
+
+  throw new McpRuntimeInputError(
+    "CREDENTIAL_KIND_REQUIRED",
+    "credentialKind must be oauth_connection or api_key",
+    {
+      credentialKind: normalized
+    }
+  );
+}
+
+function normalizeMcpCredentialStatus(
+  value: string | undefined
+): McpCredentialStatus | undefined {
+  const normalized = normalizeText(value);
+  if (normalized === undefined) {
+    return undefined;
+  }
+
+  if (
+    normalized === "active" ||
+    normalized === "revoked" ||
+    normalized === "rotated" ||
+    normalized === "unknown"
+  ) {
+    return normalized;
+  }
+
+  throw new McpRuntimeInputError(
+    "CREDENTIAL_STATUS_UNSUPPORTED",
+    "credentialStatus must be active, revoked, rotated, or unknown",
+    {
+      credentialStatus: normalized
+    }
+  );
+}
+
+function createRevocationDecision(
+  credentialStatus: McpCredentialStatus
+): McpRevocationEnforcementPlan["denial"]["decision"] {
+  if (credentialStatus === "active") {
+    return "allow_planned";
+  }
+
+  if (credentialStatus === "revoked") {
+    return "deny_revoked";
+  }
+
+  if (credentialStatus === "rotated") {
+    return "deny_rotated";
+  }
+
+  return "deny_unknown";
 }
 
 function normalizeMcpMethod(value: string | undefined): McpMethod | undefined {

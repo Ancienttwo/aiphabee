@@ -112,9 +112,11 @@ import {
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  createMcpRevocationEnforcementPlan,
   getMcpApiKeyCapabilities,
   getMcpCompatibilityStatusCapabilities,
   getMcpOAuthCapabilities,
+  getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
   getMcpStandardErrorDefinition,
@@ -314,6 +316,25 @@ interface DataCorrectionNotificationRequestBody {
   userId?: unknown;
   workspace_id?: unknown;
   workspaceId?: unknown;
+}
+
+interface McpRevocationEnforcementRequestBody {
+  connection_id?: unknown;
+  connectionId?: unknown;
+  credential_kind?: unknown;
+  credential_status?: unknown;
+  credentialKind?: unknown;
+  credentialStatus?: unknown;
+  key_id?: unknown;
+  keyId?: unknown;
+  method?: unknown;
+  reason?: unknown;
+  revoked_at?: unknown;
+  revokedAt?: unknown;
+  rotated_at?: unknown;
+  rotatedAt?: unknown;
+  tool_name?: unknown;
+  toolName?: unknown;
 }
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
@@ -2487,6 +2508,58 @@ app.post("/mcp/api-keys/revoke/plan", async (c) => {
   }
 });
 
+app.post("/mcp/revocations/enforce/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as McpRevocationEnforcementRequestBody;
+
+  try {
+    const result = createMcpRevocationEnforcementPlan({
+      connectionId: normalizeString(body.connection_id ?? body.connectionId),
+      credentialKind: normalizeString(body.credential_kind ?? body.credentialKind),
+      credentialStatus: normalizeString(body.credential_status ?? body.credentialStatus),
+      keyId: normalizeString(body.key_id ?? body.keyId),
+      method: normalizeString(body.method),
+      reason: normalizeString(body.reason),
+      requestId,
+      revokedAt: normalizeString(body.revoked_at ?? body.revokedAt),
+      rotatedAt: normalizeString(body.rotated_at ?? body.rotatedAt),
+      toolName: normalizeString(body.tool_name ?? body.toolName)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpRevocationEnforcementCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(
+      c,
+      error,
+      requestId,
+      "MCP revocation enforcement plan failed",
+      {
+        dataVersion: "mcp-revocation-enforcement-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0",
+        source: "mcp-revocation-enforcement"
+      }
+    );
+  }
+});
+
 app.post("/mcp", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -2500,7 +2573,11 @@ app.post("/mcp", async (c) => {
       accountId: normalizeString(params.account_id ?? params.accountId),
       clientName: normalizeString(params.client_name ?? params.clientName),
       clientVersion: normalizeString(params.client_version ?? params.clientVersion),
+      connectionId: normalizeString(params.connection_id ?? params.connectionId),
+      credentialKind: normalizeString(params.credential_kind ?? params.credentialKind),
+      credentialStatus: normalizeString(params.credential_status ?? params.credentialStatus),
       grantedScopes: [],
+      keyId: normalizeString(params.key_id ?? params.keyId),
       membershipId: normalizeString(params.membership_id ?? params.membershipId),
       method: normalizeString(body.method),
       mcpRedistributionRightsConfirmed: false,
@@ -2508,6 +2585,9 @@ app.post("/mcp", async (c) => {
       pendingCredits: normalizeOptionalNumber(params.pending_credits ?? params.pendingCredits),
       requestId,
       requestedScopes: normalizeStringArray(params.scopes ?? body.scopes),
+      revocationReason: normalizeString(params.revocation_reason ?? params.revocationReason),
+      revokedAt: normalizeString(params.revoked_at ?? params.revokedAt),
+      rotatedAt: normalizeString(params.rotated_at ?? params.rotatedAt),
       subscriptionId: normalizeString(params.subscription_id ?? params.subscriptionId),
       toolArguments: params.arguments,
       toolName: normalizeString(params.name ?? params.tool_name ?? params.toolName),
@@ -5364,8 +5444,10 @@ function errorCodeForMcpRuntimeError(error: McpRuntimeInputError): McpStandardEr
   return getMcpRuntimeStandardError(error.code);
 }
 
-function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 422 {
+function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 401 | 403 | 422 {
   switch (error.code) {
+    case "MCP_CREDENTIAL_REVOKED":
+      return 401;
     case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
     case "ORIGIN_NOT_ALLOWED":
     case "ORIGIN_REQUIRED":

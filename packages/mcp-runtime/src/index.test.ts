@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MCP_COMPATIBILITY_STATUS_VERSION,
+  MCP_REVOCATION_ENFORCEMENT_VERSION,
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
   MCP_TOOL_LIMITER_VERSION,
@@ -13,8 +14,10 @@ import {
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  createMcpRevocationEnforcementPlan,
   getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
+  getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
   getMcpRuntimeStandardError,
   getMcpStandardErrorDefinition
@@ -49,6 +52,8 @@ describe("mcp endpoint default-deny scaffold", () => {
       api_key_ip_allowlist_ready: true,
       api_key_one_time_display_ready: true,
       api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_revoke_enforced_before_new_calls: true,
+      api_key_rotation_old_key_denied: true,
       api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
       api_key_rotation_ready: true,
       api_key_runtime_route: "GET /mcp/api-keys/runtime",
@@ -56,9 +61,16 @@ describe("mcp endpoint default-deny scaffold", () => {
       deprecation_policy_ready: true,
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_pkce_ready: true,
+      oauth_revoke_enforced_before_new_calls: true,
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
       oauth_token_route: "POST /mcp/oauth/token/plan",
       scopes_revocable: true,
+      mcp_revocation_enforcement_error_code: "AUTH_REQUIRED",
+      mcp_revocation_enforcement_live: false,
+      mcp_revocation_enforcement_ready: true,
+      mcp_revocation_enforcement_route: "POST /mcp/revocations/enforce/plan",
+      mcp_revocation_enforcement_version:
+        "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0",
       structured_content_output_schema_ready: true,
       third_party_token_passthrough: false
     });
@@ -238,6 +250,7 @@ describe("mcp endpoint default-deny scaffold", () => {
       "OUT_OF_RANGE"
     );
     expect(getMcpRuntimeStandardError("TOOL_NOT_REGISTERED")).toBe("SCOPE_DENIED");
+    expect(getMcpRuntimeStandardError("MCP_CREDENTIAL_REVOKED")).toBe("AUTH_REQUIRED");
     expect(getMcpStandardErrorDefinition("RATE_LIMITED")).toMatchObject({
       category: "limit",
       client_action: "retry_after",
@@ -246,6 +259,90 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(getMcpStandardErrorDefinition("DATA_QUALITY_HOLD")).toMatchObject({
       category: "data",
       recoverable: true
+    });
+  });
+
+  it("reports revocation enforcement capabilities for OAuth connections and API keys", () => {
+    expect(MCP_REVOCATION_ENFORCEMENT_VERSION).toBe(
+      "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0"
+    );
+    expect(getMcpRevocationEnforcementCapabilities()).toMatchObject({
+      api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_rotation_old_key_denied: true,
+      credential_kinds: ["oauth_connection", "api_key"],
+      denied_statuses: ["revoked", "rotated", "unknown"],
+      enforced_before_tool_execution: true,
+      enforced_before_usage_debit: true,
+      live_auth_middleware: false,
+      oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
+      persistent_writes: false,
+      protocol_route: "POST /mcp",
+      route: "POST /mcp/revocations/enforce/plan",
+      runtime_route: "GET /mcp/runtime",
+      standard_error_code: "AUTH_REQUIRED",
+      status: "mcp_revocation_enforcement_scaffold"
+    });
+  });
+
+  it("plans revocation enforcement with allow and immediate denial decisions", () => {
+    const activePlan = createMcpRevocationEnforcementPlan({
+      connectionId: "mcp_connection_active",
+      credentialKind: "oauth_connection",
+      credentialStatus: "active",
+      method: "tools/list",
+      requestId: "req-mcp-revocation-active"
+    });
+
+    expect(activePlan).toMatchObject({
+      action: "enforce_revocation",
+      credential: {
+        connection_id: "mcp_connection_active",
+        credential_kind: "oauth_connection",
+        credential_reference: "mcp_connection_active",
+        raw_credential_stored: false,
+        status: "active"
+      },
+      denial: {
+        client_action: "reauthorize",
+        decision: "allow_planned",
+        denied: false,
+        enforced_before_tool_execution: true,
+        enforced_before_usage_debit: true,
+        standard_error_code: "AUTH_REQUIRED"
+      },
+      live_auth_middleware: false,
+      persistent_writes: false,
+      route: "POST /mcp/revocations/enforce/plan",
+      status: "planned_no_live_revocation_enforcement"
+    });
+
+    const deniedPlan = createMcpRevocationEnforcementPlan({
+      credentialKind: "api_key",
+      credentialStatus: "rotated",
+      keyId: "mcp_key_old",
+      method: "tools/call",
+      reason: "scheduled_rotation",
+      requestId: "req-mcp-revocation-denied",
+      rotatedAt: "2026-06-21T11:20:00.000Z",
+      toolName: "get_quote_snapshot"
+    });
+
+    expect(deniedPlan).toMatchObject({
+      credential: {
+        credential_kind: "api_key",
+        credential_reference: "mcp_key_old",
+        key_id: "mcp_key_old",
+        status: "rotated"
+      },
+      denial: {
+        decision: "deny_rotated",
+        denied: true,
+        immediate_failure_after_rotation: true,
+        standard_error_code: "AUTH_REQUIRED"
+      },
+      method: "tools/call",
+      rotated_at: "2026-06-21T11:20:00.000Z",
+      tool_name: "get_quote_snapshot"
     });
   });
 
@@ -687,8 +784,43 @@ describe("mcp endpoint default-deny scaffold", () => {
     ).toThrow(McpRuntimeInputError);
   });
 
+  it("rejects revoked MCP credentials before tools/call execution planning", () => {
+    try {
+      createMcpProtocolPlan({
+        connectionId: "mcp_connection_revoked",
+        credentialKind: "oauth_connection",
+        credentialStatus: "revoked",
+        grantedScopes: ["quotes:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-revoked-tool-call",
+        revokedAt: "2026-06-21T11:20:00.000Z",
+        toolArguments: {
+          instrument_id: "HK:00700"
+        },
+        toolName: "get_quote_snapshot"
+      });
+      throw new Error("expected revoked credential to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(McpRuntimeInputError);
+      expect((error as McpRuntimeInputError).code).toBe("MCP_CREDENTIAL_REVOKED");
+      expect((error as McpRuntimeInputError).details).toMatchObject({
+        credentialKind: "oauth_connection",
+        credentialStatus: "revoked",
+        decision: "deny_revoked",
+        enforcedBeforeToolExecution: true,
+        standardErrorCode: "AUTH_REQUIRED"
+      });
+    }
+    expect(getMcpRuntimeStandardError("MCP_CREDENTIAL_REVOKED")).toBe("AUTH_REQUIRED");
+  });
+
   it("plans tools/call without live execution when rights and scope are present", () => {
     const plan = createMcpProtocolPlan({
+      connectionId: "mcp_connection_active",
+      credentialKind: "oauth_connection",
+      credentialStatus: "active",
       grantedScopes: ["quotes:read"],
       mcpRedistributionRightsConfirmed: true,
       method: "tools/call",
@@ -707,6 +839,17 @@ describe("mcp endpoint default-deny scaffold", () => {
         mcp_api_redistribution_rights_confirmed: true
       },
       status: "planned_no_live_execution",
+      revocation_enforcement: {
+        credential: {
+          credential_kind: "oauth_connection",
+          status: "active"
+        },
+        denial: {
+          decision: "allow_planned",
+          denied: false,
+          enforced_before_tool_execution: true
+        }
+      },
       tool_call: {
         input_schema_id: "tool.get_quote_snapshot.input.v0",
         input_validation: {

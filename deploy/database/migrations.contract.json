@@ -240,6 +240,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621112000_mcp_revocation_enforcement_scaffold.sql",
+      "purpose": "Create empty MCP credential revocation enforcement scaffolds without enabling live auth enforcement or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_credential_revocation",
+        "governance.mcp_revocation_enforcement_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
