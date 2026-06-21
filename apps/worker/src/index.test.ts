@@ -754,6 +754,25 @@ interface AccountSubscriptionLifecyclePlanBody {
 
 interface UsageRuntimeBody {
   data: {
+    billing_rules_release_gate: {
+      account_package_route: string;
+      billing_provider_calls: boolean;
+      billing_reconciliation_route: string;
+      frontend: boolean;
+      high_cost_reservation_route: string;
+      invoice_writes: boolean;
+      live_billing_provider: boolean;
+      live_ledger_reads: boolean;
+      live_ledger_writes: boolean;
+      persistent_writes: boolean;
+      quota_route: string;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      subscription_route: string;
+    };
     billing_reconciliation: {
       billing_provider_calls: boolean;
       freshness_target_minutes: number;
@@ -810,6 +829,82 @@ interface UsageRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface UsageBillingRulesReleaseGatePlanBody {
+  data: {
+    billing_reconciliation_gate: {
+      plan: {
+        consistency: {
+          invoice_credits: number;
+          ledger_credits: number;
+          status: string;
+        };
+        traceability: {
+          traceable_call_count: number;
+          traceable_to_call: boolean;
+        };
+      };
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    high_cost_gate: {
+      failed_refund_plan: {
+        failure_refund: {
+          refund_credits: number;
+          status: string;
+        };
+        reservation: {
+          reservation_id: string;
+        };
+      };
+      reservation_plan: {
+        pre_debit: {
+          pre_debit_credits: number;
+          status: string;
+        };
+        reservation: {
+          reservation_id: string;
+        };
+      };
+    };
+    live_billing_provider: boolean;
+    live_invoice_writes: boolean;
+    live_ledger_reads: boolean;
+    package_rules: {
+      developer_credit_limit: number;
+      developer_overage_enabled: boolean;
+      pro_credit_limit: number;
+    };
+    release_checks: Array<{
+      check_id: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      status: string;
+    };
+    request_id: string;
+    sql_emitted: boolean;
+    status: string;
+    subscription_rules: {
+      lifecycle_plan: {
+        billing_provider: {
+          calls: boolean;
+          proration_preview: boolean;
+          refund_preview: boolean;
+        };
+      };
+    };
+    validation: Record<string, boolean>;
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface UsageBillingReconciliationPlanBody {
@@ -6831,6 +6926,102 @@ describe("worker runtime", () => {
       status: "high_cost_usage_reservation_scaffold",
       usage_ledger_link_required: true
     });
+    expect(body.data.billing_rules_release_gate).toMatchObject({
+      account_package_route: "GET /account/package-pricing",
+      billing_provider_calls: false,
+      billing_reconciliation_route: "POST /usage/billing/reconciliation/plan",
+      frontend: false,
+      high_cost_reservation_route: "POST /usage/high-cost/reservation/plan",
+      invoice_writes: false,
+      live_billing_provider: false,
+      live_ledger_reads: false,
+      live_ledger_writes: false,
+      persistent_writes: false,
+      quota_route: "POST /usage/quota/plan",
+      route: "POST /usage/release-gates/billing-rules/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "billing_rules_release_gate_scaffold",
+      subscription_route: "POST /account/subscription/lifecycle/plan"
+    });
+    expect(body.data.billing_rules_release_gate.required_checks).toContain(
+      "invoice_credits_match_usage_ledger_credits"
+    );
+  });
+
+  it("plans billing rules release gate checks against package, subscription, and usage surfaces", async () => {
+    const response = await app.request("/usage/release-gates/billing-rules/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        billing_period_end: "2026-07-01T00:00:00.000Z",
+        billing_period_start: "2026-06-01T00:00:00.000Z",
+        invoice_id: "inv_ws_internal_alpha_202606",
+        subscription_id: "sub_ws_internal_alpha_developer",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-billing-rules"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsageBillingRulesReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      live_billing_provider: false,
+      live_invoice_writes: false,
+      live_ledger_reads: false,
+      request_id: "req-usage-billing-rules",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /usage/release-gates/billing-rules/plan",
+      status: "billing_rules_release_gate_scaffold"
+    });
+    expect(body.data.package_rules).toMatchObject({
+      developer_credit_limit: 10000,
+      developer_overage_enabled: true,
+      pro_credit_limit: 5000
+    });
+    expect(body.data.subscription_rules.lifecycle_plan.billing_provider).toMatchObject({
+      calls: false,
+      proration_preview: false,
+      refund_preview: false
+    });
+    expect(body.data.billing_reconciliation_gate.plan.consistency).toMatchObject({
+      invoice_credits: 640,
+      ledger_credits: 640,
+      status: "matched"
+    });
+    expect(body.data.billing_reconciliation_gate.plan.traceability).toMatchObject({
+      traceable_call_count: 2,
+      traceable_to_call: true
+    });
+    expect(body.data.high_cost_gate.reservation_plan.pre_debit).toMatchObject({
+      pre_debit_credits: 20,
+      status: "planned_no_write"
+    });
+    expect(body.data.high_cost_gate.failed_refund_plan.failure_refund).toMatchObject({
+      refund_credits: 20,
+      status: "planned_no_write"
+    });
+    expect(body.data.high_cost_gate.failed_refund_plan.reservation.reservation_id).toBe(
+      body.data.high_cost_gate.reservation_plan.reservation.reservation_id
+    );
+    expect(body.data.validation.all_checks_passed).toBe(true);
+    expect(body.data.validation.live_release_claimed).toBe(false);
+    expect(body.data.release_checks).toHaveLength(6);
+    expect(body.data.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(body.data.release_gate).toMatchObject({
+      status: "blocked_live_billing_rules_validation"
+    });
+    expect(body.data.release_gate.blockers).toContain("live_billing_provider_missing");
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans Web/MCP quota display values without reads or writes", async () => {

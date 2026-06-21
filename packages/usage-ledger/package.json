@@ -13,5 +13,8 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aiphabee/account-runtime": "file:../account-runtime"
   }
 }

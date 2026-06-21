@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
+  getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
   getUsageBillingReconciliationCapabilities,
@@ -211,6 +213,35 @@ describe("usage ledger event writer scaffold", () => {
       status: "high_cost_usage_reservation_scaffold",
       usage_ledger_link_required: true
     });
+  });
+
+  it("reports billing rules release gate capabilities", () => {
+    expect(getBillingRulesReleaseGateCapabilities()).toMatchObject({
+      account_package_route: "GET /account/package-pricing",
+      billing_provider_calls: false,
+      billing_reconciliation_route: "POST /usage/billing/reconciliation/plan",
+      frontend: false,
+      high_cost_reservation_route: "POST /usage/high-cost/reservation/plan",
+      invoice_writes: false,
+      live_billing_provider: false,
+      live_ledger_reads: false,
+      live_ledger_writes: false,
+      persistent_writes: false,
+      quota_route: "POST /usage/quota/plan",
+      route: "POST /usage/release-gates/billing-rules/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "billing_rules_release_gate_scaffold",
+      subscription_route: "POST /account/subscription/lifecycle/plan"
+    });
+    expect(getBillingRulesReleaseGateCapabilities().required_checks).toEqual([
+      "package_credit_overage_rules_documented",
+      "weighted_credit_model_referenced",
+      "refund_and_proration_rules_blocked_without_provider_preview",
+      "invoice_credits_match_usage_ledger_credits",
+      "request_id_trace_links_invoice_ledger_usage_event",
+      "high_cost_pre_debit_and_failure_refund_planned"
+    ]);
   });
 
   it("plans quota display values without live ledger reads", () => {
@@ -606,5 +637,103 @@ describe("usage ledger event writer scaffold", () => {
       pre_debit_credits: 0,
       status: "blocked_missing_context"
     });
+  });
+
+  it("plans billing rules release gate checks across package credits, refunds, invoices, and usage ledger", () => {
+    const plan = createBillingRulesReleaseGatePlan({
+      accountId: "acct_internal_001",
+      billingPeriodEnd: "2026-07-01T00:00:00.000Z",
+      billingPeriodStart: "2026-06-01T00:00:00.000Z",
+      invoiceId: "inv_ws_internal_alpha_202606",
+      requestId: "req_billing_rules_gate",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      frontend: false,
+      live_billing_provider: false,
+      live_invoice_writes: false,
+      live_ledger_reads: false,
+      live_ledger_writes: false,
+      persistent_writes: false,
+      request_id: "req_billing_rules_gate",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(plan.package_rules).toMatchObject({
+      currency: "HKD",
+      developer_credit_limit: 10000,
+      developer_overage_enabled: true,
+      plan_count: 2,
+      pro_credit_limit: 5000,
+      validation_assumption_not_final_quote: true,
+      weighted_credit_model_source: "docs/researches/AiphaBee_PRD_v1.0.md#15.3"
+    });
+    expect(plan.subscription_rules.lifecycle_plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(plan.subscription_rules.lifecycle_plan.billing_provider).toEqual({
+      calls: false,
+      invoice_preview: false,
+      proration_preview: false,
+      provider: "not_configured",
+      refund_preview: false
+    });
+    expect(plan.quota_gate.plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(plan.quota_gate.plan.quota).toMatchObject({
+      credit_limit: 10000,
+      credits_used: 640,
+      plan_code: "developer"
+    });
+    expect(plan.billing_reconciliation_gate.plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(plan.billing_reconciliation_gate.plan.consistency).toEqual({
+      credit_delta: 0,
+      invoice_credits: 640,
+      ledger_credits: 640,
+      status: "matched"
+    });
+    expect(plan.billing_reconciliation_gate.plan.traceability).toMatchObject({
+      traceable_call_count: 2,
+      traceable_to_call: true
+    });
+    expect(plan.high_cost_gate.reservation_plan.pre_debit).toMatchObject({
+      pre_debit_credits: 20,
+      status: "planned_no_write"
+    });
+    expect(plan.high_cost_gate.failed_refund_plan.failure_refund).toMatchObject({
+      refund_credits: 20,
+      status: "planned_no_write"
+    });
+    expect(plan.high_cost_gate.failed_refund_plan.reservation.reservation_id).toBe(
+      plan.high_cost_gate.reservation_plan.reservation.reservation_id
+    );
+    expect(plan.validation).toEqual({
+      all_checks_passed: true,
+      high_cost_pre_debit_and_failure_refund_planned: true,
+      invoice_credits_match_usage_ledger_credits: true,
+      live_release_claimed: false,
+      package_credit_overage_rules_documented: true,
+      refund_and_proration_rules_blocked_without_provider_preview: true,
+      request_id_trace_links_invoice_ledger_usage_event: true,
+      weighted_credit_model_referenced: true
+    });
+    expect(plan.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      external_signoff_required: true,
+      status: "blocked_live_billing_rules_validation"
+    });
+    expect(plan.release_gate.blockers).toEqual([
+      "final_commercial_quote_missing",
+      "live_billing_provider_missing",
+      "live_usage_ledger_reads_missing",
+      "live_invoice_write_missing",
+      "frontend_billing_ui_missing"
+    ]);
   });
 });

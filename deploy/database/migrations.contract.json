@@ -529,6 +529,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622002000_billing_rules_release_gate_scaffold.sql",
+      "purpose": "Create empty billing rules release gate scaffolds for package credits, overage, refund/proration preview blocking, invoice-to-ledger consistency, and high-cost pre-debit/refund drills without enabling live billing provider, ledger reads, invoice writes, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.billing_rules_release_gate",
+        "audit.billing_rules_drill_event",
+        "governance.billing_rules_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

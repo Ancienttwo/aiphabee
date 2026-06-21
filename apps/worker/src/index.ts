@@ -237,10 +237,12 @@ import { REGISTERED_TOOLS, getToolRegistryCapabilities } from "@aiphabee/tool-re
 import {
   USAGE_QUOTA_CHANNELS,
   USAGE_QUOTA_PLAN_CODES,
+  createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
+  getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
   getUsageBillingReconciliationCapabilities,
@@ -1593,6 +1595,7 @@ app.get("/usage/runtime", (c) => {
     createSuccessEnvelope(
       {
         ...getUsageQuotaDisplayCapabilities(),
+        billing_rules_release_gate: getBillingRulesReleaseGateCapabilities(),
         billing_reconciliation: getUsageBillingReconciliationCapabilities(),
         high_cost_reservation: getHighCostUsageReservationCapabilities(),
         partner_reconciliation_report: getPartnerReconciliationReportCapabilities()
@@ -1613,6 +1616,49 @@ app.get("/usage/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/usage/release-gates/billing-rules/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createBillingRulesReleaseGatePlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    billingPeriodEnd: normalizeString(body.billing_period_end ?? body.billingPeriodEnd),
+    billingPeriodStart: normalizeString(body.billing_period_start ?? body.billingPeriodStart),
+    invoiceId: normalizeString(body.invoice_id ?? body.invoiceId),
+    planCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+    requestId,
+    subscriptionId: normalizeString(body.subscription_id ?? body.subscriptionId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      plan,
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "billing-rules-release-gate",
+            source_record_id: "billing-rules-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
         }
       }
     )
