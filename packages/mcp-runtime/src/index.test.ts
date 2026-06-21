@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   McpRuntimeInputError,
+  createMcpApiKeyCreatePlan,
+  createMcpApiKeyRevokePlan,
+  createMcpApiKeyRotatePlan,
   createMcpOAuthAuthorizePlan,
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
   getMcpRuntimeCapabilities
 } from "./index";
@@ -33,6 +37,14 @@ describe("mcp endpoint default-deny scaffold", () => {
       "tools/call"
     ]);
     expect(getMcpRuntimeCapabilities()).toMatchObject({
+      api_key_create_route: "POST /mcp/api-keys/create/plan",
+      api_key_hash_storage_ready: true,
+      api_key_ip_allowlist_ready: true,
+      api_key_one_time_display_ready: true,
+      api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
+      api_key_rotation_ready: true,
+      api_key_runtime_route: "GET /mcp/api-keys/runtime",
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_pkce_ready: true,
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
@@ -66,6 +78,158 @@ describe("mcp endpoint default-deny scaffold", () => {
       "exports.read",
       "admin.usage.read"
     ]);
+  });
+
+  it("reports server-to-server API key lifecycle capabilities", () => {
+    expect(getMcpApiKeyCapabilities()).toMatchObject({
+      api_key_live: false,
+      create_route: "POST /mcp/api-keys/create/plan",
+      hash_algorithm: "hmac_sha256_with_pepper_planned",
+      hash_storage_required: true,
+      ip_allowlist_supported: true,
+      one_time_display: true,
+      revoke_route: "POST /mcp/api-keys/revoke/plan",
+      rotate_route: "POST /mcp/api-keys/rotate/plan",
+      rotation_supported: true,
+      runtime_route: "GET /mcp/api-keys/runtime",
+      server_to_server_only: true,
+      status: "mcp_api_key_scaffold"
+    });
+    expect(getMcpApiKeyCapabilities().supported_scopes).toContain("market.read");
+  });
+
+  it("plans API key creation with hash-only storage and one-time display metadata", () => {
+    const plan = createMcpApiKeyCreatePlan({
+      ipAllowlist: ["203.0.113.10", "2001:db8::/48"],
+      keyName: "mcp-server-prod",
+      ownerId: "owner_platform",
+      requestId: "req-mcp-api-key-create",
+      requestedScopes: ["security.read", "market.read"],
+      rotationAfterDays: 60,
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(plan).toMatchObject({
+      action: "create",
+      api_key: {
+        issued: false,
+        key_name: "mcp-server-prod",
+        key_status: "planned_no_live",
+        live_secret_generated: false
+      },
+      api_key_live: false,
+      frontend_rendering: false,
+      hash_storage: {
+        hash_algorithm: "hmac_sha256_with_pepper_planned",
+        key_hash_stored: true,
+        key_last_four_stored: true,
+        pepper_required: true,
+        raw_key_stored: false,
+        storage_status: "planned_no_live"
+      },
+      ip_restrictions: {
+        allowlist: ["203.0.113.10", "2001:db8::/48"],
+        ip_allowlist_supported: true,
+        validated: true
+      },
+      key_material: {
+        key_material_returned: false,
+        key_prefix: "aipb_srv_",
+        one_time_display: true
+      },
+      route: "POST /mcp/api-keys/create/plan",
+      rotation: {
+        default_rotation_after_days: 60,
+        rotatable: true,
+        rotate_route: "POST /mcp/api-keys/rotate/plan"
+      },
+      server_to_server: {
+        allowed_only: true,
+        browser_use_allowed: false
+      },
+      status: "planned_no_live_api_key"
+    });
+    expect(plan.scope_binding).toMatchObject({
+      requested_scopes: ["security.read", "market.read"],
+      scopes_bound_to_key: true
+    });
+    expect(plan.scope_binding.scope_grants.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read"
+    ]);
+  });
+
+  it("plans API key rotation with old-key future calls denied", () => {
+    const plan = createMcpApiKeyRotatePlan({
+      ipAllowlist: ["203.0.113.10/32"],
+      keyId: "mcp_key_123",
+      reason: "scheduled_rotation",
+      requestId: "req-mcp-api-key-rotate",
+      requestedScopes: ["analytics.run"],
+      rotationAfterDays: 30
+    });
+
+    expect(plan).toMatchObject({
+      action: "rotate",
+      api_key: {
+        key_id: "mcp_key_123",
+        live_secret_generated: false,
+        new_key_material_display_once: true,
+        old_key_future_calls_denied_after_rotation: true,
+        rotation_overlap_seconds: 0,
+        rotation_status: "planned_no_live"
+      },
+      reason: "scheduled_rotation",
+      route: "POST /mcp/api-keys/rotate/plan",
+      rotation: {
+        next_rotation_after_days: 30,
+        rotatable: true
+      },
+      status: "planned_no_live_api_key"
+    });
+  });
+
+  it("plans API key revocation so new calls fail after revoke", () => {
+    const plan = createMcpApiKeyRevokePlan({
+      keyId: "mcp_key_123",
+      reason: "compromised",
+      requestId: "req-mcp-api-key-revoke"
+    });
+
+    expect(plan).toMatchObject({
+      action: "revoke",
+      api_key_live: false,
+      key_id: "mcp_key_123",
+      reason: "compromised",
+      revocation_plan: {
+        future_calls_denied_after_revoke: true,
+        key_hash_disabled: "planned",
+        live_invalidation: false,
+        revoke_status: "planned_no_live"
+      },
+      route: "POST /mcp/api-keys/revoke/plan",
+      status: "planned_no_live_api_key"
+    });
+  });
+
+  it("rejects raw API key material and invalid IP allowlists", () => {
+    expect(() =>
+      createMcpApiKeyCreatePlan({
+        keyName: "bad-key",
+        rawApiKey: "raw-secret-material",
+        requestId: "req-mcp-api-key-raw",
+        requestedScopes: ["market.read"]
+      })
+    ).toThrow(McpRuntimeInputError);
+
+    expect(() =>
+      createMcpApiKeyCreatePlan({
+        ipAllowlist: ["not-an-ip"],
+        keyName: "bad-ip",
+        requestId: "req-mcp-api-key-bad-ip",
+        requestedScopes: ["market.read"]
+      })
+    ).toThrow(McpRuntimeInputError);
   });
 
   it("plans OAuth authorization with S256 PKCE and clear revocable scopes", () => {

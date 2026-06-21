@@ -1609,6 +1609,14 @@ interface ResearchRunReplayPlanBody {
 
 interface McpRuntimeBody {
   data: {
+    api_key_create_route: string;
+    api_key_hash_storage_ready: boolean;
+    api_key_ip_allowlist_ready: boolean;
+    api_key_one_time_display_ready: boolean;
+    api_key_revoke_route: string;
+    api_key_rotate_route: string;
+    api_key_rotation_ready: boolean;
+    api_key_runtime_route: string;
     default_deny: boolean;
     live_tool_execution: boolean;
     mcp_api_redistribution_rights_confirmed: boolean;
@@ -1762,6 +1770,112 @@ interface McpOAuthRevokePlanBody {
       revoke_status: string;
       scope_grants_removed: string;
       token_invalidation_live: boolean;
+    };
+    route: string;
+    status: string;
+  };
+  ok: true;
+}
+
+interface McpApiKeyRuntimeBody {
+  data: {
+    api_key_live: boolean;
+    create_route: string;
+    hash_algorithm: string;
+    hash_storage_required: boolean;
+    ip_allowlist_supported: boolean;
+    one_time_display: boolean;
+    revoke_route: string;
+    rotate_route: string;
+    rotation_supported: boolean;
+    runtime_route: string;
+    server_to_server_only: boolean;
+    status: string;
+    supported_scopes: string[];
+  };
+  ok: true;
+}
+
+interface McpApiKeyCreatePlanBody {
+  data: {
+    api_key: {
+      issued: boolean;
+      key_name: string;
+      key_status: string;
+      live_secret_generated: boolean;
+    };
+    capability: {
+      create_route: string;
+      hash_storage_required: boolean;
+      one_time_display: boolean;
+      rotate_route: string;
+    };
+    hash_storage: {
+      key_hash_stored: boolean;
+      key_last_four_stored: boolean;
+      raw_key_stored: boolean;
+    };
+    ip_restrictions: {
+      allowlist: string[];
+      ip_allowlist_supported: boolean;
+      validated: boolean;
+    };
+    key_material: {
+      key_material_returned: boolean;
+      key_prefix: string;
+      one_time_display: boolean;
+    };
+    route: string;
+    rotation: {
+      default_rotation_after_days: number;
+      rotatable: boolean;
+      rotate_route: string;
+    };
+    scope_binding: {
+      requested_scopes: string[];
+      scope_grants: Array<{
+        scope: string;
+      }>;
+      scopes_bound_to_key: boolean;
+    };
+    server_to_server: {
+      allowed_only: boolean;
+      browser_use_allowed: boolean;
+    };
+    status: string;
+  };
+  ok: true;
+}
+
+interface McpApiKeyRotatePlanBody {
+  data: {
+    api_key: {
+      key_id: string;
+      live_secret_generated: boolean;
+      new_key_material_display_once: boolean;
+      old_key_future_calls_denied_after_rotation: boolean;
+      rotation_overlap_seconds: number;
+      rotation_status: string;
+    };
+    reason?: string;
+    route: string;
+    rotation: {
+      next_rotation_after_days: number;
+      rotatable: boolean;
+    };
+    status: string;
+  };
+  ok: true;
+}
+
+interface McpApiKeyRevokePlanBody {
+  data: {
+    key_id: string;
+    revocation_plan: {
+      future_calls_denied_after_revoke: boolean;
+      key_hash_disabled: string;
+      live_invalidation: boolean;
+      revoke_status: string;
     };
     route: string;
     status: string;
@@ -5693,6 +5807,14 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
     expect(body.data).toMatchObject({
+      api_key_create_route: "POST /mcp/api-keys/create/plan",
+      api_key_hash_storage_ready: true,
+      api_key_ip_allowlist_ready: true,
+      api_key_one_time_display_ready: true,
+      api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
+      api_key_runtime_route: "GET /mcp/api-keys/runtime",
+      api_key_rotation_ready: true,
       default_deny: true,
       live_tool_execution: false,
       mcp_api_redistribution_rights_confirmed: false,
@@ -5894,6 +6016,192 @@ describe("worker runtime", () => {
       headers: {
         "content-type": "application/json",
         "x-request-id": "req-mcp-oauth-invalid"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("serves MCP API key lifecycle capabilities", async () => {
+    const response = await app.request("/mcp/api-keys/runtime", {
+      headers: {
+        "x-request-id": "req-mcp-api-key-runtime"
+      }
+    });
+    const body = (await response.json()) as McpApiKeyRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      api_key_live: false,
+      create_route: "POST /mcp/api-keys/create/plan",
+      hash_algorithm: "hmac_sha256_with_pepper_planned",
+      hash_storage_required: true,
+      ip_allowlist_supported: true,
+      one_time_display: true,
+      revoke_route: "POST /mcp/api-keys/revoke/plan",
+      rotate_route: "POST /mcp/api-keys/rotate/plan",
+      rotation_supported: true,
+      runtime_route: "GET /mcp/api-keys/runtime",
+      server_to_server_only: true,
+      status: "mcp_api_key_scaffold"
+    });
+    expect(body.data.supported_scopes).toContain("analytics.run");
+  });
+
+  it("plans MCP API key creation without returning raw key material", async () => {
+    const response = await app.request("/mcp/api-keys/create/plan", {
+      body: JSON.stringify({
+        ip_allowlist: ["203.0.113.10", "2001:db8::/48"],
+        key_name: "mcp-server-prod",
+        owner_id: "owner_platform",
+        rotation_after_days: 60,
+        scopes: ["security.read", "market.read"],
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-api-key-create"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpApiKeyCreatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      api_key: {
+        issued: false,
+        key_name: "mcp-server-prod",
+        key_status: "planned_no_live",
+        live_secret_generated: false
+      },
+      hash_storage: {
+        key_hash_stored: true,
+        key_last_four_stored: true,
+        raw_key_stored: false
+      },
+      ip_restrictions: {
+        allowlist: ["203.0.113.10", "2001:db8::/48"],
+        ip_allowlist_supported: true,
+        validated: true
+      },
+      key_material: {
+        key_material_returned: false,
+        key_prefix: "aipb_srv_",
+        one_time_display: true
+      },
+      route: "POST /mcp/api-keys/create/plan",
+      rotation: {
+        default_rotation_after_days: 60,
+        rotatable: true,
+        rotate_route: "POST /mcp/api-keys/rotate/plan"
+      },
+      server_to_server: {
+        allowed_only: true,
+        browser_use_allowed: false
+      },
+      status: "planned_no_live_api_key"
+    });
+    expect(body.data.capability).toMatchObject({
+      create_route: "POST /mcp/api-keys/create/plan",
+      hash_storage_required: true,
+      one_time_display: true,
+      rotate_route: "POST /mcp/api-keys/rotate/plan"
+    });
+    expect(body.data.scope_binding).toMatchObject({
+      requested_scopes: ["security.read", "market.read"],
+      scopes_bound_to_key: true
+    });
+    expect(body.data.scope_binding.scope_grants.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read"
+    ]);
+  });
+
+  it("plans MCP API key rotation with immediate old-key denial", async () => {
+    const response = await app.request("/mcp/api-keys/rotate/plan", {
+      body: JSON.stringify({
+        ip_allowlist: ["203.0.113.10/32"],
+        key_id: "mcp_key_123",
+        reason: "scheduled_rotation",
+        rotation_after_days: 30,
+        scopes: ["analytics.run"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-api-key-rotate"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpApiKeyRotatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      api_key: {
+        key_id: "mcp_key_123",
+        live_secret_generated: false,
+        new_key_material_display_once: true,
+        old_key_future_calls_denied_after_rotation: true,
+        rotation_overlap_seconds: 0,
+        rotation_status: "planned_no_live"
+      },
+      reason: "scheduled_rotation",
+      route: "POST /mcp/api-keys/rotate/plan",
+      rotation: {
+        next_rotation_after_days: 30,
+        rotatable: true
+      },
+      status: "planned_no_live_api_key"
+    });
+  });
+
+  it("plans MCP API key revocation so future calls are denied", async () => {
+    const response = await app.request("/mcp/api-keys/revoke/plan", {
+      body: JSON.stringify({
+        key_id: "mcp_key_123",
+        reason: "compromised"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-api-key-revoke"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpApiKeyRevokePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      key_id: "mcp_key_123",
+      revocation_plan: {
+        future_calls_denied_after_revoke: true,
+        key_hash_disabled: "planned",
+        live_invalidation: false,
+        revoke_status: "planned_no_live"
+      },
+      route: "POST /mcp/api-keys/revoke/plan",
+      status: "planned_no_live_api_key"
+    });
+  });
+
+  it("rejects raw API key material on MCP API key planning routes", async () => {
+    const response = await app.request("/mcp/api-keys/create/plan", {
+      body: JSON.stringify({
+        api_key: "raw-secret-material",
+        key_name: "bad-key",
+        scopes: ["market.read"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-api-key-raw"
       },
       method: "POST"
     });

@@ -75,5 +75,7 @@ Passed:
 - Live OAuth provider remains absent.
 - Persistent authorization-code and token storage remain absent.
 - Frontend consent UI remains absent.
-- API key issuance/rotation remains absent.
+- API key issuance/rotation planning is covered by
+  `docs/governance/mcp-api-key-scaffold.md`; live key generation and auth
+  middleware remain absent.
 - Live MCP tool execution remains blocked by Gate 0 and missing auth state.

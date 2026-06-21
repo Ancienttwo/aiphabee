@@ -10,6 +10,8 @@ export const MCP_RUNTIME_VERSION =
   "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0";
 export const MCP_OAUTH_PKCE_VERSION =
   "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0";
+export const MCP_API_KEY_VERSION =
+  "2026-06-21.phase2.mcp-api-key-scaffold.v0";
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -95,18 +97,24 @@ export type McpRuntimePlanStatus =
   | "planned_default_deny"
   | "planned_no_live_execution";
 export type McpOAuthPlanStatus = "planned_no_live_oauth";
+export type McpApiKeyPlanStatus = "planned_no_live_api_key";
 export type McpRuntimeInputErrorCode =
+  | "API_KEY_ID_REQUIRED"
+  | "API_KEY_NAME_REQUIRED"
   | "AUTHORIZATION_CODE_REQUIRED"
   | "CLIENT_ID_REQUIRED"
   | "CODE_CHALLENGE_METHOD_UNSUPPORTED"
   | "CODE_CHALLENGE_REQUIRED"
   | "CODE_VERIFIER_REQUIRED"
   | "CONNECTION_OR_TOKEN_REQUIRED"
+  | "INVALID_API_KEY_ROTATION_DAYS"
   | "INVALID_CODE_CHALLENGE"
+  | "INVALID_IP_ALLOWLIST"
   | "INVALID_REDIRECT_URI"
   | "MCP_REDISTRIBUTION_RIGHTS_REQUIRED"
   | "ORIGIN_NOT_ALLOWED"
   | "ORIGIN_REQUIRED"
+  | "RAW_API_KEY_FORBIDDEN"
   | "REDIRECT_URI_REQUIRED"
   | "SCOPE_REQUIRED"
   | "TOOL_NAME_REQUIRED"
@@ -168,6 +176,34 @@ export interface CreateMcpOAuthRevokePlanInput {
   reason?: string;
   requestId: string;
   tokenId?: string;
+}
+
+export interface CreateMcpApiKeyCreatePlanInput {
+  ipAllowlist?: readonly string[];
+  keyName?: string;
+  ownerId?: string;
+  rawApiKey?: string;
+  requestId: string;
+  requestedScopes?: readonly string[];
+  rotationAfterDays?: number;
+  workspaceId?: string;
+}
+
+export interface CreateMcpApiKeyRotatePlanInput {
+  ipAllowlist?: readonly string[];
+  keyId?: string;
+  rawApiKey?: string;
+  reason?: string;
+  requestId: string;
+  requestedScopes?: readonly string[];
+  rotationAfterDays?: number;
+}
+
+export interface CreateMcpApiKeyRevokePlanInput {
+  keyId?: string;
+  rawApiKey?: string;
+  reason?: string;
+  requestId: string;
 }
 
 export interface McpToolDescriptor {
@@ -320,6 +356,139 @@ export interface McpOAuthRevokePlan {
   version: typeof MCP_OAUTH_PKCE_VERSION;
 }
 
+export interface McpApiKeyScopeGrant {
+  data_classes: readonly string[];
+  scope: McpOAuthScope;
+  write: boolean;
+}
+
+export interface McpApiKeyBasePlan {
+  api_key_live: false;
+  data_version: typeof MCP_API_KEY_VERSION;
+  frontend_rendering: false;
+  hash_storage: {
+    hash_algorithm: "hmac_sha256_with_pepper_planned";
+    key_hash_stored: true;
+    key_last_four_stored: true;
+    pepper_required: true;
+    raw_key_stored: false;
+    storage_status: "planned_no_live";
+  };
+  ip_restrictions: {
+    allowlist: string[];
+    enforcement_status: "planned_no_live";
+    ip_allowlist_supported: true;
+    validated: true;
+  };
+  key_material: {
+    display_window: "create_or_rotate_response_only";
+    key_material_returned: false;
+    key_prefix: "aipb_srv_";
+    one_time_display: true;
+  };
+  methodology_version: typeof MCP_API_KEY_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  request_id: string;
+  scope_binding: {
+    requested_scopes: McpOAuthScope[];
+    scope_grants: McpApiKeyScopeGrant[];
+    scopes_bound_to_key: true;
+  };
+  server_to_server: {
+    browser_use_allowed: false;
+    allowed_only: true;
+  };
+  status: McpApiKeyPlanStatus;
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  version: typeof MCP_API_KEY_VERSION;
+}
+
+export interface McpApiKeyCreatePlan extends McpApiKeyBasePlan {
+  action: "create";
+  api_key: {
+    issued: false;
+    key_id: string;
+    key_name: string;
+    key_status: "planned_no_live";
+    live_secret_generated: false;
+  };
+  owner: {
+    owner_id: string;
+    source: "request" | "synthetic_default";
+  };
+  rotation: {
+    default_rotation_after_days: number;
+    rotatable: true;
+    rotate_route: "POST /mcp/api-keys/rotate/plan";
+  };
+  route: "POST /mcp/api-keys/create/plan";
+  revocation: {
+    future_calls_denied_after_revoke: true;
+    revoke_route: "POST /mcp/api-keys/revoke/plan";
+  };
+  workspace: {
+    source: "request" | "synthetic_default";
+    workspace_id: string;
+  };
+}
+
+export interface McpApiKeyRotatePlan extends McpApiKeyBasePlan {
+  action: "rotate";
+  api_key: {
+    key_id: string;
+    live_secret_generated: false;
+    new_key_material_display_once: true;
+    old_key_future_calls_denied_after_rotation: true;
+    rotation_overlap_seconds: 0;
+    rotation_status: "planned_no_live";
+  };
+  reason?: string;
+  rotation: {
+    next_rotation_after_days: number;
+    rotatable: true;
+  };
+  route: "POST /mcp/api-keys/rotate/plan";
+}
+
+export interface McpApiKeyRevokePlan {
+  action: "revoke";
+  api_key_live: false;
+  data_version: typeof MCP_API_KEY_VERSION;
+  key_id: string;
+  methodology_version: typeof MCP_API_KEY_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  reason?: string;
+  request_id: string;
+  revocation_plan: {
+    future_calls_denied_after_revoke: true;
+    key_hash_disabled: "planned";
+    live_invalidation: false;
+    revoke_status: "planned_no_live";
+  };
+  route: "POST /mcp/api-keys/revoke/plan";
+  status: McpApiKeyPlanStatus;
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: 1;
+  };
+  version: typeof MCP_API_KEY_VERSION;
+}
+
 export interface McpProtocolPlan {
   api_key_live: false;
   client: {
@@ -422,7 +591,15 @@ const MCP_STANDARD_ERROR_CODES = [
 export function getMcpRuntimeCapabilities() {
   return {
     allowed_origins: DEFAULT_MCP_ALLOWED_ORIGINS,
+    api_key_create_route: "POST /mcp/api-keys/create/plan" as const,
+    api_key_hash_storage_ready: true,
+    api_key_ip_allowlist_ready: true,
     api_key_live: false,
+    api_key_one_time_display_ready: true,
+    api_key_revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    api_key_rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+    api_key_rotation_ready: true,
+    api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
     default_deny: true,
     developer_console_live: false,
     live_tool_execution: false,
@@ -451,6 +628,28 @@ export function getMcpRuntimeCapabilities() {
     transport: "streamable_http" as const,
     version: MCP_RUNTIME_VERSION,
     web_rights_do_not_imply_mcp: true
+  };
+}
+
+export function getMcpApiKeyCapabilities() {
+  return {
+    api_key_live: false,
+    create_route: "POST /mcp/api-keys/create/plan" as const,
+    forbidden_payloads: ["raw_api_key", "client_secret", "bearer_token"] as const,
+    hash_algorithm: "hmac_sha256_with_pepper_planned" as const,
+    hash_storage_required: true,
+    ip_allowlist_supported: true,
+    key_prefix: "aipb_srv_" as const,
+    one_time_display: true,
+    package: "@aiphabee/mcp-runtime" as const,
+    revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+    rotation_supported: true,
+    runtime_route: "GET /mcp/api-keys/runtime" as const,
+    server_to_server_only: true,
+    status: "mcp_api_key_scaffold" as const,
+    supported_scopes: MCP_OAUTH_SCOPE_DEFINITIONS.map((definition) => definition.scope),
+    version: MCP_API_KEY_VERSION
   };
 }
 
@@ -682,6 +881,133 @@ export function createMcpOAuthRevokePlan(
       rows: 1
     },
     version: MCP_OAUTH_PKCE_VERSION
+  };
+}
+
+export function createMcpApiKeyCreatePlan(
+  input: CreateMcpApiKeyCreatePlanInput
+): McpApiKeyCreatePlan {
+  assertNoRawApiKey(input.rawApiKey);
+  const keyName = normalizeText(input.keyName);
+  const workspaceId = normalizeText(input.workspaceId);
+  const ownerId = normalizeText(input.ownerId);
+
+  if (keyName === undefined) {
+    throw new McpRuntimeInputError("API_KEY_NAME_REQUIRED", "keyName is required");
+  }
+
+  const scopes = normalizeAndValidateOAuthScopes(input.requestedScopes);
+  const ipAllowlist = normalizeAndValidateIpAllowlist(input.ipAllowlist);
+  const rotationAfterDays = normalizeRotationAfterDays(input.rotationAfterDays);
+
+  return {
+    ...createMcpApiKeyBasePlan({
+      action: "create",
+      ipAllowlist,
+      requestId: input.requestId,
+      scopes
+    }),
+    action: "create",
+    api_key: {
+      issued: false,
+      key_id: "mcp_api_key_planned",
+      key_name: keyName,
+      key_status: "planned_no_live",
+      live_secret_generated: false
+    },
+    owner: {
+      owner_id: ownerId ?? "owner_internal_alpha",
+      source: ownerId === undefined ? "synthetic_default" : "request"
+    },
+    rotation: {
+      default_rotation_after_days: rotationAfterDays,
+      rotatable: true,
+      rotate_route: "POST /mcp/api-keys/rotate/plan"
+    },
+    route: "POST /mcp/api-keys/create/plan",
+    revocation: {
+      future_calls_denied_after_revoke: true,
+      revoke_route: "POST /mcp/api-keys/revoke/plan"
+    },
+    workspace: {
+      source: workspaceId === undefined ? "synthetic_default" : "request",
+      workspace_id: workspaceId ?? "workspace_mcp"
+    }
+  };
+}
+
+export function createMcpApiKeyRotatePlan(
+  input: CreateMcpApiKeyRotatePlanInput
+): McpApiKeyRotatePlan {
+  assertNoRawApiKey(input.rawApiKey);
+  const keyId = normalizeText(input.keyId);
+
+  if (keyId === undefined) {
+    throw new McpRuntimeInputError("API_KEY_ID_REQUIRED", "keyId is required");
+  }
+
+  const scopes = normalizeAndValidateOAuthScopes(input.requestedScopes);
+  const ipAllowlist = normalizeAndValidateIpAllowlist(input.ipAllowlist);
+  const rotationAfterDays = normalizeRotationAfterDays(input.rotationAfterDays);
+
+  return {
+    ...createMcpApiKeyBasePlan({
+      action: "rotate",
+      ipAllowlist,
+      requestId: input.requestId,
+      scopes
+    }),
+    action: "rotate",
+    api_key: {
+      key_id: keyId,
+      live_secret_generated: false,
+      new_key_material_display_once: true,
+      old_key_future_calls_denied_after_rotation: true,
+      rotation_overlap_seconds: 0,
+      rotation_status: "planned_no_live"
+    },
+    reason: normalizeText(input.reason),
+    rotation: {
+      next_rotation_after_days: rotationAfterDays,
+      rotatable: true
+    },
+    route: "POST /mcp/api-keys/rotate/plan"
+  };
+}
+
+export function createMcpApiKeyRevokePlan(
+  input: CreateMcpApiKeyRevokePlanInput
+): McpApiKeyRevokePlan {
+  assertNoRawApiKey(input.rawApiKey);
+  const keyId = normalizeText(input.keyId);
+
+  if (keyId === undefined) {
+    throw new McpRuntimeInputError("API_KEY_ID_REQUIRED", "keyId is required");
+  }
+
+  return {
+    action: "revoke",
+    api_key_live: false,
+    data_version: MCP_API_KEY_VERSION,
+    key_id: keyId,
+    methodology_version: MCP_API_KEY_VERSION,
+    provenance: createMcpApiKeyProvenance("revoke"),
+    reason: normalizeText(input.reason),
+    request_id: input.requestId,
+    revocation_plan: {
+      future_calls_denied_after_revoke: true,
+      key_hash_disabled: "planned",
+      live_invalidation: false,
+      revoke_status: "planned_no_live"
+    },
+    route: "POST /mcp/api-keys/revoke/plan",
+    status: "planned_no_live_api_key",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: 1
+    },
+    version: MCP_API_KEY_VERSION
   };
 }
 
@@ -922,6 +1248,58 @@ function createToolDescriptors(
   }));
 }
 
+function createMcpApiKeyBasePlan(input: {
+  action: "create" | "rotate";
+  ipAllowlist: string[];
+  requestId: string;
+  scopes: McpOAuthScope[];
+}): McpApiKeyBasePlan {
+  return {
+    api_key_live: false,
+    data_version: MCP_API_KEY_VERSION,
+    frontend_rendering: false,
+    hash_storage: {
+      hash_algorithm: "hmac_sha256_with_pepper_planned",
+      key_hash_stored: true,
+      key_last_four_stored: true,
+      pepper_required: true,
+      raw_key_stored: false,
+      storage_status: "planned_no_live"
+    },
+    ip_restrictions: {
+      allowlist: input.ipAllowlist,
+      enforcement_status: "planned_no_live",
+      ip_allowlist_supported: true,
+      validated: true
+    },
+    key_material: {
+      display_window: "create_or_rotate_response_only",
+      key_material_returned: false,
+      key_prefix: "aipb_srv_",
+      one_time_display: true
+    },
+    methodology_version: MCP_API_KEY_VERSION,
+    provenance: createMcpApiKeyProvenance(input.action),
+    request_id: input.requestId,
+    scope_binding: {
+      requested_scopes: input.scopes,
+      scope_grants: input.scopes.map(createApiKeyScopeGrant),
+      scopes_bound_to_key: true
+    },
+    server_to_server: {
+      allowed_only: true,
+      browser_use_allowed: false
+    },
+    status: "planned_no_live_api_key",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: input.scopes.length
+    },
+    version: MCP_API_KEY_VERSION
+  };
+}
+
 function normalizeAndValidateOAuthScopes(
   requestedScopes: readonly string[] | undefined
 ): McpOAuthScope[] {
@@ -968,6 +1346,16 @@ function createScopeGrant(scope: McpOAuthScope): McpOAuthScopeGrant {
   };
 }
 
+function createApiKeyScopeGrant(scope: McpOAuthScope): McpApiKeyScopeGrant {
+  const grant = createScopeGrant(scope);
+
+  return {
+    data_classes: grant.data_classes,
+    scope: grant.scope,
+    write: grant.write
+  };
+}
+
 function createMcpOAuthProvenance(action: "authorize" | "revoke" | "token") {
   return [
     {
@@ -977,6 +1365,62 @@ function createMcpOAuthProvenance(action: "authorize" | "revoke" | "token") {
       source_record_id: `mcp_oauth_${action}`
     }
   ];
+}
+
+function createMcpApiKeyProvenance(action: "create" | "revoke" | "rotate") {
+  return [
+    {
+      data_version: MCP_API_KEY_VERSION,
+      methodology_version: MCP_API_KEY_VERSION,
+      source: "mcp-api-key",
+      source_record_id: `mcp_api_key_${action}`
+    }
+  ];
+}
+
+function assertNoRawApiKey(rawApiKey: string | undefined): void {
+  if (normalizeText(rawApiKey) !== undefined) {
+    throw new McpRuntimeInputError(
+      "RAW_API_KEY_FORBIDDEN",
+      "raw API key material must not be submitted to planning routes"
+    );
+  }
+}
+
+function normalizeAndValidateIpAllowlist(
+  ipAllowlist: readonly string[] | undefined
+): string[] {
+  const normalized = [...new Set(ipAllowlist ?? [])]
+    .map((item) => normalizeText(item))
+    .filter((item): item is string => item !== undefined);
+
+  const invalidValues = normalized.filter((item) => !isValidIpAllowlistValue(item));
+  if (invalidValues.length > 0) {
+    throw new McpRuntimeInputError(
+      "INVALID_IP_ALLOWLIST",
+      "ipAllowlist must contain IP addresses or CIDR ranges",
+      {
+        invalidValues
+      }
+    );
+  }
+
+  return normalized;
+}
+
+function normalizeRotationAfterDays(value: number | undefined): number {
+  if (value === undefined) {
+    return 90;
+  }
+
+  if (!Number.isInteger(value) || value < 1 || value > 365) {
+    throw new McpRuntimeInputError(
+      "INVALID_API_KEY_ROTATION_DAYS",
+      "rotationAfterDays must be an integer between 1 and 365"
+    );
+  }
+
+  return value;
 }
 
 function isMcpOAuthScope(value: string): value is McpOAuthScope {
@@ -998,6 +1442,44 @@ function isAllowedRedirectUri(value: string): boolean {
 
 function isValidPkceCodeChallenge(value: string): boolean {
   return /^[A-Za-z0-9_-]{43,128}$/u.test(value);
+}
+
+function isValidIpAllowlistValue(value: string): boolean {
+  return isValidIpv4Cidr(value) || isValidIpv6Cidr(value);
+}
+
+function isValidIpv4Cidr(value: string): boolean {
+  const match = value.match(/^(\d{1,3})(?:\.(\d{1,3})){3}(?:\/(\d{1,2}))?$/u);
+  if (match === null) {
+    return false;
+  }
+
+  const [address, cidr] = value.split("/");
+  const octets = address.split(".").map((octet) => Number(octet));
+  const cidrNumber = cidr === undefined ? undefined : Number(cidr);
+
+  return (
+    octets.length === 4 &&
+    octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255) &&
+    (cidrNumber === undefined ||
+      (Number.isInteger(cidrNumber) && cidrNumber >= 0 && cidrNumber <= 32))
+  );
+}
+
+function isValidIpv6Cidr(value: string): boolean {
+  if (!value.includes(":")) {
+    return false;
+  }
+
+  const [address, cidr] = value.split("/");
+  const cidrNumber = cidr === undefined ? undefined : Number(cidr);
+
+  return (
+    /^[0-9A-Fa-f:]+$/u.test(address) &&
+    address.includes(":") &&
+    (cidrNumber === undefined ||
+      (Number.isInteger(cidrNumber) && cidrNumber >= 0 && cidrNumber <= 128))
+  );
 }
 
 function normalizeMcpMethod(value: string | undefined): McpMethod | undefined {

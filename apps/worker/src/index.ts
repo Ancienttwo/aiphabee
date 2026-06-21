@@ -94,10 +94,14 @@ import {
 } from "@aiphabee/market-data";
 import {
   McpRuntimeInputError,
+  createMcpApiKeyCreatePlan,
+  createMcpApiKeyRevokePlan,
+  createMcpApiKeyRotatePlan,
   createMcpOAuthAuthorizePlan,
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
   getMcpRuntimeCapabilities
 } from "@aiphabee/mcp-runtime";
@@ -1741,6 +1745,165 @@ app.post("/mcp/oauth/revoke/plan", async (c) => {
     );
   } catch (error) {
     return handleMcpRuntimeError(c, error, requestId, "MCP OAuth revoke plan failed");
+  }
+});
+
+app.get("/mcp/api-keys/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getMcpApiKeyCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "mcp-api-key-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+      provenance: [
+        {
+          data_version: "mcp-api-key-scaffold-v0",
+          methodology_version: "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+          source: "mcp-api-key",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/mcp/api-keys/create/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpApiKeyCreatePlan({
+      ipAllowlist: normalizeStringArray(body.ip_allowlist ?? body.ipAllowlist),
+      keyName: normalizeString(body.key_name ?? body.keyName),
+      ownerId: normalizeString(body.owner_id ?? body.ownerId),
+      rawApiKey: normalizeString(body.raw_api_key ?? body.rawApiKey ?? body.api_key),
+      requestId,
+      requestedScopes: normalizeStringArray(body.scopes ?? body.requested_scopes),
+      rotationAfterDays: normalizeOptionalInteger(
+        body.rotation_after_days ?? body.rotationAfterDays
+      ),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpApiKeyCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP API key create plan failed", {
+      dataVersion: "mcp-api-key-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+      source: "mcp-api-key"
+    });
+  }
+});
+
+app.post("/mcp/api-keys/rotate/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpApiKeyRotatePlan({
+      ipAllowlist: normalizeStringArray(body.ip_allowlist ?? body.ipAllowlist),
+      keyId: normalizeString(body.key_id ?? body.keyId),
+      rawApiKey: normalizeString(body.raw_api_key ?? body.rawApiKey ?? body.api_key),
+      reason: normalizeString(body.reason),
+      requestId,
+      requestedScopes: normalizeStringArray(body.scopes ?? body.requested_scopes),
+      rotationAfterDays: normalizeOptionalInteger(
+        body.rotation_after_days ?? body.rotationAfterDays
+      )
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpApiKeyCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP API key rotate plan failed", {
+      dataVersion: "mcp-api-key-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+      source: "mcp-api-key"
+    });
+  }
+});
+
+app.post("/mcp/api-keys/revoke/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpApiKeyRevokePlan({
+      keyId: normalizeString(body.key_id ?? body.keyId),
+      rawApiKey: normalizeString(body.raw_api_key ?? body.rawApiKey ?? body.api_key),
+      reason: normalizeString(body.reason),
+      requestId
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpApiKeyCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP API key revoke plan failed", {
+      dataVersion: "mcp-api-key-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+      source: "mcp-api-key"
+    });
   }
 });
 
@@ -4164,7 +4327,16 @@ function handleMcpRuntimeError(
   c: Context,
   error: unknown,
   requestId: string,
-  fallbackMessage: string
+  fallbackMessage: string,
+  context: {
+    dataVersion: string;
+    methodologyVersion: string;
+    source: string;
+  } = {
+    dataVersion: "mcp-oauth-pkce-scaffold-v0",
+    methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+    source: "mcp-oauth-pkce"
+  }
 ): Response {
   if (error instanceof McpRuntimeInputError) {
     const status = statusForMcpRuntimeError(error);
@@ -4172,13 +4344,13 @@ function handleMcpRuntimeError(
     return c.json(
       createErrorEnvelope(errorCodeForMcpRuntimeError(error), error.message, {
         asOf: new Date().toISOString(),
-        dataVersion: "mcp-oauth-pkce-scaffold-v0",
-        methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+        dataVersion: context.dataVersion,
+        methodologyVersion: context.methodologyVersion,
         provenance: [
           {
-            data_version: "mcp-oauth-pkce-scaffold-v0",
-            methodology_version: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
-            source: "mcp-oauth-pkce",
+            data_version: context.dataVersion,
+            methodology_version: context.methodologyVersion,
+            source: context.source,
             source_record_id: error.code
           }
         ],
@@ -4196,8 +4368,8 @@ function handleMcpRuntimeError(
   return c.json(
     createErrorEnvelope("INTERNAL_ERROR", fallbackMessage, {
       asOf: new Date().toISOString(),
-      dataVersion: "mcp-oauth-pkce-scaffold-v0",
-      methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+      dataVersion: context.dataVersion,
+      methodologyVersion: context.methodologyVersion,
       requestId,
       usage: {
         cached: false,
@@ -4218,6 +4390,7 @@ function errorCodeForMcpRuntimeError(
   | "OUT_OF_RANGE"
   | "SCOPE_DENIED" {
   switch (error.code) {
+    case "API_KEY_ID_REQUIRED":
     case "AUTHORIZATION_CODE_REQUIRED":
     case "CODE_VERIFIER_REQUIRED":
     case "CONNECTION_OR_TOKEN_REQUIRED":
@@ -4228,13 +4401,17 @@ function errorCodeForMcpRuntimeError(
       return "NOT_FOUND";
     case "UNSUPPORTED_METHOD":
       return "OUT_OF_RANGE";
+    case "API_KEY_NAME_REQUIRED":
     case "CLIENT_ID_REQUIRED":
     case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
     case "CODE_CHALLENGE_REQUIRED":
+    case "INVALID_API_KEY_ROTATION_DAYS":
     case "INVALID_CODE_CHALLENGE":
+    case "INVALID_IP_ALLOWLIST":
     case "INVALID_REDIRECT_URI":
     case "ORIGIN_NOT_ALLOWED":
     case "ORIGIN_REQUIRED":
+    case "RAW_API_KEY_FORBIDDEN":
     case "REDIRECT_URI_REQUIRED":
     case "SCOPE_REQUIRED":
     case "TOOL_NAME_REQUIRED":
@@ -4248,14 +4425,19 @@ function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 
   switch (error.code) {
     case "TOOL_NOT_REGISTERED":
       return 404;
+    case "API_KEY_ID_REQUIRED":
+    case "API_KEY_NAME_REQUIRED":
     case "AUTHORIZATION_CODE_REQUIRED":
     case "CLIENT_ID_REQUIRED":
     case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
     case "CODE_CHALLENGE_REQUIRED":
     case "CODE_VERIFIER_REQUIRED":
     case "CONNECTION_OR_TOKEN_REQUIRED":
+    case "INVALID_API_KEY_ROTATION_DAYS":
     case "INVALID_CODE_CHALLENGE":
+    case "INVALID_IP_ALLOWLIST":
     case "INVALID_REDIRECT_URI":
+    case "RAW_API_KEY_FORBIDDEN":
     case "REDIRECT_URI_REQUIRED":
     case "SCOPE_REQUIRED":
     case "UNSUPPORTED_METHOD":

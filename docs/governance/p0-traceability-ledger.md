@@ -49,7 +49,7 @@ DoD.
 | ACC-02 账户/Workspace/订阅/权益分离 | AIP-P0-ACC-02 | Product Engineering / Billing | 1.1 | Workspace entitlement model tests | Sprint 1.1 exit: Gateway and usage ledger do not cross workspace boundaries | Schema scaffold complete; live auth, billing, and enforcement pending |
 | ACC-03 套餐升降级/宽限期 | AIP-P0-ACC-03 | Billing Engineering | 2.4 | Subscription lifecycle and grace-period tests | Sprint 2.4 exit: billing actions are auditable | Not started |
 | ACC-04 Web/MCP 配额用量展示 | AIP-P0-ACC-04 | Billing Engineering / Platform | 1.1 / 1.4 / 2.4 | Usage ledger reconciliation tests | Sprint 2.4 exit: Web and MCP usage reconcile to billing | Schema and event-writer scaffolds complete; live writes, quota UI, and billing reconciliation pending |
-| ACC-06 MCP OAuth/Key 撤销 | AIP-P0-ACC-06 | Platform Engineering / Security | 2.3 / 2.4 | OAuth revoke + API key invalidation tests | Sprint 2.4 exit: revoked credentials fail new calls | Not started |
+| ACC-06 MCP OAuth/Key 撤销 | AIP-P0-ACC-06 | Platform Engineering / Security | 2.3 / 2.4 | OAuth revoke + API key invalidation tests | Sprint 2.4 exit: revoked credentials fail new calls | OAuth/API key revocation planning scaffold complete; live invalidation/auth middleware pending |
 
 ## Security Master
 
@@ -111,9 +111,9 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| MCP-01 Streamable HTTP endpoint | AIP-P0-MCP-01 | Platform Engineering | 2.3 | MCP initialize/tools/list/tools/call protocol tests | Sprint 2.3 exit: `/mcp` passes target client smoke tests | Backend default-deny scaffold complete via `POST /mcp`; live OAuth/API key/tool execution/client smoke remain open |
+| MCP-01 Streamable HTTP endpoint | AIP-P0-MCP-01 | Platform Engineering | 2.3 | MCP initialize/tools/list/tools/call protocol tests | Sprint 2.3 exit: `/mcp` passes target client smoke tests | Backend default-deny scaffold complete via `POST /mcp`; live auth/tool execution/client smoke remain open |
 | MCP-02 OAuth + PKCE | AIP-P0-MCP-02 | Platform Engineering / Security | 2.3 | OAuth PKCE authorization tests | Sprint 2.3 exit: scopes are visible and revocable | Backend OAuth/PKCE scope/revocation scaffold complete; live OAuth provider/token storage/frontend consent remain open |
-| MCP-03 服务端 API Key | AIP-P0-MCP-03 | Platform Engineering / Security | 2.3 | API key hash/rotation/IP limit tests | Sprint 2.3 exit: server-to-server keys are controlled and auditable | Not started |
+| MCP-03 服务端 API Key | AIP-P0-MCP-03 | Platform Engineering / Security | 2.3 | API key hash/rotation/IP limit tests | Sprint 2.3 exit: server-to-server keys are controlled and auditable | Backend API key lifecycle scaffold complete; live key generation/hash table/auth middleware/frontend console remain open |
 | MCP-04 输入/输出 Schema | AIP-P0-MCP-04 | Platform Engineering | 1.2 / 2.3 | JSON Schema validation tests | Sprint 2.3 exit: tools expose strict input/output schemas | Contract scaffold started; tool schemas pending |
 | MCP-05 版本与弃用 | AIP-P0-MCP-05 | Platform Engineering | 2.3 | Tool version compatibility tests | Sprint 2.3 exit: breaking changes use new major version | Not started |
 | MCP-06 分页/行数/范围限制 | AIP-P0-MCP-06 | Platform Engineering / Data | 2.3 | Pagination and entitlement bypass tests | Sprint 2.3 exit: limits cannot bypass plans or rights | Not started |

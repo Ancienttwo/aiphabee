@@ -50,5 +50,7 @@ Date: 2026-06-21
 - No live OAuth provider.
 - No persistent authorization-code or token storage.
 - No frontend consent screen.
-- No API key issuance or rotation.
+- API key issuance/rotation planning is covered by
+  `tasks/notes/mcp-api-key-scaffold.notes.md`; live key generation and auth
+  middleware remain absent.
 - No live MCP tool execution.

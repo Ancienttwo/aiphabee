@@ -40,7 +40,9 @@ Date: 2026-06-21
 - OAuth/PKCE planning is covered by
   `tasks/notes/mcp-oauth-pkce-scaffold.notes.md`; live OAuth provider and token
   storage remain absent.
-- API key issuance, hashing, rotation, and IP limits are not implemented.
+- API key hash/rotation/IP-limit planning is covered by
+  `tasks/notes/mcp-api-key-scaffold.notes.md`; live key generation and auth
+  middleware remain absent.
 - Live MCP tool execution is not implemented.
 - Official SDK/Inspector compatibility smoke is not implemented.
 - Developer Console remains absent.

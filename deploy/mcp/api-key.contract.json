@@ -1,0 +1,84 @@
+{
+  "version": "2026-06-21.phase2.mcp-api-key-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/api-keys/runtime",
+  "create_route": "POST /mcp/api-keys/create/plan",
+  "rotate_route": "POST /mcp/api-keys/rotate/plan",
+  "revoke_route": "POST /mcp/api-keys/revoke/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "api_key_live": false,
+  "raw_key_returned": false,
+  "raw_key_stored": false,
+  "server_to_server_only": true,
+  "hash_storage_required": true,
+  "hash_algorithm": "hmac_sha256_with_pepper_planned",
+  "pepper_required": true,
+  "key_last_four_stored": true,
+  "one_time_display": true,
+  "rotation_supported": true,
+  "ip_allowlist_supported": true,
+  "future_calls_denied_after_revoke": true,
+  "old_key_future_calls_denied_after_rotation": true,
+  "supported_scopes": [
+    "security.read",
+    "market.read",
+    "fundamentals.read",
+    "filings.read",
+    "analytics.run",
+    "portfolio.read",
+    "alerts.write",
+    "exports.read",
+    "admin.usage.read"
+  ],
+  "covered_sprint_2_3_items": [
+    "MCP-03",
+    "server_to_server_api_key",
+    "hash_storage",
+    "rotation",
+    "ip_allowlist",
+    "one_time_display",
+    "revocation_future_call_denial"
+  ],
+  "create_required_fields": [
+    "key_name",
+    "scopes"
+  ],
+  "create_output_fields": [
+    "api_key",
+    "hash_storage",
+    "key_material",
+    "ip_restrictions",
+    "rotation",
+    "revocation",
+    "scope_binding",
+    "server_to_server"
+  ],
+  "rotate_required_fields": [
+    "key_id",
+    "scopes"
+  ],
+  "rotate_output_fields": [
+    "api_key",
+    "hash_storage",
+    "key_material",
+    "rotation",
+    "scope_binding",
+    "server_to_server"
+  ],
+  "revoke_required_fields": [
+    "key_id"
+  ],
+  "revoke_output_fields": [
+    "revocation_plan",
+    "future_calls_denied_after_revoke",
+    "key_hash_disabled"
+  ],
+  "forbidden_payloads": [
+    "raw_api_key",
+    "client_secret",
+    "bearer_token",
+    "plaintext_key"
+  ]
+}
