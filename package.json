@@ -124,6 +124,7 @@
     "test": "vitest run",
     "test:golden": "node scripts/check-golden-regression.mjs --require-fixtures",
     "smoke:ai-gateway-live": "node scripts/smoke-ai-gateway-live.mjs",
+    "smoke:ai-gateway-observability-live": "node scripts/smoke-ai-gateway-observability-live.mjs",
     "smoke:cloudflare-bindings-wrangler-live": "node scripts/smoke-cloudflare-bindings-wrangler-live.mjs",
     "smoke:cloudflare-resources-live": "node scripts/smoke-cloudflare-resources-live.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",

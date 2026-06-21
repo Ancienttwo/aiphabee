@@ -5,9 +5,11 @@
   "docs_source": "https://developers.cloudflare.com/ai-gateway/usage/rest-api/",
   "cloudflare_changelog_source": "https://developers.cloudflare.com/changelog/post/2026-05-21-rest-api/",
   "live_smoke_script": "scripts/smoke-ai-gateway-live.mjs",
+  "observability_smoke_script": "scripts/smoke-ai-gateway-observability-live.mjs",
   "readiness_check_script": "scripts/check-model-provider-live-readiness.mjs",
   "readiness_command": "npm run check:model-provider-live-readiness",
   "live_smoke_command": "npm run smoke:ai-gateway-live",
+  "observability_smoke_command": "npm run smoke:ai-gateway-observability-live",
   "http": {
     "method": "POST",
     "base_url": "https://api.cloudflare.com/client/v4/accounts/{account_id}",
@@ -19,6 +21,11 @@
     "CLOUDFLARE_API_TOKEN",
     "AI_GATEWAY_NAME",
     "AI_GATEWAY_SMOKE_MODEL"
+  ],
+  "observability_required_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "AI_GATEWAY_NAME"
   ],
   "required_live_output_fields": [
     "status",
@@ -49,6 +56,7 @@
     "Model provider live execution smoke"
   ],
   "not_claimed": [
+    "ai_gateway_logs_api_read_verified",
     "ai_gateway_cost_log_verified",
     "ai_gateway_rate_limit_cache_fallback_log_verified",
     "fallback_log_verified",
@@ -89,5 +97,22 @@
     "secret_cleanup_verified": true,
     "operation_count": 2,
     "response_hash": "sha256:908a43d9a0b52e15f06ae890db0c7f131a0c661958a5ac25eb37d449c1cf3a9d"
+  },
+  "latest_observability_probe": {
+    "observed_at": "2026-06-22T07:52:00+08:00",
+    "status": "permission_denied",
+    "runner": "wrangler_oauth_cli",
+    "logs_api_http_status": 403,
+    "logs_api_error_hash": "sha256:1853ebb77dff91fbeca3a5e6b3ffe778c2d8f6fcf8514b5dc11f2a68e4714a96",
+    "graphql_http_status": 200,
+    "graphql_error_hash": "sha256:d3ae0b46c24f598dbdbb46a5f3941e7915afe57076f5863c14209eae7479b05b",
+    "required_permissions": ["AI Gateway Read", "Account Analytics Read"],
+    "response_hash": "sha256:5c46c106346569fb90fb4e87af09d1cc8cf9878f3dc931f2e3c5c4bf9e74cd27",
+    "not_claimed": [
+      "ai_gateway_logs_api_read_verified",
+      "ai_gateway_cost_log_verified",
+      "ai_gateway_rate_limit_cache_fallback_log_verified",
+      "fallback_log_verified"
+    ]
   }
 }

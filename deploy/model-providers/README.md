@@ -11,6 +11,7 @@ outputs.
 npm run check:model-provider
 npm run check:model-provider-live-readiness
 node scripts/smoke-ai-gateway-live.mjs --dry-run
+node scripts/smoke-ai-gateway-observability-live.mjs --dry-run
 ```
 
 ## Boundary
@@ -29,3 +30,6 @@ node scripts/smoke-ai-gateway-live.mjs --dry-run
   `npm run smoke:cloudflare-bindings-wrangler-live`; it injects a dedicated
   temporary `AI_GATEWAY_LIVE_SMOKE_TOKEN` Worker secret and removes that smoke
   secret after the route call.
+- `npm run smoke:ai-gateway-observability-live` is read-only and checks AI
+  Gateway Logs API plus GraphQL analytics. It requires `AI Gateway Read` and
+  `Account Analytics Read` permission to return `status=ok`.

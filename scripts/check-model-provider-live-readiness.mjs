@@ -9,6 +9,7 @@ const packageJsonPath = "package.json";
 const agentRuntimePath = "packages/agent-runtime/src/index.ts";
 const workerPath = "apps/worker/src/index.ts";
 const smokeScriptPath = "scripts/smoke-ai-gateway-live.mjs";
+const observabilitySmokeScriptPath = "scripts/smoke-ai-gateway-observability-live.mjs";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 
 const requiredEnv = [
@@ -16,6 +17,11 @@ const requiredEnv = [
   "CLOUDFLARE_API_TOKEN",
   "AI_GATEWAY_NAME",
   "AI_GATEWAY_SMOKE_MODEL"
+];
+const observabilityRequiredEnv = [
+  "CLOUDFLARE_ACCOUNT_ID",
+  "CLOUDFLARE_API_TOKEN",
+  "AI_GATEWAY_NAME"
 ];
 const requiredOutputFields = [
   "status",
@@ -67,6 +73,7 @@ const packageJson = readJson(packageJsonPath);
 const agentRuntime = readText(agentRuntimePath);
 const worker = readText(workerPath);
 const smokeScript = readText(smokeScriptPath);
+const observabilitySmokeScript = readText(observabilitySmokeScriptPath);
 const tracker = readText(trackerPath);
 const errors = validateContract(
   contract,
@@ -76,6 +83,7 @@ const errors = validateContract(
   agentRuntime,
   worker,
   smokeScript,
+  observabilitySmokeScript,
   tracker
 );
 
@@ -107,6 +115,7 @@ function validateContract(
   agentRuntimeValue,
   workerValue,
   smokeScriptValue,
+  observabilitySmokeScriptValue,
   trackerValue
 ) {
   const errors = [];
@@ -129,6 +138,10 @@ function validateContract(
 
   if (value.live_smoke_script !== smokeScriptPath) {
     errors.push(`live_smoke_script must be ${smokeScriptPath}`);
+  }
+
+  if (value.observability_smoke_script !== observabilitySmokeScriptPath) {
+    errors.push(`observability_smoke_script must be ${observabilitySmokeScriptPath}`);
   }
 
   if (value.readiness_check_script !== "scripts/check-model-provider-live-readiness.mjs") {
@@ -158,6 +171,13 @@ function validateContract(
   errors.push(...validateStringArray(value.required_env, requiredEnv, "required_env"));
   errors.push(
     ...validateStringArray(
+      value.observability_required_env,
+      observabilityRequiredEnv,
+      "observability_required_env"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
       value.required_live_output_fields,
       requiredOutputFields,
       "required_live_output_fields"
@@ -175,11 +195,14 @@ function validateContract(
   errors.push(...validatePackageScripts(packageValue));
   errors.push(...validateRuntimeIntegration(agentRuntimeValue, workerValue));
   errors.push(...validateSmokeScript(smokeScriptValue));
+  errors.push(...validateObservabilitySmokeScript(observabilitySmokeScriptValue));
+  errors.push(...validateLatestObservabilityProbe(value.latest_observability_probe));
   errors.push(...validateTrackerSync(trackerValue));
   errors.push(
     ...validateLinkedFiles([
       value.provider_contract,
       value.live_smoke_script,
+      value.observability_smoke_script,
       agentRuntimePath,
       workerPath
     ])
@@ -290,6 +313,7 @@ function validatePackageScripts(value) {
   const errors = [];
   const readinessScript = value.scripts["check:model-provider-live-readiness"];
   const smokeScript = value.scripts["smoke:ai-gateway-live"];
+  const observabilitySmokeScript = value.scripts["smoke:ai-gateway-observability-live"];
   const check = value.scripts.check;
 
   if (
@@ -304,6 +328,13 @@ function validatePackageScripts(value) {
     !smokeScript.includes("scripts/smoke-ai-gateway-live.mjs")
   ) {
     errors.push("smoke:ai-gateway-live must run the live smoke script");
+  }
+
+  if (
+    typeof observabilitySmokeScript !== "string" ||
+    !observabilitySmokeScript.includes("scripts/smoke-ai-gateway-observability-live.mjs")
+  ) {
+    errors.push("smoke:ai-gateway-observability-live must run the observability smoke script");
   }
 
   if (typeof check !== "string" || !check.includes("check:model-provider-live-readiness")) {
@@ -355,6 +386,86 @@ function validateSmokeScript(value) {
     if (!value.includes(token)) {
       errors.push(`smoke script must include ${token}`);
     }
+  }
+
+  return errors;
+}
+
+function validateObservabilitySmokeScript(value) {
+  const errors = [];
+
+  for (const token of [
+    "ai-gateway/gateways",
+    "/logs",
+    "graphql",
+    "aiGatewayRequestsAdaptiveGroups",
+    "cached",
+    "tokens_in",
+    "tokens_out",
+    "cost",
+    "status_code",
+    "permission_denied",
+    "raw_log",
+    "raw_response"
+  ]) {
+    if (!value.includes(token)) {
+      errors.push(`observability smoke script must include ${token}`);
+    }
+  }
+
+  return errors;
+}
+
+function validateLatestObservabilityProbe(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["latest_observability_probe must be present"];
+  }
+
+  if (value.status !== "permission_denied") {
+    errors.push("latest_observability_probe.status must remain permission_denied until log APIs pass");
+  }
+
+  if (value.runner !== "wrangler_oauth_cli") {
+    errors.push("latest_observability_probe.runner must be wrangler_oauth_cli");
+  }
+
+  if (value.logs_api_http_status !== 403) {
+    errors.push("latest_observability_probe.logs_api_http_status must record current 403");
+  }
+
+  if (
+    typeof value.logs_api_error_hash !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value.logs_api_error_hash)
+  ) {
+    errors.push("latest_observability_probe.logs_api_error_hash must be a sha256 hash");
+  }
+
+  if (value.graphql_http_status !== 200) {
+    errors.push("latest_observability_probe.graphql_http_status must record current GraphQL HTTP 200 error response");
+  }
+
+  if (
+    typeof value.graphql_error_hash !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value.graphql_error_hash)
+  ) {
+    errors.push("latest_observability_probe.graphql_error_hash must be a sha256 hash");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.required_permissions,
+      ["AI Gateway Read", "Account Analytics Read"],
+      "latest_observability_probe.required_permissions"
+    )
+  );
+
+  if (
+    typeof value.response_hash !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value.response_hash)
+  ) {
+    errors.push("latest_observability_probe.response_hash must be a sha256 hash");
   }
 
   return errors;
