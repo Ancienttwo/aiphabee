@@ -186,6 +186,11 @@
     "synthetic_prefix": "aiphabee-smoke",
     "passed_surfaces": [
       {
+        "binding_name": "aiphabee-worker",
+        "surface": "worker_runtime_binding_smoke",
+        "result": "passed"
+      },
+      {
         "binding_name": "AIPHABEE_CONFIG",
         "surface": "kv_put_get_delete",
         "result": "passed"
@@ -206,11 +211,6 @@
         "binding_name": "AIPHABEE_EVENTS_QUEUE",
         "surface": "queue_publish_consume_smoke",
         "reason": "queue_api_token_or_worker_consumer_smoke_required"
-      },
-      {
-        "binding_name": "aiphabee-worker",
-        "surface": "worker_runtime_binding_smoke",
-        "reason": "wrangler_binding_ids_not_committed_and_worker_routes_not_bound"
       },
       {
         "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
@@ -247,7 +247,7 @@
   ],
   "not_claimed": [
     "cloudflare_resources_created",
-    "worker_binding_write_read_smoke",
+    "full_cloudflare_binding_smoke",
     "queue_publish_consume_smoke",
     "hyperdrive_select_1_smoke",
     "provider_secret_rotation_smoke"

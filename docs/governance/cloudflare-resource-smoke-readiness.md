@@ -5,8 +5,8 @@ Date: 2026-06-22
 ## Scope
 
 This slice records partial Sprint 0.4 Cloudflare external provisioning and
-partial resource-level functional smoke without claiming complete Worker
-binding smoke.
+partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
+smoke without claiming complete Cloudflare binding smoke.
 
 ## P1 Architecture Map
 
@@ -23,10 +23,9 @@ binding smoke.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: Queue publish/consume through a Worker consumer, Worker runtime
-  bindings, creating Workflow/Cron/Durable Object/AI Gateway/Hyperdrive
-  resources, running Hyperdrive `SELECT 1`, OTLP export, or rotating provider
-  secrets.
+- Out of scope: Queue publish/consume through a Worker consumer, creating
+  Workflow/Cron/Durable Object/AI Gateway/Hyperdrive resources, running
+  Hyperdrive `SELECT 1`, OTLP export, or rotating provider secrets.
 
 ## P2 Concrete Trace
 
@@ -55,6 +54,13 @@ binding smoke.
 10. Functional smoke output contains hashes and status fields only; it does not
     emit account ids, namespace ids, object keys, raw values, or raw command
     output.
+11. The same functional smoke script writes a temporary untracked Wrangler
+    config under `apps/worker`, resolves KV/D1 ids at runtime, deploys
+    `aiphabee-worker` with KV/R2/D1 bindings, and calls
+    `POST /cloudflare/bindings/smoke`.
+12. The Worker route requires `x-aiphabee-smoke`, performs synthetic KV
+    put/get/delete, R2 put/get/delete, and D1 create/insert/select/delete/drop,
+    then returns only status, operation counts, missing bindings, and hashes.
 
 ## P3 Decision
 
@@ -100,6 +106,9 @@ completed the following names-only provisioning and verification:
   Wrangler.
 - D1 `AIPHABEE_EVAL_STORE` passed synthetic create/insert/select/delete/drop
   through Wrangler.
+- Worker `POST /cloudflare/bindings/smoke` passed runtime KV/R2/D1 binding
+  smoke through a temporary no-id Wrangler config; output contained only hashes,
+  status fields, and operation counts.
 
 The AI Gateway create attempt returned a Cloudflare API authentication error in
 the available API context. Workflow, Cron trigger, Durable Object namespace, and
@@ -111,7 +120,7 @@ schedule config, or a Postgres origin decision before safe creation.
 - Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
   required resource classes are provisioned and Worker runtime binding smoke has
   not passed.
-- Functional binding smoke remains unchecked: Queue publish/consume, Worker
-  runtime binding access, Hyperdrive `SELECT 1`, and Workflow/Cron/Durable
-  Object execution are not claimed.
+- Functional binding smoke remains unchecked: Queue publish/consume,
+  Hyperdrive `SELECT 1`, and Workflow/Cron/Durable Object execution are not
+  claimed.
 - Provider secret rotation/revocation remains unchecked.

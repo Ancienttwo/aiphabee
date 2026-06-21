@@ -13,6 +13,8 @@
   account ids or resource ids.
 - Marked names-only provisioned bindings for Worker, Queue, R2, KV, and D1.
 - Added a live-only Wrangler functional smoke for KV, R2, and D1.
+- Added a guarded Worker runtime binding smoke route and extended the Wrangler
+  smoke to deploy `aiphabee-worker` with temporary KV/R2/D1 bindings.
 
 ## External Evidence
 
@@ -25,6 +27,8 @@
 - R2 bucket `aiphabee-artifacts` passed synthetic object put/get/delete.
 - D1 database `AIPHABEE_EVAL_STORE` passed synthetic
   create/insert/select/delete/drop.
+- Worker `POST /cloudflare/bindings/smoke` passed runtime KV/R2/D1 binding
+  smoke with sanitized hashes/status/operation counts only.
 - AI Gateway creation hit a Cloudflare API authentication error in the available
   context.
 - Workflow, Cron, Durable Object, and Hyperdrive remain blocked by Worker
@@ -33,7 +37,6 @@
 
 ## What Was Not Claimed
 
-- No Worker runtime binding smoke was executed.
 - No Queue publish/consume smoke was executed.
 - No Workflow, Cron, Durable Object, AI Gateway, or Hyperdrive resource was
   created.

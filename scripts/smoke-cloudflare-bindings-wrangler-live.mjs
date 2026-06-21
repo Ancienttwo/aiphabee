@@ -26,10 +26,12 @@ const smokePrefix = "aiphabee-smoke";
 const smokeId = `smoke_${Date.now()}_${randomUUID().replace(/-/gu, "").slice(0, 12)}`;
 const resourceNames = contract.partial_provisioning?.resource_names ?? {};
 const requiredResourceNames = [
+  "worker",
   "kv_namespace_title",
   "r2_bucket",
   "d1_database"
 ];
+const runtimeSmokeHeaderValue = "cloudflare-bindings-runtime-v1";
 
 for (const field of requiredForbiddenOutputFields) {
   if (!forbiddenOutputFields.includes(field)) {
@@ -50,7 +52,8 @@ if (dryRun) {
       operations: [
         "kv_put_get_delete",
         "r2_put_get_delete",
-        "d1_create_insert_select_delete_drop"
+        "d1_create_insert_select_delete_drop",
+        "worker_runtime_binding_smoke"
       ],
       required_env: requiredEnv,
       required_resource_names: requiredResourceNames,
@@ -81,6 +84,7 @@ const results = [];
 results.push(await smokeKv());
 results.push(await smokeR2());
 results.push(await smokeD1());
+results.push(await smokeWorkerRuntimeBindings());
 
 const failed = results.filter((result) => result.status !== "passed");
 emit(
@@ -304,6 +308,93 @@ async function smokeD1() {
   }
 }
 
+async function smokeWorkerRuntimeBindings() {
+  const workerName = resourceNames.worker;
+  let configPath;
+
+  try {
+    const kvNamespaceId = await resolveKvNamespaceId(resourceNames.kv_namespace_title);
+    const d1DatabaseId = await resolveD1DatabaseId(resourceNames.d1_database);
+    configPath = await writeWorkerRuntimeSmokeConfig({
+      d1DatabaseId,
+      kvNamespaceId
+    });
+    const deployResult = await runWrangler(["deploy", "--config", configPath]);
+    const workerUrl = extractWorkersDevUrl(deployResult.stdout);
+
+    if (!hasValue(workerUrl)) {
+      return failedResult({
+        bindingName: "aiphabee-worker",
+        detail: "wrangler deploy output did not include a workers.dev route",
+        failureCode: "worker_runtime_url_missing",
+        key: workerName,
+        surface: "worker_runtime_binding_smoke"
+      });
+    }
+
+    const response = await fetch(`${workerUrl}/cloudflare/bindings/smoke`, {
+      headers: {
+        "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+        "x-request-id": `req-${smokeId}`
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    if (response.status !== 200 || body?.status !== "ok") {
+      return failedResult({
+        bindingName: "aiphabee-worker",
+        detail: JSON.stringify({
+          http_status: response.status,
+          missing_bindings: Array.isArray(body?.missing_bindings)
+            ? body.missing_bindings
+            : [],
+          runtime_results: Array.isArray(body?.runtime_results)
+            ? body.runtime_results.map((result) => ({
+                binding_name: result?.binding_name,
+                failure_code: result?.failure_code,
+                status: result?.status,
+                surface: result?.surface
+              }))
+            : [],
+          status: body?.status
+        }),
+        failureCode: "worker_runtime_route_failed",
+        key: workerName,
+        surface: "worker_runtime_binding_smoke"
+      });
+    }
+
+    return {
+      binding_name: "aiphabee-worker",
+      operation_count: Array.isArray(body.runtime_results)
+        ? body.runtime_results.reduce(
+            (count, result) =>
+              count + (typeof result?.operation_count === "number" ? result.operation_count : 0),
+            1
+          )
+        : 1,
+      response_hash: hasValue(body.response_hash)
+        ? body.response_hash
+        : hashString(JSON.stringify(body.runtime_results ?? [])),
+      status: "passed",
+      surface: "worker_runtime_binding_smoke"
+    };
+  } catch (error) {
+    return failedResult({
+      bindingName: "aiphabee-worker",
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "worker_runtime_command_failed",
+      key: workerName,
+      surface: "worker_runtime_binding_smoke"
+    });
+  } finally {
+    if (configPath) {
+      await rm(configPath, { force: true });
+    }
+  }
+}
+
 async function resolveKvNamespaceId(title) {
   const result = await runWrangler(["kv", "namespace", "list"]);
   const namespaces = JSON.parse(result.stdout);
@@ -319,6 +410,72 @@ async function resolveKvNamespaceId(title) {
   }
 
   return namespace.id.trim();
+}
+
+async function resolveD1DatabaseId(databaseName) {
+  const result = await runWrangler(["d1", "list", "--json"]);
+  const databases = JSON.parse(result.stdout);
+
+  if (!Array.isArray(databases)) {
+    throw new Error("d1 list did not return an array");
+  }
+
+  const database = databases.find((item) => item?.name === databaseName);
+  const databaseId = database?.uuid ?? database?.database_id ?? database?.id;
+
+  if (!database || !hasValue(databaseId)) {
+    throw new Error("d1 database name was not found");
+  }
+
+  return databaseId.trim();
+}
+
+async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
+  const configPath = join(process.cwd(), "apps/worker", `.wrangler-smoke-${smokeId}.json`);
+  const config = {
+    name: resourceNames.worker,
+    main: "src/index.ts",
+    compatibility_date: "2026-06-20",
+    observability: {
+      enabled: true,
+      traces: {
+        enabled: true
+      }
+    },
+    vars: {
+      APP_ENV: "smoke",
+      APP_VERSION: "runtime-binding-smoke"
+    },
+    kv_namespaces: [
+      {
+        binding: "AIPHABEE_CONFIG",
+        id: kvNamespaceId
+      }
+    ],
+    r2_buckets: [
+      {
+        binding: "AIPHABEE_ARTIFACTS",
+        bucket_name: resourceNames.r2_bucket
+      }
+    ],
+    d1_databases: [
+      {
+        binding: "AIPHABEE_EVAL_STORE",
+        database_name: resourceNames.d1_database,
+        database_id: d1DatabaseId
+      }
+    ]
+  };
+
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  return configPath;
+}
+
+function extractWorkersDevUrl(value) {
+  const match = String(value).match(/https:\/\/[^\s]+\.workers\.dev/iu);
+
+  return match?.[0];
 }
 
 async function runWrangler(args, options = {}) {

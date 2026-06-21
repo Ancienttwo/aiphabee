@@ -290,12 +290,54 @@ import {
 } from "@aiphabee/workbench";
 
 interface WorkerBindings {
-  AIPHABEE_EVAL_STORE?: unknown;
+  AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
+  AIPHABEE_CONFIG?: RuntimeKvNamespace;
+  AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_HYPERDRIVE?: unknown;
   APP_ENV?: string;
   APP_VERSION?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
   OTLP_EXPORTER_OTLP_HEADERS?: string;
+}
+
+interface RuntimeKvNamespace {
+  delete(key: string): Promise<void>;
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+}
+
+interface RuntimeR2Bucket {
+  delete(key: string): Promise<void>;
+  get(key: string): Promise<{ text(): Promise<string> } | null>;
+  put(key: string, value: string): Promise<unknown>;
+}
+
+interface RuntimeD1PreparedStatement {
+  bind(...values: unknown[]): RuntimeD1PreparedStatement;
+  first<T = Record<string, unknown>>(): Promise<T | null>;
+  run(): Promise<unknown>;
+}
+
+interface RuntimeD1Database {
+  prepare(query: string): RuntimeD1PreparedStatement;
+}
+
+type CloudflareBindingSmokeStatus = "failed" | "missing_binding" | "passed";
+
+interface CloudflareBindingSmokeResult {
+  binding_name: "AIPHABEE_ARTIFACTS" | "AIPHABEE_CONFIG" | "AIPHABEE_EVAL_STORE";
+  detail_hash?: string;
+  failure_code?: string;
+  key_hash?: string;
+  object_key_hash?: string;
+  operation_count?: number;
+  status: CloudflareBindingSmokeStatus;
+  surface:
+    | "d1_runtime_write_read_delete"
+    | "kv_runtime_put_get_delete"
+    | "r2_runtime_put_get_delete";
+  table_hash?: string;
+  value_hash?: string;
 }
 
 interface AgentRunRequestBody {
@@ -489,6 +531,10 @@ const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
   "get_price_history",
   "get_financial_facts"
 ] as const;
+const CLOUDFLARE_BINDING_SMOKE_HEADER = "x-aiphabee-smoke";
+const CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE = "cloudflare-bindings-runtime-v1";
+const CLOUDFLARE_BINDING_SMOKE_ROUTE = "/cloudflare/bindings/smoke";
+const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -533,6 +579,47 @@ app.get("/", (c) => {
         }
       }
     )
+  );
+});
+
+app.post(CLOUDFLARE_BINDING_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_BINDING_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const runtimeResults = await runCloudflareBindingRuntimeSmoke(c.env ?? {});
+  const failedResults = runtimeResults.filter((result) => result.status !== "passed");
+  const missingBindings = runtimeResults
+    .filter((result) => result.status === "missing_binding")
+    .map((result) => result.binding_name);
+  const bodyWithoutHash = {
+    missing_bindings: missingBindings,
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_BINDING_SMOKE_ROUTE}`,
+    runtime_results: runtimeResults,
+    status: failedResults.length === 0 ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    failedResults.length === 0 ? 200 : 424
   );
 });
 
@@ -7547,6 +7634,267 @@ app.post("/evidence/records/plan", async (c) => {
 });
 
 export default app;
+
+async function runCloudflareBindingRuntimeSmoke(
+  env: WorkerBindings
+): Promise<CloudflareBindingSmokeResult[]> {
+  const results: CloudflareBindingSmokeResult[] = [];
+
+  results.push(await smokeRuntimeKv(env.AIPHABEE_CONFIG));
+  results.push(await smokeRuntimeR2(env.AIPHABEE_ARTIFACTS));
+  results.push(await smokeRuntimeD1(env.AIPHABEE_EVAL_STORE));
+
+  return results;
+}
+
+async function smokeRuntimeKv(value: unknown): Promise<CloudflareBindingSmokeResult> {
+  const bindingName = "AIPHABEE_CONFIG";
+  const surface = "kv_runtime_put_get_delete";
+
+  if (!isRuntimeKvNamespace(value)) {
+    return missingCloudflareBindingResult(bindingName, surface);
+  }
+
+  const key = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/kv/${crypto.randomUUID()}`;
+  const storedValue = JSON.stringify({
+    route: CLOUDFLARE_BINDING_SMOKE_ROUTE,
+    surface,
+    version: 1
+  });
+
+  try {
+    await value.put(key, storedValue);
+    const readValue = await value.get(key);
+
+    if (readValue !== storedValue) {
+      return failedCloudflareBindingResult({
+        bindingName,
+        detail: "kv read value did not match written value",
+        failureCode: "kv_runtime_read_mismatch",
+        key,
+        surface
+      });
+    }
+
+    await value.delete(key);
+
+    return {
+      binding_name: bindingName,
+      key_hash: await hashRuntimeSmokeString(key),
+      operation_count: 3,
+      status: "passed",
+      surface,
+      value_hash: await hashRuntimeSmokeString(storedValue)
+    };
+  } catch (error) {
+    await value.delete(key).catch(() => undefined);
+
+    return failedCloudflareBindingResult({
+      bindingName,
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "kv_runtime_command_failed",
+      key,
+      surface
+    });
+  }
+}
+
+async function smokeRuntimeR2(value: unknown): Promise<CloudflareBindingSmokeResult> {
+  const bindingName = "AIPHABEE_ARTIFACTS";
+  const surface = "r2_runtime_put_get_delete";
+
+  if (!isRuntimeR2Bucket(value)) {
+    return missingCloudflareBindingResult(bindingName, surface);
+  }
+
+  const objectKey = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/r2/${crypto.randomUUID()}.json`;
+  const storedValue = JSON.stringify({
+    route: CLOUDFLARE_BINDING_SMOKE_ROUTE,
+    surface,
+    version: 1
+  });
+
+  try {
+    await value.put(objectKey, storedValue);
+    const object = await value.get(objectKey);
+    const readValue = object === null ? null : await object.text();
+
+    if (readValue !== storedValue) {
+      return failedCloudflareBindingResult({
+        bindingName,
+        detail: "r2 read value did not match written value",
+        failureCode: "r2_runtime_read_mismatch",
+        key: objectKey,
+        surface
+      });
+    }
+
+    await value.delete(objectKey);
+
+    return {
+      binding_name: bindingName,
+      object_key_hash: await hashRuntimeSmokeString(objectKey),
+      operation_count: 3,
+      status: "passed",
+      surface,
+      value_hash: await hashRuntimeSmokeString(storedValue)
+    };
+  } catch (error) {
+    await value.delete(objectKey).catch(() => undefined);
+
+    return failedCloudflareBindingResult({
+      bindingName,
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "r2_runtime_command_failed",
+      key: objectKey,
+      surface
+    });
+  }
+}
+
+async function smokeRuntimeD1(value: unknown): Promise<CloudflareBindingSmokeResult> {
+  const bindingName = "AIPHABEE_EVAL_STORE";
+  const surface = "d1_runtime_write_read_delete";
+
+  if (!isRuntimeD1Database(value)) {
+    return missingCloudflareBindingResult(bindingName, surface);
+  }
+
+  const table = "aiphabee_smoke_runtime";
+  const rowKey = crypto.randomUUID();
+  const storedValue = JSON.stringify({
+    route: CLOUDFLARE_BINDING_SMOKE_ROUTE,
+    surface,
+    version: 1
+  });
+
+  try {
+    await value
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS ${table} (` +
+          "id TEXT PRIMARY KEY, value TEXT NOT NULL, created_at TEXT NOT NULL" +
+          ")"
+      )
+      .run();
+    await value
+      .prepare(`INSERT OR REPLACE INTO ${table} (id, value, created_at) VALUES (?, ?, datetime('now'))`)
+      .bind(rowKey, storedValue)
+      .run();
+    const selected = await value
+      .prepare(`SELECT value FROM ${table} WHERE id = ?`)
+      .bind(rowKey)
+      .first<{ value?: string }>();
+
+    if (selected?.value !== storedValue) {
+      return failedCloudflareBindingResult({
+        bindingName,
+        detail: "d1 select did not return written value",
+        failureCode: "d1_runtime_select_mismatch",
+        key: table,
+        surface
+      });
+    }
+
+    await value.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(rowKey).run();
+    await value.prepare(`DROP TABLE IF EXISTS ${table}`).run();
+
+    return {
+      binding_name: bindingName,
+      operation_count: 5,
+      status: "passed",
+      surface,
+      table_hash: await hashRuntimeSmokeString(table),
+      value_hash: await hashRuntimeSmokeString(storedValue)
+    };
+  } catch (error) {
+    await value.prepare(`DROP TABLE IF EXISTS ${table}`).run().catch(() => undefined);
+
+    return failedCloudflareBindingResult({
+      bindingName,
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "d1_runtime_command_failed",
+      key: table,
+      surface
+    });
+  }
+}
+
+function missingCloudflareBindingResult(
+  bindingName: CloudflareBindingSmokeResult["binding_name"],
+  surface: CloudflareBindingSmokeResult["surface"]
+): CloudflareBindingSmokeResult {
+  return {
+    binding_name: bindingName,
+    failure_code: "missing_binding",
+    status: "missing_binding",
+    surface
+  };
+}
+
+async function failedCloudflareBindingResult({
+  bindingName,
+  detail,
+  failureCode,
+  key,
+  surface
+}: {
+  bindingName: CloudflareBindingSmokeResult["binding_name"];
+  detail: string;
+  failureCode: string;
+  key: string;
+  surface: CloudflareBindingSmokeResult["surface"];
+}): Promise<CloudflareBindingSmokeResult> {
+  return {
+    binding_name: bindingName,
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    key_hash: await hashRuntimeSmokeString(key),
+    status: "failed",
+    surface
+  };
+}
+
+function isRuntimeKvNamespace(value: unknown): value is RuntimeKvNamespace {
+  return (
+    isPlainRecord(value) &&
+    typeof value.delete === "function" &&
+    typeof value.get === "function" &&
+    typeof value.put === "function"
+  );
+}
+
+function isRuntimeR2Bucket(value: unknown): value is RuntimeR2Bucket {
+  return (
+    isPlainRecord(value) &&
+    typeof value.delete === "function" &&
+    typeof value.get === "function" &&
+    typeof value.put === "function"
+  );
+}
+
+function isRuntimeD1Database(value: unknown): value is RuntimeD1Database {
+  return isPlainRecord(value) && typeof value.prepare === "function";
+}
+
+async function hashRuntimeSmokeString(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+
+  return `sha256:${[...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function sanitizeRuntimeSmokeDetail(value: string): string {
+  return value
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gu, "Bearer [REDACTED]")
+    .replace(/sk-[A-Za-z0-9_-]+/gu, "sk-[REDACTED]")
+    .replace(/gh[pousr]_[A-Za-z0-9_]+/gu, "gh[REDACTED]")
+    .replace(/\b[a-f0-9]{32}\b/giu, "[REDACTED_ID]")
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu,
+      "[REDACTED_UUID]"
+    );
+}
 
 function normalizePostGenerationEvidenceBindingInput(
   body: AgentRunRequestBody,

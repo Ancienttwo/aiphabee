@@ -17,6 +17,22 @@ interface RootRouteBody {
   };
 }
 
+interface CloudflareBindingSmokeBody {
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  runtime_results: Array<{
+    binding_name: string;
+    failure_code?: string;
+    operation_count?: number;
+    status: string;
+    surface: string;
+  }>;
+  status: string;
+  synthetic_prefix: string;
+}
+
 interface PublicRuntimeBody {
   data: {
     auth_required: boolean;
@@ -6053,6 +6069,91 @@ interface ErrorBody {
   ok: false;
 }
 
+interface FakeD1Statement {
+  bind(...values: unknown[]): FakeD1Statement;
+  first<T = Record<string, unknown>>(): Promise<T | null>;
+  run(): Promise<unknown>;
+}
+
+function createRuntimeBindingSmokeEnv() {
+  const kvStore = new Map<string, string>();
+  const r2Store = new Map<string, string>();
+  const d1Store = new Map<string, string>();
+  const kv = {
+    delete: vi.fn(async (key: string) => {
+      kvStore.delete(key);
+    }),
+    get: vi.fn(async (key: string) => kvStore.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      kvStore.set(key, value);
+    })
+  };
+  const r2 = {
+    delete: vi.fn(async (key: string) => {
+      r2Store.delete(key);
+    }),
+    get: vi.fn(async (key: string) => {
+      const value = r2Store.get(key);
+
+      return value === undefined
+        ? null
+        : {
+            text: async () => value
+          };
+    }),
+    put: vi.fn(async (key: string, value: string) => {
+      r2Store.set(key, value);
+      return {};
+    })
+  };
+  const d1 = {
+    prepare: vi.fn((sql: string) => {
+      let bindings: unknown[] = [];
+      const statement: FakeD1Statement = {
+        bind: (...values: unknown[]) => {
+          bindings = values;
+          return statement;
+        },
+        first: async <T = Record<string, unknown>>() => {
+          if (sql.startsWith("SELECT")) {
+            return { value: d1Store.get(String(bindings[0])) } as T;
+          }
+
+          return null;
+        },
+        run: vi.fn(async () => {
+          if (sql.startsWith("INSERT")) {
+            d1Store.set(String(bindings[0]), String(bindings[1]));
+          }
+
+          if (sql.startsWith("DELETE")) {
+            d1Store.delete(String(bindings[0]));
+          }
+
+          if (sql.startsWith("DROP")) {
+            d1Store.clear();
+          }
+
+          return {};
+        })
+      };
+
+      return statement;
+    })
+  };
+
+  return {
+    d1,
+    env: {
+      AIPHABEE_ARTIFACTS: r2,
+      AIPHABEE_CONFIG: kv,
+      AIPHABEE_EVAL_STORE: d1
+    },
+    kv,
+    r2
+  };
+}
+
 describe("worker runtime", () => {
   it("serves a no-store health response", async () => {
     const response = await app.request(
@@ -6075,6 +6176,95 @@ describe("worker runtime", () => {
       status: "ok",
       version: "scaffold"
     });
+  });
+
+  it("rejects the Cloudflare binding smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/bindings/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-smoke-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-smoke-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/bindings/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing runtime bindings for the Cloudflare binding smoke route", async () => {
+    const response = await app.request("/cloudflare/bindings/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-smoke-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareBindingSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual([
+      "AIPHABEE_CONFIG",
+      "AIPHABEE_ARTIFACTS",
+      "AIPHABEE_EVAL_STORE"
+    ]);
+    expect(body.runtime_results.map((result) => result.status)).toEqual([
+      "missing_binding",
+      "missing_binding",
+      "missing_binding"
+    ]);
+  });
+
+  it("runs sanitized KV/R2/D1 runtime smoke through bound Cloudflare resources", async () => {
+    const { d1, env, kv, r2 } = createRuntimeBindingSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/bindings/smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-smoke-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareBindingSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-smoke-ok",
+      route: "POST /cloudflare/bindings/smoke",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.runtime_results.map((result) => `${result.binding_name}:${result.surface}`)).toEqual([
+      "AIPHABEE_CONFIG:kv_runtime_put_get_delete",
+      "AIPHABEE_ARTIFACTS:r2_runtime_put_get_delete",
+      "AIPHABEE_EVAL_STORE:d1_runtime_write_read_delete"
+    ]);
+    expect(body.runtime_results.map((result) => result.operation_count)).toEqual([3, 3, 5]);
+    expect(kv.put).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.delete).toHaveBeenCalledTimes(1);
+    expect(r2.put).toHaveBeenCalledTimes(1);
+    expect(r2.get).toHaveBeenCalledTimes(1);
+    expect(r2.delete).toHaveBeenCalledTimes(1);
+    expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("CREATE TABLE"));
+    expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("SELECT value"));
+    expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("DROP TABLE"));
+    expect(serialized).not.toContain("/runtime/kv/");
+    expect(serialized).not.toContain("/runtime/r2/");
+    expect(serialized).not.toContain("aiphabee_smoke_runtime");
   });
 
   it("keeps the root route inside the scaffold-only boundary", async () => {
