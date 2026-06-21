@@ -55,8 +55,9 @@ Tradeoff:
 - The first Sprint 2.1 row is complete here; screening is covered by
   `docs/governance/screen-securities-scaffold.md`; financial ratios are covered
   by `docs/governance/financial-ratios-scaffold.md`; return/risk is covered by
-  `docs/governance/returns-risk-scaffold.md`; peer/index/history percentile and
-  UI rows remain open.
+  `docs/governance/returns-risk-scaffold.md`; peer/index/history percentile is
+  covered by `docs/governance/percentile-comparison-scaffold.md`; UI rows remain
+  open.
 
 ## Verification
 
@@ -92,6 +93,7 @@ Observed compare behavior:
 - Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`;
   deterministic return/risk/Beta engines are covered by
   `docs/governance/returns-risk-scaffold.md`.
-- Peer/index/history percentile comparison is not implemented.
+- Peer/index/history percentile comparison is covered by
+  `docs/governance/percentile-comparison-scaffold.md`.
 - Frontend comparison and screening UI remains delegated.
 - Tool registry/MCP exposure remains pending.

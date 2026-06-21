@@ -183,6 +183,13 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    percentile_comparison: {
+      benchmark_types: string[];
+      formula_version: string;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     returns_risk: {
       formula_version: string;
       golden_tolerance: number;
@@ -203,6 +210,58 @@ interface AnalyticsRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface PercentileComparisonBody {
+  data: {
+    capability: {
+      formula_version: string;
+      route: string;
+      status: string;
+    };
+    comparisons: Array<{
+      benchmark_type: string;
+      constituent_as_of: string;
+      constituents: Array<{
+        included_from: string;
+        instrument_id: string;
+        symbol: string;
+      }>;
+      history_observations: Array<{
+        as_of: string;
+        value: number;
+      }>;
+      live_constituents: boolean;
+      percentile_rank?: number;
+      point_in_time: boolean;
+      sample_count: number;
+      status: string;
+    }>;
+    formula_version: string;
+    frontend_rendering: boolean;
+    instrument_id?: string;
+    live_data_access: boolean;
+    metric_id: string;
+    point_in_time_policy: {
+      benchmark_as_of: string;
+      classification_as_of: string;
+      live_constituents: boolean;
+      no_future_constituents: boolean;
+    };
+    status: string;
+    subject: {
+      metric_id: string;
+      source_tool: string;
+      status: string;
+      value?: number;
+    };
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface ReturnsRiskBody {
@@ -1935,6 +1994,13 @@ describe("worker runtime", () => {
       status: "financial_ratios_scaffold",
       tool_name: "get_financial_ratios"
     });
+    expect(body.data.percentile_comparison).toMatchObject({
+      benchmark_types: ["peer", "index", "history"],
+      formula_version: "percentile-comparison-v0",
+      route: "POST /analytics/percentile-comparison",
+      status: "percentile_comparison_scaffold",
+      tool_name: "compare_percentiles"
+    });
     expect(body.data.returns_risk).toMatchObject({
       formula_version: "returns-risk-v0",
       golden_tolerance: 0.000001,
@@ -1994,6 +2060,73 @@ describe("worker runtime", () => {
     expect(body.data.capability).toMatchObject({
       formula_version: "financial-ratios-v0",
       route: "POST /analytics/financial-ratios"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("compares peer, index, and history percentiles with point-in-time metadata", async () => {
+    const response = await app.request("/analytics/percentile-comparison", {
+      body: JSON.stringify({
+        metric_id: "net_margin",
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-percentile-comparison"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PercentileComparisonBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      formula_version: "percentile-comparison-v0",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      metric_id: "net_margin",
+      status: "compared",
+      toolName: "compare_percentiles"
+    });
+    expect(body.data.subject).toMatchObject({
+      metric_id: "net_margin",
+      source_tool: "get_financial_ratios",
+      status: "computed",
+      value: 0.189184
+    });
+    expect(body.data.point_in_time_policy).toEqual({
+      benchmark_as_of: "2026-01-07",
+      classification_as_of: "2026-01-07",
+      live_constituents: false,
+      no_future_constituents: true
+    });
+    expect(body.data.comparisons.map((comparison) => comparison.benchmark_type)).toEqual([
+      "peer",
+      "index",
+      "history"
+    ]);
+    expect(body.data.comparisons.map((comparison) => comparison.percentile_rank)).toEqual([
+      0.8,
+      0.8,
+      0.8
+    ]);
+    expect(body.data.comparisons[0]).toMatchObject({
+      constituent_as_of: "2026-01-07",
+      live_constituents: false,
+      point_in_time: true,
+      sample_count: 5,
+      status: "computed"
+    });
+    expect(body.data.comparisons[0]?.constituents[0]).toMatchObject({
+      included_from: "2020-01-01",
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(body.data.comparisons[2]?.history_observations.length).toBe(5);
+    expect(body.data.capability).toMatchObject({
+      formula_version: "percentile-comparison-v0",
+      route: "POST /analytics/percentile-comparison"
     });
     expect(body.usage.rows).toBeGreaterThan(0);
   });

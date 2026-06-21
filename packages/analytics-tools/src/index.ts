@@ -27,6 +27,8 @@ export const FINANCIAL_RATIOS_VERSION =
   "2026-06-21.phase2.financial-ratios-scaffold.v0";
 export const RETURNS_RISK_VERSION =
   "2026-06-21.phase2.returns-risk-scaffold.v0";
+export const PERCENTILE_COMPARISON_VERSION =
+  "2026-06-21.phase2.percentile-comparison-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -302,6 +304,87 @@ export interface ReturnsRiskResult {
   };
 }
 
+export type PercentileBenchmarkType = "history" | "index" | "peer";
+export type PercentileMetricId = "net_margin" | "total_return";
+export type PercentileComparisonStatus = "blocked" | "computed";
+
+export interface PercentileComparisonInput {
+  asOf?: string;
+  benchmarkTypes?: PercentileBenchmarkType[];
+  financialFrom?: string;
+  financialTo?: string;
+  from?: string;
+  instrumentId?: string;
+  metricId?: PercentileMetricId;
+  requestId: string;
+  securityQuery?: string;
+  to?: string;
+}
+
+export interface PercentileSubjectMetric {
+  blocked_reason?: string;
+  metric_id: PercentileMetricId;
+  source_record_ids: string[];
+  source_tool: "calculate_returns_risk" | "get_financial_ratios";
+  status: PercentileComparisonStatus;
+  unit: "ratio";
+  value?: number;
+}
+
+export interface PercentileBenchmarkComparison {
+  as_of: string;
+  benchmark_id: string;
+  benchmark_type: PercentileBenchmarkType;
+  blocked_reason?: string;
+  constituent_as_of: string;
+  constituents: Array<{
+    included_from: string;
+    included_to?: string;
+    instrument_id: string;
+    symbol: string;
+  }>;
+  distribution: number[];
+  history_observations: Array<{
+    as_of: string;
+    value: number;
+  }>;
+  label: string;
+  live_constituents: false;
+  method: "nearest_rank_less_than_or_equal";
+  percentile_rank?: number;
+  point_in_time: true;
+  sample_count: number;
+  status: PercentileComparisonStatus;
+}
+
+export interface PercentileComparisonResult {
+  as_of: string;
+  benchmark_types: PercentileBenchmarkType[];
+  comparisons: PercentileBenchmarkComparison[];
+  data_version: typeof PERCENTILE_COMPARISON_VERSION;
+  formula_version: typeof PERCENTILE_COMPARISON_FORMULA_VERSION;
+  frontend_rendering: false;
+  instrument_id?: string;
+  live_data_access: false;
+  methodology_version: typeof PERCENTILE_COMPARISON_VERSION;
+  metric_id: PercentileMetricId;
+  point_in_time_policy: {
+    benchmark_as_of: string;
+    classification_as_of: string;
+    live_constituents: false;
+    no_future_constituents: true;
+  };
+  resolve_security?: ResolveSecurityResult;
+  status: "blocked_metric" | "blocked_resolution" | "compared" | "partial";
+  subject: PercentileSubjectMetric;
+  toolName: "compare_percentiles";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -318,6 +401,13 @@ const RETURNS_RISK_ANNUALIZATION_FACTOR = 252;
 const RETURNS_RISK_FORMULA_VERSION = "returns-risk-v0";
 const RETURNS_RISK_LIMIT = 3;
 const RETURNS_RISK_TOLERANCE = 0.000001;
+const DEFAULT_PERCENTILE_BENCHMARK_TYPES: PercentileBenchmarkType[] = [
+  "peer",
+  "index",
+  "history"
+];
+const DEFAULT_PERCENTILE_METRIC_ID: PercentileMetricId = "net_margin";
+const PERCENTILE_COMPARISON_FORMULA_VERSION = "percentile-comparison-v0";
 const DEFAULT_SCREEN_UNIVERSE = ["00700.HK", "08001.HK", "00001.HK"];
 const FINANCIAL_RATIO_FORMULA_VERSION = "financial-ratios-v0";
 const REQUIRED_FINANCIAL_METRICS: FinancialFactMetric[] = [
@@ -425,6 +515,108 @@ const RETURNS_RISK_DEFINITIONS: ReturnsRiskDefinition[] = [
     unit: "coefficient"
   }
 ];
+const SYNTHETIC_PERCENTILE_BENCHMARKS: Record<
+  PercentileMetricId,
+  Record<
+    PercentileBenchmarkType,
+    {
+      asOf: string;
+      benchmarkId: string;
+      constituentAsOf: string;
+      constituents: PercentileBenchmarkComparison["constituents"];
+      distribution: number[];
+      historyObservations: PercentileBenchmarkComparison["history_observations"];
+      label: string;
+    }
+  >
+> = {
+  net_margin: {
+    history: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_00700_history_net_margin_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [],
+      distribution: [0.11, 0.14, 0.16, 0.189184, 0.21],
+      historyObservations: [
+        { as_of: "2020-12-31", value: 0.11 },
+        { as_of: "2021-12-31", value: 0.14 },
+        { as_of: "2022-12-31", value: 0.16 },
+        { as_of: "2023-12-31", value: 0.189184 },
+        { as_of: "2024-12-31", value: 0.21 }
+      ],
+      label: "00700.HK Synthetic History"
+    },
+    index: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_hstech_net_margin_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [
+        { included_from: "2020-07-27", instrument_id: "eq_hk_00700", symbol: "00700.HK" },
+        { included_from: "2020-07-27", instrument_id: "eq_hk_00001", symbol: "00001.HK" },
+        { included_from: "2020-07-27", instrument_id: "eq_hk_08001", symbol: "08001.HK" }
+      ],
+      distribution: [0.04, 0.09, 0.14, 0.189184, 0.26],
+      historyObservations: [],
+      label: "Synthetic Hang Seng Tech Index"
+    },
+    peer: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_hk_internet_peer_net_margin_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [
+        { included_from: "2020-01-01", instrument_id: "eq_hk_00700", symbol: "00700.HK" },
+        { included_from: "2020-01-01", instrument_id: "eq_hk_00001", symbol: "00001.HK" },
+        { included_from: "2020-01-01", instrument_id: "eq_hk_08001", symbol: "08001.HK" }
+      ],
+      distribution: [0.03, 0.08, 0.12, 0.189184, 0.24],
+      historyObservations: [],
+      label: "Synthetic HK Internet Peer Set"
+    }
+  },
+  total_return: {
+    history: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_00700_history_total_return_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [],
+      distribution: [-0.02, 0.004, 0.012195, 0.03, 0.055],
+      historyObservations: [
+        { as_of: "2025-12-29", value: -0.02 },
+        { as_of: "2025-12-30", value: 0.004 },
+        { as_of: "2026-01-07", value: 0.012195 },
+        { as_of: "2026-01-08", value: 0.03 },
+        { as_of: "2026-01-09", value: 0.055 }
+      ],
+      label: "00700.HK Synthetic Return History"
+    },
+    index: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_hstech_total_return_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [
+        { included_from: "2020-07-27", instrument_id: "eq_hk_00700", symbol: "00700.HK" },
+        { included_from: "2020-07-27", instrument_id: "eq_hk_00001", symbol: "00001.HK" },
+        { included_from: "2020-07-27", instrument_id: "eq_hk_08001", symbol: "08001.HK" }
+      ],
+      distribution: [-0.01, 0.003, 0.012195, 0.02, 0.04],
+      historyObservations: [],
+      label: "Synthetic Hang Seng Tech Index"
+    },
+    peer: {
+      asOf: "2026-01-07",
+      benchmarkId: "synthetic_hk_internet_peer_total_return_v0",
+      constituentAsOf: "2026-01-07",
+      constituents: [
+        { included_from: "2020-01-01", instrument_id: "eq_hk_00700", symbol: "00700.HK" },
+        { included_from: "2020-01-01", instrument_id: "eq_hk_00001", symbol: "00001.HK" },
+        { included_from: "2020-01-01", instrument_id: "eq_hk_08001", symbol: "08001.HK" }
+      ],
+      distribution: [-0.015, 0.002, 0.012195, 0.018, 0.035],
+      historyObservations: [],
+      label: "Synthetic HK Internet Peer Set"
+    }
+  }
+};
 
 export function getCompareSecuritiesCapabilities() {
   return {
@@ -490,6 +682,23 @@ export function getReturnsRiskCapabilities() {
     supported_metrics: RETURNS_RISK_DEFINITIONS.map((definition) => definition.metric_id),
     tool_name: "calculate_returns_risk" as const,
     version: RETURNS_RISK_VERSION
+  };
+}
+
+export function getPercentileComparisonCapabilities() {
+  return {
+    benchmark_types: DEFAULT_PERCENTILE_BENCHMARK_TYPES,
+    formula_version: PERCENTILE_COMPARISON_FORMULA_VERSION,
+    frontend_rendering: false,
+    live_constituents: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    point_in_time: true,
+    route: "POST /analytics/percentile-comparison" as const,
+    status: "percentile_comparison_scaffold" as const,
+    supported_metrics: Object.keys(SYNTHETIC_PERCENTILE_BENCHMARKS) as PercentileMetricId[],
+    tool_name: "compare_percentiles" as const,
+    version: PERCENTILE_COMPARISON_VERSION
   };
 }
 
@@ -846,6 +1055,84 @@ export function calculateReturnsRisk(input: ReturnsRiskInput): ReturnsRiskResult
       (benchmarkResolution?.usage.rows ?? 0) +
       metrics.length,
     window: createReturnsRiskWindow(from, to, adjustment, history.history.rowCount)
+  });
+}
+
+export function comparePercentiles(input: PercentileComparisonInput): PercentileComparisonResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const benchmarkAsOf = asOf.slice(0, 10);
+  const metricId = input.metricId ?? DEFAULT_PERCENTILE_METRIC_ID;
+  const benchmarkTypes =
+    input.benchmarkTypes === undefined || input.benchmarkTypes.length === 0
+      ? DEFAULT_PERCENTILE_BENCHMARK_TYPES
+      : input.benchmarkTypes;
+  const resolution =
+    input.instrumentId === undefined && input.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf: input.asOf,
+          query: input.securityQuery
+        })
+      : undefined;
+  const instrumentId = input.instrumentId ?? resolution?.selectedInstrumentId;
+
+  if (instrumentId === undefined) {
+    const subject = createBlockedPercentileSubject(
+      metricId,
+      getPercentileSubjectSourceTool(metricId),
+      "security_resolution_required",
+      []
+    );
+
+    return createPercentileComparisonResult({
+      asOf,
+      benchmarkAsOf,
+      benchmarkTypes,
+      comparisons: benchmarkTypes.map((type) =>
+        createBlockedPercentileBenchmark(
+          metricId,
+          type,
+          "security_resolution_required"
+        )
+      ),
+      instrumentId,
+      metricId,
+      resolution,
+      status: "blocked_resolution",
+      subject,
+      usageCredits: resolution?.usage.credits ?? 0,
+      usageRows: resolution?.usage.rows ?? 0
+    });
+  }
+
+  const subjectResult = createPercentileSubjectMetric(metricId, input, instrumentId);
+  const comparisons = benchmarkTypes.map((type) =>
+    subjectResult.subject.status === "computed" && subjectResult.subject.value !== undefined
+      ? createPercentileBenchmark(metricId, type, subjectResult.subject.value)
+      : createBlockedPercentileBenchmark(
+          metricId,
+          type,
+          subjectResult.subject.blocked_reason ?? "metric_unavailable"
+        )
+  );
+  const computedCount = comparisons.filter((comparison) => comparison.status === "computed").length;
+
+  return createPercentileComparisonResult({
+    asOf,
+    benchmarkAsOf,
+    benchmarkTypes,
+    comparisons,
+    instrumentId,
+    metricId,
+    resolution,
+    status:
+      subjectResult.subject.status === "blocked"
+        ? "blocked_metric"
+        : computedCount === comparisons.length
+          ? "compared"
+          : "partial",
+    subject: subjectResult.subject,
+    usageCredits: subjectResult.usage.credits + (resolution?.usage.credits ?? 0) + (computedCount > 0 ? 1 : 0),
+    usageRows: subjectResult.usage.rows + (resolution?.usage.rows ?? 0) + comparisons.length
   });
 }
 
@@ -1394,6 +1681,205 @@ function sampleCovariance(leftValues: number[], rightValues: number[]): number {
     ) /
     (leftValues.length - 1)
   );
+}
+
+function createPercentileComparisonResult(params: {
+  asOf: string;
+  benchmarkAsOf: string;
+  benchmarkTypes: PercentileBenchmarkType[];
+  comparisons: PercentileBenchmarkComparison[];
+  instrumentId: string | undefined;
+  metricId: PercentileMetricId;
+  resolution: ResolveSecurityResult | undefined;
+  status: PercentileComparisonResult["status"];
+  subject: PercentileSubjectMetric;
+  usageCredits: number;
+  usageRows: number;
+}): PercentileComparisonResult {
+  return {
+    as_of: params.asOf,
+    benchmark_types: params.benchmarkTypes,
+    comparisons: params.comparisons,
+    data_version: PERCENTILE_COMPARISON_VERSION,
+    formula_version: PERCENTILE_COMPARISON_FORMULA_VERSION,
+    frontend_rendering: false,
+    instrument_id: params.instrumentId,
+    live_data_access: false,
+    methodology_version: PERCENTILE_COMPARISON_VERSION,
+    metric_id: params.metricId,
+    point_in_time_policy: {
+      benchmark_as_of: params.benchmarkAsOf,
+      classification_as_of: params.benchmarkAsOf,
+      live_constituents: false,
+      no_future_constituents: true
+    },
+    resolve_security: params.resolution,
+    status: params.status,
+    subject: params.subject,
+    toolName: "compare_percentiles",
+    usage: {
+      cached: false,
+      credits: params.usageCredits,
+      rows: params.usageRows
+    }
+  };
+}
+
+function createPercentileSubjectMetric(
+  metricId: PercentileMetricId,
+  input: PercentileComparisonInput,
+  instrumentId: string
+): { subject: PercentileSubjectMetric; usage: { credits: number; rows: number } } {
+  if (metricId === "net_margin") {
+    const ratios = getFinancialRatios({
+      asOf: input.asOf,
+      financialFrom: input.financialFrom,
+      financialTo: input.financialTo,
+      instrumentId,
+      requestId: input.requestId
+    });
+    const metric = ratios.ratios.find((ratio) => ratio.metric_id === metricId);
+
+    return {
+      subject:
+        metric?.status === "computed" && metric.value !== undefined
+          ? createComputedPercentileSubject(
+              metricId,
+              "get_financial_ratios",
+              metric.value,
+              metric.source_record_ids
+            )
+          : createBlockedPercentileSubject(
+              metricId,
+              "get_financial_ratios",
+              metric?.blocked_reason ?? `financial_ratios_${ratios.status}`,
+              metric?.source_record_ids ?? []
+            ),
+      usage: {
+        credits: ratios.usage.credits,
+        rows: ratios.usage.rows
+      }
+    };
+  }
+
+  const returnsRisk = calculateReturnsRisk({
+    asOf: input.asOf,
+    from: input.from,
+    instrumentId,
+    requestId: input.requestId,
+    to: input.to
+  });
+  const metric = returnsRisk.metrics.find((candidate) => candidate.metric_id === metricId);
+
+  return {
+    subject:
+      metric?.status === "computed" && metric.value !== undefined
+        ? createComputedPercentileSubject(
+            metricId,
+            "calculate_returns_risk",
+            metric.value,
+            metric.source_record_ids
+          )
+        : createBlockedPercentileSubject(
+            metricId,
+            "calculate_returns_risk",
+            metric?.blocked_reason ?? `returns_risk_${returnsRisk.status}`,
+            metric?.source_record_ids ?? []
+          ),
+    usage: {
+      credits: returnsRisk.usage.credits,
+      rows: returnsRisk.usage.rows
+    }
+  };
+}
+
+function createComputedPercentileSubject(
+  metricId: PercentileMetricId,
+  sourceTool: PercentileSubjectMetric["source_tool"],
+  value: number,
+  sourceRecordIds: string[]
+): PercentileSubjectMetric {
+  return {
+    metric_id: metricId,
+    source_record_ids: sourceRecordIds,
+    source_tool: sourceTool,
+    status: "computed",
+    unit: "ratio",
+    value
+  };
+}
+
+function createBlockedPercentileSubject(
+  metricId: PercentileMetricId,
+  sourceTool: PercentileSubjectMetric["source_tool"],
+  blockedReason: string,
+  sourceRecordIds: string[]
+): PercentileSubjectMetric {
+  return {
+    blocked_reason: blockedReason,
+    metric_id: metricId,
+    source_record_ids: sourceRecordIds,
+    source_tool: sourceTool,
+    status: "blocked",
+    unit: "ratio"
+  };
+}
+
+function createPercentileBenchmark(
+  metricId: PercentileMetricId,
+  benchmarkType: PercentileBenchmarkType,
+  value: number
+): PercentileBenchmarkComparison {
+  const benchmark = SYNTHETIC_PERCENTILE_BENCHMARKS[metricId][benchmarkType];
+  const rank = benchmark.distribution.filter((candidate) => candidate <= value).length;
+
+  return {
+    as_of: benchmark.asOf,
+    benchmark_id: benchmark.benchmarkId,
+    benchmark_type: benchmarkType,
+    constituent_as_of: benchmark.constituentAsOf,
+    constituents: benchmark.constituents,
+    distribution: benchmark.distribution,
+    history_observations: benchmark.historyObservations,
+    label: benchmark.label,
+    live_constituents: false,
+    method: "nearest_rank_less_than_or_equal",
+    percentile_rank: roundMetric(rank / benchmark.distribution.length),
+    point_in_time: true,
+    sample_count: benchmark.distribution.length,
+    status: "computed"
+  };
+}
+
+function createBlockedPercentileBenchmark(
+  metricId: PercentileMetricId,
+  benchmarkType: PercentileBenchmarkType,
+  blockedReason: string
+): PercentileBenchmarkComparison {
+  const benchmark = SYNTHETIC_PERCENTILE_BENCHMARKS[metricId][benchmarkType];
+
+  return {
+    as_of: benchmark.asOf,
+    benchmark_id: benchmark.benchmarkId,
+    benchmark_type: benchmarkType,
+    blocked_reason: blockedReason,
+    constituent_as_of: benchmark.constituentAsOf,
+    constituents: benchmark.constituents,
+    distribution: benchmark.distribution,
+    history_observations: benchmark.historyObservations,
+    label: benchmark.label,
+    live_constituents: false,
+    method: "nearest_rank_less_than_or_equal",
+    point_in_time: true,
+    sample_count: benchmark.distribution.length,
+    status: "blocked"
+  };
+}
+
+function getPercentileSubjectSourceTool(
+  metricId: PercentileMetricId
+): PercentileSubjectMetric["source_tool"] {
+  return metricId === "net_margin" ? "get_financial_ratios" : "calculate_returns_risk";
 }
 
 function normalizeScreenConditions(

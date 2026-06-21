@@ -1,0 +1,47 @@
+{
+  "version": "2026-06-21.phase2.percentile-comparison-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/percentile-comparison",
+  "tool_name": "compare_percentiles",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "sql_emitted": false,
+  "covered_sprint_2_1_items": [
+    "ANA-02"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_financial_ratios",
+    "calculate_returns_risk"
+  ],
+  "percentile_contract": {
+    "formula_version": "percentile-comparison-v0",
+    "point_in_time": true,
+    "no_future_constituents": true,
+    "live_constituents": false,
+    "method": "nearest_rank_less_than_or_equal",
+    "supported_metrics": [
+      "net_margin",
+      "total_return"
+    ],
+    "benchmark_types": [
+      "peer",
+      "index",
+      "history"
+    ],
+    "required_output_fields": [
+      "subject",
+      "comparisons",
+      "benchmark_type",
+      "constituent_as_of",
+      "constituents",
+      "history_observations",
+      "percentile_rank",
+      "point_in_time_policy",
+      "source_record_ids"
+    ]
+  }
+}

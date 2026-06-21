@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   calculateReturnsRisk,
   compareSecurities,
+  comparePercentiles,
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getPercentileComparisonCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities
@@ -353,6 +355,115 @@ describe("compare securities scaffold", () => {
     expect(result.status).toBe("blocked_resolution");
     expect(result.resolve_security?.status).toBe("ambiguous");
     expect(result.metrics.every((metric) => metric.blocked_reason === "security_resolution_required")).toBe(
+      true
+    );
+  });
+
+  it("reports percentile comparison capabilities", () => {
+    expect(getPercentileComparisonCapabilities()).toMatchObject({
+      benchmark_types: ["peer", "index", "history"],
+      formula_version: "percentile-comparison-v0",
+      frontend_rendering: false,
+      live_constituents: false,
+      live_data_access: false,
+      point_in_time: true,
+      route: "POST /analytics/percentile-comparison",
+      status: "percentile_comparison_scaffold",
+      tool_name: "compare_percentiles"
+    });
+  });
+
+  it("compares peer, index, and history percentiles with point-in-time metadata", () => {
+    const result = comparePercentiles({
+      metricId: "net_margin",
+      requestId: "req_percentiles_001",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      formula_version: "percentile-comparison-v0",
+      frontend_rendering: false,
+      instrument_id: "eq_hk_00700",
+      live_data_access: false,
+      metric_id: "net_margin",
+      status: "compared",
+      toolName: "compare_percentiles"
+    });
+    expect(result.subject).toMatchObject({
+      metric_id: "net_margin",
+      source_tool: "get_financial_ratios",
+      status: "computed",
+      value: 0.189184
+    });
+    expect(result.point_in_time_policy).toEqual({
+      benchmark_as_of: "2026-01-07",
+      classification_as_of: "2026-01-07",
+      live_constituents: false,
+      no_future_constituents: true
+    });
+    expect(result.comparisons.map((comparison) => comparison.benchmark_type)).toEqual([
+      "peer",
+      "index",
+      "history"
+    ]);
+    expect(result.comparisons.map((comparison) => comparison.percentile_rank)).toEqual([
+      0.8,
+      0.8,
+      0.8
+    ]);
+    expect(result.comparisons[0]).toMatchObject({
+      constituent_as_of: "2026-01-07",
+      live_constituents: false,
+      point_in_time: true,
+      sample_count: 5,
+      status: "computed"
+    });
+    expect(result.comparisons[0]?.constituents[0]).toMatchObject({
+      included_from: "2020-01-01",
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(result.comparisons[2]?.history_observations.length).toBe(5);
+  });
+
+  it("compares total return percentile from returns/risk source", () => {
+    const result = comparePercentiles({
+      benchmarkTypes: ["peer"],
+      metricId: "total_return",
+      requestId: "req_percentiles_total_return",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result.status).toBe("compared");
+    expect(result.subject).toMatchObject({
+      metric_id: "total_return",
+      source_tool: "calculate_returns_risk",
+      status: "computed",
+      value: 0.012195
+    });
+    expect(result.comparisons).toEqual([
+      expect.objectContaining({
+        benchmark_type: "peer",
+        percentile_rank: 0.6,
+        status: "computed"
+      })
+    ]);
+  });
+
+  it("blocks ambiguous percentile securities without guessing", () => {
+    const result = comparePercentiles({
+      metricId: "net_margin",
+      requestId: "req_percentiles_ambiguous",
+      securityQuery: "ABC"
+    });
+
+    expect(result.status).toBe("blocked_resolution");
+    expect(result.resolve_security?.status).toBe("ambiguous");
+    expect(result.subject).toMatchObject({
+      blocked_reason: "security_resolution_required",
+      status: "blocked"
+    });
+    expect(result.comparisons.every((comparison) => comparison.blocked_reason === "security_resolution_required")).toBe(
       true
     );
   });

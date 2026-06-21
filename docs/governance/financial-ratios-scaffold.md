@@ -97,8 +97,8 @@ Observed ratio behavior:
 
 - Return/risk/Beta calculations are covered by
   `docs/governance/returns-risk-scaffold.md`.
-- Peer/index/history percentile comparison beyond ratio scaffold metadata is not
-  implemented.
+- Peer/index/history percentile comparison beyond ratio scaffold metadata is
+  covered by `docs/governance/percentile-comparison-scaffold.md`.
 - Frontend comparison, screening, and ratio UI remains delegated.
 - Tool registry/MCP exposure remains pending.
 - Live peer constituents and live data remain disabled.

@@ -51,14 +51,16 @@ Reason:
 - Sprint 2.1 requires deterministic Beta, but the repo does not yet have a
   live index/constituent surface.
 - Silently defaulting to an index would create a false source-of-truth.
-- The next percentile/index slice can introduce real benchmark policy without
-  changing this tool's formula contract.
+- Percentile/index policy is covered by
+  `docs/governance/percentile-comparison-scaffold.md` without changing this
+  tool's formula contract.
 
 Tradeoff:
 
 - Return, volatility, and drawdown metrics are available without a benchmark.
 - Beta is computed only when benchmark data exists and overlaps by date.
-- Peer/index/history percentile comparison remains a separate Sprint 2.1 item.
+- Peer/index/history percentile comparison is covered by
+  `docs/governance/percentile-comparison-scaffold.md`.
 
 ## Verification
 
@@ -94,7 +96,8 @@ Observed returns/risk behavior:
 
 ## Residual Gaps
 
-- Peer/index/history percentile comparison is not implemented.
+- Peer/index/history percentile comparison is covered by
+  `docs/governance/percentile-comparison-scaffold.md`.
 - Point-in-time screening safeguards beyond latest-as-of metadata are not
   implemented.
 - Frontend comparison, screening, ratios, and returns/risk UI remains delegated.

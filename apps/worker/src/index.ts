@@ -20,13 +20,17 @@ import {
 } from "@aiphabee/agent-runtime";
 import {
   calculateReturnsRisk,
+  comparePercentiles,
   compareSecurities,
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getPercentileComparisonCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities,
+  type PercentileBenchmarkType,
+  type PercentileMetricId,
   type ScreenSecuritiesCondition
 } from "@aiphabee/analytics-tools";
 import {
@@ -697,6 +701,7 @@ app.get("/analytics/runtime", (c) => {
   const screenCapability = getScreenSecuritiesCapabilities();
   const financialRatiosCapability = getFinancialRatiosCapabilities();
   const returnsRiskCapability = getReturnsRiskCapabilities();
+  const percentileComparisonCapability = getPercentileComparisonCapabilities();
 
   return c.json(
     createSuccessEnvelope(
@@ -704,6 +709,7 @@ app.get("/analytics/runtime", (c) => {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
         financial_ratios: financialRatiosCapability,
+        percentile_comparison: percentileComparisonCapability,
         returns_risk: returnsRiskCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
@@ -713,7 +719,8 @@ app.get("/analytics/runtime", (c) => {
           capability.route,
           screenCapability.route,
           financialRatiosCapability.route,
-          returnsRiskCapability.route
+          returnsRiskCapability.route,
+          percentileComparisonCapability.route
         ],
         status: "analytics_tools_scaffold"
       },
@@ -735,6 +742,52 @@ app.get("/analytics/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.post("/analytics/percentile-comparison", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const comparison = comparePercentiles({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    benchmarkTypes: normalizePercentileBenchmarkTypes(
+      body.benchmark_types ?? body.benchmarkTypes
+    ),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    from: normalizeString(body.from),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    metricId: normalizePercentileMetricId(body.metric_id ?? body.metricId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    to: normalizeString(body.to)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...comparison,
+        capability: getPercentileComparisonCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: comparison.data_version,
+        methodologyVersion: comparison.methodology_version,
+        provenance: [
+          {
+            data_version: comparison.data_version,
+            methodology_version: comparison.methodology_version,
+            source: "analytics-percentile-comparison",
+            source_record_id: "percentile-comparison"
+          }
+        ],
+        requestId,
+        usage: comparison.usage
       }
     )
   );
@@ -3276,6 +3329,21 @@ function normalizeStringArray(value: unknown): string[] | undefined {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
     : undefined;
+}
+
+function normalizePercentileMetricId(value: unknown): PercentileMetricId | undefined {
+  return value === "net_margin" || value === "total_return" ? value : undefined;
+}
+
+function normalizePercentileBenchmarkTypes(
+  value: unknown
+): PercentileBenchmarkType[] | undefined {
+  const values = normalizeStringArray(value)?.filter(
+    (item): item is PercentileBenchmarkType =>
+      item === "history" || item === "index" || item === "peer"
+  );
+
+  return values === undefined || values.length === 0 ? undefined : values;
 }
 
 function normalizeScreenConditionInputs(

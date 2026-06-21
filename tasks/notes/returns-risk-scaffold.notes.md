@@ -28,7 +28,8 @@ Implemented the Sprint 2.1 backend `calculate_returns_risk` scaffold.
 ## Non-Goals
 
 - No frontend returns/risk UI.
-- No peer/index/history percentile comparison.
+- Peer/index/history percentile comparison is covered by
+  `docs/governance/percentile-comparison-scaffold.md`.
 - No default live benchmark constituents.
 - No MCP registration.
 - No high-cost execution queue.
