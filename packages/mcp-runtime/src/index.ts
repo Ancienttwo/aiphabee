@@ -27,6 +27,8 @@ export const MCP_PAGINATION_LIMITS_VERSION =
   "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0";
 export const MCP_USAGE_ENVELOPE_VERSION =
   "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0";
+export const MCP_STANDARD_ERROR_CODES_VERSION =
+  "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0";
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -113,6 +115,12 @@ export type McpRuntimePlanStatus =
   | "planned_no_live_execution";
 export type McpOAuthPlanStatus = "planned_no_live_oauth";
 export type McpApiKeyPlanStatus = "planned_no_live_api_key";
+export type McpStandardErrorCategory =
+  | "authentication"
+  | "authorization"
+  | "data"
+  | "limit"
+  | "system";
 export type McpRuntimeInputErrorCode =
   | "API_KEY_ID_REQUIRED"
   | "API_KEY_NAME_REQUIRED"
@@ -145,6 +153,25 @@ export type McpRuntimeInputErrorCode =
   | "TOOL_TIME_RANGE_INVALID"
   | "UNSUPPORTED_SCOPE"
   | "UNSUPPORTED_METHOD";
+
+export interface McpStandardErrorDefinition {
+  category: McpStandardErrorCategory;
+  client_action:
+    | "contact_support_with_request_id"
+    | "narrow_request"
+    | "reauthorize"
+    | "request_additional_scope"
+    | "retry_after"
+    | "select_security_candidate"
+    | "show_last_available_as_of"
+    | "try_alternate_methodology_or_retry_later"
+    | "upgrade_or_reduce_scope"
+    | "upgrade_or_shrink_task";
+  code: McpStandardErrorCode;
+  recoverable: boolean;
+  retry_after_required: boolean;
+  source_record_id: string;
+}
 
 export class McpRuntimeInputError extends Error {
   readonly code: McpRuntimeInputErrorCode;
@@ -690,7 +717,11 @@ export interface McpProtocolPlan {
   }>;
   request_id: string;
   response_shape: {
+    mcp_error_detail_fields: readonly string[];
+    standard_error_categories: typeof MCP_STANDARD_ERROR_CATEGORIES;
+    standard_error_code_version: typeof MCP_STANDARD_ERROR_CODES_VERSION;
     standard_error_codes: typeof MCP_STANDARD_ERROR_CODES;
+    standard_error_definitions: typeof MCP_STANDARD_ERROR_DEFINITIONS;
     standard_response_envelope: true;
     structured_content_required: true;
   };
@@ -725,16 +756,153 @@ export interface McpProtocolPlan {
   version: typeof MCP_RUNTIME_VERSION;
 }
 
-const MCP_STANDARD_ERROR_CODES = [
+export const MCP_STANDARD_ERROR_CODES = [
   "AUTH_REQUIRED",
-  "DATA_NOT_LICENSED",
   "SCOPE_DENIED",
+  "DATA_NOT_LICENSED",
+  "SYMBOL_AMBIGUOUS",
   "OUT_OF_RANGE",
   "TOO_MANY_ROWS",
   "RATE_LIMITED",
   "BUDGET_EXCEEDED",
+  "UPSTREAM_STALE",
+  "DATA_QUALITY_HOLD",
   "INTERNAL_ERROR"
 ] as const;
+export type McpStandardErrorCode = (typeof MCP_STANDARD_ERROR_CODES)[number];
+
+export const MCP_STANDARD_ERROR_CATEGORIES = [
+  "authentication",
+  "authorization",
+  "data",
+  "limit",
+  "system"
+] as const satisfies readonly McpStandardErrorCategory[];
+
+export const MCP_STANDARD_ERROR_DEFINITIONS = [
+  {
+    category: "authentication",
+    client_action: "reauthorize",
+    code: "AUTH_REQUIRED",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_auth_required"
+  },
+  {
+    category: "authorization",
+    client_action: "request_additional_scope",
+    code: "SCOPE_DENIED",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_scope_denied"
+  },
+  {
+    category: "authorization",
+    client_action: "upgrade_or_reduce_scope",
+    code: "DATA_NOT_LICENSED",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_data_not_licensed"
+  },
+  {
+    category: "data",
+    client_action: "select_security_candidate",
+    code: "SYMBOL_AMBIGUOUS",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_symbol_ambiguous"
+  },
+  {
+    category: "limit",
+    client_action: "narrow_request",
+    code: "OUT_OF_RANGE",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_out_of_range"
+  },
+  {
+    category: "limit",
+    client_action: "narrow_request",
+    code: "TOO_MANY_ROWS",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_too_many_rows"
+  },
+  {
+    category: "limit",
+    client_action: "retry_after",
+    code: "RATE_LIMITED",
+    recoverable: true,
+    retry_after_required: true,
+    source_record_id: "mcp_error_rate_limited"
+  },
+  {
+    category: "limit",
+    client_action: "upgrade_or_shrink_task",
+    code: "BUDGET_EXCEEDED",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_budget_exceeded"
+  },
+  {
+    category: "data",
+    client_action: "show_last_available_as_of",
+    code: "UPSTREAM_STALE",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_upstream_stale"
+  },
+  {
+    category: "data",
+    client_action: "try_alternate_methodology_or_retry_later",
+    code: "DATA_QUALITY_HOLD",
+    recoverable: true,
+    retry_after_required: false,
+    source_record_id: "mcp_error_data_quality_hold"
+  },
+  {
+    category: "system",
+    client_action: "contact_support_with_request_id",
+    code: "INTERNAL_ERROR",
+    recoverable: false,
+    retry_after_required: false,
+    source_record_id: "mcp_error_internal_error"
+  }
+] as const satisfies readonly McpStandardErrorDefinition[];
+
+const MCP_RUNTIME_INPUT_ERROR_TO_STANDARD_ERROR = {
+  API_KEY_ID_REQUIRED: "AUTH_REQUIRED",
+  API_KEY_NAME_REQUIRED: "SCOPE_DENIED",
+  AUTHORIZATION_CODE_REQUIRED: "AUTH_REQUIRED",
+  CLIENT_ID_REQUIRED: "SCOPE_DENIED",
+  CODE_CHALLENGE_METHOD_UNSUPPORTED: "SCOPE_DENIED",
+  CODE_CHALLENGE_REQUIRED: "SCOPE_DENIED",
+  CODE_VERIFIER_REQUIRED: "AUTH_REQUIRED",
+  CONNECTION_OR_TOKEN_REQUIRED: "AUTH_REQUIRED",
+  INVALID_API_KEY_ROTATION_DAYS: "SCOPE_DENIED",
+  INVALID_CODE_CHALLENGE: "SCOPE_DENIED",
+  INVALID_IP_ALLOWLIST: "SCOPE_DENIED",
+  INVALID_REDIRECT_URI: "SCOPE_DENIED",
+  MCP_REDISTRIBUTION_RIGHTS_REQUIRED: "DATA_NOT_LICENSED",
+  ORIGIN_NOT_ALLOWED: "SCOPE_DENIED",
+  ORIGIN_REQUIRED: "SCOPE_DENIED",
+  RAW_API_KEY_FORBIDDEN: "SCOPE_DENIED",
+  REDIRECT_URI_REQUIRED: "SCOPE_DENIED",
+  SCOPE_REQUIRED: "SCOPE_DENIED",
+  TOOL_ARGUMENT_REQUIRED: "OUT_OF_RANGE",
+  TOOL_ARGUMENT_UNSUPPORTED: "OUT_OF_RANGE",
+  TOOL_ARGUMENTS_OBJECT_REQUIRED: "OUT_OF_RANGE",
+  TOOL_CURSOR_INVALID: "OUT_OF_RANGE",
+  TOOL_LIMIT_EXCEEDED: "TOO_MANY_ROWS",
+  TOOL_LIMIT_INVALID: "OUT_OF_RANGE",
+  TOOL_NAME_REQUIRED: "SCOPE_DENIED",
+  TOOL_NOT_REGISTERED: "SCOPE_DENIED",
+  TOOL_SCOPE_REQUIRED: "SCOPE_DENIED",
+  TOOL_TIME_RANGE_EXCEEDED: "OUT_OF_RANGE",
+  TOOL_TIME_RANGE_INVALID: "OUT_OF_RANGE",
+  UNSUPPORTED_METHOD: "OUT_OF_RANGE",
+  UNSUPPORTED_SCOPE: "SCOPE_DENIED"
+} as const satisfies Record<McpRuntimeInputErrorCode, McpStandardErrorCode>;
 
 const MCP_TOOL_INPUT_VALIDATION_RULES = {
   get_corporate_actions: {
@@ -874,7 +1042,21 @@ export function getMcpRuntimeCapabilities() {
     runtime_route: "GET /mcp/runtime" as const,
     scopes_revocable: true,
     structured_content_output_schema_ready: true,
+    mcp_error_detail_fields: [
+      "category",
+      "client_action",
+      "internal_code",
+      "mcp_error_version",
+      "recoverable",
+      "request_id",
+      "retry_after_required",
+      "source_record_id"
+    ] as const,
+    standard_error_categories: MCP_STANDARD_ERROR_CATEGORIES,
+    standard_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION,
     standard_error_codes: MCP_STANDARD_ERROR_CODES,
+    standard_error_codes_ready: true,
+    standard_error_definitions: MCP_STANDARD_ERROR_DEFINITIONS,
     status: "mcp_endpoint_default_deny_scaffold" as const,
     tool_call_input_strict_validation: true,
     time_range_limits_ready: true,
@@ -898,6 +1080,26 @@ export function getMcpRuntimeCapabilities() {
     version: MCP_RUNTIME_VERSION,
     web_rights_do_not_imply_mcp: true
   };
+}
+
+export function getMcpRuntimeStandardError(
+  code: McpRuntimeInputErrorCode
+): McpStandardErrorCode {
+  return MCP_RUNTIME_INPUT_ERROR_TO_STANDARD_ERROR[code];
+}
+
+export function getMcpStandardErrorDefinition(
+  code: McpStandardErrorCode
+): McpStandardErrorDefinition {
+  const definition = MCP_STANDARD_ERROR_DEFINITIONS.find(
+    (candidate) => candidate.code === code
+  );
+
+  if (definition === undefined) {
+    return MCP_STANDARD_ERROR_DEFINITIONS[MCP_STANDARD_ERROR_DEFINITIONS.length - 1];
+  }
+
+  return definition;
 }
 
 export function getMcpApiKeyCapabilities() {
@@ -1425,7 +1627,20 @@ function createBasePlan(input: {
     ],
     request_id: input.requestId,
     response_shape: {
+      mcp_error_detail_fields: [
+        "category",
+        "client_action",
+        "internal_code",
+        "mcp_error_version",
+        "recoverable",
+        "request_id",
+        "retry_after_required",
+        "source_record_id"
+      ],
+      standard_error_categories: MCP_STANDARD_ERROR_CATEGORIES,
+      standard_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION,
       standard_error_codes: MCP_STANDARD_ERROR_CODES,
+      standard_error_definitions: MCP_STANDARD_ERROR_DEFINITIONS,
       standard_response_envelope: true,
       structured_content_required: true
     },

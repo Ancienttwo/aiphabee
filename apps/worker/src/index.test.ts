@@ -1648,6 +1648,19 @@ interface McpRuntimeBody {
     route: string;
     runtime_route: string;
     scopes_revocable: boolean;
+    mcp_error_detail_fields: string[];
+    standard_error_categories: string[];
+    standard_error_code_version: string;
+    standard_error_codes: string[];
+    standard_error_codes_ready: boolean;
+    standard_error_definitions: Array<{
+      category: string;
+      client_action: string;
+      code: string;
+      recoverable: boolean;
+      retry_after_required: boolean;
+      source_record_id: string;
+    }>;
     status: string;
     structured_content_output_schema_ready: boolean;
     time_range_limits_ready: boolean;
@@ -2667,6 +2680,16 @@ interface AgentPreflightBody {
 interface ErrorBody {
   error: {
     code: string;
+    detail?: {
+      category: string;
+      client_action: string;
+      internal_code: string;
+      mcp_error_version: string;
+      recoverable: boolean;
+      request_id: string;
+      retry_after_required: boolean;
+      source_record_id: string;
+    };
   };
   ok: false;
 }
@@ -5882,7 +5905,20 @@ describe("worker runtime", () => {
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
       scopes_revocable: true,
+      mcp_error_detail_fields: [
+        "category",
+        "client_action",
+        "internal_code",
+        "mcp_error_version",
+        "recoverable",
+        "request_id",
+        "retry_after_required",
+        "source_record_id"
+      ],
       status: "mcp_endpoint_default_deny_scaffold",
+      standard_error_code_version:
+        "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      standard_error_codes_ready: true,
       structured_content_output_schema_ready: true,
       time_range_limits_ready: true,
       tool_call_input_strict_validation: true,
@@ -5903,6 +5939,34 @@ describe("worker runtime", () => {
       "tools/call"
     ]);
     expect(body.data.supported_oauth_scopes).toContain("market.read");
+    expect(body.data.standard_error_codes).toEqual([
+      "AUTH_REQUIRED",
+      "SCOPE_DENIED",
+      "DATA_NOT_LICENSED",
+      "SYMBOL_AMBIGUOUS",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS",
+      "RATE_LIMITED",
+      "BUDGET_EXCEEDED",
+      "UPSTREAM_STALE",
+      "DATA_QUALITY_HOLD",
+      "INTERNAL_ERROR"
+    ]);
+    expect(body.data.standard_error_categories).toEqual([
+      "authentication",
+      "authorization",
+      "data",
+      "limit",
+      "system"
+    ]);
+    expect(body.data.standard_error_definitions).toContainEqual({
+      category: "limit",
+      client_action: "retry_after",
+      code: "RATE_LIMITED",
+      recoverable: true,
+      retry_after_required: true,
+      source_record_id: "mcp_error_rate_limited"
+    });
   });
 
   it("serves MCP OAuth PKCE capabilities with revocable scope catalog", async () => {
@@ -6090,6 +6154,16 @@ describe("worker runtime", () => {
     expect(response.status).toBe(400);
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
+    expect(body.error.detail).toMatchObject({
+      category: "authorization",
+      client_action: "request_additional_scope",
+      internal_code: "CODE_CHALLENGE_METHOD_UNSUPPORTED",
+      mcp_error_version: "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      recoverable: true,
+      request_id: "req-mcp-oauth-invalid",
+      retry_after_required: false,
+      source_record_id: "mcp_error_scope_denied"
+    });
   });
 
   it("serves MCP API key lifecycle capabilities", async () => {
@@ -6377,6 +6451,16 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
+    expect(body.error.detail).toMatchObject({
+      category: "authorization",
+      client_action: "request_additional_scope",
+      internal_code: "ORIGIN_NOT_ALLOWED",
+      mcp_error_version: "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      recoverable: true,
+      request_id: "req-mcp-origin-denied",
+      retry_after_required: false,
+      source_record_id: "mcp_error_scope_denied"
+    });
   });
 
   it("rejects MCP tools/call until MCP redistribution rights are confirmed", async () => {
@@ -6399,6 +6483,16 @@ describe("worker runtime", () => {
     expect(response.status).toBe(403);
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("DATA_NOT_LICENSED");
+    expect(body.error.detail).toMatchObject({
+      category: "authorization",
+      client_action: "upgrade_or_reduce_scope",
+      internal_code: "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+      mcp_error_version: "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      recoverable: true,
+      request_id: "req-mcp-tool-call",
+      retry_after_required: false,
+      source_record_id: "mcp_error_data_not_licensed"
+    });
   });
 
   it("serves database runtime capabilities without live queries", async () => {

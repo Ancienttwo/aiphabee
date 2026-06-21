@@ -103,7 +103,11 @@ import {
   createMcpProtocolPlan,
   getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
-  getMcpRuntimeCapabilities
+  getMcpRuntimeCapabilities,
+  getMcpRuntimeStandardError,
+  getMcpStandardErrorDefinition,
+  MCP_STANDARD_ERROR_CODES_VERSION,
+  type McpStandardErrorCode
 } from "@aiphabee/mcp-runtime";
 import {
   EVAL_STORE_SCHEMA_VERSION,
@@ -1957,44 +1961,41 @@ app.post("/mcp", async (c) => {
       const status = statusForMcpRuntimeError(error);
 
       return c.json(
-        createErrorEnvelope(errorCodeForMcpRuntimeError(error), error.message, {
-          asOf: new Date().toISOString(),
-          dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
-          methodologyVersion:
-            "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
-          provenance: [
-            {
-              data_version: "mcp-endpoint-default-deny-scaffold-v0",
-              methodology_version:
-                "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
-              source: "mcp-runtime",
-              source_record_id: error.code
-            }
-          ],
+        createMcpRuntimeErrorEnvelope(
+          error,
           requestId,
-          usage: {
+          {
+            dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
+            methodologyVersion:
+              "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+            source: "mcp-runtime"
+          },
+          {
             cached: false,
             credits: 0,
             rows: 0
           }
-        }),
+        ),
         status
       );
     }
 
     return c.json(
-      createErrorEnvelope("INTERNAL_ERROR", "MCP protocol plan failed", {
-        asOf: new Date().toISOString(),
-        dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
-        methodologyVersion:
-          "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+      createMcpInternalErrorEnvelope(
+        "MCP protocol plan failed",
         requestId,
-        usage: {
+        {
+          dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
+          methodologyVersion:
+            "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+          source: "mcp-runtime"
+        },
+        {
           cached: false,
           credits: 0,
           rows: 0
         }
-      }),
+      ),
       500
     );
   }
@@ -4350,132 +4351,143 @@ function handleMcpRuntimeError(
     const status = statusForMcpRuntimeError(error);
 
     return c.json(
-      createErrorEnvelope(errorCodeForMcpRuntimeError(error), error.message, {
-        asOf: new Date().toISOString(),
-        dataVersion: context.dataVersion,
-        methodologyVersion: context.methodologyVersion,
-        provenance: [
-          {
-            data_version: context.dataVersion,
-            methodology_version: context.methodologyVersion,
-            source: context.source,
-            source_record_id: error.code
-          }
-        ],
-        requestId,
-        usage: {
-          cached: false,
-          credits: 0,
-          rows: 0
-        }
+      createMcpRuntimeErrorEnvelope(error, requestId, context, {
+        cached: false,
+        credits: 0,
+        rows: 0
       }),
       status
     );
   }
 
   return c.json(
-    createErrorEnvelope("INTERNAL_ERROR", fallbackMessage, {
-      asOf: new Date().toISOString(),
-      dataVersion: context.dataVersion,
-      methodologyVersion: context.methodologyVersion,
-      requestId,
-      usage: {
-        cached: false,
-        credits: 0,
-        rows: 0
-      }
+    createMcpInternalErrorEnvelope(fallbackMessage, requestId, context, {
+      cached: false,
+      credits: 0,
+      rows: 0
     }),
     500
   );
 }
 
-function errorCodeForMcpRuntimeError(
-  error: McpRuntimeInputError
-):
-  | "AUTH_REQUIRED"
-  | "DATA_NOT_LICENSED"
-  | "NOT_FOUND"
-  | "OUT_OF_RANGE"
-  | "SCOPE_DENIED"
-  | "TOO_MANY_ROWS" {
-  switch (error.code) {
-    case "API_KEY_ID_REQUIRED":
-    case "AUTHORIZATION_CODE_REQUIRED":
-    case "CODE_VERIFIER_REQUIRED":
-    case "CONNECTION_OR_TOKEN_REQUIRED":
-      return "AUTH_REQUIRED";
-    case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
-      return "DATA_NOT_LICENSED";
-    case "TOOL_NOT_REGISTERED":
-      return "NOT_FOUND";
-    case "TOOL_ARGUMENT_REQUIRED":
-    case "TOOL_ARGUMENT_UNSUPPORTED":
-    case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
-    case "TOOL_CURSOR_INVALID":
-    case "TOOL_LIMIT_INVALID":
-    case "TOOL_TIME_RANGE_EXCEEDED":
-    case "TOOL_TIME_RANGE_INVALID":
-    case "UNSUPPORTED_METHOD":
-      return "OUT_OF_RANGE";
-    case "TOOL_LIMIT_EXCEEDED":
-      return "TOO_MANY_ROWS";
-    case "API_KEY_NAME_REQUIRED":
-    case "CLIENT_ID_REQUIRED":
-    case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
-    case "CODE_CHALLENGE_REQUIRED":
-    case "INVALID_API_KEY_ROTATION_DAYS":
-    case "INVALID_CODE_CHALLENGE":
-    case "INVALID_IP_ALLOWLIST":
-    case "INVALID_REDIRECT_URI":
-    case "ORIGIN_NOT_ALLOWED":
-    case "ORIGIN_REQUIRED":
-    case "RAW_API_KEY_FORBIDDEN":
-    case "REDIRECT_URI_REQUIRED":
-    case "SCOPE_REQUIRED":
-    case "TOOL_NAME_REQUIRED":
-    case "TOOL_SCOPE_REQUIRED":
-    case "UNSUPPORTED_SCOPE":
-      return "SCOPE_DENIED";
+function createMcpRuntimeErrorEnvelope(
+  error: McpRuntimeInputError,
+  requestId: string,
+  context: {
+    dataVersion: string;
+    methodologyVersion: string;
+    source: string;
+  },
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
   }
+) {
+  const code = errorCodeForMcpRuntimeError(error);
+  const definition = getMcpStandardErrorDefinition(code);
+  const envelope = createErrorEnvelope(code, error.message, {
+    asOf: new Date().toISOString(),
+    dataVersion: context.dataVersion,
+    methodologyVersion: context.methodologyVersion,
+    provenance: [
+      {
+        data_version: context.dataVersion,
+        methodology_version: context.methodologyVersion,
+        source: context.source,
+        source_record_id: error.code
+      }
+    ],
+    requestId,
+    usage
+  });
+
+  return {
+    ...envelope,
+    error: {
+      ...envelope.error,
+      detail: {
+        category: definition.category,
+        client_action: definition.client_action,
+        internal_code: error.code,
+        mcp_error_version: MCP_STANDARD_ERROR_CODES_VERSION,
+        recoverable: definition.recoverable,
+        request_id: requestId,
+        retry_after_required: definition.retry_after_required,
+        source_record_id: definition.source_record_id
+      }
+    }
+  };
 }
 
-function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 | 422 {
+function createMcpInternalErrorEnvelope(
+  message: string,
+  requestId: string,
+  context: {
+    dataVersion: string;
+    methodologyVersion: string;
+    source: string;
+  },
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  }
+) {
+  const definition = getMcpStandardErrorDefinition("INTERNAL_ERROR");
+  const envelope = createErrorEnvelope("INTERNAL_ERROR", message, {
+    asOf: new Date().toISOString(),
+    dataVersion: context.dataVersion,
+    methodologyVersion: context.methodologyVersion,
+    provenance: [
+      {
+        data_version: context.dataVersion,
+        methodology_version: context.methodologyVersion,
+        source: context.source,
+        source_record_id: "INTERNAL_ERROR"
+      }
+    ],
+    requestId,
+    usage
+  });
+
+  return {
+    ...envelope,
+    error: {
+      ...envelope.error,
+      detail: {
+        category: definition.category,
+        client_action: definition.client_action,
+        internal_code: "INTERNAL_ERROR",
+        mcp_error_version: MCP_STANDARD_ERROR_CODES_VERSION,
+        recoverable: definition.recoverable,
+        request_id: requestId,
+        retry_after_required: definition.retry_after_required,
+        source_record_id: definition.source_record_id
+      }
+    }
+  };
+}
+
+function errorCodeForMcpRuntimeError(error: McpRuntimeInputError): McpStandardErrorCode {
+  return getMcpRuntimeStandardError(error.code);
+}
+
+function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 422 {
   switch (error.code) {
+    case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
+    case "ORIGIN_NOT_ALLOWED":
+    case "ORIGIN_REQUIRED":
     case "TOOL_NOT_REGISTERED":
-      return 404;
-    case "API_KEY_ID_REQUIRED":
-    case "API_KEY_NAME_REQUIRED":
-    case "AUTHORIZATION_CODE_REQUIRED":
-    case "CLIENT_ID_REQUIRED":
-    case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
-    case "CODE_CHALLENGE_REQUIRED":
-    case "CODE_VERIFIER_REQUIRED":
-    case "CONNECTION_OR_TOKEN_REQUIRED":
-    case "INVALID_API_KEY_ROTATION_DAYS":
-    case "INVALID_CODE_CHALLENGE":
-    case "INVALID_IP_ALLOWLIST":
-    case "INVALID_REDIRECT_URI":
-    case "RAW_API_KEY_FORBIDDEN":
-    case "REDIRECT_URI_REQUIRED":
-    case "SCOPE_REQUIRED":
-    case "TOOL_ARGUMENT_REQUIRED":
-    case "TOOL_ARGUMENT_UNSUPPORTED":
-    case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
-    case "TOOL_CURSOR_INVALID":
-    case "TOOL_LIMIT_INVALID":
-    case "UNSUPPORTED_METHOD":
-    case "TOOL_NAME_REQUIRED":
-      return 400;
+    case "TOOL_SCOPE_REQUIRED":
+    case "UNSUPPORTED_SCOPE":
+      return 403;
     case "TOOL_LIMIT_EXCEEDED":
     case "TOOL_TIME_RANGE_EXCEEDED":
     case "TOOL_TIME_RANGE_INVALID":
       return 422;
-    case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
-    case "ORIGIN_NOT_ALLOWED":
-    case "ORIGIN_REQUIRED":
-    case "TOOL_SCOPE_REQUIRED":
-    case "UNSUPPORTED_SCOPE":
-      return 403;
+    default:
+      return 400;
   }
 }
 

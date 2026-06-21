@@ -64,7 +64,7 @@ owner: "Planner / PM"
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
-| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 7 / 11 | ☐ |
+| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 8 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
@@ -320,7 +320,7 @@ owner: "Planner / PM"
 - [x] 工具版本与弃用策略后端 scaffold：扩展 `@aiphabee/tool-registry` lifecycle metadata 与 `@aiphabee/mcp-runtime` `tools/list` descriptor，所有 9 个 registered tools 暴露 `publicVersion=<tool>@1`、`majorVersion=1`、`breakingChangesRequireNewMajor=true`、active deprecation status、90 天 minimum notice、180 天 previous-major support policy，新增 `deploy/mcp/tool-versioning.contract.json` 与 `npm run check:mcp-tool-versioning`；historical major routing/migration examples/Developer Console version UI/live client compatibility smoke 未启用（MCP-05、US-M06）
 - [x] 游标分页 + 最大行数 + 时间范围限制后端 scaffold：扩展 `@aiphabee/tool-registry` retrieval metadata 与 `@aiphabee/mcp-runtime` `tools/list`/`tools/call` plan，所有 9 个 registered tools 暴露 row limit guard，分页工具暴露 cursor metadata，`tools/call` 生成 `bounded_retrieval` 并在 live execution 前拒绝超行数/非法 cursor/非法或超窗口时间范围，新增 `deploy/mcp/pagination-limits.contract.json` 与 `npm run check:mcp-pagination-limits`；live auth middleware/persistent cursor store/usage-ledger reconciliation/external SDK smoke 未启用（MCP-06、US-M07）
 - [x] MCP response usage/剩余额度/request_id 后端 scaffold：扩展 `@aiphabee/mcp-runtime` usage summary 与 `tools/call` `usage_envelope`，复用 `@aiphabee/usage-ledger` quota display/event writer planner，返回 `request_id`、remaining credits、estimated credits、no-live ledger event、reconciliation target，新增 `deploy/mcp/usage-envelope.contract.json` 与 `npm run check:mcp-usage-envelope`；live auth workspace context/live ledger read-write/billing reconciliation/external SDK smoke 未启用（MCP-07、US-M05）
-- [ ] 标准错误码可机器处理（MCP-08，`DATA_NOT_LICENSED`/`SCOPE_DENIED` 等）
+- [x] 标准错误码可机器处理后端 scaffold：扩展 `@aiphabee/mcp-runtime` PRD §9.6 标准错误码 taxonomy、category、client_action、internal-code mapping 与 `GET /mcp/runtime` capability，Worker MCP 错误响应返回 `error.detail`（`category` / `client_action` / `internal_code` / `mcp_error_version` / `recoverable` / `request_id` / `retry_after_required` / `source_record_id`），新增 `deploy/mcp/error-codes.contract.json` 与 `npm run check:mcp-error-codes`；live rate/concurrency/budget limiter、Developer Console、external SDK/Inspector smoke 未启用（MCP-08，`DATA_NOT_LICENSED`/`SCOPE_DENIED` 等）
 - [ ] 工具级速率/并发/预算限制（MCP-11）
 - [ ] Developer Console：连接向导/密钥/scope/配额/日志/示例，首调中位 <10 分钟（MCP-09、US-M01）
 - [ ] 协议兼容性测试：官方 SDK/Inspector + 主流目标客户端（MCP-12、US-M08）
@@ -630,6 +630,7 @@ owner: "Planner / PM"
 - [x] Internal account/session/manual-plan scaffold 已建立：`docs/governance/internal-account-session-manual-plan-scaffold.md`；`@aiphabee/account-runtime` 输出 ACC-01 capability，`/account/runtime` 与 `/account/session/plan` 返回 no-write account/session/device/manual-plan plans，raw email/password/OAuth/session secret 保持 forbidden payload class，live auth/cookie/DB writes/billing/frontend 未启用
 - [x] Usage quota display scaffold 已建立：`docs/governance/usage-quota-display-scaffold.md`；`@aiphabee/usage-ledger` 输出 Web Agent/MCP quota display capability，`/usage/runtime` 与 `/usage/quota/plan` 返回 request_id / plan_code / channel / period / credit limit / used / pending / remaining credits / freshness target，live ledger reads/billing reconciliation/persistent writes/frontend 未启用
 - [x] Stock workbench aggregate scaffold 已建立：`docs/governance/stock-workbench-aggregate-scaffold.md`；`@aiphabee/workbench` 输出 `/workbench/runtime`、`/workbench/stock/snapshot` 与 `/workbench/stock/announcements`，聚合 security profile、quote snapshot、price history、financial facts、derived metrics、announcement search 与 corporate actions，ambiguous security 不静默选择；完整 Phase 2 公告/文档工具仍未启用
+- [x] MCP standard error codes scaffold 已建立：`docs/governance/mcp-standard-error-codes-scaffold.md`；`@aiphabee/mcp-runtime` 输出 PRD §9.6 标准错误码 taxonomy、category、client_action、internal-code mapping，Worker MCP 错误响应返回 versioned `error.detail`，live limiter/Developer Console/external client smoke 未启用
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
@@ -645,6 +646,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0ch | 完成 `mcp-standard-error-codes-scaffold`：新增 `MCP_STANDARD_ERROR_CODES_VERSION`、PRD §9.6 MCP 标准错误码 taxonomy、auth/rights/data/limit/system category、client_action、internal-code mapping，并让 Worker MCP 错误响应返回 machine-readable `error.detail`；新增 `deploy/mcp/error-codes.contract.json` 与 `npm run check:mcp-error-codes`；live rate/concurrency/budget limiter、Developer Console、external SDK/Inspector smoke 未启用，Sprint 2.3 更新为 8/11 |
 | 2026-06-21 | 1.0cg | 完成 `mcp-usage-envelope-scaffold`：扩展 `@aiphabee/mcp-runtime` usage summary 与 `tools/call` `usage_envelope`，复用 `@aiphabee/usage-ledger` quota display/event writer planner，返回 `request_id`、remaining credits、estimated credits、no-live ledger event、reconciliation target，新增 `deploy/mcp/usage-envelope.contract.json` 与 `npm run check:mcp-usage-envelope`；live auth workspace context/live ledger read-write/billing reconciliation/external SDK smoke 未启用，Sprint 2.3 更新为 7/11 |
 | 2026-06-21 | 1.0cf | 完成 `mcp-pagination-limits-scaffold`：扩展 `@aiphabee/tool-registry` retrieval metadata 与 `@aiphabee/mcp-runtime` `tools/list`/`tools/call` plan，所有 9 个 registered tools 暴露 row limit guard，分页工具暴露 cursor metadata，`tools/call` 生成 `bounded_retrieval` 并在 live execution 前拒绝超行数/非法 cursor/非法或超窗口时间范围，新增 `deploy/mcp/pagination-limits.contract.json` 与 `npm run check:mcp-pagination-limits`；live auth middleware/persistent cursor store/usage-ledger reconciliation/external SDK smoke 未启用，Sprint 2.3 更新为 6/11 |
 | 2026-06-21 | 1.0ce | 完成 `mcp-tool-versioning-scaffold`：扩展 `@aiphabee/tool-registry` lifecycle metadata 与 `@aiphabee/mcp-runtime` `tools/list` descriptor，所有 9 个 registered tools 暴露 `publicVersion=<tool>@1`、`majorVersion=1`、`breakingChangesRequireNewMajor=true`、active deprecation status、90 天 minimum notice、180 天 previous-major support policy，新增 `deploy/mcp/tool-versioning.contract.json` 与 `npm run check:mcp-tool-versioning`；historical major routing/migration examples/Developer Console version UI/live client compatibility smoke 未启用，Sprint 2.3 更新为 5/11 |

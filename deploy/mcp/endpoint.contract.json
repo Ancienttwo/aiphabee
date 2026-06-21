@@ -56,10 +56,15 @@
   ],
   "standard_error_codes": [
     "AUTH_REQUIRED",
-    "DATA_NOT_LICENSED",
     "SCOPE_DENIED",
+    "DATA_NOT_LICENSED",
+    "SYMBOL_AMBIGUOUS",
+    "OUT_OF_RANGE",
+    "TOO_MANY_ROWS",
     "RATE_LIMITED",
     "BUDGET_EXCEEDED",
+    "UPSTREAM_STALE",
+    "DATA_QUALITY_HOLD",
     "INTERNAL_ERROR"
   ],
   "forbidden_payloads": [

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  MCP_STANDARD_ERROR_CODES,
+  MCP_STANDARD_ERROR_CODES_VERSION,
   McpRuntimeInputError,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
@@ -10,7 +12,9 @@ import {
   createMcpProtocolPlan,
   getMcpApiKeyCapabilities,
   getMcpOAuthCapabilities,
-  getMcpRuntimeCapabilities
+  getMcpRuntimeCapabilities,
+  getMcpRuntimeStandardError,
+  getMcpStandardErrorDefinition
 } from "./index";
 
 describe("mcp endpoint default-deny scaffold", () => {
@@ -58,9 +62,22 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(getMcpRuntimeCapabilities()).toMatchObject({
       cursor_pagination_ready: true,
       max_row_limit_enforced: true,
+      mcp_error_detail_fields: [
+        "category",
+        "client_action",
+        "internal_code",
+        "mcp_error_version",
+        "recoverable",
+        "request_id",
+        "retry_after_required",
+        "source_record_id"
+      ],
       pagination_limits_ready: true,
       pagination_limits_version: "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0",
       pagination_or_rights_bypass_blocked: true,
+      standard_error_code_version:
+        "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      standard_error_codes_ready: true,
       tool_call_input_strict_validation: true,
       time_range_limits_ready: true,
       tool_schema_validation_version:
@@ -71,6 +88,53 @@ describe("mcp endpoint default-deny scaffold", () => {
       usage_remaining_ready: true,
       usage_request_id_visible: true,
       usage_reconciliation_ready: true
+    });
+    expect(getMcpRuntimeCapabilities().standard_error_codes).toEqual([
+      "AUTH_REQUIRED",
+      "SCOPE_DENIED",
+      "DATA_NOT_LICENSED",
+      "SYMBOL_AMBIGUOUS",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS",
+      "RATE_LIMITED",
+      "BUDGET_EXCEEDED",
+      "UPSTREAM_STALE",
+      "DATA_QUALITY_HOLD",
+      "INTERNAL_ERROR"
+    ]);
+    expect(getMcpRuntimeCapabilities().standard_error_categories).toEqual([
+      "authentication",
+      "authorization",
+      "data",
+      "limit",
+      "system"
+    ]);
+  });
+
+  it("maps MCP runtime input failures to stable PRD standard errors", () => {
+    expect(MCP_STANDARD_ERROR_CODES_VERSION).toBe(
+      "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0"
+    );
+    expect(MCP_STANDARD_ERROR_CODES).toEqual(
+      getMcpRuntimeCapabilities().standard_error_codes
+    );
+    expect(getMcpRuntimeStandardError("MCP_REDISTRIBUTION_RIGHTS_REQUIRED")).toBe(
+      "DATA_NOT_LICENSED"
+    );
+    expect(getMcpRuntimeStandardError("TOOL_SCOPE_REQUIRED")).toBe("SCOPE_DENIED");
+    expect(getMcpRuntimeStandardError("TOOL_LIMIT_EXCEEDED")).toBe("TOO_MANY_ROWS");
+    expect(getMcpRuntimeStandardError("TOOL_TIME_RANGE_EXCEEDED")).toBe(
+      "OUT_OF_RANGE"
+    );
+    expect(getMcpRuntimeStandardError("TOOL_NOT_REGISTERED")).toBe("SCOPE_DENIED");
+    expect(getMcpStandardErrorDefinition("RATE_LIMITED")).toMatchObject({
+      category: "limit",
+      client_action: "retry_after",
+      retry_after_required: true
+    });
+    expect(getMcpStandardErrorDefinition("DATA_QUALITY_HOLD")).toMatchObject({
+      category: "data",
+      recoverable: true
     });
   });
 
@@ -429,6 +493,25 @@ describe("mcp endpoint default-deny scaffold", () => {
       },
       protocol_version: "2025-03-26"
     });
+    expect(plan.response_shape).toMatchObject({
+      mcp_error_detail_fields: [
+        "category",
+        "client_action",
+        "internal_code",
+        "mcp_error_version",
+        "recoverable",
+        "request_id",
+        "retry_after_required",
+        "source_record_id"
+      ],
+      standard_error_code_version:
+        "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      standard_response_envelope: true,
+      structured_content_required: true
+    });
+    expect(plan.response_shape.standard_error_definitions).toHaveLength(
+      MCP_STANDARD_ERROR_CODES.length
+    );
   });
 
   it("returns an empty tools/list while MCP redistribution rights are unconfirmed", () => {
