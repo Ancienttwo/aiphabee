@@ -1,0 +1,95 @@
+{
+  "version": "2026-06-22.phase3.load-dr-incident-drill-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/observability",
+  "runtime_route": "GET /observability/runtime",
+  "route": "POST /observability/release-gates/load-dr-incident-drill/plan",
+  "standard_response_envelope": true,
+  "event_contract": "deploy/observability/events.contract.json",
+  "target_source": "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+  "covered_sprint_3_3_items": [
+    "load_test_artifact",
+    "disaster_recovery_restore",
+    "rto_rpo_targets",
+    "incident_response_drill",
+    "failover_rollback_plan",
+    "status_page_communications_drill"
+  ],
+  "frontend": false,
+  "live_load_test_runner": false,
+  "live_restore_execution": false,
+  "live_incident_pager": false,
+  "live_status_page_writes": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "targets": {
+    "load_test_min_peak_rps": 100,
+    "load_test_max_error_rate_bps": 50,
+    "dr_rto_minutes": 60,
+    "dr_rpo_minutes": 15
+  },
+  "covered_scenarios": [
+    "load_test_peak_traffic",
+    "database_restore",
+    "worker_failover",
+    "rollback",
+    "incident_response",
+    "status_comms"
+  ],
+  "synthetic_evidence": {
+    "load_test_artifact_id": "synthetic-load-test-artifact",
+    "load_test_completed": true,
+    "load_test_peak_rps": 120,
+    "load_test_error_rate_bps": 20,
+    "restore_drill_completed": true,
+    "dr_rto_minutes": 45,
+    "dr_rpo_minutes": 10,
+    "incident_drill_completed": true,
+    "failover_plan_id": "synthetic-worker-failover-plan",
+    "rollback_plan_id": "synthetic-release-rollback-plan",
+    "status_page_drill_id": "synthetic-status-page-drill",
+    "communications_drill_completed": true
+  },
+  "required_checks": [
+    "load_test_artifact_present",
+    "load_test_targets_met",
+    "dr_restore_rto_target_met",
+    "dr_restore_rpo_target_met",
+    "incident_drill_completed",
+    "failover_rollback_plan_present",
+    "communications_and_status_page_drill_present",
+    "live_execution_and_persistent_writes_blocked"
+  ],
+  "required_output_fields": [
+    "drill_report",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "tables": [
+    "core.load_dr_incident_drill_release_gate",
+    "audit.load_dr_incident_drill_event",
+    "governance.load_dr_incident_drill_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_load_dr_incident_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "ops",
+      "sre",
+      "product"
+    ],
+    "blockers": [
+      "live_load_test_artifact_missing",
+      "live_dr_restore_evidence_missing",
+      "live_failover_execution_missing",
+      "live_incident_drill_evidence_missing",
+      "live_status_page_drill_missing",
+      "ops_sre_product_signoff_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/observability/events.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

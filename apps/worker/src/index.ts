@@ -169,10 +169,13 @@ import {
   createAgentDryRunTelemetry,
   createConsoleTelemetrySink,
   createEvalV1RunRecord,
+  createLoadDrIncidentDrillReleaseGatePlan,
   createPerformanceAvailabilityReleaseGatePlan,
   getEvalV1Capabilities,
+  getLoadDrIncidentDrillReleaseGateCapabilities,
   getPerformanceAvailabilityReleaseGateCapabilities,
   type EvalV1MetricInput,
+  type LoadDrIncidentDrillEvidenceInput,
   type PerformanceAvailabilityObservationInput,
   type WvroHighIntentAction,
   recordTelemetryEvents
@@ -4207,6 +4210,8 @@ app.get("/observability/runtime", (c) => {
         },
         performance_availability_release_gate:
           getPerformanceAvailabilityReleaseGateCapabilities(),
+        load_dr_incident_drill_release_gate:
+          getLoadDrIncidentDrillReleaseGateCapabilities(),
         sinks: [
           {
             live_export_enabled: false,
@@ -4361,6 +4366,42 @@ app.post("/observability/release-gates/performance-availability/plan", async (c)
         cached: false,
         credits: 0,
         rows: plan.slo_report.observations.length
+      }
+    })
+  );
+});
+
+app.post("/observability/release-gates/load-dr-incident-drill/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createLoadDrIncidentDrillReleaseGatePlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    evidence: normalizeLoadDrIncidentDrillEvidence(
+      body.evidence ?? body.drill_evidence ?? body.drillEvidence
+    ),
+    requestId
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(plan, {
+      asOf: plan.as_of,
+      dataVersion: plan.version,
+      methodologyVersion: plan.version,
+      provenance: [
+        {
+          data_version: plan.version,
+          methodology_version: plan.version,
+          source: "observability-load-dr-incident-drill",
+          source_record_id: "load-dr-incident-drill-release-gate-plan"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: plan.release_checks.length
       }
     })
   );
@@ -7642,6 +7683,45 @@ function normalizePerformanceAvailabilityObservations(
     ),
     web_first_token_p95_ms: normalizeOptionalNumber(
       value.web_first_token_p95_ms ?? value.webFirstTokenP95Ms
+    )
+  };
+}
+
+function normalizeLoadDrIncidentDrillEvidence(
+  value: unknown
+): LoadDrIncidentDrillEvidenceInput | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    communications_drill_completed: normalizeOptionalBoolean(
+      value.communications_drill_completed ?? value.communicationsDrillCompleted
+    ),
+    dr_rpo_minutes: normalizeOptionalNumber(value.dr_rpo_minutes ?? value.drRpoMinutes),
+    dr_rto_minutes: normalizeOptionalNumber(value.dr_rto_minutes ?? value.drRtoMinutes),
+    failover_plan_id: normalizeString(value.failover_plan_id ?? value.failoverPlanId),
+    incident_drill_completed: normalizeOptionalBoolean(
+      value.incident_drill_completed ?? value.incidentDrillCompleted
+    ),
+    load_test_artifact_id: normalizeString(
+      value.load_test_artifact_id ?? value.loadTestArtifactId
+    ),
+    load_test_completed: normalizeOptionalBoolean(
+      value.load_test_completed ?? value.loadTestCompleted
+    ),
+    load_test_error_rate_bps: normalizeOptionalNumber(
+      value.load_test_error_rate_bps ?? value.loadTestErrorRateBps
+    ),
+    load_test_peak_rps: normalizeOptionalNumber(
+      value.load_test_peak_rps ?? value.loadTestPeakRps
+    ),
+    restore_drill_completed: normalizeOptionalBoolean(
+      value.restore_drill_completed ?? value.restoreDrillCompleted
+    ),
+    rollback_plan_id: normalizeString(value.rollback_plan_id ?? value.rollbackPlanId),
+    status_page_drill_id: normalizeString(
+      value.status_page_drill_id ?? value.statusPageDrillId
     )
   };
 }

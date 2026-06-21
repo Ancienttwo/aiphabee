@@ -577,6 +577,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql",
+      "purpose": "Create empty load, disaster recovery, and incident drill release gate scaffolds for load-test artifacts, restore RTO/RPO, failover/rollback, incident response, and status communications without enabling live load runners, restore execution, incident paging, status writes, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.load_dr_incident_drill_release_gate",
+        "audit.load_dr_incident_drill_event",
+        "governance.load_dr_incident_drill_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

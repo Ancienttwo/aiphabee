@@ -3,12 +3,14 @@ import {
   createAgentDryRunTelemetry,
   createEvalV1RunRecord,
   createEvalStoreRecord,
+  createLoadDrIncidentDrillReleaseGatePlan,
   createPerformanceAvailabilityReleaseGatePlan,
   createEvalStoreTelemetrySink,
   createInMemoryEvalStore,
   createInMemoryTelemetrySink,
   createTelemetryEventId,
   getEvalV1Capabilities,
+  getLoadDrIncidentDrillReleaseGateCapabilities,
   getPerformanceAvailabilityReleaseGateCapabilities,
   recordTelemetryEvents
 } from "./index";
@@ -298,6 +300,117 @@ describe("observability scaffold", () => {
     expect(plan.validation.mcp_tool_p95_targets_met).toBe(false);
     expect(plan.validation.tool_success_rate_target_met).toBe(false);
     expect(plan.validation.web_first_token_p95_target_met).toBe(false);
+    expect(plan.validation.all_checks_passed).toBe(false);
+  });
+
+  it("describes load, disaster recovery, and incident drill release gate capabilities", () => {
+    const capabilities = getLoadDrIncidentDrillReleaseGateCapabilities();
+
+    expect(capabilities).toMatchObject({
+      event_contract: "deploy/observability/events.contract.json",
+      frontend: false,
+      live_incident_pager: false,
+      live_load_test_runner: false,
+      live_restore_execution: false,
+      live_status_page_writes: false,
+      package: "@aiphabee/observability",
+      persistent_writes: false,
+      route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+      runtime_route: "GET /observability/runtime",
+      sql_emitted: false,
+      status: "load_dr_incident_drill_release_gate_scaffold",
+      target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      version: "2026-06-22.phase3.load-dr-incident-drill-release-gate-scaffold.v0"
+    });
+    expect(capabilities.targets).toEqual({
+      dr_rpo_minutes: 15,
+      dr_rto_minutes: 60,
+      load_test_max_error_rate_bps: 50,
+      load_test_min_peak_rps: 100
+    });
+  });
+
+  it("plans load, disaster recovery, and incident drills without live execution", () => {
+    const plan = createLoadDrIncidentDrillReleaseGatePlan({
+      asOf: "2026-06-22T02:00:00.000Z",
+      requestId: "req-load-dr-incident"
+    });
+
+    expect(plan).toMatchObject({
+      as_of: "2026-06-22T02:00:00.000Z",
+      frontend: false,
+      live_incident_pager: false,
+      live_load_test_runner: false,
+      live_restore_execution: false,
+      live_status_page_writes: false,
+      persistent_writes: false,
+      request_id: "req-load-dr-incident",
+      route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        communications_and_status_page_drill_present: true,
+        dr_restore_rpo_target_met: true,
+        dr_restore_rto_target_met: true,
+        failover_rollback_plan_present: true,
+        incident_drill_completed: true,
+        live_execution_and_persistent_writes_blocked: true,
+        live_release_claimed: false,
+        load_test_artifact_present: true,
+        load_test_targets_met: true
+      },
+      version: "2026-06-22.phase3.load-dr-incident-drill-release-gate-scaffold.v0"
+    });
+    expect(plan.drill_report).toMatchObject({
+      prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      status: "synthetic_drill_report_ready",
+      window: "release_gate_fixture"
+    });
+    expect(plan.drill_report.covered_scenarios).toEqual([
+      "load_test_peak_traffic",
+      "database_restore",
+      "worker_failover",
+      "rollback",
+      "incident_response",
+      "status_comms"
+    ]);
+    expect(plan.drill_report.evidence).toMatchObject({
+      dr_rpo_minutes: 10,
+      dr_rto_minutes: 45,
+      load_test_error_rate_bps: 20,
+      load_test_peak_rps: 120,
+      measured_from: "synthetic_release_gate_fixture"
+    });
+    expect(plan.release_checks).toHaveLength(8);
+    expect(plan.release_gate).toMatchObject({
+      gate_status: "blocked_live_load_dr_incident_validation",
+      no_live_release_claim: true
+    });
+    expect(plan.release_gate.blockers).toContain("ops_sre_product_signoff_missing");
+  });
+
+  it("fails load, disaster recovery, and incident drill gate when evidence misses targets", () => {
+    const plan = createLoadDrIncidentDrillReleaseGatePlan({
+      evidence: {
+        communications_drill_completed: false,
+        dr_rpo_minutes: 30,
+        dr_rto_minutes: 90,
+        incident_drill_completed: false,
+        load_test_completed: false,
+        load_test_error_rate_bps: 80,
+        load_test_peak_rps: 80,
+        restore_drill_completed: true
+      },
+      requestId: "req-load-dr-incident-fail"
+    });
+
+    expect(plan.validation.load_test_artifact_present).toBe(false);
+    expect(plan.validation.load_test_targets_met).toBe(false);
+    expect(plan.validation.dr_restore_rpo_target_met).toBe(false);
+    expect(plan.validation.dr_restore_rto_target_met).toBe(false);
+    expect(plan.validation.incident_drill_completed).toBe(false);
+    expect(plan.validation.communications_and_status_page_drill_present).toBe(false);
     expect(plan.validation.all_checks_passed).toBe(false);
   });
 

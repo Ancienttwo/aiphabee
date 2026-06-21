@@ -5334,6 +5334,16 @@ interface ObservabilityRuntimeBody {
         web_first_token_p95_ms: number;
       };
     };
+    load_dr_incident_drill_release_gate: {
+      route: string;
+      status: string;
+      targets: {
+        dr_rpo_minutes: number;
+        dr_rto_minutes: number;
+        load_test_max_error_rate_bps: number;
+        load_test_min_peak_rps: number;
+      };
+    };
     sinks: Array<{
       live_export_enabled: boolean;
       name: string;
@@ -5377,6 +5387,50 @@ interface PerformanceAvailabilityReleaseGatePlanBody {
       route_coverage: string[];
       status: string;
     };
+    status: string;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface LoadDrIncidentDrillReleaseGatePlanBody {
+  data: {
+    as_of: string;
+    capability: {
+      route: string;
+      status: string;
+    };
+    drill_report: {
+      covered_scenarios: string[];
+      evidence: {
+        dr_rpo_minutes: number;
+        dr_rto_minutes: number;
+        load_test_error_rate_bps: number;
+        load_test_peak_rps: number;
+        measured_from: string;
+      };
+      status: string;
+    };
+    frontend: boolean;
+    live_incident_pager: boolean;
+    live_load_test_runner: boolean;
+    live_restore_execution: boolean;
+    live_status_page_writes: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_id: string;
+    route: string;
     status: string;
     validation: Record<string, boolean>;
     version: string;
@@ -14935,6 +14989,16 @@ describe("worker runtime", () => {
         web_first_token_p95_ms: 2500
       }
     });
+    expect(body.data.load_dr_incident_drill_release_gate).toMatchObject({
+      route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+      status: "load_dr_incident_drill_release_gate_scaffold",
+      targets: {
+        dr_rpo_minutes: 15,
+        dr_rto_minutes: 60,
+        load_test_max_error_rate_bps: 50,
+        load_test_min_peak_rps: 100
+      }
+    });
     expect(body.data.sinks.every((sink) => sink.live_export_enabled === false)).toBe(
       true
     );
@@ -15051,6 +15115,99 @@ describe("worker runtime", () => {
       no_live_release_claim: true
     });
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans load, disaster recovery, and incident drill release gate without live execution", async () => {
+    const response = await app.request(
+      "/observability/release-gates/load-dr-incident-drill/plan",
+      {
+        body: JSON.stringify({
+          as_of: "2026-06-22T02:00:00.000Z"
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req-load-dr-incident-release-gate"
+        },
+        method: "POST"
+      }
+    );
+    const body = (await response.json()) as LoadDrIncidentDrillReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      as_of: "2026-06-22T02:00:00.000Z",
+      capability: {
+        route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+        status: "load_dr_incident_drill_release_gate_scaffold"
+      },
+      frontend: false,
+      live_incident_pager: false,
+      live_load_test_runner: false,
+      live_restore_execution: false,
+      live_status_page_writes: false,
+      request_id: "req-load-dr-incident-release-gate",
+      route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+      status: "planned_no_write",
+      validation: {
+        all_checks_passed: true,
+        communications_and_status_page_drill_present: true,
+        dr_restore_rpo_target_met: true,
+        dr_restore_rto_target_met: true,
+        failover_rollback_plan_present: true,
+        incident_drill_completed: true,
+        live_execution_and_persistent_writes_blocked: true,
+        live_release_claimed: false,
+        load_test_artifact_present: true,
+        load_test_targets_met: true
+      },
+      version: "2026-06-22.phase3.load-dr-incident-drill-release-gate-scaffold.v0"
+    });
+    expect(body.data.drill_report).toMatchObject({
+      evidence: {
+        dr_rpo_minutes: 10,
+        dr_rto_minutes: 45,
+        load_test_error_rate_bps: 20,
+        load_test_peak_rps: 120,
+        measured_from: "synthetic_release_gate_fixture"
+      },
+      status: "synthetic_drill_report_ready"
+    });
+    expect(body.data.drill_report.covered_scenarios).toEqual([
+      "load_test_peak_traffic",
+      "database_restore",
+      "worker_failover",
+      "rollback",
+      "incident_response",
+      "status_comms"
+    ]);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "load_test_artifact_present",
+      "load_test_targets_met",
+      "dr_restore_rto_target_met",
+      "dr_restore_rpo_target_met",
+      "incident_drill_completed",
+      "failover_rollback_plan_present",
+      "communications_and_status_page_drill_present",
+      "live_execution_and_persistent_writes_blocked"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "live_load_test_artifact_missing",
+        "live_dr_restore_evidence_missing",
+        "live_failover_execution_missing",
+        "live_incident_drill_evidence_missing",
+        "live_status_page_drill_missing",
+        "ops_sre_product_signoff_missing"
+      ],
+      gate_status: "blocked_live_load_dr_incident_validation",
+      no_live_release_claim: true
+    });
+    expect(body.usage.rows).toBe(8);
   });
 
   it("plans eval v1 quality metrics and WVRO eligibility without writes", async () => {

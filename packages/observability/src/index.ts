@@ -3,6 +3,8 @@ export const EVAL_STORE_SCHEMA_VERSION = "2026-06-20.phase0.eval-store.v0";
 export const EVAL_V1_VERSION = "2026-06-21.phase1.eval-v1-wvro-scaffold.v0";
 export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.performance-availability-release-gate-scaffold.v0";
+export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_VERSION =
+  "2026-06-22.phase3.load-dr-incident-drill-release-gate-scaffold.v0";
 export const WVRO_HIGH_INTENT_ACTIONS = [
   "save_research",
   "add_to_watchlist",
@@ -35,6 +37,13 @@ export type PerformanceAvailabilityMetricId =
   | "web_first_token_p95_ms"
   | "simple_research_completion_p95_ms"
   | "mcp_tool_success_rate_bps";
+export type LoadDrIncidentScenarioId =
+  | "load_test_peak_traffic"
+  | "database_restore"
+  | "worker_failover"
+  | "rollback"
+  | "incident_response"
+  | "status_comms";
 
 export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS = [
   "core_api_availability_target_met",
@@ -49,6 +58,21 @@ export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES = [
   "core.performance_availability_release_gate",
   "audit.performance_slo_drill_event",
   "governance.performance_availability_release_gate_contract"
+] as const;
+export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS = [
+  "load_test_artifact_present",
+  "load_test_targets_met",
+  "dr_restore_rto_target_met",
+  "dr_restore_rpo_target_met",
+  "incident_drill_completed",
+  "failover_rollback_plan_present",
+  "communications_and_status_page_drill_present",
+  "live_execution_and_persistent_writes_blocked"
+] as const;
+export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES = [
+  "core.load_dr_incident_drill_release_gate",
+  "audit.load_dr_incident_drill_event",
+  "governance.load_dr_incident_drill_release_gate_contract"
 ] as const;
 
 export interface EvalV1MetricInput {
@@ -85,6 +109,21 @@ export interface PerformanceAvailabilityObservationInput {
   mcp_tool_success_rate_bps?: number;
   simple_research_completion_p95_ms?: number;
   web_first_token_p95_ms?: number;
+}
+
+export interface LoadDrIncidentDrillEvidenceInput {
+  communications_drill_completed?: boolean;
+  dr_rpo_minutes?: number;
+  dr_rto_minutes?: number;
+  failover_plan_id?: string;
+  incident_drill_completed?: boolean;
+  load_test_artifact_id?: string;
+  load_test_completed?: boolean;
+  load_test_error_rate_bps?: number;
+  load_test_peak_rps?: number;
+  restore_drill_completed?: boolean;
+  rollback_plan_id?: string;
+  status_page_drill_id?: string;
 }
 
 export interface EvalV1MetricResult {
@@ -169,6 +208,31 @@ export interface PerformanceAvailabilityReleaseGateCapabilities {
   version: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION;
 }
 
+export interface LoadDrIncidentDrillReleaseGateCapabilities {
+  event_contract: "deploy/observability/events.contract.json";
+  frontend: false;
+  live_incident_pager: false;
+  live_load_test_runner: false;
+  live_restore_execution: false;
+  live_status_page_writes: false;
+  package: "@aiphabee/observability";
+  persistent_writes: false;
+  required_checks: typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS;
+  route: "POST /observability/release-gates/load-dr-incident-drill/plan";
+  runtime_route: "GET /observability/runtime";
+  sql_emitted: false;
+  status: "load_dr_incident_drill_release_gate_scaffold";
+  tables: typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES;
+  target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1";
+  targets: {
+    dr_rpo_minutes: 15;
+    dr_rto_minutes: 60;
+    load_test_max_error_rate_bps: 50;
+    load_test_min_peak_rps: 100;
+  };
+  version: typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_VERSION;
+}
+
 export interface TelemetryEventBase {
   attributes: Record<string, boolean | number | string>;
   emitted_at: string;
@@ -225,6 +289,12 @@ export interface AgentDryRunTelemetryInput {
 export interface PerformanceAvailabilityReleaseGatePlanInput {
   asOf?: string;
   observations?: PerformanceAvailabilityObservationInput;
+  requestId: string;
+}
+
+export interface LoadDrIncidentDrillReleaseGatePlanInput {
+  asOf?: string;
+  evidence?: LoadDrIncidentDrillEvidenceInput;
   requestId: string;
 }
 
@@ -301,6 +371,80 @@ export interface PerformanceAvailabilityReleaseGatePlan {
     web_first_token_p95_target_met: boolean;
   };
   version: typeof PERFORMANCE_AVAILABILITY_RELEASE_GATE_VERSION;
+}
+
+export interface LoadDrIncidentDrillEvidence {
+  communications_drill_completed: boolean;
+  dr_rpo_minutes: number;
+  dr_rpo_target_minutes: 15;
+  dr_rto_minutes: number;
+  dr_rto_target_minutes: 60;
+  failover_plan_id: string;
+  incident_drill_completed: boolean;
+  load_test_artifact_id: string;
+  load_test_completed: boolean;
+  load_test_error_rate_bps: number;
+  load_test_max_error_rate_bps: 50;
+  load_test_min_peak_rps: 100;
+  load_test_peak_rps: number;
+  measured_from: "synthetic_release_gate_fixture";
+  restore_drill_completed: boolean;
+  rollback_plan_id: string;
+  status_page_drill_id: string;
+}
+
+export interface LoadDrIncidentDrillReleaseGatePlan {
+  as_of: string;
+  capability: LoadDrIncidentDrillReleaseGateCapabilities;
+  drill_report: {
+    covered_scenarios: readonly LoadDrIncidentScenarioId[];
+    evidence: LoadDrIncidentDrillEvidence;
+    prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1";
+    status: "synthetic_drill_report_ready";
+    window: "release_gate_fixture";
+  };
+  frontend: false;
+  live_incident_pager: false;
+  live_load_test_runner: false;
+  live_restore_execution: false;
+  live_status_page_writes: false;
+  persistent_writes: false;
+  release_checks: Array<{
+    check: (typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS)[number];
+    evidence: string;
+    status: "planned_no_write";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_load_test_artifact_missing",
+      "live_dr_restore_evidence_missing",
+      "live_failover_execution_missing",
+      "live_incident_drill_evidence_missing",
+      "live_status_page_drill_missing",
+      "ops_sre_product_signoff_missing"
+    ];
+    gate_status: "blocked_live_load_dr_incident_validation";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["ops", "sre", "product"];
+  };
+  request_id: string;
+  route: "POST /observability/release-gates/load-dr-incident-drill/plan";
+  sql_emitted: false;
+  status: "planned_no_write";
+  tables: typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES;
+  validation: {
+    all_checks_passed: boolean;
+    communications_and_status_page_drill_present: boolean;
+    dr_restore_rpo_target_met: boolean;
+    dr_restore_rto_target_met: boolean;
+    failover_rollback_plan_present: boolean;
+    incident_drill_completed: boolean;
+    live_execution_and_persistent_writes_blocked: boolean;
+    live_release_claimed: false;
+    load_test_artifact_present: boolean;
+    load_test_targets_met: boolean;
+  };
+  version: typeof LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_VERSION;
 }
 
 export interface TelemetrySink {
@@ -529,6 +673,33 @@ export function getPerformanceAvailabilityReleaseGateCapabilities(): Performance
   };
 }
 
+export function getLoadDrIncidentDrillReleaseGateCapabilities(): LoadDrIncidentDrillReleaseGateCapabilities {
+  return {
+    event_contract: "deploy/observability/events.contract.json",
+    frontend: false,
+    live_incident_pager: false,
+    live_load_test_runner: false,
+    live_restore_execution: false,
+    live_status_page_writes: false,
+    package: "@aiphabee/observability",
+    persistent_writes: false,
+    required_checks: LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS,
+    route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+    runtime_route: "GET /observability/runtime",
+    sql_emitted: false,
+    status: "load_dr_incident_drill_release_gate_scaffold",
+    tables: LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES,
+    target_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+    targets: {
+      dr_rpo_minutes: 15,
+      dr_rto_minutes: 60,
+      load_test_max_error_rate_bps: 50,
+      load_test_min_peak_rps: 100
+    },
+    version: LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_VERSION
+  };
+}
+
 export function getEvalV1Capabilities(): EvalV1Capabilities {
   return {
     event_type: "run.eval",
@@ -661,6 +832,106 @@ export function createPerformanceAvailabilityReleaseGatePlan(
   };
 }
 
+export function createLoadDrIncidentDrillReleaseGatePlan(
+  input: LoadDrIncidentDrillReleaseGatePlanInput
+): LoadDrIncidentDrillReleaseGatePlan {
+  const requestId = normalizeIdentifier(input.requestId, "request_unattributed");
+  const asOf = input.asOf ?? "runtime_as_of_unresolved";
+  const capability = getLoadDrIncidentDrillReleaseGateCapabilities();
+  const evidence = createLoadDrIncidentDrillEvidence(input.evidence);
+  const validation = {
+    communications_and_status_page_drill_present:
+      evidence.communications_drill_completed && evidence.status_page_drill_id.length > 0,
+    dr_restore_rpo_target_met:
+      evidence.restore_drill_completed &&
+      evidence.dr_rpo_minutes <= evidence.dr_rpo_target_minutes,
+    dr_restore_rto_target_met:
+      evidence.restore_drill_completed &&
+      evidence.dr_rto_minutes <= evidence.dr_rto_target_minutes,
+    failover_rollback_plan_present:
+      evidence.failover_plan_id.length > 0 && evidence.rollback_plan_id.length > 0,
+    incident_drill_completed: evidence.incident_drill_completed,
+    live_execution_and_persistent_writes_blocked: true,
+    load_test_artifact_present:
+      evidence.load_test_completed && evidence.load_test_artifact_id.length > 0,
+    load_test_targets_met:
+      evidence.load_test_completed &&
+      evidence.load_test_peak_rps >= evidence.load_test_min_peak_rps &&
+      evidence.load_test_error_rate_bps <= evidence.load_test_max_error_rate_bps
+  };
+  const allChecksPassed = Object.values(validation).every(Boolean);
+  const releaseChecks = LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS.map((check) => ({
+    check,
+    evidence:
+      check === "load_test_artifact_present"
+        ? "synthetic load-test artifact id and completion flag are present"
+        : check === "load_test_targets_met"
+          ? "synthetic peak traffic RPS and error-rate observations meet PRD §12.1 release thresholds"
+          : check === "dr_restore_rto_target_met"
+            ? "synthetic database restore drill RTO is within the 60 minute release target"
+            : check === "dr_restore_rpo_target_met"
+              ? "synthetic database restore drill RPO is within the 15 minute release target"
+              : check === "incident_drill_completed"
+                ? "synthetic incident response tabletop drill is marked completed"
+                : check === "failover_rollback_plan_present"
+                  ? "synthetic worker failover and release rollback plan ids are present"
+                  : check === "communications_and_status_page_drill_present"
+                    ? "synthetic status-page and stakeholder communication drill evidence is present"
+                    : "live load runner, restore execution, incident pager, status-page writes, SQL, and persistent writes remain disabled",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    as_of: asOf,
+    capability,
+    drill_report: {
+      covered_scenarios: [
+        "load_test_peak_traffic",
+        "database_restore",
+        "worker_failover",
+        "rollback",
+        "incident_response",
+        "status_comms"
+      ],
+      evidence,
+      prd_source: "docs/researches/AiphaBee_PRD_v1.0.md#12.1",
+      status: "synthetic_drill_report_ready",
+      window: "release_gate_fixture"
+    },
+    frontend: false,
+    live_incident_pager: false,
+    live_load_test_runner: false,
+    live_restore_execution: false,
+    live_status_page_writes: false,
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_load_test_artifact_missing",
+        "live_dr_restore_evidence_missing",
+        "live_failover_execution_missing",
+        "live_incident_drill_evidence_missing",
+        "live_status_page_drill_missing",
+        "ops_sre_product_signoff_missing"
+      ],
+      gate_status: "blocked_live_load_dr_incident_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["ops", "sre", "product"]
+    },
+    request_id: requestId,
+    route: "POST /observability/release-gates/load-dr-incident-drill/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES,
+    validation: {
+      ...validation,
+      all_checks_passed: allChecksPassed,
+      live_release_claimed: false
+    },
+    version: LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_VERSION
+  };
+}
+
 export function createEvalV1RunRecord(input: EvalV1RunInput): EvalV1RunRecord {
   const highIntentActions = normalizeHighIntentActions(input.highIntentActions);
   const successfulFinancialToolCalls = normalizeCount(input.successfulFinancialToolCalls);
@@ -790,6 +1061,42 @@ function createPerformanceObservation(
     pass: comparator === "at_least" ? observedValue >= targetValue : observedValue <= targetValue,
     target_value: targetValue,
     unit
+  };
+}
+
+function createLoadDrIncidentDrillEvidence(
+  input: LoadDrIncidentDrillEvidenceInput | undefined
+): LoadDrIncidentDrillEvidence {
+  return {
+    communications_drill_completed: input?.communications_drill_completed ?? true,
+    dr_rpo_minutes: normalizeNumericObservation(input?.dr_rpo_minutes, 10),
+    dr_rpo_target_minutes: 15,
+    dr_rto_minutes: normalizeNumericObservation(input?.dr_rto_minutes, 45),
+    dr_rto_target_minutes: 60,
+    failover_plan_id: normalizeIdentifier(
+      input?.failover_plan_id,
+      "synthetic-worker-failover-plan"
+    ),
+    incident_drill_completed: input?.incident_drill_completed ?? true,
+    load_test_artifact_id: normalizeIdentifier(
+      input?.load_test_artifact_id,
+      "synthetic-load-test-artifact"
+    ),
+    load_test_completed: input?.load_test_completed ?? true,
+    load_test_error_rate_bps: normalizeNumericObservation(input?.load_test_error_rate_bps, 20),
+    load_test_max_error_rate_bps: 50,
+    load_test_min_peak_rps: 100,
+    load_test_peak_rps: normalizeNumericObservation(input?.load_test_peak_rps, 120),
+    measured_from: "synthetic_release_gate_fixture",
+    restore_drill_completed: input?.restore_drill_completed ?? true,
+    rollback_plan_id: normalizeIdentifier(
+      input?.rollback_plan_id,
+      "synthetic-release-rollback-plan"
+    ),
+    status_page_drill_id: normalizeIdentifier(
+      input?.status_page_drill_id,
+      "synthetic-status-page-drill"
+    )
   };
 }
 
