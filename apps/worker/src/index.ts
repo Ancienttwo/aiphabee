@@ -158,9 +158,12 @@ import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import {
   USAGE_QUOTA_CHANNELS,
   USAGE_QUOTA_PLAN_CODES,
+  createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
+  getUsageBillingReconciliationCapabilities,
   getUsageLedgerEventWriterCapabilities,
   getUsageQuotaDisplayCapabilities,
+  type UsageBillingLedgerEntryInput,
   type UsageQuotaChannel,
   type UsageQuotaPlanCode
 } from "@aiphabee/usage-ledger";
@@ -729,24 +732,30 @@ app.get("/usage/runtime", (c) => {
   c.header("Cache-Control", "no-store");
 
   return c.json(
-    createSuccessEnvelope(getUsageQuotaDisplayCapabilities(), {
-      asOf: new Date().toISOString(),
-      methodologyVersion: "usage-quota-display-scaffold-v0",
-      provenance: [
-        {
-          data_version: "usage-quota-display-scaffold-v0",
-          methodology_version: "usage-quota-display-scaffold-v0",
-          source: "usage-quota-display-contract",
-          source_record_id: "runtime-capabilities"
+    createSuccessEnvelope(
+      {
+        ...getUsageQuotaDisplayCapabilities(),
+        billing_reconciliation: getUsageBillingReconciliationCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "usage-quota-display-scaffold-v0",
+        provenance: [
+          {
+            data_version: "usage-quota-display-scaffold-v0",
+            methodology_version: "usage-quota-display-scaffold-v0",
+            source: "usage-quota-display-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
         }
-      ],
-      requestId,
-      usage: {
-        cached: false,
-        credits: 0,
-        rows: 0
       }
-    })
+    )
   );
 });
 
@@ -791,6 +800,55 @@ app.post("/usage/quota/plan", async (c) => {
           cached: false,
           credits: 0,
           rows: plan.status === "planned_no_write" ? 1 : 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/usage/billing/reconciliation/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createUsageBillingReconciliationPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    billingPeriodEnd: normalizeString(body.billing_period_end ?? body.billingPeriodEnd),
+    billingPeriodStart: normalizeString(body.billing_period_start ?? body.billingPeriodStart),
+    currency: normalizeString(body.currency),
+    invoiceAmountMinor: normalizeOptionalNumber(body.invoice_amount_minor ?? body.invoiceAmountMinor),
+    invoiceCredits: normalizeOptionalNumber(body.invoice_credits ?? body.invoiceCredits),
+    invoiceId: normalizeString(body.invoice_id ?? body.invoiceId),
+    ledgerEntries: normalizeUsageBillingLedgerEntries(body.ledger_entries ?? body.ledgerEntries),
+    requestId,
+    subscriptionId: normalizeString(body.subscription_id ?? body.subscriptionId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getUsageBillingReconciliationCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "usage-billing-reconciliation",
+            source_record_id: "usage-billing-reconciliation-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.invoice_lines.length
         }
       }
     )
@@ -4298,6 +4356,31 @@ function normalizeOptionalBoolean(value: unknown): boolean | undefined {
 
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeUsageBillingLedgerEntries(
+  value: unknown
+): UsageBillingLedgerEntryInput[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const entries = value
+    .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+    .map((item) => ({
+      creditDelta: normalizeOptionalNumber(item.credit_delta ?? item.creditDelta) ?? 0,
+      ledgerEntryId: normalizeString(item.ledger_entry_id ?? item.ledgerEntryId) ?? "",
+      requestId: normalizeString(item.request_id ?? item.requestId) ?? "",
+      usageEventId: normalizeString(item.usage_event_id ?? item.usageEventId) ?? ""
+    }))
+    .filter(
+      (entry) =>
+        entry.ledgerEntryId.length > 0 &&
+        entry.requestId.length > 0 &&
+        entry.usageEventId.length > 0
+    );
+
+  return entries.length > 0 ? entries : undefined;
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {

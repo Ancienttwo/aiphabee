@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
+  getUsageBillingReconciliationCapabilities,
   getUsageQuotaDisplayCapabilities,
   getUsageLedgerEventWriterCapabilities
 } from "./index";
@@ -142,6 +144,26 @@ describe("usage ledger event writer scaffold", () => {
     });
   });
 
+  it("reports usage billing reconciliation capabilities", () => {
+    expect(getUsageBillingReconciliationCapabilities()).toMatchObject({
+      billing_provider_calls: false,
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "POST /usage/billing/reconciliation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "usage_billing_reconciliation_scaffold"
+    });
+    expect(getUsageBillingReconciliationCapabilities().trace_fields).toEqual([
+      "request_id",
+      "usage_event_id",
+      "ledger_entry_id",
+      "invoice_line_id"
+    ]);
+  });
+
   it("plans quota display values without live ledger reads", () => {
     const plan = createUsageQuotaDisplayPlan({
       accountId: "acct_internal_001",
@@ -181,5 +203,111 @@ describe("usage ledger event writer scaffold", () => {
     expect(plan.status).toBe("blocked_missing_workspace");
     expect(plan.workspace_id).toBe("workspace_unresolved");
     expect(plan.quota.plan_code).toBe("free");
+  });
+
+  it("plans subscription bill reconciliation against traceable usage ledger entries", () => {
+    const plan = createUsageBillingReconciliationPlan({
+      accountId: "acct_internal_001",
+      billingPeriodEnd: "2026-07-01T00:00:00.000Z",
+      billingPeriodStart: "2026-06-01T00:00:00.000Z",
+      currency: "HKD",
+      invoiceAmountMinor: 68800,
+      invoiceCredits: 15,
+      invoiceId: "inv_ws_internal_alpha_202606",
+      ledgerEntries: [
+        {
+          creditDelta: 10,
+          ledgerEntryId: "usage_ledger_entry_req_tool_001",
+          requestId: "req_tool_001",
+          usageEventId: "usage_event_req_tool_001"
+        },
+        {
+          creditDelta: 5,
+          ledgerEntryId: "usage_ledger_entry_req_tool_002",
+          requestId: "req_tool_002",
+          usageEventId: "usage_event_req_tool_002"
+        }
+      ],
+      requestId: "req_billing_reconciliation",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      currency: "HKD",
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id: "req_billing_reconciliation",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      subscription_id: "sub_ws_internal_alpha_developer",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(plan.consistency).toEqual({
+      credit_delta: 0,
+      invoice_credits: 15,
+      ledger_credits: 15,
+      status: "matched"
+    });
+    expect(plan.invoice).toMatchObject({
+      amount_minor: 68800,
+      invoice_id: "inv_ws_internal_alpha_202606",
+      source: "synthetic_billing_snapshot",
+      table: "core.subscription_invoice"
+    });
+    expect(plan.invoice_lines).toHaveLength(2);
+    expect(plan.invoice_lines[0]).toMatchObject({
+      credit_delta: 10,
+      ledger_entry_id: "usage_ledger_entry_req_tool_001",
+      request_id: "req_tool_001",
+      trace_status: "traceable",
+      usage_event_id: "usage_event_req_tool_001"
+    });
+    expect(plan.traceability).toEqual({
+      required_fields: [
+        "request_id",
+        "usage_event_id",
+        "ledger_entry_id",
+        "invoice_line_id"
+      ],
+      support_investigation_by_request_id: true,
+      traceable_call_count: 2,
+      traceable_to_call: true
+    });
+  });
+
+  it("flags billing mismatches and blocks missing reconciliation context", () => {
+    const mismatch = createUsageBillingReconciliationPlan({
+      billingPeriodEnd: "2026-07-01T00:00:00.000Z",
+      billingPeriodStart: "2026-06-01T00:00:00.000Z",
+      invoiceCredits: 20,
+      invoiceId: "inv_ws_internal_alpha_202606",
+      ledgerEntries: [
+        {
+          creditDelta: 10,
+          ledgerEntryId: "usage_ledger_entry_req_tool_001",
+          requestId: "req_tool_001",
+          usageEventId: "usage_event_req_tool_001"
+        }
+      ],
+      requestId: "req_billing_mismatch",
+      subscriptionId: "sub_ws_internal_alpha_developer",
+      workspaceId: "ws_internal_alpha"
+    });
+    const missing = createUsageBillingReconciliationPlan({
+      requestId: "req_billing_missing"
+    });
+
+    expect(mismatch.consistency).toEqual({
+      credit_delta: 10,
+      invoice_credits: 20,
+      ledger_credits: 10,
+      status: "mismatch"
+    });
+    expect(missing.status).toBe("blocked_missing_context");
+    expect(missing.traceability.traceable_to_call).toBe(false);
+    expect(missing.invoice_lines).toHaveLength(0);
   });
 });

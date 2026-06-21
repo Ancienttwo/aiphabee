@@ -150,6 +150,18 @@ interface AccountSubscriptionLifecyclePlanBody {
 
 interface UsageRuntimeBody {
   data: {
+    billing_reconciliation: {
+      billing_provider_calls: boolean;
+      freshness_target_minutes: number;
+      live_ledger_reads: boolean;
+      persistent_writes: boolean;
+      request_id_visible: boolean;
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      trace_fields: string[];
+    };
     billing_provider_reconciliation: boolean;
     channels: string[];
     display_fields: string[];
@@ -164,6 +176,57 @@ interface UsageRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface UsageBillingReconciliationPlanBody {
+  data: {
+    billing_provider: {
+      calls: boolean;
+      invoice_link_live: boolean;
+      provider: string;
+    };
+    capability: {
+      status: string;
+    };
+    consistency: {
+      credit_delta: number;
+      invoice_credits: number;
+      ledger_credits: number;
+      status: string;
+    };
+    freshness_target_minutes: number;
+    invoice: {
+      amount_minor: number;
+      invoice_id: string;
+      source: string;
+      table: string;
+    };
+    invoice_lines: Array<{
+      credit_delta: number;
+      invoice_line_id: string;
+      ledger_entry_id: string;
+      request_id: string;
+      trace_status: string;
+      usage_event_id: string;
+    }>;
+    live_ledger_reads: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    request_id_visible: boolean;
+    sql_emitted: boolean;
+    status: string;
+    subscription_id: string;
+    traceability: {
+      support_investigation_by_request_id: boolean;
+      traceable_call_count: number;
+      traceable_to_call: boolean;
+    };
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface UsageQuotaPlanBody {
@@ -3030,6 +3093,23 @@ describe("worker runtime", () => {
     expect(body.data.channels).toEqual(["web_agent", "mcp"]);
     expect(body.data.plan_codes).toContain("developer");
     expect(body.data.display_fields).toContain("credits_remaining");
+    expect(body.data.billing_reconciliation).toMatchObject({
+      billing_provider_calls: false,
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "POST /usage/billing/reconciliation/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "usage_billing_reconciliation_scaffold"
+    });
+    expect(body.data.billing_reconciliation.trace_fields).toEqual([
+      "request_id",
+      "usage_event_id",
+      "ledger_entry_id",
+      "invoice_line_id"
+    ]);
   });
 
   it("plans Web/MCP quota display values without reads or writes", async () => {
@@ -3073,6 +3153,95 @@ describe("worker runtime", () => {
       plan_code: "developer"
     });
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("plans subscription bill reconciliation back to usage ledger calls", async () => {
+    const response = await app.request("/usage/billing/reconciliation/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        billing_period_end: "2026-07-01T00:00:00.000Z",
+        billing_period_start: "2026-06-01T00:00:00.000Z",
+        currency: "HKD",
+        invoice_amount_minor: 68800,
+        invoice_credits: 15,
+        invoice_id: "inv_ws_internal_alpha_202606",
+        ledger_entries: [
+          {
+            credit_delta: 10,
+            ledger_entry_id: "usage_ledger_entry_req_tool_001",
+            request_id: "req_tool_001",
+            usage_event_id: "usage_event_req_tool_001"
+          },
+          {
+            credit_delta: 5,
+            ledger_entry_id: "usage_ledger_entry_req_tool_002",
+            request_id: "req_tool_002",
+            usage_event_id: "usage_event_req_tool_002"
+          }
+        ],
+        subscription_id: "sub_ws_internal_alpha_developer",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-billing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsageBillingReconciliationPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id: "req-usage-billing",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write",
+      subscription_id: "sub_ws_internal_alpha_developer",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.billing_provider).toMatchObject({
+      calls: false,
+      invoice_link_live: false,
+      provider: "not_configured"
+    });
+    expect(body.data.consistency).toEqual({
+      credit_delta: 0,
+      invoice_credits: 15,
+      ledger_credits: 15,
+      status: "matched"
+    });
+    expect(body.data.invoice).toMatchObject({
+      amount_minor: 68800,
+      invoice_id: "inv_ws_internal_alpha_202606",
+      source: "synthetic_billing_snapshot",
+      table: "core.subscription_invoice"
+    });
+    expect(body.data.invoice_lines).toHaveLength(2);
+    expect(body.data.invoice_lines[0]).toMatchObject({
+      credit_delta: 10,
+      ledger_entry_id: "usage_ledger_entry_req_tool_001",
+      request_id: "req_tool_001",
+      trace_status: "traceable",
+      usage_event_id: "usage_event_req_tool_001"
+    });
+    expect(body.data.traceability).toEqual({
+      required_fields: [
+        "request_id",
+        "usage_event_id",
+        "ledger_entry_id",
+        "invoice_line_id"
+      ],
+      support_investigation_by_request_id: true,
+      traceable_call_count: 2,
+      traceable_to_call: true
+    });
+    expect(body.data.capability.status).toBe("usage_billing_reconciliation_scaffold");
+    expect(body.usage.rows).toBe(2);
   });
 
   it("serves analytics tool capabilities without frontend or live data", async () => {

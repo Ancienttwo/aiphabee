@@ -2,6 +2,8 @@ export const USAGE_LEDGER_EVENT_WRITER_VERSION =
   "2026-06-20.phase1.usage-event-writer-scaffold.v0";
 export const USAGE_QUOTA_DISPLAY_VERSION =
   "2026-06-21.phase1.usage-quota-display-scaffold.v0";
+export const USAGE_BILLING_RECONCILIATION_VERSION =
+  "2026-06-21.phase2.usage-billing-reconciliation-scaffold.v0";
 
 export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
 export const USAGE_QUOTA_PLAN_CODES = [
@@ -26,6 +28,8 @@ export type UsageLedgerOperation =
   | "tool_call";
 export type UsageLedgerQualityState = "HOLD" | "PASS" | "REJECT_RAW" | "WARN";
 export type UsageLedgerWriterStatus = "write_blocked" | "write_planned";
+export type UsageBillingReconciliationStatus = "blocked_missing_context" | "planned_no_write";
+export type UsageBillingTraceStatus = "mismatch" | "traceable";
 export type UsageQuotaDisplayStatus = "blocked_missing_workspace" | "planned_no_write";
 
 export interface UsageLedgerEventPlanInput {
@@ -171,6 +175,100 @@ export interface UsageQuotaDisplayPlan {
   workspace_id: string;
 }
 
+export interface UsageBillingLedgerEntryInput {
+  creditDelta: number;
+  ledgerEntryId: string;
+  requestId: string;
+  usageEventId: string;
+}
+
+export interface UsageBillingReconciliationPlanInput {
+  accountId?: string;
+  billingPeriodEnd?: string;
+  billingPeriodStart?: string;
+  currency?: string;
+  invoiceAmountMinor?: number;
+  invoiceCredits?: number;
+  invoiceId?: string;
+  ledgerEntries?: UsageBillingLedgerEntryInput[];
+  requestId: string;
+  subscriptionId?: string;
+  workspaceId?: string;
+}
+
+export interface UsageBillingReconciliationPlan {
+  account_id?: string;
+  billing_provider: {
+    calls: false;
+    invoice_link_live: false;
+    provider: "not_configured";
+  };
+  consistency: {
+    credit_delta: number;
+    invoice_credits: number;
+    ledger_credits: number;
+    status: "matched" | "mismatch";
+  };
+  currency: string;
+  freshness_target_minutes: 5;
+  invoice: {
+    amount_minor: number;
+    invoice_id: string;
+    source: "synthetic_billing_snapshot";
+    table: "core.subscription_invoice";
+  };
+  invoice_lines: Array<{
+    credit_delta: number;
+    invoice_line_id: string;
+    ledger_entry_id: string;
+    request_id: string;
+    table: "core.subscription_invoice_line";
+    trace_status: UsageBillingTraceStatus;
+    usage_event_id: string;
+  }>;
+  live_ledger_reads: false;
+  persistent_writes: false;
+  period: {
+    period_end: string;
+    period_start: string;
+  };
+  request_id: string;
+  request_id_visible: true;
+  sql_emitted: false;
+  status: UsageBillingReconciliationStatus;
+  subscription_id: string;
+  tables: readonly [
+    "core.workspace_subscription",
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.usage_reconciliation_batch",
+    "core.subscription_invoice",
+    "core.subscription_invoice_line"
+  ];
+  traceability: {
+    required_fields: readonly [
+      "request_id",
+      "usage_event_id",
+      "ledger_entry_id",
+      "invoice_line_id"
+    ];
+    support_investigation_by_request_id: true;
+    traceable_call_count: number;
+    traceable_to_call: boolean;
+  };
+  version: typeof USAGE_BILLING_RECONCILIATION_VERSION;
+  workspace_id: string;
+}
+
+const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["tables"] = [
+  "core.workspace_subscription",
+  "core.usage_event",
+  "core.usage_ledger_entry",
+  "core.usage_reconciliation_batch",
+  "core.subscription_invoice",
+  "core.subscription_invoice_line"
+];
+
 export function createUsageLedgerEventPlan(
   input: UsageLedgerEventPlanInput
 ): UsageLedgerEventPlan {
@@ -295,6 +393,40 @@ export function getUsageQuotaDisplayCapabilities() {
   };
 }
 
+export function getUsageBillingReconciliationCapabilities() {
+  return {
+    billing_provider_calls: false,
+    display_fields: [
+      "request_id",
+      "invoice_id",
+      "subscription_id",
+      "period_start",
+      "period_end",
+      "invoice_credits",
+      "ledger_credits",
+      "credit_delta",
+      "traceable_call_count",
+      "freshness_target_minutes"
+    ] as const,
+    freshness_target_minutes: 5,
+    live_ledger_reads: false,
+    persistent_writes: false,
+    request_id_visible: true,
+    route: "POST /usage/billing/reconciliation/plan" as const,
+    runtime_route: "GET /usage/runtime" as const,
+    sql_emitted: false,
+    status: "usage_billing_reconciliation_scaffold" as const,
+    tables: USAGE_BILLING_RECONCILIATION_TABLES,
+    trace_fields: [
+      "request_id",
+      "usage_event_id",
+      "ledger_entry_id",
+      "invoice_line_id"
+    ] as const,
+    version: USAGE_BILLING_RECONCILIATION_VERSION
+  };
+}
+
 export function createUsageQuotaDisplayPlan(
   input: UsageQuotaDisplayPlanInput
 ): UsageQuotaDisplayPlan {
@@ -362,6 +494,94 @@ export function createUsageQuotaDisplayPlan(
   };
 }
 
+export function createUsageBillingReconciliationPlan(
+  input: UsageBillingReconciliationPlanInput
+): UsageBillingReconciliationPlan {
+  const workspaceId = input.workspaceId ?? "workspace_unresolved";
+  const subscriptionId = input.subscriptionId ?? `subscription_${sanitizeId(workspaceId)}`;
+  const invoiceId = input.invoiceId ?? `invoice_${sanitizeId(input.requestId)}`;
+  const ledgerEntries = input.ledgerEntries ?? [];
+  const ledgerCredits = ledgerEntries.reduce(
+    (total, entry) => total + normalizeCreditCount(entry.creditDelta),
+    0
+  );
+  const invoiceCredits = normalizeInvoiceCredits(input.invoiceCredits, ledgerCredits);
+  const creditDelta = invoiceCredits - ledgerCredits;
+  const traceableCallCount = ledgerEntries.filter(isTraceableLedgerEntry).length;
+  const requiredContextPresent =
+    input.workspaceId !== undefined &&
+    input.workspaceId.length > 0 &&
+    input.subscriptionId !== undefined &&
+    input.subscriptionId.length > 0 &&
+    input.invoiceId !== undefined &&
+    input.invoiceId.length > 0 &&
+    input.billingPeriodStart !== undefined &&
+    input.billingPeriodStart.length > 0 &&
+    input.billingPeriodEnd !== undefined &&
+    input.billingPeriodEnd.length > 0 &&
+    ledgerEntries.length > 0 &&
+    traceableCallCount === ledgerEntries.length;
+
+  return {
+    account_id: input.accountId,
+    billing_provider: {
+      calls: false,
+      invoice_link_live: false,
+      provider: "not_configured"
+    },
+    consistency: {
+      credit_delta: creditDelta,
+      invoice_credits: invoiceCredits,
+      ledger_credits: ledgerCredits,
+      status: creditDelta === 0 ? "matched" : "mismatch"
+    },
+    currency: input.currency ?? "HKD",
+    freshness_target_minutes: 5,
+    invoice: {
+      amount_minor: normalizeAmountMinor(input.invoiceAmountMinor),
+      invoice_id: invoiceId,
+      source: "synthetic_billing_snapshot",
+      table: "core.subscription_invoice"
+    },
+    invoice_lines: ledgerEntries.map((entry, index) => ({
+      credit_delta: normalizeCreditCount(entry.creditDelta),
+      invoice_line_id: `invoice_line_${sanitizeId(invoiceId)}_${index + 1}_${sanitizeId(
+        entry.ledgerEntryId
+      )}`,
+      ledger_entry_id: entry.ledgerEntryId,
+      request_id: entry.requestId,
+      table: "core.subscription_invoice_line",
+      trace_status: isTraceableLedgerEntry(entry) ? "traceable" : "mismatch",
+      usage_event_id: entry.usageEventId
+    })),
+    live_ledger_reads: false,
+    persistent_writes: false,
+    period: {
+      period_end: input.billingPeriodEnd ?? "billing_period_end_unresolved",
+      period_start: input.billingPeriodStart ?? "billing_period_start_unresolved"
+    },
+    request_id: input.requestId,
+    request_id_visible: true,
+    sql_emitted: false,
+    status: requiredContextPresent ? "planned_no_write" : "blocked_missing_context",
+    subscription_id: subscriptionId,
+    tables: USAGE_BILLING_RECONCILIATION_TABLES,
+    traceability: {
+      required_fields: [
+        "request_id",
+        "usage_event_id",
+        "ledger_entry_id",
+        "invoice_line_id"
+      ],
+      support_investigation_by_request_id: true,
+      traceable_call_count: traceableCallCount,
+      traceable_to_call: ledgerEntries.length > 0 && traceableCallCount === ledgerEntries.length
+    },
+    version: USAGE_BILLING_RECONCILIATION_VERSION,
+    workspace_id: workspaceId
+  };
+}
+
 function createUsageEventId(
   requestId: string,
   operation: UsageLedgerOperation,
@@ -400,4 +620,24 @@ function normalizeCreditCount(value: number | undefined): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? Math.floor(value)
     : 0;
+}
+
+function normalizeInvoiceCredits(value: number | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : fallback;
+}
+
+function normalizeAmountMinor(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
+}
+
+function isTraceableLedgerEntry(entry: UsageBillingLedgerEntryInput): boolean {
+  return (
+    entry.requestId.length > 0 &&
+    entry.usageEventId.length > 0 &&
+    entry.ledgerEntryId.length > 0
+  );
 }

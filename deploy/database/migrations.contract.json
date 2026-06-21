@@ -154,6 +154,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621101000_usage_billing_reconciliation_scaffold.sql",
+      "purpose": "Create empty subscription invoice and invoice-line scaffolds that trace billing rows to usage ledger entries and request IDs without enabling live billing provider reads or writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.subscription_invoice",
+        "core.subscription_invoice_line",
+        "governance.usage_billing_reconciliation_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
