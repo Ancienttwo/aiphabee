@@ -144,6 +144,16 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621100000_subscription_lifecycle_audit_scaffold.sql",
+      "purpose": "Create an empty subscription lifecycle audit event scaffold for Sprint 2.4 without enabling billing provider calls or live writes.",
+      "schemas": ["audit"],
+      "tables": [
+        "audit.subscription_lifecycle_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

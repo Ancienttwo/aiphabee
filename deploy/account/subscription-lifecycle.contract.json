@@ -1,0 +1,66 @@
+{
+  "version": "2026-06-21.phase2.subscription-lifecycle-audit.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/account-runtime",
+  "runtime_route": "GET /account/runtime",
+  "route": "POST /account/subscription/lifecycle/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "billing_provider_calls": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "supported_actions": [
+    "upgrade",
+    "downgrade",
+    "renew",
+    "cancel",
+    "enter_grace_period",
+    "exit_grace_period"
+  ],
+  "plan_codes": [
+    "free",
+    "plus",
+    "pro",
+    "developer",
+    "team",
+    "enterprise"
+  ],
+  "billing_states": [
+    "trialing",
+    "active",
+    "grace_period",
+    "paused",
+    "canceled"
+  ],
+  "tables": [
+    "core.account",
+    "core.workspace",
+    "core.subscription_plan",
+    "core.workspace_subscription",
+    "audit.subscription_lifecycle_event"
+  ],
+  "required_request_fields": [
+    "account_id",
+    "workspace_id",
+    "subscription_id",
+    "action",
+    "current_plan_code",
+    "target_plan_code",
+    "effective_at"
+  ],
+  "planned_outputs": [
+    "account",
+    "workspace",
+    "subscription",
+    "audit",
+    "billing_provider",
+    "validation"
+  ],
+  "audit_event": "account.subscription.lifecycle.plan",
+  "grace_period_auditable": true,
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/account/session.contract.json",
+    "deploy/usage/quota-display.contract.json"
+  ]
+}

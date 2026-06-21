@@ -65,7 +65,7 @@ owner: "Planner / PM"
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
-| 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
+| 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 1 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
 | 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
@@ -327,10 +327,10 @@ owner: "Planner / PM"
 
 **退出门槛 DoD：** ☐ 主流客户端端到端首调成功　☐ 分页/限额不可绕过　☐ Console 可对账　☐ 错误码稳定
 
-### Sprint 2.4 — 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正　⬜
+### Sprint 2.4 — 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正　🟦
 **目标：** 正式计费闭环、长任务、提醒、数据更正闭环。
 
-- [ ] 套餐升降级/续费/取消/宽限期，可审计（ACC-03）
+- [x] 套餐升降级/续费/取消/宽限期可审计后端 scaffold：扩展 `@aiphabee/account-runtime` subscription lifecycle capability，新增 `POST /account/subscription/lifecycle/plan`、`audit.subscription_lifecycle_event` migration、`deploy/account/subscription-lifecycle.contract.json` 与 `npm run check:subscription-lifecycle`，覆盖 upgrade/downgrade/renew/cancel/enter_grace_period/exit_grace_period audit plan、Free/Plus/Pro/Developer/Team/Enterprise plan code、billing state transition 与 no-call billing provider block；live billing provider / invoice-proration-refund preview / DB writes / frontend billing UI 未启用（ACC-03）
 - [ ] 订阅账单与 usage ledger 一致，账单可追溯到调用（ACC-04、§19.5）
 - [ ] 高成本任务预估 + 预扣 + 失败退还（US-W10、§15.3）
 - [ ] 长任务转 Workflow：返回 `task_id`，可离开/恢复/通知（AGT-09、§6.5）
@@ -633,6 +633,7 @@ owner: "Planner / PM"
 - [x] MCP standard error codes scaffold 已建立：`docs/governance/mcp-standard-error-codes-scaffold.md`；`@aiphabee/mcp-runtime` 输出 PRD §9.6 标准错误码 taxonomy、category、client_action、internal-code mapping，Worker MCP 错误响应返回 versioned `error.detail`，live limiter/Developer Console/external client smoke 未启用
 - [x] MCP tool limiter scaffold 已建立：`docs/governance/mcp-tool-limiter-scaffold.md`；`@aiphabee/mcp-runtime` 输出 MCP limiter readiness、standard/high-cost pool、rate/concurrency/budget plan、ordinary pool protection、planned high-cost queue metadata 与 `RATE_LIMITED`/`BUDGET_EXCEEDED` future enforcement contract，live limiter/durable queue/usage debit/frontend 未启用
 - [x] MCP compatibility status scaffold 已建立：`docs/governance/mcp-compatibility-status-scaffold.md`；`@aiphabee/mcp-runtime` 输出 `GET /mcp/compatibility/status` no-live 兼容性状态、official Inspector/TypeScript SDK v1.x target、target-client matrix、status-page source fields 与 US-M08 `as_of`/delay/source 测试向量，live SDK/Inspector/client e2e 与公开状态页未启用
+- [x] Subscription lifecycle audit scaffold 已建立：`docs/governance/subscription-lifecycle-audit-scaffold.md`；`@aiphabee/account-runtime` 输出 `subscription_lifecycle` capability，`/account/subscription/lifecycle/plan` 返回 upgrade/downgrade/renew/cancel/grace-period no-write audit plan，`audit.subscription_lifecycle_event` schema scaffold 已建立，live billing provider/invoice-proration-refund preview/DB writes/frontend billing UI 未启用
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
@@ -640,6 +641,7 @@ owner: "Planner / PM"
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract、每工具 synthetic golden fixtures 与 no-write Evidence/Lineage service scaffold 已建立；MCP protocol endpoint/runtime schema serving/live route replay/live DB writes/partner source rows 尚未实现
 - [ ] Sprint 1.3 的 Agent run context scaffold、ToolLoopAgent no-model planner scaffold、pre-tool-call resolution scaffold、budget/stop policy scaffold、tool enforcement scaffold、numeric source guard scaffold、answer/evidence contract scaffold、failure recovery policy scaffold 与 model routing audit scaffold 已建立；actual tool execution/live streaming transport、live evidence-binding、live model execution/AI Gateway request logs、live token-cost-fallback log writes 与前端 Ask/证据卡片 rendering 尚未实现
+- [ ] Sprint 2.4 已建立 ACC-03 subscription lifecycle audit scaffold；真实 billing provider、invoice/proration/refund preview、subscription/audit live writes、账单 usage ledger 对账、Workflows、提醒、数据更正、MCP revoke live enforcement 与 kill switch 尚未实现
 - [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
 
 ---
@@ -648,6 +650,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0ck | 完成 `subscription-lifecycle-audit-scaffold`：扩展 `@aiphabee/account-runtime` subscription lifecycle capability，新增 `POST /account/subscription/lifecycle/plan`、`audit.subscription_lifecycle_event` migration、`deploy/account/subscription-lifecycle.contract.json` 与 `npm run check:subscription-lifecycle`，覆盖 upgrade/downgrade/renew/cancel/enter_grace_period/exit_grace_period audit plan、Free/Plus/Pro/Developer/Team/Enterprise plan code、billing state transition 与 no-call billing provider block；live billing provider/invoice-proration-refund preview/DB writes/frontend billing UI 未启用，Sprint 2.4 更新为 1/10 |
 | 2026-06-21 | 1.0cj | 完成 `mcp-compatibility-status-scaffold`：新增 `GET /mcp/compatibility/status`、`MCP_COMPATIBILITY_STATUS_VERSION`、`deploy/mcp/compatibility.contract.json` 与 `npm run check:mcp-compatibility`，固化 target protocol `2025-03-26`、monitored protocol `2025-11-25`、official Inspector / TypeScript SDK v1.x target、target-client matrix、Streamable HTTP / initialize / tools/list / tools/call schema / structuredContent+text fallback / OAuth / API Key / pagination / standard errors / usage+request_id / `as_of`+delay+source display 测试向量；live SDK/Inspector smoke、目标客户端 e2e、公开状态页、Developer Console 未启用，Sprint 2.3 更新为 10/11 |
 | 2026-06-21 | 1.0ci | 完成 `mcp-tool-limiter-scaffold`：扩展 `@aiphabee/mcp-runtime` `GET /mcp/runtime` limiter capability 与 `tools/call` `tool_limits` plan，覆盖 per-tool rate-limit metadata、`mcp_standard` / `mcp_high_cost` 并发池、`>=8` high-cost threshold、普通池保护、预算预扣/失败退款 metadata、`RATE_LIMITED` / `BUDGET_EXCEEDED` future error contract、high-cost planned queue metadata，新增 `deploy/mcp/tool-limiter.contract.json` 与 `npm run check:mcp-tool-limiter`；live limiter window reads/durable queue writes/usage-ledger debit-refund/Developer Console/external SDK smoke 未启用，Sprint 2.3 更新为 9/11 |
 | 2026-06-21 | 1.0ch | 完成 `mcp-standard-error-codes-scaffold`：新增 `MCP_STANDARD_ERROR_CODES_VERSION`、PRD §9.6 MCP 标准错误码 taxonomy、auth/rights/data/limit/system category、client_action、internal-code mapping，并让 Worker MCP 错误响应返回 machine-readable `error.detail`；新增 `deploy/mcp/error-codes.contract.json` 与 `npm run check:mcp-error-codes`；live rate/concurrency/budget limiter、Developer Console、external SDK/Inspector smoke 未启用，Sprint 2.3 更新为 8/11 |

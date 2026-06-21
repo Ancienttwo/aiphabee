@@ -37,6 +37,20 @@ interface AccountRuntimeBody {
       status: string;
     };
     status: string;
+    subscription_lifecycle: {
+      audit: {
+        event_table: string;
+        required: boolean;
+        status: string;
+      };
+      billing_provider_calls: boolean;
+      frontend: boolean;
+      persistent_writes: boolean;
+      route: string;
+      sql_emitted: boolean;
+      status: string;
+      supported_actions: string[];
+    };
     tables: string[];
   };
   ok: true;
@@ -85,6 +99,47 @@ interface AccountSessionPlanBody {
       role: string;
       workspace_id: string;
       workspace_status: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AccountSubscriptionLifecyclePlanBody {
+  data: {
+    audit: {
+      action: string;
+      audit_event: string;
+      actor_account_id: string;
+      request_id: string;
+      table: string;
+      write_status: string;
+    };
+    billing_provider: {
+      calls: boolean;
+      invoice_preview: boolean;
+      provider: string;
+    };
+    capability: {
+      status: string;
+    };
+    persistent_writes: boolean;
+    sql_emitted: boolean;
+    status: string;
+    subscription: {
+      current_billing_state: string;
+      current_plan_code: string;
+      grace_period_ends_at?: string;
+      lifecycle_status: string;
+      subscription_id: string;
+      target_billing_state: string;
+      target_plan_code: string;
+    };
+    validation: {
+      audit_required: boolean;
+      required_context_present: boolean;
     };
   };
   ok: true;
@@ -2826,7 +2881,79 @@ describe("worker runtime", () => {
       revoke_supported: true,
       status: "planned_no_write"
     });
+    expect(body.data.subscription_lifecycle).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      persistent_writes: false,
+      route: "POST /account/subscription/lifecycle/plan",
+      sql_emitted: false,
+      status: "subscription_lifecycle_audit_scaffold"
+    });
+    expect(body.data.subscription_lifecycle.audit).toMatchObject({
+      event_table: "audit.subscription_lifecycle_event",
+      required: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.subscription_lifecycle.supported_actions).toContain("enter_grace_period");
     expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("plans auditable subscription lifecycle changes without billing provider calls", async () => {
+    const response = await app.request("/account/subscription/lifecycle/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "upgrade",
+        current_billing_state: "active",
+        current_plan_code: "plus",
+        effective_at: "2026-07-01T00:00:00.000Z",
+        reason: "user_requested_upgrade",
+        subscription_id: "sub_ws_internal_alpha_plus",
+        target_plan_code: "developer",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-subscription-lifecycle"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountSubscriptionLifecyclePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.subscription).toMatchObject({
+      current_billing_state: "active",
+      current_plan_code: "plus",
+      lifecycle_status: "planned_no_write",
+      subscription_id: "sub_ws_internal_alpha_plus",
+      target_billing_state: "active",
+      target_plan_code: "developer"
+    });
+    expect(body.data.audit).toMatchObject({
+      action: "upgrade",
+      audit_event: "account.subscription.lifecycle.plan",
+      actor_account_id: "acct_internal_001",
+      request_id: "req-subscription-lifecycle",
+      table: "audit.subscription_lifecycle_event",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.billing_provider).toMatchObject({
+      calls: false,
+      invoice_preview: false,
+      provider: "not_configured"
+    });
+    expect(body.data.capability.status).toBe("subscription_lifecycle_audit_scaffold");
+    expect(body.data.validation).toMatchObject({
+      audit_required: true,
+      required_context_present: true
+    });
+    expect(body.usage.rows).toBe(1);
   });
 
   it("plans an internal account session and manual plan without writes", async () => {

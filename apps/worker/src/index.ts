@@ -3,11 +3,15 @@ import {
   ACCOUNT_LOGIN_METHODS,
   ACCOUNT_PLAN_CODES,
   createAccountSessionPlan,
+  createSubscriptionLifecyclePlan,
   getAccountRuntimeCapabilities,
+  getSubscriptionLifecycleCapabilities,
   type AccountLoginMethod,
   type AccountPlanCode,
   type AccountRole,
-  type AccountSessionAction
+  type AccountSessionAction,
+  type SubscriptionBillingState,
+  type SubscriptionLifecycleAction
 } from "@aiphabee/account-runtime";
 import {
   AgentRuntimeInputError,
@@ -258,24 +262,82 @@ app.get("/account/runtime", (c) => {
   c.header("Cache-Control", "no-store");
 
   return c.json(
-    createSuccessEnvelope(getAccountRuntimeCapabilities(), {
-      asOf: new Date().toISOString(),
-      methodologyVersion: "internal-account-session-manual-plan-scaffold-v0",
-      provenance: [
-        {
-          data_version: "internal-account-session-manual-plan-scaffold-v0",
-          methodology_version: "internal-account-session-manual-plan-scaffold-v0",
-          source: "account-runtime-contract",
-          source_record_id: "runtime-capabilities"
+    createSuccessEnvelope(
+      {
+        ...getAccountRuntimeCapabilities(),
+        subscription_lifecycle: getSubscriptionLifecycleCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "internal-account-session-manual-plan-scaffold-v0",
+        provenance: [
+          {
+            data_version: "internal-account-session-manual-plan-scaffold-v0",
+            methodology_version: "internal-account-session-manual-plan-scaffold-v0",
+            source: "account-runtime-contract",
+            source_record_id: "runtime-capabilities"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
         }
-      ],
-      requestId,
-      usage: {
-        cached: false,
-        credits: 0,
-        rows: 0
       }
-    })
+    )
+  );
+});
+
+app.post("/account/subscription/lifecycle/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createSubscriptionLifecyclePlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    action: normalizeSubscriptionLifecycleAction(body.action),
+    currentBillingState: normalizeSubscriptionBillingState(
+      body.current_billing_state ?? body.currentBillingState
+    ),
+    currentPlanCode: normalizeAccountPlanCode(body.current_plan_code ?? body.currentPlanCode),
+    effectiveAt: normalizeString(body.effective_at ?? body.effectiveAt),
+    gracePeriodEndsAt: normalizeString(body.grace_period_ends_at ?? body.gracePeriodEndsAt),
+    reason: normalizeString(body.reason),
+    renewalPeriodEnd: normalizeString(body.renewal_period_end ?? body.renewalPeriodEnd),
+    requestId,
+    subscriptionId: normalizeString(body.subscription_id ?? body.subscriptionId),
+    targetPlanCode: normalizeAccountPlanCode(body.target_plan_code ?? body.targetPlanCode),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getSubscriptionLifecycleCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "account-runtime",
+            source_record_id: "subscription-lifecycle-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? 1 : 0
+        }
+      }
+    )
   );
 });
 
@@ -4612,6 +4674,29 @@ function normalizeAccountSessionAction(value: unknown): AccountSessionAction | u
     value === "refresh" ||
     value === "revoke_device" ||
     value === "revoke_session"
+    ? value
+    : undefined;
+}
+
+function normalizeSubscriptionLifecycleAction(
+  value: unknown
+): SubscriptionLifecycleAction | undefined {
+  return value === "upgrade" ||
+    value === "downgrade" ||
+    value === "renew" ||
+    value === "cancel" ||
+    value === "enter_grace_period" ||
+    value === "exit_grace_period"
+    ? value
+    : undefined;
+}
+
+function normalizeSubscriptionBillingState(value: unknown): SubscriptionBillingState | undefined {
+  return value === "trialing" ||
+    value === "active" ||
+    value === "grace_period" ||
+    value === "paused" ||
+    value === "canceled"
     ? value
     : undefined;
 }
