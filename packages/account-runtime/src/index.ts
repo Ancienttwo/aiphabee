@@ -2,6 +2,8 @@ export const ACCOUNT_RUNTIME_VERSION =
   "2026-06-21.phase1.internal-account-session-manual-plan.v0";
 export const SUBSCRIPTION_LIFECYCLE_VERSION =
   "2026-06-21.phase2.subscription-lifecycle-audit.v0";
+export const AUTHORIZED_SESSION_MEMORY_VERSION =
+  "2026-06-21.phase3.authorized-session-memory-scaffold.v0";
 
 export const ACCOUNT_LOGIN_METHODS = [
   "email_passwordless",
@@ -26,10 +28,24 @@ export const SUBSCRIPTION_LIFECYCLE_ACTIONS = [
   "enter_grace_period",
   "exit_grace_period"
 ] as const;
+export const AUTHORIZED_SESSION_MEMORY_ACTIONS = ["view", "upsert", "delete"] as const;
+export const AUTHORIZED_SESSION_MEMORY_KEYS = [
+  "authorized_tool_scopes",
+  "data_retention_acknowledgement",
+  "default_currency",
+  "default_workspace_id",
+  "mcp_scope_consent",
+  "preferred_locale",
+  "response_depth",
+  "watchlist_briefing_consent"
+] as const;
 
 export type AccountLoginMethod = (typeof ACCOUNT_LOGIN_METHODS)[number];
 export type AccountPlanCode = (typeof ACCOUNT_PLAN_CODES)[number];
 export type SubscriptionLifecycleAction = (typeof SUBSCRIPTION_LIFECYCLE_ACTIONS)[number];
+export type AuthorizedSessionMemoryAction =
+  (typeof AUTHORIZED_SESSION_MEMORY_ACTIONS)[number];
+export type AuthorizedSessionMemoryKey = (typeof AUTHORIZED_SESSION_MEMORY_KEYS)[number];
 export type SubscriptionBillingState =
   | "active"
   | "canceled"
@@ -45,6 +61,10 @@ export type AccountSessionAction =
 export type AccountRole = "admin" | "billing" | "member" | "owner" | "viewer";
 export type AccountSessionPlanStatus = "blocked_missing_context" | "planned_no_write";
 export type SubscriptionLifecyclePlanStatus = "blocked_missing_context" | "planned_no_write";
+export type AuthorizedSessionMemoryPlanStatus =
+  | "blocked_missing_context"
+  | "blocked_unsupported_memory_key"
+  | "planned_no_write";
 
 export interface AccountSessionPlanInput {
   accountId?: string;
@@ -59,8 +79,43 @@ export interface AccountSessionPlanInput {
   workspaceId?: string;
 }
 
+export interface AuthorizedSessionMemoryPlanInput {
+  accountId?: string;
+  action?: AuthorizedSessionMemoryAction;
+  allowedFields?: string[];
+  memoryKey?: string;
+  memoryKeys?: string[];
+  requestId: string;
+  workspaceId?: string;
+}
+
 export interface AccountRuntimeCapabilities {
   auth_provider_calls: false;
+  authorized_memory: {
+    actual_memory_reads: false;
+    allowed_keys: typeof AUTHORIZED_SESSION_MEMORY_KEYS;
+    audit_event: "account.authorized_memory.plan";
+    editable: true;
+    forbidden_payloads: readonly [
+      "raw_prompt",
+      "generated_answer",
+      "financial_fact_value",
+      "price_value",
+      "valuation_value",
+      "raw_email",
+      "password",
+      "oauth_access_token",
+      "oauth_refresh_token",
+      "session_secret"
+    ];
+    persistent_writes: false;
+    route: "POST /account/authorized-memory/plan";
+    status: "authorized_session_memory_scaffold";
+    supported_actions: typeof AUTHORIZED_SESSION_MEMORY_ACTIONS;
+    table: "core.authorized_session_memory";
+    user_visible_controls: readonly ["view", "edit", "delete"];
+    version: typeof AUTHORIZED_SESSION_MEMORY_VERSION;
+  };
   device_management: {
     audit_event: "account.device.plan";
     revoke_supported: true;
@@ -248,6 +303,59 @@ export interface SubscriptionLifecyclePlan {
   };
 }
 
+export interface AuthorizedSessionMemoryPlan {
+  account: {
+    account_id: string;
+    table: "core.account";
+  };
+  action: AuthorizedSessionMemoryAction;
+  audit: {
+    audit_event: "account.authorized_memory.plan";
+    audit_event_id: string;
+    request_id: string;
+    write_status: "planned_no_write";
+  };
+  memory: {
+    allowed_fields: string[];
+    allowed_keys: AuthorizedSessionMemoryKey[];
+    delete_status: "not_requested" | "planned_no_write";
+    memory_refs: string[];
+    read_status: "not_requested" | "planned_no_live_read";
+    table: "core.authorized_session_memory";
+    unsupported_keys: string[];
+    upsert_status: "not_requested" | "planned_no_write";
+  };
+  persistent_writes: false;
+  policy: {
+    actual_memory_reads: false;
+    authorized_information_only: true;
+    credential_material_stored: false;
+    financial_values_stored: false;
+    forbidden_payload_fields: AccountRuntimeCapabilities["authorized_memory"]["forbidden_payloads"];
+    generated_answers_stored: false;
+    raw_prompt_stored: false;
+    user_visible_controls: readonly ["view", "edit", "delete"];
+  };
+  sql_emitted: false;
+  status: AuthorizedSessionMemoryPlanStatus;
+  tables: readonly [
+    "core.account",
+    "core.workspace",
+    "core.workspace_membership",
+    "core.authorized_session_memory"
+  ];
+  validation: {
+    allowed_memory_keys: typeof AUTHORIZED_SESSION_MEMORY_KEYS;
+    required_context_present: boolean;
+    unsupported_memory_keys: string[];
+  };
+  version: typeof AUTHORIZED_SESSION_MEMORY_VERSION;
+  workspace: {
+    table: "core.workspace";
+    workspace_id: string;
+  };
+}
+
 const ACCOUNT_TABLES: AccountRuntimeCapabilities["tables"] = [
   "core.account",
   "core.workspace",
@@ -262,6 +370,12 @@ const SUBSCRIPTION_LIFECYCLE_TABLES: SubscriptionLifecycleCapabilities["tables"]
   "core.subscription_plan",
   "core.workspace_subscription",
   "audit.subscription_lifecycle_event"
+];
+const AUTHORIZED_SESSION_MEMORY_TABLES: AuthorizedSessionMemoryPlan["tables"] = [
+  "core.account",
+  "core.workspace",
+  "core.workspace_membership",
+  "core.authorized_session_memory"
 ];
 
 const SUBSCRIPTION_BILLING_STATES: SubscriptionLifecycleCapabilities["billing_states"] = [
@@ -279,10 +393,36 @@ const FORBIDDEN_PAYLOADS: AccountRuntimeCapabilities["forbidden_payloads"] = [
   "oauth_refresh_token",
   "session_secret"
 ];
+const AUTHORIZED_MEMORY_FORBIDDEN_PAYLOADS: AccountRuntimeCapabilities["authorized_memory"]["forbidden_payloads"] = [
+  "raw_prompt",
+  "generated_answer",
+  "financial_fact_value",
+  "price_value",
+  "valuation_value",
+  "raw_email",
+  "password",
+  "oauth_access_token",
+  "oauth_refresh_token",
+  "session_secret"
+];
 
 export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
   return {
     auth_provider_calls: false,
+    authorized_memory: {
+      actual_memory_reads: false,
+      allowed_keys: AUTHORIZED_SESSION_MEMORY_KEYS,
+      audit_event: "account.authorized_memory.plan",
+      editable: true,
+      forbidden_payloads: AUTHORIZED_MEMORY_FORBIDDEN_PAYLOADS,
+      persistent_writes: false,
+      route: "POST /account/authorized-memory/plan",
+      status: "authorized_session_memory_scaffold",
+      supported_actions: AUTHORIZED_SESSION_MEMORY_ACTIONS,
+      table: "core.authorized_session_memory",
+      user_visible_controls: ["view", "edit", "delete"],
+      version: AUTHORIZED_SESSION_MEMORY_VERSION
+    },
     device_management: {
       audit_event: "account.device.plan",
       revoke_supported: true,
@@ -496,6 +636,84 @@ export function createSubscriptionLifecyclePlan(
   };
 }
 
+export function createAuthorizedSessionMemoryPlan(
+  input: AuthorizedSessionMemoryPlanInput
+): AuthorizedSessionMemoryPlan {
+  const accountId = normalizeIdentifier(input.accountId, "account_unresolved");
+  const workspaceId = normalizeIdentifier(input.workspaceId, "workspace_unresolved");
+  const action = input.action ?? "view";
+  const requestedKeys = normalizeRequestedMemoryKeys(input);
+  const allowedKeys = requestedKeys.filter(isAuthorizedSessionMemoryKey);
+  const unsupportedKeys = requestedKeys.filter((key) => !isAuthorizedSessionMemoryKey(key));
+  const requiredContextPresent =
+    input.accountId !== undefined &&
+    input.accountId.length > 0 &&
+    input.workspaceId !== undefined &&
+    input.workspaceId.length > 0;
+  const status: AuthorizedSessionMemoryPlanStatus =
+    !requiredContextPresent
+      ? "blocked_missing_context"
+      : unsupportedKeys.length > 0
+        ? "blocked_unsupported_memory_key"
+        : "planned_no_write";
+  const memoryRefs = (allowedKeys.length > 0 ? allowedKeys : AUTHORIZED_SESSION_MEMORY_KEYS).map(
+    (key) =>
+      `authorized_memory_${sanitizeForId(accountId)}_${sanitizeForId(workspaceId)}_${sanitizeForId(
+        key
+      )}`
+  );
+
+  return {
+    account: {
+      account_id: accountId,
+      table: "core.account"
+    },
+    action,
+    audit: {
+      audit_event: "account.authorized_memory.plan",
+      audit_event_id: `audit_authorized_memory_${sanitizeForId(input.requestId)}_${sanitizeForId(
+        action
+      )}`,
+      request_id: input.requestId,
+      write_status: "planned_no_write"
+    },
+    memory: {
+      allowed_fields: normalizeAllowedMemoryFields(input.allowedFields),
+      allowed_keys: allowedKeys.length > 0 ? allowedKeys : [...AUTHORIZED_SESSION_MEMORY_KEYS],
+      delete_status: action === "delete" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
+      memory_refs: memoryRefs,
+      read_status: action === "view" && status === "planned_no_write" ? "planned_no_live_read" : "not_requested",
+      table: "core.authorized_session_memory",
+      unsupported_keys: unsupportedKeys,
+      upsert_status: action === "upsert" && status === "planned_no_write" ? "planned_no_write" : "not_requested"
+    },
+    persistent_writes: false,
+    policy: {
+      actual_memory_reads: false,
+      authorized_information_only: true,
+      credential_material_stored: false,
+      financial_values_stored: false,
+      forbidden_payload_fields: AUTHORIZED_MEMORY_FORBIDDEN_PAYLOADS,
+      generated_answers_stored: false,
+      raw_prompt_stored: false,
+      user_visible_controls: ["view", "edit", "delete"]
+    },
+    sql_emitted: false,
+    status,
+    tables: AUTHORIZED_SESSION_MEMORY_TABLES,
+    validation: {
+      allowed_memory_keys: AUTHORIZED_SESSION_MEMORY_KEYS,
+      required_context_present: requiredContextPresent,
+      unsupported_memory_keys: unsupportedKeys
+    },
+    version: AUTHORIZED_SESSION_MEMORY_VERSION,
+    workspace: {
+      table: "core.workspace",
+      workspace_id: workspaceId
+    }
+  };
+}
+
 function resolveTargetBillingState(
   action: SubscriptionLifecycleAction,
   currentBillingState: SubscriptionBillingState
@@ -513,6 +731,39 @@ function resolveTargetBillingState(
   }
 
   return currentBillingState === "canceled" ? "active" : currentBillingState;
+}
+
+function normalizeRequestedMemoryKeys(
+  input: AuthorizedSessionMemoryPlanInput
+): string[] {
+  const keys = [
+    ...(input.memoryKeys ?? []),
+    ...(input.memoryKey === undefined ? [] : [input.memoryKey])
+  ]
+    .map((key) => key.trim())
+    .filter((key) => key.length > 0);
+  const unique = [...new Set(keys)];
+
+  return unique.length > 0 ? unique : [...AUTHORIZED_SESSION_MEMORY_KEYS];
+}
+
+function normalizeAllowedMemoryFields(value: string[] | undefined): string[] {
+  const fields = (value ?? [
+    "account_id",
+    "workspace_id",
+    "memory_key",
+    "authorized_scope",
+    "consent_state",
+    "updated_at"
+  ])
+    .map((field) => field.trim())
+    .filter((field) => field.length > 0);
+
+  return [...new Set(fields)];
+}
+
+function isAuthorizedSessionMemoryKey(value: string): value is AuthorizedSessionMemoryKey {
+  return AUTHORIZED_SESSION_MEMORY_KEYS.includes(value as AuthorizedSessionMemoryKey);
 }
 
 function normalizeIdentifier(value: string | undefined, fallback: string): string {

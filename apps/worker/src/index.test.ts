@@ -16,6 +16,18 @@ interface RootRouteBody {
 interface AccountRuntimeBody {
   data: {
     auth_provider_calls: boolean;
+    authorized_memory: {
+      actual_memory_reads: boolean;
+      allowed_keys: string[];
+      editable: boolean;
+      forbidden_payloads: string[];
+      persistent_writes: boolean;
+      route: string;
+      status: string;
+      supported_actions: string[];
+      table: string;
+      user_visible_controls: string[];
+    };
     device_management: {
       revoke_supported: boolean;
       status: string;
@@ -54,6 +66,56 @@ interface AccountRuntimeBody {
     tables: string[];
   };
   ok: true;
+}
+
+interface AccountAuthorizedMemoryPlanBody {
+  data: {
+    action: string;
+    account: {
+      account_id: string;
+      table: string;
+    };
+    audit: {
+      audit_event: string;
+      request_id: string;
+      write_status: string;
+    };
+    capability: {
+      status: string;
+    };
+    memory: {
+      allowed_fields: string[];
+      allowed_keys: string[];
+      delete_status: string;
+      memory_refs: string[];
+      read_status: string;
+      table: string;
+      unsupported_keys: string[];
+      upsert_status: string;
+    };
+    persistent_writes: boolean;
+    policy: {
+      actual_memory_reads: boolean;
+      authorized_information_only: boolean;
+      credential_material_stored: boolean;
+      financial_values_stored: boolean;
+      forbidden_payload_fields: string[];
+      generated_answers_stored: boolean;
+      raw_prompt_stored: boolean;
+      user_visible_controls: string[];
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      allowed_memory_keys: string[];
+      required_context_present: boolean;
+      unsupported_memory_keys: string[];
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface AccountSessionPlanBody {
@@ -3843,6 +3905,20 @@ describe("worker runtime", () => {
       revoke_supported: true,
       status: "planned_no_write"
     });
+    expect(body.data.authorized_memory).toMatchObject({
+      actual_memory_reads: false,
+      editable: true,
+      persistent_writes: false,
+      route: "POST /account/authorized-memory/plan",
+      status: "authorized_session_memory_scaffold",
+      supported_actions: ["view", "upsert", "delete"],
+      table: "core.authorized_session_memory",
+      user_visible_controls: ["view", "edit", "delete"]
+    });
+    expect(body.data.authorized_memory.allowed_keys).toContain("mcp_scope_consent");
+    expect(body.data.authorized_memory.forbidden_payloads).toEqual(
+      expect.arrayContaining(["raw_prompt", "generated_answer", "oauth_access_token"])
+    );
     expect(body.data.subscription_lifecycle).toMatchObject({
       billing_provider_calls: false,
       frontend: false,
@@ -3858,6 +3934,97 @@ describe("worker runtime", () => {
     });
     expect(body.data.subscription_lifecycle.supported_actions).toContain("enter_grace_period");
     expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("plans authorized session memory view and deletion without live reads or writes", async () => {
+    const viewResponse = await app.request("/account/authorized-memory/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "view",
+        memory_keys: ["preferred_locale", "response_depth"],
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-authorized-memory-view"
+      },
+      method: "POST"
+    });
+    const deleteResponse = await app.request("/account/authorized-memory/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "delete",
+        memory_key: "mcp_scope_consent",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-authorized-memory-delete"
+      },
+      method: "POST"
+    });
+    const viewBody = (await viewResponse.json()) as AccountAuthorizedMemoryPlanBody;
+    const deleteBody = (await deleteResponse.json()) as AccountAuthorizedMemoryPlanBody;
+
+    expect(viewResponse.status).toBe(200);
+    expect(viewBody.ok).toBe(true);
+    expect(viewBody.data).toMatchObject({
+      action: "view",
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(viewBody.data.memory).toMatchObject({
+      allowed_keys: ["preferred_locale", "response_depth"],
+      read_status: "planned_no_live_read",
+      table: "core.authorized_session_memory",
+      upsert_status: "not_requested"
+    });
+    expect(viewBody.data.policy).toMatchObject({
+      actual_memory_reads: false,
+      authorized_information_only: true,
+      credential_material_stored: false,
+      financial_values_stored: false,
+      generated_answers_stored: false,
+      raw_prompt_stored: false,
+      user_visible_controls: ["view", "edit", "delete"]
+    });
+    expect(viewBody.data.policy.forbidden_payload_fields).toContain("financial_fact_value");
+    expect(viewBody.data.capability.status).toBe("authorized_session_memory_scaffold");
+    expect(viewBody.usage.rows).toBe(2);
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteBody.data.memory).toMatchObject({
+      allowed_keys: ["mcp_scope_consent"],
+      delete_status: "planned_no_write",
+      read_status: "not_requested"
+    });
+    expect(deleteBody.usage.rows).toBe(1);
+  });
+
+  it("blocks unauthorized session memory keys before planning writes", async () => {
+    const response = await app.request("/account/authorized-memory/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        action: "upsert",
+        memory_key: "last_research_answer",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-authorized-memory-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountAuthorizedMemoryPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_unsupported_memory_key");
+    expect(body.data.memory.unsupported_keys).toEqual(["last_research_answer"]);
+    expect(body.data.validation.unsupported_memory_keys).toEqual(["last_research_answer"]);
+    expect(body.data.persistent_writes).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("plans auditable subscription lifecycle changes without billing provider calls", async () => {

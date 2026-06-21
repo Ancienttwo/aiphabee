@@ -2,7 +2,9 @@ import { Hono, type Context } from "hono";
 import {
   ACCOUNT_LOGIN_METHODS,
   ACCOUNT_PLAN_CODES,
+  AUTHORIZED_SESSION_MEMORY_ACTIONS,
   createAccountSessionPlan,
+  createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
   getAccountRuntimeCapabilities,
   getSubscriptionLifecycleCapabilities,
@@ -10,6 +12,7 @@ import {
   type AccountPlanCode,
   type AccountRole,
   type AccountSessionAction,
+  type AuthorizedSessionMemoryAction,
   type SubscriptionBillingState,
   type SubscriptionLifecycleAction
 } from "@aiphabee/account-runtime";
@@ -441,6 +444,51 @@ app.get("/account/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/account/authorized-memory/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createAuthorizedSessionMemoryPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    action: normalizeAuthorizedSessionMemoryAction(body.action),
+    allowedFields: normalizeStringArray(body.allowed_fields ?? body.allowedFields),
+    memoryKey: normalizeString(body.memory_key ?? body.memoryKey),
+    memoryKeys: normalizeStringArray(body.memory_keys ?? body.memoryKeys ?? body.keys),
+    requestId,
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAccountRuntimeCapabilities().authorized_memory
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "account-runtime",
+            source_record_id: "authorized-session-memory-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? plan.memory.memory_refs.length : 0
         }
       }
     )
@@ -5806,6 +5854,15 @@ function normalizeAccountSessionAction(value: unknown): AccountSessionAction | u
     value === "revoke_device" ||
     value === "revoke_session"
     ? value
+    : undefined;
+}
+
+function normalizeAuthorizedSessionMemoryAction(
+  value: unknown
+): AuthorizedSessionMemoryAction | undefined {
+  return typeof value === "string" &&
+    AUTHORIZED_SESSION_MEMORY_ACTIONS.includes(value as AuthorizedSessionMemoryAction)
+    ? (value as AuthorizedSessionMemoryAction)
     : undefined;
 }
 

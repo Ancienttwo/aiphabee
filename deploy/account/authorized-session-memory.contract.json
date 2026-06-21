@@ -1,0 +1,68 @@
+{
+  "version": "2026-06-21.phase3.authorized-session-memory-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/account-runtime",
+  "runtime_route": "GET /account/runtime",
+  "route": "POST /account/authorized-memory/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "actual_memory_reads": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_sprint_3_1_items": ["AGT-10", "authorized_session_memory"],
+  "supported_actions": ["view", "upsert", "delete"],
+  "user_visible_controls": ["view", "edit", "delete"],
+  "table": "core.authorized_session_memory",
+  "governance_table": "governance.authorized_session_memory_contract",
+  "allowed_memory_keys": [
+    "authorized_tool_scopes",
+    "data_retention_acknowledgement",
+    "default_currency",
+    "default_workspace_id",
+    "mcp_scope_consent",
+    "preferred_locale",
+    "response_depth",
+    "watchlist_briefing_consent"
+  ],
+  "allowed_payload_classes": [
+    "account_id",
+    "workspace_id",
+    "memory_key",
+    "authorized_scope",
+    "consent_state",
+    "retention_state"
+  ],
+  "forbidden_payloads": [
+    "raw_prompt",
+    "generated_answer",
+    "financial_fact_value",
+    "price_value",
+    "valuation_value",
+    "raw_email",
+    "password",
+    "oauth_access_token",
+    "oauth_refresh_token",
+    "session_secret"
+  ],
+  "privacy_contract": {
+    "authorized_information_only": true,
+    "credential_material_stored": false,
+    "financial_values_stored": false,
+    "generated_answers_stored": false,
+    "raw_prompt_stored": false,
+    "unsupported_keys_block_before_write": true
+  },
+  "required_output_fields": [
+    "account",
+    "workspace",
+    "action",
+    "memory",
+    "policy",
+    "audit",
+    "validation"
+  ],
+  "linked_contracts": [
+    "deploy/account/session.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

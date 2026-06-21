@@ -262,6 +262,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621114000_authorized_session_memory_scaffold.sql",
+      "purpose": "Create empty authorized session memory scaffolds for user-visible view, edit, and remove planning without enabling live reads or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.authorized_session_memory",
+        "governance.authorized_session_memory_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

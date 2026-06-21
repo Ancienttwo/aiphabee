@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createAccountSessionPlan,
+  createAuthorizedSessionMemoryPlan,
   createSubscriptionLifecyclePlan,
   getAccountRuntimeCapabilities,
   getSubscriptionLifecycleCapabilities
@@ -24,6 +25,29 @@ describe("account runtime scaffold", () => {
     ]);
     expect(getAccountRuntimeCapabilities().manual_plan_assignment.allowed_plan_codes).toContain(
       "developer"
+    );
+    expect(getAccountRuntimeCapabilities().authorized_memory).toMatchObject({
+      actual_memory_reads: false,
+      audit_event: "account.authorized_memory.plan",
+      editable: true,
+      persistent_writes: false,
+      route: "POST /account/authorized-memory/plan",
+      status: "authorized_session_memory_scaffold",
+      table: "core.authorized_session_memory",
+      user_visible_controls: ["view", "edit", "delete"],
+      version: "2026-06-21.phase3.authorized-session-memory-scaffold.v0"
+    });
+    expect(getAccountRuntimeCapabilities().authorized_memory.allowed_keys).toContain(
+      "preferred_locale"
+    );
+    expect(getAccountRuntimeCapabilities().authorized_memory.forbidden_payloads).toEqual(
+      expect.arrayContaining([
+        "raw_prompt",
+        "generated_answer",
+        "financial_fact_value",
+        "oauth_access_token",
+        "session_secret"
+      ])
     );
   });
 
@@ -76,6 +100,87 @@ describe("account runtime scaffold", () => {
     expect(plan.account.account_id).toBe("account_unresolved");
     expect(plan.workspace.workspace_id).toBe("workspace_unresolved");
     expect(plan.validation.required_context_present).toBe(false);
+  });
+
+  it("plans authorized session memory view and upsert without storing prompt or financial data", () => {
+    const viewPlan = createAuthorizedSessionMemoryPlan({
+      accountId: "acct_internal_001",
+      action: "view",
+      memoryKeys: ["preferred_locale", "response_depth"],
+      requestId: "req_authorized_memory_view",
+      workspaceId: "ws_internal_alpha"
+    });
+    const upsertPlan = createAuthorizedSessionMemoryPlan({
+      accountId: "acct_internal_001",
+      action: "upsert",
+      allowedFields: ["memory_key", "authorized_scope", "consent_state"],
+      memoryKey: "authorized_tool_scopes",
+      requestId: "req_authorized_memory_upsert",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(viewPlan).toMatchObject({
+      persistent_writes: false,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(viewPlan.memory).toMatchObject({
+      allowed_keys: ["preferred_locale", "response_depth"],
+      delete_status: "not_requested",
+      read_status: "planned_no_live_read",
+      table: "core.authorized_session_memory",
+      upsert_status: "not_requested"
+    });
+    expect(viewPlan.policy).toMatchObject({
+      actual_memory_reads: false,
+      authorized_information_only: true,
+      credential_material_stored: false,
+      financial_values_stored: false,
+      generated_answers_stored: false,
+      raw_prompt_stored: false,
+      user_visible_controls: ["view", "edit", "delete"]
+    });
+    expect(viewPlan.policy.forbidden_payload_fields).toContain("raw_prompt");
+    expect(upsertPlan.memory).toMatchObject({
+      allowed_fields: ["memory_key", "authorized_scope", "consent_state"],
+      allowed_keys: ["authorized_tool_scopes"],
+      read_status: "not_requested",
+      upsert_status: "planned_no_write"
+    });
+    expect(upsertPlan.audit).toMatchObject({
+      audit_event: "account.authorized_memory.plan",
+      request_id: "req_authorized_memory_upsert",
+      write_status: "planned_no_write"
+    });
+  });
+
+  it("plans authorized session memory delete and blocks unsupported memory keys", () => {
+    const deletePlan = createAuthorizedSessionMemoryPlan({
+      accountId: "acct_internal_001",
+      action: "delete",
+      memoryKey: "mcp_scope_consent",
+      requestId: "req_authorized_memory_delete",
+      workspaceId: "ws_internal_alpha"
+    });
+    const unsupportedPlan = createAuthorizedSessionMemoryPlan({
+      accountId: "acct_internal_001",
+      action: "upsert",
+      memoryKey: "last_research_answer",
+      requestId: "req_authorized_memory_unsupported",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(deletePlan.status).toBe("planned_no_write");
+    expect(deletePlan.memory).toMatchObject({
+      allowed_keys: ["mcp_scope_consent"],
+      delete_status: "planned_no_write",
+      upsert_status: "not_requested"
+    });
+    expect(unsupportedPlan.status).toBe("blocked_unsupported_memory_key");
+    expect(unsupportedPlan.memory.unsupported_keys).toEqual(["last_research_answer"]);
+    expect(unsupportedPlan.validation.unsupported_memory_keys).toEqual([
+      "last_research_answer"
+    ]);
   });
 
   it("reports subscription lifecycle audit capabilities without billing provider calls", () => {
