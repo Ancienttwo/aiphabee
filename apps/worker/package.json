@@ -31,6 +31,7 @@
     "@aiphabee/research-runtime": "file:../../packages/research-runtime",
     "@aiphabee/security-tools": "file:../../packages/security-tools",
     "@aiphabee/serving-store": "file:../../packages/serving-store",
+    "@aiphabee/sharing-runtime": "file:../../packages/sharing-runtime",
     "@aiphabee/support-ops": "file:../../packages/support-ops",
     "@aiphabee/tool-registry": "file:../../packages/tool-registry",
     "@aiphabee/usage-ledger": "file:../../packages/usage-ledger",

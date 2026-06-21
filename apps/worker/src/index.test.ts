@@ -183,6 +183,87 @@ interface SupportInvestigationPlanBody {
   };
 }
 
+interface PrivateSharingRuntimeBody {
+  data: {
+    capability_name: string;
+    frontend: boolean;
+    live_data_access: boolean;
+    max_expires_in_hours: number;
+    persistent_writes: boolean;
+    recipient_data_rights_expansion: boolean;
+    recipient_entitlement_recheck: boolean;
+    required_scope: string;
+    route: string;
+    runtime_route: string;
+    status: string;
+    supported_statuses: string[];
+    uses_data_access_gateway: boolean;
+    watermark_required: boolean;
+  };
+  ok: true;
+}
+
+interface PrivateShareLinkPlanBody {
+  data: {
+    access_policy: {
+      creator_allowed_fields: string[];
+      effective_fields: string[];
+      recipient_allowed_fields: string[];
+      recipient_data_rights_expansion: boolean;
+      recipient_entitlement_rechecked: boolean;
+      redacted_fields: string[];
+      release_state: string;
+      share_expands_recipient_rights: boolean;
+    };
+    capability: {
+      status: string;
+    };
+    frontend: boolean;
+    gateway_decisions: {
+      creator: {
+        status: string;
+      };
+      recipient: {
+        status: string;
+      };
+    };
+    link: {
+      link_handle_materialized: boolean;
+      public_indexing: boolean;
+      share_ref: string;
+      url: string;
+      visibility: string;
+    };
+    live_data_access: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    scope: {
+      creator: {
+        granted: boolean;
+        required: string;
+      };
+      recipient: {
+        granted: boolean;
+        required: string;
+      };
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      expiry_within_limit: boolean;
+      required_context_present: boolean;
+    };
+    watermark: {
+      required: boolean;
+      text: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface AccountRuntimeBody {
   data: {
     auth_provider_calls: boolean;
@@ -4491,6 +4572,121 @@ describe("worker runtime", () => {
       sensitive_content_released: false
     });
     expect(sensitiveBody.usage.rows).toBe(0);
+  });
+
+  it("serves private sharing runtime capabilities", async () => {
+    const response = await app.request("/sharing/runtime", {
+      headers: {
+        "x-request-id": "req-sharing-runtime"
+      }
+    });
+    const body = (await response.json()) as PrivateSharingRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability_name: "private_sharing_links",
+      frontend: false,
+      live_data_access: false,
+      persistent_writes: false,
+      recipient_data_rights_expansion: false,
+      recipient_entitlement_recheck: true,
+      required_scope: "exports.read",
+      route: "POST /sharing/private-links/plan",
+      runtime_route: "GET /sharing/runtime",
+      status: "private_share_link_scaffold",
+      uses_data_access_gateway: true,
+      watermark_required: true
+    });
+    expect(body.data.supported_statuses).toContain("blocked_recipient_gateway_denied");
+  });
+
+  it("plans private share links without expanding recipient data rights", async () => {
+    const response = await app.request("/sharing/private-links/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-21T00:00:00.000Z",
+        creator_account_id: "acct_creator",
+        creator_scopes: ["exports.read"],
+        creator_workspace_id: "ws_creator",
+        expires_in_hours: 24,
+        fields: ["synthetic_profile.company_name", "synthetic_profile.revenue"],
+        recipient_account_id: "acct_recipient",
+        recipient_scopes: ["exports.read"],
+        recipient_workspace_id: "ws_recipient",
+        requested_rows: 5
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-private-share-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PrivateShareLinkPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_data_access: false,
+      persistent_writes: false,
+      request_id: "req-private-share-plan",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.access_policy).toMatchObject({
+      effective_fields: ["synthetic_profile.company_name"],
+      recipient_data_rights_expansion: false,
+      recipient_entitlement_rechecked: true,
+      redacted_fields: ["synthetic_profile.revenue"],
+      release_state: "planned_private_share",
+      share_expands_recipient_rights: false
+    });
+    expect(body.data.gateway_decisions.creator.status).toBe("planned_no_write");
+    expect(body.data.gateway_decisions.recipient.status).toBe("planned_no_write");
+    expect(body.data.link).toMatchObject({
+      link_handle_materialized: false,
+      public_indexing: false,
+      share_ref: "planned_no_write",
+      url: "not_generated",
+      visibility: "private_link"
+    });
+    expect(body.data.watermark).toMatchObject({
+      required: true
+    });
+    expect(body.data.watermark.text).toContain("req-private-share-plan");
+    expect(body.data.capability.status).toBe("private_share_link_scaffold");
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("blocks private share planning when recipient scope is missing", async () => {
+    const response = await app.request("/sharing/private-links/plan", {
+      body: JSON.stringify({
+        creator_account_id: "acct_creator",
+        creator_scopes: ["exports.read"],
+        creator_workspace_id: "ws_creator",
+        recipient_account_id: "acct_recipient",
+        recipient_scopes: [],
+        recipient_workspace_id: "ws_recipient"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-private-share-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PrivateShareLinkPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.data.status).toBe("blocked_recipient_missing_scope");
+    expect(body.data.access_policy.release_state).toBe("blocked");
+    expect(body.data.scope.recipient).toMatchObject({
+      granted: false,
+      required: "exports.read"
+    });
+    expect(body.data.validation.required_context_present).toBe(true);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("serves account runtime capabilities without auth provider calls", async () => {

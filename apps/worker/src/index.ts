@@ -182,6 +182,10 @@ import {
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
 import {
+  createPrivateShareLinkPlan,
+  getPrivateSharingCapabilities
+} from "@aiphabee/sharing-runtime";
+import {
   createSupportRequestIdInvestigationPlan,
   getSupportHelpCenter,
   getSupportOperationsCapabilities
@@ -641,6 +645,96 @@ app.post("/support/request-id-investigation/plan", async (c) => {
           credits: 0,
           rows: plan.status === "planned_no_write" ? 1 : 0
         }
+      }
+    )
+  );
+});
+
+app.get("/sharing/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getPrivateSharingCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "sharing-runtime",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/sharing/private-links/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const fields = normalizeStringArray(body.fields) ?? ["synthetic_profile.company_name"];
+  const creatorScopes =
+    normalizeStringArray(body.creator_scopes ?? body.creatorScopes ?? body.scopes) ?? [];
+  const recipientScopes =
+    normalizeStringArray(body.recipient_scopes ?? body.recipientScopes) ?? [];
+  const timeRange = isTimeRange(body.time_range)
+    ? body.time_range
+    : isTimeRange(body.timeRange)
+      ? body.timeRange
+      : undefined;
+  const plan = createPrivateShareLinkPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    creatorAccountId: normalizeString(body.creator_account_id ?? body.creatorAccountId),
+    creatorPlan: normalizeString(body.creator_plan ?? body.creatorPlan ?? body.plan),
+    creatorScopes,
+    creatorWorkspaceId: normalizeString(body.creator_workspace_id ?? body.creatorWorkspaceId),
+    dataset: normalizeString(body.dataset),
+    expiresInHours: normalizeOptionalNumber(body.expires_in_hours ?? body.expiresInHours),
+    fields,
+    qualityState: isQualityState(body.quality_state)
+      ? body.quality_state
+      : isQualityState(body.qualityState)
+        ? body.qualityState
+        : "PASS",
+    recipientAccountId: normalizeString(body.recipient_account_id ?? body.recipientAccountId),
+    recipientPlan: normalizeString(body.recipient_plan ?? body.recipientPlan ?? body.plan),
+    recipientScopes,
+    recipientWorkspaceId: normalizeString(
+      body.recipient_workspace_id ?? body.recipientWorkspaceId
+    ),
+    requestId,
+    requestedRows:
+      normalizeOptionalNumber(body.requested_rows ?? body.requestedRows) ?? undefined,
+    runId: normalizeString(body.run_id ?? body.runId),
+    timeRange
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getPrivateSharingCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
       }
     )
   );

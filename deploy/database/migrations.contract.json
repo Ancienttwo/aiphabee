@@ -334,6 +334,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621124000_private_share_link_scaffold.sql",
+      "purpose": "Create empty private share link, audit event, and governance scaffolds without expanding recipient data rights or enabling live link materialization.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.private_share_link",
+        "audit.private_share_event",
+        "governance.private_sharing_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
