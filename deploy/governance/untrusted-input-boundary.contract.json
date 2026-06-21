@@ -1,0 +1,55 @@
+{
+  "version": "2026-06-22.always-on-untrusted-input-boundary.v0",
+  "status": "local_contract",
+  "tracker_item": "A3.untrusted_documents_webpages_user_input_isolated",
+  "frontend": false,
+  "live_document_fetch": false,
+  "live_tool_execution": false,
+  "model_calls": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "input_classes": [
+    "announcement_document",
+    "webpage_url",
+    "user_prompt_tool_request",
+    "mcp_origin"
+  ],
+  "required_checks": [
+    "announcement_documents_marked_untrusted",
+    "document_origin_instructions_ignored",
+    "sanitized_excerpts_only",
+    "webpage_url_fetch_not_allowed_as_arbitrary_tool",
+    "user_prompt_tool_requests_pre_execution_denied",
+    "system_instructions_source_runtime_only",
+    "untrusted_mcp_origin_denied"
+  ],
+  "boundary_policy": {
+    "untrusted_content_role": "data",
+    "system_instructions_source": "runtime_only",
+    "document_tool_invocation_allowed": false,
+    "raw_document_instructions_ignored": true,
+    "raw_excerpt_returned": false,
+    "arbitrary_url_fetch_allowed": false,
+    "arbitrary_sql_allowed": false,
+    "unregistered_tool_allowed": false,
+    "untrusted_origin_error": "ORIGIN_NOT_ALLOWED"
+  },
+  "not_claimed": [
+    "live_prompt_injection_red_team_harness",
+    "live_tool_execution_proxy_enforcement",
+    "frontend_untrusted_content_rendering_release_ui",
+    "live_webpage_fetch_sanitizer",
+    "model_output_red_team_score"
+  ],
+  "linked_contracts": [
+    "deploy/documents/search-announcements.contract.json",
+    "deploy/documents/get-announcement.contract.json",
+    "deploy/documents/search-documents.contract.json",
+    "deploy/documents/announcement-diff-extraction.contract.json",
+    "deploy/documents/document-sanitizer.contract.json",
+    "deploy/agent/prompt-injection-tool-denial-release-gate.contract.json",
+    "deploy/agent/tool-enforcement.contract.json",
+    "deploy/mcp/protocol-release-gate.contract.json",
+    "packages/agent-runtime/src/index.ts"
+  ]
+}
