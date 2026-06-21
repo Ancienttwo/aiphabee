@@ -6,6 +6,7 @@ export type RegisteredToolStatus = "planned" | "scaffold";
 export type RegisteredToolExecutionMode = "read_only_planned" | "read_only_scaffold";
 export type RegisteredToolChannel = "api" | "mcp" | "web";
 export type RegisteredToolRiskLevel = "low" | "medium";
+export type RegisteredToolDeprecationStatus = "active" | "deprecated" | "sunset";
 
 export type RegisteredToolName =
   | "resolve_security"
@@ -27,6 +28,22 @@ export interface RegisteredToolDefinition {
     handlerReady: boolean;
     liveDataAccess: false;
     mode: RegisteredToolExecutionMode;
+  };
+  lifecycle: {
+    breakingChangesRequireNewMajor: true;
+    compatibility: {
+      oldMajorAvailableDuringNotice: true;
+      previousMajorSupportWindowDays: number;
+    };
+    deprecation: {
+      announcedAt: null | string;
+      migrationGuide: null | string;
+      minimumNoticeDays: number;
+      status: RegisteredToolDeprecationStatus;
+      sunsetAt: null | string;
+    };
+    majorVersion: number;
+    publicVersion: string;
   };
   name: RegisteredToolName;
   permissions: {
@@ -53,6 +70,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Resolve code, name, or historical identifier to candidate instruments.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("resolve_security"),
     name: "resolve_security",
     permissions: createPermissions("security:read", ["security_master"]),
     schema: createSchema("resolve_security", [
@@ -68,6 +86,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return security profile, status, currency, and coverage metadata.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_security_profile"),
     name: "get_security_profile",
     permissions: createPermissions("security:read", ["security_master"]),
     schema: createSchema("get_security_profile", [
@@ -83,6 +102,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return exchange trading day, half-day, and holiday calendar metadata.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_market_calendar"),
     name: "get_market_calendar",
     permissions: createPermissions("calendar:read", ["market_calendar"]),
     schema: createSchema("get_market_calendar", [
@@ -98,6 +118,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return an entitled delayed or close quote snapshot.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_quote_snapshot"),
     name: "get_quote_snapshot",
     permissions: createPermissions("quotes:read", ["quote_snapshot"]),
     schema: createSchema("get_quote_snapshot", [
@@ -115,6 +136,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return OHLCV and return series with adjustment methodology metadata.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_price_history"),
     name: "get_price_history",
     permissions: createPermissions("prices:read", ["price_history", "corporate_actions"]),
     schema: createSchema("get_price_history", [
@@ -132,6 +154,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return dividends, splits, consolidations, buybacks, and placements.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_corporate_actions"),
     name: "get_corporate_actions",
     permissions: createPermissions("corporate_actions:read", ["corporate_actions"]),
     schema: createSchema("get_corporate_actions", [
@@ -148,6 +171,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return standardized financial facts with period, currency, unit, and version.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_financial_facts"),
     name: "get_financial_facts",
     permissions: createPermissions("financials:read", ["financial_facts"]),
     schema: createSchema("get_financial_facts", [
@@ -165,6 +189,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return lineage metadata for tool outputs and source records.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_data_lineage"),
     name: "get_data_lineage",
     permissions: createPermissions("lineage:read", ["lineage"]),
     schema: createSchema("get_data_lineage", [
@@ -180,6 +205,7 @@ export const REGISTERED_TOOLS = [
     channels: ["web", "mcp", "api"],
     description: "Return data entitlements for a workspace, channel, dataset, and fields.",
     execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_entitlements"),
     name: "get_entitlements",
     permissions: createPermissions("entitlements:read", ["entitlements"]),
     schema: createSchema("get_entitlements", [
@@ -208,6 +234,8 @@ export function getToolRegistryCapabilities() {
   return {
     allow_arbitrary_sql: false,
     allow_arbitrary_url: false,
+    breaking_changes_require_new_major: true,
+    deprecation_policy_ready: true,
     channels: ["web", "mcp", "api"] as const,
     execution_ready: false,
     golden_fixtures_ready: false,
@@ -221,7 +249,8 @@ export function getToolRegistryCapabilities() {
     status: "shared_tool_registry_scaffold" as const,
     tool_count: REGISTERED_TOOLS.length,
     tools: REGISTERED_TOOLS,
-    version: TOOL_REGISTRY_VERSION
+    version: TOOL_REGISTRY_VERSION,
+    versioning_ready: true
   };
 }
 
@@ -267,6 +296,25 @@ function createScaffoldReadOnlyExecution(): RegisteredToolDefinition["execution"
     handlerReady: true,
     liveDataAccess: false,
     mode: "read_only_scaffold"
+  };
+}
+
+function createLifecycle(toolName: RegisteredToolName): RegisteredToolDefinition["lifecycle"] {
+  return {
+    breakingChangesRequireNewMajor: true,
+    compatibility: {
+      oldMajorAvailableDuringNotice: true,
+      previousMajorSupportWindowDays: 180
+    },
+    deprecation: {
+      announcedAt: null,
+      migrationGuide: null,
+      minimumNoticeDays: 90,
+      status: "active",
+      sunsetAt: null
+    },
+    majorVersion: 1,
+    publicVersion: `${toolName}@1`
   };
 }
 

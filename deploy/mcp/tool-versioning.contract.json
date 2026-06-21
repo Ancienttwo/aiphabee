@@ -1,0 +1,49 @@
+{
+  "version": "2026-06-21.phase2.mcp-tool-versioning-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "tool_registry_package": "@aiphabee/tool-registry",
+  "route": "POST /mcp",
+  "runtime_route": "GET /mcp/runtime",
+  "tool_list_method": "tools/list",
+  "frontend": false,
+  "live_tool_execution": false,
+  "tool_versioning_ready": true,
+  "deprecation_policy_ready": true,
+  "breaking_changes_require_new_major": true,
+  "minimum_deprecation_notice_days": 90,
+  "previous_major_support_window_days": 180,
+  "old_major_available_during_notice": true,
+  "covered_sprint_2_3_items": [
+    "MCP-05",
+    "stable_tool_versions",
+    "deprecation_policy",
+    "breaking_changes_new_major",
+    "old_version_notice_window"
+  ],
+  "required_registry_lifecycle_fields": [
+    "publicVersion",
+    "majorVersion",
+    "breakingChangesRequireNewMajor",
+    "deprecation",
+    "compatibility"
+  ],
+  "required_mcp_descriptor_fields": [
+    "version",
+    "public_version",
+    "major_version",
+    "breaking_changes_require_new_major",
+    "deprecation"
+  ],
+  "validated_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_data_lineage",
+    "get_entitlements"
+  ]
+}

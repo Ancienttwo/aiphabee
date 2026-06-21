@@ -6,6 +6,8 @@
   "live_data_access": false,
   "allow_arbitrary_sql": false,
   "allow_arbitrary_url": false,
+  "breaking_changes_require_new_major": true,
+  "deprecation_policy_ready": true,
   "standard_response_envelope": true,
   "rights_aware": true,
   "channels": ["web", "mcp", "api"],
@@ -37,6 +39,7 @@
     "version",
     "description",
     "channels",
+    "lifecycle",
     "permissions",
     "schema",
     "execution",
@@ -57,5 +60,22 @@
     "allowArbitrarySql",
     "allowArbitraryUrl"
   ],
-  "required_testing_fields": ["goldenFixtureReady", "requiredGoldenFixture"]
+  "required_testing_fields": ["goldenFixtureReady", "requiredGoldenFixture"],
+  "required_lifecycle_fields": [
+    "publicVersion",
+    "majorVersion",
+    "breakingChangesRequireNewMajor",
+    "deprecation",
+    "compatibility"
+  ],
+  "required_deprecation_fields": [
+    "status",
+    "minimumNoticeDays",
+    "announcedAt",
+    "sunsetAt",
+    "migrationGuide"
+  ],
+  "minimum_deprecation_notice_days": 90,
+  "previous_major_support_window_days": 180,
+  "versioning_ready": true
 }

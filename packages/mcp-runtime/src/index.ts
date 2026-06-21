@@ -213,10 +213,20 @@ export interface CreateMcpApiKeyRevokePlanInput {
 }
 
 export interface McpToolDescriptor {
+  breaking_changes_require_new_major: true;
+  deprecation: {
+    announced_at: null | string;
+    migration_guide: null | string;
+    minimum_notice_days: number;
+    status: "active" | "deprecated" | "sunset";
+    sunset_at: null | string;
+  };
   description: string;
   input_schema_id: string;
+  major_version: number;
   name: RegisteredToolName;
   output_schema_id: string;
+  public_version: string;
   required_scope: string;
   version: string;
 }
@@ -730,7 +740,9 @@ export function getMcpRuntimeCapabilities() {
     api_key_rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
     api_key_rotation_ready: true,
     api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
+    breaking_changes_require_new_major: true,
     default_deny: true,
+    deprecation_policy_ready: true,
     developer_console_live: false,
     live_tool_execution: false,
     mcp_api_redistribution_rights_confirmed: false,
@@ -751,6 +763,7 @@ export function getMcpRuntimeCapabilities() {
     status: "mcp_endpoint_default_deny_scaffold" as const,
     tool_call_input_strict_validation: true,
     tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
+    tool_versioning_ready: true,
     supported_oauth_scopes: MCP_OAUTH_SCOPE_DEFINITIONS.map(
       (definition) => definition.scope
     ),
@@ -1383,10 +1396,20 @@ function createToolDescriptors(
   tools: readonly RegisteredToolDefinition[]
 ): McpToolDescriptor[] {
   return tools.map((tool) => ({
+    breaking_changes_require_new_major: tool.lifecycle.breakingChangesRequireNewMajor,
+    deprecation: {
+      announced_at: tool.lifecycle.deprecation.announcedAt,
+      migration_guide: tool.lifecycle.deprecation.migrationGuide,
+      minimum_notice_days: tool.lifecycle.deprecation.minimumNoticeDays,
+      status: tool.lifecycle.deprecation.status,
+      sunset_at: tool.lifecycle.deprecation.sunsetAt
+    },
     description: tool.description,
     input_schema_id: tool.schema.inputSchemaId,
+    major_version: tool.lifecycle.majorVersion,
     name: tool.name,
     output_schema_id: tool.schema.outputSchemaId,
+    public_version: tool.lifecycle.publicVersion,
     required_scope: tool.permissions.requiredScope,
     version: tool.version
   }));

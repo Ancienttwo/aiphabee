@@ -45,6 +45,8 @@ describe("mcp endpoint default-deny scaffold", () => {
       api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
       api_key_rotation_ready: true,
       api_key_runtime_route: "GET /mcp/api-keys/runtime",
+      breaking_changes_require_new_major: true,
+      deprecation_policy_ready: true,
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_pkce_ready: true,
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
@@ -56,7 +58,8 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(getMcpRuntimeCapabilities()).toMatchObject({
       tool_call_input_strict_validation: true,
       tool_schema_validation_version:
-        "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0"
+        "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
+      tool_versioning_ready: true
     });
   });
 
@@ -432,6 +435,27 @@ describe("mcp endpoint default-deny scaffold", () => {
       tools: []
     });
     expect(plan.usage.rows).toBe(0);
+  });
+
+  it("returns versioned tool descriptors with deprecation policy when rights are confirmed", () => {
+    const plan = createMcpProtocolPlan({
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/list",
+      origin: "https://app.aiphabee.com",
+      requestId: "req-mcp-tools-list-versioned"
+    });
+
+    expect(plan.tools_list?.returned_tool_count).toBe(9);
+    expect(
+      plan.tools_list?.tools.every(
+        (tool) =>
+          tool.public_version === `${tool.name}@1` &&
+          tool.major_version === 1 &&
+          tool.breaking_changes_require_new_major &&
+          tool.deprecation.status === "active" &&
+          tool.deprecation.minimum_notice_days === 90
+      )
+    ).toBe(true);
   });
 
   it("rejects untrusted origins before tool discovery", () => {

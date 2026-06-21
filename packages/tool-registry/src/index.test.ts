@@ -15,6 +15,9 @@ describe("tool registry scaffold", () => {
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
     expect(capabilities.standard_response_envelope).toBe(true);
+    expect(capabilities.versioning_ready).toBe(true);
+    expect(capabilities.deprecation_policy_ready).toBe(true);
+    expect(capabilities.breaking_changes_require_new_major).toBe(true);
     expect(capabilities.handler_ready_tool_count).toBe(9);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
@@ -126,6 +129,23 @@ describe("tool registry scaffold", () => {
       true
     );
     expect(capabilities.tools.every((tool) => tool.permissions.rightsAware)).toBe(true);
+    expect(capabilities.tools.every((tool) => tool.lifecycle.majorVersion === 1)).toBe(
+      true
+    );
+    expect(
+      capabilities.tools.every(
+        (tool) => tool.lifecycle.publicVersion === `${tool.name}@1`
+      )
+    ).toBe(true);
+    expect(
+      capabilities.tools.every(
+        (tool) =>
+          tool.lifecycle.breakingChangesRequireNewMajor &&
+          tool.lifecycle.deprecation.status === "active" &&
+          tool.lifecycle.deprecation.minimumNoticeDays === 90 &&
+          tool.lifecycle.compatibility.oldMajorAvailableDuringNotice
+      )
+    ).toBe(true);
   });
 
   it("keeps registry names stable for agent and tool runtime policy", () => {

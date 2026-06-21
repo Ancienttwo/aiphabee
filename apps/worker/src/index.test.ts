@@ -1046,6 +1046,8 @@ interface ToolRuntimeBody {
   data: {
     allow_arbitrary_sql: boolean;
     allow_arbitrary_url: boolean;
+    breaking_changes_require_new_major: boolean;
+    deprecation_policy_ready: boolean;
     execution_ready: boolean;
     golden_fixtures_ready: boolean;
     handler_ready_tool_count: number;
@@ -1060,6 +1062,15 @@ interface ToolRuntimeBody {
         handlerReady: boolean;
         liveDataAccess: boolean;
       };
+      lifecycle: {
+        breakingChangesRequireNewMajor: boolean;
+        deprecation: {
+          minimumNoticeDays: number;
+          status: string;
+        };
+        majorVersion: number;
+        publicVersion: string;
+      };
       name: string;
       permissions: {
         rightsAware: boolean;
@@ -1068,6 +1079,7 @@ interface ToolRuntimeBody {
         standardResponseEnvelope: boolean;
       };
     }>;
+    versioning_ready: boolean;
   };
   ok: true;
 }
@@ -1617,7 +1629,9 @@ interface McpRuntimeBody {
     api_key_rotate_route: string;
     api_key_rotation_ready: boolean;
     api_key_runtime_route: string;
+    breaking_changes_require_new_major: boolean;
     default_deny: boolean;
+    deprecation_policy_ready: boolean;
     live_tool_execution: boolean;
     mcp_api_redistribution_rights_confirmed: boolean;
     oauth_authorize_route: string;
@@ -1633,6 +1647,7 @@ interface McpRuntimeBody {
     structured_content_output_schema_ready: boolean;
     tool_call_input_strict_validation: boolean;
     tool_schema_validation_version: string;
+    tool_versioning_ready: boolean;
     supported_oauth_scopes: string[];
     supported_methods: string[];
     transport: string;
@@ -4052,10 +4067,22 @@ describe("worker runtime", () => {
     expect(body.data.handler_ready_tool_count).toBe(9);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
+    expect(body.data.versioning_ready).toBe(true);
+    expect(body.data.deprecation_policy_ready).toBe(true);
+    expect(body.data.breaking_changes_require_new_major).toBe(true);
     expect(body.data.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
         handlerReady: true,
         liveDataAccess: false
+      },
+      lifecycle: {
+        breakingChangesRequireNewMajor: true,
+        deprecation: {
+          minimumNoticeDays: 90,
+          status: "active"
+        },
+        majorVersion: 1,
+        publicVersion: "resolve_security@1"
       },
       permissions: {
         rightsAware: true
@@ -4179,6 +4206,13 @@ describe("worker runtime", () => {
     expect(body.data.tools.every((tool) => tool.execution.liveDataAccess === false)).toBe(
       true
     );
+    expect(
+      body.data.tools.every(
+        (tool) =>
+          tool.lifecycle.publicVersion === `${tool.name}@1` &&
+          tool.lifecycle.deprecation.minimumNoticeDays === 90
+      )
+    ).toBe(true);
   });
 
   it("resolves security identifiers without live data access", async () => {
@@ -5818,7 +5852,9 @@ describe("worker runtime", () => {
       api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
       api_key_runtime_route: "GET /mcp/api-keys/runtime",
       api_key_rotation_ready: true,
+      breaking_changes_require_new_major: true,
       default_deny: true,
+      deprecation_policy_ready: true,
       live_tool_execution: false,
       mcp_api_redistribution_rights_confirmed: false,
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
@@ -5835,6 +5871,7 @@ describe("worker runtime", () => {
       tool_call_input_strict_validation: true,
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
+      tool_versioning_ready: true,
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
     });

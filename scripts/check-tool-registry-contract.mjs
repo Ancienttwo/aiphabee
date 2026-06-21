@@ -100,6 +100,18 @@ function validateContract(value) {
     errors.push("allow_arbitrary_url must be false");
   }
 
+  if (value.versioning_ready !== true) {
+    errors.push("versioning_ready must be true");
+  }
+
+  if (value.deprecation_policy_ready !== true) {
+    errors.push("deprecation_policy_ready must be true");
+  }
+
+  if (value.breaking_changes_require_new_major !== true) {
+    errors.push("breaking_changes_require_new_major must be true");
+  }
+
   if (value.standard_response_envelope !== true) {
     errors.push("standard_response_envelope must be true");
   }
@@ -117,6 +129,7 @@ function validateContract(value) {
     "version",
     "description",
     "channels",
+    "lifecycle",
     "permissions",
     "schema",
     "execution",
@@ -145,6 +158,29 @@ function validateContract(value) {
     "goldenFixtureReady",
     "requiredGoldenFixture"
   ], "required_testing_fields"));
+  errors.push(...validateStringArray(value.required_lifecycle_fields, [
+    "publicVersion",
+    "majorVersion",
+    "breakingChangesRequireNewMajor",
+    "deprecation",
+    "compatibility"
+  ], "required_lifecycle_fields"));
+  errors.push(...validateStringArray(value.required_deprecation_fields, [
+    "status",
+    "minimumNoticeDays",
+    "announcedAt",
+    "sunsetAt",
+    "migrationGuide"
+  ], "required_deprecation_fields"));
+
+  if (value.minimum_deprecation_notice_days < 90) {
+    errors.push("minimum_deprecation_notice_days must be at least 90");
+  }
+
+  if (value.previous_major_support_window_days < 180) {
+    errors.push("previous_major_support_window_days must be at least 180");
+  }
+
   errors.push(...validateNoSecretLikeValues(value));
 
   return errors;
