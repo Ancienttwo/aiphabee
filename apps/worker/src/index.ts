@@ -30,6 +30,7 @@ import {
   createAgentKillSwitchPlan,
   createAgentRunSkeleton,
   createPreToolCallResolution,
+  createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
@@ -4253,6 +4254,89 @@ app.post("/agent/release-gates/product-agent/plan", async (c) => {
       createErrorEnvelope("INTERNAL_ERROR", "product Agent release gate planning failed", {
         asOf: new Date().toISOString(),
         methodologyVersion: "product-agent-release-gate-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/agent/release-gates/prompt-injection/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const plan = createPromptInjectionToolDenialReleaseGatePlan({
+      asOf: normalizeString(body.as_of ?? body.asOf),
+      locale: normalizeString(
+        body.locale ?? body.response_locale ?? body.responseLocale ?? body.language
+      ),
+      maliciousDocumentId: normalizeString(
+        body.malicious_document_id ?? body.maliciousDocumentId ?? body.document_id ?? body.documentId
+      ),
+      maliciousSectionId: normalizeString(
+        body.malicious_section_id ?? body.maliciousSectionId ?? body.section_id ?? body.sectionId
+      ),
+      prompt: normalizeString(body.prompt),
+      requestId,
+      responseDepth: normalizeString(body.response_depth ?? body.responseDepth),
+      userId: normalizeString(body.user_id ?? body.userId),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(plan, {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "prompt-injection-tool-denial-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      })
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "prompt-injection-tool-denial-release-gate-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "prompt injection tool denial release gate planning failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "prompt-injection-tool-denial-release-gate-scaffold-v0",
         requestId,
         usage: {
           cached: false,

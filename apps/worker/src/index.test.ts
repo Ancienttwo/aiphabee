@@ -2156,6 +2156,23 @@ interface AgentRuntimeBody {
       version: string;
       workflow_task_route: string;
     };
+    prompt_injection_tool_denial_release_gate: {
+      actual_tool_execution: boolean;
+      document_sanitizer_route: string;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_document_fetch: boolean;
+      live_tool_execution: boolean;
+      model_calls: boolean;
+      persistent_writes: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      tool_loop_route: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -2210,6 +2227,73 @@ interface AgentKillSwitchPlanBody {
       target: string;
       tool_kill_switch: boolean;
     };
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface PromptInjectionToolDenialReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_document_fetch: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    prompt_injection_gate: {
+      document_result: {
+        document_trust_policy: {
+          content_is_untrusted_data: boolean;
+          prompt_injection_isolated: boolean;
+        };
+        sanitization_summary: {
+          raw_document_instructions_ignored: boolean;
+          sections_sanitized: number;
+        };
+      };
+      document_sanitizer_capability: {
+        prompt_injection_isolated: boolean;
+        tool_invocation_allowed_from_document: boolean;
+      };
+      malicious_document_id: string;
+      malicious_section_id: string;
+      removed_items: string[];
+      sanitized_excerpt_contains_script: boolean;
+      sanitized_excerpt_contains_tool_instruction: boolean;
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    tool_denial_gate: {
+      baseline_tool_enforcement: {
+        allow_arbitrary_sql: boolean;
+        allow_arbitrary_url: boolean;
+        all_checks_passed: boolean;
+        status: string;
+      };
+      denied_tool_probes: Array<{
+        denied_pre_execution: boolean;
+        denied_tools: string[];
+        kind: string;
+        requested_tool: string;
+        runtime_error_code: string;
+        status: string;
+      }>;
+    };
+    validation: Record<string, boolean>;
     version: string;
   };
   ok: true;
@@ -8510,6 +8594,30 @@ describe("worker runtime", () => {
       "newbie_professional_depth_preserves_data_contract",
       "mode_switch_changes_presentation_only"
     ]);
+    expect(body.data.prompt_injection_tool_denial_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      document_sanitizer_route: "POST /documents/get-announcement",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_document_fetch: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/prompt-injection/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "prompt_injection_tool_denial_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      version: "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0"
+    });
+    expect(body.data.prompt_injection_tool_denial_release_gate.required_checks).toEqual([
+      "untrusted_document_content_is_isolated",
+      "document_origin_tool_instructions_not_executed",
+      "arbitrary_sql_tool_denied_pre_execution",
+      "arbitrary_url_tool_denied_pre_execution",
+      "unregistered_tool_denied_pre_execution",
+      "registered_tools_remain_schema_bound_read_only"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -8637,6 +8745,119 @@ describe("worker runtime", () => {
       tool_planning_blocked_until_clarified: true
     });
     expect(body.usage.rows).toBe(5);
+  });
+
+  it("plans prompt injection and arbitrary tool denial release gate", async () => {
+    const response = await app.request("/agent/release-gates/prompt-injection/plan", {
+      body: JSON.stringify({
+        document_id: "doc_ann_00700_20260103_dividend",
+        section_id: "dividend_timetable",
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-prompt-injection-tool-denial-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PromptInjectionToolDenialReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/prompt-injection/plan",
+        status: "prompt_injection_tool_denial_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_document_fetch: false,
+      live_tool_execution: false,
+      model_calls: false,
+      prompt_injection_gate: {
+        document_sanitizer_capability: {
+          prompt_injection_isolated: true,
+          tool_invocation_allowed_from_document: false
+        },
+        malicious_document_id: "doc_ann_00700_20260103_dividend",
+        malicious_section_id: "dividend_timetable",
+        removed_items: ["hidden_text", "script_tag", "suspicious_instruction"],
+        sanitized_excerpt_contains_script: false,
+        sanitized_excerpt_contains_tool_instruction: false
+      },
+      release_gate: {
+        gate_status: "blocked_live_prompt_injection_red_team_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["security", "agent", "data_governance"]
+      },
+      version: "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0"
+    });
+    expect(body.data.prompt_injection_gate.document_result).toMatchObject({
+      document_trust_policy: {
+        content_is_untrusted_data: true,
+        prompt_injection_isolated: true
+      },
+      sanitization_summary: {
+        raw_document_instructions_ignored: true,
+        sections_sanitized: 1
+      }
+    });
+    expect(body.data.tool_denial_gate.baseline_tool_enforcement).toMatchObject({
+      allow_arbitrary_sql: false,
+      allow_arbitrary_url: false,
+      all_checks_passed: true,
+      status: "allowed"
+    });
+    expect(body.data.tool_denial_gate.denied_tool_probes).toEqual([
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["sql.query"],
+        kind: "arbitrary_sql_tool",
+        requested_tool: "sql.query",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      }),
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["http.fetch"],
+        kind: "arbitrary_url_tool",
+        requested_tool: "http.fetch",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      }),
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["admin.override"],
+        kind: "unregistered_tool",
+        requested_tool: "admin.override",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      })
+    ]);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "untrusted_document_content_is_isolated",
+      "document_origin_tool_instructions_not_executed",
+      "arbitrary_sql_tool_denied_pre_execution",
+      "arbitrary_url_tool_denied_pre_execution",
+      "unregistered_tool_denied_pre_execution",
+      "registered_tools_remain_schema_bound_read_only"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      arbitrary_sql_denied_pre_execution: true,
+      arbitrary_url_denied_pre_execution: true,
+      document_origin_tool_instructions_not_executed: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      registered_tools_schema_bound_read_only: true,
+      unregistered_tool_denied_pre_execution: true,
+      untrusted_document_content_is_isolated: true
+    });
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans Agent label and high-cost budget release gate without live queue writes", async () => {

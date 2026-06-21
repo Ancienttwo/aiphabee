@@ -6,12 +6,14 @@ import {
   createAgentRunSkeleton,
   createAiSdkStopCondition,
   createPreToolCallResolution,
+  createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
+  getPromptInjectionToolDenialReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities
 } from "./index";
@@ -221,6 +223,30 @@ describe("agent runtime scaffold", () => {
       "newbie_professional_depth_preserves_data_contract",
       "mode_switch_changes_presentation_only"
     ]);
+    expect(capabilities.prompt_injection_tool_denial_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      document_sanitizer_route: "POST /documents/get-announcement",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_document_fetch: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/prompt-injection/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "prompt_injection_tool_denial_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      version: "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0"
+    });
+    expect(capabilities.prompt_injection_tool_denial_release_gate.required_checks).toEqual([
+      "untrusted_document_content_is_isolated",
+      "document_origin_tool_instructions_not_executed",
+      "arbitrary_sql_tool_denied_pre_execution",
+      "arbitrary_url_tool_denied_pre_execution",
+      "unregistered_tool_denied_pre_execution",
+      "registered_tools_remain_schema_bound_read_only"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -284,6 +310,29 @@ describe("agent runtime scaffold", () => {
       "replay_preserves_old_report_snapshot",
       "newbie_professional_depth_preserves_data_contract",
       "mode_switch_changes_presentation_only"
+    ]);
+  });
+
+  it("exposes prompt injection and tool denial release gate capability", () => {
+    const capability = getPromptInjectionToolDenialReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      document_sanitizer_route: "POST /documents/get-announcement",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_document_fetch: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/prompt-injection/plan",
+      sql_emitted: false,
+      status: "prompt_injection_tool_denial_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan"
+    });
+    expect(capability.tables).toEqual([
+      "core.prompt_injection_tool_denial_release_gate",
+      "governance.prompt_injection_tool_denial_release_gate_contract"
     ]);
   });
 
@@ -585,6 +634,114 @@ describe("agent runtime scaffold", () => {
         tool_kill_switch: true
       },
       version: AGENT_KILL_SWITCH_VERSION
+    });
+  });
+
+  it("plans prompt injection and arbitrary tool denial release gate checks", () => {
+    const plan = createPromptInjectionToolDenialReleaseGatePlan({
+      requestId: "req-prompt-injection-tool-denial-gate-1",
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/prompt-injection/plan",
+        status: "prompt_injection_tool_denial_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_document_fetch: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      release_gate: {
+        gate_status: "blocked_live_prompt_injection_red_team_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["security", "agent", "data_governance"]
+      },
+      route: "POST /agent/release-gates/prompt-injection/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0"
+    });
+    expect(plan.prompt_injection_gate).toMatchObject({
+      document_sanitizer_capability: {
+        prompt_injection_isolated: true,
+        tool_invocation_allowed_from_document: false
+      },
+      malicious_document_id: "doc_ann_00700_20260103_dividend",
+      malicious_section_id: "dividend_timetable",
+      sanitized_excerpt_contains_script: false,
+      sanitized_excerpt_contains_tool_instruction: false
+    });
+    expect(plan.prompt_injection_gate.removed_items).toEqual([
+      "hidden_text",
+      "script_tag",
+      "suspicious_instruction"
+    ]);
+    expect(plan.prompt_injection_gate.document_result).toMatchObject({
+      document_trust_policy: {
+        content_is_untrusted_data: true,
+        prompt_injection_isolated: true,
+        scripts_executable: false
+      },
+      sanitization_summary: {
+        raw_document_instructions_ignored: true,
+        sections_sanitized: 1
+      }
+    });
+    expect(plan.tool_denial_gate.denied_tool_probes).toEqual([
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["sql.query"],
+        kind: "arbitrary_sql_tool",
+        requested_tool: "sql.query",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      }),
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["http.fetch"],
+        kind: "arbitrary_url_tool",
+        requested_tool: "http.fetch",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      }),
+      expect.objectContaining({
+        denied_pre_execution: true,
+        denied_tools: ["admin.override"],
+        kind: "unregistered_tool",
+        requested_tool: "admin.override",
+        runtime_error_code: "UNREGISTERED_TOOL",
+        status: "denied_pre_execution"
+      })
+    ]);
+    expect(plan.tool_denial_gate.baseline_tool_enforcement).toMatchObject({
+      allow_arbitrary_sql: false,
+      allow_arbitrary_url: false,
+      all_checks_passed: true,
+      status: "allowed"
+    });
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "untrusted_document_content_is_isolated",
+      "document_origin_tool_instructions_not_executed",
+      "arbitrary_sql_tool_denied_pre_execution",
+      "arbitrary_url_tool_denied_pre_execution",
+      "unregistered_tool_denied_pre_execution",
+      "registered_tools_remain_schema_bound_read_only"
+    ]);
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(true);
+    expect(plan.validation).toMatchObject({
+      arbitrary_sql_denied_pre_execution: true,
+      arbitrary_url_denied_pre_execution: true,
+      document_origin_tool_instructions_not_executed: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      registered_tools_schema_bound_read_only: true,
+      unregistered_tool_denied_pre_execution: true,
+      untrusted_document_content_is_isolated: true
     });
   });
 

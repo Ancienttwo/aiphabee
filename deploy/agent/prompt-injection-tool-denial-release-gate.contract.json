@@ -1,0 +1,64 @@
+{
+  "version": "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/prompt-injection/plan",
+  "document_sanitizer_route": "POST /documents/get-announcement",
+  "tool_loop_route": "POST /agent/runs/plan",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_document_fetch": false,
+  "live_tool_execution": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "content_is_untrusted_data": true,
+  "prompt_injection_isolated": true,
+  "document_tool_invocation_allowed": false,
+  "raw_document_instructions_ignored": true,
+  "registered_tools_only": true,
+  "allow_arbitrary_sql": false,
+  "allow_arbitrary_url": false,
+  "pre_execution_denial": true,
+  "denied_tool_probes": ["sql.query", "http.fetch", "admin.override"],
+  "required_checks": [
+    "untrusted_document_content_is_isolated",
+    "document_origin_tool_instructions_not_executed",
+    "arbitrary_sql_tool_denied_pre_execution",
+    "arbitrary_url_tool_denied_pre_execution",
+    "unregistered_tool_denied_pre_execution",
+    "registered_tools_remain_schema_bound_read_only"
+  ],
+  "required_output_fields": [
+    "prompt_injection_gate",
+    "tool_denial_gate",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_prompt_injection_red_team_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": ["security", "agent", "data_governance"],
+    "blockers": [
+      "live_prompt_injection_red_team_harness_missing",
+      "live_tool_execution_proxy_enforcement_missing",
+      "frontend_untrusted_content_rendering_release_ui_missing"
+    ]
+  },
+  "tables": [
+    "core.prompt_injection_tool_denial_release_gate",
+    "governance.prompt_injection_tool_denial_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "prompt_injection_tests_pass",
+    "arbitrary_sql_url_unregistered_tool_denied"
+  ],
+  "linked_contracts": [
+    "deploy/documents/document-sanitizer.contract.json",
+    "deploy/agent/tool-enforcement.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}
