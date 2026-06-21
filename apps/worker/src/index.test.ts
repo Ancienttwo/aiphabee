@@ -1607,6 +1607,67 @@ interface ResearchRunReplayPlanBody {
   ok: true;
 }
 
+interface McpRuntimeBody {
+  data: {
+    default_deny: boolean;
+    live_tool_execution: boolean;
+    mcp_api_redistribution_rights_confirmed: boolean;
+    oauth_live: boolean;
+    origin_validation: boolean;
+    route: string;
+    runtime_route: string;
+    status: string;
+    supported_methods: string[];
+    transport: string;
+    web_rights_do_not_imply_mcp: boolean;
+  };
+  ok: true;
+}
+
+interface McpProtocolPlanBody {
+  data: {
+    capability: {
+      default_deny: boolean;
+      live_tool_execution: boolean;
+      mcp_api_redistribution_rights_confirmed: boolean;
+      origin_validation: boolean;
+      route: string;
+      supported_methods: string[];
+    };
+    endpoint: string;
+    initialize?: {
+      protocol_version: string;
+      server_info: {
+        name: string;
+      };
+    };
+    live_tool_execution: boolean;
+    method: string;
+    origin_check: {
+      origin: string;
+      required: boolean;
+      valid: boolean;
+    };
+    rights_gate: {
+      blocked_reason?: string;
+      default_deny: boolean;
+      mcp_api_redistribution_rights_confirmed: boolean;
+      web_rights_do_not_imply_mcp: boolean;
+    };
+    status: string;
+    tools_list?: {
+      blocked_tool_count: number;
+      returned_tool_count: number;
+      tools: unknown[];
+    };
+    transport: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface DatabaseRuntimeBody {
   data: {
     connection_path: string;
@@ -5517,6 +5578,159 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("serves MCP runtime capabilities with default-deny rights gate", async () => {
+    const response = await app.request("/mcp/runtime", {
+      headers: {
+        "x-request-id": "req-mcp-runtime"
+      }
+    });
+    const body = (await response.json()) as McpRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      default_deny: true,
+      live_tool_execution: false,
+      mcp_api_redistribution_rights_confirmed: false,
+      oauth_live: false,
+      origin_validation: true,
+      route: "POST /mcp",
+      runtime_route: "GET /mcp/runtime",
+      status: "mcp_endpoint_default_deny_scaffold",
+      transport: "streamable_http",
+      web_rights_do_not_imply_mcp: true
+    });
+    expect(body.data.supported_methods).toEqual([
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ]);
+  });
+
+  it("plans MCP initialize for trusted origins without live tool execution", async () => {
+    const response = await app.request("/mcp", {
+      body: JSON.stringify({
+        method: "initialize",
+        params: {
+          client_name: "mcp-inspector",
+          client_version: "0.16.0"
+        }
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-initialize"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpProtocolPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      endpoint: "/mcp",
+      live_tool_execution: false,
+      method: "initialize",
+      origin_check: {
+        origin: "https://app.aiphabee.com",
+        required: true,
+        valid: true
+      },
+      rights_gate: {
+        blocked_reason: "MCP_API_REDISTRIBUTION_RIGHTS_NOT_CONFIRMED",
+        default_deny: true,
+        mcp_api_redistribution_rights_confirmed: false,
+        web_rights_do_not_imply_mcp: true
+      },
+      status: "planned_default_deny",
+      transport: "streamable_http"
+    });
+    expect(body.data.initialize).toMatchObject({
+      protocol_version: "2025-03-26",
+      server_info: {
+        name: "aiphabee-mcp"
+      }
+    });
+    expect(body.data.capability).toMatchObject({
+      default_deny: true,
+      live_tool_execution: false,
+      mcp_api_redistribution_rights_confirmed: false,
+      origin_validation: true,
+      route: "POST /mcp",
+      supported_methods: ["initialize", "tools/list", "tools/call"]
+    });
+  });
+
+  it("returns empty MCP tools/list while redistribution rights are unconfirmed", async () => {
+    const response = await app.request("/mcp", {
+      body: JSON.stringify({
+        method: "tools/list"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-tools-list"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpProtocolPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("planned_default_deny");
+    expect(body.data.tools_list).toEqual({
+      blocked_tool_count: 9,
+      returned_tool_count: 0,
+      tool_catalog_available_after_rights_gate: true,
+      tools: []
+    });
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("rejects MCP requests from untrusted origins", async () => {
+    const response = await app.request("/mcp", {
+      body: JSON.stringify({
+        method: "tools/list"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://evil.example",
+        "x-request-id": "req-mcp-origin-denied"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("rejects MCP tools/call until MCP redistribution rights are confirmed", async () => {
+    const response = await app.request("/mcp", {
+      body: JSON.stringify({
+        method: "tools/call",
+        params: {
+          name: "get_quote_snapshot"
+        }
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-tool-call"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(403);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("DATA_NOT_LICENSED");
   });
 
   it("serves database runtime capabilities without live queries", async () => {

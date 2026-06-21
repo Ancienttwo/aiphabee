@@ -93,6 +93,11 @@ import {
   type QuoteSnapshotMode
 } from "@aiphabee/market-data";
 import {
+  McpRuntimeInputError,
+  createMcpProtocolPlan,
+  getMcpRuntimeCapabilities
+} from "@aiphabee/mcp-runtime";
+import {
   EVAL_STORE_SCHEMA_VERSION,
   OBSERVABILITY_EVENT_VERSION,
   WVRO_HIGH_INTENT_ACTIONS,
@@ -1547,6 +1552,121 @@ app.post("/research/runs/replay/plan", async (c) => {
         asOf: new Date().toISOString(),
         dataVersion: "research-run-replay-scaffold-v0",
         methodologyVersion: "2026-06-21.phase2.research-run-replay-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.get("/mcp/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getMcpRuntimeCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
+      methodologyVersion:
+        "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+      provenance: [
+        {
+          data_version: "mcp-endpoint-default-deny-scaffold-v0",
+          methodology_version:
+            "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+          source: "mcp-runtime",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/mcp", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const params = isPlainRecord(body.params) ? body.params : {};
+
+  try {
+    const result = createMcpProtocolPlan({
+      clientName: normalizeString(params.client_name ?? params.clientName),
+      clientVersion: normalizeString(params.client_version ?? params.clientVersion),
+      grantedScopes: [],
+      method: normalizeString(body.method),
+      mcpRedistributionRightsConfirmed: false,
+      origin: c.req.header("origin") ?? undefined,
+      requestId,
+      requestedScopes: normalizeStringArray(params.scopes ?? body.scopes),
+      toolName: normalizeString(params.name ?? params.tool_name ?? params.toolName)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpRuntimeCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof McpRuntimeInputError) {
+      const status = statusForMcpRuntimeError(error);
+
+      return c.json(
+        createErrorEnvelope(errorCodeForMcpRuntimeError(error), error.message, {
+          asOf: new Date().toISOString(),
+          dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
+          methodologyVersion:
+            "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+          provenance: [
+            {
+              data_version: "mcp-endpoint-default-deny-scaffold-v0",
+              methodology_version:
+                "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
+              source: "mcp-runtime",
+              source_record_id: error.code
+            }
+          ],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "MCP protocol plan failed", {
+        asOf: new Date().toISOString(),
+        dataVersion: "mcp-endpoint-default-deny-scaffold-v0",
+        methodologyVersion:
+          "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0",
         requestId,
         usage: {
           cached: false,
@@ -3888,6 +4008,39 @@ function normalizeResearchReplayCurrentRun(
 
 function normalizeResearchSavedRun(value: unknown): ResearchRunSavePlan | undefined {
   return isPlainRecord(value) ? (value as unknown as ResearchRunSavePlan) : undefined;
+}
+
+function errorCodeForMcpRuntimeError(
+  error: McpRuntimeInputError
+): "DATA_NOT_LICENSED" | "NOT_FOUND" | "OUT_OF_RANGE" | "SCOPE_DENIED" {
+  switch (error.code) {
+    case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
+      return "DATA_NOT_LICENSED";
+    case "TOOL_NOT_REGISTERED":
+      return "NOT_FOUND";
+    case "UNSUPPORTED_METHOD":
+      return "OUT_OF_RANGE";
+    case "ORIGIN_NOT_ALLOWED":
+    case "ORIGIN_REQUIRED":
+    case "TOOL_NAME_REQUIRED":
+    case "TOOL_SCOPE_REQUIRED":
+      return "SCOPE_DENIED";
+  }
+}
+
+function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 {
+  switch (error.code) {
+    case "TOOL_NOT_REGISTERED":
+      return 404;
+    case "UNSUPPORTED_METHOD":
+    case "TOOL_NAME_REQUIRED":
+      return 400;
+    case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
+    case "ORIGIN_NOT_ALLOWED":
+    case "ORIGIN_REQUIRED":
+    case "TOOL_SCOPE_REQUIRED":
+      return 403;
+  }
 }
 
 function normalizeResearchJsonValue(value: unknown): ResearchRunJsonValue | undefined {
