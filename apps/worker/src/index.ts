@@ -151,6 +151,11 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  getPublicDocsManifest,
+  getPublicOperationsCapabilities,
+  getPublicStatusPage
+} from "@aiphabee/public-ops";
+import {
   createDeepReportWorkflowPlan,
   ResearchRunInputError,
   createDataCorrectionNotificationPlan,
@@ -419,6 +424,108 @@ app.get("/", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/public/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getPublicOperationsCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "public-ops",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.get("/public/status", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const statusPage = getPublicStatusPage({
+    asOf: new Date().toISOString(),
+    requestId
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...statusPage,
+        capability: getPublicOperationsCapabilities()
+      },
+      {
+        asOf: statusPage.as_of,
+        dataVersion: statusPage.version,
+        methodologyVersion: statusPage.version,
+        provenance: [
+          {
+            data_version: statusPage.version,
+            methodology_version: statusPage.version,
+            source: "public-ops",
+            source_record_id: "public-status-page"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: statusPage.components.length
+        }
+      }
+    )
+  );
+});
+
+app.get("/public/docs", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const docsManifest = getPublicDocsManifest({ requestId });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...docsManifest,
+        capability: getPublicOperationsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: docsManifest.version,
+        methodologyVersion: docsManifest.version,
+        provenance: [
+          {
+            data_version: docsManifest.version,
+            methodology_version: docsManifest.version,
+            source: "public-ops",
+            source_record_id: "public-docs-manifest"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: docsManifest.documents.length
         }
       }
     )

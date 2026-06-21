@@ -13,6 +13,81 @@ interface RootRouteBody {
   };
 }
 
+interface PublicRuntimeBody {
+  data: {
+    auth_required: boolean;
+    docs_route: string;
+    document_kinds: string[];
+    frontend: boolean;
+    live_deployment_verified: boolean;
+    live_incident_feed: boolean;
+    persistent_writes: boolean;
+    request_id_visible: boolean;
+    route: string;
+    sql_emitted: boolean;
+    status: string;
+    status_components: string[];
+    status_route: string;
+  };
+  ok: true;
+}
+
+interface PublicStatusBody {
+  data: {
+    capability: {
+      status: string;
+    };
+    components: Array<{
+      component_id: string;
+      evidence_route: string;
+      request_id_visible: boolean;
+      status: string;
+    }>;
+    live_incident_feed: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    request_id_visible: boolean;
+    sql_emitted: boolean;
+    status: string;
+    status_page: {
+      auth_required: boolean;
+      component_count: number;
+      publication_status: string;
+      route: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface PublicDocsBody {
+  data: {
+    capability: {
+      status: string;
+    };
+    documents: Array<{
+      kind: string;
+      legal_review_required: boolean;
+      path: string;
+      publication_status: string;
+      required_sections: string[];
+    }>;
+    live_publication_verified: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    request_id_visible: boolean;
+    route: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface AccountRuntimeBody {
   data: {
     auth_provider_calls: boolean;
@@ -4044,6 +4119,122 @@ describe("worker runtime", () => {
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
     expect(body.usage.credits).toBe(0);
+  });
+
+  it("serves public runtime capabilities for status and docs surfaces", async () => {
+    const response = await app.request("/public/runtime", {
+      headers: {
+        "x-request-id": "req-public-runtime"
+      }
+    });
+    const body = (await response.json()) as PublicRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      auth_required: false,
+      docs_route: "GET /public/docs",
+      frontend: false,
+      live_deployment_verified: false,
+      live_incident_feed: false,
+      persistent_writes: false,
+      request_id_visible: true,
+      route: "GET /public/runtime",
+      sql_emitted: false,
+      status: "public_status_docs_scaffold",
+      status_route: "GET /public/status"
+    });
+    expect(body.data.document_kinds).toEqual([
+      "api_reference",
+      "mcp_reference",
+      "privacy_policy",
+      "terms_of_service"
+    ]);
+    expect(body.data.status_components).toContain("remote_mcp");
+  });
+
+  it("serves public status page components with evidence routes", async () => {
+    const response = await app.request("/public/status", {
+      headers: {
+        "x-request-id": "req-public-status"
+      }
+    });
+    const body = (await response.json()) as PublicStatusBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      live_incident_feed: false,
+      persistent_writes: false,
+      request_id: "req-public-status",
+      request_id_visible: true,
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.status_page).toMatchObject({
+      auth_required: false,
+      component_count: 5,
+      publication_status: "local_scaffold_ready",
+      route: "GET /public/status"
+    });
+    expect(body.data.components.map((component) => component.component_id)).toEqual([
+      "worker_api",
+      "remote_mcp",
+      "data_gateway",
+      "usage_billing",
+      "public_documentation"
+    ]);
+    expect(body.data.components.find((component) => component.component_id === "remote_mcp")).toMatchObject({
+      evidence_route: "/mcp/runtime",
+      request_id_visible: true,
+      status: "default_deny_scaffold"
+    });
+    expect(body.data.capability.status).toBe("public_status_docs_scaffold");
+    expect(body.usage.rows).toBe(5);
+  });
+
+  it("serves public API, MCP, privacy, and terms docs manifest", async () => {
+    const response = await app.request("/public/docs", {
+      headers: {
+        "x-request-id": "req-public-docs"
+      }
+    });
+    const body = (await response.json()) as PublicDocsBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      live_publication_verified: false,
+      persistent_writes: false,
+      request_id: "req-public-docs",
+      request_id_visible: true,
+      route: "GET /public/docs",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.documents.map((document) => document.kind)).toEqual([
+      "api_reference",
+      "mcp_reference",
+      "privacy_policy",
+      "terms_of_service"
+    ]);
+    expect(body.data.documents.find((document) => document.kind === "api_reference")).toMatchObject({
+      path: "docs/public/api.md",
+      publication_status: "local_draft_ready"
+    });
+    expect(body.data.documents.find((document) => document.kind === "privacy_policy")).toMatchObject({
+      legal_review_required: true,
+      path: "docs/public/privacy.md"
+    });
+    expect(body.data.documents.find((document) => document.kind === "terms_of_service")).toMatchObject({
+      legal_review_required: true,
+      path: "docs/public/terms.md"
+    });
+    expect(body.data.capability.status).toBe("public_status_docs_scaffold");
+    expect(body.usage.rows).toBe(4);
   });
 
   it("serves account runtime capabilities without auth provider calls", async () => {

@@ -1,0 +1,83 @@
+{
+  "version": "2026-06-21.phase3.public-status-docs-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/public-ops",
+  "runtime_route": "GET /public/runtime",
+  "status_route": "GET /public/status",
+  "docs_route": "GET /public/docs",
+  "standard_response_envelope": true,
+  "auth_required": false,
+  "frontend": false,
+  "live_deployment_verified": false,
+  "live_incident_feed": false,
+  "live_publication_verified": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "request_id_visible": true,
+  "status_components": [
+    "worker_api",
+    "remote_mcp",
+    "data_gateway",
+    "usage_billing",
+    "public_documentation"
+  ],
+  "documents": [
+    {
+      "kind": "api_reference",
+      "path": "docs/public/api.md",
+      "publication_status": "local_draft_ready",
+      "required_sections": [
+        "Authentication",
+        "Standard Response Envelope",
+        "Errors",
+        "Usage And Request Id"
+      ]
+    },
+    {
+      "kind": "mcp_reference",
+      "path": "docs/public/mcp.md",
+      "publication_status": "local_draft_ready",
+      "required_sections": [
+        "Streamable HTTP Endpoint",
+        "OAuth And API Keys",
+        "Tool Schema Versions",
+        "Limits Usage And Errors"
+      ]
+    },
+    {
+      "kind": "privacy_policy",
+      "path": "docs/public/privacy.md",
+      "publication_status": "local_draft_ready",
+      "legal_review_required": true,
+      "required_sections": [
+        "Data Minimization",
+        "Authorized Memory",
+        "Support Access",
+        "Retention And Deletion"
+      ]
+    },
+    {
+      "kind": "terms_of_service",
+      "path": "docs/public/terms.md",
+      "publication_status": "local_draft_ready",
+      "legal_review_required": true,
+      "required_sections": [
+        "Research Not Advice",
+        "Data Rights",
+        "Acceptable Use",
+        "Service Changes"
+      ]
+    }
+  ],
+  "tables": [
+    "core.public_status_component",
+    "core.public_document_publication",
+    "governance.public_operations_contract"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/mcp/compatibility-status.contract.json",
+    "deploy/mcp/endpoint.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json"
+  ]
+}

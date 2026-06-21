@@ -27,6 +27,7 @@
     "@aiphabee/market-data": "file:../../packages/market-data",
     "@aiphabee/mcp-runtime": "file:../../packages/mcp-runtime",
     "@aiphabee/observability": "file:../../packages/observability",
+    "@aiphabee/public-ops": "file:../../packages/public-ops",
     "@aiphabee/research-runtime": "file:../../packages/research-runtime",
     "@aiphabee/security-tools": "file:../../packages/security-tools",
     "@aiphabee/serving-store": "file:../../packages/serving-store",

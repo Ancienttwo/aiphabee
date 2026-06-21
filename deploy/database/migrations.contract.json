@@ -310,6 +310,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621122000_public_operations_scaffold.sql",
+      "purpose": "Create empty public status component, public document publication, and governance scaffolds without enabling live incident feeds or live publication writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.public_status_component",
+        "core.public_document_publication",
+        "governance.public_operations_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
