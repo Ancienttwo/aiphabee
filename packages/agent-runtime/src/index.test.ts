@@ -5,6 +5,8 @@ import {
   createAiSdkStopCondition,
   createPreToolCallResolution,
   createToolLoopAgentPlan,
+  createWorkflowTaskPlan,
+  getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities
 } from "./index";
 
@@ -94,6 +96,21 @@ describe("agent runtime scaffold", () => {
         versioned_tools: true
       },
       streaming_transport: "planned"
+    });
+    expect(capabilities.workflow_tasks).toMatchObject({
+      actual_workflow_execution: false,
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      disconnect_safe: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      frontend: false,
+      live_workflow_execution: false,
+      notification_plan: true,
+      persistent_writes: false,
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      route: "POST /agent/workflows/tasks/plan",
+      sql_emitted: false,
+      status: "workflow_task_scaffold",
+      task_id_visible: true
     });
     expect(capabilities.registered_tools).toHaveLength(9);
     expect(capabilities.registered_tools[0]).toMatchObject({
@@ -216,6 +233,30 @@ describe("agent runtime scaffold", () => {
         requestId: "req-agent-3"
       })
     ).toThrow(AgentRuntimeInputError);
+  });
+
+  it("reports long-running Workflow task capabilities", () => {
+    expect(getAgentWorkflowTaskCapabilities()).toMatchObject({
+      actual_workflow_execution: false,
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      disconnect_safe: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      frontend: false,
+      live_workflow_execution: false,
+      notification_plan: true,
+      persistent_writes: false,
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      route: "POST /agent/workflows/tasks/plan",
+      sql_emitted: false,
+      status: "workflow_task_scaffold",
+      task_id_visible: true
+    });
+    expect(getAgentWorkflowTaskCapabilities().task_kinds).toEqual([
+      "deep_report",
+      "event_research",
+      "long_document",
+      "multi_company_analysis"
+    ]);
   });
 
   it("plans no-model tool loop steps with public progress and stop rules", () => {
@@ -723,6 +764,79 @@ describe("agent runtime scaffold", () => {
             tool.version.length > 0
         )
     ).toBe(true);
+  });
+
+  it("plans long-running Workflow tasks with resumable task IDs and notification plans", () => {
+    const task = createWorkflowTaskPlan({
+      channel: "web",
+      maxSteps: 6,
+      notificationChannels: ["in_app", "email"],
+      prompt: "Create a deep report for 00700.HK with cited evidence",
+      requestId: "req-workflow-report-1",
+      requestedTools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_security_profile",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_financial_facts",
+        "get_data_lineage"
+      ],
+      userId: "user_internal_alpha",
+      workflowKind: "deep_report",
+      workspaceId: "workspace_research"
+    });
+
+    expect(task).toMatchObject({
+      actual_workflow_execution: false,
+      frontend_rendering: false,
+      live_workflow_execution: false,
+      persistent_writes: false,
+      request_id: "req-workflow-report-1",
+      sql_emitted: false,
+      status: "planned_no_write",
+      task_id: "workflow_task_req_workflow_report_1_deep_report",
+      task_id_visible: true
+    });
+    expect(task.task).toMatchObject({
+      created_from: "agent_tool_loop_plan",
+      run_id: "dry_req-workflow-report-1",
+      status: "planned_no_write",
+      table: "core.workflow_task",
+      task_id: "workflow_task_req_workflow_report_1_deep_report",
+      task_kind: "deep_report",
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research"
+    });
+    expect(task.workflow).toEqual({
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      execution_ready: false,
+      provider: "cloudflare_workflows",
+      start_status: "not_started",
+      workflow_name: "research-long-running-orchestrator"
+    });
+    expect(task.resume).toMatchObject({
+      disconnect_safe: true,
+      frontend_can_leave: true,
+      resume_handle: "resume_workflow_task_req_workflow_report_1_deep_report",
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      resumable: true,
+      state_table: "core.workflow_task_checkpoint"
+    });
+    expect(task.notification).toEqual({
+      channels: ["in_app", "email"],
+      completion_notification: "planned_no_write",
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      failure_notification: "planned_no_write",
+      required: true,
+      user_visible: true
+    });
+    expect(task.long_task_boundary).toMatchObject({
+      interactive_wall_clock_limit_ms: 30000,
+      transfer_reasons: ["task_kind_requires_workflow", "user_can_leave_and_resume"]
+    });
+    expect(task.tool_loop_plan.status).toBe("planned_no_model");
+    expect(task.tool_loop_plan.actual_tool_execution).toBe(false);
   });
 
   it("gracefully stops tool loop plans when the requested step budget is exhausted", () => {

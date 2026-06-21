@@ -177,6 +177,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621103000_workflow_task_scaffold.sql",
+      "purpose": "Create empty Workflow task and checkpoint scaffolds for resumable long-running Agent tasks without enabling live Workflows execution or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.workflow_task",
+        "core.workflow_task_checkpoint",
+        "governance.workflow_task_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

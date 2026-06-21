@@ -28,6 +28,8 @@ export const FAILURE_RECOVERY_POLICY_VERSION =
   "2026-06-21.phase1.failure-recovery-policy-scaffold.v0";
 export const MODEL_ROUTING_AUDIT_VERSION =
   "2026-06-21.phase1.model-routing-audit-scaffold.v0";
+export const AGENT_WORKFLOW_TASK_VERSION =
+  "2026-06-21.phase2.workflow-task-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -43,6 +45,23 @@ export const AGENT_RUNTIME_LIMITS = {
 
 export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
 export type RegisteredAgentToolName = RegisteredToolName;
+
+export const AGENT_WORKFLOW_TASK_KINDS = [
+  "deep_report",
+  "event_research",
+  "long_document",
+  "multi_company_analysis"
+] as const;
+export const AGENT_WORKFLOW_NOTIFICATION_CHANNELS = ["in_app", "email"] as const;
+export const AGENT_WORKFLOW_TABLES = [
+  "core.workflow_task",
+  "core.workflow_task_checkpoint"
+] as const;
+
+export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
+export type AgentWorkflowNotificationChannel =
+  (typeof AGENT_WORKFLOW_NOTIFICATION_CHANNELS)[number];
+export type AgentWorkflowTaskStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -68,6 +87,11 @@ export interface AgentRunSkeletonInput {
   };
   userId?: string;
   workspaceId?: string;
+}
+
+export interface AgentWorkflowTaskPlanInput extends AgentRunSkeletonInput {
+  notificationChannels?: AgentWorkflowNotificationChannel[];
+  workflowKind?: AgentWorkflowTaskKind;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -165,6 +189,24 @@ export interface AgentRuntimeCapabilities {
       "all_planned_tools_completed"
     ];
     streaming_transport: "planned";
+  };
+  workflow_tasks: {
+    actual_workflow_execution: false;
+    binding: "AIPHABEE_RESEARCH_WORKFLOW";
+    disconnect_safe: true;
+    event_queue: "AIPHABEE_EVENTS_QUEUE";
+    frontend: false;
+    live_workflow_execution: false;
+    notification_plan: true;
+    persistent_writes: false;
+    resume_route: "GET /agent/workflows/tasks/:task_id";
+    route: "POST /agent/workflows/tasks/plan";
+    sql_emitted: false;
+    status: "workflow_task_scaffold";
+    tables: typeof AGENT_WORKFLOW_TABLES;
+    task_id_visible: true;
+    task_kinds: typeof AGENT_WORKFLOW_TASK_KINDS;
+    version: typeof AGENT_WORKFLOW_TASK_VERSION;
   };
   run_context: {
     budget_dimensions: readonly [
@@ -896,6 +938,63 @@ export interface AgentRunSkeleton {
   };
 }
 
+export interface AgentWorkflowTaskPlan {
+  actual_workflow_execution: false;
+  frontend_rendering: false;
+  live_workflow_execution: false;
+  long_task_boundary: {
+    estimated_wall_clock_ms: number;
+    interactive_wall_clock_limit_ms: typeof AGENT_RUNTIME_LIMITS.maxWallClockMs;
+    transfer_reasons: readonly [
+      "task_kind_requires_workflow",
+      "user_can_leave_and_resume"
+    ];
+  };
+  notification: {
+    channels: AgentWorkflowNotificationChannel[];
+    completion_notification: "planned_no_write";
+    event_queue: "AIPHABEE_EVENTS_QUEUE";
+    failure_notification: "planned_no_write";
+    required: true;
+    user_visible: true;
+  };
+  persistent_writes: false;
+  request_id: string;
+  resume: {
+    disconnect_safe: true;
+    frontend_can_leave: true;
+    resume_handle: string;
+    resume_route: "GET /agent/workflows/tasks/:task_id";
+    resumable: true;
+    state_table: "core.workflow_task_checkpoint";
+  };
+  sql_emitted: false;
+  status: AgentWorkflowTaskStatus;
+  tables: typeof AGENT_WORKFLOW_TABLES;
+  task: {
+    created_from: "agent_tool_loop_plan";
+    request_id: string;
+    run_id: string;
+    status: "planned_no_write";
+    table: "core.workflow_task";
+    task_id: string;
+    task_kind: AgentWorkflowTaskKind;
+    user_id: string;
+    workspace_id: string;
+  };
+  task_id: string;
+  task_id_visible: true;
+  tool_loop_plan: AgentToolLoopPlan;
+  version: typeof AGENT_WORKFLOW_TASK_VERSION;
+  workflow: {
+    binding: "AIPHABEE_RESEARCH_WORKFLOW";
+    execution_ready: false;
+    provider: "cloudflare_workflows";
+    start_status: "not_started";
+    workflow_name: "research-long-running-orchestrator";
+  };
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -1016,6 +1115,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       ],
       streaming_transport: "planned"
     },
+    workflow_tasks: getAgentWorkflowTaskCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -1049,6 +1149,27 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       mcp_redistribution: false,
       model_calls: false
     }
+  };
+}
+
+export function getAgentWorkflowTaskCapabilities(): AgentRuntimeCapabilities["workflow_tasks"] {
+  return {
+    actual_workflow_execution: false,
+    binding: "AIPHABEE_RESEARCH_WORKFLOW",
+    disconnect_safe: true,
+    event_queue: "AIPHABEE_EVENTS_QUEUE",
+    frontend: false,
+    live_workflow_execution: false,
+    notification_plan: true,
+    persistent_writes: false,
+    resume_route: "GET /agent/workflows/tasks/:task_id",
+    route: "POST /agent/workflows/tasks/plan",
+    sql_emitted: false,
+    status: "workflow_task_scaffold",
+    tables: AGENT_WORKFLOW_TABLES,
+    task_id_visible: true,
+    task_kinds: AGENT_WORKFLOW_TASK_KINDS,
+    version: AGENT_WORKFLOW_TASK_VERSION
   };
 }
 
@@ -1233,6 +1354,73 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     ],
     tool_enforcement: toolEnforcement,
     version: TOOL_LOOP_AGENT_PLANNER_VERSION
+  };
+}
+
+export function createWorkflowTaskPlan(
+  input: AgentWorkflowTaskPlanInput
+): AgentWorkflowTaskPlan {
+  const workflowKind = input.workflowKind ?? "deep_report";
+  const notificationChannels = normalizeWorkflowNotificationChannels(
+    input.notificationChannels
+  );
+  const toolLoopPlan = createToolLoopAgentPlan(input);
+  const taskId = `workflow_task_${sanitizeWorkflowId(input.requestId)}_${sanitizeWorkflowId(
+    workflowKind
+  )}`;
+
+  return {
+    actual_workflow_execution: false,
+    frontend_rendering: false,
+    live_workflow_execution: false,
+    long_task_boundary: {
+      estimated_wall_clock_ms: toolLoopPlan.budget_stop_policy.estimated_usage.wall_clock_ms,
+      interactive_wall_clock_limit_ms: AGENT_RUNTIME_LIMITS.maxWallClockMs,
+      transfer_reasons: ["task_kind_requires_workflow", "user_can_leave_and_resume"]
+    },
+    notification: {
+      channels: notificationChannels,
+      completion_notification: "planned_no_write",
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      failure_notification: "planned_no_write",
+      required: true,
+      user_visible: true
+    },
+    persistent_writes: false,
+    request_id: input.requestId,
+    resume: {
+      disconnect_safe: true,
+      frontend_can_leave: true,
+      resume_handle: `resume_${taskId}`,
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      resumable: true,
+      state_table: "core.workflow_task_checkpoint"
+    },
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_WORKFLOW_TABLES,
+    task: {
+      created_from: "agent_tool_loop_plan",
+      request_id: input.requestId,
+      run_id: toolLoopPlan.run_id,
+      status: "planned_no_write",
+      table: "core.workflow_task",
+      task_id: taskId,
+      task_kind: workflowKind,
+      user_id: toolLoopPlan.run_context.user.user_id,
+      workspace_id: toolLoopPlan.run_context.workspace.workspace_id
+    },
+    task_id: taskId,
+    task_id_visible: true,
+    tool_loop_plan: toolLoopPlan,
+    version: AGENT_WORKFLOW_TASK_VERSION,
+    workflow: {
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      execution_ready: false,
+      provider: "cloudflare_workflows",
+      start_status: "not_started",
+      workflow_name: "research-long-running-orchestrator"
+    }
   };
 }
 
@@ -2685,6 +2873,26 @@ function normalizeModelTier(value: string | undefined): AgentRunContext["model"]
       modelTier: value
     }
   );
+}
+
+function normalizeWorkflowNotificationChannels(
+  value: AgentWorkflowNotificationChannel[] | undefined
+): AgentWorkflowNotificationChannel[] {
+  if (value === undefined || value.length === 0) {
+    return ["in_app"];
+  }
+
+  return [...new Set(value)];
+}
+
+function sanitizeWorkflowId(value: string): string {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "_")
+    .replace(/^_+|_+$/gu, "")
+    .slice(0, 80);
+
+  return normalized.length > 0 ? normalized : "unresolved";
 }
 
 function getRegisteredToolDefinition(toolName: RegisteredAgentToolName): RegisteredToolDefinition {

@@ -1226,6 +1226,21 @@ interface AgentRuntimeBody {
       };
       streaming_transport: string;
     };
+    workflow_tasks: {
+      actual_workflow_execution: boolean;
+      binding: string;
+      disconnect_safe: boolean;
+      event_queue: string;
+      frontend: boolean;
+      live_workflow_execution: boolean;
+      notification_plan: boolean;
+      persistent_writes: boolean;
+      resume_route: string;
+      route: string;
+      sql_emitted: boolean;
+      status: string;
+      task_id_visible: boolean;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -2889,6 +2904,76 @@ interface AgentToolLoopPlanBody {
       }>;
       version: string;
       versioned_tools: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AgentWorkflowTaskPlanBody {
+  data: {
+    actual_workflow_execution: boolean;
+    capability: {
+      binding: string;
+      route: string;
+      status: string;
+      task_id_visible: boolean;
+    };
+    frontend_rendering: boolean;
+    live_workflow_execution: boolean;
+    long_task_boundary: {
+      estimated_wall_clock_ms: number;
+      interactive_wall_clock_limit_ms: number;
+      transfer_reasons: string[];
+    };
+    notification: {
+      channels: string[];
+      completion_notification: string;
+      event_queue: string;
+      failure_notification: string;
+      required: boolean;
+      user_visible: boolean;
+    };
+    persistent_writes: boolean;
+    request_id: string;
+    resume: {
+      disconnect_safe: boolean;
+      frontend_can_leave: boolean;
+      resume_handle: string;
+      resume_route: string;
+      resumable: boolean;
+      state_table: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    task: {
+      created_from: string;
+      request_id: string;
+      run_id: string;
+      status: string;
+      table: string;
+      task_id: string;
+      task_kind: string;
+      user_id: string;
+      workspace_id: string;
+    };
+    task_id: string;
+    task_id_visible: boolean;
+    tool_loop_plan: {
+      actual_tool_execution: boolean;
+      model_calls: boolean;
+      planned_step_count: number;
+      run_id: string;
+      status: string;
+    };
+    workflow: {
+      binding: string;
+      execution_ready: boolean;
+      provider: string;
+      start_status: string;
+      workflow_name: string;
     };
   };
   ok: true;
@@ -4621,6 +4706,21 @@ describe("worker runtime", () => {
         versioned_tools: true
       },
       streaming_transport: "planned"
+    });
+    expect(body.data.workflow_tasks).toMatchObject({
+      actual_workflow_execution: false,
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      disconnect_safe: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      frontend: false,
+      live_workflow_execution: false,
+      notification_plan: true,
+      persistent_writes: false,
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      route: "POST /agent/workflows/tasks/plan",
+      sql_emitted: false,
+      status: "workflow_task_scaffold",
+      task_id_visible: true
     });
     expect(body.data.registered_tools).toHaveLength(9);
     expect(body.data.registered_tools[0]).toMatchObject({
@@ -8303,6 +8403,108 @@ describe("worker runtime", () => {
             tool.version.length > 0
         )
     ).toBe(true);
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans a resumable Workflow task for long-running Agent work", async () => {
+    const response = await app.request("/agent/workflows/tasks/plan", {
+      body: JSON.stringify({
+        max_steps: 6,
+        notification_channels: ["in_app", "email"],
+        prompt: "Create a deep report for 00700.HK with cited evidence",
+        tools: [
+          "resolve_security",
+          "get_entitlements",
+          "get_security_profile",
+          "get_quote_snapshot",
+          "get_price_history",
+          "get_financial_facts",
+          "get_data_lineage"
+        ],
+        user_id: "user_internal_alpha",
+        workflow_kind: "deep_report",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-workflow-task"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentWorkflowTaskPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
+    expect(response.headers.get("x-aiphabee-telemetry-run-id")).toBe(
+      "dry_req-agent-workflow-task"
+    );
+    expect(response.headers.get("x-aiphabee-workflow-task-id")).toBe(
+      "workflow_task_req_agent_workflow_task_deep_report"
+    );
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_workflow_execution: false,
+      frontend_rendering: false,
+      live_workflow_execution: false,
+      persistent_writes: false,
+      request_id: "req-agent-workflow-task",
+      sql_emitted: false,
+      status: "planned_no_write",
+      task_id: "workflow_task_req_agent_workflow_task_deep_report",
+      task_id_visible: true
+    });
+    expect(body.data.task).toMatchObject({
+      created_from: "agent_tool_loop_plan",
+      request_id: "req-agent-workflow-task",
+      run_id: "dry_req-agent-workflow-task",
+      status: "planned_no_write",
+      table: "core.workflow_task",
+      task_id: "workflow_task_req_agent_workflow_task_deep_report",
+      task_kind: "deep_report",
+      user_id: "user_internal_alpha",
+      workspace_id: "workspace_research"
+    });
+    expect(body.data.workflow).toEqual({
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      execution_ready: false,
+      provider: "cloudflare_workflows",
+      start_status: "not_started",
+      workflow_name: "research-long-running-orchestrator"
+    });
+    expect(body.data.resume).toMatchObject({
+      disconnect_safe: true,
+      frontend_can_leave: true,
+      resume_handle: "resume_workflow_task_req_agent_workflow_task_deep_report",
+      resume_route: "GET /agent/workflows/tasks/:task_id",
+      resumable: true,
+      state_table: "core.workflow_task_checkpoint"
+    });
+    expect(body.data.notification).toEqual({
+      channels: ["in_app", "email"],
+      completion_notification: "planned_no_write",
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      failure_notification: "planned_no_write",
+      required: true,
+      user_visible: true
+    });
+    expect(body.data.long_task_boundary).toMatchObject({
+      interactive_wall_clock_limit_ms: 30000,
+      transfer_reasons: ["task_kind_requires_workflow", "user_can_leave_and_resume"]
+    });
+    expect(body.data.tool_loop_plan).toMatchObject({
+      actual_tool_execution: false,
+      model_calls: false,
+      planned_step_count: 6,
+      run_id: "dry_req-agent-workflow-task",
+      status: "planned_no_model"
+    });
+    expect(body.data.capability).toMatchObject({
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      route: "POST /agent/workflows/tasks/plan",
+      status: "workflow_task_scaffold",
+      task_id_visible: true
+    });
     expect(body.usage.rows).toBe(6);
   });
 

@@ -16,10 +16,16 @@ import {
 import {
   AgentRuntimeInputError,
   AGENT_RUNTIME_LIMITS,
+  AGENT_WORKFLOW_NOTIFICATION_CHANNELS,
+  AGENT_WORKFLOW_TASK_KINDS,
   createAgentRunSkeleton,
   createPreToolCallResolution,
   createToolLoopAgentPlan,
+  createWorkflowTaskPlan,
+  getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
+  type AgentWorkflowNotificationChannel,
+  type AgentWorkflowTaskKind,
   type AgentRunSkeletonInput
 } from "@aiphabee/agent-runtime";
 import {
@@ -210,6 +216,10 @@ interface AgentRunRequestBody {
   tools?: unknown;
   user_id?: unknown;
   userId?: unknown;
+  notification_channels?: unknown;
+  notificationChannels?: unknown;
+  workflow_kind?: unknown;
+  workflowKind?: unknown;
   workspace_id?: unknown;
   workspaceId?: unknown;
 }
@@ -2997,6 +3007,145 @@ app.post("/agent/runs/plan", async (c) => {
   }
 });
 
+app.post("/agent/workflows/tasks/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  let requestedToolsForTelemetry: string[] = [];
+  let maxStepsForTelemetry: number = AGENT_RUNTIME_LIMITS.maxSteps;
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json()) as AgentRunRequestBody;
+    const requestedTools = Array.isArray(body.tools)
+      ? body.tools.filter((tool): tool is string => typeof tool === "string")
+      : undefined;
+
+    requestedToolsForTelemetry = requestedTools ?? [];
+    maxStepsForTelemetry =
+      typeof body.max_steps === "number" ? body.max_steps : AGENT_RUNTIME_LIMITS.maxSteps;
+
+    const plan = createWorkflowTaskPlan({
+      ...createAgentRunInput(body, requestId),
+      notificationChannels: normalizeAgentWorkflowNotificationChannels(
+        body.notification_channels ?? body.notificationChannels
+      ),
+      workflowKind: normalizeAgentWorkflowTaskKind(body.workflow_kind ?? body.workflowKind)
+    });
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: plan.tool_loop_plan.budget.max_steps,
+      outcome: "success",
+      requestId,
+      requestedTools: plan.tool_loop_plan.run_context.entitlements.allowed_tools,
+      route: "/agent/workflows/tasks/plan",
+      runId: plan.tool_loop_plan.run_id
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", plan.tool_loop_plan.run_id);
+    c.header("x-aiphabee-workflow-task-id", plan.task_id);
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...plan,
+          capability: getAgentWorkflowTaskCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: plan.version,
+          methodologyVersion: plan.version,
+          provenance: [
+            {
+              data_version: plan.version,
+              methodology_version: plan.version,
+              source: "agent-workflow-task",
+              source_record_id: "workflow-task-plan"
+            }
+          ],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: plan.tool_loop_plan.planned_step_count
+          }
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+      const deniedTools = Array.isArray(error.details.deniedTools)
+        ? error.details.deniedTools.filter((tool): tool is string => typeof tool === "string")
+        : [];
+      const runId = `dry_${requestId}`;
+      const telemetryEvents = createAgentDryRunTelemetry({
+        deniedTools,
+        environment: c.env?.APP_ENV ?? "local",
+        maxSteps: maxStepsForTelemetry,
+        outcome: "rejected",
+        requestId,
+        requestedTools: requestedToolsForTelemetry,
+        route: "/agent/workflows/tasks/plan",
+        runId
+      });
+
+      await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+      c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+      c.header("x-aiphabee-telemetry-run-id", runId);
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "workflow-task-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    const runId = `dry_${requestId}`;
+    const telemetryEvents = createAgentDryRunTelemetry({
+      environment: c.env?.APP_ENV ?? "local",
+      maxSteps: maxStepsForTelemetry,
+      outcome: "error",
+      requestId,
+      requestedTools: requestedToolsForTelemetry,
+      route: "/agent/workflows/tasks/plan",
+      runId
+    });
+
+    await recordTelemetryEvents(createConsoleTelemetrySink(console), telemetryEvents);
+
+    c.header("x-aiphabee-telemetry-event-count", String(telemetryEvents.length));
+    c.header("x-aiphabee-telemetry-run-id", runId);
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "agent workflow task planning failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "workflow-task-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
 app.get("/tools/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -4454,6 +4603,29 @@ function normalizeUsageBillingLedgerEntries(
     );
 
   return entries.length > 0 ? entries : undefined;
+}
+
+function normalizeAgentWorkflowTaskKind(value: unknown): AgentWorkflowTaskKind | undefined {
+  return typeof value === "string" &&
+    AGENT_WORKFLOW_TASK_KINDS.includes(value as AgentWorkflowTaskKind)
+    ? (value as AgentWorkflowTaskKind)
+    : undefined;
+}
+
+function normalizeAgentWorkflowNotificationChannels(
+  value: unknown
+): AgentWorkflowNotificationChannel[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const channels = value.filter(
+    (channel): channel is AgentWorkflowNotificationChannel =>
+      typeof channel === "string" &&
+      AGENT_WORKFLOW_NOTIFICATION_CHANNELS.includes(channel as AgentWorkflowNotificationChannel)
+  );
+
+  return channels.length > 0 ? [...new Set(channels)] : undefined;
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
