@@ -66,7 +66,7 @@ owner: "Planner / PM"
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
-| 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 1 / 9 | ☐ |
+| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 2 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
 | 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
 
@@ -353,7 +353,7 @@ owner: "Planner / PM"
 **目标：** 补齐 P0 工具、事件研究、多语言关键路径。
 
 - [x] `get_event_timeline` tool scaffold：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入与 `npm run check:event-timeline`，支持 synthetic announcement / market_event / financial_disclosure / corporate_action timeline、sourceRecordId/relatedData source links、type subset、limit/cursor、DATA_NOT_LICENSED / DATA_QUALITY_HOLD / OUT_OF_RANGE / TOO_MANY_ROWS 标准错误；live event feed/full 16-tool catalog/event study/frontend 未启用（§9.2）
-- [ ] 完整 P0 工具目录收口与一致性回归（§9.2 全 16 工具）
+- [x] 完整 P0 工具目录收口与一致性回归：Shared Tool Registry / tool schema contract / MCP schema validation / versioning / pagination limits / usage envelope / Agent tool enforcement / Evidence-Lineage mapping / golden fixture manifest 全部覆盖 PRD §9.2 16 个 P0 工具，新增 `deploy/tools/p0-tool-catalog.contract.json` 与 `npm run check:p0-tool-catalog` 交叉验证 `p0_tool_count=16`、`schema_pairs=16`、`golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用（§9.2 全 16 工具）
 - [ ] 事件研究：事件日/窗口/基准/异常收益方法/样本缺失（ANA-06、`run_event_study` §9.3）
 - [ ] 繁中/简中/英文关键路径，切换不改口径（AGT-11、§12.4）
 - [ ] 新手/专业模式仅改表达深度不改数据（AGT-12、US-W07）
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0cv | 完成 `p0-tool-catalog-consistency`：PRD §9.2 16 个 P0 工具已在 Shared Tool Registry、`deploy/tools/tool-schemas.contract.json`、MCP schema validation/versioning/pagination/usage contracts、Agent tool enforcement、Evidence/Lineage dataset mapping 与 golden tool fixtures 中一致收口；新增 `deploy/tools/p0-tool-catalog.contract.json`、`scripts/check-p0-tool-catalog-contract.mjs`、`npm run check:p0-tool-catalog` 与治理记录，验证 `p0_tool_count=16` / `schema_pairs=16` / `golden_fixture_count=16`；live MCP tool execution / partner rows / frontend 未启用，Sprint 3.1 更新为 2/9 |
 | 2026-06-21 | 1.0cu | 完成 `get-event-timeline-tool-scaffold`：新增 `@aiphabee/event-timeline`、`POST /tools/get-event-timeline`、`deploy/tools/get-event-timeline.contract.json`、`npm run check:event-timeline`、tool schema/MCP validation/versioning/pagination/usage/golden fixture 接入，并将 shared Tool Registry/Agent/MCP registered tool count 更新为 10；支持 synthetic company+market event timeline、sourceRecordId/relatedData links、type subset、cursor pagination 与标准错误；live partner event rows/full 16-tool P0 catalog/`run_event_study`/frontend 未启用，Sprint 3.1 更新为 1/9 |
 | 2026-06-21 | 1.0ct | 完成 `agent-kill-switch-scaffold`：扩展 `@aiphabee/agent-runtime` `kill_switch` capability，新增 `POST /agent/kill-switch/plan`、`GET /agent/runtime` readiness、`POST /agent/runs/plan` `degraded_kill_switch` 降级路径、`core.agent_kill_switch_state` / `governance.agent_kill_switch_contract` migration、`deploy/agent/kill-switch.contract.json` 与 `npm run check:agent-kill-switch`，覆盖 model/tool kill switch state、safe degradation metadata、禁用工具时无 tool call 的 answer-contract fallback；live flag source/persistent writes/model provider calls/actual tool execution/frontend UI 未启用，Sprint 2.4 更新为 10/10 |
 | 2026-06-21 | 1.0cs | 完成 `mcp-revocation-enforcement-scaffold`：扩展 `@aiphabee/mcp-runtime` revocation enforcement capability，新增 `POST /mcp/revocations/enforce/plan`、`GET /mcp/runtime` enforcement readiness、`POST /mcp` credential context guard、`core.mcp_credential_revocation` / `governance.mcp_revocation_enforcement_contract` migration、`deploy/mcp/revocation-enforcement.contract.json` 与 `npm run check:mcp-revocation-enforcement`，覆盖 OAuth connection revoke、API key revoke/rotation old-key denial、revoked/rotated/unknown status `AUTH_REQUIRED`、tool execution/usage debit 前拒绝；live auth middleware/live credential store/persistent writes/raw credential storage/frontend console UI 未启用，Sprint 2.4 更新为 9/10 |

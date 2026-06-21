@@ -127,7 +127,7 @@ describe("agent runtime scaffold", () => {
       status: "workflow_task_scaffold",
       task_id_visible: true
     });
-    expect(capabilities.registered_tools).toHaveLength(10);
+    expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
       schema: {
@@ -788,7 +788,7 @@ describe("agent runtime scaffold", () => {
       denied_tools: [],
       model_calls: false,
       permission_aware: true,
-      registered_tool_count: 10,
+      registered_tool_count: 16,
       registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
       requested_tools: [
         "resolve_security",

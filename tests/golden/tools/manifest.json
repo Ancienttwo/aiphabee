@@ -107,6 +107,96 @@
       ]
     },
     {
+      "sample_id": "tool_get_financial_ratios_001",
+      "tool_name": "get_financial_ratios",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_financial_ratios_001.json",
+      "input_schema_id": "tool.get_financial_ratios.input.v0",
+      "output_schema_id": "tool.get_financial_ratios.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "financial-ratios:eq_hk_00700:2023-12-31",
+          "data_version": "financial-ratios-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_search_announcements_001",
+      "tool_name": "search_announcements",
+      "fixture_path": "tests/golden/tools/fixtures/tool_search_announcements_001.json",
+      "input_schema_id": "tool.search_announcements.input.v0",
+      "output_schema_id": "tool.search_announcements.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "announcements:eq_hk_00700:2026-01-03:annual-results",
+          "data_version": "announcements-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_announcement_001",
+      "tool_name": "get_announcement",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_announcement_001.json",
+      "input_schema_id": "tool.get_announcement.input.v0",
+      "output_schema_id": "tool.get_announcement.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "announcement:ann_00700_2026_annual_results",
+          "data_version": "announcements-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_screen_securities_001",
+      "tool_name": "screen_securities",
+      "fixture_path": "tests/golden/tools/fixtures/tool_screen_securities_001.json",
+      "input_schema_id": "tool.screen_securities.input.v0",
+      "output_schema_id": "tool.screen_securities.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "screen-securities:synthetic-hk:2026-01-07",
+          "data_version": "screen-securities-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_compare_securities_001",
+      "tool_name": "compare_securities",
+      "fixture_path": "tests/golden/tools/fixtures/tool_compare_securities_001.json",
+      "input_schema_id": "tool.compare_securities.input.v0",
+      "output_schema_id": "tool.compare_securities.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "compare-securities:eq_hk_00700:eq_hk_00001:2026-01-07",
+          "data_version": "compare-securities-synthetic-v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_calculate_returns_risk_001",
+      "tool_name": "calculate_returns_risk",
+      "fixture_path": "tests/golden/tools/fixtures/tool_calculate_returns_risk_001.json",
+      "input_schema_id": "tool.calculate_returns_risk.input.v0",
+      "output_schema_id": "tool.calculate_returns_risk.output.v0",
+      "expected_status": "found",
+      "source_records": [
+        {
+          "source": "synthetic_tool_fixture",
+          "source_record_id": "returns-risk:eq_hk_00700:2026-01-05:2026-01-07",
+          "data_version": "returns-risk-synthetic-v0"
+        }
+      ]
+    },
+    {
       "sample_id": "tool_get_event_timeline_001",
       "tool_name": "get_event_timeline",
       "fixture_path": "tests/golden/tools/fixtures/tool_get_event_timeline_001.json",

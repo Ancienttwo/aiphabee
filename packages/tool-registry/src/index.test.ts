@@ -10,7 +10,7 @@ describe("tool registry scaffold", () => {
     const capabilities = getToolRegistryCapabilities();
 
     expect(capabilities.status).toBe("shared_tool_registry_scaffold");
-    expect(capabilities.tool_count).toBe(10);
+    expect(capabilities.tool_count).toBe(16);
     expect(capabilities.schema_ready).toBe(true);
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
@@ -20,7 +20,7 @@ describe("tool registry scaffold", () => {
     expect(capabilities.breaking_changes_require_new_major).toBe(true);
     expect(capabilities.pagination_limits_ready).toBe(true);
     expect(capabilities.pagination_or_rights_bypass_blocked).toBe(true);
-    expect(capabilities.handler_ready_tool_count).toBe(10);
+    expect(capabilities.handler_ready_tool_count).toBe(16);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
         handlerReady: true,
@@ -139,6 +139,25 @@ describe("tool registry scaffold", () => {
         goldenFixtureReady: true
       }
     });
+    for (const toolName of [
+      "get_financial_ratios",
+      "search_announcements",
+      "get_announcement",
+      "screen_securities",
+      "compare_securities",
+      "calculate_returns_risk"
+    ]) {
+      expect(capabilities.tools.find((tool) => tool.name === toolName)).toMatchObject({
+        execution: {
+          handlerReady: true,
+          mode: "read_only_scaffold"
+        },
+        status: "scaffold",
+        testing: {
+          goldenFixtureReady: true
+        }
+      });
+    }
     expect(
       capabilities.tools.find((tool) => tool.name === "get_data_lineage")
     ).toMatchObject({
@@ -223,6 +242,12 @@ describe("tool registry scaffold", () => {
       "get_price_history",
       "get_corporate_actions",
       "get_financial_facts",
+      "get_financial_ratios",
+      "search_announcements",
+      "get_announcement",
+      "screen_securities",
+      "compare_securities",
+      "calculate_returns_risk",
       "get_event_timeline",
       "get_data_lineage",
       "get_entitlements"

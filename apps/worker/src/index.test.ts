@@ -5618,7 +5618,7 @@ describe("worker runtime", () => {
       status: "kill_switch_scaffold",
       tool_kill_switch_ready: true
     });
-    expect(body.data.registered_tools).toHaveLength(10);
+    expect(body.data.registered_tools).toHaveLength(16);
     expect(body.data.registered_tools[0]).toMatchObject({
       name: "resolve_security",
       schema: {
@@ -5703,12 +5703,12 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("shared_tool_registry_scaffold");
-    expect(body.data.tool_count).toBe(10);
+    expect(body.data.tool_count).toBe(16);
     expect(body.data.schema_ready).toBe(true);
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(10);
+    expect(body.data.handler_ready_tool_count).toBe(16);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.versioning_ready).toBe(true);
@@ -8709,7 +8709,7 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("planned_default_deny");
     expect(body.data.tools_list).toEqual({
-      blocked_tool_count: 10,
+      blocked_tool_count: 16,
       returned_tool_count: 0,
       tool_catalog_available_after_rights_gate: true,
       tools: []
@@ -9886,7 +9886,7 @@ describe("worker runtime", () => {
       denied_tools: [],
       model_calls: false,
       permission_aware: true,
-      registered_tool_count: 10,
+      registered_tool_count: 16,
       registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
       requested_tools: [
         "resolve_security",

@@ -16,6 +16,12 @@ export type RegisteredToolName =
   | "get_price_history"
   | "get_corporate_actions"
   | "get_financial_facts"
+  | "get_financial_ratios"
+  | "search_announcements"
+  | "get_announcement"
+  | "screen_securities"
+  | "compare_securities"
+  | "calculate_returns_risk"
   | "get_event_timeline"
   | "get_data_lineage"
   | "get_entitlements";
@@ -255,6 +261,171 @@ export const REGISTERED_TOOLS = [
   },
   {
     channels: ["web", "mcp", "api"],
+    description: "Return deterministic financial ratios with formula and percentile metadata.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_financial_ratios"),
+    name: "get_financial_ratios",
+    permissions: createPermissions("financials:read", [
+      "financial_facts",
+      "financial_ratios",
+      "percentile_benchmarks"
+    ]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 8,
+      maxLimit: 8,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null,
+      timeRangeFromParameters: ["financial_from", "financialFrom"],
+      timeRangeToParameters: ["financial_to", "financialTo"]
+    }),
+    schema: createSchema("get_financial_ratios", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_financial_ratios", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Search announcement metadata and authorized source locators.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("search_announcements"),
+    name: "search_announcements",
+    permissions: createPermissions("announcements:read", ["announcements"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 5,
+      maxLimit: 5,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    }),
+    schema: createSchema("search_announcements", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("search_announcements", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Return announcement metadata and allowed bounded excerpts.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("get_announcement"),
+    name: "get_announcement",
+    permissions: createPermissions("announcements:read", ["announcements"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      rowLimitParameter: null
+    }),
+    schema: createSchema("get_announcement", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "SCOPE_DENIED"
+    ]),
+    status: "scaffold",
+    testing: createTesting("get_announcement", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Screen securities with structured conditions and explainable preview hits.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("screen_securities"),
+    name: "screen_securities",
+    permissions: createPermissions("analytics:read", [
+      "financial_facts",
+      "quote_snapshot",
+      "screening"
+    ]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 20,
+      maxLimit: 20,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null,
+      timeRangeFromParameters: ["financial_from", "financialFrom"],
+      timeRangeToParameters: ["financial_to", "financialTo"]
+    }),
+    schema: createSchema("screen_securities", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("screen_securities", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Compare multiple securities on aligned metrics, currency, and unit metadata.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("compare_securities"),
+    name: "compare_securities",
+    permissions: createPermissions("analytics:read", [
+      "financial_facts",
+      "quote_snapshot",
+      "security_profile"
+    ]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 5,
+      maxLimit: 5,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null,
+      timeRangeFromParameters: ["financial_from", "financialFrom"],
+      timeRangeToParameters: ["financial_to", "financialTo"]
+    }),
+    schema: createSchema("compare_securities", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("compare_securities", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
+    description: "Calculate deterministic return, volatility, drawdown, and beta metrics.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("calculate_returns_risk"),
+    name: "calculate_returns_risk",
+    permissions: createPermissions("analytics:read", ["price_history", "returns_risk"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 10,
+      maxLimit: 10,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null
+    }),
+    schema: createSchema("calculate_returns_risk", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "OUT_OF_RANGE",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("calculate_returns_risk", true),
+    version: "0.0.0"
+  },
+  {
+    channels: ["web", "mcp", "api"],
     description: "Return company and market event timeline rows with source-linked related data.",
     execution: createScaffoldReadOnlyExecution(),
     lifecycle: createLifecycle("get_event_timeline"),
@@ -350,7 +521,7 @@ export function getToolRegistryCapabilities() {
     deprecation_policy_ready: true,
     channels: ["web", "mcp", "api"] as const,
     execution_ready: false,
-    golden_fixtures_ready: false,
+    golden_fixtures_ready: REGISTERED_TOOLS.every((tool) => tool.testing.goldenFixtureReady),
     handler_ready_tool_count: REGISTERED_TOOLS.filter(
       (tool) => tool.execution.handlerReady
     ).length,

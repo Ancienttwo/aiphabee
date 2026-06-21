@@ -272,16 +272,22 @@ const DEFAULT_CHANNEL: DataAccessChannel = "web";
 const DEFAULT_REQUESTED_ROWS = 1;
 
 const TOOL_TO_DATASET: Record<string, string> = {
+  calculate_returns_risk: "returns_risk",
+  compare_securities: "security_comparison",
   get_corporate_actions: "corporate_actions",
   get_data_lineage: "lineage",
   get_entitlements: "entitlements",
   get_event_timeline: "event_timeline",
+  get_announcement: "announcement_document",
   get_financial_facts: "financial_facts",
+  get_financial_ratios: "financial_ratios",
   get_market_calendar: "market_calendar",
   get_price_history: "price_history",
   get_quote_snapshot: "quote_snapshot",
   get_security_profile: "security_profile",
-  resolve_security: "security_master"
+  resolve_security: "security_master",
+  screen_securities: "screening_results",
+  search_announcements: "announcements"
 };
 
 const DATASET_TO_TOOL = Object.fromEntries(
@@ -289,28 +295,40 @@ const DATASET_TO_TOOL = Object.fromEntries(
 ) as Record<string, string>;
 
 const DEFAULT_FIELDS_BY_DATASET: Record<string, readonly string[]> = {
+  announcement_document: ["document_id", "title", "published_at", "sections"],
+  announcements: ["document_id", "title", "published_at", "category"],
   corporate_actions: ["action_type", "effective_date", "adjustment_factor"],
   entitlements: ["scope", "limits", "restrictions"],
   event_timeline: ["event_type", "event_scope", "date", "source_record_id"],
   financial_facts: ["revenue", "net_income", "assets", "equity"],
+  financial_ratios: ["net_margin", "return_on_assets", "return_on_equity"],
   lineage: ["source_record_id", "data_version", "methodology_version"],
   market_calendar: ["date", "session", "market_status"],
   price_history: ["open", "high", "low", "close", "volume", "turnover", "return"],
   quote_snapshot: ["lastPrice", "previousClose", "change", "changePercent", "volume"],
+  returns_risk: ["total_return", "volatility", "max_drawdown"],
+  screening_results: ["instrument_id", "matched_conditions", "rank"],
   security_master: ["instrument_id", "symbol", "market"],
+  security_comparison: ["instrument_id", "metric", "value", "rank"],
   security_profile: ["identity.name", "identity.symbol", "listing_status", "currency"]
 };
 
 const DATASET_LIMITS: Record<string, { delaySeconds: number; historyDays: number }> = {
+  announcement_document: { delaySeconds: 900, historyDays: 3650 },
+  announcements: { delaySeconds: 900, historyDays: 3650 },
   corporate_actions: { delaySeconds: 900, historyDays: 3650 },
   entitlements: { delaySeconds: 0, historyDays: 3650 },
   event_timeline: { delaySeconds: 900, historyDays: 3650 },
   financial_facts: { delaySeconds: 86_400, historyDays: 1095 },
+  financial_ratios: { delaySeconds: 86_400, historyDays: 1095 },
   lineage: { delaySeconds: 0, historyDays: 3650 },
   market_calendar: { delaySeconds: 0, historyDays: 730 },
   price_history: { delaySeconds: 900, historyDays: 366 },
   quote_snapshot: { delaySeconds: 900, historyDays: 30 },
+  returns_risk: { delaySeconds: 900, historyDays: 366 },
+  screening_results: { delaySeconds: 86_400, historyDays: 1095 },
   security_master: { delaySeconds: 86_400, historyDays: 3650 },
+  security_comparison: { delaySeconds: 86_400, historyDays: 1095 },
   security_profile: { delaySeconds: 86_400, historyDays: 3650 }
 };
 

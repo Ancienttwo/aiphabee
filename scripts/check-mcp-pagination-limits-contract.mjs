@@ -13,6 +13,12 @@ const requiredTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_financial_ratios",
+  "search_announcements",
+  "get_announcement",
+  "screen_securities",
+  "compare_securities",
+  "calculate_returns_risk",
   "get_event_timeline",
   "get_data_lineage",
   "get_entitlements"
@@ -28,6 +34,11 @@ const timeRangeTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
+  "get_financial_ratios",
+  "search_announcements",
+  "screen_securities",
+  "compare_securities",
+  "calculate_returns_risk",
   "get_event_timeline",
   "get_entitlements"
 ];
@@ -274,6 +285,10 @@ function validateToolSchemas(value) {
 
     if (
       !isRecord(properties.from) &&
+      !isRecord(properties.financial_from) &&
+      !isRecord(properties.financialFrom) &&
+      !isRecord(properties.published_from) &&
+      !isRecord(properties.publishedFrom) &&
       !isRecord(properties.time_range) &&
       !isRecord(properties.timeRange)
     ) {

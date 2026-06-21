@@ -1183,6 +1183,106 @@ const MCP_TOOL_INPUT_VALIDATION_RULES = {
     anyOf: [["instrument_id"], ["instrumentId"]],
     required: ["from", "to"]
   },
+  get_financial_ratios: {
+    allowed: [
+      "instrument_id",
+      "instrumentId",
+      "security_query",
+      "securityQuery",
+      "financial_from",
+      "financialFrom",
+      "financial_to",
+      "financialTo",
+      "as_of",
+      "asOf",
+      "metrics"
+    ],
+    anyOf: [["instrument_id"], ["instrumentId"], ["security_query"], ["securityQuery"]],
+    required: ["financial_from", "financial_to"]
+  },
+  search_announcements: {
+    allowed: [
+      "instrument_id",
+      "instrumentId",
+      "security_query",
+      "securityQuery",
+      "from",
+      "to",
+      "published_from",
+      "publishedFrom",
+      "published_to",
+      "publishedTo",
+      "categories",
+      "announcement_categories",
+      "keyword",
+      "query",
+      "language",
+      "limit"
+    ],
+    anyOf: [["instrument_id"], ["instrumentId"], ["security_query"], ["securityQuery"]],
+    required: ["from", "to"]
+  },
+  get_announcement: {
+    allowed: ["document_id", "documentId", "sections", "max_excerpt_chars", "maxExcerptChars"],
+    anyOf: [["document_id"], ["documentId"]],
+    required: []
+  },
+  screen_securities: {
+    allowed: [
+      "universe",
+      "conditions",
+      "natural_language",
+      "naturalLanguage",
+      "query",
+      "financial_from",
+      "financialFrom",
+      "financial_to",
+      "financialTo",
+      "as_of",
+      "asOf",
+      "classification_as_of",
+      "classificationAsOf",
+      "limit"
+    ],
+    anyOf: [],
+    required: []
+  },
+  compare_securities: {
+    allowed: [
+      "securities",
+      "metrics",
+      "period",
+      "financial_from",
+      "financialFrom",
+      "financial_to",
+      "financialTo",
+      "as_of",
+      "asOf",
+      "target_currency",
+      "targetCurrency"
+    ],
+    anyOf: [],
+    required: ["securities"]
+  },
+  calculate_returns_risk: {
+    allowed: [
+      "instrument_id",
+      "instrumentId",
+      "security_query",
+      "securityQuery",
+      "from",
+      "to",
+      "adjustment",
+      "benchmark_instrument_id",
+      "benchmarkInstrumentId",
+      "benchmark_security_query",
+      "benchmarkSecurityQuery",
+      "as_of",
+      "asOf"
+    ],
+    anyOf: [["instrument_id"], ["instrumentId"], ["security_query"], ["securityQuery"]],
+    required: ["from", "to"]
+  },
   get_event_timeline: {
     allowed: ["instrument_id", "instrumentId", "from", "to", "types", "limit", "cursor"],
     anyOf: [["instrument_id"], ["instrumentId"]],

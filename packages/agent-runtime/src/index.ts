@@ -2560,6 +2560,12 @@ function isEvidenceCardSourceTool(tool: AgentRunToolContext): boolean {
     "get_data_lineage",
     "get_event_timeline",
     "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
     "get_price_history",
     "get_quote_snapshot",
     "get_security_profile"
@@ -2603,9 +2609,12 @@ function isNumericSourceTool(tool: AgentRunToolContext): boolean {
     [
       "corporate_actions",
       "financial_facts",
+      "financial_ratios",
       "market_calendar",
       "price_history",
-      "quote_snapshot"
+      "quote_snapshot",
+      "returns_risk",
+      "screening"
     ].includes(dataClass)
   );
 }
@@ -2631,6 +2640,24 @@ function createPlannedDeterministicCalculations(
       input_source: "tool_result",
       methodology_version: "deterministic-financial-facts-calculation-v0",
       required_source_tools: ["get_financial_facts"]
+    });
+  }
+
+  if (toolNames.has("get_financial_ratios")) {
+    calculations.push({
+      calculation_id: "deterministic_financial_ratios_v0",
+      input_source: "tool_result",
+      methodology_version: "deterministic-financial-ratios-calculation-v0",
+      required_source_tools: ["get_financial_ratios"]
+    });
+  }
+
+  if (toolNames.has("calculate_returns_risk")) {
+    calculations.push({
+      calculation_id: "deterministic_returns_risk_v0",
+      input_source: "tool_result",
+      methodology_version: "deterministic-returns-risk-calculation-v0",
+      required_source_tools: ["calculate_returns_risk"]
     });
   }
 
@@ -2687,6 +2714,42 @@ const TOOL_USAGE_ESTIMATES: Record<
   get_financial_facts: {
     credits: 5,
     rows: 80,
+    tokens: 700,
+    wall_clock_ms: 1000
+  },
+  get_financial_ratios: {
+    credits: 4,
+    rows: 8,
+    tokens: 600,
+    wall_clock_ms: 900
+  },
+  search_announcements: {
+    credits: 3,
+    rows: 5,
+    tokens: 500,
+    wall_clock_ms: 700
+  },
+  get_announcement: {
+    credits: 2,
+    rows: 1,
+    tokens: 600,
+    wall_clock_ms: 500
+  },
+  screen_securities: {
+    credits: 8,
+    rows: 20,
+    tokens: 900,
+    wall_clock_ms: 1200
+  },
+  compare_securities: {
+    credits: 6,
+    rows: 5,
+    tokens: 900,
+    wall_clock_ms: 1200
+  },
+  calculate_returns_risk: {
+    credits: 5,
+    rows: 10,
     tokens: 700,
     wall_clock_ms: 1000
   },
