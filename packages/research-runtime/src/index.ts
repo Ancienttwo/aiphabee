@@ -2,10 +2,20 @@ export const RESEARCH_RUN_SAVE_VERSION =
   "2026-06-21.phase2.research-run-save-scaffold.v0";
 export const RESEARCH_RUN_REPLAY_VERSION =
   "2026-06-21.phase2.research-run-replay-scaffold.v0";
+export const DEEP_REPORT_WORKFLOW_VERSION =
+  "2026-06-21.phase2.deep-report-workflow-scaffold.v0";
 
 export type ResearchRunSaveStatus = "planned_no_write";
 export type ResearchRunReplayStatus = "planned_no_write";
 export type ResearchRunDiffCategory = "data" | "model" | "parameters";
+export type DeepReportWorkflowStatus = "planned_no_write";
+export type DeepReportWorkflowStageId =
+  | "data_fetch"
+  | "deterministic_analysis"
+  | "section_generation"
+  | "citation_validation"
+  | "evidence_index"
+  | "rerun_seed";
 export type ResearchRunInputErrorCode =
   | "CURRENT_RUN_REQUIRED"
   | "EVIDENCE_SNAPSHOT_REQUIRED"
@@ -95,6 +105,172 @@ export interface CreateResearchRunReplayPlanInput {
   replayReason?: string;
   requestId: string;
   savedRun?: ResearchRunSavePlan;
+}
+
+export interface CreateDeepReportWorkflowPlanInput {
+  asOf?: string;
+  dataDelayMinutes?: number;
+  modelVersion?: string;
+  promptVersion?: string;
+  question?: string;
+  reportId?: string;
+  requestId: string;
+  sections?: string[];
+  securityQuery?: string;
+  taskId?: string;
+  userId?: string;
+  workflowTaskId?: string;
+  workspaceId?: string;
+}
+
+export interface DeepReportWorkflowStage {
+  checkpoint_writes: false;
+  input_contract: string[];
+  live_tool_execution: false;
+  model_calls: false;
+  order: number;
+  output_contract: string[];
+  persistent_writes: false;
+  requires_previous_stage: boolean;
+  stage_id: DeepReportWorkflowStageId;
+  status: DeepReportWorkflowStatus;
+}
+
+export interface DeepReportEvidenceIndexRecord {
+  citation_status: "planned_validation";
+  claim_label: "fact" | "calculation" | "inference" | "unknown";
+  data_version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  evidence_record_id: string;
+  methodology_version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  section_id: string;
+  source_record_ids: string[];
+}
+
+export interface DeepReportWorkflowPlan {
+  as_of: string;
+  citation_validation: {
+    every_claim_requires_evidence: true;
+    required: true;
+    status: DeepReportWorkflowStatus;
+    unsupported_claim_label: "unknown";
+  };
+  data_fetch_plan: {
+    live_tool_execution: false;
+    output_contract: readonly ["source_record_id", "data_version", "methodology_version"];
+    required_tools: readonly [
+      "resolve_security",
+      "get_entitlements",
+      "get_security_profile",
+      "get_quote_snapshot",
+      "get_price_history",
+      "get_financial_facts",
+      "get_data_lineage",
+      "search_announcements",
+      "search_documents",
+      "diff_announcements"
+    ];
+    registered_tools_only: true;
+    status: DeepReportWorkflowStatus;
+  };
+  data_version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  deterministic_analysis_plan: {
+    deterministic_calculations: true;
+    model_calls: false;
+    output_contract: readonly ["facts", "calculations", "inferences", "unknowns"];
+    status: DeepReportWorkflowStatus;
+  };
+  evidence_index: {
+    evidence_index_id: string;
+    records: DeepReportEvidenceIndexRecord[];
+    table: "core.deep_report_evidence_index";
+    version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  };
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  methodology_version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  model_calls: false;
+  persistence_plan: {
+    checkpoint_writes: false;
+    live_db_writes: false;
+    r2_writes: false;
+    sql_emitted: false;
+    tables: readonly [
+      "core.deep_report_snapshot",
+      "core.deep_report_evidence_index",
+      "core.workflow_task",
+      "core.workflow_task_checkpoint"
+    ];
+    write_status: DeepReportWorkflowStatus;
+  };
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  report_id: string;
+  report_snapshot: {
+    as_of: string;
+    data_delay_minutes: number;
+    disclaimer: string;
+    generated_at: string;
+    immutable_report_snapshot: true;
+    report_id: string;
+    snapshot_id: string;
+    static_report_allowed: true;
+    table: "core.deep_report_snapshot";
+    version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  };
+  request_id: string;
+  rerun: {
+    data_model_parameter_diff_ready: true;
+    deterministic_replay_ready: true;
+    old_report_mutation_allowed: false;
+    replay_route: "POST /research/runs/replay/plan";
+    saved_snapshot_id: string;
+    silent_rewrite_allowed: false;
+  };
+  section_plan: {
+    generation_status: "planned_no_model";
+    model_calls: false;
+    sections: string[];
+  };
+  sql_emitted: false;
+  stages: DeepReportWorkflowStage[];
+  status: DeepReportWorkflowStatus;
+  task_id: string;
+  toolName: "plan_deep_report_workflow";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  usage_estimate: {
+    debit_status: "not_debited";
+    estimated_credits: number;
+    failure_refund_ready: true;
+    high_cost_confirmation_required: true;
+  };
+  user: {
+    source: "request" | "synthetic_default";
+    user_id: string;
+  };
+  version: typeof DEEP_REPORT_WORKFLOW_VERSION;
+  workflow: {
+    binding: "AIPHABEE_RESEARCH_WORKFLOW";
+    checkpoint_writes: false;
+    execution_status: DeepReportWorkflowStatus;
+    live_execution: false;
+    provider: "cloudflare_workflows";
+    queue_writes: false;
+    task_id: string;
+  };
+  workflow_task_id: string;
+  workspace: {
+    source: "request" | "synthetic_default";
+    workspace_id: string;
+  };
 }
 
 export interface ResearchRunSavedToolCall {
@@ -333,9 +509,72 @@ const RESEARCH_RUN_TABLES = [
   "core.research_run_evidence_snapshot",
   "core.research_run_model_snapshot"
 ] as const;
+const DEEP_REPORT_WORKFLOW_TABLES = [
+  "core.deep_report_snapshot",
+  "core.deep_report_evidence_index",
+  "core.workflow_task",
+  "core.workflow_task_checkpoint"
+] as const;
+const DEFAULT_DEEP_REPORT_TOOLS = [
+  "resolve_security",
+  "get_entitlements",
+  "get_security_profile",
+  "get_quote_snapshot",
+  "get_price_history",
+  "get_financial_facts",
+  "get_data_lineage",
+  "search_announcements",
+  "search_documents",
+  "diff_announcements"
+] as const;
+const DEFAULT_DEEP_REPORT_SECTIONS = [
+  "executive_summary",
+  "business_snapshot",
+  "financial_analysis",
+  "risk_events",
+  "evidence_appendix",
+  "disclaimer"
+] as const;
+const DEEP_REPORT_WORKFLOW_STAGE_DEFINITIONS: Array<{
+  id: DeepReportWorkflowStageId;
+  input: string[];
+  output: string[];
+}> = [
+  {
+    id: "data_fetch",
+    input: ["question", "security_query", "as_of"],
+    output: ["tool_input_snapshot", "source_records"]
+  },
+  {
+    id: "deterministic_analysis",
+    input: ["source_records", "methodology_version"],
+    output: ["facts", "calculations", "unknowns"]
+  },
+  {
+    id: "section_generation",
+    input: ["facts", "calculations", "unknowns", "section_plan"],
+    output: ["section_drafts"]
+  },
+  {
+    id: "citation_validation",
+    input: ["section_drafts", "source_records"],
+    output: ["citation_status", "unsupported_claims"]
+  },
+  {
+    id: "evidence_index",
+    input: ["citation_status", "source_records"],
+    output: ["evidence_index_records"]
+  },
+  {
+    id: "rerun_seed",
+    input: ["report_snapshot", "evidence_index_records"],
+    output: ["saved_snapshot_id", "replay_route"]
+  }
+];
 
 export function getResearchRuntimeCapabilities() {
   return {
+    deep_report_workflow: getDeepReportWorkflowCapabilities(),
     frontend_rendering: false,
     immutable_report_snapshot: true,
     live_db_writes: false,
@@ -362,6 +601,196 @@ export function getResearchRuntimeCapabilities() {
     replay_tool_name: "replay_research_run" as const,
     tool_name: "save_research_run" as const,
     version: RESEARCH_RUN_SAVE_VERSION
+  };
+}
+
+export function getDeepReportWorkflowCapabilities() {
+  return {
+    citation_validation_required: true,
+    evidence_index_required: true,
+    frontend_rendering: false,
+    high_cost_confirmation_required: true,
+    live_db_writes: false,
+    live_tool_execution: false,
+    live_workflow_execution: false,
+    model_calls: false,
+    package: "@aiphabee/research-runtime" as const,
+    replay_route: "POST /research/runs/replay/plan" as const,
+    route: "POST /research/reports/deep/plan" as const,
+    runtime_route: "GET /research/runtime" as const,
+    sql_emitted: false,
+    stages: DEEP_REPORT_WORKFLOW_STAGE_DEFINITIONS.map((stage) => stage.id),
+    status: "deep_report_workflow_scaffold" as const,
+    tables: DEEP_REPORT_WORKFLOW_TABLES,
+    tool_name: "plan_deep_report_workflow" as const,
+    version: DEEP_REPORT_WORKFLOW_VERSION,
+    workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW" as const
+  };
+}
+
+export function createDeepReportWorkflowPlan(
+  input: CreateDeepReportWorkflowPlanInput
+): DeepReportWorkflowPlan {
+  const asOf = normalizeAsOf(input.asOf);
+  const question = normalizeText(input.question);
+
+  if (question === undefined) {
+    throw new ResearchRunInputError("QUESTION_REQUIRED", "question is required");
+  }
+
+  const sections = normalizeDeepReportSections(input.sections);
+  const modelVersion = normalizeText(input.modelVersion) ?? "model.not_configured";
+  const promptVersion = normalizeText(input.promptVersion) ?? DEEP_REPORT_WORKFLOW_VERSION;
+  const dataDelayMinutes = normalizePositiveInteger(input.dataDelayMinutes) ?? 15;
+  const userId = normalizeText(input.userId);
+  const workspaceId = normalizeText(input.workspaceId);
+  const securityQuery = normalizeText(input.securityQuery);
+  const reportHash = hashStableValue({
+    asOf,
+    modelVersion,
+    promptVersion,
+    question,
+    requestId: input.requestId,
+    sections,
+    securityQuery
+  });
+  const reportId = normalizeText(input.reportId) ?? `deep_report_${reportHash}`;
+  const workflowTaskId =
+    normalizeText(input.workflowTaskId) ??
+    normalizeText(input.taskId) ??
+    `workflow_task_${reportHash}`;
+  const snapshotId = `deep_report_snapshot_${reportHash}`;
+  const evidenceIndexId = `deep_report_evidence_index_${reportHash}`;
+  const evidenceRecords = createDeepReportEvidenceIndexRecords(
+    evidenceIndexId,
+    sections
+  );
+  const usageCredits = 20;
+
+  return {
+    as_of: asOf,
+    citation_validation: {
+      every_claim_requires_evidence: true,
+      required: true,
+      status: "planned_no_write",
+      unsupported_claim_label: "unknown"
+    },
+    data_fetch_plan: {
+      live_tool_execution: false,
+      output_contract: ["source_record_id", "data_version", "methodology_version"],
+      registered_tools_only: true,
+      required_tools: DEFAULT_DEEP_REPORT_TOOLS,
+      status: "planned_no_write"
+    },
+    data_version: DEEP_REPORT_WORKFLOW_VERSION,
+    deterministic_analysis_plan: {
+      deterministic_calculations: true,
+      model_calls: false,
+      output_contract: ["facts", "calculations", "inferences", "unknowns"],
+      status: "planned_no_write"
+    },
+    evidence_index: {
+      evidence_index_id: evidenceIndexId,
+      records: evidenceRecords,
+      table: "core.deep_report_evidence_index",
+      version: DEEP_REPORT_WORKFLOW_VERSION
+    },
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    methodology_version: DEEP_REPORT_WORKFLOW_VERSION,
+    model_calls: false,
+    persistence_plan: {
+      checkpoint_writes: false,
+      live_db_writes: false,
+      r2_writes: false,
+      sql_emitted: false,
+      tables: DEEP_REPORT_WORKFLOW_TABLES,
+      write_status: "planned_no_write"
+    },
+    provenance: [
+      {
+        data_version: DEEP_REPORT_WORKFLOW_VERSION,
+        methodology_version: DEEP_REPORT_WORKFLOW_VERSION,
+        source: "deep-report-workflow-plan",
+        source_record_id: snapshotId
+      },
+      ...evidenceRecords.flatMap((record) =>
+        record.source_record_ids.map((sourceRecordId) => ({
+          data_version: record.data_version,
+          methodology_version: record.methodology_version,
+          source: "deep-report-evidence-index",
+          source_record_id: sourceRecordId
+        }))
+      )
+    ],
+    report_id: reportId,
+    report_snapshot: {
+      as_of: asOf,
+      data_delay_minutes: dataDelayMinutes,
+      disclaimer:
+        "Generated as a research scaffold with delayed synthetic data; not investment advice.",
+      generated_at: asOf,
+      immutable_report_snapshot: true,
+      report_id: reportId,
+      snapshot_id: snapshotId,
+      static_report_allowed: true,
+      table: "core.deep_report_snapshot",
+      version: DEEP_REPORT_WORKFLOW_VERSION
+    },
+    request_id: input.requestId,
+    rerun: {
+      data_model_parameter_diff_ready: true,
+      deterministic_replay_ready: true,
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      saved_snapshot_id: snapshotId,
+      silent_rewrite_allowed: false
+    },
+    section_plan: {
+      generation_status: "planned_no_model",
+      model_calls: false,
+      sections
+    },
+    sql_emitted: false,
+    stages: createDeepReportWorkflowStages(),
+    status: "planned_no_write",
+    task_id: workflowTaskId,
+    toolName: "plan_deep_report_workflow",
+    usage: {
+      cached: false,
+      credits: usageCredits,
+      rows:
+        DEEP_REPORT_WORKFLOW_STAGE_DEFINITIONS.length +
+        DEFAULT_DEEP_REPORT_TOOLS.length +
+        sections.length +
+        evidenceRecords.length
+    },
+    usage_estimate: {
+      debit_status: "not_debited",
+      estimated_credits: usageCredits,
+      failure_refund_ready: true,
+      high_cost_confirmation_required: true
+    },
+    user: {
+      source: userId === undefined ? "synthetic_default" : "request",
+      user_id: userId ?? "user_internal_alpha"
+    },
+    version: DEEP_REPORT_WORKFLOW_VERSION,
+    workflow: {
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      checkpoint_writes: false,
+      execution_status: "planned_no_write",
+      live_execution: false,
+      provider: "cloudflare_workflows",
+      queue_writes: false,
+      task_id: workflowTaskId
+    },
+    workflow_task_id: workflowTaskId,
+    workspace: {
+      source: workspaceId === undefined ? "synthetic_default" : "request",
+      workspace_id: workspaceId ?? "workspace_research"
+    }
   };
 }
 
@@ -692,6 +1121,51 @@ function normalizeEvidenceRecords(
     .filter(
       (record): record is ResearchRunSavedEvidenceRecord => record !== undefined
     );
+}
+
+function normalizeDeepReportSections(sections: string[] | undefined): string[] {
+  const normalizedSections =
+    sections
+      ?.map((section) => normalizeText(section))
+      .filter((section): section is string => section !== undefined)
+      .map((section) => section.toLowerCase().replace(/[^a-z0-9_]+/gu, "_"))
+      .filter((section) => section.length > 0) ?? [];
+
+  if (normalizedSections.length === 0) {
+    return [...DEFAULT_DEEP_REPORT_SECTIONS];
+  }
+
+  return uniqueSorted(normalizedSections);
+}
+
+function createDeepReportEvidenceIndexRecords(
+  evidenceIndexId: string,
+  sections: string[]
+): DeepReportEvidenceIndexRecord[] {
+  return sections.map((sectionId) => ({
+    citation_status: "planned_validation",
+    claim_label: sectionId === "disclaimer" ? "unknown" : "fact",
+    data_version: DEEP_REPORT_WORKFLOW_VERSION,
+    evidence_record_id: `${evidenceIndexId}_${sectionId}`,
+    methodology_version: DEEP_REPORT_WORKFLOW_VERSION,
+    section_id: sectionId,
+    source_record_ids: [`planned_source_${sectionId}`]
+  }));
+}
+
+function createDeepReportWorkflowStages(): DeepReportWorkflowStage[] {
+  return DEEP_REPORT_WORKFLOW_STAGE_DEFINITIONS.map((definition, index) => ({
+    checkpoint_writes: false,
+    input_contract: definition.input,
+    live_tool_execution: false,
+    model_calls: false,
+    order: index + 1,
+    output_contract: definition.output,
+    persistent_writes: false,
+    requires_previous_stage: index > 0,
+    stage_id: definition.id,
+    status: "planned_no_write"
+  }));
 }
 
 function createParameterSnapshot(

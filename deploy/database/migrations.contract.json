@@ -189,6 +189,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621104000_deep_report_workflow_scaffold.sql",
+      "purpose": "Create empty deep report snapshot and evidence index scaffolds linked to Workflow tasks without enabling live Workflows execution, R2 writes, or persistent report writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.deep_report_snapshot",
+        "core.deep_report_evidence_index",
+        "governance.deep_report_workflow_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

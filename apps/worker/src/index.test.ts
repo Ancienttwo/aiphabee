@@ -1656,6 +1656,20 @@ interface EvidenceRecordPlanBody {
 
 interface ResearchRuntimeBody {
   data: {
+    deep_report_workflow: {
+      citation_validation_required: boolean;
+      evidence_index_required: boolean;
+      live_db_writes: boolean;
+      live_tool_execution: boolean;
+      live_workflow_execution: boolean;
+      model_calls: boolean;
+      replay_route: string;
+      route: string;
+      stages: string[];
+      status: string;
+      tool_name: string;
+      workflow_binding: string;
+    };
     immutable_report_snapshot: boolean;
     live_db_writes: boolean;
     replay_diff_ready: boolean;
@@ -1672,6 +1686,125 @@ interface ResearchRuntimeBody {
     tool_name: string;
   };
   ok: true;
+}
+
+interface DeepReportWorkflowPlanBody {
+  data: {
+    capability: ResearchRuntimeBody["data"]["deep_report_workflow"];
+    citation_validation: {
+      every_claim_requires_evidence: boolean;
+      required: boolean;
+      unsupported_claim_label: string;
+    };
+    data_fetch_plan: {
+      live_tool_execution: boolean;
+      registered_tools_only: boolean;
+      required_tools: string[];
+      status: string;
+    };
+    deterministic_analysis_plan: {
+      deterministic_calculations: boolean;
+      model_calls: boolean;
+      status: string;
+    };
+    evidence_index: {
+      evidence_index_id: string;
+      records: Array<{
+        citation_status: string;
+        evidence_record_id: string;
+        section_id: string;
+        source_record_ids: string[];
+      }>;
+      table: string;
+    };
+    frontend_rendering: boolean;
+    live_db_writes: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    persistence_plan: {
+      checkpoint_writes: boolean;
+      live_db_writes: boolean;
+      r2_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    report_id: string;
+    report_snapshot: {
+      data_delay_minutes: number;
+      disclaimer: string;
+      immutable_report_snapshot: boolean;
+      snapshot_id: string;
+      static_report_allowed: boolean;
+      table: string;
+    };
+    rerun: {
+      data_model_parameter_diff_ready: boolean;
+      deterministic_replay_ready: boolean;
+      old_report_mutation_allowed: boolean;
+      replay_route: string;
+      saved_snapshot_id: string;
+      silent_rewrite_allowed: boolean;
+    };
+    section_plan: {
+      generation_status: string;
+      model_calls: boolean;
+      sections: string[];
+    };
+    sql_emitted: boolean;
+    stages: Array<{
+      live_tool_execution: boolean;
+      model_calls: boolean;
+      order: number;
+      stage_id: string;
+      status: string;
+    }>;
+    status: string;
+    task_id: string;
+    toolName: string;
+    usage_estimate: {
+      debit_status: string;
+      estimated_credits: number;
+      failure_refund_ready: boolean;
+      high_cost_confirmation_required: boolean;
+    };
+    workflow: {
+      binding: string;
+      checkpoint_writes: boolean;
+      execution_status: string;
+      live_execution: boolean;
+      provider: string;
+      queue_writes: boolean;
+      task_id: string;
+    };
+    workflow_task: {
+      task_id: string;
+      task: {
+        task_kind: string;
+        status: string;
+      };
+      notification: {
+        completion_notification: string;
+        failure_notification: string;
+        required: boolean;
+      };
+      resume: {
+        resume_route: string;
+        resumable: boolean;
+      };
+      workflow: {
+        binding: string;
+        execution_ready: boolean;
+        start_status: string;
+      };
+    };
+    workflow_task_id: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface ResearchRunSavePlanBody {
@@ -6143,6 +6276,182 @@ describe("worker runtime", () => {
       "core.research_run_evidence_snapshot",
       "core.research_run_model_snapshot"
     ]);
+    expect(body.data.deep_report_workflow).toMatchObject({
+      citation_validation_required: true,
+      evidence_index_required: true,
+      live_db_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      model_calls: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/reports/deep/plan",
+      status: "deep_report_workflow_scaffold",
+      tool_name: "plan_deep_report_workflow",
+      workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW"
+    });
+    expect(body.data.deep_report_workflow.stages).toEqual([
+      "data_fetch",
+      "deterministic_analysis",
+      "section_generation",
+      "citation_validation",
+      "evidence_index",
+      "rerun_seed"
+    ]);
+  });
+
+  it("plans deep report workflows with linked workflow task ids", async () => {
+    const response = await app.request("/research/reports/deep/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-21T09:30:00+08:00",
+        data_delay_minutes: 15,
+        model_version: "gpt-5.4-dry-run",
+        notification_channels: ["email", "in_app"],
+        prompt_version: "prompt.deep-report.v0",
+        question: "Generate a deep report for Tencent.",
+        security_query: "00700.HK",
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-deep-report"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as DeepReportWorkflowPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "plan_deep_report_workflow"
+    });
+    expect(body.data.capability).toMatchObject({
+      citation_validation_required: true,
+      evidence_index_required: true,
+      route: "POST /research/reports/deep/plan",
+      workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW"
+    });
+    expect(body.data.workflow_task_id).toBe(body.data.workflow_task.task_id);
+    expect(body.data.task_id).toBe(body.data.workflow_task.task_id);
+    expect(response.headers.get("x-aiphabee-workflow-task-id")).toBe(
+      body.data.workflow_task.task_id
+    );
+    expect(response.headers.get("x-aiphabee-deep-report-id")).toBe(
+      body.data.report_id
+    );
+    expect(body.data.workflow_task).toMatchObject({
+      task: {
+        task_kind: "deep_report",
+        status: "planned_no_write"
+      },
+      resume: {
+        resume_route: "GET /agent/workflows/tasks/:task_id",
+        resumable: true
+      },
+      workflow: {
+        binding: "AIPHABEE_RESEARCH_WORKFLOW",
+        execution_ready: false,
+        start_status: "not_started"
+      }
+    });
+    expect(body.data.workflow_task.notification).toMatchObject({
+      completion_notification: "planned_no_write",
+      failure_notification: "planned_no_write",
+      required: true
+    });
+    expect(body.data.workflow).toEqual({
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      checkpoint_writes: false,
+      execution_status: "planned_no_write",
+      live_execution: false,
+      provider: "cloudflare_workflows",
+      queue_writes: false,
+      task_id: body.data.workflow_task.task_id
+    });
+    expect(body.data.stages.map((stage) => stage.stage_id)).toEqual([
+      "data_fetch",
+      "deterministic_analysis",
+      "section_generation",
+      "citation_validation",
+      "evidence_index",
+      "rerun_seed"
+    ]);
+    expect(body.data.stages.every((stage) => stage.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.stages.every((stage) => stage.live_tool_execution === false)).toBe(
+      true
+    );
+    expect(body.data.stages.every((stage) => stage.model_calls === false)).toBe(true);
+    expect(body.data.data_fetch_plan).toMatchObject({
+      live_tool_execution: false,
+      registered_tools_only: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.data_fetch_plan.required_tools).toContain("search_announcements");
+    expect(body.data.deterministic_analysis_plan).toEqual({
+      deterministic_calculations: true,
+      model_calls: false,
+      output_contract: ["facts", "calculations", "inferences", "unknowns"],
+      status: "planned_no_write"
+    });
+    expect(body.data.section_plan).toMatchObject({
+      generation_status: "planned_no_model",
+      model_calls: false
+    });
+    expect(body.data.citation_validation).toEqual({
+      every_claim_requires_evidence: true,
+      required: true,
+      status: "planned_no_write",
+      unsupported_claim_label: "unknown"
+    });
+    expect(body.data.evidence_index.table).toBe("core.deep_report_evidence_index");
+    expect(body.data.evidence_index.records).toHaveLength(
+      body.data.section_plan.sections.length
+    );
+    expect(body.data.report_snapshot).toMatchObject({
+      data_delay_minutes: 15,
+      immutable_report_snapshot: true,
+      static_report_allowed: true,
+      table: "core.deep_report_snapshot"
+    });
+    expect(body.data.report_snapshot.disclaimer).toContain("not investment advice");
+    expect(body.data.rerun).toEqual({
+      data_model_parameter_diff_ready: true,
+      deterministic_replay_ready: true,
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      saved_snapshot_id: body.data.report_snapshot.snapshot_id,
+      silent_rewrite_allowed: false
+    });
+    expect(body.data.persistence_plan).toEqual({
+      checkpoint_writes: false,
+      live_db_writes: false,
+      r2_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.deep_report_snapshot",
+        "core.deep_report_evidence_index",
+        "core.workflow_task",
+        "core.workflow_task_checkpoint"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.usage_estimate).toEqual({
+      debit_status: "not_debited",
+      estimated_credits: 20,
+      failure_refund_ready: true,
+      high_cost_confirmation_required: true
+    });
+    expect(body.usage.credits).toBe(20);
+    expect(body.usage.rows).toBeGreaterThan(0);
   });
 
   it("plans complete research run snapshots for replay without writes", async () => {

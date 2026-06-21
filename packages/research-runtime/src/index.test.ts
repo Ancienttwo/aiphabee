@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   ResearchRunInputError,
+  createDeepReportWorkflowPlan,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  getDeepReportWorkflowCapabilities,
   getResearchRuntimeCapabilities
 } from "./index";
 
@@ -34,6 +36,176 @@ describe("research run save scaffold", () => {
       "model",
       "parameters"
     ]);
+    expect(getResearchRuntimeCapabilities().deep_report_workflow).toMatchObject({
+      citation_validation_required: true,
+      evidence_index_required: true,
+      live_db_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      model_calls: false,
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/reports/deep/plan",
+      status: "deep_report_workflow_scaffold",
+      tool_name: "plan_deep_report_workflow",
+      workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW"
+    });
+  });
+
+  it("reports deep report workflow capabilities", () => {
+    expect(getDeepReportWorkflowCapabilities()).toMatchObject({
+      citation_validation_required: true,
+      evidence_index_required: true,
+      frontend_rendering: false,
+      high_cost_confirmation_required: true,
+      live_db_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      model_calls: false,
+      package: "@aiphabee/research-runtime",
+      replay_route: "POST /research/runs/replay/plan",
+      route: "POST /research/reports/deep/plan",
+      runtime_route: "GET /research/runtime",
+      sql_emitted: false,
+      status: "deep_report_workflow_scaffold",
+      tool_name: "plan_deep_report_workflow",
+      workflow_binding: "AIPHABEE_RESEARCH_WORKFLOW"
+    });
+    expect(getDeepReportWorkflowCapabilities().stages).toEqual([
+      "data_fetch",
+      "deterministic_analysis",
+      "section_generation",
+      "citation_validation",
+      "evidence_index",
+      "rerun_seed"
+    ]);
+  });
+
+  it("plans a no-write deep report workflow with evidence index and rerun seed", () => {
+    const plan = createDeepReportWorkflowPlan({
+      asOf: "2026-06-21T09:30:00+08:00",
+      dataDelayMinutes: 15,
+      modelVersion: "gpt-5.4-dry-run",
+      promptVersion: "prompt.deep-report.v0",
+      question: "Generate a deep report for Tencent.",
+      requestId: "req-deep-report",
+      securityQuery: "00700.HK",
+      userId: "user_internal_alpha",
+      workflowTaskId: "workflow_task_00700_deep_report",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      as_of: "2026-06-21T09:30:00+08:00",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      request_id: "req-deep-report",
+      sql_emitted: false,
+      status: "planned_no_write",
+      task_id: "workflow_task_00700_deep_report",
+      toolName: "plan_deep_report_workflow",
+      workflow_task_id: "workflow_task_00700_deep_report"
+    });
+    expect(plan.workflow).toEqual({
+      binding: "AIPHABEE_RESEARCH_WORKFLOW",
+      checkpoint_writes: false,
+      execution_status: "planned_no_write",
+      live_execution: false,
+      provider: "cloudflare_workflows",
+      queue_writes: false,
+      task_id: "workflow_task_00700_deep_report"
+    });
+    expect(plan.stages.map((stage) => stage.stage_id)).toEqual([
+      "data_fetch",
+      "deterministic_analysis",
+      "section_generation",
+      "citation_validation",
+      "evidence_index",
+      "rerun_seed"
+    ]);
+    expect(plan.stages.every((stage) => stage.status === "planned_no_write")).toBe(true);
+    expect(plan.stages.every((stage) => stage.live_tool_execution === false)).toBe(true);
+    expect(plan.stages.every((stage) => stage.model_calls === false)).toBe(true);
+    expect(plan.data_fetch_plan.required_tools).toEqual([
+      "resolve_security",
+      "get_entitlements",
+      "get_security_profile",
+      "get_quote_snapshot",
+      "get_price_history",
+      "get_financial_facts",
+      "get_data_lineage",
+      "search_announcements",
+      "search_documents",
+      "diff_announcements"
+    ]);
+    expect(plan.deterministic_analysis_plan).toMatchObject({
+      deterministic_calculations: true,
+      model_calls: false,
+      status: "planned_no_write"
+    });
+    expect(plan.section_plan).toMatchObject({
+      generation_status: "planned_no_model",
+      model_calls: false
+    });
+    expect(plan.section_plan.sections).toEqual([
+      "executive_summary",
+      "business_snapshot",
+      "financial_analysis",
+      "risk_events",
+      "evidence_appendix",
+      "disclaimer"
+    ]);
+    expect(plan.citation_validation).toEqual({
+      every_claim_requires_evidence: true,
+      required: true,
+      status: "planned_no_write",
+      unsupported_claim_label: "unknown"
+    });
+    expect(plan.evidence_index).toMatchObject({
+      table: "core.deep_report_evidence_index"
+    });
+    expect(plan.evidence_index.records).toHaveLength(plan.section_plan.sections.length);
+    expect(plan.evidence_index.records[0]).toMatchObject({
+      citation_status: "planned_validation",
+      data_version: plan.version,
+      methodology_version: plan.version
+    });
+    expect(plan.report_snapshot).toMatchObject({
+      as_of: "2026-06-21T09:30:00+08:00",
+      data_delay_minutes: 15,
+      immutable_report_snapshot: true,
+      static_report_allowed: true,
+      table: "core.deep_report_snapshot",
+      version: plan.version
+    });
+    expect(plan.rerun).toEqual({
+      data_model_parameter_diff_ready: true,
+      deterministic_replay_ready: true,
+      old_report_mutation_allowed: false,
+      replay_route: "POST /research/runs/replay/plan",
+      saved_snapshot_id: plan.report_snapshot.snapshot_id,
+      silent_rewrite_allowed: false
+    });
+    expect(plan.persistence_plan).toEqual({
+      checkpoint_writes: false,
+      live_db_writes: false,
+      r2_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.deep_report_snapshot",
+        "core.deep_report_evidence_index",
+        "core.workflow_task",
+        "core.workflow_task_checkpoint"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(plan.usage_estimate).toEqual({
+      debit_status: "not_debited",
+      estimated_credits: 20,
+      failure_refund_ready: true,
+      high_cost_confirmation_required: true
+    });
   });
 
   it("plans a complete no-write research run snapshot", () => {

@@ -134,9 +134,11 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  createDeepReportWorkflowPlan,
   ResearchRunInputError,
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
+  getDeepReportWorkflowCapabilities,
   getResearchRuntimeCapabilities,
   type CreateResearchRunReplayCurrentRunInput,
   type ResearchRunEvidenceInput,
@@ -218,6 +220,16 @@ interface AgentRunRequestBody {
   userId?: unknown;
   notification_channels?: unknown;
   notificationChannels?: unknown;
+  question?: unknown;
+  report_id?: unknown;
+  reportId?: unknown;
+  sections?: unknown;
+  data_delay_minutes?: unknown;
+  dataDelayMinutes?: unknown;
+  model_version?: unknown;
+  modelVersion?: unknown;
+  prompt_version?: unknown;
+  promptVersion?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
   workspace_id?: unknown;
@@ -225,6 +237,15 @@ interface AgentRunRequestBody {
 }
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
+const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
+  "resolve_security",
+  "get_security_profile",
+  "get_data_lineage",
+  "get_entitlements",
+  "get_quote_snapshot",
+  "get_price_history",
+  "get_financial_facts"
+] as const;
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -1763,6 +1784,110 @@ app.post("/research/runs/replay/plan", async (c) => {
         asOf: new Date().toISOString(),
         dataVersion: "research-run-replay-scaffold-v0",
         methodologyVersion: "2026-06-21.phase2.research-run-replay-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/research/reports/deep/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const question = normalizeString(body.question ?? body.prompt);
+
+  try {
+    if (question === undefined) {
+      throw new ResearchRunInputError("QUESTION_REQUIRED", "question is required");
+    }
+
+    const requestedTools =
+      normalizeStringArray(body.tools) ?? [...DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS];
+    const workflowTask = createWorkflowTaskPlan({
+      ...createAgentRunInput(
+        {
+          ...body,
+          max_steps:
+            normalizeOptionalInteger(body.max_steps) ?? DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS.length,
+          prompt: question,
+          tools: requestedTools,
+          workflow_kind: "deep_report"
+        },
+        requestId
+      ),
+      notificationChannels: normalizeAgentWorkflowNotificationChannels(
+        body.notification_channels ?? body.notificationChannels
+      ),
+      workflowKind: "deep_report"
+    });
+    const plan = createDeepReportWorkflowPlan({
+      asOf: normalizeString(body.as_of ?? body.asOf),
+      dataDelayMinutes: normalizeOptionalInteger(
+        body.data_delay_minutes ?? body.dataDelayMinutes
+      ),
+      modelVersion: normalizeString(body.model_version ?? body.modelVersion),
+      promptVersion: normalizeString(body.prompt_version ?? body.promptVersion),
+      question,
+      reportId: normalizeString(body.report_id ?? body.reportId),
+      requestId,
+      sections: normalizeStringArray(body.sections),
+      securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+      userId: normalizeString(body.user_id ?? body.userId),
+      workflowTaskId: workflowTask.task_id,
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    c.header("x-aiphabee-workflow-task-id", workflowTask.task_id);
+    c.header("x-aiphabee-deep-report-id", plan.report_id);
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...plan,
+          capability: getDeepReportWorkflowCapabilities(),
+          workflow_task: workflowTask
+        },
+        {
+          asOf: plan.as_of,
+          dataVersion: plan.data_version,
+          methodologyVersion: plan.methodology_version,
+          provenance: plan.provenance,
+          requestId,
+          usage: plan.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof ResearchRunInputError || error instanceof AgentRuntimeInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          dataVersion: "deep-report-workflow-scaffold-v0",
+          methodologyVersion: "2026-06-21.phase2.deep-report-workflow-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "deep report workflow planning failed", {
+        asOf: new Date().toISOString(),
+        dataVersion: "deep-report-workflow-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase2.deep-report-workflow-scaffold.v0",
         requestId,
         usage: {
           cached: false,
