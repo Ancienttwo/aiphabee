@@ -25,6 +25,7 @@ const forbiddenOutputFields = contract.forbidden_live_output_fields;
 const smokePrefix = "aiphabee-smoke";
 const smokeId = `smoke_${Date.now()}_${randomUUID().replace(/-/gu, "").slice(0, 12)}`;
 const resourceNames = contract.partial_provisioning?.resource_names ?? {};
+const durableObjectClassName = "AiphaBeeRunCoordinator";
 const requiredResourceNames = [
   "worker",
   "queue",
@@ -55,7 +56,8 @@ if (dryRun) {
         "r2_put_get_delete",
         "d1_create_insert_select_delete_drop",
         "worker_runtime_binding_smoke",
-        "queue_publish_consume_smoke"
+        "queue_publish_consume_smoke",
+        "durable_object_state_smoke"
       ],
       required_env: requiredEnv,
       required_resource_names: requiredResourceNames,
@@ -339,6 +341,13 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "queue_worker_runtime_prerequisite_failed",
           key: resourceNames.queue,
           surface: "queue_publish_consume_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_RUN_COORDINATOR",
+          detail: "worker runtime URL missing before durable object smoke",
+          failureCode: "durable_object_worker_runtime_prerequisite_failed",
+          key: durableObjectClassName,
+          surface: "durable_object_state_smoke"
         })
       ];
     }
@@ -354,11 +363,22 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "queue_worker_runtime_prerequisite_failed",
           key: resourceNames.queue,
           surface: "queue_publish_consume_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_RUN_COORDINATOR",
+          detail: "worker runtime binding smoke failed before durable object smoke",
+          failureCode: "durable_object_worker_runtime_prerequisite_failed",
+          key: durableObjectClassName,
+          surface: "durable_object_state_smoke"
         })
       ];
     }
 
-    return [workerRuntimeResult, await smokeQueuePublishConsume(workerUrl)];
+    return [
+      workerRuntimeResult,
+      await smokeQueuePublishConsume(workerUrl),
+      await smokeDurableObjectState(workerUrl)
+    ];
   } catch (error) {
     return [
       failedResult({
@@ -374,6 +394,13 @@ async function smokeWorkerRuntimeBindings() {
         failureCode: "queue_worker_runtime_command_failed",
         key: resourceNames.queue,
         surface: "queue_publish_consume_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_RUN_COORDINATOR",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "durable_object_worker_runtime_command_failed",
+        key: durableObjectClassName,
+        surface: "durable_object_state_smoke"
       })
     ];
   } finally {
@@ -484,6 +511,51 @@ async function smokeQueuePublishConsume(workerUrl) {
   };
 }
 
+async function smokeDurableObjectState(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/durable-objects/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "AIPHABEE_RUN_COORDINATOR",
+      detail: JSON.stringify({
+        durable_object_result: body?.durable_object_result
+          ? {
+              failure_code: body.durable_object_result.failure_code,
+              status: body.durable_object_result.status,
+              surface: body.durable_object_result.surface
+            }
+          : undefined,
+        http_status: response.status,
+        missing_bindings: Array.isArray(body?.missing_bindings) ? body.missing_bindings : [],
+        status: body?.status
+      }),
+      failureCode: "durable_object_state_route_failed",
+      key: durableObjectClassName,
+      surface: "durable_object_state_smoke"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_RUN_COORDINATOR",
+    operation_count:
+      typeof body.durable_object_result?.operation_count === "number"
+        ? body.durable_object_result.operation_count
+        : 3,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.durable_object_result ?? {})),
+    status: "passed",
+    surface: "durable_object_state_smoke"
+  };
+}
+
 async function resolveKvNamespaceId(title) {
   const result = await runWrangler(["kv", "namespace", "list"]);
   const namespaces = JSON.parse(result.stdout);
@@ -535,6 +607,20 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
       APP_ENV: "smoke",
       APP_VERSION: "runtime-binding-smoke"
     },
+    durable_objects: {
+      bindings: [
+        {
+          name: "AIPHABEE_RUN_COORDINATOR",
+          class_name: durableObjectClassName
+        }
+      ]
+    },
+    migrations: [
+      {
+        tag: "v1_aiphabee_run_coordinator",
+        new_classes: [durableObjectClassName]
+      }
+    ],
     kv_namespaces: [
       {
         binding: "AIPHABEE_CONFIG",

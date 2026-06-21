@@ -6,8 +6,8 @@ Date: 2026-06-22
 
 This slice records partial Sprint 0.4 Cloudflare external provisioning and
 partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
-smoke plus Queue publish/consume smoke without claiming complete Cloudflare
-binding smoke.
+smoke, Queue publish/consume smoke, and Durable Object state smoke without
+claiming complete Cloudflare binding smoke.
 
 ## P1 Architecture Map
 
@@ -24,9 +24,8 @@ binding smoke.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: creating Workflow/Cron/Durable Object/AI Gateway/Hyperdrive
-  resources, running Hyperdrive `SELECT 1`, OTLP export, or rotating provider
-  secrets.
+- Out of scope: creating Workflow/Cron/AI Gateway/Hyperdrive resources, running
+  Hyperdrive `SELECT 1`, OTLP export, or rotating provider secrets.
 
 ## P2 Concrete Trace
 
@@ -67,15 +66,20 @@ binding smoke.
     sends a synthetic message, the queue handler writes a KV evidence marker,
     the route verifies and deletes that marker, and the script removes the
     temporary Worker consumer registration after the smoke.
+14. The temporary Worker config attaches `AIPHABEE_RUN_COORDINATOR` to the
+    exported `AiphaBeeRunCoordinator` Durable Object class with a migration.
+    `POST /cloudflare/durable-objects/smoke` routes to a named object and proves
+    storage put/get/delete without returning object ids or state keys.
 
 ## P3 Decision
 
 The existing binding contract is intentionally names-only. The smallest
 coherent update is to record the resources that now exist and prove
-resource-level KV/R2/D1 write-read-delete through Wrangler and prove Worker
-runtime KV/R2/D1 plus Queue publish/consume through a temporary Worker consumer
-while keeping the overall resource smoke item unchecked until the remaining
-Cloudflare classes pass their own live smokes.
+resource-level KV/R2/D1 write-read-delete through Wrangler, prove Worker
+runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
+consumer, and prove Durable Object state put/get/delete while keeping the
+overall resource smoke item unchecked until the remaining Cloudflare classes
+pass their own live smokes.
 
 At 10x scale this fails first on partial provisioning and token scope drift:
 some resources may exist while D1/Durable Object list permissions are missing.
@@ -120,16 +124,20 @@ completed the following names-only provisioning and verification:
   through a temporary no-id Wrangler config with `AIPHABEE_EVENTS_QUEUE` as
   producer/consumer and KV evidence cleanup; output contained only hashes,
   status fields, and operation counts.
+- Durable Object `AiphaBeeRunCoordinator` passed migration plus
+  `POST /cloudflare/durable-objects/smoke` state put/get/delete through a
+  temporary no-id Wrangler config; output contained only hashes, status fields,
+  and operation counts.
 
 The AI Gateway create attempt returned a Cloudflare API authentication error in
-the available API context. Workflow, Cron trigger, Durable Object namespace, and
-Hyperdrive remain unprovisioned because they require Worker class/migration,
-schedule config, or a Postgres origin decision before safe creation.
+the available API context. Workflow, Cron trigger, and Hyperdrive remain
+unprovisioned because they require a workflow class, schedule config, or a
+Postgres origin decision before safe creation.
 
 ## Residual Gaps
 
 - Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
   required resource classes are provisioned.
-- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1` and
-  Workflow/Cron/Durable Object execution are not claimed.
+- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1`,
+  Workflow execution, and Cron trigger execution are not claimed.
 - Provider secret rotation/revocation remains unchecked.

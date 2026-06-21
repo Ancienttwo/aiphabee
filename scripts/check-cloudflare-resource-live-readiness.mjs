@@ -45,6 +45,7 @@ const requiredOutputFields = [
 const requiredFunctionalSurfaces = [
   ["aiphabee-worker", "worker_runtime_binding_smoke"],
   ["AIPHABEE_EVENTS_QUEUE", "queue_publish_consume_smoke"],
+  ["AIPHABEE_RUN_COORDINATOR", "durable_object_state_smoke"],
   ["AIPHABEE_CONFIG", "kv_put_get_delete"],
   ["AIPHABEE_ARTIFACTS", "r2_put_get_delete"],
   ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"]
@@ -52,7 +53,6 @@ const requiredFunctionalSurfaces = [
 const requiredRemainingFunctionalSurfaces = [
   ["AIPHABEE_RESEARCH_WORKFLOW", "workflow_instance_execution"],
   ["AIPHABEE_MAINTENANCE_CRON", "cron_trigger_smoke"],
-  ["AIPHABEE_RUN_COORDINATOR", "durable_object_state_smoke"],
   ["AIPHABEE_AI_GATEWAY", "ai_gateway_model_request_smoke"],
   ["AIPHABEE_HYPERDRIVE", "hyperdrive_select_1_smoke"]
 ];
@@ -594,12 +594,17 @@ function validateFunctionalSmokeScript(value) {
     "execute",
     "/cloudflare/bindings/smoke",
     "/cloudflare/queues/smoke",
+    "/cloudflare/durable-objects/smoke",
     "cloudflare-bindings-runtime-v1",
     "worker_runtime_binding_smoke",
     "queue_publish_consume_smoke",
+    "durable_object_state_smoke",
     "kv_namespaces",
     "r2_buckets",
     "d1_databases",
+    "durable_objects",
+    "migrations",
+    "new_classes",
     "queues",
     "producers",
     "consumers",

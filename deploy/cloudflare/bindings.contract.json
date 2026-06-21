@@ -40,7 +40,7 @@
       "purpose": "Future run coordination, budget counters, and idempotency boundaries.",
       "required_by_sprint": "1.3",
       "smoke_test": "Create object instance and read/write a synthetic run state.",
-      "provisioned": false
+      "provisioned": true
     },
     {
       "name": "AIPHABEE_ARTIFACTS",

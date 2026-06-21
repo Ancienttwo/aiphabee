@@ -17,6 +17,8 @@
   smoke to deploy `aiphabee-worker` with temporary KV/R2/D1 bindings.
 - Added a guarded Queue publish/consume smoke route and module Worker queue
   handler, with temporary producer/consumer config and KV evidence cleanup.
+- Added `AiphaBeeRunCoordinator` Durable Object plus a guarded state smoke route
+  with temporary migration/binding config and storage put/get/delete proof.
 
 ## External Evidence
 
@@ -33,16 +35,17 @@
   smoke with sanitized hashes/status/operation counts only.
 - Worker `POST /cloudflare/queues/smoke` passed Queue publish/consume through
   a temporary Worker consumer and sanitized hashes/status/operation counts only.
+- Durable Object `AiphaBeeRunCoordinator` passed migration and
+  `POST /cloudflare/durable-objects/smoke` state put/get/delete with sanitized
+  hashes/status/operation counts only.
 - AI Gateway creation hit a Cloudflare API authentication error in the available
   context.
-- Workflow, Cron, Durable Object, and Hyperdrive remain blocked by Worker
-  workflow class, schedule config, Durable Object class/migration, and Postgres
-  origin prerequisites.
+- Workflow, Cron, and Hyperdrive remain blocked by workflow class, schedule
+  config, and Postgres origin prerequisites.
 
 ## What Was Not Claimed
 
-- No Workflow, Cron, Durable Object, AI Gateway, or Hyperdrive resource was
-  created.
+- No Workflow, Cron, AI Gateway, or Hyperdrive resource was created.
 - No Hyperdrive `SELECT 1` was executed.
 - No OTLP export, product eval-store write/read, or provider secret rotation
   smoke was executed.

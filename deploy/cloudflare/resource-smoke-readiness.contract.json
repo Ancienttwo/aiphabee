@@ -120,6 +120,7 @@
     "provisioned_bindings": [
       "aiphabee-worker",
       "AIPHABEE_EVENTS_QUEUE",
+      "AIPHABEE_RUN_COORDINATOR",
       "AIPHABEE_ARTIFACTS",
       "AIPHABEE_CONFIG",
       "AIPHABEE_EVAL_STORE"
@@ -127,6 +128,7 @@
     "resource_names": {
       "worker": "aiphabee-worker",
       "queue": "aiphabee-events-queue",
+      "durable_object_namespace": "AiphaBeeRunCoordinator",
       "r2_bucket": "aiphabee-artifacts",
       "kv_namespace_title": "AIPHABEE_CONFIG",
       "d1_database": "AIPHABEE_EVAL_STORE"
@@ -139,6 +141,10 @@
       {
         "surface": "queue_list",
         "result": "aiphabee-events-queue found"
+      },
+      {
+        "surface": "durable_object_state_smoke",
+        "result": "AiphaBeeRunCoordinator migration + state smoke passed"
       },
       {
         "surface": "r2_bucket_list",
@@ -161,10 +167,6 @@
       {
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "reason": "cron_trigger_not_configured"
-      },
-      {
-        "binding_name": "AIPHABEE_RUN_COORDINATOR",
-        "reason": "durable_object_requires_worker_class_and_migration"
       },
       {
         "binding_name": "AIPHABEE_AI_GATEWAY",
@@ -196,6 +198,11 @@
         "result": "passed"
       },
       {
+        "binding_name": "AIPHABEE_RUN_COORDINATOR",
+        "surface": "durable_object_state_smoke",
+        "result": "passed"
+      },
+      {
         "binding_name": "AIPHABEE_CONFIG",
         "surface": "kv_put_get_delete",
         "result": "passed"
@@ -221,11 +228,6 @@
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "surface": "cron_trigger_smoke",
         "reason": "cron_trigger_not_configured"
-      },
-      {
-        "binding_name": "AIPHABEE_RUN_COORDINATOR",
-        "surface": "durable_object_state_smoke",
-        "reason": "durable_object_requires_worker_class_and_migration"
       },
       {
         "binding_name": "AIPHABEE_AI_GATEWAY",

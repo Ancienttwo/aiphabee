@@ -295,6 +295,7 @@ interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: unknown;
+  AIPHABEE_RUN_COORDINATOR?: RuntimeDurableObjectNamespace;
   APP_ENV?: string;
   APP_VERSION?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
@@ -337,6 +338,23 @@ interface RuntimeQueueMessage {
   body: unknown;
 }
 
+interface RuntimeDurableObjectNamespace {
+  get(id: unknown): RuntimeDurableObjectStub;
+  idFromName(name: string): unknown;
+}
+
+interface RuntimeDurableObjectStub {
+  fetch(input: Request | string | URL, init?: RequestInit): Promise<Response>;
+}
+
+interface RuntimeDurableObjectState {
+  storage: {
+    delete(key: string): Promise<void>;
+    get(key: string): Promise<unknown | undefined>;
+    put<T = unknown>(key: string, value: T): Promise<void>;
+  };
+}
+
 type CloudflareBindingSmokeStatus = "failed" | "missing_binding" | "passed";
 
 interface CloudflareBindingSmokeResult {
@@ -372,6 +390,26 @@ interface CloudflareQueueSmokeResult {
   operation_count?: number;
   status: CloudflareBindingSmokeStatus;
   surface: "queue_publish_consume_smoke";
+}
+
+interface CloudflareDurableObjectSmokePayload {
+  kind: typeof CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND;
+  smoke_id: string;
+  state_key: string;
+  value_hash: string;
+}
+
+interface CloudflareDurableObjectSmokeResult {
+  binding_name: "AIPHABEE_RUN_COORDINATOR";
+  detail_hash?: string;
+  failure_code?: string;
+  object_name_hash?: string;
+  operation_count?: number;
+  response_hash?: string;
+  state_key_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "durable_object_state_smoke";
+  value_hash?: string;
 }
 
 interface AgentRunRequestBody {
@@ -568,6 +606,8 @@ const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
 const CLOUDFLARE_BINDING_SMOKE_HEADER = "x-aiphabee-smoke";
 const CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE = "cloudflare-bindings-runtime-v1";
 const CLOUDFLARE_BINDING_SMOKE_ROUTE = "/cloudflare/bindings/smoke";
+const CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE = "/cloudflare/durable-objects/smoke";
+const CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND = "aiphabee.durable-object.smoke.v1";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
@@ -695,6 +735,44 @@ app.post(CLOUDFLARE_QUEUE_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     queueResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const durableObjectResult = await runCloudflareDurableObjectSmoke(c.env ?? {});
+  const bodyWithoutHash = {
+    durable_object_result: durableObjectResult,
+    missing_bindings:
+      durableObjectResult.status === "missing_binding" ? ["AIPHABEE_RUN_COORDINATOR"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE}`,
+    status: durableObjectResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    durableObjectResult.status === "passed" ? 200 : 424
   );
 });
 
@@ -7708,6 +7786,64 @@ app.post("/evidence/records/plan", async (c) => {
   }
 });
 
+export class AiphaBeeRunCoordinator {
+  private readonly state: RuntimeDurableObjectState;
+
+  constructor(state: RuntimeDurableObjectState) {
+    this.state = state;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method !== "POST" || url.pathname !== CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE) {
+      return Response.json(
+        {
+          status: "not_found"
+        },
+        { status: 404 }
+      );
+    }
+
+    const payload = await request.json().catch(() => undefined);
+
+    if (!isCloudflareDurableObjectSmokePayload(payload)) {
+      return Response.json(
+        {
+          failure_code: "invalid_durable_object_smoke_payload",
+          status: "failed"
+        },
+        { status: 400 }
+      );
+    }
+
+    await this.state.storage.put(payload.state_key, {
+      stored_at: new Date().toISOString(),
+      value_hash: payload.value_hash
+    });
+    const stored = await this.state.storage.get(payload.state_key);
+
+    if (!isPlainRecord(stored) || stored.value_hash !== payload.value_hash) {
+      return Response.json(
+        {
+          failure_code: "durable_object_state_read_mismatch",
+          status: "failed"
+        },
+        { status: 500 }
+      );
+    }
+
+    await this.state.storage.delete(payload.state_key);
+
+    return Response.json({
+      operation_count: 3,
+      state_key_hash: await hashRuntimeSmokeString(payload.state_key),
+      status: "ok",
+      value_hash: payload.value_hash
+    });
+  }
+}
+
 const worker = Object.assign(app, {
   queue: handleCloudflareQueueBatch
 });
@@ -7808,6 +7944,73 @@ async function handleCloudflareQueueBatch(
       })
     );
     message.ack?.();
+  }
+}
+
+async function runCloudflareDurableObjectSmoke(
+  env: WorkerBindings
+): Promise<CloudflareDurableObjectSmokeResult> {
+  const namespace = env.AIPHABEE_RUN_COORDINATOR;
+
+  if (!isRuntimeDurableObjectNamespace(namespace)) {
+    return missingCloudflareDurableObjectResult("missing_durable_object_binding");
+  }
+
+  const smokeId = crypto.randomUUID();
+  const objectName = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/do/${smokeId}`;
+  const stateKey = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/do-state/${smokeId}`;
+  const valueHash = await hashRuntimeSmokeString(
+    `${CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND}:${smokeId}`
+  );
+  const payload: CloudflareDurableObjectSmokePayload = {
+    kind: CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND,
+    smoke_id: smokeId,
+    state_key: stateKey,
+    value_hash: valueHash
+  };
+
+  try {
+    const stub = namespace.get(namespace.idFromName(objectName));
+    const response = await stub.fetch(`https://aiphabee.internal${CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE}`, {
+      body: JSON.stringify(payload),
+      headers: {
+        "content-type": "application/json"
+      },
+      method: "POST"
+    });
+    const body = await response.json().catch(() => undefined);
+
+    if (response.status !== 200 || !isPlainRecord(body) || body.status !== "ok") {
+      return failedCloudflareDurableObjectResult({
+        detail: JSON.stringify({
+          failure_code: isPlainRecord(body) ? body.failure_code : undefined,
+          http_status: response.status,
+          status: isPlainRecord(body) ? body.status : undefined
+        }),
+        failureCode: "durable_object_state_route_failed",
+        objectName,
+        stateKey
+      });
+    }
+
+    return {
+      binding_name: "AIPHABEE_RUN_COORDINATOR",
+      object_name_hash: await hashRuntimeSmokeString(objectName),
+      operation_count:
+        typeof body.operation_count === "number" ? body.operation_count : 3,
+      response_hash: await hashRuntimeSmokeString(JSON.stringify(body)),
+      state_key_hash: await hashRuntimeSmokeString(stateKey),
+      status: "passed",
+      surface: "durable_object_state_smoke",
+      value_hash: valueHash
+    };
+  } catch (error) {
+    return failedCloudflareDurableObjectResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "durable_object_state_command_failed",
+      objectName,
+      stateKey
+    });
   }
 }
 
@@ -8004,6 +8207,17 @@ function missingQueueSmokeBindings(result: CloudflareQueueSmokeResult): string[]
   return ["AIPHABEE_EVENTS_QUEUE"];
 }
 
+function missingCloudflareDurableObjectResult(
+  failureCode: string
+): CloudflareDurableObjectSmokeResult {
+  return {
+    binding_name: "AIPHABEE_RUN_COORDINATOR",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "durable_object_state_smoke"
+  };
+}
+
 async function failedCloudflareQueueResult({
   detail,
   failureCode,
@@ -8020,6 +8234,28 @@ async function failedCloudflareQueueResult({
     failure_code: failureCode,
     status: "failed",
     surface: "queue_publish_consume_smoke"
+  };
+}
+
+async function failedCloudflareDurableObjectResult({
+  detail,
+  failureCode,
+  objectName,
+  stateKey
+}: {
+  detail: string;
+  failureCode: string;
+  objectName: string;
+  stateKey: string;
+}): Promise<CloudflareDurableObjectSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_RUN_COORDINATOR",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    object_name_hash: await hashRuntimeSmokeString(objectName),
+    state_key_hash: await hashRuntimeSmokeString(stateKey),
+    status: "failed",
+    surface: "durable_object_state_smoke"
   };
 }
 
@@ -8101,6 +8337,16 @@ function isRuntimeQueue(value: unknown): value is RuntimeQueue {
   return isPlainRecord(value) && typeof value.send === "function";
 }
 
+function isRuntimeDurableObjectNamespace(
+  value: unknown
+): value is RuntimeDurableObjectNamespace {
+  return (
+    isPlainRecord(value) &&
+    typeof value.get === "function" &&
+    typeof value.idFromName === "function"
+  );
+}
+
 function isCloudflareQueueSmokePayload(value: unknown): value is CloudflareQueueSmokePayload {
   return (
     isPlainRecord(value) &&
@@ -8110,6 +8356,20 @@ function isCloudflareQueueSmokePayload(value: unknown): value is CloudflareQueue
     typeof value.message_hash === "string" &&
     value.message_hash.startsWith("sha256:") &&
     typeof value.smoke_id === "string"
+  );
+}
+
+function isCloudflareDurableObjectSmokePayload(
+  value: unknown
+): value is CloudflareDurableObjectSmokePayload {
+  return (
+    isPlainRecord(value) &&
+    value.kind === CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND &&
+    typeof value.smoke_id === "string" &&
+    typeof value.state_key === "string" &&
+    value.state_key.startsWith(`${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/do-state/`) &&
+    typeof value.value_hash === "string" &&
+    value.value_hash.startsWith("sha256:")
   );
 }
 

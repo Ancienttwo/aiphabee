@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import app from "./index";
+import app, { AiphaBeeRunCoordinator } from "./index";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -44,6 +44,26 @@ interface CloudflareQueueSmokeBody {
     status: string;
     surface: string;
   };
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
+interface CloudflareDurableObjectSmokeBody {
+  durable_object_result: {
+    binding_name: string;
+    failure_code?: string;
+    object_name_hash?: string;
+    operation_count?: number;
+    response_hash?: string;
+    state_key_hash?: string;
+    status: string;
+    surface: string;
+    value_hash?: string;
+  };
+  missing_bindings: string[];
   request_id: string;
   response_hash: string;
   route: string;
@@ -6210,6 +6230,55 @@ function createQueueSmokeEnv() {
   };
 }
 
+function createDurableObjectSmokeEnv() {
+  const stub = {
+    fetch: vi.fn(async (_input: Request | string | URL, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body ?? "{}")) as { value_hash?: string };
+
+      return Response.json({
+        operation_count: 3,
+        state_key_hash:
+          "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        status: "ok",
+        value_hash: payload.value_hash
+      });
+    })
+  };
+  const namespace = {
+    get: vi.fn(() => stub),
+    idFromName: vi.fn((name: string) => ({ name }))
+  };
+
+  return {
+    env: {
+      AIPHABEE_RUN_COORDINATOR: namespace
+    },
+    namespace,
+    stub
+  };
+}
+
+function createDurableObjectState() {
+  const storageMap = new Map<string, unknown>();
+  const storage = {
+    delete: vi.fn(async (key: string) => {
+      storageMap.delete(key);
+    }),
+    get: vi.fn(async (key: string) => storageMap.get(key)),
+    put: vi.fn(async <T = unknown>(key: string, value: T) => {
+      storageMap.set(key, value);
+    })
+  };
+
+  return {
+    state: {
+      storage
+    },
+    storage,
+    storageMap
+  };
+}
+
 describe("worker runtime", () => {
   it("serves a no-store health response", async () => {
     const response = await app.request(
@@ -6432,6 +6501,125 @@ describe("worker runtime", () => {
       expect.stringContaining("\"status\":\"consumed\"")
     );
     expect(ack).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects the Durable Object smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/durable-objects/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-do-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-do-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/durable-objects/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports a missing Durable Object namespace binding", async () => {
+    const response = await app.request("/cloudflare/durable-objects/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-do-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareDurableObjectSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_RUN_COORDINATOR"]);
+    expect(body.durable_object_result).toMatchObject({
+      binding_name: "AIPHABEE_RUN_COORDINATOR",
+      failure_code: "missing_durable_object_binding",
+      status: "missing_binding",
+      surface: "durable_object_state_smoke"
+    });
+  });
+
+  it("runs a Durable Object state smoke through the namespace binding", async () => {
+    const { env, namespace, stub } = createDurableObjectSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/durable-objects/smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-do-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareDurableObjectSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-do-ok",
+      route: "POST /cloudflare/durable-objects/smoke",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.durable_object_result).toMatchObject({
+      binding_name: "AIPHABEE_RUN_COORDINATOR",
+      operation_count: 3,
+      status: "passed",
+      surface: "durable_object_state_smoke"
+    });
+    expect(namespace.idFromName).toHaveBeenCalledTimes(1);
+    expect(namespace.get).toHaveBeenCalledTimes(1);
+    expect(stub.fetch).toHaveBeenCalledWith(
+      "https://aiphabee.internal/cloudflare/durable-objects/smoke",
+      expect.objectContaining({
+        method: "POST"
+      })
+    );
+    expect(serialized).not.toContain("/runtime/do/");
+    expect(serialized).not.toContain("/runtime/do-state/");
+  });
+
+  it("writes, reads, and deletes Durable Object smoke state", async () => {
+    const { state, storage, storageMap } = createDurableObjectState();
+    const durableObject = new AiphaBeeRunCoordinator(state);
+    const response = await durableObject.fetch(
+      new Request("https://aiphabee.internal/cloudflare/durable-objects/smoke", {
+        body: JSON.stringify({
+          kind: "aiphabee.durable-object.smoke.v1",
+          smoke_id: "test-message",
+          state_key: "aiphabee-smoke/runtime/do-state/test-message",
+          value_hash:
+            "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }),
+        headers: {
+          "content-type": "application/json"
+        },
+        method: "POST"
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      operation_count: 3,
+      status: "ok",
+      value_hash:
+        "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    });
+    expect(storage.put).toHaveBeenCalledTimes(1);
+    expect(storage.get).toHaveBeenCalledTimes(1);
+    expect(storage.delete).toHaveBeenCalledWith(
+      "aiphabee-smoke/runtime/do-state/test-message"
+    );
+    expect(storageMap.size).toBe(0);
   });
 
   it("keeps the root route inside the scaffold-only boundary", async () => {
