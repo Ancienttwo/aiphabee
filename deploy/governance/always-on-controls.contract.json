@@ -1,0 +1,52 @@
+{
+  "version": "2026-06-22.always-on-controls-closeout.v0",
+  "status": "local_contract",
+  "tracker_section": "docs/AiphaBee_Sprint_Tracker_v1.0.md#A",
+  "frontend": false,
+  "live_data_access": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "p0_tool_count": 16,
+  "covered_tracker_items": [
+    "A1.standard_response_envelope_consistent_for_registered_p0_tools",
+    "A1.answer_claim_labels_fact_calculation_inference_unknown",
+    "A1.evidence_strength_uses_categorical_values",
+    "A2.default_deny_for_unconfirmed_rights",
+    "A2.web_rights_do_not_imply_mcp_redistribution",
+    "A3.tool_allowlist_blocks_arbitrary_sql_url_unregistered_tools",
+    "A4.eval_v1_covers_fact_calculation_citation_refusal",
+    "A4.golden_regression_hook_is_ci_resident",
+    "A5.single_run_budget_stop_policy"
+  ],
+  "linked_contracts": [
+    "deploy/tools/tool-schemas.contract.json",
+    "deploy/tools/p0-tool-catalog.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/mcp/endpoint.contract.json",
+    "deploy/agent/tool-enforcement.contract.json",
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/agent/budget-stop-policy.contract.json",
+    "deploy/observability/eval-v1.contract.json",
+    "tests/golden/tools/manifest.json",
+    ".github/workflows/ci.yml"
+  ],
+  "required_checks": [
+    "registered_p0_tool_outputs_have_standard_envelope",
+    "golden_tool_fixtures_have_provenance_and_usage",
+    "answer_contract_requires_claim_labels_and_evidence_strength",
+    "gateway_channels_default_deny",
+    "mcp_web_rights_do_not_imply_redistribution",
+    "tool_enforcement_registered_schema_bound_no_sql_no_url",
+    "eval_v1_metric_coverage_present",
+    "ci_runs_golden_regression_hook",
+    "budget_policy_has_dimensions_and_graceful_stop"
+  ],
+  "open_items_not_claimed": [
+    "partner_signed_rights_matrix_runtime_activation",
+    "live_post_generation_evidence_binding",
+    "multi_dimensional_live_rate_limiter",
+    "ai_gateway_live_logging_cost_limiter_cache_fallback",
+    "tool_call_audit_live_sink_completeness",
+    "unsourced_numeric_sampling_rate_live_measurement"
+  ]
+}

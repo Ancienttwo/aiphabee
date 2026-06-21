@@ -80,30 +80,30 @@ owner: "Planner / PM"
 
 ### A1 证据与血缘（Evidence & Lineage）— PRD §8.4 / §9.5 / §10.3 / DAT-09
 - [ ] 任一对外数值都能映射到 `source_record_id` + `data_version` + `methodology_version`（DAT-09）
-- [ ] 标准响应信封（`as_of` / `market_status` / `provenance` / `usage`）在所有工具一致（§9.5）
-- [ ] 答案分层「事实 / 计算 / 推断 / 未知」标签有效（AGT-06、§8.3）
-- [ ] 证据强度用「强/中/弱/无法判断」而非伪信心分数（§8.4）
+- [x] 标准响应信封（`as_of` / `market_status` / `provenance` / `usage`）在所有工具一致：`deploy/governance/always-on-controls.contract.json` + `npm run check:always-on-controls` 校验 16 个 P0 tool output schema 与 golden tool fixtures 均保留标准 envelope、provenance、usage（§9.5）
+- [x] 答案分层「事实 / 计算 / 推断 / 未知」标签有效：`check:always-on-controls` 复核 `deploy/agent/answer-evidence-contract.contract.json` 的 claim labels 与 validation rules（AGT-06、§8.3）
+- [x] 证据强度用「强/中/弱/无法判断」而非伪信心分数：`check:always-on-controls` 复核 `evidence_strength.allowed_values=[strong,medium,weak,unknown]` 且 `confidence_score_display=false`（§8.4）
 
 ### A2 数据权利运行时执行（Data Rights by Design）— PRD §14.1 / DAT-05
 - [ ] 字段级权利矩阵进入运行时，Gateway 按「渠道 × 套餐 × 字段 × 时间范围 × 导出」裁剪（DAT-05、§14.1）
-- [ ] **默认拒绝**：未明确授权的字段/渠道/用途一律不分发
-- [ ] Web 展示授权**不自动**扩展到 MCP 机器可读再分发
+- [x] **默认拒绝**：未明确授权的字段/渠道/用途一律不分发：`check:always-on-controls` 复核 Gateway `web/mcp/api/export` 全部 `default_deny`
+- [x] Web 展示授权**不自动**扩展到 MCP 机器可读再分发：`check:always-on-controls` 复核 MCP endpoint `web_rights_do_not_imply_mcp=true` 且 `mcp_api_redistribution_rights_confirmed=false`
 
 ### A3 安全与滥用防护（Security & Abuse）— PRD §13
 - [ ] 公告/网页/用户输入标记为「不可信数据」，与系统指令隔离（DOC-03、§13.2）
-- [ ] 工具 allowlist；禁止任意 SQL / 任意 URL / 未注册工具（AGT-04、§9.4）
+- [x] 工具 allowlist；禁止任意 SQL / 任意 URL / 未注册工具：`check:always-on-controls` 复核 Agent tool enforcement `registered_tools_only`、schema-bound、`no_arbitrary_sql`、`no_arbitrary_url` 与 `sql.query` / `http.fetch` denial probes（AGT-04、§9.4）
 - [ ] 多维限流（用户 × Workspace × 客户端 × 工具 × 数据集 × IP 风险）
 - [ ] 生成后 evidence-binding 校验，拦截无来源金融数字（AGT-05）
 
 ### A4 评估集与质量（Eval & Quality）— PRD §16.3 / §10.7
-- [ ] 评估集覆盖事实正确率 / 计算正确率 / 引用正确率 / 正确拒绝率（§16.3）
-- [ ] 黄金样本回归在 CI 中常驻，确定性计算与基准误差在阈值内（ANA-07、§10.7）
+- [x] 评估集覆盖事实正确率 / 计算正确率 / 引用正确率 / 正确拒绝率：`check:always-on-controls` 复核 `deploy/observability/eval-v1.contract.json` 的四类 eval metric（§16.3）
+- [x] 黄金样本回归在 CI 中常驻，确定性计算与基准误差在阈值内：`.github/workflows/ci.yml` 包含 Golden Regression Hook，`check:always-on-controls` 同时复核 16 个 tool golden fixtures；`npm run test:golden` 仍是 full check 一部分（ANA-07、§10.7）
 - [ ] 「无来源具体金融数字」抽样 < 0.1%（§16.5）
 
 ### A5 可观测性与成本（Observability & Cost）— PRD §11.3 / §12.3
 - [ ] 每 run/tool-call 审计字段齐全（用户、工具版本、数据版本、模型、Token、成本、延迟、输出哈希，§12.3）
 - [ ] AI Gateway 接管模型调用日志/成本/限流/缓存/fallback；模型变更被记录（§11.6）
-- [ ] 单 run 预算（步数/Token/行数/时间/费用）上限生效，到顶优雅停止（AGT-03）
+- [x] 单 run 预算（步数/Token/行数/时间/费用）上限生效，到顶优雅停止：`check:always-on-controls` 复核 `deploy/agent/budget-stop-policy.contract.json` 的 steps/credits/rows/tokens/wall_clock_ms 预算维度与 graceful-stop 语义（AGT-03）
 
 ---
 
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0ec | 完成 `always-on-controls-closeout`：新增 `deploy/governance/always-on-controls.contract.json`、`scripts/check-always-on-controls-contract.mjs`、`docs/governance/always-on-controls-closeout.md`、task contract/notes 与 `npm run check:always-on-controls`；checker 复核 16 个 P0 tool schema/golden fixtures 的 standard envelope/provenance/usage、Agent claim labels/evidence strength、Gateway default-deny、Web rights 不扩展到 MCP、tool allowlist/no SQL/no URL、eval-v1 四类指标、CI Golden Regression Hook 与单 run budget graceful stop；仅勾选 §A 中 9 个本地可证明项，live rights activation / live rate limiter / live AI Gateway logs / live audit sink / real model post-generation validation 仍未声明 |
 | 2026-06-22 | 1.0eb | 完成 `mvp-product-boundary-copy`：新增 `deploy/public-ops/mvp-product-boundary-copy.contract.json`、`scripts/check-mvp-product-boundary-copy-contract.mjs`、`docs/governance/mvp-product-boundary-copy.md`、task contract/notes 与 `npm run check:mvp-product-boundary-copy`；checker 扫描 public docs 与当前 `apps/web` 用户可见 copy，证明 MVP 文案使用 research/analysis/data-explanation 定位、非投资建议声明、无 buy/sell/hold recommendation，并明确不收集 risk tolerance 生成 suitability conclusions；Type 4 书面意见 / external compliance signoff / Gate 0 决议签字仍未到位，Sprint 0.1 更新为 1/8 |
 | 2026-06-22 | 1.0ea | 完成 `load-dr-incident-drill-release-gate-scaffold`：新增 Observability load/DR/incident drill release gate capability、`POST /observability/release-gates/load-dr-incident-drill/plan`、`GET /observability/runtime` `load_dr_incident_drill_release_gate` readiness、`deploy/observability/load-dr-incident-drill-release-gate.contract.json`、`scripts/check-load-dr-incident-drill-release-gate-contract.mjs`、`core.load_dr_incident_drill_release_gate` / `audit.load_dr_incident_drill_event` / `governance.load_dr_incident_drill_release_gate_contract` empty schema scaffold 与 `npm run check:load-dr-incident-drill-release-gate`；gate 证明 synthetic load-test artifact、peak/error-rate target、DR RTO/RPO、incident tabletop、failover/rollback plan、status/communications drill 均具备本地 no-write 验收形态；live load-test artifact / live DR restore evidence / live failover execution / live incident drill evidence / live status-page drill / ops-SRE-product signoff 未启用，Sprint 3.3 更新为 17/17 |
 | 2026-06-22 | 1.0dz | 完成 Claude web baseline acceptance sync：确认 `origin/feat/web-frontend` 已是 `main` 祖先，无需重复 merge；验收 `@aiphabee/web` TanStack Start + Vite + React + Cloudflare baseline、`apps/web` routes、mock API tests、Design System tokens/components/assets 接入，并通过 `npm run typecheck --workspace @aiphabee/web`、`npx vitest run apps/web/src/ds/render.test.tsx apps/web/src/lib/mock-api.test.ts`、`PATH="/opt/homebrew/bin:$PATH" npm run build --workspace @aiphabee/web` 与全量 `PATH="/opt/homebrew/bin:$PATH" npm run check`；Sprint 0.4 更新为 19/23，WCAG 2.1 AA / live frontend-backend wiring / staging deploy 仍未完成 |
