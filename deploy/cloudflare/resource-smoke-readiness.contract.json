@@ -1,0 +1,130 @@
+{
+  "version": "2026-06-22.cloudflare-resource-smoke-readiness.v0",
+  "status": "ready_missing_env",
+  "bindings_contract": "deploy/cloudflare/bindings.contract.json",
+  "live_smoke_script": "scripts/smoke-cloudflare-resources-live.mjs",
+  "readiness_check_script": "scripts/check-cloudflare-resource-live-readiness.mjs",
+  "readiness_command": "npm run check:cloudflare-resource-live-readiness",
+  "live_smoke_command": "npm run smoke:cloudflare-resources-live",
+  "api_base_url": "https://api.cloudflare.com/client/v4",
+  "required_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_WORKER_NAME",
+    "CLOUDFLARE_WORKFLOW_NAME",
+    "QUEUE_NAME",
+    "CLOUDFLARE_DURABLE_OBJECT_NAMESPACE_NAME",
+    "R2_BUCKET_NAME",
+    "KV_NAMESPACE_ID",
+    "CLOUDFLARE_D1_DATABASE_NAME",
+    "AI_GATEWAY_NAME",
+    "CLOUDFLARE_HYPERDRIVE_CONFIG_NAME"
+  ],
+  "read_only_endpoints": [
+    "GET /accounts/{account_id}/workers/scripts",
+    "GET /accounts/{account_id}/workers/scripts/{script_name}/schedules",
+    "GET /accounts/{account_id}/workflows/{workflow_name}",
+    "GET /accounts/{account_id}/queues",
+    "GET /accounts/{account_id}/workers/durable_objects/namespaces",
+    "GET /accounts/{account_id}/r2/buckets",
+    "GET /accounts/{account_id}/storage/kv/namespaces",
+    "GET /accounts/{account_id}/d1/database",
+    "GET /accounts/{account_id}/ai-gateway/gateways",
+    "GET /accounts/{account_id}/hyperdrive/configs"
+  ],
+  "expected_resources": [
+    {
+      "binding_name": "aiphabee-worker",
+      "type": "worker",
+      "match_env": "CLOUDFLARE_WORKER_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
+      "type": "workflow",
+      "match_env": "CLOUDFLARE_WORKFLOW_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_EVENTS_QUEUE",
+      "type": "queue",
+      "match_env": "QUEUE_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_MAINTENANCE_CRON",
+      "type": "cron",
+      "match_env": "CLOUDFLARE_WORKER_NAME",
+      "match_field": "script_name"
+    },
+    {
+      "binding_name": "AIPHABEE_RUN_COORDINATOR",
+      "type": "durable_object",
+      "match_env": "CLOUDFLARE_DURABLE_OBJECT_NAMESPACE_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_ARTIFACTS",
+      "type": "r2",
+      "match_env": "R2_BUCKET_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_CONFIG",
+      "type": "kv",
+      "match_env": "KV_NAMESPACE_ID",
+      "match_field": "id"
+    },
+    {
+      "binding_name": "AIPHABEE_EVAL_STORE",
+      "type": "d1",
+      "match_env": "CLOUDFLARE_D1_DATABASE_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_AI_GATEWAY",
+      "type": "ai_gateway",
+      "match_env": "AI_GATEWAY_NAME",
+      "match_field": "name"
+    },
+    {
+      "binding_name": "AIPHABEE_HYPERDRIVE",
+      "type": "hyperdrive",
+      "match_env": "CLOUDFLARE_HYPERDRIVE_CONFIG_NAME",
+      "match_field": "name"
+    }
+  ],
+  "required_live_output_fields": [
+    "status",
+    "resource_results",
+    "missing_resources",
+    "permission_errors",
+    "response_hash"
+  ],
+  "forbidden_live_output_fields": [
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "raw_response",
+    "account_id",
+    "resource_id",
+    "env_value"
+  ],
+  "tracker_items_remaining_unchecked": [
+    "Cloudflare resources provisioned + binding smoke tests",
+    "Hyperdrive-backed Postgres/Supabase live connection smoke",
+    "OTLP destination + persistent eval store live smoke",
+    "Provider secret stores provisioned + rotation/revocation smoke"
+  ],
+  "not_claimed": [
+    "cloudflare_resources_created",
+    "worker_binding_write_read_smoke",
+    "queue_publish_consume_smoke",
+    "r2_put_get_delete_smoke",
+    "kv_put_get_smoke",
+    "d1_eval_write_read_smoke",
+    "hyperdrive_select_1_smoke",
+    "provider_secret_rotation_smoke"
+  ]
+}
