@@ -56,7 +56,13 @@ describe("mcp endpoint default-deny scaffold", () => {
       third_party_token_passthrough: false
     });
     expect(getMcpRuntimeCapabilities()).toMatchObject({
+      cursor_pagination_ready: true,
+      max_row_limit_enforced: true,
+      pagination_limits_ready: true,
+      pagination_limits_version: "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0",
+      pagination_or_rights_bypass_blocked: true,
       tool_call_input_strict_validation: true,
+      time_range_limits_ready: true,
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
       tool_versioning_ready: true
@@ -453,7 +459,10 @@ describe("mcp endpoint default-deny scaffold", () => {
           tool.major_version === 1 &&
           tool.breaking_changes_require_new_major &&
           tool.deprecation.status === "active" &&
-          tool.deprecation.minimum_notice_days === 90
+          tool.deprecation.minimum_notice_days === 90 &&
+          tool.retrieval_limits.enforced_before_execution &&
+          tool.retrieval_limits.plan_or_rights_bypass_blocked &&
+          tool.retrieval_limits.row_limit.max_limit >= 1
       )
     ).toBe(true);
   });
@@ -522,6 +531,93 @@ describe("mcp endpoint default-deny scaffold", () => {
         structured_content_validation: "planned_no_live"
       }
     });
+  });
+
+  it("plans bounded retrieval for paginated tools/call requests", () => {
+    const plan = createMcpProtocolPlan({
+      grantedScopes: ["prices:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin: "https://app.aiphabee.com",
+      requestId: "req-mcp-tool-call-bounded",
+      toolArguments: {
+        cursor: "cursor_1",
+        from: "2026-01-02",
+        instrument_id: "HK:00700",
+        limit: 3,
+        to: "2026-01-07"
+      },
+      toolName: "get_price_history"
+    });
+
+    expect(plan.tool_call?.bounded_retrieval).toMatchObject({
+      cursor_pagination: {
+        cursor: "cursor_1",
+        cursor_bound_to_request: true,
+        cursor_opaque: true,
+        enabled: true,
+        parameter: "cursor"
+      },
+      enforcement_status: "validated",
+      max_rows_enforced: true,
+      pagination_limits_version: "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0",
+      plan_or_rights_bypass_blocked: true,
+      row_limit: {
+        default_limit: 3,
+        effective_limit: 3,
+        max_limit: 3,
+        requested_limit: 3,
+        requested_limit_parameter: "limit",
+        too_many_rows_error_code: "TOO_MANY_ROWS"
+      },
+      time_range_limit: {
+        from: "2026-01-02",
+        max_window_days: 366,
+        out_of_range_error_code: "OUT_OF_RANGE",
+        required: true,
+        time_range_enforced: true,
+        to: "2026-01-07",
+        window_days: 6
+      }
+    });
+  });
+
+  it("rejects tools/call pagination that exceeds the maximum row limit", () => {
+    expect(() =>
+      createMcpProtocolPlan({
+        grantedScopes: ["prices:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-tool-call-limit-exceeded",
+        toolArguments: {
+          from: "2026-01-02",
+          instrument_id: "HK:00700",
+          limit: 4,
+          to: "2026-01-07"
+        },
+        toolName: "get_price_history"
+      })
+    ).toThrow(McpRuntimeInputError);
+  });
+
+  it("rejects tools/call time ranges that exceed the maximum window", () => {
+    expect(() =>
+      createMcpProtocolPlan({
+        grantedScopes: ["prices:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-tool-call-window-exceeded",
+        toolArguments: {
+          from: "2024-01-01",
+          instrument_id: "HK:00700",
+          limit: 3,
+          to: "2026-01-07"
+        },
+        toolName: "get_price_history"
+      })
+    ).toThrow(McpRuntimeInputError);
   });
 
   it("rejects tools/call arguments that miss required schema fields", () => {

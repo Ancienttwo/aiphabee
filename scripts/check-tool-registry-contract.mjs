@@ -112,6 +112,14 @@ function validateContract(value) {
     errors.push("breaking_changes_require_new_major must be true");
   }
 
+  if (value.pagination_limits_ready !== true) {
+    errors.push("pagination_limits_ready must be true");
+  }
+
+  if (value.pagination_or_rights_bypass_blocked !== true) {
+    errors.push("pagination_or_rights_bypass_blocked must be true");
+  }
+
   if (value.standard_response_envelope !== true) {
     errors.push("standard_response_envelope must be true");
   }
@@ -131,6 +139,7 @@ function validateContract(value) {
     "channels",
     "lifecycle",
     "permissions",
+    "retrieval",
     "schema",
     "execution",
     "testing",
@@ -172,6 +181,30 @@ function validateContract(value) {
     "sunsetAt",
     "migrationGuide"
   ], "required_deprecation_fields"));
+  errors.push(...validateStringArray(value.required_retrieval_fields, [
+    "cursorPagination",
+    "rowLimit",
+    "timeRangeLimit",
+    "enforcedBeforeExecution",
+    "planOrRightsBypassBlocked"
+  ], "required_retrieval_fields"));
+  errors.push(...validateStringArray(value.required_row_limit_fields, [
+    "defaultLimit",
+    "maxLimit",
+    "parameter"
+  ], "required_row_limit_fields"));
+  errors.push(...validateStringArray(value.required_cursor_pagination_fields, [
+    "enabled",
+    "parameter",
+    "cursorOpaque",
+    "cursorBoundToRequest"
+  ], "required_cursor_pagination_fields"));
+  errors.push(...validateStringArray(value.required_time_range_limit_fields, [
+    "required",
+    "fromParameters",
+    "toParameters",
+    "maxWindowDays"
+  ], "required_time_range_limit_fields"));
 
   if (value.minimum_deprecation_notice_days < 90) {
     errors.push("minimum_deprecation_notice_days must be at least 90");

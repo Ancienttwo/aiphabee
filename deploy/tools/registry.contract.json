@@ -8,6 +8,8 @@
   "allow_arbitrary_url": false,
   "breaking_changes_require_new_major": true,
   "deprecation_policy_ready": true,
+  "pagination_limits_ready": true,
+  "pagination_or_rights_bypass_blocked": true,
   "standard_response_envelope": true,
   "rights_aware": true,
   "channels": ["web", "mcp", "api"],
@@ -41,6 +43,7 @@
     "channels",
     "lifecycle",
     "permissions",
+    "retrieval",
     "schema",
     "execution",
     "testing",
@@ -74,6 +77,26 @@
     "announcedAt",
     "sunsetAt",
     "migrationGuide"
+  ],
+  "required_retrieval_fields": [
+    "cursorPagination",
+    "rowLimit",
+    "timeRangeLimit",
+    "enforcedBeforeExecution",
+    "planOrRightsBypassBlocked"
+  ],
+  "required_row_limit_fields": ["defaultLimit", "maxLimit", "parameter"],
+  "required_cursor_pagination_fields": [
+    "enabled",
+    "parameter",
+    "cursorOpaque",
+    "cursorBoundToRequest"
+  ],
+  "required_time_range_limit_fields": [
+    "required",
+    "fromParameters",
+    "toParameters",
+    "maxWindowDays"
   ],
   "minimum_deprecation_notice_days": 90,
   "previous_major_support_window_days": 180,

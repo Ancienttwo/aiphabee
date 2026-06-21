@@ -1630,9 +1630,11 @@ interface McpRuntimeBody {
     api_key_rotation_ready: boolean;
     api_key_runtime_route: string;
     breaking_changes_require_new_major: boolean;
+    cursor_pagination_ready: boolean;
     default_deny: boolean;
     deprecation_policy_ready: boolean;
     live_tool_execution: boolean;
+    max_row_limit_enforced: boolean;
     mcp_api_redistribution_rights_confirmed: boolean;
     oauth_authorize_route: string;
     oauth_live: boolean;
@@ -1640,11 +1642,15 @@ interface McpRuntimeBody {
     oauth_revoke_route: string;
     oauth_token_route: string;
     origin_validation: boolean;
+    pagination_limits_ready: boolean;
+    pagination_limits_version: string;
+    pagination_or_rights_bypass_blocked: boolean;
     route: string;
     runtime_route: string;
     scopes_revocable: boolean;
     status: string;
     structured_content_output_schema_ready: boolean;
+    time_range_limits_ready: boolean;
     tool_call_input_strict_validation: boolean;
     tool_schema_validation_version: string;
     tool_versioning_ready: boolean;
@@ -5853,9 +5859,11 @@ describe("worker runtime", () => {
       api_key_runtime_route: "GET /mcp/api-keys/runtime",
       api_key_rotation_ready: true,
       breaking_changes_require_new_major: true,
+      cursor_pagination_ready: true,
       default_deny: true,
       deprecation_policy_ready: true,
       live_tool_execution: false,
+      max_row_limit_enforced: true,
       mcp_api_redistribution_rights_confirmed: false,
       oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_live: false,
@@ -5863,11 +5871,15 @@ describe("worker runtime", () => {
       oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
       oauth_token_route: "POST /mcp/oauth/token/plan",
       origin_validation: true,
+      pagination_limits_ready: true,
+      pagination_limits_version: "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0",
+      pagination_or_rights_bypass_blocked: true,
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
       scopes_revocable: true,
       status: "mcp_endpoint_default_deny_scaffold",
       structured_content_output_schema_ready: true,
+      time_range_limits_ready: true,
       tool_call_input_strict_validation: true,
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",

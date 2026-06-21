@@ -51,6 +51,27 @@ export interface RegisteredToolDefinition {
     requiredScope: string;
     rightsAware: true;
   };
+  retrieval: {
+    cursorPagination: {
+      cursorBoundToRequest: true;
+      cursorOpaque: true;
+      enabled: boolean;
+      parameter: null | string;
+    };
+    enforcedBeforeExecution: true;
+    planOrRightsBypassBlocked: true;
+    rowLimit: {
+      defaultLimit: number;
+      maxLimit: number;
+      parameter: null | string;
+    };
+    timeRangeLimit: {
+      fromParameters: readonly string[];
+      maxWindowDays: null | number;
+      required: boolean;
+      toParameters: readonly string[];
+    };
+  };
   schema: {
     inputSchemaId: string;
     outputSchemaId: string;
@@ -73,6 +94,11 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("resolve_security"),
     name: "resolve_security",
     permissions: createPermissions("security:read", ["security_master"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 10,
+      maxLimit: 10,
+      rowLimitParameter: null
+    }),
     schema: createSchema("resolve_security", [
       "AMBIGUOUS_SECURITY",
       "SYMBOL_AMBIGUOUS",
@@ -89,6 +115,11 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_security_profile"),
     name: "get_security_profile",
     permissions: createPermissions("security:read", ["security_master"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      rowLimitParameter: null
+    }),
     schema: createSchema("get_security_profile", [
       "DATA_NOT_LICENSED",
       "NOT_FOUND",
@@ -105,6 +136,13 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_market_calendar"),
     name: "get_market_calendar",
     permissions: createPermissions("calendar:read", ["market_calendar"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 366,
+      maxLimit: 366,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null
+    }),
     schema: createSchema("get_market_calendar", [
       "NOT_FOUND",
       "OUT_OF_RANGE",
@@ -121,6 +159,11 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_quote_snapshot"),
     name: "get_quote_snapshot",
     permissions: createPermissions("quotes:read", ["quote_snapshot"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      rowLimitParameter: null
+    }),
     schema: createSchema("get_quote_snapshot", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
@@ -139,6 +182,14 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_price_history"),
     name: "get_price_history",
     permissions: createPermissions("prices:read", ["price_history", "corporate_actions"]),
+    retrieval: createRetrievalLimits({
+      cursorParameter: "cursor",
+      defaultLimit: 3,
+      maxLimit: 3,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    }),
     schema: createSchema("get_price_history", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
@@ -157,6 +208,14 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_corporate_actions"),
     name: "get_corporate_actions",
     permissions: createPermissions("corporate_actions:read", ["corporate_actions"]),
+    retrieval: createRetrievalLimits({
+      cursorParameter: "cursor",
+      defaultLimit: 3,
+      maxLimit: 3,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    }),
     schema: createSchema("get_corporate_actions", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
@@ -174,6 +233,14 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_financial_facts"),
     name: "get_financial_facts",
     permissions: createPermissions("financials:read", ["financial_facts"]),
+    retrieval: createRetrievalLimits({
+      cursorParameter: "cursor",
+      defaultLimit: 4,
+      maxLimit: 4,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    }),
     schema: createSchema("get_financial_facts", [
       "DATA_NOT_LICENSED",
       "DATA_QUALITY_HOLD",
@@ -192,6 +259,11 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_data_lineage"),
     name: "get_data_lineage",
     permissions: createPermissions("lineage:read", ["lineage"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      rowLimitParameter: null
+    }),
     schema: createSchema("get_data_lineage", [
       "DATA_QUALITY_HOLD",
       "NOT_FOUND",
@@ -208,6 +280,14 @@ export const REGISTERED_TOOLS = [
     lifecycle: createLifecycle("get_entitlements"),
     name: "get_entitlements",
     permissions: createPermissions("entitlements:read", ["entitlements"]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 500,
+      maxWindowDays: 366,
+      rowLimitParameter: "requested_rows",
+      timeRangeFromParameters: ["time_range.from", "timeRange.from"],
+      timeRangeToParameters: ["time_range.to", "timeRange.to"]
+    }),
     schema: createSchema("get_entitlements", [
       "DATA_NOT_LICENSED",
       "OUT_OF_RANGE",
@@ -242,6 +322,8 @@ export function getToolRegistryCapabilities() {
     handler_ready_tool_count: REGISTERED_TOOLS.filter(
       (tool) => tool.execution.handlerReady
     ).length,
+    pagination_limits_ready: true,
+    pagination_or_rights_bypass_blocked: true,
     registry_status: "registry_scaffold" as ToolRegistryStatus,
     rights_aware: true,
     schema_ready: true,
@@ -326,6 +408,41 @@ function createPermissions(
     dataClasses,
     requiredScope,
     rightsAware: true
+  };
+}
+
+function createRetrievalLimits(input: {
+  cursorParameter?: null | string;
+  defaultLimit: number;
+  maxLimit: number;
+  maxWindowDays?: null | number;
+  requiresTimeRange?: boolean;
+  rowLimitParameter?: null | string;
+  timeRangeFromParameters?: readonly string[];
+  timeRangeToParameters?: readonly string[];
+}): RegisteredToolDefinition["retrieval"] {
+  const cursorParameter = input.cursorParameter ?? null;
+
+  return {
+    cursorPagination: {
+      cursorBoundToRequest: true,
+      cursorOpaque: true,
+      enabled: cursorParameter !== null,
+      parameter: cursorParameter
+    },
+    enforcedBeforeExecution: true,
+    planOrRightsBypassBlocked: true,
+    rowLimit: {
+      defaultLimit: input.defaultLimit,
+      maxLimit: input.maxLimit,
+      parameter: input.rowLimitParameter ?? null
+    },
+    timeRangeLimit: {
+      fromParameters: input.timeRangeFromParameters ?? ["from"],
+      maxWindowDays: input.maxWindowDays ?? null,
+      required: input.requiresTimeRange ?? false,
+      toParameters: input.timeRangeToParameters ?? ["to"]
+    }
   };
 }
 

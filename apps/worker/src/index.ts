@@ -4389,7 +4389,8 @@ function errorCodeForMcpRuntimeError(
   | "DATA_NOT_LICENSED"
   | "NOT_FOUND"
   | "OUT_OF_RANGE"
-  | "SCOPE_DENIED" {
+  | "SCOPE_DENIED"
+  | "TOO_MANY_ROWS" {
   switch (error.code) {
     case "API_KEY_ID_REQUIRED":
     case "AUTHORIZATION_CODE_REQUIRED":
@@ -4403,8 +4404,14 @@ function errorCodeForMcpRuntimeError(
     case "TOOL_ARGUMENT_REQUIRED":
     case "TOOL_ARGUMENT_UNSUPPORTED":
     case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
+    case "TOOL_CURSOR_INVALID":
+    case "TOOL_LIMIT_INVALID":
+    case "TOOL_TIME_RANGE_EXCEEDED":
+    case "TOOL_TIME_RANGE_INVALID":
     case "UNSUPPORTED_METHOD":
       return "OUT_OF_RANGE";
+    case "TOOL_LIMIT_EXCEEDED":
+      return "TOO_MANY_ROWS";
     case "API_KEY_NAME_REQUIRED":
     case "CLIENT_ID_REQUIRED":
     case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
@@ -4425,7 +4432,7 @@ function errorCodeForMcpRuntimeError(
   }
 }
 
-function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 {
+function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 | 422 {
   switch (error.code) {
     case "TOOL_NOT_REGISTERED":
       return 404;
@@ -4447,9 +4454,15 @@ function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 
     case "TOOL_ARGUMENT_REQUIRED":
     case "TOOL_ARGUMENT_UNSUPPORTED":
     case "TOOL_ARGUMENTS_OBJECT_REQUIRED":
+    case "TOOL_CURSOR_INVALID":
+    case "TOOL_LIMIT_INVALID":
     case "UNSUPPORTED_METHOD":
     case "TOOL_NAME_REQUIRED":
       return 400;
+    case "TOOL_LIMIT_EXCEEDED":
+    case "TOOL_TIME_RANGE_EXCEEDED":
+    case "TOOL_TIME_RANGE_INVALID":
+      return 422;
     case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
     case "ORIGIN_NOT_ALLOWED":
     case "ORIGIN_REQUIRED":

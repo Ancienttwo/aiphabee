@@ -14,6 +14,8 @@ export const MCP_API_KEY_VERSION =
   "2026-06-21.phase2.mcp-api-key-scaffold.v0";
 export const MCP_TOOL_SCHEMA_VALIDATION_VERSION =
   "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0";
+export const MCP_PAGINATION_LIMITS_VERSION =
+  "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0";
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -123,8 +125,13 @@ export type McpRuntimeInputErrorCode =
   | "TOOL_ARGUMENT_REQUIRED"
   | "TOOL_ARGUMENT_UNSUPPORTED"
   | "TOOL_ARGUMENTS_OBJECT_REQUIRED"
+  | "TOOL_CURSOR_INVALID"
+  | "TOOL_LIMIT_EXCEEDED"
+  | "TOOL_LIMIT_INVALID"
   | "TOOL_NOT_REGISTERED"
   | "TOOL_SCOPE_REQUIRED"
+  | "TOOL_TIME_RANGE_EXCEEDED"
+  | "TOOL_TIME_RANGE_INVALID"
   | "UNSUPPORTED_SCOPE"
   | "UNSUPPORTED_METHOD";
 
@@ -228,7 +235,30 @@ export interface McpToolDescriptor {
   output_schema_id: string;
   public_version: string;
   required_scope: string;
+  retrieval_limits: McpToolRetrievalLimitsDescriptor;
   version: string;
+}
+
+export interface McpToolRetrievalLimitsDescriptor {
+  cursor_pagination: {
+    cursor_bound_to_request: true;
+    cursor_opaque: true;
+    enabled: boolean;
+    parameter: null | string;
+  };
+  enforced_before_execution: true;
+  plan_or_rights_bypass_blocked: true;
+  row_limit: {
+    default_limit: number;
+    max_limit: number;
+    parameter: null | string;
+  };
+  time_range_limit: {
+    from_parameters: readonly string[];
+    max_window_days: null | number;
+    required: boolean;
+    to_parameters: readonly string[];
+  };
 }
 
 export interface McpToolInputValidationPlan {
@@ -247,6 +277,39 @@ export interface McpToolStructuredContentValidationPlan {
   raw_text_only_response_allowed: false;
   structured_content_matches_output_schema: "planned_no_live";
   structured_content_required: true;
+}
+
+export interface McpToolBoundedRetrievalPlan {
+  cursor_pagination: {
+    cursor: null | string;
+    cursor_bound_to_request: true;
+    cursor_opaque: true;
+    enabled: boolean;
+    parameter: null | string;
+  };
+  enforcement_status: "validated";
+  max_rows_enforced: true;
+  pagination_limits_version: typeof MCP_PAGINATION_LIMITS_VERSION;
+  plan_or_rights_bypass_blocked: true;
+  row_limit: {
+    default_limit: number;
+    effective_limit: number;
+    max_limit: number;
+    requested_limit: number;
+    requested_limit_parameter: null | string;
+    too_many_rows_error_code: "TOO_MANY_ROWS";
+  };
+  time_range_limit: {
+    from: null | string;
+    from_parameters: readonly string[];
+    max_window_days: null | number;
+    out_of_range_error_code: "OUT_OF_RANGE";
+    required: boolean;
+    time_range_enforced: true;
+    to: null | string;
+    to_parameters: readonly string[];
+    window_days: null | number;
+  };
 }
 
 export interface McpOAuthScopeGrant {
@@ -573,14 +636,7 @@ export interface McpProtocolPlan {
   }>;
   request_id: string;
   response_shape: {
-    standard_error_codes: readonly [
-      "AUTH_REQUIRED",
-      "DATA_NOT_LICENSED",
-      "SCOPE_DENIED",
-      "RATE_LIMITED",
-      "BUDGET_EXCEEDED",
-      "INTERNAL_ERROR"
-    ];
+    standard_error_codes: typeof MCP_STANDARD_ERROR_CODES;
     standard_response_envelope: true;
     structured_content_required: true;
   };
@@ -592,6 +648,7 @@ export interface McpProtocolPlan {
   };
   status: McpRuntimePlanStatus;
   tool_call?: {
+    bounded_retrieval: McpToolBoundedRetrievalPlan;
     input_schema_id: string;
     input_validation: McpToolInputValidationPlan;
     live_execution: false;
@@ -621,6 +678,8 @@ const MCP_STANDARD_ERROR_CODES = [
   "AUTH_REQUIRED",
   "DATA_NOT_LICENSED",
   "SCOPE_DENIED",
+  "OUT_OF_RANGE",
+  "TOO_MANY_ROWS",
   "RATE_LIMITED",
   "BUDGET_EXCEEDED",
   "INTERNAL_ERROR"
@@ -755,6 +814,11 @@ export function getMcpRuntimeCapabilities() {
     origin_validation: true,
     package: "@aiphabee/mcp-runtime" as const,
     pkce_methods: ["S256"] as const,
+    cursor_pagination_ready: true,
+    max_row_limit_enforced: true,
+    pagination_limits_ready: true,
+    pagination_limits_version: MCP_PAGINATION_LIMITS_VERSION,
+    pagination_or_rights_bypass_blocked: true,
     route: "POST /mcp" as const,
     runtime_route: "GET /mcp/runtime" as const,
     scopes_revocable: true,
@@ -762,6 +826,7 @@ export function getMcpRuntimeCapabilities() {
     standard_error_codes: MCP_STANDARD_ERROR_CODES,
     status: "mcp_endpoint_default_deny_scaffold" as const,
     tool_call_input_strict_validation: true,
+    time_range_limits_ready: true,
     tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
     tool_versioning_ready: true,
     supported_oauth_scopes: MCP_OAUTH_SCOPE_DEFINITIONS.map(
@@ -1365,10 +1430,12 @@ function createToolCallPlan(
   }
 
   const inputValidation = createToolInputValidationPlan(tool, input.toolArguments);
+  const boundedRetrieval = createToolBoundedRetrievalPlan(tool, input.toolArguments);
 
   return {
     ...basePlan,
     tool_call: {
+      bounded_retrieval: boundedRetrieval,
       input_schema_id: tool.schema.inputSchemaId,
       input_validation: inputValidation,
       live_execution: false,
@@ -1411,8 +1478,35 @@ function createToolDescriptors(
     output_schema_id: tool.schema.outputSchemaId,
     public_version: tool.lifecycle.publicVersion,
     required_scope: tool.permissions.requiredScope,
+    retrieval_limits: createToolRetrievalLimitsDescriptor(tool),
     version: tool.version
   }));
+}
+
+function createToolRetrievalLimitsDescriptor(
+  tool: RegisteredToolDefinition
+): McpToolRetrievalLimitsDescriptor {
+  return {
+    cursor_pagination: {
+      cursor_bound_to_request: tool.retrieval.cursorPagination.cursorBoundToRequest,
+      cursor_opaque: tool.retrieval.cursorPagination.cursorOpaque,
+      enabled: tool.retrieval.cursorPagination.enabled,
+      parameter: tool.retrieval.cursorPagination.parameter
+    },
+    enforced_before_execution: tool.retrieval.enforcedBeforeExecution,
+    plan_or_rights_bypass_blocked: tool.retrieval.planOrRightsBypassBlocked,
+    row_limit: {
+      default_limit: tool.retrieval.rowLimit.defaultLimit,
+      max_limit: tool.retrieval.rowLimit.maxLimit,
+      parameter: tool.retrieval.rowLimit.parameter
+    },
+    time_range_limit: {
+      from_parameters: tool.retrieval.timeRangeLimit.fromParameters,
+      max_window_days: tool.retrieval.timeRangeLimit.maxWindowDays,
+      required: tool.retrieval.timeRangeLimit.required,
+      to_parameters: tool.retrieval.timeRangeLimit.toParameters
+    }
+  };
 }
 
 function createToolInputValidationPlan(
@@ -1472,6 +1566,230 @@ function createToolInputValidationPlan(
     schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
     unsupported_arguments: []
   };
+}
+
+function createToolBoundedRetrievalPlan(
+  tool: RegisteredToolDefinition,
+  rawArguments: unknown
+): McpToolBoundedRetrievalPlan {
+  const args = isPlainRecord(rawArguments) ? rawArguments : {};
+  const requestedLimit = getRequestedLimit(tool, args);
+  const cursor = getRequestedCursor(tool, args);
+  const timeRange = getRequestedTimeRange(tool, args);
+
+  return {
+    cursor_pagination: {
+      cursor,
+      cursor_bound_to_request: tool.retrieval.cursorPagination.cursorBoundToRequest,
+      cursor_opaque: tool.retrieval.cursorPagination.cursorOpaque,
+      enabled: tool.retrieval.cursorPagination.enabled,
+      parameter: tool.retrieval.cursorPagination.parameter
+    },
+    enforcement_status: "validated",
+    max_rows_enforced: true,
+    pagination_limits_version: MCP_PAGINATION_LIMITS_VERSION,
+    plan_or_rights_bypass_blocked: tool.retrieval.planOrRightsBypassBlocked,
+    row_limit: {
+      default_limit: tool.retrieval.rowLimit.defaultLimit,
+      effective_limit: requestedLimit,
+      max_limit: tool.retrieval.rowLimit.maxLimit,
+      requested_limit: requestedLimit,
+      requested_limit_parameter: tool.retrieval.rowLimit.parameter,
+      too_many_rows_error_code: "TOO_MANY_ROWS"
+    },
+    time_range_limit: {
+      from: timeRange.from,
+      from_parameters: tool.retrieval.timeRangeLimit.fromParameters,
+      max_window_days: tool.retrieval.timeRangeLimit.maxWindowDays,
+      out_of_range_error_code: "OUT_OF_RANGE",
+      required: tool.retrieval.timeRangeLimit.required,
+      time_range_enforced: true,
+      to: timeRange.to,
+      to_parameters: tool.retrieval.timeRangeLimit.toParameters,
+      window_days: timeRange.windowDays
+    }
+  };
+}
+
+function getRequestedLimit(
+  tool: RegisteredToolDefinition,
+  args: Record<string, unknown>
+): number {
+  const parameter = tool.retrieval.rowLimit.parameter;
+  if (parameter === null) {
+    return tool.retrieval.rowLimit.defaultLimit;
+  }
+
+  const rawLimit = getFirstArgumentValue(args, [parameter, toCamelCase(parameter)]);
+  if (rawLimit === undefined) {
+    return tool.retrieval.rowLimit.defaultLimit;
+  }
+
+  if (typeof rawLimit !== "number" || !Number.isInteger(rawLimit) || rawLimit < 1) {
+    throw new McpRuntimeInputError(
+      "TOOL_LIMIT_INVALID",
+      "tools/call limit must be a positive integer",
+      {
+        limitParameter: parameter,
+        maxLimit: tool.retrieval.rowLimit.maxLimit,
+        toolName: tool.name
+      }
+    );
+  }
+
+  if (rawLimit > tool.retrieval.rowLimit.maxLimit) {
+    throw new McpRuntimeInputError(
+      "TOOL_LIMIT_EXCEEDED",
+      "tools/call requested rows exceed the tool maximum row limit",
+      {
+        limitParameter: parameter,
+        maxLimit: tool.retrieval.rowLimit.maxLimit,
+        requestedLimit: rawLimit,
+        toolName: tool.name
+      }
+    );
+  }
+
+  return rawLimit;
+}
+
+function getRequestedCursor(
+  tool: RegisteredToolDefinition,
+  args: Record<string, unknown>
+): null | string {
+  const parameter = tool.retrieval.cursorPagination.parameter;
+  if (parameter === null) {
+    return null;
+  }
+
+  const rawCursor = getArgumentValue(args, parameter);
+  if (rawCursor === undefined) {
+    return null;
+  }
+
+  if (typeof rawCursor !== "string" || rawCursor.trim().length === 0) {
+    throw new McpRuntimeInputError(
+      "TOOL_CURSOR_INVALID",
+      "tools/call cursor must be an opaque non-empty string",
+      {
+        cursorParameter: parameter,
+        toolName: tool.name
+      }
+    );
+  }
+
+  return rawCursor;
+}
+
+function getRequestedTimeRange(
+  tool: RegisteredToolDefinition,
+  args: Record<string, unknown>
+): { from: null | string; to: null | string; windowDays: null | number } {
+  const timeRangeLimit = tool.retrieval.timeRangeLimit;
+  const rawFrom = getFirstArgumentValue(args, timeRangeLimit.fromParameters);
+  const rawTo = getFirstArgumentValue(args, timeRangeLimit.toParameters);
+  const nestedRangeProvided = [...timeRangeLimit.fromParameters, ...timeRangeLimit.toParameters]
+    .filter((parameter) => parameter.includes("."))
+    .some((parameter) => getArgumentValue(args, parameter.split(".")[0] ?? "") !== undefined);
+
+  if (rawFrom === undefined && rawTo === undefined && !timeRangeLimit.required) {
+    return {
+      from: null,
+      to: null,
+      windowDays: null
+    };
+  }
+
+  if (typeof rawFrom !== "string" || typeof rawTo !== "string") {
+    throw new McpRuntimeInputError(
+      "TOOL_TIME_RANGE_INVALID",
+      "tools/call time range requires ISO date from/to strings",
+      {
+        fromParameters: timeRangeLimit.fromParameters,
+        nestedRangeProvided,
+        required: timeRangeLimit.required,
+        toParameters: timeRangeLimit.toParameters,
+        toolName: tool.name
+      }
+    );
+  }
+
+  if (!isIsoDate(rawFrom) || !isIsoDate(rawTo)) {
+    throw new McpRuntimeInputError(
+      "TOOL_TIME_RANGE_INVALID",
+      "tools/call time range must use YYYY-MM-DD dates",
+      {
+        from: rawFrom,
+        to: rawTo,
+        toolName: tool.name
+      }
+    );
+  }
+
+  const fromMs = Date.parse(`${rawFrom}T00:00:00Z`);
+  const toMs = Date.parse(`${rawTo}T00:00:00Z`);
+  if (fromMs > toMs) {
+    throw new McpRuntimeInputError(
+      "TOOL_TIME_RANGE_INVALID",
+      "tools/call time range must have from <= to",
+      {
+        from: rawFrom,
+        to: rawTo,
+        toolName: tool.name
+      }
+    );
+  }
+
+  const windowDays = Math.floor((toMs - fromMs) / 86_400_000) + 1;
+  const maxWindowDays = timeRangeLimit.maxWindowDays;
+  if (maxWindowDays !== null && windowDays > maxWindowDays) {
+    throw new McpRuntimeInputError(
+      "TOOL_TIME_RANGE_EXCEEDED",
+      "tools/call time range exceeds the maximum window",
+      {
+        from: rawFrom,
+        maxWindowDays,
+        to: rawTo,
+        toolName: tool.name,
+        windowDays
+      }
+    );
+  }
+
+  return {
+    from: rawFrom,
+    to: rawTo,
+    windowDays
+  };
+}
+
+function getFirstArgumentValue(
+  args: Record<string, unknown>,
+  parameters: readonly string[]
+): unknown {
+  for (const parameter of parameters) {
+    const value = getArgumentValue(args, parameter);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function getArgumentValue(args: Record<string, unknown>, parameter: string): unknown {
+  const parts = parameter.split(".");
+  let current: unknown = args;
+
+  for (const part of parts) {
+    if (!isPlainRecord(current)) {
+      return undefined;
+    }
+
+    current = current[part];
+  }
+
+  return current;
 }
 
 function createMcpApiKeyBasePlan(input: {
@@ -1719,6 +2037,14 @@ function normalizeText(value: string | undefined): string | undefined {
   return normalized === undefined || normalized.length === 0 ? undefined : normalized;
 }
 
+function toCamelCase(value: string): string {
+  return value.replace(/_([a-z])/gu, (_, character: string) => character.toUpperCase());
+}
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }

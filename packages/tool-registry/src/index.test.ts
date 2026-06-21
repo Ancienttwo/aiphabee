@@ -18,6 +18,8 @@ describe("tool registry scaffold", () => {
     expect(capabilities.versioning_ready).toBe(true);
     expect(capabilities.deprecation_policy_ready).toBe(true);
     expect(capabilities.breaking_changes_require_new_major).toBe(true);
+    expect(capabilities.pagination_limits_ready).toBe(true);
+    expect(capabilities.pagination_or_rights_bypass_blocked).toBe(true);
     expect(capabilities.handler_ready_tool_count).toBe(9);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
@@ -146,6 +148,34 @@ describe("tool registry scaffold", () => {
           tool.lifecycle.compatibility.oldMajorAvailableDuringNotice
       )
     ).toBe(true);
+    expect(
+      capabilities.tools.every(
+        (tool) =>
+          tool.retrieval.enforcedBeforeExecution &&
+          tool.retrieval.planOrRightsBypassBlocked &&
+          tool.retrieval.rowLimit.defaultLimit <= tool.retrieval.rowLimit.maxLimit &&
+          tool.retrieval.rowLimit.maxLimit >= 1
+      )
+    ).toBe(true);
+    expect(capabilities.tools.find((tool) => tool.name === "get_price_history")).toMatchObject({
+      retrieval: {
+        cursorPagination: {
+          cursorBoundToRequest: true,
+          cursorOpaque: true,
+          enabled: true,
+          parameter: "cursor"
+        },
+        rowLimit: {
+          defaultLimit: 3,
+          maxLimit: 3,
+          parameter: "limit"
+        },
+        timeRangeLimit: {
+          maxWindowDays: 366,
+          required: true
+        }
+      }
+    });
   });
 
   it("keeps registry names stable for agent and tool runtime policy", () => {

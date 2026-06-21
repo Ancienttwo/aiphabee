@@ -1,0 +1,81 @@
+{
+  "version": "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "tool_registry_package": "@aiphabee/tool-registry",
+  "route": "POST /mcp",
+  "runtime_route": "GET /mcp/runtime",
+  "schema_source_contract": "deploy/tools/tool-schemas.contract.json",
+  "registry_contract": "deploy/tools/registry.contract.json",
+  "frontend": false,
+  "live_tool_execution": false,
+  "cursor_pagination_ready": true,
+  "max_row_limit_enforced": true,
+  "time_range_limits_ready": true,
+  "pagination_limits_ready": true,
+  "pagination_or_rights_bypass_blocked": true,
+  "covered_sprint_2_3_items": [
+    "MCP-06",
+    "cursor_pagination",
+    "max_rows",
+    "time_range_limits",
+    "pagination_cannot_bypass_rights"
+  ],
+  "required_tool_call_fields": [
+    "bounded_retrieval",
+    "input_validation",
+    "output_validation",
+    "schema_validation"
+  ],
+  "required_bounded_retrieval_fields": [
+    "cursor_pagination",
+    "row_limit",
+    "time_range_limit",
+    "max_rows_enforced",
+    "plan_or_rights_bypass_blocked",
+    "pagination_limits_version"
+  ],
+  "required_runtime_capability_fields": [
+    "cursor_pagination_ready",
+    "max_row_limit_enforced",
+    "time_range_limits_ready",
+    "pagination_limits_ready",
+    "pagination_limits_version",
+    "pagination_or_rights_bypass_blocked"
+  ],
+  "standard_limit_error_codes": ["OUT_OF_RANGE", "TOO_MANY_ROWS"],
+  "paginated_tools": [
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts"
+  ],
+  "time_range_tools": [
+    "get_market_calendar",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_entitlements"
+  ],
+  "row_limited_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_data_lineage",
+    "get_entitlements"
+  ],
+  "validated_tools": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_data_lineage",
+    "get_entitlements"
+  ]
+}
