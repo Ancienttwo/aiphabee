@@ -29,6 +29,13 @@ export const MCP_USAGE_ENVELOPE_VERSION =
   "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0";
 export const MCP_STANDARD_ERROR_CODES_VERSION =
   "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0";
+export const MCP_TOOL_LIMITER_VERSION =
+  "2026-06-21.phase2.mcp-tool-limiter-scaffold.v0";
+export const MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD = 8;
+export const MCP_TOOL_LIMITER_STANDARD_MAX_PARALLEL = 8;
+export const MCP_TOOL_LIMITER_HIGH_COST_MAX_PARALLEL = 2;
+export const MCP_TOOL_LIMITER_RATE_LIMIT_PER_MINUTE = 60;
+export const MCP_TOOL_LIMITER_BURST_LIMIT = 10;
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -393,6 +400,50 @@ export interface McpUsageEnvelopePlan {
   usage_envelope_version: typeof MCP_USAGE_ENVELOPE_VERSION;
 }
 
+export interface McpToolLimitsPlan {
+  budget: {
+    allowed_after_estimate: boolean;
+    budget_exceeded: boolean;
+    budget_exceeded_error_code: "BUDGET_EXCEEDED";
+    estimated_credits: number;
+    failure_refund_required: true;
+    live_debit: false;
+    pre_debit_required: true;
+    remaining_credits_after_estimate: number;
+  };
+  concurrency: {
+    high_cost_pool_isolated: true;
+    live_inflight_reads: false;
+    max_parallel: number;
+    pool: "mcp_high_cost" | "mcp_standard";
+  };
+  durable_queue: {
+    enqueue_status: "not_required" | "planned_no_live";
+    idempotency_key: string;
+    live_queue_writes: false;
+    queue_name: null | "mcp-high-cost";
+    required: boolean;
+  };
+  limiter_version: typeof MCP_TOOL_LIMITER_VERSION;
+  ordinary_pool_protection: true;
+  rate_limit: {
+    burst_limit: typeof MCP_TOOL_LIMITER_BURST_LIMIT;
+    live_window_reads: false;
+    per_minute_limit: typeof MCP_TOOL_LIMITER_RATE_LIMIT_PER_MINUTE;
+    rate_limited: false;
+    rate_limited_error_code: "RATE_LIMITED";
+    retry_after_seconds: null;
+    status: "planned_no_live";
+  };
+  tool_name: RegisteredToolName;
+  weight: {
+    credit_weight: number;
+    high_cost: boolean;
+    high_cost_threshold: typeof MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD;
+    row_estimate: number;
+  };
+}
+
 export interface McpOAuthScopeGrant {
   data_classes: readonly string[];
   description: string;
@@ -744,6 +795,7 @@ export interface McpProtocolPlan {
     schema_validation: "validated";
     structured_content_validation: "planned_no_live";
     usage_envelope: McpUsageEnvelopePlan;
+    tool_limits: McpToolLimitsPlan;
   };
   tools_list?: {
     blocked_tool_count: number;
@@ -1059,6 +1111,29 @@ export function getMcpRuntimeCapabilities() {
     standard_error_definitions: MCP_STANDARD_ERROR_DEFINITIONS,
     status: "mcp_endpoint_default_deny_scaffold" as const,
     tool_call_input_strict_validation: true,
+    budget_limit_plan_ready: true,
+    concurrency_limit_plan_ready: true,
+    mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"] as const,
+    mcp_limiter_live: false,
+    mcp_tool_limiter_pools: [
+      {
+        high_cost: false,
+        max_parallel: MCP_TOOL_LIMITER_STANDARD_MAX_PARALLEL,
+        name: "mcp_standard",
+        ordinary_pool_protection: true
+      },
+      {
+        high_cost: true,
+        max_parallel: MCP_TOOL_LIMITER_HIGH_COST_MAX_PARALLEL,
+        name: "mcp_high_cost",
+        ordinary_pool_protection: true,
+        queue_name: "mcp-high-cost"
+      }
+    ] as const,
+    mcp_tool_limiter_ready: true,
+    mcp_tool_limiter_version: MCP_TOOL_LIMITER_VERSION,
+    ordinary_pool_protection: true,
+    rate_limit_plan_ready: true,
     time_range_limits_ready: true,
     tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
     tool_versioning_ready: true,
@@ -1713,6 +1788,7 @@ function createToolCallPlan(
   const inputValidation = createToolInputValidationPlan(tool, input.toolArguments);
   const boundedRetrieval = createToolBoundedRetrievalPlan(tool, input.toolArguments);
   const usageEnvelope = createMcpToolUsageEnvelope(tool, input, boundedRetrieval);
+  const toolLimits = createMcpToolLimitsPlan(tool, input, boundedRetrieval, usageEnvelope);
 
   return {
     ...basePlan,
@@ -1732,6 +1808,7 @@ function createToolCallPlan(
       required_scope: tool.permissions.requiredScope,
       schema_validation: "validated",
       structured_content_validation: "planned_no_live",
+      tool_limits: toolLimits,
       usage_envelope: usageEnvelope
     },
     usage: createMcpUsageSummary(
@@ -1739,6 +1816,64 @@ function createToolCallPlan(
       usageEnvelope.estimated_credits,
       boundedRetrieval.row_limit.effective_limit
     )
+  };
+}
+
+function createMcpToolLimitsPlan(
+  tool: RegisteredToolDefinition,
+  input: CreateMcpProtocolPlanInput,
+  boundedRetrieval: McpToolBoundedRetrievalPlan,
+  usageEnvelope: McpUsageEnvelopePlan
+): McpToolLimitsPlan {
+  const estimatedCredits = usageEnvelope.estimated_credits;
+  const highCost = estimatedCredits >= MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD;
+  const pool = highCost ? "mcp_high_cost" : "mcp_standard";
+  const maxParallel = highCost
+    ? MCP_TOOL_LIMITER_HIGH_COST_MAX_PARALLEL
+    : MCP_TOOL_LIMITER_STANDARD_MAX_PARALLEL;
+
+  return {
+    budget: {
+      allowed_after_estimate: usageEnvelope.credits_remaining_after_estimate >= 0,
+      budget_exceeded: usageEnvelope.credits_remaining_after_estimate < 0,
+      budget_exceeded_error_code: "BUDGET_EXCEEDED",
+      estimated_credits: estimatedCredits,
+      failure_refund_required: true,
+      live_debit: false,
+      pre_debit_required: true,
+      remaining_credits_after_estimate: usageEnvelope.credits_remaining_after_estimate
+    },
+    concurrency: {
+      high_cost_pool_isolated: true,
+      live_inflight_reads: false,
+      max_parallel: maxParallel,
+      pool
+    },
+    durable_queue: {
+      enqueue_status: highCost ? "planned_no_live" : "not_required",
+      idempotency_key: `mcp_tool_limit_${input.requestId}_${tool.name}`,
+      live_queue_writes: false,
+      queue_name: highCost ? "mcp-high-cost" : null,
+      required: highCost
+    },
+    limiter_version: MCP_TOOL_LIMITER_VERSION,
+    ordinary_pool_protection: true,
+    rate_limit: {
+      burst_limit: MCP_TOOL_LIMITER_BURST_LIMIT,
+      live_window_reads: false,
+      per_minute_limit: MCP_TOOL_LIMITER_RATE_LIMIT_PER_MINUTE,
+      rate_limited: false,
+      rate_limited_error_code: "RATE_LIMITED",
+      retry_after_seconds: null,
+      status: "planned_no_live"
+    },
+    tool_name: tool.name,
+    weight: {
+      credit_weight: estimatedCredits,
+      high_cost: highCost,
+      high_cost_threshold: MCP_TOOL_LIMITER_HIGH_COST_THRESHOLD,
+      row_estimate: boundedRetrieval.row_limit.effective_limit
+    }
   };
 }
 

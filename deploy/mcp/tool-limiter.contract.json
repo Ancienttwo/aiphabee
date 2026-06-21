@@ -1,0 +1,104 @@
+{
+  "version": "2026-06-21.phase2.mcp-tool-limiter-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp",
+  "frontend": false,
+  "live_tool_execution": false,
+  "live_rate_limiter": false,
+  "live_concurrency_limiter": false,
+  "live_budget_debit": false,
+  "durable_queue_writes": false,
+  "ordinary_pool_protection": true,
+  "high_cost_threshold": 8,
+  "covered_sprint_2_3_items": [
+    "MCP-11",
+    "rate_limit_plan",
+    "concurrency_limit_plan",
+    "budget_limit_plan",
+    "ordinary_pool_protection"
+  ],
+  "required_runtime_capability_fields": [
+    "mcp_tool_limiter_ready",
+    "mcp_tool_limiter_version",
+    "rate_limit_plan_ready",
+    "concurrency_limit_plan_ready",
+    "budget_limit_plan_ready",
+    "mcp_limiter_live",
+    "ordinary_pool_protection",
+    "mcp_limiter_error_codes",
+    "mcp_tool_limiter_pools"
+  ],
+  "required_tool_limit_fields": [
+    "limiter_version",
+    "tool_name",
+    "ordinary_pool_protection",
+    "weight",
+    "rate_limit",
+    "concurrency",
+    "budget",
+    "durable_queue"
+  ],
+  "required_rate_limit_fields": [
+    "per_minute_limit",
+    "burst_limit",
+    "live_window_reads",
+    "rate_limited",
+    "rate_limited_error_code",
+    "retry_after_seconds",
+    "status"
+  ],
+  "required_concurrency_fields": [
+    "pool",
+    "max_parallel",
+    "high_cost_pool_isolated",
+    "live_inflight_reads"
+  ],
+  "required_budget_fields": [
+    "estimated_credits",
+    "remaining_credits_after_estimate",
+    "allowed_after_estimate",
+    "budget_exceeded",
+    "budget_exceeded_error_code",
+    "pre_debit_required",
+    "failure_refund_required",
+    "live_debit"
+  ],
+  "rate_limit": {
+    "per_minute_limit": 60,
+    "burst_limit": 10,
+    "live_window_reads": false,
+    "rate_limited_error_code": "RATE_LIMITED"
+  },
+  "budget": {
+    "budget_exceeded_error_code": "BUDGET_EXCEEDED",
+    "failure_refund_required": true,
+    "live_debit": false,
+    "pre_debit_required": true
+  },
+  "concurrency_pools": [
+    {
+      "name": "mcp_standard",
+      "high_cost": false,
+      "max_parallel": 8,
+      "ordinary_pool_protection": true
+    },
+    {
+      "name": "mcp_high_cost",
+      "high_cost": true,
+      "max_parallel": 2,
+      "ordinary_pool_protection": true,
+      "queue_name": "mcp-high-cost"
+    }
+  ],
+  "durable_queue": {
+    "high_cost_queue_name": "mcp-high-cost",
+    "enqueue_status": "planned_no_live",
+    "live_queue_writes": false
+  },
+  "validated_tools": [
+    "get_price_history",
+    "get_market_calendar"
+  ]
+}

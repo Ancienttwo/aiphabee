@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
+  MCP_TOOL_LIMITER_VERSION,
   McpRuntimeInputError,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
@@ -78,6 +79,14 @@ describe("mcp endpoint default-deny scaffold", () => {
       standard_error_code_version:
         "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
       standard_error_codes_ready: true,
+      budget_limit_plan_ready: true,
+      concurrency_limit_plan_ready: true,
+      mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
+      mcp_limiter_live: false,
+      mcp_tool_limiter_ready: true,
+      mcp_tool_limiter_version: "2026-06-21.phase2.mcp-tool-limiter-scaffold.v0",
+      ordinary_pool_protection: true,
+      rate_limit_plan_ready: true,
       tool_call_input_strict_validation: true,
       time_range_limits_ready: true,
       tool_schema_validation_version:
@@ -108,6 +117,21 @@ describe("mcp endpoint default-deny scaffold", () => {
       "data",
       "limit",
       "system"
+    ]);
+    expect(getMcpRuntimeCapabilities().mcp_tool_limiter_pools).toEqual([
+      {
+        high_cost: false,
+        max_parallel: 8,
+        name: "mcp_standard",
+        ordinary_pool_protection: true
+      },
+      {
+        high_cost: true,
+        max_parallel: 2,
+        name: "mcp_high_cost",
+        ordinary_pool_protection: true,
+        queue_name: "mcp-high-cost"
+      }
     ]);
   });
 
@@ -722,6 +746,134 @@ describe("mcp endpoint default-deny scaffold", () => {
       },
       status: "write_planned",
       writeReady: false
+    });
+    expect(plan.tool_call?.tool_limits).toMatchObject({
+      budget: {
+        allowed_after_estimate: true,
+        budget_exceeded: false,
+        budget_exceeded_error_code: "BUDGET_EXCEEDED",
+        estimated_credits: 3,
+        failure_refund_required: true,
+        live_debit: false,
+        pre_debit_required: true,
+        remaining_credits_after_estimate: 9877
+      },
+      concurrency: {
+        high_cost_pool_isolated: true,
+        live_inflight_reads: false,
+        max_parallel: 8,
+        pool: "mcp_standard"
+      },
+      durable_queue: {
+        enqueue_status: "not_required",
+        idempotency_key: "mcp_tool_limit_req-mcp-tool-call-bounded_get_price_history",
+        live_queue_writes: false,
+        queue_name: null,
+        required: false
+      },
+      limiter_version: MCP_TOOL_LIMITER_VERSION,
+      ordinary_pool_protection: true,
+      rate_limit: {
+        burst_limit: 10,
+        live_window_reads: false,
+        per_minute_limit: 60,
+        rate_limited: false,
+        rate_limited_error_code: "RATE_LIMITED",
+        retry_after_seconds: null,
+        status: "planned_no_live"
+      },
+      tool_name: "get_price_history",
+      weight: {
+        credit_weight: 3,
+        high_cost: false,
+        high_cost_threshold: 8,
+        row_estimate: 3
+      }
+    });
+  });
+
+  it("plans high-cost MCP tools/call requests onto the isolated limiter pool", () => {
+    const plan = createMcpProtocolPlan({
+      grantedScopes: ["calendar:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin: "https://app.aiphabee.com",
+      requestId: "req-mcp-tool-call-calendar-high-cost",
+      toolArguments: {
+        from: "2026-01-01",
+        market: "HKEX",
+        to: "2026-12-31"
+      },
+      toolName: "get_market_calendar",
+      usagePlanCode: "developer",
+      usedCredits: 120,
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(plan.tool_call?.bounded_retrieval).toMatchObject({
+      row_limit: {
+        default_limit: 366,
+        effective_limit: 366,
+        max_limit: 366,
+        requested_limit: 366,
+        requested_limit_parameter: null
+      },
+      time_range_limit: {
+        from: "2026-01-01",
+        max_window_days: 366,
+        required: true,
+        to: "2026-12-31",
+        window_days: 365
+      }
+    });
+    expect(plan.tool_call?.usage_envelope).toMatchObject({
+      credits_remaining_after_estimate: 9514,
+      estimated_credits: 366,
+      persistent_writes: false,
+      request_id: "req-mcp-tool-call-calendar-high-cost"
+    });
+    expect(plan.tool_call?.tool_limits).toMatchObject({
+      budget: {
+        allowed_after_estimate: true,
+        budget_exceeded: false,
+        budget_exceeded_error_code: "BUDGET_EXCEEDED",
+        estimated_credits: 366,
+        failure_refund_required: true,
+        live_debit: false,
+        pre_debit_required: true,
+        remaining_credits_after_estimate: 9514
+      },
+      concurrency: {
+        high_cost_pool_isolated: true,
+        live_inflight_reads: false,
+        max_parallel: 2,
+        pool: "mcp_high_cost"
+      },
+      durable_queue: {
+        enqueue_status: "planned_no_live",
+        idempotency_key: "mcp_tool_limit_req-mcp-tool-call-calendar-high-cost_get_market_calendar",
+        live_queue_writes: false,
+        queue_name: "mcp-high-cost",
+        required: true
+      },
+      limiter_version: MCP_TOOL_LIMITER_VERSION,
+      ordinary_pool_protection: true,
+      rate_limit: {
+        burst_limit: 10,
+        live_window_reads: false,
+        per_minute_limit: 60,
+        rate_limited: false,
+        rate_limited_error_code: "RATE_LIMITED",
+        retry_after_seconds: null,
+        status: "planned_no_live"
+      },
+      tool_name: "get_market_calendar",
+      weight: {
+        credit_weight: 366,
+        high_cost: true,
+        high_cost_threshold: 8,
+        row_estimate: 366
+      }
     });
   });
 
