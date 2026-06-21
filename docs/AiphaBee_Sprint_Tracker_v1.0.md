@@ -57,7 +57,7 @@ owner: "Planner / PM"
 | 0.1 | 法务·授权·监管 Gate | 🟦 | 0 / 8 | ☐ |
 | 0.2 | 数据契约与口径基线 | 🟦 | 9 / 9 | ☐ |
 | 0.3 | 黄金样本·质量规则·商业模型 | 🟦 | 9 / 9 | ☐ |
-| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 17 / 23 | ☐ |
+| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |
 | 1.1 | 主真值源 + Data Access Gateway | 🟦 | 21 / 26 | ☐ |
 | 1.2 | Tool Registry + 原子数据工具 + 证据/血缘 | 🟦 | 12 / 12 | ☐ |
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
@@ -159,7 +159,7 @@ owner: "Planner / PM"
 **目标：** 把 greenfield 仓库拉起到「可部署的空骨架」，建立需求→issue 追溯。
 
 - [x] 初始化 npm workspaces 与根包管理：`package.json` / `package-lock.json` / shared TypeScript + Vitest config（PRD §1.1、§11.3）
-- [ ] 初始化前端应用：TanStack Start + Vite（Claude 前端跟进，PRD §1.1、§11.3）
+- [x] 初始化前端应用：TanStack Start + Vite：Claude `feat/web-frontend` 已合入 main，新增 `@aiphabee/web` workspace、TanStack Router/Start + Vite + React + Cloudflare Vite plugin baseline、`apps/web/wrangler.jsonc`、首页/仪表盘/IPO 列表/IPO 详情 routes、mock IPO data 与 render/mock-api tests；`npm run typecheck --workspace @aiphabee/web`、`npx vitest run apps/web/src/ds/render.test.tsx apps/web/src/lib/mock-api.test.ts` 与 `PATH="/opt/homebrew/bin:$PATH" npm run build --workspace @aiphabee/web` 已通过，live frontend/backend data wiring 未启用（PRD §1.1、§11.3）
 - [x] Hono Worker 空运行面：`apps/worker`、Wrangler local config、`/health` route（§11.3）
 - [x] Agent Runtime 骨架：AI SDK v7 beta dry-run runtime on Cloudflare Workers（§11.3）
 - [x] Model provider / streaming scaffold：Cloudflare AI Gateway planned contract、AI SDK v7 `generateText`/`streamText` boundary、`/agent/runs/stream` guard、`npm run check:model-provider`（§11.3、§11.6）
@@ -178,7 +178,7 @@ owner: "Planner / PM"
 - [x] Env/secrets contract：dev/staging/prod names-only templates + schema + `npm run check:env`
 - [x] Provider secret stores / rotation / emergency revocation contract：Cloudflare/GitHub/Supabase planned stores、90-day cadence、30-min revocation SLA、`npm run check:secrets`（Cloudflare/GitHub/Supabase）
 - [ ] Provider secret stores provisioned + rotation/revocation smoke（Cloudflare/GitHub/Supabase）
-- [ ] 复用现有 `docs/AiphaBee Design System` 接入前端基线（Claude 前端跟进）
+- [x] 复用现有 `docs/AiphaBee Design System` 接入前端基线：`apps/web/src/ds/index.ts` 明确声明组件 ported from `docs/AiphaBee Design System`，并接入 `Button` / `Card` / `Badge` / `StatCard` / `ScoreMeter` / `RatingStars` / `Hexvatar` / `BeeNote` / `MascotState` / `Icon`、`apps/web/src/ds/styles/aiphabee.css` token、brand/mascot PNG assets 与 route-level product screens；render tests 覆盖品牌 token 与组件 SSR markup，WCAG 2.1 AA release item 仍另列于 Sprint 3.2（Claude 前端跟进）
 - [x] 完成 PRD §23「仓库接入后实现核验清单」对照（本仓库为新建，逐项确认现状）
 - [x] 建立 shared `packages/data-contracts`：标准响应信封、provenance、usage、默认拒绝错误码（§9.5–§9.6）
 - [x] 建立 PRD 每条 P0 需求 → issue/owner/测试/发布门槛 的 traceability：`docs/governance/p0-traceability-ledger.md`（§23.12，对齐本文件 §M）
@@ -638,12 +638,12 @@ owner: "Planner / PM"
 - [ ] Sprint 0.1 的外部权利矩阵、HKEX/vendor 结论、Type 4 书面意见、商业条款与签字仍未到位；这些证据到位前，Sprint 0.1 八个叶子任务保持未完成
 - [ ] Sprint 0.2 的数据契约尚未由数据合作方签署；签署前退出门槛保持未全绿
 - [ ] Sprint 0.3 的 synthetic golden fixtures/质量规则已可执行；partner-approved production corpus 与套餐/credits/单位经济真实成本评审尚未完成，退出门槛保持未全绿
-- [ ] Sprint 0.4 的前端 scaffold、model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke、Design System 集成尚未实现
+- [ ] Sprint 0.4 的前端 scaffold 与 Design System baseline 已由 Claude 分支合入并通过本地 web typecheck/test/build；model provider live execution smoke、Cloudflare resource provisioning/smoke、Hyperdrive live `SELECT 1`、OTLP live export + persistent eval write/read、provider secret live provisioning/rotation smoke 尚未实现
 - [ ] Sprint 1.1 的真实数据加载、真实 Serving Gateway、字段级权益 live policy source、usage ledger live writes 尚未实现；财务事实、公司行动/复权、账户/Workspace/权益、usage ledger schema/event planner、Serving Store schema、Serving read planner、Serving quality release isolation planner、Serving query planner、Serving SQL descriptor/text compiler、Serving execution adapter、Serving result envelope、entitlement DB policy-source compiler、synthetic financial/restatement engine、synthetic adjustment engine 与 entitlement evaluator 已存在但尚未接入 partner rows / live Serving SQL execution/reads/writes / partner benchmark parity / live DB entitlement reads / billing reconciliation
 - [ ] Sprint 1.2 的 shared Tool Registry scaffold、9 个 registered no-live handlers、本地 tool schema contract、每工具 synthetic golden fixtures 与 no-write Evidence/Lineage service scaffold 已建立；MCP protocol endpoint/runtime schema serving/live route replay/live DB writes/partner source rows 尚未实现
 - [ ] Sprint 1.3 的 Agent run context scaffold、ToolLoopAgent no-model planner scaffold、pre-tool-call resolution scaffold、budget/stop policy scaffold、tool enforcement scaffold、numeric source guard scaffold、answer/evidence contract scaffold、failure recovery policy scaffold 与 model routing audit scaffold 已建立；actual tool execution/live streaming transport、live evidence-binding、live model execution/AI Gateway request logs、live token-cost-fallback log writes 与前端 Ask/证据卡片 rendering 尚未实现
 - [ ] Sprint 2.4 已建立 ACC-03 subscription lifecycle audit scaffold、ACC-04 billing-to-usage-ledger reconciliation scaffold、high-cost usage reservation/pre-debit/failure-refund scaffold、AGT-09 workflow task_id/resume/notification scaffold、deep-report workflow backend scaffold、watchlist alerts scaffold、watchlist briefings scaffold、data-correction notifications scaffold、MCP revocation enforcement scaffold 与 agent kill-switch safe degradation scaffold；真实 billing provider、invoice/proration/refund preview、subscription/audit/invoice/ledger live writes、live ledger reads、refund/overage rules、live Workflows execution/checkpoint writes、watchlist briefing scheduled generation/fanout、data correction live discovery/DB writes/Queue fanout、MCP live auth middleware/credential store、live flag source 与 frontend UI 尚未实现
-- [ ] Phase 0 sprint backlog 已完成程序证据收口，但 Phase 0 Gate 仍不绿；前端 scaffold 已按用户指示交给 Claude，Codex 下一非前端可执行 slice 应避开 `apps/web`
+- [ ] Phase 0 sprint backlog 已完成程序证据收口，Claude web baseline 已合入并验收；但 Phase 0 Gate 仍不绿，Codex 下一非前端可执行 slice 应避开 `apps/web`，优先处理 live smoke / external evidence / release drill 缺口
 
 ---
 
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0dz | 完成 Claude web baseline acceptance sync：确认 `origin/feat/web-frontend` 已是 `main` 祖先，无需重复 merge；验收 `@aiphabee/web` TanStack Start + Vite + React + Cloudflare baseline、`apps/web` routes、mock API tests、Design System tokens/components/assets 接入，并通过 `npm run typecheck --workspace @aiphabee/web`、`npx vitest run apps/web/src/ds/render.test.tsx apps/web/src/lib/mock-api.test.ts`、`PATH="/opt/homebrew/bin:$PATH" npm run build --workspace @aiphabee/web` 与全量 `PATH="/opt/homebrew/bin:$PATH" npm run check`；Sprint 0.4 更新为 19/23，WCAG 2.1 AA / live frontend-backend wiring / staging deploy 仍未完成 |
 | 2026-06-22 | 1.0dy | 完成 `performance-availability-release-gate-scaffold`：新增 Observability performance/availability release gate capability、`POST /observability/release-gates/performance-availability/plan`、`GET /observability/runtime` `performance_availability_release_gate` readiness、`deploy/observability/performance-availability-release-gate.contract.json`、`scripts/check-performance-availability-release-gate-contract.mjs`、`core.performance_availability_release_gate` / `audit.performance_slo_drill_event` / `governance.performance_availability_release_gate_contract` empty schema scaffold 与 `npm run check:performance-availability-release-gate`；gate 按 PRD §12.1 证明 core API availability、MCP hot/cold P95、Web first token P95、simple research P95 和 MCP tool success rate synthetic SLO observations 达标；live APM/provider reads / probe scheduler / SLO store writes / load-test artifact / frontend first-token live measurement / ops-SRE signoff 未启用，Sprint 3.3 更新为 16/17 |
 | 2026-06-22 | 1.0dx | 完成 `publication-economics-release-gate-scaffold`：新增 Public Ops publication/economics release gate capability、`POST /public/release-gates/publication-economics/plan`、`GET /public/runtime` `publication_economics_release_gate` readiness、`deploy/public-ops/publication-economics-release-gate.contract.json`、`scripts/check-publication-economics-release-gate-contract.mjs`、`core.publication_economics_release_gate` / `audit.publication_economics_drill_event` / `governance.publication_economics_release_gate_contract` empty schema scaffold 与 `npm run check:publication-economics-release-gate`；gate 组合 public status/docs、support help center 与 account package pricing，证明 status/help/privacy/terms 本地发布稿齐全、Pro/Developer expected-usage contribution margin 为正且达到 PRD §15.5 目标；live deployment / final legal approval / live pricing provider / finance signoff / frontend public release surface 未启用，Sprint 3.3 更新为 15/17 |
 | 2026-06-22 | 1.0dw | 完成 `partner-support-release-gate-scaffold`：新增 Usage Ledger partner/support release gate capability、`POST /usage/release-gates/partner-support/plan`、`GET /usage/runtime` `partner_support_release_gate` readiness、`deploy/usage/partner-support-release-gate.contract.json`、`scripts/check-partner-support-release-gate-contract.mjs`、`core.partner_support_release_gate` / `audit.partner_support_drill_event` / `governance.partner_support_release_gate_contract` empty schema scaffold 与 `npm run check:partner-support-release-gate`；gate 组合 partner reconciliation report 与 support request_id investigation，证明对账 report rows、request_id -> usage_event trace、SLA counters、metadata-only support investigation 和 sensitive-payload exclusion；live ledger reads / partner artifact store / partner portal / support log reads / frontend ops UI / final partner settlement approval 未启用，Sprint 3.3 更新为 14/17 |
