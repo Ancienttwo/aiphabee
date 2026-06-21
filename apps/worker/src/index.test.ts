@@ -3609,6 +3609,23 @@ interface GatewayRuntimeBody {
     live_data_access: boolean;
     market_data_surfaces: boolean;
     mcp_redistribution_surfaces: boolean;
+    p0_rights_matrix_coverage: {
+      default_rights_status: string;
+      enterprise_authorization_configured: boolean;
+      export_authorization_configured: boolean;
+      frontend: boolean;
+      live_rights_matrix_reads: boolean;
+      mcp_authorization_configured: boolean;
+      partner_signed_matrix_loaded: boolean;
+      persistent_writes: boolean;
+      required_p0_tool_count: number;
+      required_surfaces: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      web_authorization_configured: boolean;
+    };
     rights_policy_version: string;
     restricted_exports: {
       artifact_writes: boolean;
@@ -3718,6 +3735,52 @@ interface GatewayRuntimeBody {
     };
   };
   ok: true;
+}
+
+interface P0RightsMatrixCoverageBody {
+  data: {
+    capability: {
+      required_p0_tool_count: number;
+      route: string;
+      status: string;
+    };
+    dataset_field_coverage: Array<{
+      dataset: string;
+      field_patterns: string[];
+      rights_state: string;
+      surfaces: Record<string, string>;
+    }>;
+    default_rights_status: string;
+    live_rights_matrix_reads: boolean;
+    persistent_writes: boolean;
+    release_gate: {
+      gate_status: string;
+      partner_signed_matrix_loaded: boolean;
+      required_signoffs: string[];
+    };
+    rights_policy_version: string;
+    sql_emitted: boolean;
+    status: string;
+    surface_coverage: Record<string, {
+      configured: boolean;
+      default_rights_status: string;
+    }>;
+    tool_coverage: Array<{
+      rights_state: string;
+      surfaces: Record<string, string>;
+      tool_name: string;
+    }>;
+    validation: {
+      all_required_surfaces_configured: boolean;
+      required_p0_tool_count: number;
+      tool_count: number;
+      tool_count_matches_registry: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface FieldAuthorizationConfigPlanBody {
@@ -11124,6 +11187,23 @@ describe("worker runtime", () => {
     expect(body.data.live_data_access).toBe(false);
     expect(body.data.market_data_surfaces).toBe(false);
     expect(body.data.mcp_redistribution_surfaces).toBe(false);
+    expect(body.data.p0_rights_matrix_coverage).toMatchObject({
+      default_rights_status: "default_deny",
+      enterprise_authorization_configured: true,
+      export_authorization_configured: true,
+      frontend: false,
+      live_rights_matrix_reads: false,
+      mcp_authorization_configured: true,
+      partner_signed_matrix_loaded: false,
+      persistent_writes: false,
+      required_p0_tool_count: 16,
+      required_surfaces: ["web", "mcp", "export", "enterprise"],
+      route: "GET /gateway/rights-matrix/p0/coverage",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "p0_rights_matrix_coverage_scaffold",
+      web_authorization_configured: true
+    });
     expect(body.data.rights_policy_version).toBe("gate0-default-deny-v0");
     expect(body.data.restricted_exports).toMatchObject({
       artifact_writes: false,
@@ -11241,6 +11321,69 @@ describe("worker runtime", () => {
       ],
       weighted_credits: true
     });
+  });
+
+  it("serves P0 rights matrix coverage with default-deny release gate", async () => {
+    const response = await app.request("/gateway/rights-matrix/p0/coverage", {
+      headers: {
+        "x-request-id": "req-p0-rights-matrix"
+      }
+    });
+    const body = (await response.json()) as P0RightsMatrixCoverageBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      default_rights_status: "default_deny",
+      live_rights_matrix_reads: false,
+      persistent_writes: false,
+      rights_policy_version: "gate0-default-deny-v0",
+      sql_emitted: false,
+      status: "p0_rights_matrix_coverage_scaffold"
+    });
+    expect(body.data.capability).toMatchObject({
+      required_p0_tool_count: 16,
+      route: "GET /gateway/rights-matrix/p0/coverage",
+      status: "p0_rights_matrix_coverage_scaffold"
+    });
+    expect(body.data.tool_coverage).toHaveLength(16);
+    expect(body.data.tool_coverage.map((item) => item.tool_name)).toEqual(
+      expect.arrayContaining(["resolve_security", "get_quote_snapshot", "get_entitlements"])
+    );
+    expect(body.data.dataset_field_coverage.map((item) => item.dataset)).toEqual(
+      expect.arrayContaining(["security_master", "price_history", "financial_facts"])
+    );
+    expect(body.data.surface_coverage).toMatchObject({
+      enterprise: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      export: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      mcp: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      web: {
+        configured: true,
+        default_rights_status: "default_deny"
+      }
+    });
+    expect(body.data.release_gate).toMatchObject({
+      gate_status: "blocked_external_rights_matrix",
+      partner_signed_matrix_loaded: false,
+      required_signoffs: ["data_partner", "commercial_owner", "legal_compliance"]
+    });
+    expect(body.data.validation).toMatchObject({
+      all_required_surfaces_configured: true,
+      required_p0_tool_count: 16,
+      tool_count: 16,
+      tool_count_matches_registry: true
+    });
+    expect(body.usage.rows).toBe(25);
   });
 
   it("plans operational field authorization changes with approval and effective time", async () => {

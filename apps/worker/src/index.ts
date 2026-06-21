@@ -67,11 +67,13 @@ import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
   createFieldAuthorizationConfigChangePlan,
+  createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
   getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
+  getP0RightsMatrixCoverageCapabilities,
   getServingResultEnvelopeCapabilities,
   type DataAccessChannel,
   type DataAccessFieldStatus,
@@ -213,7 +215,7 @@ import {
   getResolveSecurityCapabilities,
   resolveSecurity
 } from "@aiphabee/security-tools";
-import { getToolRegistryCapabilities } from "@aiphabee/tool-registry";
+import { REGISTERED_TOOLS, getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import {
   USAGE_QUOTA_CHANNELS,
   USAGE_QUOTA_PLAN_CODES,
@@ -1310,6 +1312,7 @@ app.get("/gateway/runtime", (c) => {
         market_data_surfaces: false,
         methodology_version: DEFAULT_DATA_ACCESS_POLICY.methodologyVersion,
         mcp_redistribution_surfaces: false,
+        p0_rights_matrix_coverage: getP0RightsMatrixCoverageCapabilities(),
         rights_policy_version: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
         restricted_exports: getRestrictedExportCapabilities(),
         serving_result_envelope: getServingResultEnvelopeCapabilities(),
@@ -3445,6 +3448,39 @@ app.post("/gateway/access-check", async (c) => {
       provenance: decision.provenance,
       requestId,
       usage: decision.usage
+    })
+  );
+});
+
+app.get("/gateway/rights-matrix/p0/coverage", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = createP0RightsMatrixCoverageReport({
+    asOf: new Date().toISOString(),
+    rightsPolicyVersion: DEFAULT_DATA_ACCESS_POLICY.rightsPolicyVersion,
+    toolNames: REGISTERED_TOOLS.map((tool) => tool.name)
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(report, {
+      asOf: report.as_of,
+      dataVersion: report.version,
+      methodologyVersion: report.version,
+      provenance: [
+        {
+          data_version: report.version,
+          methodology_version: report.version,
+          source: "data-access-gateway",
+          source_record_id: "p0-rights-matrix-coverage"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: report.tool_coverage.length + report.dataset_field_coverage.length
+      }
     })
   );
 });

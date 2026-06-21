@@ -1,0 +1,58 @@
+{
+  "version": "2026-06-21.phase3.p0-rights-matrix-coverage-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-access-gateway",
+  "runtime_route": "GET /gateway/runtime",
+  "route": "GET /gateway/rights-matrix/p0/coverage",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_rights_matrix_reads": false,
+  "partner_signed_matrix_loaded": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_sprint_3_3_items": [
+    "p0_fields_tools_rights_matrix",
+    "web_mcp_export_enterprise_authorization"
+  ],
+  "required_p0_tool_count": 16,
+  "required_surfaces": ["web", "mcp", "export", "enterprise"],
+  "default_rights_status": "default_deny",
+  "surface_authorization": {
+    "web": "configured_default_deny",
+    "mcp": "configured_default_deny",
+    "export": "configured_default_deny",
+    "enterprise": "configured_default_deny"
+  },
+  "release_gate": {
+    "gate_status": "blocked_external_rights_matrix",
+    "partner_signed_matrix_required": true,
+    "required_signoffs": ["data_partner", "commercial_owner", "legal_compliance"]
+  },
+  "dataset_groups": [
+    "security_master",
+    "market_calendar",
+    "quote_snapshot",
+    "price_history",
+    "corporate_actions",
+    "financial_facts",
+    "announcements",
+    "derived_analytics",
+    "evidence_lineage"
+  ],
+  "tables": [
+    "core.p0_rights_matrix_entry",
+    "governance.p0_rights_matrix_contract"
+  ],
+  "required_output_fields": [
+    "tool_coverage",
+    "dataset_field_coverage",
+    "surface_coverage",
+    "release_gate",
+    "validation"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/tools/tool-registry.contract.json"
+  ]
+}

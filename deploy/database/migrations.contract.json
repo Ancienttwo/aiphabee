@@ -396,6 +396,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql",
+      "purpose": "Create empty P0 rights matrix coverage entry and governance scaffolds for Web/MCP/export/enterprise default-deny release gate coverage without loading a signed partner matrix.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.p0_rights_matrix_entry",
+        "governance.p0_rights_matrix_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

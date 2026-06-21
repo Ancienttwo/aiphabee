@@ -22,7 +22,10 @@ export const RESTRICTED_EXPORT_VERSION =
   "2026-06-21.phase3.restricted-export-scaffold.v0";
 export const FIELD_AUTHORIZATION_CONFIG_VERSION =
   "2026-06-21.phase3.field-authorization-config-scaffold.v0";
+export const P0_RIGHTS_MATRIX_COVERAGE_VERSION =
+  "2026-06-21.phase3.p0-rights-matrix-coverage-scaffold.v0";
 export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
+export const P0_RIGHTS_MATRIX_SURFACES = ["web", "mcp", "export", "enterprise"] as const;
 
 export type DataAccessChannel = "api" | "export" | "mcp" | "web";
 export type DataAccessDecisionStatus =
@@ -56,6 +59,8 @@ export type FieldAuthorizationConfigStatus =
   | "blocked_missing_context"
   | "rejected"
   | "scheduled";
+export type P0RightsMatrixSurface = (typeof P0_RIGHTS_MATRIX_SURFACES)[number];
+export type P0RightsMatrixReleaseGateStatus = "blocked_external_rights_matrix";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -205,6 +210,12 @@ export interface FieldAuthorizationConfigChangeInput {
   workspaceId?: string;
 }
 
+export interface P0RightsMatrixCoverageInput {
+  asOf?: string;
+  rightsPolicyVersion?: string;
+  toolNames: string[];
+}
+
 export interface FieldAuthorizationConfigChangePlan {
   approval: {
     approval_id: string;
@@ -281,6 +292,67 @@ export interface FieldAuthorizationConfigChangePlan {
     required_context_present: boolean;
   };
   version: typeof FIELD_AUTHORIZATION_CONFIG_VERSION;
+}
+
+export interface P0RightsMatrixCoverageCapabilities {
+  default_rights_status: "default_deny";
+  enterprise_authorization_configured: true;
+  export_authorization_configured: true;
+  frontend: false;
+  live_rights_matrix_reads: false;
+  mcp_authorization_configured: true;
+  package: "@aiphabee/data-access-gateway";
+  partner_signed_matrix_loaded: false;
+  persistent_writes: false;
+  required_p0_tool_count: 16;
+  required_surfaces: typeof P0_RIGHTS_MATRIX_SURFACES;
+  route: "GET /gateway/rights-matrix/p0/coverage";
+  runtime_route: "GET /gateway/runtime";
+  sql_emitted: false;
+  status: "p0_rights_matrix_coverage_scaffold";
+  tables: readonly ["core.p0_rights_matrix_entry", "governance.p0_rights_matrix_contract"];
+  version: typeof P0_RIGHTS_MATRIX_COVERAGE_VERSION;
+  web_authorization_configured: true;
+}
+
+export interface P0RightsMatrixCoverageReport {
+  as_of: string;
+  capability: P0RightsMatrixCoverageCapabilities;
+  dataset_field_coverage: Array<{
+    dataset: string;
+    field_patterns: readonly string[];
+    rights_state: "default_deny_until_partner_matrix_signed";
+    surfaces: Record<P0RightsMatrixSurface, "configured_default_deny">;
+  }>;
+  default_rights_status: "default_deny";
+  frontend: false;
+  live_rights_matrix_reads: false;
+  persistent_writes: false;
+  release_gate: {
+    gate_status: P0RightsMatrixReleaseGateStatus;
+    partner_signed_matrix_loaded: false;
+    required_signoffs: readonly ["data_partner", "commercial_owner", "legal_compliance"];
+  };
+  rights_policy_version: string;
+  sql_emitted: false;
+  status: "p0_rights_matrix_coverage_scaffold";
+  surface_coverage: Record<P0RightsMatrixSurface, {
+    configured: true;
+    default_rights_status: "default_deny";
+  }>;
+  tables: P0RightsMatrixCoverageCapabilities["tables"];
+  tool_coverage: Array<{
+    rights_state: "default_deny_until_partner_matrix_signed";
+    surfaces: Record<P0RightsMatrixSurface, "configured_default_deny">;
+    tool_name: string;
+  }>;
+  validation: {
+    all_required_surfaces_configured: boolean;
+    required_p0_tool_count: 16;
+    tool_count: number;
+    tool_count_matches_registry: boolean;
+  };
+  version: typeof P0_RIGHTS_MATRIX_COVERAGE_VERSION;
 }
 
 export interface DataAccessDecision {
@@ -419,6 +491,71 @@ const FIELD_AUTHORIZATION_CONFIG_TABLES: FieldAuthorizationConfigChangePlan["tab
   "core.field_authorization_change",
   "audit.field_authorization_approval",
   "governance.field_authorization_config_contract"
+];
+const P0_RIGHTS_MATRIX_COVERAGE_TABLES: P0RightsMatrixCoverageCapabilities["tables"] = [
+  "core.p0_rights_matrix_entry",
+  "governance.p0_rights_matrix_contract"
+];
+const P0_RIGHTS_MATRIX_REQUIRED_SIGNOFFS: P0RightsMatrixCoverageReport["release_gate"]["required_signoffs"] = [
+  "data_partner",
+  "commercial_owner",
+  "legal_compliance"
+];
+const P0_RIGHTS_MATRIX_DATASET_FIELDS: P0RightsMatrixCoverageReport["dataset_field_coverage"] = [
+  {
+    dataset: "security_master",
+    field_patterns: ["instrument_id", "symbol", "company_name", "listing_status", "currency"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "market_calendar",
+    field_patterns: ["date", "session_status", "holiday_name", "timezone"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "quote_snapshot",
+    field_patterns: ["last_price", "bid", "ask", "volume", "delay_minutes"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "price_history",
+    field_patterns: ["open", "high", "low", "close", "volume", "adjustment_factor"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "corporate_actions",
+    field_patterns: ["action_type", "effective_date", "terms", "adjustment_impact"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "financial_facts",
+    field_patterns: ["metric_id", "period_end", "value", "currency", "restatement_version"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "announcements",
+    field_patterns: ["document_id", "published_at", "title", "excerpt", "source_record_id"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "derived_analytics",
+    field_patterns: ["return", "risk", "ratio", "screen_result", "event_study_metric"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "evidence_lineage",
+    field_patterns: ["source_record_id", "data_version", "methodology_version", "rights_policy_version"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  }
 ];
 
 export function evaluateDataAccessRequest(
@@ -1030,6 +1167,70 @@ export function getFieldAuthorizationConfigCapabilities() {
   };
 }
 
+export function getP0RightsMatrixCoverageCapabilities(): P0RightsMatrixCoverageCapabilities {
+  return {
+    default_rights_status: "default_deny",
+    enterprise_authorization_configured: true,
+    export_authorization_configured: true,
+    frontend: false,
+    live_rights_matrix_reads: false,
+    mcp_authorization_configured: true,
+    package: "@aiphabee/data-access-gateway",
+    partner_signed_matrix_loaded: false,
+    persistent_writes: false,
+    required_p0_tool_count: 16,
+    required_surfaces: P0_RIGHTS_MATRIX_SURFACES,
+    route: "GET /gateway/rights-matrix/p0/coverage",
+    runtime_route: "GET /gateway/runtime",
+    sql_emitted: false,
+    status: "p0_rights_matrix_coverage_scaffold",
+    tables: P0_RIGHTS_MATRIX_COVERAGE_TABLES,
+    version: P0_RIGHTS_MATRIX_COVERAGE_VERSION,
+    web_authorization_configured: true
+  };
+}
+
+export function createP0RightsMatrixCoverageReport(
+  input: P0RightsMatrixCoverageInput
+): P0RightsMatrixCoverageReport {
+  const uniqueToolNames = [...new Set(input.toolNames.map((tool) => tool.trim()).filter(Boolean))];
+
+  return {
+    as_of: normalizeOptionalIdentifier(input.asOf, "as_of_unresolved"),
+    capability: getP0RightsMatrixCoverageCapabilities(),
+    dataset_field_coverage: P0_RIGHTS_MATRIX_DATASET_FIELDS,
+    default_rights_status: "default_deny",
+    frontend: false,
+    live_rights_matrix_reads: false,
+    persistent_writes: false,
+    release_gate: {
+      gate_status: "blocked_external_rights_matrix",
+      partner_signed_matrix_loaded: false,
+      required_signoffs: P0_RIGHTS_MATRIX_REQUIRED_SIGNOFFS
+    },
+    rights_policy_version: normalizeOptionalIdentifier(
+      input.rightsPolicyVersion,
+      "rights_policy_unresolved"
+    ),
+    sql_emitted: false,
+    status: "p0_rights_matrix_coverage_scaffold",
+    surface_coverage: createConfiguredSurfaceCoverage(),
+    tables: P0_RIGHTS_MATRIX_COVERAGE_TABLES,
+    tool_coverage: uniqueToolNames.map((toolName) => ({
+      rights_state: "default_deny_until_partner_matrix_signed",
+      surfaces: createDefaultDenySurfaceCoverage(),
+      tool_name: toolName
+    })),
+    validation: {
+      all_required_surfaces_configured: true,
+      required_p0_tool_count: 16,
+      tool_count: uniqueToolNames.length,
+      tool_count_matches_registry: uniqueToolNames.length === 16
+    },
+    version: P0_RIGHTS_MATRIX_COVERAGE_VERSION
+  };
+}
+
 export function getEntitlementPolicySourceCapabilities() {
   return {
     compiles_to_gateway_policy: true,
@@ -1510,6 +1711,43 @@ function getFieldAuthorizationConfigStatus(input: {
   }
 
   return "active_preview";
+}
+
+function createDefaultDenySurfaceCoverage(): Record<
+  P0RightsMatrixSurface,
+  "configured_default_deny"
+> {
+  return {
+    enterprise: "configured_default_deny",
+    export: "configured_default_deny",
+    mcp: "configured_default_deny",
+    web: "configured_default_deny"
+  };
+}
+
+function createConfiguredSurfaceCoverage(): P0RightsMatrixCoverageReport["surface_coverage"] {
+  return {
+    enterprise: {
+      configured: true,
+      default_rights_status: "default_deny"
+    },
+    export: {
+      configured: true,
+      default_rights_status: "default_deny"
+    },
+    mcp: {
+      configured: true,
+      default_rights_status: "default_deny"
+    },
+    web: {
+      configured: true,
+      default_rights_status: "default_deny"
+    }
+  };
+}
+
+function normalizeOptionalIdentifier(value: string | undefined, fallback: string): string {
+  return value !== undefined && value.length > 0 ? value : fallback;
 }
 
 function sanitizeForId(value: string): string {

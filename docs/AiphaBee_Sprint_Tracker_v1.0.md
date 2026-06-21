@@ -68,7 +68,7 @@ owner: "Planner / PM"
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 9 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 8 / 9 | ☐ |
-| 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
+| 3.3 | 安全·负载·灾备·发布验收·签字门 | 🟦 | 1 / 17 | ☐ |
 
 > 北极星指标 **WVRO**（周度已验证研究成果，PRD §4.3）从 Phase 1 内部即开始埋点；激活/质量/商业 KPI（PRD §16）随 Phase 推进逐步上线。
 
@@ -379,11 +379,11 @@ owner: "Planner / PM"
 
 **退出门槛 DoD：** ☐ 状态页/文档/隐私/条款上线　☐ 合作方对账可生成　☐ 分享不扩权
 
-### Sprint 3.3 — 安全·负载·灾备·发布验收·签字门　⬜
+### Sprint 3.3 — 安全·负载·灾备·发布验收·签字门　🟦
 **目标：** 跑通 PRD §19 全量发布验收清单并签字。
 
 **数据与授权（§19.1）**
-- [ ] 所有 P0 字段/工具有权利矩阵；Web/MCP/导出/企业授权分别配置
+- [x] 所有 P0 字段/工具有权利矩阵；Web/MCP/导出/企业授权分别配置：扩展 `@aiphabee/data-access-gateway` P0 rights matrix coverage capability、`GET /gateway/rights-matrix/p0/coverage`、`GET /gateway/runtime` `p0_rights_matrix_coverage`、`deploy/gateway/p0-rights-matrix-coverage.contract.json`、`scripts/check-p0-rights-matrix-coverage-contract.mjs`、`core.p0_rights_matrix_entry` / `governance.p0_rights_matrix_contract` empty schema scaffold 与 `npm run check:p0-rights-matrix-coverage`；coverage report 从 Tool Registry 传入 16 个 P0 tools，覆盖 security_master / market_calendar / quote_snapshot / price_history / corporate_actions / financial_facts / announcements / derived_analytics / evidence_lineage dataset/field groups，并为 web/mcp/export/enterprise 四个 surface 建立 configured_default_deny slots；partner signed matrix / live entitlement reads/writes / legal-commercial signoff / frontend ops UI 未启用，release gate 保持 `blocked_external_rights_matrix`（§19.1）
 - [ ] 实时/延迟/EOD 标识正确；公司行动/重述/退市/代码历史覆盖
 - [ ] 黄金样本通过；数据更正与回滚演练完成
 
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0dj | 完成 `p0-rights-matrix-coverage-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 P0 rights matrix coverage capability、`GET /gateway/rights-matrix/p0/coverage`、`GET /gateway/runtime` `p0_rights_matrix_coverage`、`deploy/gateway/p0-rights-matrix-coverage.contract.json`、`scripts/check-p0-rights-matrix-coverage-contract.mjs`、`core.p0_rights_matrix_entry` / `governance.p0_rights_matrix_contract` empty schema scaffold 与 `npm run check:p0-rights-matrix-coverage`；从 Tool Registry 覆盖 16 个 P0 tools，覆盖 9 组 P0 dataset/field groups，并为 Web/MCP/export/enterprise surface 建立 configured_default_deny slots；partner signed matrix / live entitlement activation / external signoff 未启用，release gate 保持 blocked_external_rights_matrix，Sprint 3.3 更新为 1/17 |
 | 2026-06-21 | 1.0di | 完成 `account-data-request-scaffold`：扩展 `@aiphabee/account-runtime`，新增 account data request capability、`POST /account/data-requests/plan`、`GET /account/runtime` `data_requests`、`deploy/account/data-request.contract.json`、`scripts/check-account-data-request-contract.mjs`、`core.account_data_request` / `core.account_data_request_item` / `audit.account_data_request_event` / `governance.account_data_request_contract` empty schema scaffold 与 `npm run check:account-data-request`；下载申请计划 secure JSON delivery，删除申请按 retention policy 对 eligible scopes schedule_erasure、对 subscription_billing / usage_ledger / audit_log retain，并要求 retention_policy_version、verified_by/request_id 审计 metadata；live export / live erasure / persistent writes / secure delivery materialization / frontend account privacy UI 未启用，Sprint 3.2 更新为 8/9 |
 | 2026-06-21 | 1.0dh | 完成 `field-authorization-config-scaffold`：扩展 `@aiphabee/data-access-gateway`，新增 field authorization config capability、`POST /gateway/field-authorizations/changes/plan`、`GET /gateway/runtime` `field_entitlement_enforcement.operations_config`、`deploy/gateway/field-authorization-config.contract.json`、`scripts/check-field-authorization-config-contract.mjs`、`core.field_authorization_change` / `audit.field_authorization_approval` / `governance.field_authorization_config_contract` empty schema scaffold 与 `npm run check:field-authorization-config`；运营配置计划要求 approval、policy_version、effective_at，输出 future `core.data_entitlement` / `core.workspace_entitlement` row effects，状态区分 awaiting_approval / scheduled / active_preview / rejected / blocked_missing_context，并保持 default-deny until approved/effective；live policy reads/writes / approval persistence / activation job / frontend ops UI 未启用，Sprint 3.2 更新为 7/9 |
 | 2026-06-21 | 1.0dg | 完成 `partner-reconciliation-report-scaffold`：扩展 `@aiphabee/usage-ledger`，新增 partner reconciliation report capability、`POST /usage/partner-reconciliation/plan`、`GET /usage/runtime` `partner_reconciliation_report`、`deploy/usage/partner-reconciliation-report.contract.json`、`scripts/check-partner-reconciliation-report-contract.mjs`、`core.partner_reconciliation_report` / `core.partner_reconciliation_report_line` / `audit.partner_reconciliation_event` / `governance.partner_reconciliation_contract` empty schema scaffold 与 `npm run check:partner-reconciliation-report`；按 dataset/channel/package_code/user_id 聚合 usage_count、credits、metered_rows、request_ids、usage_event_ids，覆盖 daily/weekly SLA fields data_delay_minutes / missing_rows / error_count / backfill_count，并阻止 raw email/personal contact/payment identifier/credential/raw prompt/generated answer；live usage-ledger reads / report writes / artifact writes / partner portal delivery / final settlement approval / frontend ops UI 未启用，Sprint 3.2 更新为 6/9 |

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
   createFieldAuthorizationConfigChangePlan,
+  createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
   createPolicyFromEntitlementRows,
   createSyntheticApprovedPolicy,
@@ -9,6 +10,7 @@ import {
   evaluateDataAccessRequest,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
+  getP0RightsMatrixCoverageCapabilities,
   getRestrictedExportCapabilities,
   getServingResultEnvelopeCapabilities
 } from "./index";
@@ -702,6 +704,108 @@ describe("data access gateway", () => {
       runtime_route: "GET /gateway/runtime",
       sql_emitted: false,
       status: "field_authorization_config_scaffold"
+    });
+  });
+
+  it("reports P0 rights matrix coverage capabilities for all release surfaces", () => {
+    expect(getP0RightsMatrixCoverageCapabilities()).toMatchObject({
+      default_rights_status: "default_deny",
+      enterprise_authorization_configured: true,
+      export_authorization_configured: true,
+      frontend: false,
+      live_rights_matrix_reads: false,
+      mcp_authorization_configured: true,
+      partner_signed_matrix_loaded: false,
+      persistent_writes: false,
+      required_p0_tool_count: 16,
+      route: "GET /gateway/rights-matrix/p0/coverage",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "p0_rights_matrix_coverage_scaffold",
+      web_authorization_configured: true
+    });
+    expect(getP0RightsMatrixCoverageCapabilities().required_surfaces).toEqual([
+      "web",
+      "mcp",
+      "export",
+      "enterprise"
+    ]);
+  });
+
+  it("builds a P0 rights matrix default-deny coverage report", () => {
+    const report = createP0RightsMatrixCoverageReport({
+      asOf: "2026-06-21T13:00:00.000Z",
+      rightsPolicyVersion: "rights-policy-v0",
+      toolNames: [
+        "resolve_security",
+        "get_security_profile",
+        "get_market_calendar",
+        "get_quote_snapshot",
+        "get_price_history",
+        "get_corporate_actions",
+        "get_financial_facts",
+        "get_financial_ratios",
+        "search_announcements",
+        "get_announcement",
+        "screen_securities",
+        "compare_securities",
+        "calculate_returns_risk",
+        "get_event_timeline",
+        "get_data_lineage",
+        "get_entitlements"
+      ]
+    });
+
+    expect(report).toMatchObject({
+      default_rights_status: "default_deny",
+      frontend: false,
+      live_rights_matrix_reads: false,
+      persistent_writes: false,
+      rights_policy_version: "rights-policy-v0",
+      sql_emitted: false,
+      status: "p0_rights_matrix_coverage_scaffold"
+    });
+    expect(report.tool_coverage).toHaveLength(16);
+    expect(report.validation).toMatchObject({
+      all_required_surfaces_configured: true,
+      required_p0_tool_count: 16,
+      tool_count: 16,
+      tool_count_matches_registry: true
+    });
+    expect(report.surface_coverage).toMatchObject({
+      enterprise: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      export: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      mcp: {
+        configured: true,
+        default_rights_status: "default_deny"
+      },
+      web: {
+        configured: true,
+        default_rights_status: "default_deny"
+      }
+    });
+    expect(report.tool_coverage[0]).toMatchObject({
+      rights_state: "default_deny_until_partner_matrix_signed",
+      surfaces: {
+        enterprise: "configured_default_deny",
+        export: "configured_default_deny",
+        mcp: "configured_default_deny",
+        web: "configured_default_deny"
+      }
+    });
+    expect(report.dataset_field_coverage.map((item) => item.dataset)).toEqual(
+      expect.arrayContaining(["quote_snapshot", "price_history", "financial_facts"])
+    );
+    expect(report.release_gate).toMatchObject({
+      gate_status: "blocked_external_rights_matrix",
+      partner_signed_matrix_loaded: false,
+      required_signoffs: ["data_partner", "commercial_owner", "legal_compliance"]
     });
   });
 
