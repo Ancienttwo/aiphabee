@@ -2,77 +2,64 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const contractPath = "deploy/research/research-run-save.contract.json";
+const contractPath = "deploy/research/research-run-replay.contract.json";
 const requiredSprintItems = [
-  "RES-01",
-  "saved_research_run",
-  "question_snapshot",
-  "tool_input_snapshot",
-  "evidence_snapshot",
-  "model_prompt_version_snapshot"
+  "RES-02",
+  "research_run_replay",
+  "data_model_parameter_diff",
+  "old_report_immutable"
 ];
-const requiredTables = [
-  "core.research_run",
-  "core.research_run_tool_call",
-  "core.research_run_evidence_snapshot",
-  "core.research_run_model_snapshot"
-];
-const requiredInputFields = [
-  "question",
-  "tool_calls",
-  "evidence_records",
-  "model_version",
-  "prompt_version"
-];
+const requiredInputFields = ["saved_run", "current_run"];
 const requiredOutputFields = [
-  "research_run_id",
-  "snapshot_id",
-  "question_snapshot",
-  "tool_input_snapshot",
-  "evidence_snapshot",
-  "model_snapshot",
-  "parameter_snapshot",
-  "schema_validation",
-  "replay_seed",
-  "persistence_plan",
-  "immutable_report_snapshot"
+  "saved_snapshot_id",
+  "replay_snapshot_id",
+  "diff_summary",
+  "diffs",
+  "old_report",
+  "replay_execution",
+  "current_run_plan"
 ];
-const requiredQuestionFields = ["question", "question_hash"];
-const requiredToolInputFields = [
-  "tool_call_id",
-  "tool_name",
-  "tool_version",
-  "request_id",
-  "input_schema_id",
-  "output_schema_id",
-  "input_snapshot",
-  "input_hash",
-  "data_version",
-  "methodology_version"
+const requiredDiffCategories = ["data", "model", "parameters"];
+const requiredDataDiffFields = [
+  "changed",
+  "previous_evidence_hash",
+  "current_evidence_hash",
+  "previous_source_record_ids",
+  "current_source_record_ids",
+  "changed_source_record_ids",
+  "data_version_changed",
+  "changed_data_versions"
 ];
-const requiredEvidenceFields = [
-  "evidence_record_id",
-  "source_record_ids",
-  "data_version",
-  "methodology_version",
-  "document_location"
+const requiredModelDiffFields = [
+  "changed",
+  "previous_model_provider",
+  "current_model_provider",
+  "previous_model_version",
+  "current_model_version",
+  "previous_prompt_version",
+  "current_prompt_version",
+  "model_provider_changed",
+  "model_version_changed",
+  "prompt_version_changed",
+  "prompt_template_changed"
 ];
-const requiredModelFields = [
-  "model_provider",
-  "model_version",
-  "prompt_version",
-  "prompt_template_id"
+const requiredParameterDiffFields = [
+  "changed",
+  "previous_parameter_hash",
+  "current_parameter_hash",
+  "previous_parameters",
+  "current_parameters",
+  "changed_keys",
+  "added_keys",
+  "removed_keys",
+  "tool_input_changed",
+  "question_changed"
 ];
-const requiredParameterFields = [
-  "parameters",
-  "parameter_hash",
-  "parameters_recorded"
-];
-const requiredReplayFields = [
-  "snapshot_id",
-  "replay_route",
-  "replay_status",
-  "deterministic_replay_ready"
+const requiredOldReportFields = [
+  "preserved_snapshot_id",
+  "immutable_report_snapshot",
+  "mutation_allowed",
+  "silent_rewrite_allowed"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
@@ -127,8 +114,8 @@ function validateContract(value) {
     return ["contract must be an object"];
   }
 
-  if (value.version !== "2026-06-21.phase2.research-run-save-scaffold.v0") {
-    errors.push("version must match research run save scaffold version");
+  if (value.version !== "2026-06-21.phase2.research-run-replay-scaffold.v0") {
+    errors.push("version must match research run replay scaffold version");
   }
 
   if (value.status !== "local_contract") {
@@ -143,28 +130,34 @@ function validateContract(value) {
     errors.push("runtime_route must be GET /research/runtime");
   }
 
-  if (value.route !== "POST /research/runs/save/plan") {
-    errors.push("route must be POST /research/runs/save/plan");
+  if (value.route !== "POST /research/runs/replay/plan") {
+    errors.push("route must be POST /research/runs/replay/plan");
   }
 
-  if (value.tool_name !== "save_research_run") {
-    errors.push("tool_name must be save_research_run");
+  if (value.tool_name !== "replay_research_run") {
+    errors.push("tool_name must be replay_research_run");
   }
 
   if (value.standard_response_envelope !== true) {
     errors.push("standard_response_envelope must be true");
   }
 
-  for (const field of ["frontend", "live_db_writes", "sql_emitted"]) {
+  for (const field of [
+    "frontend",
+    "live_db_writes",
+    "live_model_calls",
+    "live_tool_execution",
+    "sql_emitted",
+    "old_report_mutation_allowed",
+    "silent_rewrite_allowed"
+  ]) {
     if (value[field] !== false) {
       errors.push(`${field} must be false in this scaffold`);
     }
   }
 
-  for (const field of ["immutable_report_snapshot", "replay_seed_ready"]) {
-    if (value[field] !== true) {
-      errors.push(`${field} must be true`);
-    }
+  if (value.immutable_report_snapshot !== true) {
+    errors.push("immutable_report_snapshot must be true");
   }
 
   errors.push(
@@ -174,7 +167,6 @@ function validateContract(value) {
       "covered_sprint_2_2_items"
     )
   );
-  errors.push(...validateStringArray(value.tables, requiredTables, "tables"));
   errors.push(
     ...validateStringArray(
       value.required_input_fields,
@@ -190,45 +182,30 @@ function validateContract(value) {
     )
   );
   errors.push(
+    ...validateStringArray(value.diff_categories, requiredDiffCategories, "diff_categories")
+  );
+  errors.push(
+    ...validateStringArray(value.data_diff_fields, requiredDataDiffFields, "data_diff_fields")
+  );
+  errors.push(
     ...validateStringArray(
-      value.question_snapshot_fields,
-      requiredQuestionFields,
-      "question_snapshot_fields"
+      value.model_diff_fields,
+      requiredModelDiffFields,
+      "model_diff_fields"
     )
   );
   errors.push(
     ...validateStringArray(
-      value.tool_input_snapshot_fields,
-      requiredToolInputFields,
-      "tool_input_snapshot_fields"
+      value.parameter_diff_fields,
+      requiredParameterDiffFields,
+      "parameter_diff_fields"
     )
   );
   errors.push(
     ...validateStringArray(
-      value.evidence_snapshot_fields,
-      requiredEvidenceFields,
-      "evidence_snapshot_fields"
-    )
-  );
-  errors.push(
-    ...validateStringArray(
-      value.model_snapshot_fields,
-      requiredModelFields,
-      "model_snapshot_fields"
-    )
-  );
-  errors.push(
-    ...validateStringArray(
-      value.parameter_snapshot_fields,
-      requiredParameterFields,
-      "parameter_snapshot_fields"
-    )
-  );
-  errors.push(
-    ...validateStringArray(
-      value.replay_seed_fields,
-      requiredReplayFields,
-      "replay_seed_fields"
+      value.old_report_fields,
+      requiredOldReportFields,
+      "old_report_fields"
     )
   );
   errors.push(...validateNoSecrets(value));

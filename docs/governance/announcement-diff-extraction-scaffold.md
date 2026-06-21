@@ -55,8 +55,9 @@ Tradeoff:
   testable now.
 - Real PDF/HTML parsing, extraction confidence, parser drift, and review UI are
   still future work.
-- Saved run replay and data/model/parameter diffing remain the next
-  research-library bottleneck.
+- Saved run replay and data/model/parameter diff planning are now covered by
+  `docs/governance/research-run-replay-scaffold.md`; live replay execution and
+  frontend rendering remain separate.
 
 ## Verification
 
@@ -112,5 +113,7 @@ Observed root check residual:
 
 - Live original document fetch and parser extraction are not implemented.
 - Live pgvector and SQL execution are not used.
-- Saved research runs, replay, and old-report immutability are not implemented.
+- Saved research runs, backend replay/diff planning, and old-report immutability
+  metadata are covered by the research runtime scaffolds; live replay execution
+  and frontend rendering remain absent.
 - Frontend research-library UI remains delegated.

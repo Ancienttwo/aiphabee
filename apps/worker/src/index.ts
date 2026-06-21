@@ -106,10 +106,13 @@ import {
 } from "@aiphabee/observability";
 import {
   ResearchRunInputError,
+  createResearchRunReplayPlan,
   createResearchRunSavePlan,
   getResearchRuntimeCapabilities,
+  type CreateResearchRunReplayCurrentRunInput,
   type ResearchRunEvidenceInput,
   type ResearchRunJsonValue,
+  type ResearchRunSavePlan,
   type ResearchRunToolCallInput
 } from "@aiphabee/research-runtime";
 import {
@@ -1475,6 +1478,75 @@ app.post("/research/runs/save/plan", async (c) => {
         asOf: new Date().toISOString(),
         dataVersion: "research-run-save-scaffold-v0",
         methodologyVersion: "2026-06-21.phase2.research-run-save-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/research/runs/replay/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createResearchRunReplayPlan({
+      currentRun: normalizeResearchReplayCurrentRun(
+        body.current_run ?? body.currentRun
+      ),
+      replayReason: normalizeString(body.replay_reason ?? body.replayReason),
+      requestId,
+      savedRun: normalizeResearchSavedRun(body.saved_run ?? body.savedRun)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getResearchRuntimeCapabilities()
+        },
+        {
+          asOf: result.as_of,
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof ResearchRunInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          dataVersion: "research-run-replay-scaffold-v0",
+          methodologyVersion:
+            "2026-06-21.phase2.research-run-replay-scaffold.v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "research run replay plan failed", {
+        asOf: new Date().toISOString(),
+        dataVersion: "research-run-replay-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase2.research-run-replay-scaffold.v0",
         requestId,
         usage: {
           cached: false,
@@ -3782,6 +3854,40 @@ function normalizeResearchParameters(
     .filter((entry): entry is readonly [string, ResearchRunJsonValue] => entry[1] !== undefined);
 
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function normalizeResearchReplayCurrentRun(
+  value: unknown
+): CreateResearchRunReplayCurrentRunInput | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    answerHash: normalizeString(value.answer_hash ?? value.answerHash),
+    asOf: normalizeString(value.as_of ?? value.asOf),
+    channel: normalizeResearchChannel(value.channel),
+    evidenceRecords: normalizeResearchEvidenceRecords(
+      value.evidence_records ?? value.evidenceRecords
+    ),
+    modelProvider: normalizeString(value.model_provider ?? value.modelProvider),
+    modelVersion: normalizeString(value.model_version ?? value.modelVersion),
+    parameters: normalizeResearchParameters(value.parameters),
+    promptTemplateId: normalizeString(
+      value.prompt_template_id ?? value.promptTemplateId
+    ),
+    promptVersion: normalizeString(value.prompt_version ?? value.promptVersion),
+    question: normalizeString(value.question),
+    requestId: normalizeString(value.request_id ?? value.requestId),
+    runId: normalizeString(value.run_id ?? value.runId),
+    toolCalls: normalizeResearchToolCalls(value.tool_calls ?? value.toolCalls),
+    userId: normalizeString(value.user_id ?? value.userId),
+    workspaceId: normalizeString(value.workspace_id ?? value.workspaceId)
+  };
+}
+
+function normalizeResearchSavedRun(value: unknown): ResearchRunSavePlan | undefined {
+  return isPlainRecord(value) ? (value as unknown as ResearchRunSavePlan) : undefined;
 }
 
 function normalizeResearchJsonValue(value: unknown): ResearchRunJsonValue | undefined {

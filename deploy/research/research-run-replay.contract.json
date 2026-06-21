@@ -1,0 +1,88 @@
+{
+  "version": "2026-06-21.phase2.research-run-replay-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/research-runtime",
+  "runtime_route": "GET /research/runtime",
+  "route": "POST /research/runs/replay/plan",
+  "tool_name": "replay_research_run",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_db_writes": false,
+  "live_model_calls": false,
+  "live_tool_execution": false,
+  "sql_emitted": false,
+  "immutable_report_snapshot": true,
+  "old_report_mutation_allowed": false,
+  "silent_rewrite_allowed": false,
+  "covered_sprint_2_2_items": [
+    "RES-02",
+    "research_run_replay",
+    "data_model_parameter_diff",
+    "old_report_immutable"
+  ],
+  "required_input_fields": [
+    "saved_run",
+    "current_run"
+  ],
+  "required_output_fields": [
+    "saved_snapshot_id",
+    "replay_snapshot_id",
+    "diff_summary",
+    "diffs",
+    "old_report",
+    "replay_execution",
+    "current_run_plan"
+  ],
+  "diff_categories": [
+    "data",
+    "model",
+    "parameters"
+  ],
+  "data_diff_fields": [
+    "changed",
+    "previous_evidence_hash",
+    "current_evidence_hash",
+    "previous_source_record_ids",
+    "current_source_record_ids",
+    "changed_source_record_ids",
+    "data_version_changed",
+    "changed_data_versions"
+  ],
+  "model_diff_fields": [
+    "changed",
+    "previous_model_provider",
+    "current_model_provider",
+    "previous_model_version",
+    "current_model_version",
+    "previous_prompt_version",
+    "current_prompt_version",
+    "model_provider_changed",
+    "model_version_changed",
+    "prompt_version_changed",
+    "prompt_template_changed"
+  ],
+  "parameter_diff_fields": [
+    "changed",
+    "previous_parameter_hash",
+    "current_parameter_hash",
+    "previous_parameters",
+    "current_parameters",
+    "changed_keys",
+    "added_keys",
+    "removed_keys",
+    "tool_input_changed",
+    "question_changed"
+  ],
+  "old_report_fields": [
+    "preserved_snapshot_id",
+    "immutable_report_snapshot",
+    "mutation_allowed",
+    "silent_rewrite_allowed"
+  ],
+  "forbidden_payloads": [
+    "raw_prompt",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

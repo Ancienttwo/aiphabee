@@ -26,8 +26,9 @@ complete research run snapshots.
 ## Non-Goals
 
 - No live DB/R2 writes.
-- No replay execution.
-- No data/model/parameter diffing.
+- No live replay execution.
+- Backend replay/diff planning is covered by
+  `tasks/notes/research-run-replay-scaffold.notes.md`.
 - No old-report mutation workflow.
 - No frontend research-library UI.
 

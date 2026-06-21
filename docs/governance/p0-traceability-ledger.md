@@ -104,7 +104,8 @@ DoD.
 | DOC-02 原文定位摘录 | AIP-P0-DOC-02 | Document Engineering / Product | 2.2 | Citation locator tests | Sprint 2.2 exit: excerpts locate to page/paragraph/source record | Backend scaffold complete via `get_announcement`; live original document fetch/full document return/frontend remain open |
 | DOC-03 文档作不可信数据 | AIP-P0-DOC-03 | Security Engineering / Document | 2.2 / Always-on A3 | Prompt-injection fixture tests | Sprint 2.2 exit: document text cannot change system/tool policy | Backend document sanitizer scaffold complete for announcement excerpts via `document_sanitizer`; webpage/user-input sanitizer coverage remains open |
 | DOC-04 跨期差异/数字抽取 | AIP-P1-DOC-04 | Document Engineering | 2.2 | Schema-bound numeric diff tests | Sprint 2.2 exit: extracted values bind to source location and validate against schema | Backend scaffold complete via `diff_announcements`; live parser/original document fetch/frontend remain open |
-| RES-01 保存完整 run | AIP-P0-RES-01 | Product Engineering / Platform | 2.2 | Run persistence and replay contract tests | Sprint 2.2 exit: saved run includes question/tools/evidence/model/prompt versions | Backend save-plan scaffold complete via `save_research_run`; live DB/R2 writes/replay execution/frontend remain open |
+| RES-01 保存完整 run | AIP-P0-RES-01 | Product Engineering / Platform | 2.2 | Run persistence and replay contract tests | Sprint 2.2 exit: saved run includes question/tools/evidence/model/prompt versions | Backend save-plan scaffold complete via `save_research_run`; live DB/R2 writes/frontend remain open |
+| RES-02 重跑对比差异 | AIP-P1-RES-02 | Product Engineering / Platform | 2.2 | Saved/current run diff contract tests | Sprint 2.2 exit: saved run can be replay-planned and diffed by data/model/parameters | Backend replay/diff scaffold complete via `replay_research_run`; live DB/R2 replay execution/frontend remain open |
 
 ## MCP Platform
 

@@ -39,6 +39,7 @@
     "tool_input_snapshot",
     "evidence_snapshot",
     "model_snapshot",
+    "parameter_snapshot",
     "schema_validation",
     "replay_seed",
     "persistence_plan",
@@ -72,6 +73,11 @@
     "model_version",
     "prompt_version",
     "prompt_template_id"
+  ],
+  "parameter_snapshot_fields": [
+    "parameters",
+    "parameter_hash",
+    "parameters_recorded"
   ],
   "replay_seed_fields": [
     "snapshot_id",

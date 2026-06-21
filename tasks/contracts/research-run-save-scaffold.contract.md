@@ -39,6 +39,6 @@ Complete the backend-only Sprint 2.2 RES-01 research run save scaffold:
 - Worker and package typecheck/build pass.
 - Local Worker smoke proves complete save-plan payload and missing-field
   rejection.
-- Sprint tracker row is checked only for RES-01; replay execution,
-  data/model/parameter diffing, old-report immutability workflow, and frontend
-  UI remain open.
+- Sprint tracker row is checked only for RES-01; backend replay/diff planning is
+  covered by `research-run-replay-scaffold`, while live replay execution,
+  notification workflow, and frontend UI remain open.

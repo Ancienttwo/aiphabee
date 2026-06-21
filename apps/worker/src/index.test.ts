@@ -1432,12 +1432,15 @@ interface ResearchRuntimeBody {
   data: {
     immutable_report_snapshot: boolean;
     live_db_writes: boolean;
+    replay_diff_ready: boolean;
+    replay_route: string;
     replay_seed_ready: boolean;
     required_fields: string[];
     route: string;
     runtime_route: string;
     sql_emitted: boolean;
     status: string;
+    supported_diffs: string[];
     supported_snapshots: string[];
     tables: string[];
     tool_name: string;
@@ -1454,6 +1457,8 @@ interface ResearchRunSavePlanBody {
     capability: {
       immutable_report_snapshot: boolean;
       live_db_writes: boolean;
+      replay_diff_ready: boolean;
+      replay_route: string;
       replay_seed_ready: boolean;
       route: string;
       status: string;
@@ -1480,6 +1485,11 @@ interface ResearchRunSavePlanBody {
       model_version: string;
       prompt_template_id?: string;
       prompt_version: string;
+    };
+    parameter_snapshot: {
+      parameter_hash: string;
+      parameters: Record<string, unknown>;
+      parameters_recorded: boolean;
     };
     persistence_plan: {
       old_report_mutation_allowed: boolean;
@@ -1531,6 +1541,70 @@ interface ResearchRunSavePlanBody {
     credits: number;
     rows: number;
   };
+}
+
+interface ResearchRunReplayPlanBody {
+  data: {
+    capability: {
+      live_db_writes: boolean;
+      replay_diff_ready: boolean;
+      replay_route: string;
+      replay_tool_name: string;
+    };
+    current_run_plan: ResearchRunSavePlanBody["data"];
+    diff_summary: {
+      categories: string[];
+      changed: boolean;
+      data_changed: boolean;
+      model_changed: boolean;
+      parameters_changed: boolean;
+    };
+    diffs: {
+      data: {
+        changed: boolean;
+        changed_source_record_ids: string[];
+        current_source_record_ids: string[];
+        data_version_changed: boolean;
+        previous_source_record_ids: string[];
+      };
+      model: {
+        changed: boolean;
+        current_model_version: string;
+        current_prompt_version: string;
+        model_version_changed: boolean;
+        previous_model_version: string;
+        prompt_version_changed: boolean;
+      };
+      parameters: {
+        added_keys: string[];
+        changed: boolean;
+        changed_keys: string[];
+        question_changed: boolean;
+        removed_keys: string[];
+        tool_input_changed: boolean;
+      };
+    };
+    old_report: {
+      immutable_report_snapshot: boolean;
+      mutation_allowed: boolean;
+      preserved_snapshot_id: string;
+      silent_rewrite_allowed: boolean;
+    };
+    replay_execution: {
+      execution_status: string;
+      live_model_call: boolean;
+      live_tool_execution: boolean;
+      sql_emitted: boolean;
+    };
+    replay_reason?: string;
+    replay_snapshot_id: string;
+    route: string;
+    saved_snapshot_id: string;
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
 }
 
 interface DatabaseRuntimeBody {
@@ -5038,6 +5112,8 @@ describe("worker runtime", () => {
     expect(body.data).toMatchObject({
       immutable_report_snapshot: true,
       live_db_writes: false,
+      replay_diff_ready: true,
+      replay_route: "POST /research/runs/replay/plan",
       replay_seed_ready: true,
       route: "POST /research/runs/save/plan",
       runtime_route: "GET /research/runtime",
@@ -5052,12 +5128,14 @@ describe("worker runtime", () => {
       "model_version",
       "prompt_version"
     ]);
+    expect(body.data.supported_diffs).toEqual(["data", "model", "parameters"]);
     expect(body.data.supported_snapshots).toEqual([
       "question",
       "tool_inputs",
       "evidence_records",
       "model_version",
-      "prompt_version"
+      "prompt_version",
+      "parameters"
     ]);
     expect(body.data.tables).toEqual([
       "core.research_run",
@@ -5091,6 +5169,10 @@ describe("worker runtime", () => {
         ],
         model_provider: "cloudflare_ai_gateway",
         model_version: "gpt-5.4-dry-run",
+        parameters: {
+          comparison_periods: 2,
+          currency: "HKD"
+        },
         prompt_template_id: "research-summary-v0",
         prompt_version: "prompt.research-summary.v0",
         question:
@@ -5150,11 +5232,21 @@ describe("worker runtime", () => {
     expect(body.data.capability).toMatchObject({
       immutable_report_snapshot: true,
       live_db_writes: false,
+      replay_diff_ready: true,
+      replay_route: "POST /research/runs/replay/plan",
       replay_seed_ready: true,
       route: "POST /research/runs/save/plan",
       status: "research_run_save_scaffold",
       tool_name: "save_research_run"
     });
+    expect(body.data.parameter_snapshot).toMatchObject({
+      parameters: {
+        comparison_periods: 2,
+        currency: "HKD"
+      },
+      parameters_recorded: true
+    });
+    expect(body.data.parameter_snapshot.parameter_hash).toMatch(/^[a-f0-9]{8}$/u);
     expect(body.data.schema_validation).toEqual({
       errors: [],
       required_fields: [
@@ -5218,6 +5310,190 @@ describe("worker runtime", () => {
       workspace_id: "workspace_research"
     });
     expect(body.usage.rows).toBe(3);
+  });
+
+  it("plans saved research run replay diffs without mutating old reports", async () => {
+    const saveResponse = await app.request("/research/runs/save/plan", {
+      body: JSON.stringify({
+        evidence_records: [
+          {
+            data_version: "data-v0",
+            evidence_record_id: "evidence_00700_old",
+            methodology_version: "method-v0",
+            source_record_ids: ["src_00700_old"]
+          }
+        ],
+        model_provider: "cloudflare_ai_gateway",
+        model_version: "gpt-5.4-dry-run",
+        parameters: {
+          currency: "HKD",
+          period_count: 2
+        },
+        prompt_template_id: "research-summary-v0",
+        prompt_version: "prompt.research-summary.v0",
+        question: "Compare Tencent annual revenue across periods.",
+        run_id: "run_00700_research",
+        tool_calls: [
+          {
+            data_version: "data-v0",
+            input: {
+              document_id: "doc_ann_00700_20240320_results"
+            },
+            methodology_version: "method-v0",
+            request_id: "req-tool-old",
+            tool_call_id: "tool_call_diff_announcements_1",
+            tool_name: "diff_announcements",
+            tool_version: "tool-v0"
+          }
+        ],
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-save-for-replay"
+      },
+      method: "POST"
+    });
+    const saved = (await saveResponse.json()) as ResearchRunSavePlanBody;
+
+    const replayResponse = await app.request("/research/runs/replay/plan", {
+      body: JSON.stringify({
+        current_run: {
+          evidence_records: [
+            {
+              data_version: "data-v1",
+              evidence_record_id: "evidence_00700_new",
+              methodology_version: "method-v1",
+              source_record_ids: ["src_00700_new"]
+            }
+          ],
+          model_provider: "cloudflare_ai_gateway",
+          model_version: "gpt-5.5-dry-run",
+          parameters: {
+            currency: "USD",
+            include_segments: true,
+            period_count: 2
+          },
+          prompt_template_id: "research-summary-v0",
+          prompt_version: "prompt.research-summary.v1",
+          question: "Compare Tencent annual revenue across periods.",
+          tool_calls: [
+            {
+              data_version: "data-v1",
+              input: {
+                document_id: "doc_ann_00700_20250320_results"
+              },
+              methodology_version: "method-v1",
+              request_id: "req-tool-new",
+              tool_call_id: "tool_call_diff_announcements_1",
+              tool_name: "diff_announcements",
+              tool_version: "tool-v1"
+            }
+          ],
+          workspace_id: "workspace_research"
+        },
+        replay_reason: "new annual results filing",
+        saved_run: saved.data
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-replay"
+      },
+      method: "POST"
+    });
+    const body = (await replayResponse.json()) as ResearchRunReplayPlanBody;
+
+    expect(saveResponse.status).toBe(200);
+    expect(replayResponse.status).toBe(200);
+    expect(replayResponse.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      old_report: {
+        immutable_report_snapshot: true,
+        mutation_allowed: false,
+        preserved_snapshot_id: saved.data.snapshot_id,
+        silent_rewrite_allowed: false
+      },
+      replay_execution: {
+        execution_status: "planned_no_write",
+        live_model_call: false,
+        live_tool_execution: false,
+        sql_emitted: false
+      },
+      replay_reason: "new annual results filing",
+      route: "POST /research/runs/replay/plan",
+      saved_snapshot_id: saved.data.snapshot_id,
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "replay_research_run"
+    });
+    expect(body.data.capability).toMatchObject({
+      live_db_writes: false,
+      replay_diff_ready: true,
+      replay_route: "POST /research/runs/replay/plan",
+      replay_tool_name: "replay_research_run"
+    });
+    expect(body.data.diff_summary).toEqual({
+      categories: ["data", "model", "parameters"],
+      changed: true,
+      data_changed: true,
+      model_changed: true,
+      parameters_changed: true
+    });
+    expect(body.data.diffs.data).toMatchObject({
+      changed: true,
+      changed_source_record_ids: ["src_00700_new", "src_00700_old"],
+      current_source_record_ids: ["src_00700_new"],
+      data_version_changed: true,
+      previous_source_record_ids: ["src_00700_old"]
+    });
+    expect(body.data.diffs.model).toMatchObject({
+      changed: true,
+      current_model_version: "gpt-5.5-dry-run",
+      current_prompt_version: "prompt.research-summary.v1",
+      model_version_changed: true,
+      previous_model_version: "gpt-5.4-dry-run",
+      prompt_version_changed: true
+    });
+    expect(body.data.diffs.parameters).toMatchObject({
+      added_keys: ["include_segments"],
+      changed: true,
+      changed_keys: ["currency"],
+      question_changed: false,
+      removed_keys: [],
+      tool_input_changed: true
+    });
+    expect(body.data.replay_snapshot_id).toBe(
+      body.data.current_run_plan.snapshot_id
+    );
+    expect(body.data.current_run_plan.parameter_snapshot.parameters).toEqual({
+      currency: "USD",
+      include_segments: true,
+      period_count: 2
+    });
+  });
+
+  it("rejects incomplete research run replay plans with standard errors", async () => {
+    const response = await app.request("/research/runs/replay/plan", {
+      body: JSON.stringify({
+        current_run: {
+          model_version: "gpt-5.5-dry-run",
+          prompt_version: "prompt.research-summary.v1",
+          question: "Compare Tencent"
+        }
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-replay-invalid"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
   });
 
   it("rejects incomplete research run save plans with standard errors", async () => {

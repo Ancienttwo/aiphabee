@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ResearchRunInputError,
+  createResearchRunReplayPlan,
   createResearchRunSavePlan,
   getResearchRuntimeCapabilities
 } from "./index";
@@ -13,6 +14,8 @@ describe("research run save scaffold", () => {
       live_db_writes: false,
       package: "@aiphabee/research-runtime",
       replay_seed_ready: true,
+      replay_diff_ready: true,
+      replay_route: "POST /research/runs/replay/plan",
       route: "POST /research/runs/save/plan",
       runtime_route: "GET /research/runtime",
       sql_emitted: false,
@@ -25,6 +28,11 @@ describe("research run save scaffold", () => {
       "evidence_records",
       "model_version",
       "prompt_version"
+    ]);
+    expect(getResearchRuntimeCapabilities().supported_diffs).toEqual([
+      "data",
+      "model",
+      "parameters"
     ]);
   });
 
@@ -50,6 +58,10 @@ describe("research run save scaffold", () => {
       ],
       modelProvider: "cloudflare_ai_gateway",
       modelVersion: "gpt-5.4-dry-run",
+      parameters: {
+        comparison_periods: 2,
+        currency: "HKD"
+      },
       promptTemplateId: "research-summary-v0",
       promptVersion: "prompt.research-summary.v0",
       question: "Compare Tencent annual revenue and operating profit across periods.",
@@ -98,6 +110,14 @@ describe("research run save scaffold", () => {
       status: "planned_no_write",
       toolName: "save_research_run"
     });
+    expect(plan.parameter_snapshot).toMatchObject({
+      parameters: {
+        comparison_periods: 2,
+        currency: "HKD"
+      },
+      parameters_recorded: true
+    });
+    expect(plan.parameter_snapshot.parameter_hash).toMatch(/^[a-f0-9]{8}$/u);
     expect(plan.schema_validation).toEqual({
       errors: [],
       required_fields: [
@@ -164,6 +184,144 @@ describe("research run save scaffold", () => {
       workspace_id: "workspace_research"
     });
     expect(plan.usage.rows).toBe(3);
+  });
+
+  it("plans saved run replay with data, model, and parameter diffs", () => {
+    const savedPlan = createResearchRunSavePlan({
+      evidenceRecords: [
+        {
+          dataVersion: "data-v0",
+          evidenceRecordId: "evidence_00700_old",
+          methodologyVersion: "method-v0",
+          sourceRecordIds: ["src_00700_old"]
+        }
+      ],
+      modelProvider: "cloudflare_ai_gateway",
+      modelVersion: "gpt-5.4-dry-run",
+      parameters: {
+        currency: "HKD",
+        period_count: 2
+      },
+      promptTemplateId: "research-summary-v0",
+      promptVersion: "prompt.research-summary.v0",
+      question: "Compare Tencent annual revenue across periods.",
+      requestId: "req-research-save-for-replay",
+      runId: "run_00700_research",
+      toolCalls: [
+        {
+          dataVersion: "data-v0",
+          input: {
+            document_id: "doc_ann_00700_20240320_results"
+          },
+          methodologyVersion: "method-v0",
+          requestId: "req-tool-old",
+          toolCallId: "tool_call_diff_announcements_1",
+          toolName: "diff_announcements",
+          toolVersion: "tool-v0"
+        }
+      ]
+    });
+
+    const replayPlan = createResearchRunReplayPlan({
+      currentRun: {
+        evidenceRecords: [
+          {
+            dataVersion: "data-v1",
+            evidenceRecordId: "evidence_00700_new",
+            methodologyVersion: "method-v1",
+            sourceRecordIds: ["src_00700_new"]
+          }
+        ],
+        modelProvider: "cloudflare_ai_gateway",
+        modelVersion: "gpt-5.5-dry-run",
+        parameters: {
+          currency: "USD",
+          include_segments: true,
+          period_count: 2
+        },
+        promptTemplateId: "research-summary-v0",
+        promptVersion: "prompt.research-summary.v1",
+        question: "Compare Tencent annual revenue across periods.",
+        toolCalls: [
+          {
+            dataVersion: "data-v1",
+            input: {
+              document_id: "doc_ann_00700_20250320_results"
+            },
+            methodologyVersion: "method-v1",
+            requestId: "req-tool-new",
+            toolCallId: "tool_call_diff_announcements_1",
+            toolName: "diff_announcements",
+            toolVersion: "tool-v1"
+          }
+        ]
+      },
+      replayReason: "new annual results filing",
+      requestId: "req-research-replay",
+      savedRun: savedPlan
+    });
+
+    expect(replayPlan).toMatchObject({
+      frontend_rendering: false,
+      immutable_report_snapshot: true,
+      live_db_writes: false,
+      old_report: {
+        immutable_report_snapshot: true,
+        mutation_allowed: false,
+        preserved_snapshot_id: savedPlan.snapshot_id,
+        silent_rewrite_allowed: false
+      },
+      replay_execution: {
+        execution_status: "planned_no_write",
+        live_model_call: false,
+        live_tool_execution: false,
+        sql_emitted: false
+      },
+      replay_reason: "new annual results filing",
+      route: "POST /research/runs/replay/plan",
+      saved_snapshot_id: savedPlan.snapshot_id,
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "replay_research_run"
+    });
+    expect(replayPlan.diff_summary).toEqual({
+      categories: ["data", "model", "parameters"],
+      changed: true,
+      data_changed: true,
+      model_changed: true,
+      parameters_changed: true
+    });
+    expect(replayPlan.diffs.data).toMatchObject({
+      changed: true,
+      changed_source_record_ids: ["src_00700_new", "src_00700_old"],
+      current_source_record_ids: ["src_00700_new"],
+      data_version_changed: true,
+      previous_source_record_ids: ["src_00700_old"]
+    });
+    expect(replayPlan.diffs.model).toMatchObject({
+      changed: true,
+      current_model_version: "gpt-5.5-dry-run",
+      current_prompt_version: "prompt.research-summary.v1",
+      model_version_changed: true,
+      previous_model_version: "gpt-5.4-dry-run",
+      prompt_version_changed: true
+    });
+    expect(replayPlan.diffs.parameters).toMatchObject({
+      added_keys: ["include_segments"],
+      changed: true,
+      changed_keys: ["currency"],
+      question_changed: false,
+      removed_keys: [],
+      tool_input_changed: true
+    });
+    expect(replayPlan.replay_snapshot_id).toBe(
+      replayPlan.current_run_plan.snapshot_id
+    );
+    expect(replayPlan.current_run_plan.parameter_snapshot.parameters).toEqual({
+      currency: "USD",
+      include_segments: true,
+      period_count: 2
+    });
   });
 
   it("rejects incomplete research run save plans", () => {

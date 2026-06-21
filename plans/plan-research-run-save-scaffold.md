@@ -28,6 +28,6 @@ research run snapshots.
 
 - No live DB writes
 - No report UI
-- No replay execution
-- No data/model/parameter diff rendering
+- No live replay execution
+- No frontend data/model/parameter diff rendering
 - No old-report mutation workflow

@@ -63,7 +63,7 @@ owner: "Planner / PM"
 | 1.3 | Web Agent Runtime + Ask + 证据卡片 | 🟦 | 10 / 10 | ☐ |
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
-| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 6 / 9 | ☐ |
+| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | ⬜ | 0 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
@@ -302,11 +302,11 @@ owner: "Planner / PM"
 - [x] pgvector/semantic 公告文件检索后端 scaffold：新增 `search_documents`、`POST /documents/search-documents`、`GET /documents/runtime` capability、`deploy/documents/search-documents.contract.json` 与 `npm run check:search-documents`，覆盖 synthetic pgvector-style chunk ranking、`pgvector_first=true`、`vectorize_optional=true`、metadata filter pushdown、query/date/category/document/language/min_score/limit filters、sanitized snippets、similarity_score、rank、score_explanation、page/paragraph/source locator；live pgvector/SQL execution/Vectorize/original document fetch/frontend UI 未启用（§11.4 搜索）
 - [x] 跨期公告差异与关键数字抽取后端 scaffold：新增 `diff_announcements`、`POST /documents/diff-announcements`、`GET /documents/runtime` capability、`deploy/documents/announcement-diff-extraction.contract.json` 与 `npm run check:announcement-diff-extraction`，覆盖 FY2023/FY2024 synthetic annual results 对比、revenue/operating_profit schema-bound 抽取、`announcement_numeric_extraction_v0` 校验、base/comparison absolute/percent change 与每个抽取值/差异侧 page/paragraph/source locator；live parser/original document fetch/SQL/frontend UI 未启用（DOC-04）
 - [x] `RES-01` 保存完整研究 run 后端 save-plan scaffold：新增 `@aiphabee/research-runtime`、`GET /research/runtime`、`POST /research/runs/save/plan`、`deploy/research/research-run-save.contract.json` 与 `npm run check:research-run-save`，覆盖 question/tool input/evidence/model/prompt version snapshots、immutable `snapshot_id`、`replay_seed`、`old_report_mutation_allowed=false` 与 missing required field rejection；live DB/R2 writes/replay execution/frontend UI 未启用（RES-01、US-W08）
-- [ ] 重新运行并对比差异，区分数据/模型/参数变化（RES-02、US-W08）
-- [ ] 旧报告不被新数据静默改写（RES-02、§8.5）
+- [x] 重新运行并对比差异后端 replay/diff scaffold：新增 `createResearchRunReplayPlan`、`POST /research/runs/replay/plan`、`deploy/research/research-run-replay.contract.json` 与 `npm run check:research-run-replay`，支持 saved run + current run no-write replay planning，并把差异分为 data/model/parameters；live DB/R2 reads/writes、live tool/model execution、frontend diff UI 未启用（RES-02、US-W08）
+- [x] 旧报告不被新数据静默改写后端 immutability scaffold：replay response 返回 `old_report.preserved_snapshot_id`、`mutation_allowed=false`、`silent_rewrite_allowed=false`、`immutable_report_snapshot=true` 与 no-write `replay_execution`；notification workflow/frontend research library 未启用（RES-02、§8.5）
 - [ ] 研究库 Web UI（PRD §5.1 研究库）
 
-**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☑ 文档内恶意指令不触发工具（backend sanitizer fixture）　☐ 保存 run 可重放并显示差异
+**退出门槛 DoD：** ☑ 引用可定位到页/段（backend synthetic locator）　☑ 文档内恶意指令不触发工具（backend sanitizer fixture）　☑ 保存 run 可重放并显示差异（backend replay/diff plan）
 
 ### Sprint 2.3 — Remote MCP OAuth + Developer Console　⬜
 **目标：** 对外 Remote MCP 产品（依赖 Gate 0 的 MCP 再分发权）。
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0bz | 完成 `research-run-replay-scaffold`：扩展 `@aiphabee/research-runtime` `parameter_snapshot` 与 `createResearchRunReplayPlan`，新增 `POST /research/runs/replay/plan`、`deploy/research/research-run-replay.contract.json` 与 `npm run check:research-run-replay`，覆盖 saved/current run no-write replay、data/model/parameters diff、`old_report.preserved_snapshot_id`、`mutation_allowed=false`、`silent_rewrite_allowed=false`；live DB/R2 writes、live tool/model execution、frontend 未启用，Sprint 2.2 更新为 8/9 |
 | 2026-06-21 | 1.0by | 完成 `research-run-save-scaffold`：新增 `@aiphabee/research-runtime`、`GET /research/runtime`、`POST /research/runs/save/plan`、`deploy/research/research-run-save.contract.json` 与 `npm run check:research-run-save`，覆盖 question/tool input/evidence/model/prompt version snapshots、immutable `snapshot_id`、`replay_seed`、`old_report_mutation_allowed=false` 与 missing required field rejection；live DB/R2 writes/replay execution/frontend 未启用，Sprint 2.2 更新为 6/9 |
 | 2026-06-21 | 1.0bx | 完成 `announcement-diff-extraction-scaffold`：新增 `diff_announcements`、`POST /documents/diff-announcements`、`GET /documents/runtime` capability、`deploy/documents/announcement-diff-extraction.contract.json` 与 `npm run check:announcement-diff-extraction`，覆盖 FY2023/FY2024 synthetic annual results 对比、revenue/operating_profit schema-bound 抽取、`announcement_numeric_extraction_v0` 校验、base/comparison absolute/percent change 与 page/paragraph/source locator；live parser/original document fetch/SQL/frontend 未启用，Sprint 2.2 更新为 5/9 |
 | 2026-06-21 | 1.0bw | 完成 `semantic-document-search-scaffold`：新增 `search_documents`、`POST /documents/search-documents`、`GET /documents/runtime` capability、`deploy/documents/search-documents.contract.json` 与 `npm run check:search-documents`，覆盖 synthetic pgvector-style chunk ranking、`pgvector_first=true`、`vectorize_optional=true`、metadata filter pushdown、query/date/category/document/language/min_score/limit filters、sanitized snippets、similarity_score/rank/score_explanation 与 page/paragraph/source locator；live pgvector/SQL execution/Vectorize/original document fetch/frontend 未启用，Sprint 2.2 更新为 4/9 |

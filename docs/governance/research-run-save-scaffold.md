@@ -53,8 +53,9 @@ Tradeoff:
 - The run snapshot payload, required fields, immutable snapshot ID, and replay
   seed are executable and testable now.
 - This is not yet a durable DB write.
-- RES-02 remains responsible for rerun execution and data/model/parameter diff
-  rendering.
+- RES-02 replay/diff planning is covered by
+  `docs/governance/research-run-replay-scaffold.md`; live replay execution and
+  frontend rendering remain separate.
 
 ## Verification
 
@@ -109,7 +110,7 @@ Observed root check residual:
 ## Residual Gaps
 
 - Live DB/R2 writes are not implemented.
-- Replay execution is not implemented.
-- Data/model/parameter diffing is not implemented.
-- Old-report mutation/notification workflow is not implemented.
+- Live replay execution is not implemented.
+- Old-report mutation is blocked in replay planning; notification workflow is
+  not implemented.
 - Frontend research-library UI remains delegated.
