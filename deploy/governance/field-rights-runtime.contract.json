@@ -1,0 +1,82 @@
+{
+  "version": "2026-06-22.field-rights-runtime-closeout.v0",
+  "status": "local_contract",
+  "tracker_item": "A2.DAT-05 field rights runtime execution",
+  "scope": "data_access_gateway_runtime_field_rights",
+  "runtime_route": "GET /gateway/runtime",
+  "access_route": "POST /gateway/access-check",
+  "frontend": false,
+  "live_data_access": false,
+  "live_db_reads": false,
+  "partner_rights_matrix_loaded": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "required_dimensions": [
+    "workspace",
+    "plan",
+    "channel",
+    "dataset",
+    "field",
+    "time_range",
+    "export"
+  ],
+  "required_channels": ["web", "mcp", "api", "export"],
+  "required_denial_reasons": [
+    "channel_blocked",
+    "field_blocked",
+    "field_default_deny",
+    "workspace_entitlement_blocked",
+    "workspace_entitlement_default_deny",
+    "export_blocked",
+    "time_range_blocked"
+  ],
+  "required_gateway_guards": [
+    "channel_rights_default_deny",
+    "field_redaction",
+    "field_entitlement_policy_source_scaffold",
+    "workspace_entitlement_default_deny",
+    "plan_entitlement",
+    "export_entitlement",
+    "time_range_limit",
+    "cache_key_versioning"
+  ],
+  "required_cache_key_fields": [
+    "dataset",
+    "channel",
+    "plan",
+    "workspace_id",
+    "allowed_fields",
+    "export_requested",
+    "data_version",
+    "rights_policy_version",
+    "methodology_version",
+    "time_range"
+  ],
+  "runtime_evidence": [
+    "DataAccessRequest carries channel, plan, dataset, requested_fields, workspace_id, time_range, and export_requested",
+    "evaluateDataAccessRequest delegates field decisions to evaluateFields before serving plans are emitted",
+    "evaluateWorkspaceEntitlement matches workspace, plan, dataset, channel, and field pattern",
+    "blocked entitlement rows win before approved rows",
+    "export and max time-window denial reasons are emitted at runtime",
+    "createPolicyFromEntitlementRows compiles row snapshots into Gateway policy without live DB reads",
+    "Worker GET /gateway/runtime exposes field_entitlement_enforcement dimensions and policy_source"
+  ],
+  "not_claimed": [
+    "partner_signed_rights_matrix",
+    "live_partner_rights_matrix_load",
+    "live_db_entitlement_reads",
+    "live_serving_sql_execution",
+    "persistent_usage_writes",
+    "frontend_rights_ops_ui"
+  ],
+  "linked_contracts": [
+    "deploy/gateway/access.contract.json",
+    "deploy/gateway/field-authorization-config.contract.json",
+    "deploy/gateway/p0-rights-matrix-coverage.contract.json",
+    "packages/data-access-gateway/src/index.ts",
+    "packages/data-access-gateway/src/index.test.ts",
+    "apps/worker/src/index.ts",
+    "docs/governance/field-entitlement-enforcement-scaffold.md",
+    "docs/governance/field-entitlement-policy-source-scaffold.md"
+  ]
+}
