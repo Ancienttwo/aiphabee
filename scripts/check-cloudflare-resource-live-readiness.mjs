@@ -7,6 +7,7 @@ const bindingsContractPath = "deploy/cloudflare/bindings.contract.json";
 const envSchemaPath = "deploy/env/env.schema.json";
 const packageJsonPath = "package.json";
 const smokeScriptPath = "scripts/smoke-cloudflare-resources-live.mjs";
+const functionalSmokeScriptPath = "scripts/smoke-cloudflare-bindings-wrangler-live.mjs";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 
 const requiredEnv = [
@@ -40,6 +41,20 @@ const requiredOutputFields = [
   "missing_resources",
   "permission_errors",
   "response_hash"
+];
+const requiredFunctionalSurfaces = [
+  ["AIPHABEE_CONFIG", "kv_put_get_delete"],
+  ["AIPHABEE_ARTIFACTS", "r2_put_get_delete"],
+  ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"]
+];
+const requiredRemainingFunctionalSurfaces = [
+  ["AIPHABEE_EVENTS_QUEUE", "queue_publish_consume_smoke"],
+  ["aiphabee-worker", "worker_runtime_binding_smoke"],
+  ["AIPHABEE_RESEARCH_WORKFLOW", "workflow_instance_execution"],
+  ["AIPHABEE_MAINTENANCE_CRON", "cron_trigger_smoke"],
+  ["AIPHABEE_RUN_COORDINATOR", "durable_object_state_smoke"],
+  ["AIPHABEE_AI_GATEWAY", "ai_gateway_model_request_smoke"],
+  ["AIPHABEE_HYPERDRIVE", "hyperdrive_select_1_smoke"]
 ];
 const forbiddenOutputFields = [
   "authorization",
@@ -93,6 +108,7 @@ const bindingsContract = readJson(bindingsContractPath);
 const envSchema = readJson(envSchemaPath);
 const packageJson = readJson(packageJsonPath);
 const smokeScript = readText(smokeScriptPath);
+const functionalSmokeScript = readText(functionalSmokeScriptPath);
 const tracker = readText(trackerPath);
 const errors = validateContract(
   contract,
@@ -100,6 +116,7 @@ const errors = validateContract(
   envSchema,
   packageJson,
   smokeScript,
+  functionalSmokeScript,
   tracker
 );
 
@@ -130,6 +147,7 @@ function validateContract(
   envValue,
   packageValue,
   smokeScriptValue,
+  functionalSmokeScriptValue,
   trackerValue
 ) {
   const errors = [];
@@ -154,6 +172,10 @@ function validateContract(
     errors.push(`live_smoke_script must be ${smokeScriptPath}`);
   }
 
+  if (value.functional_smoke_script !== functionalSmokeScriptPath) {
+    errors.push(`functional_smoke_script must be ${functionalSmokeScriptPath}`);
+  }
+
   if (value.readiness_check_script !== "scripts/check-cloudflare-resource-live-readiness.mjs") {
     errors.push("readiness_check_script must point to this checker");
   }
@@ -164,6 +186,12 @@ function validateContract(
 
   if (value.live_smoke_command !== "npm run smoke:cloudflare-resources-live") {
     errors.push("live_smoke_command must be npm run smoke:cloudflare-resources-live");
+  }
+
+  if (value.functional_smoke_command !== "npm run smoke:cloudflare-bindings-wrangler-live") {
+    errors.push(
+      "functional_smoke_command must be npm run smoke:cloudflare-bindings-wrangler-live"
+    );
   }
 
   if (value.api_base_url !== "https://api.cloudflare.com/client/v4") {
@@ -191,11 +219,19 @@ function validateContract(
   errors.push(...validateExpectedResources(value.expected_resources));
   errors.push(...validateBindingsContract(bindingsValue));
   errors.push(...validatePartialProvisioning(value.partial_provisioning, bindingsValue));
+  errors.push(...validateFunctionalSmoke(value.functional_smoke, bindingsValue));
   errors.push(...validateEnvSchema(envValue));
   errors.push(...validatePackageScripts(packageValue));
   errors.push(...validateSmokeScript(smokeScriptValue));
+  errors.push(...validateFunctionalSmokeScript(functionalSmokeScriptValue));
   errors.push(...validateTrackerSync(trackerValue));
-  errors.push(...validateLinkedFiles([value.bindings_contract, value.live_smoke_script]));
+  errors.push(
+    ...validateLinkedFiles([
+      value.bindings_contract,
+      value.live_smoke_script,
+      value.functional_smoke_script
+    ])
+  );
   errors.push(...validateNoSecrets(value));
 
   return errors;
@@ -405,6 +441,66 @@ function validatePartialProvisioning(value, bindingsValue) {
   return errors;
 }
 
+function validateFunctionalSmoke(value, bindingsValue) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["functional_smoke must be present after Wrangler live smoke passes"];
+  }
+
+  if (value.status !== "partial_live_passed") {
+    errors.push("functional_smoke.status must be partial_live_passed");
+  }
+
+  if (value.runner !== "wrangler_oauth_cli") {
+    errors.push("functional_smoke.runner must be wrangler_oauth_cli");
+  }
+
+  if (value.command !== "npm run smoke:cloudflare-bindings-wrangler-live") {
+    errors.push("functional_smoke.command must be npm run smoke:cloudflare-bindings-wrangler-live");
+  }
+
+  errors.push(
+    ...validateStringArray(value.required_env, ["CLOUDFLARE_ACCOUNT_ID"], "functional_smoke.required_env")
+  );
+
+  if (value.synthetic_prefix !== "aiphabee-smoke") {
+    errors.push("functional_smoke.synthetic_prefix must be aiphabee-smoke");
+  }
+
+  errors.push(
+    ...validateSurfaceList(
+      value.passed_surfaces,
+      requiredFunctionalSurfaces,
+      "functional_smoke.passed_surfaces"
+    )
+  );
+  errors.push(
+    ...validateSurfaceList(
+      value.remaining_surfaces,
+      requiredRemainingFunctionalSurfaces,
+      "functional_smoke.remaining_surfaces"
+    )
+  );
+
+  const bindings = isRecord(bindingsValue) && Array.isArray(bindingsValue.bindings)
+    ? new Map(bindingsValue.bindings.filter(isRecord).map((binding) => [binding.name, binding]))
+    : new Map();
+
+  for (const [bindingName] of requiredFunctionalSurfaces) {
+    const binding = bindings.get(bindingName);
+
+    if (!binding || binding.provisioned !== true) {
+      errors.push(`${bindingName} functional smoke requires provisioned binding`);
+    }
+  }
+
+  errors.push(...validateForbiddenKeys(value, "functional_smoke"));
+  errors.push(...validateNoSecrets(value).map((error) => `functional_smoke ${error}`));
+
+  return errors;
+}
+
 function validateEnvSchema(value) {
   if (!isRecord(value) || !Array.isArray(value.variables)) {
     return ["env schema must include variables"];
@@ -443,6 +539,7 @@ function validatePackageScripts(value) {
   const errors = [];
   const checkScript = value.scripts["check:cloudflare-resource-live-readiness"];
   const smokeScript = value.scripts["smoke:cloudflare-resources-live"];
+  const functionalSmokeScript = value.scripts["smoke:cloudflare-bindings-wrangler-live"];
   const fullCheck = value.scripts.check;
 
   if (checkScript !== "node scripts/check-cloudflare-resource-live-readiness.mjs") {
@@ -451,6 +548,10 @@ function validatePackageScripts(value) {
 
   if (smokeScript !== "node scripts/smoke-cloudflare-resources-live.mjs") {
     errors.push("smoke:cloudflare-resources-live must run the live smoke script");
+  }
+
+  if (functionalSmokeScript !== "node scripts/smoke-cloudflare-bindings-wrangler-live.mjs") {
+    errors.push("smoke:cloudflare-bindings-wrangler-live must run the functional smoke script");
   }
 
   if (typeof fullCheck !== "string" || !fullCheck.includes("check:cloudflare-resource-live-readiness")) {
@@ -478,6 +579,38 @@ function validateSmokeScript(value) {
   return errors;
 }
 
+function validateFunctionalSmokeScript(value) {
+  const errors = [];
+  const requiredTokens = [
+    "kv",
+    "namespace",
+    "list",
+    "key",
+    "put",
+    "r2",
+    "object",
+    "d1",
+    "execute",
+    "functional_results",
+    "forbidden_output_fields",
+    "raw_response"
+  ];
+
+  for (const token of requiredTokens) {
+    if (!value.includes(token)) {
+      errors.push(`functional smoke script missing token ${token}`);
+    }
+  }
+
+  for (const forbidden of forbiddenOutputFields) {
+    if (!value.includes(forbidden)) {
+      errors.push(`functional smoke script must declare forbidden output ${forbidden}`);
+    }
+  }
+
+  return errors;
+}
+
 function validateTrackerSync(value) {
   const errors = [];
 
@@ -487,6 +620,10 @@ function validateTrackerSync(value) {
 
   if (!value.includes("npm run smoke:cloudflare-resources-live")) {
     errors.push("tracker must reference smoke:cloudflare-resources-live");
+  }
+
+  if (!value.includes("npm run smoke:cloudflare-bindings-wrangler-live")) {
+    errors.push("tracker must reference smoke:cloudflare-bindings-wrangler-live");
   }
 
   if (!/^- \[ \] Cloudflare resources provisioned \+ binding smoke tests/mu.test(value)) {
@@ -553,6 +690,48 @@ function validateExactStringArray(value, expectedValues, fieldName) {
 
   if (unexpected.length > 0) {
     errors.push(`${fieldName} contains unexpected ${unexpected.join(", ")}`);
+  }
+
+  return errors;
+}
+
+function validateSurfaceList(value, expectedPairs, fieldName) {
+  if (!Array.isArray(value) || value.some((item) => !isRecord(item))) {
+    return [`${fieldName} must be an array of objects`];
+  }
+
+  const errors = [];
+  const actual = value.map((item) => `${item.binding_name}:${item.surface}`).sort();
+  const expected = expectedPairs.map(([bindingName, surface]) => `${bindingName}:${surface}`).sort();
+  const missing = expected.filter((item) => !actual.includes(item));
+  const unexpected = actual.filter((item) => !expected.includes(item));
+
+  if (missing.length > 0) {
+    errors.push(`${fieldName} missing ${missing.join(", ")}`);
+  }
+
+  if (unexpected.length > 0) {
+    errors.push(`${fieldName} contains unexpected ${unexpected.join(", ")}`);
+  }
+
+  for (const [index, item] of value.entries()) {
+    for (const field of ["binding_name", "surface"]) {
+      if (typeof item[field] !== "string" || item[field].length === 0) {
+        errors.push(`${fieldName}[${index}].${field} must be a non-empty string`);
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(item, "result")) {
+      if (typeof item.result !== "string" || item.result.length === 0) {
+        errors.push(`${fieldName}[${index}].result must be a non-empty string`);
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(item, "reason")) {
+      if (typeof item.reason !== "string" || item.reason.length === 0) {
+        errors.push(`${fieldName}[${index}].reason must be a non-empty string`);
+      }
+    }
   }
 
   return errors;

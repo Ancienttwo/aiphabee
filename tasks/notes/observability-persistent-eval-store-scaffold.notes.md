@@ -31,5 +31,6 @@
 
 - No real OTLP endpoint/header is configured.
 - No Worker D1 binding write/read path is configured.
-- No persistent write/read smoke or dashboard exists.
+- No product eval-store write/read smoke or dashboard exists; D1 resource-level
+  synthetic write/read has passed in the Cloudflare resource smoke slice.
 - Real token/cost/latency metrics remain blocked until model calls exist.

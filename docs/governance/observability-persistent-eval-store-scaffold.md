@@ -104,7 +104,8 @@ Observed `/observability/runtime` fields:
 ## Residual Gaps
 
 - Real OTLP destination and header secret are not configured.
-- Worker D1 binding configuration, persistent write/read smoke, dashboards,
-  alerting, and retention policy are absent.
+- Worker D1 binding configuration, product eval-store write/read smoke,
+  dashboards, alerting, and retention policy are absent. D1 resource-level
+  synthetic write/read has passed in the Cloudflare resource smoke slice.
 - Real model token/cost/latency telemetry remains blocked until model execution
   exists.

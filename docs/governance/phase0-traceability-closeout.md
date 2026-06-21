@@ -317,8 +317,9 @@ Completed:
 
 Not completed:
 
-- Real OTLP export, D1 eval-store provisioning, persistent write/read smoke,
-  dashboards, alerting, and real model token/cost/latency metrics remain absent.
+- Real OTLP export, product eval-store write/read smoke, dashboards, alerting,
+  and real model token/cost/latency metrics remain absent; D1 resource-level
+  synthetic write/read has passed separately.
 
 ## Execution Update - 2026-06-20 15:10 +08
 

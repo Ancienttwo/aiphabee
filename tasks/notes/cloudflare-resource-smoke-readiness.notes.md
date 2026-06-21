@@ -12,6 +12,7 @@
 - Recorded partial external provisioning evidence without committing Cloudflare
   account ids or resource ids.
 - Marked names-only provisioned bindings for Worker, Queue, R2, KV, and D1.
+- Added a live-only Wrangler functional smoke for KV, R2, and D1.
 
 ## External Evidence
 
@@ -20,6 +21,10 @@
 - R2 bucket `aiphabee-artifacts` was created and listed.
 - KV namespace title `AIPHABEE_CONFIG` was created and listed.
 - D1 database `AIPHABEE_EVAL_STORE` was created and listed.
+- KV `AIPHABEE_CONFIG` passed synthetic put/get/delete.
+- R2 bucket `aiphabee-artifacts` passed synthetic object put/get/delete.
+- D1 database `AIPHABEE_EVAL_STORE` passed synthetic
+  create/insert/select/delete/drop.
 - AI Gateway creation hit a Cloudflare API authentication error in the available
   context.
 - Workflow, Cron, Durable Object, and Hyperdrive remain blocked by Worker
@@ -28,17 +33,20 @@
 
 ## What Was Not Claimed
 
-- No binding write/read smoke was executed.
+- No Worker runtime binding smoke was executed.
+- No Queue publish/consume smoke was executed.
 - No Workflow, Cron, Durable Object, AI Gateway, or Hyperdrive resource was
   created.
 - No Hyperdrive `SELECT 1` was executed.
-- No OTLP export, eval-store write/read, or provider secret rotation smoke was
-  executed.
+- No OTLP export, product eval-store write/read, or provider secret rotation
+  smoke was executed.
 
 ## Verification
 
 - `npm run check:cloudflare-resource-live-readiness`
 - `node scripts/smoke-cloudflare-resources-live.mjs --dry-run`
+- `node scripts/smoke-cloudflare-bindings-wrangler-live.mjs --dry-run`
+- `CLOUDFLARE_ACCOUNT_ID=... npm run smoke:cloudflare-bindings-wrangler-live`
 - missing-env smoke branch expects exit code `2`
 - `npm run check:env`
 - `npm run check:bindings`

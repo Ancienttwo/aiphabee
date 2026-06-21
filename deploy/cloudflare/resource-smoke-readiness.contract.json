@@ -3,9 +3,11 @@
   "status": "ready_missing_env",
   "bindings_contract": "deploy/cloudflare/bindings.contract.json",
   "live_smoke_script": "scripts/smoke-cloudflare-resources-live.mjs",
+  "functional_smoke_script": "scripts/smoke-cloudflare-bindings-wrangler-live.mjs",
   "readiness_check_script": "scripts/check-cloudflare-resource-live-readiness.mjs",
   "readiness_command": "npm run check:cloudflare-resource-live-readiness",
   "live_smoke_command": "npm run smoke:cloudflare-resources-live",
+  "functional_smoke_command": "npm run smoke:cloudflare-bindings-wrangler-live",
   "api_base_url": "https://api.cloudflare.com/client/v4",
   "required_env": [
     "CLOUDFLARE_ACCOUNT_ID",
@@ -174,6 +176,69 @@
       }
     ]
   },
+  "functional_smoke": {
+    "status": "partial_live_passed",
+    "runner": "wrangler_oauth_cli",
+    "command": "npm run smoke:cloudflare-bindings-wrangler-live",
+    "required_env": [
+      "CLOUDFLARE_ACCOUNT_ID"
+    ],
+    "synthetic_prefix": "aiphabee-smoke",
+    "passed_surfaces": [
+      {
+        "binding_name": "AIPHABEE_CONFIG",
+        "surface": "kv_put_get_delete",
+        "result": "passed"
+      },
+      {
+        "binding_name": "AIPHABEE_ARTIFACTS",
+        "surface": "r2_put_get_delete",
+        "result": "passed"
+      },
+      {
+        "binding_name": "AIPHABEE_EVAL_STORE",
+        "surface": "d1_eval_write_read_delete",
+        "result": "passed"
+      }
+    ],
+    "remaining_surfaces": [
+      {
+        "binding_name": "AIPHABEE_EVENTS_QUEUE",
+        "surface": "queue_publish_consume_smoke",
+        "reason": "queue_api_token_or_worker_consumer_smoke_required"
+      },
+      {
+        "binding_name": "aiphabee-worker",
+        "surface": "worker_runtime_binding_smoke",
+        "reason": "wrangler_binding_ids_not_committed_and_worker_routes_not_bound"
+      },
+      {
+        "binding_name": "AIPHABEE_RESEARCH_WORKFLOW",
+        "surface": "workflow_instance_execution",
+        "reason": "workflow_requires_worker_workflow_class"
+      },
+      {
+        "binding_name": "AIPHABEE_MAINTENANCE_CRON",
+        "surface": "cron_trigger_smoke",
+        "reason": "cron_trigger_not_configured"
+      },
+      {
+        "binding_name": "AIPHABEE_RUN_COORDINATOR",
+        "surface": "durable_object_state_smoke",
+        "reason": "durable_object_requires_worker_class_and_migration"
+      },
+      {
+        "binding_name": "AIPHABEE_AI_GATEWAY",
+        "surface": "ai_gateway_model_request_smoke",
+        "reason": "ai_gateway_api_auth_error"
+      },
+      {
+        "binding_name": "AIPHABEE_HYPERDRIVE",
+        "surface": "hyperdrive_select_1_smoke",
+        "reason": "hyperdrive_requires_postgres_origin"
+      }
+    ]
+  },
   "tracker_items_remaining_unchecked": [
     "Cloudflare resources provisioned + binding smoke tests",
     "Hyperdrive-backed Postgres/Supabase live connection smoke",
@@ -184,9 +249,6 @@
     "cloudflare_resources_created",
     "worker_binding_write_read_smoke",
     "queue_publish_consume_smoke",
-    "r2_put_get_delete_smoke",
-    "kv_put_get_smoke",
-    "d1_eval_write_read_smoke",
     "hyperdrive_select_1_smoke",
     "provider_secret_rotation_smoke"
   ]
