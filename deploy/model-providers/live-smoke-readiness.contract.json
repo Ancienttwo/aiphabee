@@ -1,0 +1,55 @@
+{
+  "version": "2026-06-22.model-provider-live-smoke-readiness.v0",
+  "status": "ready_missing_env",
+  "provider_contract": "deploy/model-providers/providers.contract.json",
+  "docs_source": "https://developers.cloudflare.com/ai-gateway/usage/rest-api/",
+  "cloudflare_changelog_source": "https://developers.cloudflare.com/changelog/post/2026-05-21-rest-api/",
+  "live_smoke_script": "scripts/smoke-ai-gateway-live.mjs",
+  "readiness_check_script": "scripts/check-model-provider-live-readiness.mjs",
+  "readiness_command": "npm run check:model-provider-live-readiness",
+  "live_smoke_command": "npm run smoke:ai-gateway-live",
+  "http": {
+    "method": "POST",
+    "base_url": "https://api.cloudflare.com/client/v4/accounts/{account_id}",
+    "endpoint": "/ai/v1/chat/completions",
+    "gateway_header": "cf-aig-gateway-id"
+  },
+  "required_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "AI_GATEWAY_NAME",
+    "AI_GATEWAY_SMOKE_MODEL"
+  ],
+  "required_live_output_fields": [
+    "status",
+    "http_status",
+    "gateway_id",
+    "model",
+    "latency_ms",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "output_hash",
+    "response_hash"
+  ],
+  "forbidden_live_output_fields": [
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "raw_prompt",
+    "raw_model_output"
+  ],
+  "tracker_items_remaining_unchecked": [
+    "AI Gateway 接管模型调用日志/成本/限流/缓存/fallback",
+    "Model provider live execution smoke"
+  ],
+  "not_claimed": [
+    "live_ai_gateway_request_succeeded",
+    "model_calls_enabled_in_worker",
+    "streamText_generateText_runtime_integration",
+    "fallback_log_verified",
+    "persistent_cost_log_verified",
+    "tracker_live_smoke_completed"
+  ]
+}

@@ -12,6 +12,7 @@
     "status": "planned",
     "gateway_id": "default",
     "rest_api_base": "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai",
+    "gateway_header": "cf-aig-gateway-id",
     "routes": [
       "POST /ai/run",
       "POST /ai/v1/chat/completions",
@@ -25,6 +26,41 @@
     ],
     "features": ["logging", "caching", "rate_limiting", "fallback", "guardrails"],
     "unified_billing": true
+  },
+  "live_smoke": {
+    "status": "ready_missing_env",
+    "script": "scripts/smoke-ai-gateway-live.mjs",
+    "check_script": "scripts/check-model-provider-live-readiness.mjs",
+    "command": "npm run smoke:ai-gateway-live",
+    "readiness_command": "npm run check:model-provider-live-readiness",
+    "docs_source": "https://developers.cloudflare.com/ai-gateway/usage/rest-api/",
+    "endpoint": "POST /ai/v1/chat/completions",
+    "required_headers": ["Authorization", "cf-aig-gateway-id", "Content-Type"],
+    "required_env": [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "AI_GATEWAY_NAME",
+      "AI_GATEWAY_SMOKE_MODEL"
+    ],
+    "proof_fields": [
+      "http_status",
+      "gateway_id",
+      "model",
+      "latency_ms",
+      "input_tokens",
+      "output_tokens",
+      "total_tokens",
+      "output_hash",
+      "response_hash"
+    ],
+    "forbidden_output_fields": [
+      "authorization",
+      "api_key",
+      "token",
+      "secret",
+      "raw_prompt",
+      "raw_model_output"
+    ]
   },
   "execution_modes": [
     {

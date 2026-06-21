@@ -13,6 +13,18 @@ const requiredRoutes = [
   "POST /ai/v1/messages"
 ];
 const requiredEnv = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"];
+const requiredLiveSmokeEnv = [...requiredEnv, "AI_GATEWAY_SMOKE_MODEL"];
+const requiredLiveSmokeProofFields = [
+  "http_status",
+  "gateway_id",
+  "model",
+  "latency_ms",
+  "input_tokens",
+  "output_tokens",
+  "total_tokens",
+  "output_hash",
+  "response_hash"
+];
 const forbiddenKeys = ["api_key", "password", "secret", "token", "value"];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
@@ -62,6 +74,7 @@ function validateContract(value, schema) {
 
   errors.push(...validateAiSdk(value.ai_sdk));
   errors.push(...validateGateway(value.gateway, schema));
+  errors.push(...validateLiveSmoke(value.live_smoke, schema));
   errors.push(...validateExecutionModes(value.execution_modes));
   errors.push(...validatePolicy(value.policy));
   errors.push(...validateSmokeTests(value.smoke_tests));
@@ -119,6 +132,10 @@ function validateGateway(value, schema) {
     errors.push("gateway.gateway_id must be default until a real gateway is selected");
   }
 
+  if (value.gateway_header !== "cf-aig-gateway-id") {
+    errors.push("gateway.gateway_header must be cf-aig-gateway-id for the AI REST API");
+  }
+
   if (
     typeof value.rest_api_base !== "string" ||
     !value.rest_api_base.includes("{account_id}") ||
@@ -157,6 +174,71 @@ function validateGateway(value, schema) {
 
   if (value.unified_billing !== true) {
     errors.push("gateway.unified_billing must be true");
+  }
+
+  return errors;
+}
+
+function validateLiveSmoke(value, schema) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["live_smoke must be an object"];
+  }
+
+  if (value.status !== "ready_missing_env") {
+    errors.push("live_smoke.status must be ready_missing_env until a real smoke passes");
+  }
+
+  if (value.script !== "scripts/smoke-ai-gateway-live.mjs") {
+    errors.push("live_smoke.script must point to scripts/smoke-ai-gateway-live.mjs");
+  }
+
+  if (value.check_script !== "scripts/check-model-provider-live-readiness.mjs") {
+    errors.push("live_smoke.check_script must point to the readiness checker");
+  }
+
+  if (value.endpoint !== "POST /ai/v1/chat/completions") {
+    errors.push("live_smoke.endpoint must be POST /ai/v1/chat/completions");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.required_headers,
+      ["Authorization", "cf-aig-gateway-id", "Content-Type"],
+      "live_smoke.required_headers"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.required_env,
+      requiredLiveSmokeEnv,
+      "live_smoke.required_env"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.proof_fields,
+      requiredLiveSmokeProofFields,
+      "live_smoke.proof_fields"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      value.forbidden_output_fields,
+      ["authorization", "api_key", "token", "secret", "raw_prompt", "raw_model_output"],
+      "live_smoke.forbidden_output_fields"
+    )
+  );
+
+  const envNames = new Set(
+    Array.isArray(schema.variables) ? schema.variables.map((variable) => variable.name) : []
+  );
+
+  for (const envName of requiredLiveSmokeEnv) {
+    if (!envNames.has(envName)) {
+      errors.push(`env schema missing ${envName}`);
+    }
   }
 
   return errors;
@@ -257,6 +339,22 @@ function validateSmokeTests(value) {
   }
 
   return [];
+}
+
+function validateStringArray(value, requiredValues, fieldName) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    return [`${fieldName} must be an array of strings`];
+  }
+
+  const errors = [];
+
+  for (const requiredValue of requiredValues) {
+    if (!value.includes(requiredValue)) {
+      errors.push(`${fieldName} missing ${requiredValue}`);
+    }
+  }
+
+  return errors;
 }
 
 function validateNoSecrets(value) {
