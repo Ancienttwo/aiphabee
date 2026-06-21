@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
   ACCOUNT_LOGIN_METHODS,
   ACCOUNT_PLAN_CODES,
@@ -94,7 +94,11 @@ import {
 } from "@aiphabee/market-data";
 import {
   McpRuntimeInputError,
+  createMcpOAuthAuthorizePlan,
+  createMcpOAuthRevokePlan,
+  createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  getMcpOAuthCapabilities,
   getMcpRuntimeCapabilities
 } from "@aiphabee/mcp-runtime";
 import {
@@ -1592,6 +1596,152 @@ app.get("/mcp/runtime", (c) => {
       }
     })
   );
+});
+
+app.get("/mcp/oauth/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(getMcpOAuthCapabilities(), {
+      asOf: new Date().toISOString(),
+      dataVersion: "mcp-oauth-pkce-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+      provenance: [
+        {
+          data_version: "mcp-oauth-pkce-scaffold-v0",
+          methodology_version: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+          source: "mcp-oauth-pkce",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/mcp/oauth/authorize/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpOAuthAuthorizePlan({
+      clientId: normalizeString(body.client_id ?? body.clientId),
+      codeChallenge: normalizeString(body.code_challenge ?? body.codeChallenge),
+      codeChallengeMethod: normalizeString(
+        body.code_challenge_method ?? body.codeChallengeMethod
+      ),
+      origin: c.req.header("origin") ?? undefined,
+      redirectUri: normalizeString(body.redirect_uri ?? body.redirectUri),
+      requestId,
+      requestedScopes: normalizeStringArray(body.scopes ?? body.requested_scopes),
+      userId: normalizeString(body.user_id ?? body.userId),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpOAuthCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP OAuth authorize plan failed");
+  }
+});
+
+app.post("/mcp/oauth/token/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpOAuthTokenPlan({
+      authorizationCode: normalizeString(
+        body.authorization_code ?? body.authorizationCode
+      ),
+      clientId: normalizeString(body.client_id ?? body.clientId),
+      codeVerifier: normalizeString(body.code_verifier ?? body.codeVerifier),
+      requestId,
+      requestedScopes: normalizeStringArray(body.scopes ?? body.requested_scopes)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpOAuthCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP OAuth token plan failed");
+  }
+});
+
+app.post("/mcp/oauth/revoke/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpOAuthRevokePlan({
+      connectionId: normalizeString(body.connection_id ?? body.connectionId),
+      reason: normalizeString(body.reason),
+      requestId,
+      tokenId: normalizeString(body.token_id ?? body.tokenId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpOAuthCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(c, error, requestId, "MCP OAuth revoke plan failed");
+  }
 });
 
 app.post("/mcp", async (c) => {
@@ -4010,20 +4160,86 @@ function normalizeResearchSavedRun(value: unknown): ResearchRunSavePlan | undefi
   return isPlainRecord(value) ? (value as unknown as ResearchRunSavePlan) : undefined;
 }
 
+function handleMcpRuntimeError(
+  c: Context,
+  error: unknown,
+  requestId: string,
+  fallbackMessage: string
+): Response {
+  if (error instanceof McpRuntimeInputError) {
+    const status = statusForMcpRuntimeError(error);
+
+    return c.json(
+      createErrorEnvelope(errorCodeForMcpRuntimeError(error), error.message, {
+        asOf: new Date().toISOString(),
+        dataVersion: "mcp-oauth-pkce-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+        provenance: [
+          {
+            data_version: "mcp-oauth-pkce-scaffold-v0",
+            methodology_version: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+            source: "mcp-oauth-pkce",
+            source_record_id: error.code
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      status
+    );
+  }
+
+  return c.json(
+    createErrorEnvelope("INTERNAL_ERROR", fallbackMessage, {
+      asOf: new Date().toISOString(),
+      dataVersion: "mcp-oauth-pkce-scaffold-v0",
+      methodologyVersion: "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    }),
+    500
+  );
+}
+
 function errorCodeForMcpRuntimeError(
   error: McpRuntimeInputError
-): "DATA_NOT_LICENSED" | "NOT_FOUND" | "OUT_OF_RANGE" | "SCOPE_DENIED" {
+):
+  | "AUTH_REQUIRED"
+  | "DATA_NOT_LICENSED"
+  | "NOT_FOUND"
+  | "OUT_OF_RANGE"
+  | "SCOPE_DENIED" {
   switch (error.code) {
+    case "AUTHORIZATION_CODE_REQUIRED":
+    case "CODE_VERIFIER_REQUIRED":
+    case "CONNECTION_OR_TOKEN_REQUIRED":
+      return "AUTH_REQUIRED";
     case "MCP_REDISTRIBUTION_RIGHTS_REQUIRED":
       return "DATA_NOT_LICENSED";
     case "TOOL_NOT_REGISTERED":
       return "NOT_FOUND";
     case "UNSUPPORTED_METHOD":
       return "OUT_OF_RANGE";
+    case "CLIENT_ID_REQUIRED":
+    case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
+    case "CODE_CHALLENGE_REQUIRED":
+    case "INVALID_CODE_CHALLENGE":
+    case "INVALID_REDIRECT_URI":
     case "ORIGIN_NOT_ALLOWED":
     case "ORIGIN_REQUIRED":
+    case "REDIRECT_URI_REQUIRED":
+    case "SCOPE_REQUIRED":
     case "TOOL_NAME_REQUIRED":
     case "TOOL_SCOPE_REQUIRED":
+    case "UNSUPPORTED_SCOPE":
       return "SCOPE_DENIED";
   }
 }
@@ -4032,6 +4248,16 @@ function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 
   switch (error.code) {
     case "TOOL_NOT_REGISTERED":
       return 404;
+    case "AUTHORIZATION_CODE_REQUIRED":
+    case "CLIENT_ID_REQUIRED":
+    case "CODE_CHALLENGE_METHOD_UNSUPPORTED":
+    case "CODE_CHALLENGE_REQUIRED":
+    case "CODE_VERIFIER_REQUIRED":
+    case "CONNECTION_OR_TOKEN_REQUIRED":
+    case "INVALID_CODE_CHALLENGE":
+    case "INVALID_REDIRECT_URI":
+    case "REDIRECT_URI_REQUIRED":
+    case "SCOPE_REQUIRED":
     case "UNSUPPORTED_METHOD":
     case "TOOL_NAME_REQUIRED":
       return 400;
@@ -4039,6 +4265,7 @@ function statusForMcpRuntimeError(error: McpRuntimeInputError): 400 | 403 | 404 
     case "ORIGIN_NOT_ALLOWED":
     case "ORIGIN_REQUIRED":
     case "TOOL_SCOPE_REQUIRED":
+    case "UNSUPPORTED_SCOPE":
       return 403;
   }
 }

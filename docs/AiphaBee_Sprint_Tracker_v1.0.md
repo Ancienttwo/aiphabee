@@ -64,7 +64,7 @@ owner: "Planner / PM"
 | 1.4 | 个股工作台 + 内部账号 + 评估集 v1 | 🟦 | 9 / 9 | ☐ |
 | 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 8 / 9 | ☐ |
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
-| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 1 / 11 | ☐ |
+| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 2 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | ⬜ | 0 / 10 | ☐ |
 | 3.1 | P0 工具收口 + 事件研究 + 多语言 | ⬜ | 0 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
@@ -314,7 +314,7 @@ owner: "Planner / PM"
 > ⛔ **前置：** Sprint 0.1 的 MCP 再分发权必须为「成立」。否则本 Sprint 全部 🅿️ 暂缓。
 
 - [x] `/mcp` Streamable HTTP endpoint 后端 default-deny scaffold：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，支持 planned `initialize` / `tools/list` / `tools/call` method、Origin validation、Gate 0 `mcp_api_redistribution_rights_confirmed=false`、Web 权利不自动扩展到 MCP、未授权 `tools/list` 返回空列表、未授权 `tools/call` 返回 `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用（MCP-01、§13.2、§14.1）
-- [ ] OAuth + PKCE，scope 清晰可撤销（MCP-02、§9.7）
+- [x] OAuth + PKCE 后端 scope/revocation scaffold：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear scope consent、scope revocable metadata、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用（MCP-02、§9.7）
 - [ ] 服务端 API Key：哈希存储/可轮换/限 IP/只显示一次（MCP-03、ACC-06）
 - [ ] 输入严格校验 + `structuredContent` 符合 `outputSchema`（MCP-04）
 - [ ] 工具版本与弃用策略，破坏性变化走新 major（MCP-05、US-M06）
@@ -645,6 +645,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0cb | 完成 `mcp-oauth-pkce-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `GET /mcp/oauth/runtime`、`POST /mcp/oauth/authorize/plan`、`POST /mcp/oauth/token/plan`、`POST /mcp/oauth/revoke/plan`、`deploy/mcp/oauth-pkce.contract.json` 与 `npm run check:mcp-oauth-pkce`，覆盖 PRD §9.7 scope catalog、PKCE `S256`、clear/revocable scope consent、token exchange no-live plan、third-party token passthrough blocked 与 revoke future-call denial；live OAuth provider/token storage/frontend consent/API Key 未启用，Sprint 2.3 更新为 2/11 |
 | 2026-06-21 | 1.0ca | 完成 `mcp-endpoint-default-deny-scaffold`：新增 `@aiphabee/mcp-runtime`、`GET /mcp/runtime`、`POST /mcp`、`deploy/mcp/endpoint.contract.json` 与 `npm run check:mcp-endpoint`，覆盖 planned `initialize` / `tools/list` / `tools/call`、Origin validation、Gate 0 MCP/API 再分发默认拒绝、Web rights 不自动扩展到 MCP、未授权 `tools/list` 空列表与 `tools/call` `DATA_NOT_LICENSED`；live OAuth/API Key/tool execution/Inspector smoke/frontend console 未启用，Sprint 2.3 更新为 1/11 |
 | 2026-06-21 | 1.0bz | 完成 `research-run-replay-scaffold`：扩展 `@aiphabee/research-runtime` `parameter_snapshot` 与 `createResearchRunReplayPlan`，新增 `POST /research/runs/replay/plan`、`deploy/research/research-run-replay.contract.json` 与 `npm run check:research-run-replay`，覆盖 saved/current run no-write replay、data/model/parameters diff、`old_report.preserved_snapshot_id`、`mutation_allowed=false`、`silent_rewrite_allowed=false`；live DB/R2 writes、live tool/model execution、frontend 未启用，Sprint 2.2 更新为 8/9 |
 | 2026-06-21 | 1.0by | 完成 `research-run-save-scaffold`：新增 `@aiphabee/research-runtime`、`GET /research/runtime`、`POST /research/runs/save/plan`、`deploy/research/research-run-save.contract.json` 与 `npm run check:research-run-save`，覆盖 question/tool input/evidence/model/prompt version snapshots、immutable `snapshot_id`、`replay_seed`、`old_report_mutation_allowed=false` 与 missing required field rejection；live DB/R2 writes/replay execution/frontend 未启用，Sprint 2.2 更新为 6/9 |

@@ -37,7 +37,9 @@ Date: 2026-06-21
 
 ## Residual Gaps
 
-- OAuth + PKCE is not implemented.
+- OAuth/PKCE planning is covered by
+  `tasks/notes/mcp-oauth-pkce-scaffold.notes.md`; live OAuth provider and token
+  storage remain absent.
 - API key issuance, hashing, rotation, and IP limits are not implemented.
 - Live MCP tool execution is not implemented.
 - Official SDK/Inspector compatibility smoke is not implemented.

@@ -112,7 +112,7 @@ DoD.
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
 | MCP-01 Streamable HTTP endpoint | AIP-P0-MCP-01 | Platform Engineering | 2.3 | MCP initialize/tools/list/tools/call protocol tests | Sprint 2.3 exit: `/mcp` passes target client smoke tests | Backend default-deny scaffold complete via `POST /mcp`; live OAuth/API key/tool execution/client smoke remain open |
-| MCP-02 OAuth + PKCE | AIP-P0-MCP-02 | Platform Engineering / Security | 2.3 | OAuth PKCE authorization tests | Sprint 2.3 exit: scopes are visible and revocable | Not started |
+| MCP-02 OAuth + PKCE | AIP-P0-MCP-02 | Platform Engineering / Security | 2.3 | OAuth PKCE authorization tests | Sprint 2.3 exit: scopes are visible and revocable | Backend OAuth/PKCE scope/revocation scaffold complete; live OAuth provider/token storage/frontend consent remain open |
 | MCP-03 服务端 API Key | AIP-P0-MCP-03 | Platform Engineering / Security | 2.3 | API key hash/rotation/IP limit tests | Sprint 2.3 exit: server-to-server keys are controlled and auditable | Not started |
 | MCP-04 输入/输出 Schema | AIP-P0-MCP-04 | Platform Engineering | 1.2 / 2.3 | JSON Schema validation tests | Sprint 2.3 exit: tools expose strict input/output schemas | Contract scaffold started; tool schemas pending |
 | MCP-05 版本与弃用 | AIP-P0-MCP-05 | Platform Engineering | 2.3 | Tool version compatibility tests | Sprint 2.3 exit: breaking changes use new major version | Not started |

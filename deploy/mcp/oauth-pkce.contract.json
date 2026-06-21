@@ -1,0 +1,76 @@
+{
+  "version": "2026-06-21.phase2.mcp-oauth-pkce-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/oauth/runtime",
+  "authorize_route": "POST /mcp/oauth/authorize/plan",
+  "token_route": "POST /mcp/oauth/token/plan",
+  "revoke_route": "POST /mcp/oauth/revoke/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_oauth_provider": false,
+  "token_issued": false,
+  "third_party_token_passthrough": false,
+  "scopes_revocable": true,
+  "pkce_methods": [
+    "S256"
+  ],
+  "supported_scopes": [
+    "security.read",
+    "market.read",
+    "fundamentals.read",
+    "filings.read",
+    "analytics.run",
+    "portfolio.read",
+    "alerts.write",
+    "exports.read",
+    "admin.usage.read"
+  ],
+  "covered_sprint_2_3_items": [
+    "MCP-02",
+    "oauth_pkce",
+    "clear_scopes",
+    "revocable_scopes",
+    "token_passthrough_blocked"
+  ],
+  "authorize_required_fields": [
+    "client_id",
+    "redirect_uri",
+    "code_challenge",
+    "code_challenge_method",
+    "scopes"
+  ],
+  "authorize_output_fields": [
+    "oauth_flow",
+    "pkce",
+    "consent",
+    "authorization_code",
+    "revocation",
+    "third_party_token_passthrough"
+  ],
+  "token_required_fields": [
+    "authorization_code",
+    "code_verifier",
+    "scopes"
+  ],
+  "token_output_fields": [
+    "pkce_verification",
+    "scope_binding",
+    "token",
+    "third_party_token_passthrough"
+  ],
+  "revoke_required_fields": [
+    "connection_id_or_token_id"
+  ],
+  "revoke_output_fields": [
+    "revocation_plan",
+    "future_calls_denied_after_revoke",
+    "scope_grants_removed"
+  ],
+  "forbidden_payloads": [
+    "raw_token",
+    "client_secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

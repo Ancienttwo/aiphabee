@@ -67,7 +67,9 @@ Passed:
 
 ## Residual Gaps
 
-- OAuth + PKCE remains absent.
+- OAuth/PKCE planning is covered by
+  `docs/governance/mcp-oauth-pkce-scaffold.md`; live OAuth provider and token
+  storage remain absent.
 - API key hash/rotation/IP-limit flow remains absent.
 - Live `tools/call` execution remains blocked.
 - Developer Console remains absent.

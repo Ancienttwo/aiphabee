@@ -1612,11 +1612,17 @@ interface McpRuntimeBody {
     default_deny: boolean;
     live_tool_execution: boolean;
     mcp_api_redistribution_rights_confirmed: boolean;
+    oauth_authorize_route: string;
     oauth_live: boolean;
+    oauth_pkce_ready: boolean;
+    oauth_revoke_route: string;
+    oauth_token_route: string;
     origin_validation: boolean;
     route: string;
     runtime_route: string;
+    scopes_revocable: boolean;
     status: string;
+    supported_oauth_scopes: string[];
     supported_methods: string[];
     transport: string;
     web_rights_do_not_imply_mcp: boolean;
@@ -1666,6 +1672,101 @@ interface McpProtocolPlanBody {
   usage: {
     rows: number;
   };
+}
+
+interface McpOAuthRuntimeBody {
+  data: {
+    authorize_route: string;
+    live_oauth_provider: boolean;
+    pkce_methods: string[];
+    revoke_route: string;
+    scope_catalog: Array<{
+      scope: string;
+    }>;
+    scopes_revocable: boolean;
+    status: string;
+    third_party_token_passthrough: boolean;
+    token_route: string;
+  };
+  ok: true;
+}
+
+interface McpOAuthAuthorizePlanBody {
+  data: {
+    authorization_code: {
+      code_emitted: boolean;
+      expires_in_seconds: number;
+      one_time_use: boolean;
+      token_exchange_route: string;
+    };
+    capability: {
+      authorize_route: string;
+      scopes_revocable: boolean;
+      token_route: string;
+    };
+    consent: {
+      clear_scope_display: boolean;
+      requested_scope_count: number;
+      scopes: Array<{
+        revocable: boolean;
+        scope: string;
+      }>;
+      user_consent_required: boolean;
+    };
+    live_oauth_provider: boolean;
+    oauth_flow: string;
+    pkce: {
+      code_challenge_method: string;
+      code_verifier_stored: boolean;
+      plain_method_allowed: boolean;
+    };
+    revocation: {
+      revoke_route: string;
+      revocable: boolean;
+    };
+    route: string;
+    status: string;
+    third_party_token_passthrough: boolean;
+    token_issued: boolean;
+  };
+  ok: true;
+}
+
+interface McpOAuthTokenPlanBody {
+  data: {
+    pkce_verification: {
+      code_verifier_received: boolean;
+      verification_status: string;
+      verifier_hash_stored: boolean;
+    };
+    scope_binding: {
+      requested_scopes: string[];
+      scopes_bound_to_token: boolean;
+    };
+    status: string;
+    third_party_token_passthrough: boolean;
+    token: {
+      access_token_issued: boolean;
+      audience: string;
+      refresh_token_issued: boolean;
+    };
+  };
+  ok: true;
+}
+
+interface McpOAuthRevokePlanBody {
+  data: {
+    connection_id?: string;
+    revocation_plan: {
+      future_calls_denied_after_revoke: boolean;
+      revoke_status: string;
+      scope_grants_removed: string;
+      token_invalidation_live: boolean;
+    };
+    route: string;
+    status: string;
+  };
+  ok: true;
 }
 
 interface DatabaseRuntimeBody {
@@ -5595,10 +5696,15 @@ describe("worker runtime", () => {
       default_deny: true,
       live_tool_execution: false,
       mcp_api_redistribution_rights_confirmed: false,
+      oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
       oauth_live: false,
+      oauth_pkce_ready: true,
+      oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
+      oauth_token_route: "POST /mcp/oauth/token/plan",
       origin_validation: true,
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
+      scopes_revocable: true,
       status: "mcp_endpoint_default_deny_scaffold",
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
@@ -5608,6 +5714,194 @@ describe("worker runtime", () => {
       "tools/list",
       "tools/call"
     ]);
+    expect(body.data.supported_oauth_scopes).toContain("market.read");
+  });
+
+  it("serves MCP OAuth PKCE capabilities with revocable scope catalog", async () => {
+    const response = await app.request("/mcp/oauth/runtime", {
+      headers: {
+        "x-request-id": "req-mcp-oauth-runtime"
+      }
+    });
+    const body = (await response.json()) as McpOAuthRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      authorize_route: "POST /mcp/oauth/authorize/plan",
+      live_oauth_provider: false,
+      pkce_methods: ["S256"],
+      revoke_route: "POST /mcp/oauth/revoke/plan",
+      scopes_revocable: true,
+      status: "mcp_oauth_pkce_scaffold",
+      third_party_token_passthrough: false,
+      token_route: "POST /mcp/oauth/token/plan"
+    });
+    expect(body.data.scope_catalog.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read",
+      "fundamentals.read",
+      "filings.read",
+      "analytics.run",
+      "portfolio.read",
+      "alerts.write",
+      "exports.read",
+      "admin.usage.read"
+    ]);
+  });
+
+  it("plans MCP OAuth authorization with S256 PKCE and clear revocable scopes", async () => {
+    const response = await app.request("/mcp/oauth/authorize/plan", {
+      body: JSON.stringify({
+        client_id: "client_mcp_inspector",
+        code_challenge: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO0123456789_-",
+        code_challenge_method: "S256",
+        redirect_uri: "https://client.example/oauth/callback",
+        scopes: ["security.read", "market.read", "analytics.run"],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-oauth-authorize"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpOAuthAuthorizePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      authorization_code: {
+        code_emitted: false,
+        expires_in_seconds: 300,
+        one_time_use: true,
+        token_exchange_route: "POST /mcp/oauth/token/plan"
+      },
+      consent: {
+        clear_scope_display: true,
+        requested_scope_count: 3,
+        user_consent_required: true
+      },
+      live_oauth_provider: false,
+      oauth_flow: "authorization_code_pkce",
+      pkce: {
+        code_challenge_method: "S256",
+        code_verifier_stored: false,
+        plain_method_allowed: false
+      },
+      revocation: {
+        revoke_route: "POST /mcp/oauth/revoke/plan",
+        revocable: true
+      },
+      route: "POST /mcp/oauth/authorize/plan",
+      status: "planned_no_live_oauth",
+      third_party_token_passthrough: false,
+      token_issued: false
+    });
+    expect(body.data.capability).toMatchObject({
+      authorize_route: "POST /mcp/oauth/authorize/plan",
+      scopes_revocable: true,
+      token_route: "POST /mcp/oauth/token/plan"
+    });
+    expect(body.data.consent.scopes.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read",
+      "analytics.run"
+    ]);
+    expect(body.data.consent.scopes.every((scope) => scope.revocable)).toBe(true);
+  });
+
+  it("plans MCP OAuth token exchange without issuing or forwarding tokens", async () => {
+    const response = await app.request("/mcp/oauth/token/plan", {
+      body: JSON.stringify({
+        authorization_code: "auth_code_placeholder",
+        client_id: "client_mcp_inspector",
+        code_verifier: "verifier_placeholder",
+        scopes: ["security.read", "market.read"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-oauth-token"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpOAuthTokenPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      pkce_verification: {
+        code_verifier_received: true,
+        verification_status: "planned_no_live",
+        verifier_hash_stored: false
+      },
+      scope_binding: {
+        requested_scopes: ["security.read", "market.read"],
+        scopes_bound_to_token: true
+      },
+      status: "planned_no_live_oauth",
+      third_party_token_passthrough: false,
+      token: {
+        access_token_issued: false,
+        audience: "aiphabee-mcp",
+        refresh_token_issued: false
+      }
+    });
+  });
+
+  it("plans MCP OAuth revocation so future calls are denied after revoke", async () => {
+    const response = await app.request("/mcp/oauth/revoke/plan", {
+      body: JSON.stringify({
+        connection_id: "mcp_connection_1",
+        reason: "user_disconnect"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-oauth-revoke"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpOAuthRevokePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      connection_id: "mcp_connection_1",
+      revocation_plan: {
+        future_calls_denied_after_revoke: true,
+        revoke_status: "planned_no_live",
+        scope_grants_removed: "planned",
+        token_invalidation_live: false
+      },
+      route: "POST /mcp/oauth/revoke/plan",
+      status: "planned_no_live_oauth"
+    });
+  });
+
+  it("rejects MCP OAuth authorization without S256 PKCE", async () => {
+    const response = await app.request("/mcp/oauth/authorize/plan", {
+      body: JSON.stringify({
+        client_id: "client_mcp_inspector",
+        code_challenge: "short",
+        code_challenge_method: "plain",
+        redirect_uri: "https://client.example/oauth/callback",
+        scopes: ["market.read"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-mcp-oauth-invalid"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
   });
 
   it("plans MCP initialize for trusted origins without live tool execution", async () => {

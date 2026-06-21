@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   McpRuntimeInputError,
+  createMcpOAuthAuthorizePlan,
+  createMcpOAuthRevokePlan,
+  createMcpOAuthTokenPlan,
   createMcpProtocolPlan,
+  getMcpOAuthCapabilities,
   getMcpRuntimeCapabilities
 } from "./index";
 
@@ -28,6 +32,175 @@ describe("mcp endpoint default-deny scaffold", () => {
       "tools/list",
       "tools/call"
     ]);
+    expect(getMcpRuntimeCapabilities()).toMatchObject({
+      oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
+      oauth_pkce_ready: true,
+      oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
+      oauth_token_route: "POST /mcp/oauth/token/plan",
+      scopes_revocable: true,
+      third_party_token_passthrough: false
+    });
+  });
+
+  it("reports OAuth PKCE scope and revocation capabilities", () => {
+    expect(getMcpOAuthCapabilities()).toMatchObject({
+      authorize_route: "POST /mcp/oauth/authorize/plan",
+      live_oauth_provider: false,
+      package: "@aiphabee/mcp-runtime",
+      pkce_methods: ["S256"],
+      revoke_route: "POST /mcp/oauth/revoke/plan",
+      runtime_route: "GET /mcp/oauth/runtime",
+      scopes_revocable: true,
+      status: "mcp_oauth_pkce_scaffold",
+      third_party_token_passthrough: false,
+      token_route: "POST /mcp/oauth/token/plan"
+    });
+    expect(getMcpOAuthCapabilities().scope_catalog.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read",
+      "fundamentals.read",
+      "filings.read",
+      "analytics.run",
+      "portfolio.read",
+      "alerts.write",
+      "exports.read",
+      "admin.usage.read"
+    ]);
+  });
+
+  it("plans OAuth authorization with S256 PKCE and clear revocable scopes", () => {
+    const plan = createMcpOAuthAuthorizePlan({
+      clientId: "client_mcp_inspector",
+      codeChallenge: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO0123456789_-",
+      codeChallengeMethod: "S256",
+      redirectUri: "https://client.example/oauth/callback",
+      requestId: "req-mcp-oauth-authorize",
+      requestedScopes: ["security.read", "market.read", "analytics.run"],
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(plan).toMatchObject({
+      action: "authorize",
+      authorization_code: {
+        code_emitted: false,
+        expires_in_seconds: 300,
+        one_time_use: true,
+        status: "planned_no_live",
+        token_exchange_route: "POST /mcp/oauth/token/plan"
+      },
+      client_id: "client_mcp_inspector",
+      consent: {
+        clear_scope_display: true,
+        requested_scope_count: 3,
+        user_consent_required: true
+      },
+      live_oauth_provider: false,
+      oauth_flow: "authorization_code_pkce",
+      pkce: {
+        code_challenge_method: "S256",
+        code_verifier_stored: false,
+        plain_method_allowed: false
+      },
+      revocation: {
+        revoke_route: "POST /mcp/oauth/revoke/plan",
+        revocable: true
+      },
+      route: "POST /mcp/oauth/authorize/plan",
+      status: "planned_no_live_oauth",
+      third_party_token_passthrough: false,
+      token_issued: false
+    });
+    expect(plan.consent.scopes.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read",
+      "analytics.run"
+    ]);
+    expect(plan.consent.scopes.every((scope) => scope.revocable)).toBe(true);
+  });
+
+  it("plans OAuth token exchange without issuing or passing through tokens", () => {
+    const plan = createMcpOAuthTokenPlan({
+      authorizationCode: "auth_code_placeholder",
+      clientId: "client_mcp_inspector",
+      codeVerifier: "verifier_placeholder",
+      requestId: "req-mcp-oauth-token",
+      requestedScopes: ["security.read", "market.read"]
+    });
+
+    expect(plan).toMatchObject({
+      action: "token",
+      authorization_code: {
+        authorization_code_received: true,
+        one_time_use_required: true
+      },
+      live_oauth_provider: false,
+      pkce_verification: {
+        code_verifier_received: true,
+        verification_status: "planned_no_live",
+        verifier_hash_stored: false
+      },
+      route: "POST /mcp/oauth/token/plan",
+      scope_binding: {
+        requested_scopes: ["security.read", "market.read"],
+        scopes_bound_to_token: true
+      },
+      status: "planned_no_live_oauth",
+      third_party_token_passthrough: false,
+      token: {
+        access_token_issued: false,
+        audience: "aiphabee-mcp",
+        expires_in_seconds: 900,
+        refresh_token_issued: false
+      }
+    });
+  });
+
+  it("plans OAuth revocation so future calls are denied after revoke", () => {
+    const plan = createMcpOAuthRevokePlan({
+      connectionId: "mcp_connection_1",
+      reason: "user_disconnect",
+      requestId: "req-mcp-oauth-revoke"
+    });
+
+    expect(plan).toMatchObject({
+      action: "revoke",
+      connection_id: "mcp_connection_1",
+      live_oauth_provider: false,
+      reason: "user_disconnect",
+      revocation_plan: {
+        future_calls_denied_after_revoke: true,
+        revoke_status: "planned_no_live",
+        scope_grants_removed: "planned",
+        token_invalidation_live: false
+      },
+      route: "POST /mcp/oauth/revoke/plan",
+      status: "planned_no_live_oauth"
+    });
+  });
+
+  it("rejects OAuth authorization without S256 PKCE or supported scopes", () => {
+    expect(() =>
+      createMcpOAuthAuthorizePlan({
+        clientId: "client_mcp_inspector",
+        codeChallenge: "short",
+        codeChallengeMethod: "plain",
+        redirectUri: "https://client.example/oauth/callback",
+        requestId: "req-mcp-oauth-invalid",
+        requestedScopes: ["market.read"]
+      })
+    ).toThrow(McpRuntimeInputError);
+
+    expect(() =>
+      createMcpOAuthAuthorizePlan({
+        clientId: "client_mcp_inspector",
+        codeChallenge: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO0123456789_-",
+        codeChallengeMethod: "S256",
+        redirectUri: "https://client.example/oauth/callback",
+        requestId: "req-mcp-oauth-bad-scope",
+        requestedScopes: ["unknown.scope"]
+      })
+    ).toThrow(McpRuntimeInputError);
   });
 
   it("plans initialize for trusted origins without live OAuth or tool execution", () => {
