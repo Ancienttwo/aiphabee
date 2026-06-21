@@ -30,10 +30,12 @@ import {
   createAgentKillSwitchPlan,
   createAgentRunSkeleton,
   createPreToolCallResolution,
+  createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
+  getProductAgentReleaseGateCapabilities,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
   type AgentRunSkeletonInput
@@ -271,6 +273,8 @@ interface WorkerBindings {
 }
 
 interface AgentRunRequestBody {
+  ambiguous_security_query?: unknown;
+  ambiguousSecurityQuery?: unknown;
   as_of?: unknown;
   asOf?: unknown;
   channel?: unknown;
@@ -328,6 +332,8 @@ interface AgentRunRequestBody {
   dataDelayMinutes?: unknown;
   model_version?: unknown;
   modelVersion?: unknown;
+  numeric_prompt?: unknown;
+  numericPrompt?: unknown;
   prompt_version?: unknown;
   promptVersion?: unknown;
   source_run_id?: unknown;
@@ -4009,6 +4015,97 @@ app.get("/agent/runtime", (c) => {
       }
     })
   );
+});
+
+app.post("/agent/release-gates/product-agent/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+    const plan = createProductAgentReleaseGatePlan({
+      ambiguousSecurityQuery: normalizeString(
+        body.ambiguous_security_query ?? body.ambiguousSecurityQuery ?? body.security_query
+      ),
+      asOf: normalizeString(body.as_of ?? body.asOf),
+      currency: normalizeString(body.currency),
+      locale: normalizeString(
+        body.locale ?? body.response_locale ?? body.responseLocale ?? body.language
+      ),
+      methodology: normalizeString(body.methodology),
+      numericPrompt: normalizeString(body.numeric_prompt ?? body.numericPrompt ?? body.prompt),
+      requestedTools: Array.isArray(body.tools)
+        ? body.tools.filter((tool): tool is string => typeof tool === "string")
+        : undefined,
+      requestId,
+      responseDepth: normalizeString(body.response_depth ?? body.responseDepth),
+      userId: normalizeString(body.user_id ?? body.userId),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...plan,
+          capability: getProductAgentReleaseGateCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: plan.version,
+          methodologyVersion: plan.version,
+          provenance: [
+            {
+              data_version: plan.version,
+              methodology_version: plan.version,
+              source: "agent-runtime",
+              source_record_id: "product-agent-release-gate-plan"
+            }
+          ],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: plan.release_checks.length
+          }
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "product-agent-release-gate-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "product Agent release gate planning failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "product-agent-release-gate-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
 });
 
 app.post("/agent/kill-switch/plan", async (c) => {

@@ -6,10 +6,12 @@ import {
   createAgentRunSkeleton,
   createAiSdkStopCondition,
   createPreToolCallResolution,
+  createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
   getAgentWorkflowTaskCapabilities,
-  getAgentRuntimeCapabilities
+  getAgentRuntimeCapabilities,
+  getProductAgentReleaseGateCapabilities
 } from "./index";
 
 describe("agent runtime scaffold", () => {
@@ -143,6 +145,28 @@ describe("agent runtime scaffold", () => {
       status: "workflow_task_scaffold",
       task_id_visible: true
     });
+    expect(capabilities.product_agent_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      preflight_route: "POST /agent/runs/preflight",
+      route: "POST /agent/release-gates/product-agent/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "product_agent_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      version: "2026-06-21.phase3.product-agent-release-gate-scaffold.v0"
+    });
+    expect(capabilities.product_agent_release_gate.required_checks).toEqual([
+      "ambiguous_security_blocks_tool_planning",
+      "silent_security_selection_blocked",
+      "numeric_claim_requires_tool_result_or_calculation_ref",
+      "answer_contract_blocks_unsourced_numbers",
+      "deterministic_calculations_keep_model_out"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -150,6 +174,123 @@ describe("agent runtime scaffold", () => {
         standardResponseEnvelope: true
       }
     });
+  });
+
+  it("exposes product Agent release gate capability without live execution", () => {
+    const capability = getProductAgentReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/product-agent/plan",
+      sql_emitted: false,
+      status: "product_agent_release_gate_scaffold"
+    });
+    expect(capability.tables).toEqual([
+      "core.product_agent_release_gate",
+      "governance.product_agent_release_gate_contract"
+    ]);
+  });
+
+  it("plans product Agent release gate checks for ambiguity and numeric evidence", () => {
+    const plan = createProductAgentReleaseGatePlan({
+      ambiguousSecurityQuery: "ABC",
+      numericPrompt: "Explain 00700.HK revenue and ROE with source records",
+      requestId: "req-product-agent-gate-1",
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/product-agent/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-21.phase3.product-agent-release-gate-scaffold.v0"
+    });
+    expect(plan.ambiguous_security_gate).toMatchObject({
+      ambiguous_candidate_count: 2,
+      clarification_required: true,
+      input_security_query: "ABC",
+      silent_selection_allowed: false,
+      tool_planning_allowed: false
+    });
+    expect(plan.ambiguous_security_gate.preflight).toMatchObject({
+      actual_tool_execution: false,
+      clarification_required: true,
+      status: "needs_clarification",
+      tool_readiness: {
+        can_plan_tools: false
+      }
+    });
+    expect(plan.ambiguous_security_gate.preflight.security.resolved).toEqual([]);
+    expect(plan.ambiguous_security_gate.preflight.clarifications[0]).toMatchObject({
+      blocking: true,
+      field: "security",
+      reason: "security identifier is ambiguous and cannot be silently selected"
+    });
+    expect(plan.numeric_evidence_gate).toMatchObject({
+      allowed_sources: ["tool_result", "deterministic_calculation"],
+      blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
+      concrete_claims_allowed_now: false,
+      concrete_numbers_allowed_without_sources: false,
+      failure_code: "UNSOURCED_NUMERIC_CLAIM",
+      requires_calculation_ref: true,
+      requires_source_record_ref: true
+    });
+    expect(plan.numeric_evidence_gate.deterministic_calculation_count).toBeGreaterThanOrEqual(3);
+    expect(plan.numeric_evidence_gate.planned_tool_result_source_count).toBeGreaterThanOrEqual(3);
+    expect(plan.numeric_evidence_gate.validation_rules).toContain(
+      "require_tool_result_or_calculation_ref"
+    );
+    expect(plan.answer_contract_gate).toMatchObject({
+      calculation_requires_calculation_ref: true,
+      fact_requires_evidence_card: true,
+      required_claim_labels: ["fact", "calculation", "inference", "unknown"],
+      unknown_requires_missing_reason: true
+    });
+    expect(plan.answer_contract_gate.evidence_card_required_fields).toEqual(
+      expect.arrayContaining(["source_record_id", "data_version", "methodology_version"])
+    );
+    expect(plan.answer_contract_gate.validation_rules).toContain(
+      "block_unsourced_specific_numbers"
+    );
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "ambiguous_security_blocks_tool_planning",
+      "silent_security_selection_blocked",
+      "numeric_claim_requires_tool_result_or_calculation_ref",
+      "answer_contract_blocks_unsourced_numbers",
+      "deterministic_calculations_keep_model_out"
+    ]);
+    expect(plan.release_gate).toMatchObject({
+      gate_status: "blocked_live_post_generation_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["product", "agent", "data_quality"]
+    });
+    expect(plan.validation).toEqual({
+      ambiguous_security_blocked: true,
+      answer_contract_blocks_unsourced_numbers: true,
+      concrete_numbers_require_evidence: true,
+      deterministic_calculations_keep_model_out: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      numeric_sources_restricted: true,
+      silent_selection_allowed: false,
+      tool_planning_blocked_until_clarified: true
+    });
+    expect(plan.numeric_tool_loop_plan.status).toBe("planned_no_model");
+    expect(plan.numeric_tool_loop_plan.numeric_source_guard.version).toBe(
+      "2026-06-21.phase1.numeric-source-guard-scaffold.v0"
+    );
   });
 
   it("creates a dry-run skeleton with registered tool policy", () => {

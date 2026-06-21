@@ -2102,6 +2102,22 @@ interface AgentRuntimeBody {
       status: string;
       task_id_visible: boolean;
     };
+    product_agent_release_gate: {
+      actual_tool_execution: boolean;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_tool_execution: boolean;
+      model_calls: boolean;
+      persistent_writes: boolean;
+      preflight_route: string;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      tool_loop_route: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -2156,6 +2172,76 @@ interface AgentKillSwitchPlanBody {
       target: string;
       tool_kill_switch: boolean;
     };
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface ProductAgentReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    ambiguous_security_gate: {
+      ambiguous_candidate_count: number;
+      clarification_required: boolean;
+      input_security_query: string;
+      preflight: {
+        clarification_required: boolean;
+        clarifications: Array<{
+          field: string;
+          reason: string;
+        }>;
+        security: {
+          resolved: unknown[];
+        };
+        status: string;
+        tool_readiness: {
+          can_plan_tools: boolean;
+        };
+      };
+      silent_selection_allowed: boolean;
+      tool_planning_allowed: boolean;
+    };
+    answer_contract_gate: {
+      calculation_requires_calculation_ref: boolean;
+      evidence_card_required_fields: string[];
+      fact_requires_evidence_card: boolean;
+      required_claim_labels: string[];
+      unknown_requires_missing_reason: boolean;
+      validation_rules: string[];
+    };
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    numeric_evidence_gate: {
+      allowed_sources: string[];
+      blocked_sources: string[];
+      concrete_claims_allowed_now: boolean;
+      concrete_numbers_allowed_without_sources: boolean;
+      deterministic_calculation_count: number;
+      failure_code: string;
+      planned_tool_result_source_count: number;
+      requires_calculation_ref: boolean;
+      requires_source_record_ref: boolean;
+      validation_rules: string[];
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    validation: Record<string, boolean>;
     version: string;
   };
   ok: true;
@@ -7804,6 +7890,28 @@ describe("worker runtime", () => {
       status: "workflow_task_scaffold",
       task_id_visible: true
     });
+    expect(body.data.product_agent_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      preflight_route: "POST /agent/runs/preflight",
+      route: "POST /agent/release-gates/product-agent/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "product_agent_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      version: "2026-06-21.phase3.product-agent-release-gate-scaffold.v0"
+    });
+    expect(body.data.product_agent_release_gate.required_checks).toEqual([
+      "ambiguous_security_blocks_tool_planning",
+      "silent_security_selection_blocked",
+      "numeric_claim_requires_tool_result_or_calculation_ref",
+      "answer_contract_blocks_unsourced_numbers",
+      "deterministic_calculations_keep_model_out"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -7826,6 +7934,111 @@ describe("worker runtime", () => {
     expect(body.data.surfaces.model_calls).toBe(false);
     expect(body.data.surfaces.market_data).toBe(false);
     expect(body.data.surfaces.mcp_redistribution).toBe(false);
+  });
+
+  it("plans product Agent release gate without silent security selection or unsourced numbers", async () => {
+    const response = await app.request("/agent/release-gates/product-agent/plan", {
+      body: JSON.stringify({
+        ambiguous_security_query: "ABC",
+        numeric_prompt: "Explain 00700.HK revenue and ROE with source records",
+        tools: [
+          "resolve_security",
+          "get_entitlements",
+          "get_financial_facts",
+          "get_financial_ratios",
+          "calculate_returns_risk",
+          "get_data_lineage"
+        ],
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-product-agent-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ProductAgentReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      ambiguous_security_gate: {
+        ambiguous_candidate_count: 2,
+        clarification_required: true,
+        input_security_query: "ABC",
+        silent_selection_allowed: false,
+        tool_planning_allowed: false
+      },
+      capability: {
+        route: "POST /agent/release-gates/product-agent/plan",
+        status: "product_agent_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_tool_execution: false,
+      model_calls: false,
+      numeric_evidence_gate: {
+        allowed_sources: ["tool_result", "deterministic_calculation"],
+        blocked_sources: ["model_memory", "training_data", "unverified_prompt", "unstated_source"],
+        concrete_claims_allowed_now: false,
+        concrete_numbers_allowed_without_sources: false,
+        failure_code: "UNSOURCED_NUMERIC_CLAIM",
+        requires_calculation_ref: true,
+        requires_source_record_ref: true
+      },
+      release_gate: {
+        gate_status: "blocked_live_post_generation_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["product", "agent", "data_quality"]
+      },
+      version: "2026-06-21.phase3.product-agent-release-gate-scaffold.v0"
+    });
+    expect(body.data.ambiguous_security_gate.preflight.security.resolved).toEqual([]);
+    expect(body.data.ambiguous_security_gate.preflight.tool_readiness.can_plan_tools).toBe(
+      false
+    );
+    expect(body.data.answer_contract_gate).toMatchObject({
+      calculation_requires_calculation_ref: true,
+      fact_requires_evidence_card: true,
+      required_claim_labels: ["fact", "calculation", "inference", "unknown"],
+      unknown_requires_missing_reason: true
+    });
+    expect(body.data.answer_contract_gate.evidence_card_required_fields).toEqual(
+      expect.arrayContaining(["source_record_id", "data_version", "methodology_version"])
+    );
+    expect(body.data.answer_contract_gate.validation_rules).toContain(
+      "block_unsourced_specific_numbers"
+    );
+    expect(body.data.numeric_evidence_gate.validation_rules).toContain(
+      "require_tool_result_or_calculation_ref"
+    );
+    expect(body.data.numeric_evidence_gate.deterministic_calculation_count).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "ambiguous_security_blocks_tool_planning",
+      "silent_security_selection_blocked",
+      "numeric_claim_requires_tool_result_or_calculation_ref",
+      "answer_contract_blocks_unsourced_numbers",
+      "deterministic_calculations_keep_model_out"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      ambiguous_security_blocked: true,
+      answer_contract_blocks_unsourced_numbers: true,
+      concrete_numbers_require_evidence: true,
+      deterministic_calculations_keep_model_out: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      numeric_sources_restricted: true,
+      silent_selection_allowed: false,
+      tool_planning_blocked_until_clarified: true
+    });
+    expect(body.usage.rows).toBe(5);
   });
 
   it("plans model/tool kill switch safe degradation without live flags", async () => {

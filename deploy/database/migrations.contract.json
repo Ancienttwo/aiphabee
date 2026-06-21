@@ -429,6 +429,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621132000_product_agent_release_gate_scaffold.sql",
+      "purpose": "Create empty product Agent release gate and governance scaffolds for ambiguous security blocking and evidence-bound numeric claims without enabling live post-generation validation or frontend rendering.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.product_agent_release_gate",
+        "governance.product_agent_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
