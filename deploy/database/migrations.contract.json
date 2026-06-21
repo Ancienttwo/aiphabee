@@ -541,6 +541,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622003000_partner_support_release_gate_scaffold.sql",
+      "purpose": "Create empty partner/support release gate scaffolds for partner reconciliation report generation, request_id support investigation drill-down, SLA counters, and sensitive-payload exclusion without enabling live ledger reads, partner artifact store, support log reads, partner portal delivery, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.partner_support_release_gate",
+        "audit.partner_support_drill_event",
+        "governance.partner_support_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

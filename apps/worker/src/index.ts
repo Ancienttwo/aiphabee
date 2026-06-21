@@ -240,11 +240,13 @@ import {
   createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
+  createPartnerSupportReleaseGatePlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
+  getPartnerSupportReleaseGateCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageLedgerEventWriterCapabilities,
   getUsageQuotaDisplayCapabilities,
@@ -1598,7 +1600,8 @@ app.get("/usage/runtime", (c) => {
         billing_rules_release_gate: getBillingRulesReleaseGateCapabilities(),
         billing_reconciliation: getUsageBillingReconciliationCapabilities(),
         high_cost_reservation: getHighCostUsageReservationCapabilities(),
-        partner_reconciliation_report: getPartnerReconciliationReportCapabilities()
+        partner_reconciliation_report: getPartnerReconciliationReportCapabilities(),
+        partner_support_release_gate: getPartnerSupportReleaseGateCapabilities()
       },
       {
         asOf: new Date().toISOString(),
@@ -1652,6 +1655,48 @@ app.post("/usage/release-gates/billing-rules/plan", async (c) => {
             methodology_version: plan.version,
             source: "billing-rules-release-gate",
             source_record_id: "billing-rules-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/usage/release-gates/partner-support/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createPartnerSupportReleaseGatePlan({
+    partnerId: normalizeString(body.partner_id ?? body.partnerId),
+    periodEnd: normalizeString(body.period_end ?? body.periodEnd),
+    periodStart: normalizeString(body.period_start ?? body.periodStart),
+    requestId,
+    supportAgentId: normalizeString(body.support_agent_id ?? body.supportAgentId),
+    targetRequestId: normalizeString(body.target_request_id ?? body.targetRequestId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      plan,
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "partner-support-release-gate",
+            source_record_id: "partner-support-release-gate-plan"
           }
         ],
         requestId,

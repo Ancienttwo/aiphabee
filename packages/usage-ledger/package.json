@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aiphabee/account-runtime": "file:../account-runtime"
+    "@aiphabee/account-runtime": "file:../account-runtime",
+    "@aiphabee/support-ops": "file:../support-ops"
   }
 }

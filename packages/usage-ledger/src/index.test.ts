@@ -3,12 +3,14 @@ import {
   createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
+  createPartnerSupportReleaseGatePlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   createUsageLedgerEventPlan,
   getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
+  getPartnerSupportReleaseGateCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageQuotaDisplayCapabilities,
   getUsageLedgerEventWriterCapabilities
@@ -241,6 +243,35 @@ describe("usage ledger event writer scaffold", () => {
       "invoice_credits_match_usage_ledger_credits",
       "request_id_trace_links_invoice_ledger_usage_event",
       "high_cost_pre_debit_and_failure_refund_planned"
+    ]);
+  });
+
+  it("reports partner support release gate capabilities", () => {
+    expect(getPartnerSupportReleaseGateCapabilities()).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+      persistent_writes: false,
+      request_id_drill_required: true,
+      route: "POST /usage/release-gates/partner-support/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_support_release_gate_scaffold",
+      support_help_center_route: "GET /support/help-center",
+      support_investigation_route: "POST /support/request-id-investigation/plan",
+      support_runtime_route: "GET /support/runtime"
+    });
+    expect(getPartnerSupportReleaseGateCapabilities().required_checks).toEqual([
+      "partner_report_generated",
+      "partner_report_trace_links_request_id_and_usage_event",
+      "partner_report_sla_counters_present",
+      "support_request_id_investigation_metadata_only",
+      "sensitive_payloads_excluded",
+      "live_artifact_and_log_reads_blocked"
     ]);
   });
 
@@ -512,6 +543,98 @@ describe("usage ledger event writer scaffold", () => {
       credential_material_included: false,
       raw_email_included: false,
       raw_payment_identifier_included: false
+    });
+  });
+
+  it("plans partner support release gate by linking partner report rows to request_id support investigation", () => {
+    const plan = createPartnerSupportReleaseGatePlan({
+      partnerId: "partner_hk_data",
+      periodEnd: "2026-06-08T00:00:00.000Z",
+      periodStart: "2026-06-01T00:00:00.000Z",
+      requestId: "req_partner_support_gate",
+      supportAgentId: "support_agent_001",
+      targetRequestId: "req_partner_mcp_quote_001",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      persistent_writes: false,
+      request_id: "req_partner_support_gate",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(plan.capability).toMatchObject({
+      route: "POST /usage/release-gates/partner-support/plan",
+      status: "partner_support_release_gate_scaffold"
+    });
+    expect(plan.partner_reconciliation_gate.plan).toMatchObject({
+      partner_id: "partner_hk_data",
+      status: "planned_no_write"
+    });
+    expect(plan.partner_reconciliation_gate.plan.rows).toHaveLength(2);
+    expect(plan.partner_reconciliation_gate.plan.rows[1]).toMatchObject({
+      channel: "mcp",
+      credits: 10,
+      dataset: "hk_equity_quote",
+      missing_rows: 2,
+      package_code: "developer",
+      request_ids: ["req_partner_mcp_quote_001", "req_partner_mcp_quote_001_delayed"],
+      sla_status: "exception",
+      usage_count: 4,
+      user_id: "user_ops_001"
+    });
+    expect(plan.support_investigation_gate.plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(plan.support_investigation_gate.plan.investigation).toMatchObject({
+      live_billing_provider_reads: false,
+      live_log_reads: false,
+      target_request_id: "req_partner_mcp_quote_001"
+    });
+    expect(plan.ops_drill).toMatchObject({
+      target_request_id: "req_partner_mcp_quote_001"
+    });
+    expect(plan.ops_drill.request_ids_available).toContain("req_partner_mcp_quote_001");
+    expect(plan.ops_drill.usage_event_ids_available).toContain(
+      "usage_event_req_partner_mcp_quote_001"
+    );
+    expect(plan.validation).toEqual({
+      all_checks_passed: true,
+      live_artifact_and_log_reads_blocked: true,
+      live_release_claimed: false,
+      partner_report_generated: true,
+      partner_report_sla_counters_present: true,
+      partner_report_trace_links_request_id_and_usage_event: true,
+      sensitive_payloads_excluded: true,
+      support_request_id_investigation_metadata_only: true
+    });
+    expect(plan.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      external_signoff_required: true,
+      status: "blocked_live_partner_support_validation"
+    });
+    expect(plan.release_gate.blockers).toEqual([
+      "live_usage_ledger_reads_missing",
+      "live_partner_report_artifact_store_missing",
+      "partner_portal_delivery_missing",
+      "live_support_log_reads_missing",
+      "frontend_ops_ui_missing",
+      "final_partner_settlement_approval_missing"
+    ]);
+    expect(plan.support_investigation_gate.plan.privacy).toMatchObject({
+      default_sensitive_content_access: false,
+      sensitive_content_released: false
+    });
+    expect(plan.support_investigation_gate.plan.privacy.forbidden_fields).toContain("raw_prompt");
+    expect(plan.partner_reconciliation_gate.plan.export).toMatchObject({
+      artifact_writes: false,
+      raw_personal_contact_included: false
     });
   });
 

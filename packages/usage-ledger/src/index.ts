@@ -8,6 +8,13 @@ import {
   type SubscriptionLifecycleCapabilities,
   type SubscriptionLifecyclePlan
 } from "@aiphabee/account-runtime";
+import {
+  createSupportRequestIdInvestigationPlan,
+  getSupportHelpCenter,
+  getSupportOperationsCapabilities,
+  type SupportOperationsCapabilities,
+  type SupportRequestIdInvestigationPlan
+} from "@aiphabee/support-ops";
 
 export const USAGE_LEDGER_EVENT_WRITER_VERSION =
   "2026-06-20.phase1.usage-event-writer-scaffold.v0";
@@ -21,6 +28,8 @@ export const PARTNER_RECONCILIATION_REPORT_VERSION =
   "2026-06-21.phase3.partner-reconciliation-report-scaffold.v0";
 export const BILLING_RULES_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.billing-rules-release-gate-scaffold.v0";
+export const PARTNER_SUPPORT_RELEASE_GATE_VERSION =
+  "2026-06-22.phase3.partner-support-release-gate-scaffold.v0";
 
 export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
 export const USAGE_QUOTA_PLAN_CODES = [
@@ -51,6 +60,19 @@ export const BILLING_RULES_RELEASE_GATE_TABLES = [
   "core.billing_rules_release_gate",
   "audit.billing_rules_drill_event",
   "governance.billing_rules_release_gate_contract"
+] as const;
+export const PARTNER_SUPPORT_RELEASE_GATE_CHECKS = [
+  "partner_report_generated",
+  "partner_report_trace_links_request_id_and_usage_event",
+  "partner_report_sla_counters_present",
+  "support_request_id_investigation_metadata_only",
+  "sensitive_payloads_excluded",
+  "live_artifact_and_log_reads_blocked"
+] as const;
+export const PARTNER_SUPPORT_RELEASE_GATE_TABLES = [
+  "core.partner_support_release_gate",
+  "audit.partner_support_drill_event",
+  "governance.partner_support_release_gate_contract"
 ] as const;
 
 export type UsageLedgerBillableState = "blocked" | "posted" | "preview" | "reversed" | "waived";
@@ -85,6 +107,8 @@ export type PartnerReconciliationSlaStatus = "exception" | "ok";
 export type UsageQuotaDisplayStatus = "blocked_missing_workspace" | "planned_no_write";
 export type BillingRulesReleaseGateCheckId =
   (typeof BILLING_RULES_RELEASE_GATE_CHECKS)[number];
+export type PartnerSupportReleaseGateCheckId =
+  (typeof PARTNER_SUPPORT_RELEASE_GATE_CHECKS)[number];
 
 export interface UsageLedgerEventPlanInput {
   accountId?: string;
@@ -634,6 +658,99 @@ export interface BillingRulesReleaseGatePlan {
   workspace_id: string;
 }
 
+export interface PartnerSupportReleaseGateCapabilities {
+  billing_provider_calls: false;
+  frontend: false;
+  live_ledger_reads: false;
+  live_partner_report_artifact_store: false;
+  live_support_log_reads: false;
+  package: "@aiphabee/usage-ledger";
+  partner_portal_delivery: false;
+  partner_reconciliation_route: "POST /usage/partner-reconciliation/plan";
+  persistent_writes: false;
+  request_id_drill_required: true;
+  required_checks: typeof PARTNER_SUPPORT_RELEASE_GATE_CHECKS;
+  route: "POST /usage/release-gates/partner-support/plan";
+  runtime_route: "GET /usage/runtime";
+  sql_emitted: false;
+  status: "partner_support_release_gate_scaffold";
+  support_help_center_route: "GET /support/help-center";
+  support_investigation_route: "POST /support/request-id-investigation/plan";
+  support_runtime_route: "GET /support/runtime";
+  tables: typeof PARTNER_SUPPORT_RELEASE_GATE_TABLES;
+  version: typeof PARTNER_SUPPORT_RELEASE_GATE_VERSION;
+}
+
+export interface PartnerSupportReleaseGatePlanInput {
+  partnerId?: string;
+  periodEnd?: string;
+  periodStart?: string;
+  requestId: string;
+  supportAgentId?: string;
+  targetRequestId?: string;
+  workspaceId?: string;
+}
+
+export interface PartnerSupportReleaseGatePlan {
+  capability: PartnerSupportReleaseGateCapabilities;
+  frontend: false;
+  live_ledger_reads: false;
+  live_partner_report_artifact_store: false;
+  live_support_log_reads: false;
+  ops_drill: {
+    partner_report_id: string;
+    request_ids_available: string[];
+    support_ticket_ref: string;
+    target_request_id: string;
+    usage_event_ids_available: string[];
+  };
+  partner_portal_delivery: false;
+  partner_reconciliation_gate: {
+    capability: ReturnType<typeof getPartnerReconciliationReportCapabilities>;
+    plan: PartnerReconciliationReportPlan;
+  };
+  persistent_writes: false;
+  release_checks: Array<{
+    check_id: PartnerSupportReleaseGateCheckId;
+    evidence: string;
+    status: "blocked" | "pass";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_usage_ledger_reads_missing",
+      "live_partner_report_artifact_store_missing",
+      "partner_portal_delivery_missing",
+      "live_support_log_reads_missing",
+      "frontend_ops_ui_missing",
+      "final_partner_settlement_approval_missing"
+    ];
+    external_signoff_required: true;
+    signoffs: readonly ["data-partner", "support", "billing", "ops", "compliance"];
+    status: "blocked_live_partner_support_validation";
+  };
+  request_id: string;
+  sql_emitted: false;
+  status: "planned_no_write";
+  support_investigation_gate: {
+    capability: SupportOperationsCapabilities;
+    help_center: ReturnType<typeof getSupportHelpCenter>;
+    plan: SupportRequestIdInvestigationPlan;
+  };
+  tables: typeof PARTNER_SUPPORT_RELEASE_GATE_TABLES;
+  validation: {
+    all_checks_passed: boolean;
+    live_artifact_and_log_reads_blocked: boolean;
+    live_release_claimed: false;
+    partner_report_generated: boolean;
+    partner_report_sla_counters_present: boolean;
+    partner_report_trace_links_request_id_and_usage_event: boolean;
+    sensitive_payloads_excluded: boolean;
+    support_request_id_investigation_metadata_only: boolean;
+  };
+  version: typeof PARTNER_SUPPORT_RELEASE_GATE_VERSION;
+  workspace_id: string;
+}
+
 const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["tables"] = [
   "core.workspace_subscription",
   "core.usage_event",
@@ -1147,6 +1264,244 @@ export function createBillingRulesReleaseGatePlan(
     tables: BILLING_RULES_RELEASE_GATE_TABLES,
     validation,
     version: BILLING_RULES_RELEASE_GATE_VERSION,
+    workspace_id: workspaceId
+  };
+}
+
+export function getPartnerSupportReleaseGateCapabilities(): PartnerSupportReleaseGateCapabilities {
+  return {
+    billing_provider_calls: false,
+    frontend: false,
+    live_ledger_reads: false,
+    live_partner_report_artifact_store: false,
+    live_support_log_reads: false,
+    package: "@aiphabee/usage-ledger",
+    partner_portal_delivery: false,
+    partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+    persistent_writes: false,
+    request_id_drill_required: true,
+    required_checks: PARTNER_SUPPORT_RELEASE_GATE_CHECKS,
+    route: "POST /usage/release-gates/partner-support/plan",
+    runtime_route: "GET /usage/runtime",
+    sql_emitted: false,
+    status: "partner_support_release_gate_scaffold",
+    support_help_center_route: "GET /support/help-center",
+    support_investigation_route: "POST /support/request-id-investigation/plan",
+    support_runtime_route: "GET /support/runtime",
+    tables: PARTNER_SUPPORT_RELEASE_GATE_TABLES,
+    version: PARTNER_SUPPORT_RELEASE_GATE_VERSION
+  };
+}
+
+export function createPartnerSupportReleaseGatePlan(
+  input: PartnerSupportReleaseGatePlanInput
+): PartnerSupportReleaseGatePlan {
+  const requestId = input.requestId;
+  const partnerId = normalizeIdentifier(input.partnerId, "partner_hk_data");
+  const workspaceId = normalizeIdentifier(input.workspaceId, "ws_internal_alpha");
+  const supportAgentId = normalizeIdentifier(input.supportAgentId, "support_agent_partner_ops");
+  const targetRequestId = normalizeIdentifier(
+    input.targetRequestId,
+    "req_partner_mcp_quote_001"
+  );
+  const periodStart = normalizeIdentifier(input.periodStart, "2026-06-01T00:00:00.000Z");
+  const periodEnd = normalizeIdentifier(input.periodEnd, "2026-06-08T00:00:00.000Z");
+  const targetUsageEventId = `usage_event_${sanitizeId(targetRequestId)}`;
+  const delayedRequestId = `${targetRequestId}_delayed`;
+  const webRequestId = `${targetRequestId}_web`;
+  const usageRows: PartnerReconciliationUsageRowInput[] = [
+    {
+      channel: "mcp",
+      credits: 8,
+      dataset: "hk_equity_quote",
+      meteredRows: 120,
+      packageCode: "developer",
+      requestId: targetRequestId,
+      usageCount: 3,
+      usageEventId: targetUsageEventId,
+      userId: "user_ops_001"
+    },
+    {
+      backfillCount: 1,
+      channel: "mcp",
+      credits: 2,
+      dataDelayMinutes: 10,
+      dataset: "hk_equity_quote",
+      meteredRows: 20,
+      missingRows: 2,
+      packageCode: "developer",
+      requestId: delayedRequestId,
+      usageCount: 1,
+      usageEventId: `usage_event_${sanitizeId(delayedRequestId)}`,
+      userId: "user_ops_001"
+    },
+    {
+      channel: "web",
+      credits: 5,
+      dataset: "financial_facts",
+      meteredRows: 50,
+      packageCode: "pro",
+      requestId: webRequestId,
+      usageCount: 2,
+      usageEventId: `usage_event_${sanitizeId(webRequestId)}`,
+      userId: "user_ops_002"
+    }
+  ];
+  const partnerPlan = createPartnerReconciliationReportPlan({
+    cadence: "weekly",
+    format: "csv",
+    partnerId,
+    periodEnd,
+    periodStart,
+    requestId: `${requestId}:partner-reconciliation`,
+    usageRows,
+    workspaceId
+  });
+  const supportPlan = createSupportRequestIdInvestigationPlan({
+    category: "account_billing",
+    includeSensitiveContent: false,
+    reason: "release_gate_partner_reconciliation_request_id_drill",
+    requestId: `${requestId}:support-investigation`,
+    supportAgentId,
+    targetRequestId,
+    workspaceId
+  });
+  const supportHelpCenter = getSupportHelpCenter();
+  const partnerRequestIds = uniqueStrings(partnerPlan.rows.flatMap((row) => row.request_ids));
+  const partnerUsageEventIds = uniqueStrings(
+    partnerPlan.rows.flatMap((row) => row.usage_event_ids)
+  );
+  const partnerReportGenerated =
+    partnerPlan.status === "planned_no_write" &&
+    partnerPlan.report.export_status === "planned_no_write" &&
+    partnerPlan.rows.length > 0;
+  const partnerReportTraceLinksRequestIdAndUsageEvent =
+    partnerPlan.traceability.traceable_to_usage_ledger === true &&
+    partnerRequestIds.includes(targetRequestId) &&
+    partnerUsageEventIds.includes(targetUsageEventId);
+  const partnerReportSlaCountersPresent =
+    partnerPlan.sla.daily_weekly_report === true &&
+    partnerPlan.sla.required_fields.includes("data_delay_minutes") &&
+    partnerPlan.sla.required_fields.includes("missing_rows") &&
+    partnerPlan.sla.required_fields.includes("error_count") &&
+    partnerPlan.sla.required_fields.includes("backfill_count") &&
+    partnerPlan.sla.status === "attention_required";
+  const supportRequestIdInvestigationMetadataOnly =
+    supportPlan.status === "planned_no_write" &&
+    supportPlan.investigation.target_request_id === targetRequestId &&
+    supportPlan.validation.required_context_present === true &&
+    supportPlan.investigation.planned_sources.includes("usage_ledger_event") &&
+    supportPlan.investigation.live_log_reads === false &&
+    supportPlan.investigation.live_billing_provider_reads === false;
+  const sensitivePayloadsExcluded =
+    supportPlan.privacy.default_sensitive_content_access === false &&
+    supportPlan.privacy.sensitive_content_released === false &&
+    supportPlan.privacy.forbidden_fields.includes("raw_prompt") &&
+    supportPlan.privacy.forbidden_fields.includes("generated_answer") &&
+    partnerPlan.privacy.credential_material_included === false &&
+    partnerPlan.privacy.raw_email_included === false &&
+    partnerPlan.privacy.raw_payment_identifier_included === false &&
+    partnerPlan.export.raw_personal_contact_included === false;
+  const liveArtifactAndLogReadsBlocked =
+    partnerPlan.export.artifact_writes === false &&
+    partnerPlan.live_ledger_reads === false &&
+    supportPlan.investigation.live_log_reads === false &&
+    supportPlan.persistent_writes === false;
+  const validation: PartnerSupportReleaseGatePlan["validation"] = {
+    all_checks_passed:
+      partnerReportGenerated &&
+      partnerReportTraceLinksRequestIdAndUsageEvent &&
+      partnerReportSlaCountersPresent &&
+      supportRequestIdInvestigationMetadataOnly &&
+      sensitivePayloadsExcluded &&
+      liveArtifactAndLogReadsBlocked,
+    live_artifact_and_log_reads_blocked: liveArtifactAndLogReadsBlocked,
+    live_release_claimed: false,
+    partner_report_generated: partnerReportGenerated,
+    partner_report_sla_counters_present: partnerReportSlaCountersPresent,
+    partner_report_trace_links_request_id_and_usage_event:
+      partnerReportTraceLinksRequestIdAndUsageEvent,
+    sensitive_payloads_excluded: sensitivePayloadsExcluded,
+    support_request_id_investigation_metadata_only: supportRequestIdInvestigationMetadataOnly
+  };
+
+  return {
+    capability: getPartnerSupportReleaseGateCapabilities(),
+    frontend: false,
+    live_ledger_reads: false,
+    live_partner_report_artifact_store: false,
+    live_support_log_reads: false,
+    ops_drill: {
+      partner_report_id: partnerPlan.report.report_id,
+      request_ids_available: partnerRequestIds,
+      support_ticket_ref: supportPlan.support_ticket.support_ticket_ref,
+      target_request_id: targetRequestId,
+      usage_event_ids_available: partnerUsageEventIds
+    },
+    partner_portal_delivery: false,
+    partner_reconciliation_gate: {
+      capability: getPartnerReconciliationReportCapabilities(),
+      plan: partnerPlan
+    },
+    persistent_writes: false,
+    release_checks: [
+      {
+        check_id: "partner_report_generated",
+        evidence: "Partner reconciliation planner returns grouped report rows and no-write export status",
+        status: validation.partner_report_generated ? "pass" : "blocked"
+      },
+      {
+        check_id: "partner_report_trace_links_request_id_and_usage_event",
+        evidence: "Report rows carry the target request_id and matching usage_event_id for support drill-down",
+        status: validation.partner_report_trace_links_request_id_and_usage_event
+          ? "pass"
+          : "blocked"
+      },
+      {
+        check_id: "partner_report_sla_counters_present",
+        evidence: "Daily/weekly SLA output includes delay, missing-row, error, and backfill counters",
+        status: validation.partner_report_sla_counters_present ? "pass" : "blocked"
+      },
+      {
+        check_id: "support_request_id_investigation_metadata_only",
+        evidence: "Support planner resolves request_id through metadata sources with live log and provider reads off",
+        status: validation.support_request_id_investigation_metadata_only ? "pass" : "blocked"
+      },
+      {
+        check_id: "sensitive_payloads_excluded",
+        evidence: "Support and partner report outputs exclude prompts, answers, raw emails, credentials, and payment data",
+        status: validation.sensitive_payloads_excluded ? "pass" : "blocked"
+      },
+      {
+        check_id: "live_artifact_and_log_reads_blocked",
+        evidence: "Partner artifact writes, live ledger reads, support log reads, and persistent writes remain disabled",
+        status: validation.live_artifact_and_log_reads_blocked ? "pass" : "blocked"
+      }
+    ],
+    release_gate: {
+      blockers: [
+        "live_usage_ledger_reads_missing",
+        "live_partner_report_artifact_store_missing",
+        "partner_portal_delivery_missing",
+        "live_support_log_reads_missing",
+        "frontend_ops_ui_missing",
+        "final_partner_settlement_approval_missing"
+      ],
+      external_signoff_required: true,
+      signoffs: ["data-partner", "support", "billing", "ops", "compliance"],
+      status: "blocked_live_partner_support_validation"
+    },
+    request_id: requestId,
+    sql_emitted: false,
+    status: "planned_no_write",
+    support_investigation_gate: {
+      capability: getSupportOperationsCapabilities(),
+      help_center: supportHelpCenter,
+      plan: supportPlan
+    },
+    tables: PARTNER_SUPPORT_RELEASE_GATE_TABLES,
+    validation,
+    version: PARTNER_SUPPORT_RELEASE_GATE_VERSION,
     workspace_id: workspaceId
   };
 }

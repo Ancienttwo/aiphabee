@@ -1,0 +1,107 @@
+{
+  "version": "2026-06-22.phase3.partner-support-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/usage-ledger",
+  "runtime_route": "GET /usage/runtime",
+  "route": "POST /usage/release-gates/partner-support/plan",
+  "standard_response_envelope": true,
+  "partner_reconciliation_route": "POST /usage/partner-reconciliation/plan",
+  "support_runtime_route": "GET /support/runtime",
+  "support_help_center_route": "GET /support/help-center",
+  "support_investigation_route": "POST /support/request-id-investigation/plan",
+  "covered_sprint_3_3_item": "partner_reconciliation_report_and_support_request_id_investigation",
+  "frontend": false,
+  "billing_provider_calls": false,
+  "live_ledger_reads": false,
+  "live_support_log_reads": false,
+  "live_partner_report_artifact_store": false,
+  "partner_portal_delivery": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "partner_report_rules": {
+    "group_by": ["dataset", "channel", "package_code", "user_id"],
+    "request_id_trace_required": true,
+    "usage_event_trace_required": true,
+    "sla_fields_required": [
+      "data_delay_minutes",
+      "missing_rows",
+      "error_count",
+      "backfill_count"
+    ],
+    "supported_formats": ["csv", "json"],
+    "live_artifact_writes": false
+  },
+  "support_rules": {
+    "request_id_required": true,
+    "support_agent_required": true,
+    "metadata_only": true,
+    "live_log_reads": false,
+    "live_billing_provider_reads": false,
+    "planned_sources": [
+      "standard_response_envelope",
+      "mcp_error_detail",
+      "usage_ledger_event",
+      "usage_billing_reconciliation",
+      "public_status_component"
+    ],
+    "forbidden_fields": [
+      "raw_prompt",
+      "generated_answer",
+      "raw_email",
+      "password",
+      "oauth_access_token",
+      "oauth_refresh_token",
+      "session_secret",
+      "api_key_material",
+      "payment_method",
+      "portfolio_holdings",
+      "document_body",
+      "personal_contact_detail"
+    ]
+  },
+  "required_checks": [
+    "partner_report_generated",
+    "partner_report_trace_links_request_id_and_usage_event",
+    "partner_report_sla_counters_present",
+    "support_request_id_investigation_metadata_only",
+    "sensitive_payloads_excluded",
+    "live_artifact_and_log_reads_blocked"
+  ],
+  "required_output_fields": [
+    "partner_reconciliation_gate",
+    "support_investigation_gate",
+    "ops_drill",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "tables": [
+    "core.partner_support_release_gate",
+    "audit.partner_support_drill_event",
+    "governance.partner_support_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_partner_support_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "data-partner",
+      "support",
+      "billing",
+      "ops",
+      "compliance"
+    ],
+    "blockers": [
+      "live_usage_ledger_reads_missing",
+      "live_partner_report_artifact_store_missing",
+      "partner_portal_delivery_missing",
+      "live_support_log_reads_missing",
+      "frontend_ops_ui_missing",
+      "final_partner_settlement_approval_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/usage/partner-reconciliation-report.contract.json",
+    "deploy/support/request-id-investigation.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

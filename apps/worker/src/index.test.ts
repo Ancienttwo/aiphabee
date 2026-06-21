@@ -815,6 +815,25 @@ interface UsageRuntimeBody {
       supported_cadences: string[];
       trace_fields: string[];
     };
+    partner_support_release_gate: {
+      billing_provider_calls: boolean;
+      frontend: boolean;
+      live_ledger_reads: boolean;
+      live_partner_report_artifact_store: boolean;
+      live_support_log_reads: boolean;
+      partner_portal_delivery: boolean;
+      partner_reconciliation_route: string;
+      persistent_writes: boolean;
+      request_id_drill_required: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      support_help_center_route: string;
+      support_investigation_route: string;
+      support_runtime_route: string;
+    };
     billing_provider_reconciliation: boolean;
     channels: string[];
     display_fields: string[];
@@ -896,6 +915,78 @@ interface UsageBillingRulesReleaseGatePlanBody {
           proration_preview: boolean;
           refund_preview: boolean;
         };
+      };
+    };
+    validation: Record<string, boolean>;
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface UsagePartnerSupportReleaseGatePlanBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    frontend: boolean;
+    live_ledger_reads: boolean;
+    live_partner_report_artifact_store: boolean;
+    live_support_log_reads: boolean;
+    ops_drill: {
+      request_ids_available: string[];
+      target_request_id: string;
+      usage_event_ids_available: string[];
+    };
+    partner_portal_delivery: boolean;
+    partner_reconciliation_gate: {
+      plan: {
+        rows: Array<{
+          channel: string;
+          credits: number;
+          dataset: string;
+          missing_rows: number;
+          package_code: string;
+          request_ids: string[];
+          sla_status: string;
+          usage_count: number;
+          user_id: string;
+        }>;
+        sla: {
+          status: string;
+        };
+        status: string;
+        traceability: {
+          traceable_to_usage_ledger: boolean;
+        };
+      };
+    };
+    release_checks: Array<{
+      check_id: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      status: string;
+    };
+    request_id: string;
+    sql_emitted: boolean;
+    status: string;
+    support_investigation_gate: {
+      plan: {
+        investigation: {
+          live_billing_provider_reads: boolean;
+          live_log_reads: boolean;
+          target_request_id: string;
+        };
+        privacy: {
+          forbidden_fields: string[];
+          sensitive_content_released: boolean;
+        };
+        status: string;
       };
     };
     validation: Record<string, boolean>;
@@ -6947,6 +7038,27 @@ describe("worker runtime", () => {
     expect(body.data.billing_rules_release_gate.required_checks).toContain(
       "invoice_credits_match_usage_ledger_credits"
     );
+    expect(body.data.partner_support_release_gate).toMatchObject({
+      billing_provider_calls: false,
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+      persistent_writes: false,
+      request_id_drill_required: true,
+      route: "POST /usage/release-gates/partner-support/plan",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_support_release_gate_scaffold",
+      support_help_center_route: "GET /support/help-center",
+      support_investigation_route: "POST /support/request-id-investigation/plan",
+      support_runtime_route: "GET /support/runtime"
+    });
+    expect(body.data.partner_support_release_gate.required_checks).toContain(
+      "support_request_id_investigation_metadata_only"
+    );
   });
 
   it("plans billing rules release gate checks against package, subscription, and usage surfaces", async () => {
@@ -7021,6 +7133,97 @@ describe("worker runtime", () => {
       status: "blocked_live_billing_rules_validation"
     });
     expect(body.data.release_gate.blockers).toContain("live_billing_provider_missing");
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans partner support release gate by joining reconciliation rows to request_id investigation", async () => {
+    const response = await app.request("/usage/release-gates/partner-support/plan", {
+      body: JSON.stringify({
+        partner_id: "partner_hk_data",
+        period_end: "2026-06-08T00:00:00.000Z",
+        period_start: "2026-06-01T00:00:00.000Z",
+        support_agent_id: "support_agent_001",
+        target_request_id: "req_partner_mcp_quote_001",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-usage-partner-support-gate"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UsagePartnerSupportReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      request_id: "req-usage-partner-support-gate",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /usage/release-gates/partner-support/plan",
+      status: "partner_support_release_gate_scaffold"
+    });
+    expect(body.data.partner_reconciliation_gate.plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(body.data.partner_reconciliation_gate.plan.rows).toHaveLength(2);
+    expect(body.data.partner_reconciliation_gate.plan.rows[1]).toMatchObject({
+      channel: "mcp",
+      credits: 10,
+      dataset: "hk_equity_quote",
+      missing_rows: 2,
+      package_code: "developer",
+      request_ids: ["req_partner_mcp_quote_001", "req_partner_mcp_quote_001_delayed"],
+      sla_status: "exception",
+      usage_count: 4,
+      user_id: "user_ops_001"
+    });
+    expect(body.data.partner_reconciliation_gate.plan.traceability).toMatchObject({
+      traceable_to_usage_ledger: true
+    });
+    expect(body.data.partner_reconciliation_gate.plan.sla.status).toBe("attention_required");
+    expect(body.data.support_investigation_gate.plan).toMatchObject({
+      status: "planned_no_write"
+    });
+    expect(body.data.support_investigation_gate.plan.investigation).toMatchObject({
+      live_billing_provider_reads: false,
+      live_log_reads: false,
+      target_request_id: "req_partner_mcp_quote_001"
+    });
+    expect(body.data.support_investigation_gate.plan.privacy).toMatchObject({
+      sensitive_content_released: false
+    });
+    expect(body.data.support_investigation_gate.plan.privacy.forbidden_fields).toContain(
+      "generated_answer"
+    );
+    expect(body.data.ops_drill).toMatchObject({
+      target_request_id: "req_partner_mcp_quote_001"
+    });
+    expect(body.data.ops_drill.request_ids_available).toContain("req_partner_mcp_quote_001");
+    expect(body.data.ops_drill.usage_event_ids_available).toContain(
+      "usage_event_req_partner_mcp_quote_001"
+    );
+    expect(body.data.validation).toMatchObject({
+      all_checks_passed: true,
+      live_release_claimed: false,
+      partner_report_trace_links_request_id_and_usage_event: true,
+      support_request_id_investigation_metadata_only: true
+    });
+    expect(body.data.release_checks).toHaveLength(6);
+    expect(body.data.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(body.data.release_gate).toMatchObject({
+      status: "blocked_live_partner_support_validation"
+    });
+    expect(body.data.release_gate.blockers).toContain("final_partner_settlement_approval_missing");
     expect(body.usage.rows).toBe(6);
   });
 
