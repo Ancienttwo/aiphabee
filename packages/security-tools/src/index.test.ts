@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   GetSecurityProfileInputError,
+  GetSecurityHistoryInputError,
   ResolveSecurityInputError,
+  getSecurityHistory,
+  getSecurityHistoryCapabilities,
   getSecurityProfile,
   getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
@@ -141,6 +144,97 @@ describe("security profile scaffold", () => {
       live_data_access: false,
       status: "get_security_profile_scaffold",
       supported_listing_statuses: ["listed", "suspended", "delisted"]
+    });
+  });
+});
+
+describe("security history scaffold", () => {
+  it("returns point-in-time historical name and industry without latest classification", () => {
+    const historical = getSecurityHistory({
+      asOf: "2017-01-01",
+      instrumentId: "eq_hk_00700"
+    });
+    const currentProfile = getSecurityProfile({ instrumentId: "eq_hk_00700" });
+
+    expect(historical.status).toBe("found");
+    expect(historical.toolName).toBe("get_security_history");
+    expect(historical.liveDataAccess).toBe(false);
+    expect(historical.history?.activeName).toMatchObject({
+      name: {
+        en: "Tencent Holdings Ltd."
+      },
+      validFrom: "2016-01-02"
+    });
+    expect(historical.history?.activeIndustry).toMatchObject({
+      industry: "Internet Software & Services",
+      sector: "Information Technology",
+      validTo: "2018-09-27"
+    });
+    expect(currentProfile.profile?.industry).toMatchObject({
+      industry: "Interactive Media & Services",
+      sector: "Communication Services"
+    });
+    expect(historical.history?.pointInTimePolicy).toMatchObject({
+      asOfRequired: true,
+      usesLatestClassification: false,
+      usesLatestConstituents: false,
+      usesLatestName: false
+    });
+    expect(historical.usage.rows).toBe(3);
+  });
+
+  it("returns historical constituent memberships as of the requested date", () => {
+    const beforeTechIndex = getSecurityHistory({
+      asOf: "2010-01-01",
+      instrumentId: "eq_hk_00700"
+    });
+    const afterTechIndex = getSecurityHistory({
+      asOf: "2021-01-01",
+      instrumentId: "eq_hk_00700"
+    });
+
+    expect(
+      beforeTechIndex.history?.activeConstituentMemberships.map(
+        (membership) => membership.benchmarkSymbol
+      )
+    ).toEqual(["HSI"]);
+    expect(
+      afterTechIndex.history?.activeConstituentMemberships.map(
+        (membership) => membership.benchmarkSymbol
+      )
+    ).toEqual(["HSI", "HSTECH"]);
+  });
+
+  it("requires instrument id and as-of date for point-in-time history", () => {
+    expect(() =>
+      getSecurityHistory({
+        asOf: "2021-01-01",
+        instrumentId: " "
+      })
+    ).toThrow(GetSecurityHistoryInputError);
+    expect(() =>
+      getSecurityHistory({
+        instrumentId: "eq_hk_00700"
+      })
+    ).toThrow(GetSecurityHistoryInputError);
+  });
+
+  it("reports no-live history capabilities", () => {
+    expect(getSecurityHistoryCapabilities()).toMatchObject({
+      as_of_required: true,
+      handler_ready: true,
+      live_data_access: false,
+      point_in_time_policy: {
+        uses_latest_classification: false,
+        uses_latest_constituents: false,
+        uses_latest_name: false
+      },
+      status: "security_history_scaffold",
+      supported_history_types: [
+        "historical_names",
+        "historical_industries",
+        "historical_constituents"
+      ]
     });
   });
 });

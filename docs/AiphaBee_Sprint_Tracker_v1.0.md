@@ -66,7 +66,7 @@ owner: "Planner / PM"
 | 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 8 / 9 | ☐ |
 | 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |
 | 2.4 | 订阅计费 + Workflows 深度任务 + 提醒 + 数据更正 | 🟦 | 10 / 10 | ☐ |
-| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 7 / 9 | ☐ |
+| 3.1 | P0 工具收口 + 事件研究 + 多语言 | 🟦 | 8 / 9 | ☐ |
 | 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | ⬜ | 0 / 9 | ☐ |
 | 3.3 | 安全·负载·灾备·发布验收·签字门 | ⬜ | 0 / 17 | ☐ |
 
@@ -359,7 +359,7 @@ owner: "Planner / PM"
 - [x] 新手/专业模式 backend contract：`POST /agent/runs/plan` 支持 `response_depth` / `responseDepth`，normalized depths 为 `newbie` / `professional`，contract 锁定只改变表达深度、plain-language examples/formula/source-field 展示策略，不改变 data values / evidence refs / methodology versions / source_record_ids / currency / units / conclusion；frontend mode switch 未启用（AGT-12、US-W07）
 - [x] 财务术语中英文与口径解释 backend glossary：`answer_evidence_contract.presentation.terminology_glossary` 覆盖 ROE / free cash flow / operating profit / total-return adjusted / abnormal return 的繁中/简中/英文名称、methodology note requirement 与 numeric source-record requirement；live generated-answer terminology validation 未启用（§12.4）
 - [x] 会话记忆仅存授权信息，可查看/编辑/删除：新增 `@aiphabee/account-runtime` `authorized_memory` capability、`POST /account/authorized-memory/plan`、`core.authorized_session_memory` / `governance.authorized_session_memory_contract` empty schema scaffold、`deploy/account/authorized-session-memory.contract.json` 与 `npm run check:authorized-session-memory`，仅允许 locale/depth/currency/workspace/tool/MCP consent/retention/briefing consent 等授权偏好，阻止 raw prompt/generated answer/financial values/raw email/password/OAuth/session secret，支持 view/upsert/delete no-write plan；frontend 控制和 live memory writes/reads 未启用（AGT-10）
-- [ ] 历史成分/历史行业/历史名称（SEC-05）
+- [x] 历史成分/历史行业/历史名称：新增 `@aiphabee/security-tools` `getSecurityHistory()`、`POST /tools/get-security-history`、`deploy/tools/security-history.contract.json`、`core.security_name_history` / `core.security_industry_history` / `core.index_constituent_history` / `governance.security_history_contract` empty schema scaffold 与 `npm run check:security-history`；`as_of` 为必填，返回 active historical name / industry / index constituent memberships，锁定 `usesLatestName=false` / `usesLatestClassification=false` / `usesLatestConstituents=false`，缺少 `as_of` 返回 `POINT_IN_TIME_UNAVAILABLE`；live partner history rows / MCP registration / frontend 未启用（SEC-05）
 - [ ] 导出（CSV/图片/PDF）受字段授权/行数/水印约束（ANA-08、`exports.read` 高风险单独授权）
 
 **退出门槛 DoD：** ☑ P0 工具全量一致　☑ 事件研究样本缺失不静默删除　☑ 三语关键路径口径一致
@@ -488,7 +488,7 @@ owner: "Planner / PM"
 | SEC-02 代码与实体分离 | P0 | 0.2 / 1.1 | ☐ |
 | SEC-03 歧义返回候选 | P0 | 1.2 | ☐ |
 | SEC-04 上市状态/币种/覆盖 | P0 | 1.2 | ☐ |
-| SEC-05 历史成分/行业/名称 | P1 | 3.1 | ☐ |
+| SEC-05 历史成分/行业/名称 | P1 | 3.1 | ☑ |
 
 ### Web Agent / 个股工作台（AGT / STK）
 | 需求 | 优先级 | 落点 Sprint | 状态 |
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-21 | 1.0cz | 完成 `security-history-scaffold`：扩展 `@aiphabee/security-tools`，新增 `getSecurityHistory()`、`POST /tools/get-security-history`、`deploy/tools/security-history.contract.json`、`scripts/check-security-history-contract.mjs`、`core.security_name_history` / `core.security_industry_history` / `core.index_constituent_history` / `governance.security_history_contract` empty schema scaffold 与 `npm run check:security-history`；`as_of` 必填，返回 historical name / industry / index constituent memberships，并锁定不使用 latest name/classification/constituents 作为历史 fallback；live partner history rows / MCP registration / frontend 未启用，Sprint 3.1 更新为 8/9 |
 | 2026-06-21 | 1.0cy | 完成 `authorized-session-memory-scaffold`：扩展 `@aiphabee/account-runtime` `authorized_memory` capability，新增 `POST /account/authorized-memory/plan`、`core.authorized_session_memory` / `governance.authorized_session_memory_contract` empty schema scaffold、`deploy/account/authorized-session-memory.contract.json`、`scripts/check-authorized-session-memory-contract.mjs` 与 `npm run check:authorized-session-memory`；支持 view/upsert/delete no-write plan，仅允许授权偏好/同意信息，阻止 raw prompt/generated answer/financial values/raw email/password/OAuth/session secret；frontend 控制/live memory reads/writes 未启用，Sprint 3.1 更新为 7/9 |
 | 2026-06-21 | 1.0cx | 完成 `localized-response-contract`：扩展 `@aiphabee/agent-runtime` `response_presentation` capability 与 `answer_evidence_contract.presentation`，`POST /agent/runs/plan` 支持 `locale` / `response_locale` / `language` 和 `response_depth` / `responseDepth`，新增 `deploy/agent/localized-response.contract.json`、`scripts/check-localized-response-contract.mjs` 与 `npm run check:localized-response`；锁定繁中/简中/英文与新手/专业模式只改变表达层，numeric values / source_record_ids / evidence refs / methodology versions / currency / units / conclusion 不变，并提供 ROE/free cash flow/operating profit/total-return adjusted/abnormal return 术语表；frontend 切换控件/生成式翻译/live model 未启用，Sprint 3.1 更新为 6/9 |
 | 2026-06-21 | 1.0cw | 完成 `event-study-scaffold`：新增 `@aiphabee/analytics-tools` `runEventStudy()`、`POST /analytics/event-study`、`GET /analytics/runtime` event-study capability、`deploy/analytics/event-study.contract.json`、`scripts/check-event-study-contract.mjs` 与 `npm run check:event-study`，覆盖 event_date / event_window / benchmark / abnormal_return_method / explicit `missing_observations` / summary / source_record_ids；`run_event_study` 已纳入 high-cost analytics 20–50 credits 独立池规划；live event-study rows / queue writes / usage debits / frontend 未启用，Sprint 3.1 更新为 3/9 |

@@ -6,6 +6,9 @@ export const RESOLVE_SECURITY_DATA_VERSION = "security-tools-synthetic-v0";
 export const GET_SECURITY_PROFILE_VERSION =
   "2026-06-21.phase1.get-security-profile-tool-scaffold.v0";
 export const GET_SECURITY_PROFILE_DATA_VERSION = "security-profile-synthetic-v0";
+export const GET_SECURITY_HISTORY_VERSION =
+  "2026-06-21.phase3.security-history-scaffold.v0";
+export const GET_SECURITY_HISTORY_DATA_VERSION = "security-history-synthetic-v0";
 
 export type ResolveSecurityStatus = "ambiguous" | "not_found" | "resolved";
 export type ResolveSecurityMatchReason =
@@ -17,7 +20,11 @@ export type ResolveSecurityMatchReason =
   | "symbol";
 export type ResolveSecurityInputErrorCode = "QUERY_REQUIRED";
 export type GetSecurityProfileInputErrorCode = "INSTRUMENT_ID_REQUIRED";
+export type GetSecurityHistoryInputErrorCode =
+  | "AS_OF_REQUIRED"
+  | "INSTRUMENT_ID_REQUIRED";
 export type GetSecurityProfileStatus = "found" | "not_found";
+export type GetSecurityHistoryStatus = "found" | "not_found";
 export type SecurityListingStatus = "delisted" | "listed" | "suspended";
 export type SecurityCoverageState = "available" | "planned" | "unavailable";
 
@@ -62,6 +69,11 @@ export interface ResolveSecurityResult {
 }
 
 export interface GetSecurityProfileInput {
+  asOf?: string;
+  instrumentId: string;
+}
+
+export interface GetSecurityHistoryInput {
   asOf?: string;
   instrumentId: string;
 }
@@ -122,6 +134,66 @@ export interface GetSecurityProfileResult {
   usage: UsageSummary;
 }
 
+export interface SecurityHistoricalName {
+  name: {
+    en: string;
+    zhHans: string;
+    zhHant: string;
+  };
+  sourceRecordId: string;
+  validFrom: string;
+  validTo?: string;
+}
+
+export interface SecurityHistoricalIndustry {
+  classificationSystem: string;
+  industry: string;
+  sector: string;
+  sourceRecordId: string;
+  validFrom: string;
+  validTo?: string;
+}
+
+export interface SecurityHistoricalConstituentMembership {
+  benchmarkId: string;
+  benchmarkName: string;
+  benchmarkSymbol: string;
+  membershipSourceRecordId: string;
+  validFrom: string;
+  validTo?: string;
+  weightAvailable: false;
+}
+
+export interface SecurityHistory {
+  activeConstituentMemberships: SecurityHistoricalConstituentMembership[];
+  activeIndustry?: SecurityHistoricalIndustry;
+  activeName?: SecurityHistoricalName;
+  coverage: {
+    historicalConstituents: SecurityCoverageItem;
+    historicalIndustries: SecurityCoverageItem;
+    historicalNames: SecurityCoverageItem;
+  };
+  pointInTimePolicy: {
+    asOfRequired: true;
+    usesLatestClassification: false;
+    usesLatestConstituents: false;
+    usesLatestName: false;
+  };
+}
+
+export interface GetSecurityHistoryResult {
+  asOf: string;
+  dataVersion: typeof GET_SECURITY_HISTORY_DATA_VERSION;
+  history?: SecurityHistory;
+  instrumentId: string;
+  liveDataAccess: false;
+  methodologyVersion: typeof GET_SECURITY_HISTORY_VERSION;
+  provenance: ProvenanceRef[];
+  status: GetSecurityHistoryStatus;
+  toolName: "get_security_history";
+  usage: UsageSummary;
+}
+
 interface SyntheticSecurityRecord {
   aliases: Array<{
     reason: ResolveSecurityMatchReason;
@@ -133,6 +205,13 @@ interface SyntheticSecurityRecord {
 interface SyntheticSecurityProfileRecord {
   instrumentId: string;
   profile: SecurityProfile;
+}
+
+interface SyntheticSecurityHistoryRecord {
+  constituentMemberships: SecurityHistoricalConstituentMembership[];
+  industries: SecurityHistoricalIndustry[];
+  instrumentId: string;
+  names: SecurityHistoricalName[];
 }
 
 export class ResolveSecurityInputError extends Error {
@@ -148,6 +227,15 @@ export class GetSecurityProfileInputError extends Error {
   readonly code: GetSecurityProfileInputErrorCode;
 
   constructor(code: GetSecurityProfileInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export class GetSecurityHistoryInputError extends Error {
+  readonly code: GetSecurityHistoryInputErrorCode;
+
+  constructor(code: GetSecurityHistoryInputErrorCode, message: string) {
     super(message);
     this.code = code;
   }
@@ -396,6 +484,122 @@ const SYNTHETIC_SECURITY_PROFILES: readonly SyntheticSecurityProfileRecord[] = [
   }
 ] as const;
 
+const SYNTHETIC_SECURITY_HISTORY: readonly SyntheticSecurityHistoryRecord[] = [
+  {
+    constituentMemberships: [
+      {
+        benchmarkId: "idx_hk_hsi",
+        benchmarkName: "Hang Seng Index",
+        benchmarkSymbol: "HSI",
+        membershipSourceRecordId: "security-history-eq-hk-00700-hsi-v0",
+        validFrom: "2008-06-10",
+        weightAvailable: false
+      },
+      {
+        benchmarkId: "idx_hk_hstech",
+        benchmarkName: "Hang Seng TECH Index",
+        benchmarkSymbol: "HSTECH",
+        membershipSourceRecordId: "security-history-eq-hk-00700-hstech-v0",
+        validFrom: "2020-07-27",
+        weightAvailable: false
+      }
+    ],
+    industries: [
+      {
+        classificationSystem: "synthetic-gics-like-v0",
+        industry: "Internet Software & Services",
+        sector: "Information Technology",
+        sourceRecordId: "security-history-eq-hk-00700-industry-2004-v0",
+        validFrom: "2004-06-16",
+        validTo: "2018-09-27"
+      },
+      {
+        classificationSystem: "synthetic-gics-like-v0",
+        industry: "Interactive Media & Services",
+        sector: "Communication Services",
+        sourceRecordId: "security-history-eq-hk-00700-industry-2018-v0",
+        validFrom: "2018-09-28"
+      }
+    ],
+    instrumentId: "eq_hk_00700",
+    names: [
+      {
+        name: {
+          en: "Tencent Holdings Limited",
+          zhHans: "腾讯控股有限公司",
+          zhHant: "騰訊控股有限公司"
+        },
+        sourceRecordId: "security-history-eq-hk-00700-name-2004-v0",
+        validFrom: "2004-06-16",
+        validTo: "2016-01-01"
+      },
+      {
+        name: {
+          en: "Tencent Holdings Ltd.",
+          zhHans: "腾讯控股有限公司",
+          zhHant: "騰訊控股有限公司"
+        },
+        sourceRecordId: "security-history-eq-hk-00700-name-2016-v0",
+        validFrom: "2016-01-02"
+      }
+    ]
+  },
+  {
+    constituentMemberships: [
+      {
+        benchmarkId: "idx_hk_synthetic_smallcap",
+        benchmarkName: "Synthetic HK Small Cap Index",
+        benchmarkSymbol: "SHKSC",
+        membershipSourceRecordId: "security-history-eq-hk-09999-smallcap-v0",
+        validFrom: "2001-01-01",
+        validTo: "2018-12-31",
+        weightAvailable: false
+      }
+    ],
+    industries: [
+      {
+        classificationSystem: "synthetic-gics-like-v0",
+        industry: "Conglomerates",
+        sector: "Industrials",
+        sourceRecordId: "security-history-eq-hk-09999-industry-1999-v0",
+        validFrom: "1999-01-01",
+        validTo: "2014-12-31"
+      },
+      {
+        classificationSystem: "synthetic-gics-like-v0",
+        industry: "Legacy Holding Companies",
+        sector: "Financials",
+        sourceRecordId: "security-history-eq-hk-09999-industry-2015-v0",
+        validFrom: "2015-01-01",
+        validTo: "2022-12-30"
+      }
+    ],
+    instrumentId: "eq_hk_09999",
+    names: [
+      {
+        name: {
+          en: "Old Company Holdings",
+          zhHans: "旧公司控股",
+          zhHant: "舊公司控股"
+        },
+        sourceRecordId: "security-history-eq-hk-09999-name-1999-v0",
+        validFrom: "1999-01-01",
+        validTo: "2020-12-31"
+      },
+      {
+        name: {
+          en: "OldCo Holdings Ltd.",
+          zhHans: "旧企控股有限公司",
+          zhHant: "舊企控股有限公司"
+        },
+        sourceRecordId: "security-history-eq-hk-09999-name-2021-v0",
+        validFrom: "2021-01-01",
+        validTo: "2022-12-30"
+      }
+    ]
+  }
+] as const;
+
 export function resolveSecurity(input: ResolveSecurityInput): ResolveSecurityResult {
   const query = input.query.trim();
 
@@ -502,6 +706,118 @@ export function getSecurityProfileCapabilities() {
   };
 }
 
+export function getSecurityHistory(
+  input: GetSecurityHistoryInput
+): GetSecurityHistoryResult {
+  const instrumentId = input.instrumentId.trim();
+
+  if (instrumentId.length === 0) {
+    throw new GetSecurityHistoryInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  const asOf = input.asOf?.trim() ?? "";
+
+  if (asOf.length === 0) {
+    throw new GetSecurityHistoryInputError("AS_OF_REQUIRED", "as_of is required");
+  }
+
+  const historyRecord = SYNTHETIC_SECURITY_HISTORY.find(
+    (record) => normalizeInstrumentId(record.instrumentId) === normalizeInstrumentId(instrumentId)
+  );
+
+  if (historyRecord === undefined) {
+    return {
+      asOf,
+      dataVersion: GET_SECURITY_HISTORY_DATA_VERSION,
+      instrumentId,
+      liveDataAccess: false,
+      methodologyVersion: GET_SECURITY_HISTORY_VERSION,
+      provenance: createHistoryProvenance(),
+      status: "not_found",
+      toolName: "get_security_history",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const activeName = findEffectiveRecord(historyRecord.names, asOf);
+  const activeIndustry = findEffectiveRecord(historyRecord.industries, asOf);
+  const activeConstituentMemberships = historyRecord.constituentMemberships.filter((membership) =>
+    isEffectiveOn(membership, asOf)
+  );
+
+  return {
+    asOf,
+    dataVersion: GET_SECURITY_HISTORY_DATA_VERSION,
+    history: {
+      activeConstituentMemberships,
+      activeIndustry,
+      activeName,
+      coverage: {
+        historicalConstituents: {
+          status: "available"
+        },
+        historicalIndustries: {
+          status: "available"
+        },
+        historicalNames: {
+          status: "available"
+        }
+      },
+      pointInTimePolicy: {
+        asOfRequired: true,
+        usesLatestClassification: false,
+        usesLatestConstituents: false,
+        usesLatestName: false
+      }
+    },
+    instrumentId,
+    liveDataAccess: false,
+    methodologyVersion: GET_SECURITY_HISTORY_VERSION,
+    provenance: createHistoryProvenance(),
+    status: "found",
+    toolName: "get_security_history",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows:
+        (activeName === undefined ? 0 : 1) +
+        (activeIndustry === undefined ? 0 : 1) +
+        activeConstituentMemberships.length
+    }
+  };
+}
+
+export function getSecurityHistoryCapabilities() {
+  return {
+    as_of_required: true,
+    data_version: GET_SECURITY_HISTORY_DATA_VERSION,
+    handler_ready: true,
+    input_schema: "tool.get_security_history.input.v0",
+    live_data_access: false,
+    output_schema: "tool.get_security_history.output.v0",
+    point_in_time_policy: {
+      uses_latest_classification: false,
+      uses_latest_constituents: false,
+      uses_latest_name: false
+    },
+    status: "security_history_scaffold" as const,
+    supported_history_types: [
+      "historical_names",
+      "historical_industries",
+      "historical_constituents"
+    ] as const,
+    synthetic_history_rows: SYNTHETIC_SECURITY_HISTORY.length,
+    version: GET_SECURITY_HISTORY_VERSION
+  };
+}
+
 function findMatches(
   normalizedQuery: string,
   market: string | undefined
@@ -563,6 +879,17 @@ function createProfileProvenance(): ProvenanceRef[] {
   ];
 }
 
+function createHistoryProvenance(): ProvenanceRef[] {
+  return [
+    {
+      data_version: GET_SECURITY_HISTORY_DATA_VERSION,
+      methodology_version: GET_SECURITY_HISTORY_VERSION,
+      source: "synthetic-security-history",
+      source_record_id: "security-history-fixture-v0"
+    }
+  ];
+}
+
 function createSyntheticCoverage(
   overrides: Partial<SecurityProfile["coverage"]> = {}
 ): SecurityProfile["coverage"] {
@@ -590,4 +917,15 @@ function createSyntheticCoverage(
     },
     ...overrides
   };
+}
+
+function findEffectiveRecord<TRecord extends { validFrom: string; validTo?: string }>(
+  records: readonly TRecord[],
+  asOf: string
+): TRecord | undefined {
+  return records.find((record) => isEffectiveOn(record, asOf));
+}
+
+function isEffectiveOn(record: { validFrom: string; validTo?: string }, asOf: string): boolean {
+  return record.validFrom <= asOf && (record.validTo === undefined || asOf <= record.validTo);
 }

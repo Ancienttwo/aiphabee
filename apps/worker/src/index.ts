@@ -173,8 +173,12 @@ import {
   getServingStoreSqlTextCompilerCapabilities
 } from "@aiphabee/serving-store";
 import {
+  GET_SECURITY_HISTORY_VERSION,
   GetSecurityProfileInputError,
+  GetSecurityHistoryInputError,
   ResolveSecurityInputError,
+  getSecurityHistory,
+  getSecurityHistoryCapabilities,
   getSecurityProfile,
   getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
@@ -3924,6 +3928,103 @@ app.post("/tools/get-security-profile", async (c) => {
         asOf: new Date().toISOString(),
         methodologyVersion:
           "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/tools/get-security-history", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    as_of?: unknown;
+    asOf?: unknown;
+    instrument_id?: unknown;
+    instrumentId?: unknown;
+  };
+  const rawInstrumentId =
+    typeof body.instrument_id === "string"
+      ? body.instrument_id
+      : typeof body.instrumentId === "string"
+        ? body.instrumentId
+        : "";
+  const rawAsOf =
+    typeof body.as_of === "string"
+      ? body.as_of
+      : typeof body.asOf === "string"
+        ? body.asOf
+        : undefined;
+
+  try {
+    const result = getSecurityHistory({
+      asOf: rawAsOf,
+      instrumentId: rawInstrumentId
+    });
+
+    if (result.status === "not_found") {
+      return c.json(
+        createErrorEnvelope("NOT_FOUND", "security history was not found", {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }),
+        404
+      );
+    }
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getSecurityHistoryCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.dataVersion,
+          methodologyVersion: result.methodologyVersion,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof GetSecurityHistoryInputError) {
+      return c.json(
+        createErrorEnvelope(
+          error.code === "AS_OF_REQUIRED" ? "POINT_IN_TIME_UNAVAILABLE" : "SCOPE_DENIED",
+          error.message,
+          {
+            asOf: new Date().toISOString(),
+            methodologyVersion: GET_SECURITY_HISTORY_VERSION,
+            requestId,
+            usage: {
+              cached: false,
+              credits: 0,
+              rows: 0
+            }
+          }
+        ),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "get_security_history failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: GET_SECURITY_HISTORY_VERSION,
         requestId,
         usage: {
           cached: false,

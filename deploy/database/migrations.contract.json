@@ -273,6 +273,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621115000_security_history_scaffold.sql",
+      "purpose": "Create empty security name, industry, and index constituent history scaffolds for point-in-time lookup without enabling live data access.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.security_name_history",
+        "core.security_industry_history",
+        "core.index_constituent_history",
+        "governance.security_history_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -1776,6 +1776,54 @@ interface SecurityProfileBody {
   };
 }
 
+interface SecurityHistoryBody {
+  data: {
+    capability: {
+      as_of_required: boolean;
+      handler_ready: boolean;
+      live_data_access: boolean;
+      point_in_time_policy: {
+        uses_latest_classification: boolean;
+        uses_latest_constituents: boolean;
+        uses_latest_name: boolean;
+      };
+      status: string;
+      supported_history_types: string[];
+    };
+    history: {
+      activeConstituentMemberships: Array<{
+        benchmarkSymbol: string;
+        validFrom: string;
+      }>;
+      activeIndustry: {
+        industry: string;
+        sector: string;
+        validFrom: string;
+        validTo?: string;
+      };
+      activeName: {
+        name: {
+          en: string;
+        };
+        validFrom: string;
+      };
+      pointInTimePolicy: {
+        asOfRequired: boolean;
+        usesLatestClassification: boolean;
+        usesLatestConstituents: boolean;
+        usesLatestName: boolean;
+      };
+    };
+    liveDataAccess: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface MarketCalendarBody {
   data: {
     capability: {
@@ -6517,6 +6565,104 @@ describe("worker runtime", () => {
     expect(notFoundBody.error.code).toBe("NOT_FOUND");
     expect(invalid.status).toBe(400);
     expect(invalidBody.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("returns point-in-time security history without latest classification fallback", async () => {
+    const response = await app.request("/tools/get-security-history", {
+      body: JSON.stringify({
+        as_of: "2017-01-01",
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-history"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SecurityHistoryBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("get_security_history");
+    expect(body.data.status).toBe("found");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.history.activeName).toMatchObject({
+      name: {
+        en: "Tencent Holdings Ltd."
+      },
+      validFrom: "2016-01-02"
+    });
+    expect(body.data.history.activeIndustry).toMatchObject({
+      industry: "Internet Software & Services",
+      sector: "Information Technology",
+      validTo: "2018-09-27"
+    });
+    expect(
+      body.data.history.activeConstituentMemberships.map((item) => item.benchmarkSymbol)
+    ).toEqual(["HSI"]);
+    expect(body.data.history.pointInTimePolicy).toMatchObject({
+      asOfRequired: true,
+      usesLatestClassification: false,
+      usesLatestConstituents: false,
+      usesLatestName: false
+    });
+    expect(body.data.capability).toMatchObject({
+      as_of_required: true,
+      handler_ready: true,
+      live_data_access: false,
+      status: "security_history_scaffold"
+    });
+    expect(body.usage.rows).toBe(3);
+  });
+
+  it("returns historical constituent memberships and point-in-time input errors", async () => {
+    const afterTechIndex = await app.request("/tools/get-security-history", {
+      body: JSON.stringify({
+        asOf: "2021-01-01",
+        instrumentId: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-history-hstech"
+      },
+      method: "POST"
+    });
+    const missingAsOf = await app.request("/tools/get-security-history", {
+      body: JSON.stringify({
+        instrument_id: "eq_hk_00700"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-history-missing-as-of"
+      },
+      method: "POST"
+    });
+    const unknown = await app.request("/tools/get-security-history", {
+      body: JSON.stringify({
+        as_of: "2021-01-01",
+        instrument_id: "eq_hk_missing"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-security-history-not-found"
+      },
+      method: "POST"
+    });
+    const afterTechIndexBody = (await afterTechIndex.json()) as SecurityHistoryBody;
+    const missingAsOfBody = (await missingAsOf.json()) as ErrorBody;
+    const unknownBody = (await unknown.json()) as ErrorBody;
+
+    expect(afterTechIndex.status).toBe(200);
+    expect(
+      afterTechIndexBody.data.history.activeConstituentMemberships.map(
+        (membership) => membership.benchmarkSymbol
+      )
+    ).toEqual(["HSI", "HSTECH"]);
+    expect(missingAsOf.status).toBe(400);
+    expect(missingAsOfBody.error.code).toBe("POINT_IN_TIME_UNAVAILABLE");
+    expect(unknown.status).toBe(404);
+    expect(unknownBody.error.code).toBe("NOT_FOUND");
   });
 
   it("returns market calendar sessions without live data access", async () => {
