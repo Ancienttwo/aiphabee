@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  createWatchlistBriefingPlan,
   createWatchlistAlertsPlan,
+  getWatchlistBriefingCapabilities,
   getWatchlistRuntimeCapabilities
 } from "./index";
 
@@ -35,6 +37,42 @@ describe("watchlist alerts scaffold", () => {
       "core.watchlist_item",
       "core.watchlist_alert_rule",
       "core.watchlist_alert_event"
+    ]);
+    expect(getWatchlistRuntimeCapabilities().briefings).toMatchObject({
+      evidence_required: true,
+      frontend: false,
+      live_tool_execution: false,
+      material_changes_only: true,
+      notification_fanout: false,
+      persistent_writes: false,
+      route: "POST /watchlist/briefings/plan",
+      runtime_route: "GET /watchlist/runtime",
+      sql_emitted: false,
+      status: "watchlist_briefings_scaffold"
+    });
+  });
+
+  it("reports watchlist briefing capabilities", () => {
+    expect(getWatchlistBriefingCapabilities()).toMatchObject({
+      evidence_required: true,
+      frontend: false,
+      live_tool_execution: false,
+      material_changes_only: true,
+      notification_fanout: false,
+      package: "@aiphabee/watchlist-runtime",
+      persistent_writes: false,
+      route: "POST /watchlist/briefings/plan",
+      runtime_route: "GET /watchlist/runtime",
+      sql_emitted: false,
+      status: "watchlist_briefings_scaffold"
+    });
+    expect(getWatchlistBriefingCapabilities().supported_cadences).toEqual([
+      "daily",
+      "weekly"
+    ]);
+    expect(getWatchlistBriefingCapabilities().tables).toEqual([
+      "core.watchlist_briefing",
+      "core.watchlist_briefing_item"
     ]);
   });
 
@@ -182,5 +220,94 @@ describe("watchlist alerts scaffold", () => {
     expect(plan.status).toBe("blocked_missing_context");
     expect(plan.validation.required_context_present).toBe(false);
     expect(plan.alert_rule.write_status).toBe("blocked");
+  });
+
+  it("plans daily and weekly briefings with material change filters", () => {
+    const plan = createWatchlistBriefingPlan({
+      asOf: "2026-06-21T08:00:00+08:00",
+      cadence: "weekly",
+      channels: ["in_app", "email"],
+      maxItems: 8,
+      minMaterialityScore: 0.7,
+      requestId: "req-watchlist-briefing",
+      timezone: "Asia/Hong_Kong",
+      userId: "user_internal_alpha",
+      watchlistId: "watchlist_alpha_hk",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      as_of: "2026-06-21T08:00:00+08:00",
+      channels: ["in_app", "email"],
+      frontend: false,
+      live_tool_execution: false,
+      request_id: "req-watchlist-briefing",
+      sql_emitted: false,
+      status: "planned_no_write",
+      timezone: "Asia/Hong_Kong",
+      toolName: "plan_watchlist_briefing"
+    });
+    expect(plan.briefing).toMatchObject({
+      cadence: "weekly",
+      max_items: 8,
+      material_changes_only: true,
+      status: "planned_no_write",
+      table: "core.watchlist_briefing",
+      watchlist_id: "watchlist_alpha_hk",
+      write_status: "planned_no_write"
+    });
+    expect(plan.materiality_filter).toEqual({
+      empty_briefing_policy: "suppress_no_material_changes",
+      min_materiality_score: 0.7,
+      only_substantive_changes: true
+    });
+    expect(plan.source_plan).toEqual({
+      announcement_source: {
+        live_tool_execution: false,
+        source_tool: "search_announcements"
+      },
+      metric_source: {
+        live_tool_execution: false,
+        source_tool: "get_financial_ratios"
+      },
+      price_source: {
+        live_tool_execution: false,
+        source_tool: "get_quote_snapshot"
+      }
+    });
+    expect(plan.evidence_index).toEqual({
+      evidence_required: true,
+      item_table: "core.watchlist_briefing_item",
+      source_record_id_required: true
+    });
+    expect(plan.notification).toEqual({
+      channels: ["in_app", "email"],
+      evidence_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write"
+    });
+    expect(plan.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: ["core.watchlist_briefing", "core.watchlist_briefing_item"],
+      write_status: "planned_no_write"
+    });
+    expect(plan.usage).toEqual({
+      cached: false,
+      credits: 0,
+      rows: 8
+    });
+  });
+
+  it("blocks watchlist briefings without required context", () => {
+    const plan = createWatchlistBriefingPlan({
+      requestId: "req-watchlist-briefing-missing-context"
+    });
+
+    expect(plan.status).toBe("blocked_missing_context");
+    expect(plan.briefing.write_status).toBe("blocked");
+    expect(plan.persistence_plan.write_status).toBe("blocked");
+    expect(plan.usage.rows).toBe(0);
   });
 });

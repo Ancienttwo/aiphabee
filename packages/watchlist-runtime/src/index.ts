@@ -1,17 +1,22 @@
 export const WATCHLIST_ALERTS_VERSION =
   "2026-06-21.phase2.watchlist-alerts-scaffold.v0";
+export const WATCHLIST_BRIEFING_VERSION =
+  "2026-06-21.phase2.watchlist-briefings-scaffold.v0";
 
 export const WATCHLIST_ALERT_KINDS = ["price", "announcement", "metric"] as const;
 export const WATCHLIST_ALERT_FREQUENCIES = ["realtime", "daily", "weekly"] as const;
 export const WATCHLIST_ALERT_CHANNELS = ["in_app", "email", "webhook"] as const;
+export const WATCHLIST_BRIEFING_CADENCES = ["daily", "weekly"] as const;
 
 export type WatchlistAlertKind = (typeof WATCHLIST_ALERT_KINDS)[number];
 export type WatchlistAlertFrequency = (typeof WATCHLIST_ALERT_FREQUENCIES)[number];
 export type WatchlistAlertChannel = (typeof WATCHLIST_ALERT_CHANNELS)[number];
+export type WatchlistBriefingCadence = (typeof WATCHLIST_BRIEFING_CADENCES)[number];
 export type WatchlistAlertsPlanStatus =
   | "blocked_missing_context"
   | "confirmation_required"
   | "planned_no_write";
+export type WatchlistBriefingPlanStatus = "blocked_missing_context" | "planned_no_write";
 
 export interface WatchlistAlertConditionInput {
   comparator?: "above" | "below" | "changed_by_percent" | "changed_by_value";
@@ -39,7 +44,38 @@ export interface CreateWatchlistAlertsPlanInput {
   workspaceId?: string;
 }
 
+export interface CreateWatchlistBriefingPlanInput {
+  asOf?: string;
+  cadence?: WatchlistBriefingCadence;
+  channels?: WatchlistAlertChannel[];
+  maxItems?: number;
+  minMaterialityScore?: number;
+  requestId: string;
+  timezone?: string;
+  userId?: string;
+  watchlistId?: string;
+  workspaceId?: string;
+}
+
+export interface WatchlistBriefingCapabilities {
+  evidence_required: true;
+  frontend: false;
+  live_tool_execution: false;
+  material_changes_only: true;
+  notification_fanout: false;
+  package: "@aiphabee/watchlist-runtime";
+  persistent_writes: false;
+  route: "POST /watchlist/briefings/plan";
+  runtime_route: "GET /watchlist/runtime";
+  sql_emitted: false;
+  status: "watchlist_briefings_scaffold";
+  supported_cadences: readonly WatchlistBriefingCadence[];
+  tables: readonly ["core.watchlist_briefing", "core.watchlist_briefing_item"];
+  version: typeof WATCHLIST_BRIEFING_VERSION;
+}
+
 export interface WatchlistAlertRuntimeCapabilities {
+  briefings: WatchlistBriefingCapabilities;
   create_alert_scope: "alerts.write";
   dedupe_ready: true;
   event_queue: "AIPHABEE_EVENTS_QUEUE";
@@ -175,15 +211,101 @@ export interface WatchlistAlertsPlan {
   };
 }
 
+export interface WatchlistBriefingPlan {
+  as_of: string;
+  briefing: {
+    briefing_id: string;
+    cadence: WatchlistBriefingCadence;
+    max_items: number;
+    material_changes_only: true;
+    status: WatchlistBriefingPlanStatus;
+    table: "core.watchlist_briefing";
+    watchlist_id: string;
+    write_status: "blocked" | "planned_no_write";
+  };
+  channels: WatchlistAlertChannel[];
+  data_version: typeof WATCHLIST_BRIEFING_VERSION;
+  evidence_index: {
+    evidence_required: true;
+    item_table: "core.watchlist_briefing_item";
+    source_record_id_required: true;
+  };
+  frontend: false;
+  live_tool_execution: false;
+  materiality_filter: {
+    empty_briefing_policy: "suppress_no_material_changes";
+    min_materiality_score: number;
+    only_substantive_changes: true;
+  };
+  methodology_version: typeof WATCHLIST_BRIEFING_VERSION;
+  notification: {
+    channels: WatchlistAlertChannel[];
+    evidence_required: true;
+    event_queue: "AIPHABEE_EVENTS_QUEUE";
+    fanout_status: "planned_no_write";
+  };
+  persistence_plan: {
+    live_db_writes: false;
+    queue_writes: false;
+    sql_emitted: false;
+    tables: WatchlistBriefingCapabilities["tables"];
+    write_status: "blocked" | "planned_no_write";
+  };
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  request_id: string;
+  source_plan: {
+    announcement_source: {
+      live_tool_execution: false;
+      source_tool: "search_announcements";
+    };
+    metric_source: {
+      live_tool_execution: false;
+      source_tool: "get_financial_ratios";
+    };
+    price_source: {
+      live_tool_execution: false;
+      source_tool: "get_quote_snapshot";
+    };
+  };
+  sql_emitted: false;
+  status: WatchlistBriefingPlanStatus;
+  timezone: string;
+  toolName: "plan_watchlist_briefing";
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  validation: {
+    required_context_present: boolean;
+    watchlist_required: true;
+  };
+  version: typeof WATCHLIST_BRIEFING_VERSION;
+  workspace: {
+    user_id: string;
+    workspace_id: string;
+  };
+}
+
 const WATCHLIST_ALERT_TABLES: WatchlistAlertRuntimeCapabilities["tables"] = [
   "core.watchlist",
   "core.watchlist_item",
   "core.watchlist_alert_rule",
   "core.watchlist_alert_event"
 ];
+const WATCHLIST_BRIEFING_TABLES: WatchlistBriefingCapabilities["tables"] = [
+  "core.watchlist_briefing",
+  "core.watchlist_briefing_item"
+];
 
 export function getWatchlistRuntimeCapabilities(): WatchlistAlertRuntimeCapabilities {
   return {
+    briefings: getWatchlistBriefingCapabilities(),
     create_alert_scope: "alerts.write",
     dedupe_ready: true,
     event_queue: "AIPHABEE_EVENTS_QUEUE",
@@ -206,6 +328,25 @@ export function getWatchlistRuntimeCapabilities(): WatchlistAlertRuntimeCapabili
     supported_frequencies: WATCHLIST_ALERT_FREQUENCIES,
     tables: WATCHLIST_ALERT_TABLES,
     version: WATCHLIST_ALERTS_VERSION
+  };
+}
+
+export function getWatchlistBriefingCapabilities(): WatchlistBriefingCapabilities {
+  return {
+    evidence_required: true,
+    frontend: false,
+    live_tool_execution: false,
+    material_changes_only: true,
+    notification_fanout: false,
+    package: "@aiphabee/watchlist-runtime",
+    persistent_writes: false,
+    route: "POST /watchlist/briefings/plan",
+    runtime_route: "GET /watchlist/runtime",
+    sql_emitted: false,
+    status: "watchlist_briefings_scaffold",
+    supported_cadences: WATCHLIST_BRIEFING_CADENCES,
+    tables: WATCHLIST_BRIEFING_TABLES,
+    version: WATCHLIST_BRIEFING_VERSION
   };
 }
 
@@ -365,6 +506,117 @@ export function createWatchlistAlertsPlan(
   };
 }
 
+export function createWatchlistBriefingPlan(
+  input: CreateWatchlistBriefingPlanInput
+): WatchlistBriefingPlan {
+  const workspaceId = normalizeText(input.workspaceId) ?? "workspace_unresolved";
+  const userId = normalizeText(input.userId) ?? "user_unresolved";
+  const watchlistId = normalizeText(input.watchlistId) ?? "watchlist_unresolved";
+  const cadence = input.cadence ?? "daily";
+  const asOf = normalizeAsOf(input.asOf);
+  const channels = normalizeChannels(input.channels);
+  const maxItems = normalizePositiveInteger(input.maxItems) ?? 12;
+  const minMaterialityScore = normalizeMaterialityScore(input.minMaterialityScore);
+  const timezone = normalizeText(input.timezone) ?? "Asia/Hong_Kong";
+  const requiredContextPresent =
+    normalizeText(input.workspaceId) !== undefined &&
+    normalizeText(input.userId) !== undefined &&
+    normalizeText(input.watchlistId) !== undefined;
+  const status: WatchlistBriefingPlanStatus = requiredContextPresent
+    ? "planned_no_write"
+    : "blocked_missing_context";
+  const writeStatus = status === "planned_no_write" ? "planned_no_write" : "blocked";
+  const briefingId = `watchlist_briefing_${hashStableValue({
+    asOf,
+    cadence,
+    requestId: input.requestId,
+    watchlistId
+  })}`;
+
+  return {
+    as_of: asOf,
+    briefing: {
+      briefing_id: briefingId,
+      cadence,
+      max_items: maxItems,
+      material_changes_only: true,
+      status,
+      table: "core.watchlist_briefing",
+      watchlist_id: watchlistId,
+      write_status: writeStatus
+    },
+    channels,
+    data_version: WATCHLIST_BRIEFING_VERSION,
+    evidence_index: {
+      evidence_required: true,
+      item_table: "core.watchlist_briefing_item",
+      source_record_id_required: true
+    },
+    frontend: false,
+    live_tool_execution: false,
+    materiality_filter: {
+      empty_briefing_policy: "suppress_no_material_changes",
+      min_materiality_score: minMaterialityScore,
+      only_substantive_changes: true
+    },
+    methodology_version: WATCHLIST_BRIEFING_VERSION,
+    notification: {
+      channels,
+      evidence_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write"
+    },
+    persistence_plan: {
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: WATCHLIST_BRIEFING_TABLES,
+      write_status: writeStatus
+    },
+    provenance: [
+      {
+        data_version: WATCHLIST_BRIEFING_VERSION,
+        methodology_version: WATCHLIST_BRIEFING_VERSION,
+        source: "watchlist-briefing-plan",
+        source_record_id: briefingId
+      }
+    ],
+    request_id: input.requestId,
+    source_plan: {
+      announcement_source: {
+        live_tool_execution: false,
+        source_tool: "search_announcements"
+      },
+      metric_source: {
+        live_tool_execution: false,
+        source_tool: "get_financial_ratios"
+      },
+      price_source: {
+        live_tool_execution: false,
+        source_tool: "get_quote_snapshot"
+      }
+    },
+    sql_emitted: false,
+    status,
+    timezone,
+    toolName: "plan_watchlist_briefing",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: status === "planned_no_write" ? maxItems : 0
+    },
+    validation: {
+      required_context_present: requiredContextPresent,
+      watchlist_required: true
+    },
+    version: WATCHLIST_BRIEFING_VERSION,
+    workspace: {
+      user_id: userId,
+      workspace_id: workspaceId
+    }
+  };
+}
+
 function normalizeAlertKinds(kinds: WatchlistAlertKind[] | undefined): WatchlistAlertKind[] {
   const normalized =
     kinds?.filter((kind): kind is WatchlistAlertKind =>
@@ -400,6 +652,26 @@ function resolveStatus(
   }
 
   return explicitConfirmationProvided ? "planned_no_write" : "confirmation_required";
+}
+
+function normalizeAsOf(value: string | undefined): string {
+  const normalized = normalizeText(value);
+
+  if (normalized !== undefined && !Number.isNaN(Date.parse(normalized))) {
+    return normalized;
+  }
+
+  return "2026-01-07T16:15:00+08:00";
+}
+
+function normalizePositiveInteger(value: number | undefined): number | undefined {
+  return value !== undefined && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function normalizeMaterialityScore(value: number | undefined): number {
+  return value !== undefined && Number.isFinite(value) && value >= 0 && value <= 1
+    ? value
+    : 0.6;
 }
 
 function normalizeText(value: string | undefined): string | undefined {

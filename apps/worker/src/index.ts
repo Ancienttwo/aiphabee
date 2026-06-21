@@ -183,11 +183,14 @@ import {
   WATCHLIST_ALERT_FREQUENCIES,
   WATCHLIST_ALERT_KINDS,
   createWatchlistAlertsPlan,
+  createWatchlistBriefingPlan,
+  getWatchlistBriefingCapabilities,
   getWatchlistRuntimeCapabilities,
   type WatchlistAlertChannel,
   type WatchlistAlertConditionInput,
   type WatchlistAlertFrequency,
-  type WatchlistAlertKind
+  type WatchlistAlertKind,
+  type WatchlistBriefingCadence
 } from "@aiphabee/watchlist-runtime";
 import {
   createStockWorkbenchAnnouncementSearch,
@@ -267,6 +270,24 @@ interface WatchlistAlertsRequestBody {
   quietHoursStart?: unknown;
   security_query?: unknown;
   securityQuery?: unknown;
+  timezone?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  watchlist_id?: unknown;
+  watchlistId?: unknown;
+  workspace_id?: unknown;
+  workspaceId?: unknown;
+}
+
+interface WatchlistBriefingRequestBody {
+  as_of?: unknown;
+  asOf?: unknown;
+  cadence?: unknown;
+  channels?: unknown;
+  max_items?: unknown;
+  maxItems?: unknown;
+  min_materiality_score?: unknown;
+  minMaterialityScore?: unknown;
   timezone?: unknown;
   user_id?: unknown;
   userId?: unknown;
@@ -1041,6 +1062,45 @@ app.post("/watchlist/alerts/plan", async (c) => {
       },
       {
         asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
+  );
+});
+
+app.post("/watchlist/briefings/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as WatchlistBriefingRequestBody;
+  const plan = createWatchlistBriefingPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    cadence: normalizeWatchlistBriefingCadence(body.cadence),
+    channels: normalizeWatchlistAlertChannels(body.channels),
+    maxItems: normalizeOptionalInteger(body.max_items ?? body.maxItems),
+    minMaterialityScore: normalizeOptionalNumber(
+      body.min_materiality_score ?? body.minMaterialityScore
+    ),
+    requestId,
+    timezone: normalizeString(body.timezone),
+    userId: normalizeString(body.user_id ?? body.userId),
+    watchlistId: normalizeString(body.watchlist_id ?? body.watchlistId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getWatchlistBriefingCapabilities()
+      },
+      {
+        asOf: plan.as_of,
         dataVersion: plan.data_version,
         methodologyVersion: plan.methodology_version,
         provenance: plan.provenance,
@@ -4846,6 +4906,10 @@ function normalizeWatchlistAlertFrequency(value: unknown): WatchlistAlertFrequen
     WATCHLIST_ALERT_FREQUENCIES.includes(value as WatchlistAlertFrequency)
     ? (value as WatchlistAlertFrequency)
     : undefined;
+}
+
+function normalizeWatchlistBriefingCadence(value: unknown): WatchlistBriefingCadence | undefined {
+  return value === "daily" || value === "weekly" ? value : undefined;
 }
 
 function normalizeWatchlistAlertCondition(

@@ -288,6 +288,20 @@ interface UsageHighCostReservationPlanBody {
 
 interface WatchlistRuntimeBody {
   data: {
+    briefings: {
+      evidence_required: boolean;
+      frontend: boolean;
+      live_tool_execution: boolean;
+      material_changes_only: boolean;
+      notification_fanout: boolean;
+      persistent_writes: boolean;
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      supported_cadences: string[];
+      tables: string[];
+    };
     create_alert_scope: string;
     dedupe_ready: boolean;
     event_queue: string;
@@ -310,6 +324,80 @@ interface WatchlistRuntimeBody {
     tables: string[];
   };
   ok: true;
+}
+
+interface WatchlistBriefingPlanBody {
+  data: {
+    as_of: string;
+    briefing: {
+      cadence: string;
+      max_items: number;
+      material_changes_only: boolean;
+      status: string;
+      table: string;
+      watchlist_id: string;
+      write_status: string;
+    };
+    capability: {
+      evidence_required: boolean;
+      route: string;
+      status: string;
+    };
+    channels: string[];
+    evidence_index: {
+      evidence_required: boolean;
+      item_table: string;
+      source_record_id_required: boolean;
+    };
+    frontend: boolean;
+    live_tool_execution: boolean;
+    materiality_filter: {
+      empty_briefing_policy: string;
+      min_materiality_score: number;
+      only_substantive_changes: boolean;
+    };
+    notification: {
+      channels: string[];
+      evidence_required: boolean;
+      event_queue: string;
+      fanout_status: string;
+    };
+    persistence_plan: {
+      live_db_writes: boolean;
+      queue_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    source_plan: {
+      announcement_source: {
+        live_tool_execution: boolean;
+        source_tool: string;
+      };
+      metric_source: {
+        live_tool_execution: boolean;
+        source_tool: string;
+      };
+      price_source: {
+        live_tool_execution: boolean;
+        source_tool: string;
+      };
+    };
+    sql_emitted: boolean;
+    status: string;
+    timezone: string;
+    toolName: string;
+    validation: {
+      required_context_present: boolean;
+      watchlist_required: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  };
 }
 
 interface WatchlistAlertsPlanBody {
@@ -3776,6 +3864,23 @@ describe("worker runtime", () => {
       "core.watchlist_alert_rule",
       "core.watchlist_alert_event"
     ]);
+    expect(body.data.briefings).toMatchObject({
+      evidence_required: true,
+      frontend: false,
+      live_tool_execution: false,
+      material_changes_only: true,
+      notification_fanout: false,
+      persistent_writes: false,
+      route: "POST /watchlist/briefings/plan",
+      runtime_route: "GET /watchlist/runtime",
+      sql_emitted: false,
+      status: "watchlist_briefings_scaffold"
+    });
+    expect(body.data.briefings.supported_cadences).toEqual(["daily", "weekly"]);
+    expect(body.data.briefings.tables).toEqual([
+      "core.watchlist_briefing",
+      "core.watchlist_briefing_item"
+    ]);
   });
 
   it("plans watchlist price announcement and metric alerts with dedupe controls", async () => {
@@ -3907,6 +4012,102 @@ describe("worker runtime", () => {
       cached: false,
       credits: 0,
       rows: 6
+    });
+  });
+
+  it("plans daily and weekly watchlist briefings with material change filters", async () => {
+    const response = await app.request("/watchlist/briefings/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-21T08:00:00+08:00",
+        cadence: "weekly",
+        channels: ["in_app", "email"],
+        max_items: 8,
+        min_materiality_score: 0.7,
+        timezone: "Asia/Hong_Kong",
+        user_id: "user_internal_alpha",
+        watchlist_id: "watchlist_alpha_hk",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-watchlist-briefing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WatchlistBriefingPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      as_of: "2026-06-21T08:00:00+08:00",
+      channels: ["in_app", "email"],
+      frontend: false,
+      live_tool_execution: false,
+      sql_emitted: false,
+      status: "planned_no_write",
+      timezone: "Asia/Hong_Kong",
+      toolName: "plan_watchlist_briefing"
+    });
+    expect(body.data.capability).toMatchObject({
+      evidence_required: true,
+      route: "POST /watchlist/briefings/plan",
+      status: "watchlist_briefings_scaffold"
+    });
+    expect(body.data.briefing).toMatchObject({
+      cadence: "weekly",
+      max_items: 8,
+      material_changes_only: true,
+      status: "planned_no_write",
+      table: "core.watchlist_briefing",
+      watchlist_id: "watchlist_alpha_hk",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.materiality_filter).toEqual({
+      empty_briefing_policy: "suppress_no_material_changes",
+      min_materiality_score: 0.7,
+      only_substantive_changes: true
+    });
+    expect(body.data.source_plan).toEqual({
+      announcement_source: {
+        live_tool_execution: false,
+        source_tool: "search_announcements"
+      },
+      metric_source: {
+        live_tool_execution: false,
+        source_tool: "get_financial_ratios"
+      },
+      price_source: {
+        live_tool_execution: false,
+        source_tool: "get_quote_snapshot"
+      }
+    });
+    expect(body.data.evidence_index).toEqual({
+      evidence_required: true,
+      item_table: "core.watchlist_briefing_item",
+      source_record_id_required: true
+    });
+    expect(body.data.notification).toEqual({
+      channels: ["in_app", "email"],
+      evidence_required: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      fanout_status: "planned_no_write"
+    });
+    expect(body.data.persistence_plan).toEqual({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      tables: ["core.watchlist_briefing", "core.watchlist_briefing_item"],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.validation).toEqual({
+      required_context_present: true,
+      watchlist_required: true
+    });
+    expect(body.usage).toEqual({
+      cached: false,
+      credits: 0,
+      rows: 8
     });
   });
 

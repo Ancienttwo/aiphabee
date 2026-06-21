@@ -215,6 +215,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621110000_watchlist_briefings_scaffold.sql",
+      "purpose": "Create empty watchlist briefing and briefing-item scaffolds for daily and weekly summaries without enabling live notification fanout or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.watchlist_briefing",
+        "core.watchlist_briefing_item",
+        "governance.watchlist_briefings_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
