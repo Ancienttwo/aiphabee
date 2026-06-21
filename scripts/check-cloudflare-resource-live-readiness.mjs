@@ -48,13 +48,13 @@ const requiredFunctionalSurfaces = [
   ["AIPHABEE_RUN_COORDINATOR", "durable_object_state_smoke"],
   ["AIPHABEE_RESEARCH_WORKFLOW", "workflow_instance_execution"],
   ["AIPHABEE_MAINTENANCE_CRON", "cron_handler_smoke"],
+  ["AIPHABEE_AI_GATEWAY", "ai_gateway_model_request_smoke"],
   ["AIPHABEE_CONFIG", "kv_put_get_delete"],
   ["AIPHABEE_ARTIFACTS", "r2_put_get_delete"],
   ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"]
 ];
 const requiredRemainingFunctionalSurfaces = [
   ["AIPHABEE_MAINTENANCE_CRON", "cron_natural_trigger_evidence"],
-  ["AIPHABEE_AI_GATEWAY", "ai_gateway_model_request_smoke"],
   ["AIPHABEE_HYPERDRIVE", "hyperdrive_select_1_smoke"]
 ];
 const forbiddenOutputFields = [
@@ -462,7 +462,11 @@ function validateFunctionalSmoke(value, bindingsValue) {
   }
 
   errors.push(
-    ...validateStringArray(value.required_env, ["CLOUDFLARE_ACCOUNT_ID"], "functional_smoke.required_env")
+    ...validateStringArray(
+      value.required_env,
+      ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME", "AI_GATEWAY_SMOKE_MODEL"],
+      "functional_smoke.required_env"
+    )
   );
 
   if (value.synthetic_prefix !== "aiphabee-smoke") {
@@ -598,12 +602,17 @@ function validateFunctionalSmokeScript(value) {
     "/cloudflare/durable-objects/smoke",
     "/cloudflare/workflows/smoke",
     "/cloudflare/cron/smoke",
+    "/agent/model-provider/live-smoke",
     "cloudflare-bindings-runtime-v1",
+    "model-provider-live-v1",
     "worker_runtime_binding_smoke",
     "queue_publish_consume_smoke",
     "durable_object_state_smoke",
     "workflow_instance_execution",
     "cron_handler_smoke",
+    "ai_gateway_model_request_smoke",
+    "AI_GATEWAY_LIVE_SMOKE_TOKEN",
+    "--secrets-file",
     "kv_namespaces",
     "r2_buckets",
     "d1_databases",

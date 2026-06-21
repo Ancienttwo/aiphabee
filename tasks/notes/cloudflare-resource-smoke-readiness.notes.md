@@ -24,6 +24,10 @@
   cleanup.
 - Added a module Worker `scheduled` handler plus a guarded Cron handler smoke
   route with temporary `triggers.crons` config and KV evidence cleanup.
+- Extended the Wrangler functional smoke to inject a dedicated temporary
+  `AI_GATEWAY_LIVE_SMOKE_TOKEN` Worker secret through `--secrets-file`, call
+  `POST /agent/model-provider/live-smoke`, and delete the dedicated secret
+  after the smoke.
 
 ## External Evidence
 
@@ -49,16 +53,21 @@
 - Cron passed deployed `triggers.crons` config plus `POST
   /cloudflare/cron/smoke` scheduled handler KV evidence with sanitized
   hashes/status/operation counts only.
-- AI Gateway creation hit a Cloudflare API authentication error in the available
-  context.
+- AI Gateway passed deployed Worker `POST /agent/model-provider/live-smoke`
+  through Cloudflare AI Gateway with sanitized hashes/status/operation counts
+  only.
+- Dedicated `AI_GATEWAY_LIVE_SMOKE_TOKEN` cleanup was verified by secret list
+  boolean check.
 - Hyperdrive remains blocked by Postgres origin prerequisites. Natural Cron
   trigger evidence remains unclaimed.
 
 ## What Was Not Claimed
 
-- No AI Gateway or Hyperdrive resource was created.
+- No Hyperdrive resource was created.
 - No natural Cron trigger event was observed or claimed.
 - No Hyperdrive `SELECT 1` was executed.
+- No AI Gateway request/cost/cache/rate-limit/fallback log evidence was
+  verified.
 - No OTLP export, product eval-store write/read, or provider secret rotation
   smoke was executed.
 
@@ -67,7 +76,7 @@
 - `npm run check:cloudflare-resource-live-readiness`
 - `node scripts/smoke-cloudflare-resources-live.mjs --dry-run`
 - `node scripts/smoke-cloudflare-bindings-wrangler-live.mjs --dry-run`
-- `CLOUDFLARE_ACCOUNT_ID=... npm run smoke:cloudflare-bindings-wrangler-live`
+- `CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... AI_GATEWAY_NAME=... AI_GATEWAY_SMOKE_MODEL=... npm run smoke:cloudflare-bindings-wrangler-live`
 - missing-env smoke branch expects exit code `2`
 - `npm run check:env`
 - `npm run check:bindings`

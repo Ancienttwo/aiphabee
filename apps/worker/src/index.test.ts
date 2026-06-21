@@ -16042,7 +16042,7 @@ describe("worker runtime", () => {
     expect(body).toMatchObject({
       missing_env: [
         "CLOUDFLARE_ACCOUNT_ID",
-        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN",
         "AI_GATEWAY_NAME",
         "AI_GATEWAY_SMOKE_MODEL"
       ],
@@ -16117,6 +16117,38 @@ describe("worker runtime", () => {
     expect(serialized).not.toContain("synthetic-account-id");
     expect(serialized).not.toContain("@cf/aiphabee/synthetic-model");
     expect(serialized).not.toContain("AIPHABEE_AI_GATEWAY_SMOKE_OK");
+  });
+
+  it("runs the AI Gateway live smoke route with a smoke-only token secret", async () => {
+    const { calls, fetch } = createOpenAiCompatibleMockFetch();
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/model-provider/live-smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "model-provider-live-v1",
+          "x-request-id": "req-model-provider-live-smoke-token"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_LIVE_SMOKE_TOKEN: "synthetic-smoke-token",
+        AI_GATEWAY_NAME: "default",
+        AI_GATEWAY_SMOKE_MODEL: "@cf/aiphabee/synthetic-model",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id"
+      }
+    );
+    const body = (await response.json()) as ModelProviderLiveSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("ok");
+    expect(body.model_provider_result?.status).toBe("ok");
+    expect(calls).toHaveLength(2);
+    expect(serialized).not.toContain("synthetic-smoke-token");
+    expect(serialized).not.toContain("synthetic-account-id");
+    expect(serialized).not.toContain("@cf/aiphabee/synthetic-model");
   });
 
   it("serves observability runtime capabilities without live export", async () => {

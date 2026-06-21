@@ -7,7 +7,8 @@ Date: 2026-06-22
 This slice records partial Sprint 0.4 Cloudflare external provisioning and
 partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
 smoke, Queue publish/consume smoke, Durable Object state smoke, Workflow
-instance execution smoke, and Cron handler smoke without claiming complete
+instance execution smoke, Cron handler smoke, and deployed Worker AI Gateway
+model request smoke without claiming complete
 Cloudflare binding smoke.
 
 ## P1 Architecture Map
@@ -18,17 +19,18 @@ Cloudflare binding smoke.
 - Current contract: `deploy/cloudflare/bindings.contract.json` remains
   `planned`; `aiphabee-worker`, `AIPHABEE_RESEARCH_WORKFLOW`,
   `AIPHABEE_EVENTS_QUEUE`, `AIPHABEE_MAINTENANCE_CRON`,
-  `AIPHABEE_RUN_COORDINATOR`, `AIPHABEE_ARTIFACTS`, `AIPHABEE_CONFIG`, and
-  `AIPHABEE_EVAL_STORE` are marked provisioned by names only.
+  `AIPHABEE_RUN_COORDINATOR`, `AIPHABEE_ARTIFACTS`, `AIPHABEE_CONFIG`,
+  `AIPHABEE_EVAL_STORE`, and `AIPHABEE_AI_GATEWAY` are marked provisioned by
+  names only.
 - Readiness contract:
   `deploy/cloudflare/resource-smoke-readiness.contract.json`.
 - Live smoke command: `npm run smoke:cloudflare-resources-live`.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: AI Gateway/Hyperdrive resource completion, natural Cron trigger
-  evidence, running Hyperdrive `SELECT 1`, OTLP export, or rotating provider
-  secrets.
+- Out of scope: Hyperdrive resource completion, natural Cron trigger evidence,
+  running Hyperdrive `SELECT 1`, AI Gateway cost/cache/rate-limit/fallback log
+  verification, OTLP export, or rotating provider secrets.
 
 ## P2 Concrete Trace
 
@@ -82,6 +84,13 @@ Cloudflare binding smoke.
     exercises the shared `scheduled` handler logic with KV evidence cleanup.
     This proves handler/config smoke, not that a natural scheduled event has
     already fired.
+17. The temporary config injects `AI_GATEWAY_NAME`, `AI_GATEWAY_SMOKE_MODEL`,
+    and `CLOUDFLARE_ACCOUNT_ID` as non-secret vars and uploads
+    `AI_GATEWAY_LIVE_SMOKE_TOKEN` through Wrangler `--secrets-file`. `POST
+    /agent/model-provider/live-smoke` runs Cloudflare AI Gateway
+    OpenAI-compatible `generateText` and `streamText`, requires exact synthetic
+    output, and returns only hashes/status/counts. The smoke script deletes the
+    dedicated temporary Worker secret after the route call.
 
 ## P3 Decision
 
@@ -90,9 +99,10 @@ coherent update is to record the resources that now exist and prove
 resource-level KV/R2/D1 write-read-delete through Wrangler, prove Worker
 runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
 consumer, prove Durable Object state put/get/delete, prove Workflow
-`create()`/KV evidence, and prove Cron handler/config execution while keeping
-the overall resource smoke item unchecked until the remaining Cloudflare
-classes pass their own live smokes.
+`create()`/KV evidence, prove Cron handler/config execution, and prove the
+deployed Worker AI Gateway model request path while keeping the overall
+resource smoke item unchecked until Hyperdrive and natural Cron evidence are
+complete.
 
 At 10x scale this fails first on partial provisioning and token scope drift:
 some resources may exist while D1/Durable Object list permissions are missing.
@@ -113,7 +123,7 @@ instance has reached a terminal state.
 - `node scripts/smoke-cloudflare-resources-live.mjs --dry-run`
 - `node scripts/smoke-cloudflare-resources-live.mjs` with real env
 - `node scripts/smoke-cloudflare-bindings-wrangler-live.mjs --dry-run`
-- `CLOUDFLARE_ACCOUNT_ID=... npm run smoke:cloudflare-bindings-wrangler-live`
+- `CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... AI_GATEWAY_NAME=... AI_GATEWAY_SMOKE_MODEL=... npm run smoke:cloudflare-bindings-wrangler-live`
 - `npm run check:bindings`
 - `npm run check:env`
 
@@ -128,6 +138,9 @@ completed the following names-only provisioning and verification:
 - KV namespace title `AIPHABEE_CONFIG` created and found by namespace list.
 - D1 database `AIPHABEE_EVAL_STORE` created and found by database list.
 - KV `AIPHABEE_CONFIG` passed synthetic put/get/delete through Wrangler.
+- AI Gateway `AIPHABEE_AI_GATEWAY` passed deployed Worker
+  `/agent/model-provider/live-smoke` with hash-only evidence; response hash
+  `sha256:908a43d9a0b52e15f06ae890db0c7f131a0c661958a5ac25eb37d449c1cf3a9d`.
 - R2 `aiphabee-artifacts` passed synthetic object put/get/delete through
   Wrangler.
 - D1 `AIPHABEE_EVAL_STORE` passed synthetic create/insert/select/delete/drop
@@ -150,15 +163,16 @@ completed the following names-only provisioning and verification:
   evidence through `POST /cloudflare/cron/smoke`; output contained only hashes,
   status fields, and operation counts.
 
-The AI Gateway create attempt returned a Cloudflare API authentication error in
-the available API context. Hyperdrive remains unprovisioned because it requires
-a Postgres origin decision before safe creation. Natural Cron trigger evidence
-is not claimed by this slice.
+Hyperdrive remains unprovisioned because it requires a Postgres origin decision
+before safe creation. Natural Cron trigger evidence and AI Gateway
+cost/cache/rate-limit/fallback log verification are not claimed by this slice.
 
 ## Residual Gaps
 
 - Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
   required resource classes are provisioned.
-- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1`, AI Gateway
-  model request smoke, and natural Cron trigger evidence are not claimed.
+- Functional binding smoke remains unchecked: Hyperdrive `SELECT 1` and natural
+  Cron trigger evidence are not claimed.
+- AI Gateway model request smoke passed, but request/cost/cache/rate-limit and
+  fallback log evidence is still owned by the model-provider/A5 slice.
 - Provider secret rotation/revocation remains unchecked.

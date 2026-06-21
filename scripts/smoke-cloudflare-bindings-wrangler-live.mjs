@@ -10,7 +10,12 @@ import { resolve } from "node:path";
 const contractPath = "deploy/cloudflare/resource-smoke-readiness.contract.json";
 const contract = readJson(contractPath);
 const dryRun = process.argv.includes("--dry-run");
-const requiredEnv = ["CLOUDFLARE_ACCOUNT_ID"];
+const requiredEnv = [
+  "CLOUDFLARE_ACCOUNT_ID",
+  "CLOUDFLARE_API_TOKEN",
+  "AI_GATEWAY_NAME",
+  "AI_GATEWAY_SMOKE_MODEL"
+];
 const requiredForbiddenOutputFields = [
   "authorization",
   "api_key",
@@ -62,7 +67,8 @@ if (dryRun) {
         "queue_publish_consume_smoke",
         "durable_object_state_smoke",
         "workflow_instance_execution",
-        "cron_handler_smoke"
+        "cron_handler_smoke",
+        "ai_gateway_model_request_smoke"
       ],
       required_env: requiredEnv,
       required_resource_names: requiredResourceNames,
@@ -320,6 +326,8 @@ async function smokeD1() {
 async function smokeWorkerRuntimeBindings() {
   const workerName = resourceNames.worker;
   let configPath;
+  let secretFilePath;
+  let secretDir;
 
   try {
     const kvNamespaceId = await resolveKvNamespaceId(resourceNames.kv_namespace_title);
@@ -328,7 +336,14 @@ async function smokeWorkerRuntimeBindings() {
       d1DatabaseId,
       kvNamespaceId
     });
-    const deployResult = await runWrangler(["deploy", "--config", configPath]);
+    ({ secretDir, secretFilePath } = await writeAiGatewayLiveSmokeSecretsFile());
+    const deployResult = await runWrangler([
+      "deploy",
+      "--config",
+      configPath,
+      "--secrets-file",
+      secretFilePath
+    ]);
     const workerUrl = extractWorkersDevUrl(deployResult.stdout);
 
     if (!hasValue(workerUrl)) {
@@ -367,6 +382,13 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "cron_worker_runtime_prerequisite_failed",
           key: maintenanceCron,
           surface: "cron_handler_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_AI_GATEWAY",
+          detail: "worker runtime URL missing before AI Gateway smoke",
+          failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
+          key: process.env.AI_GATEWAY_NAME ?? "",
+          surface: "ai_gateway_model_request_smoke"
         })
       ];
     }
@@ -403,6 +425,13 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "cron_worker_runtime_prerequisite_failed",
           key: maintenanceCron,
           surface: "cron_handler_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_AI_GATEWAY",
+          detail: "worker runtime binding smoke failed before AI Gateway smoke",
+          failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
+          key: process.env.AI_GATEWAY_NAME ?? "",
+          surface: "ai_gateway_model_request_smoke"
         })
       ];
     }
@@ -412,7 +441,8 @@ async function smokeWorkerRuntimeBindings() {
       await smokeQueuePublishConsume(workerUrl),
       await smokeDurableObjectState(workerUrl),
       await smokeWorkflowInstanceExecution(workerUrl),
-      await smokeCronHandler(workerUrl)
+      await smokeCronHandler(workerUrl),
+      await smokeAiGatewayModelRequest(workerUrl)
     ];
   } catch (error) {
     return [
@@ -450,6 +480,13 @@ async function smokeWorkerRuntimeBindings() {
         failureCode: "cron_worker_runtime_command_failed",
         key: maintenanceCron,
         surface: "cron_handler_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_AI_GATEWAY",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "ai_gateway_worker_runtime_command_failed",
+        key: process.env.AI_GATEWAY_NAME ?? "",
+        surface: "ai_gateway_model_request_smoke"
       })
     ];
   } finally {
@@ -457,9 +494,21 @@ async function smokeWorkerRuntimeBindings() {
       ["queues", "consumer", "worker", "remove", resourceNames.queue, workerName],
       { allowFailure: true, input: "y\n" }
     );
+    await runWrangler(["secret", "delete", "AI_GATEWAY_LIVE_SMOKE_TOKEN", "--name", workerName], {
+      allowFailure: true,
+      input: "y\n"
+    });
 
     if (configPath) {
       await rm(configPath, { force: true });
+    }
+
+    if (secretFilePath) {
+      await rm(secretFilePath, { force: true });
+    }
+
+    if (secretDir) {
+      await rm(secretDir, { force: true, recursive: true });
     }
   }
 }
@@ -693,6 +742,54 @@ async function smokeCronHandler(workerUrl) {
   };
 }
 
+async function smokeAiGatewayModelRequest(workerUrl) {
+  const response = await fetch(`${workerUrl}/agent/model-provider/live-smoke`, {
+    headers: {
+      "x-aiphabee-smoke": "model-provider-live-v1",
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+  const modelProviderResult = body?.model_provider_result ?? {};
+
+  if (
+    response.status !== 200 ||
+    body?.status !== "ok" ||
+    modelProviderResult?.status !== "ok" ||
+    modelProviderResult?.generate_text?.exact_output_match !== true ||
+    modelProviderResult?.stream_text?.exact_output_match !== true
+  ) {
+    return failedResult({
+      bindingName: "AIPHABEE_AI_GATEWAY",
+      detail: JSON.stringify({
+        generate_text_exact_output_match:
+          modelProviderResult?.generate_text?.exact_output_match,
+        http_status: response.status,
+        model_provider_status: modelProviderResult?.status,
+        status: body?.status,
+        stream_text_exact_output_match: modelProviderResult?.stream_text?.exact_output_match
+      }),
+      failureCode: "ai_gateway_model_request_route_failed",
+      key: process.env.AI_GATEWAY_NAME ?? "",
+      surface: "ai_gateway_model_request_smoke"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_AI_GATEWAY",
+    operation_count:
+      typeof modelProviderResult.operation_count === "number"
+        ? modelProviderResult.operation_count
+        : 2,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(modelProviderResult)),
+    status: "passed",
+    surface: "ai_gateway_model_request_smoke"
+  };
+}
+
 async function resolveKvNamespaceId(title) {
   const result = await runWrangler(["kv", "namespace", "list"]);
   const namespaces = JSON.parse(result.stdout);
@@ -741,8 +838,11 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
       }
     },
     vars: {
+      AI_GATEWAY_NAME: process.env.AI_GATEWAY_NAME.trim(),
+      AI_GATEWAY_SMOKE_MODEL: process.env.AI_GATEWAY_SMOKE_MODEL.trim(),
       APP_ENV: "smoke",
-      APP_VERSION: "runtime-binding-smoke"
+      APP_VERSION: "runtime-binding-smoke",
+      CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID.trim()
     },
     durable_objects: {
       bindings: [
@@ -809,6 +909,20 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
   return configPath;
+}
+
+async function writeAiGatewayLiveSmokeSecretsFile() {
+  const secretDir = await mkdtemp(join(tmpdir(), "aiphabee-ai-gateway-smoke-"));
+  const secretFilePath = join(secretDir, "secrets.json");
+
+  await writeFile(
+    secretFilePath,
+    `${JSON.stringify({
+      AI_GATEWAY_LIVE_SMOKE_TOKEN: process.env.CLOUDFLARE_API_TOKEN.trim()
+    })}\n`
+  );
+
+  return { secretDir, secretFilePath };
 }
 
 function extractWorkersDevUrl(value) {

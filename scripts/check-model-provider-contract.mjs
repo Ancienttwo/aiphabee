@@ -188,8 +188,8 @@ function validateLiveSmoke(value, schema) {
     return ["live_smoke must be an object"];
   }
 
-  if (value.status !== "ready_missing_env") {
-    errors.push("live_smoke.status must be ready_missing_env until a real smoke passes");
+  if (value.status !== "partial_live_passed") {
+    errors.push("live_smoke.status must be partial_live_passed after CLI and deployed Worker smoke pass");
   }
 
   if (value.script !== "scripts/smoke-ai-gateway-live.mjs") {

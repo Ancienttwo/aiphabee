@@ -303,6 +303,7 @@ interface WorkerBindings {
   APP_ENV?: string;
   APP_VERSION?: string;
   AI_GATEWAY_NAME?: string;
+  AI_GATEWAY_LIVE_SMOKE_TOKEN?: string;
   AI_GATEWAY_SMOKE_MODEL?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
@@ -965,7 +966,7 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
   try {
     const modelProviderResult = await runAiGatewayLiveSmoke({
       accountId: c.env.CLOUDFLARE_ACCOUNT_ID ?? "",
-      apiToken: c.env.CLOUDFLARE_API_TOKEN ?? "",
+      apiToken: getAiGatewayLiveSmokeToken(c.env ?? {}),
       gatewayId: c.env.AI_GATEWAY_NAME ?? "",
       model: c.env.AI_GATEWAY_SMOKE_MODEL ?? ""
     });
@@ -8676,14 +8677,28 @@ function missingCloudflareCronResult(failureCode: string): CloudflareCronSmokeRe
 function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
   const requiredEnv: Array<readonly [string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
-    ["CLOUDFLARE_API_TOKEN", env.CLOUDFLARE_API_TOKEN],
     ["AI_GATEWAY_NAME", env.AI_GATEWAY_NAME],
     ["AI_GATEWAY_SMOKE_MODEL", env.AI_GATEWAY_SMOKE_MODEL]
   ];
-
-  return requiredEnv
+  const missing = requiredEnv
     .filter(([, value]) => typeof value !== "string" || value.trim().length === 0)
     .map(([name]) => name);
+
+  if (getAiGatewayLiveSmokeToken(env).length === 0) {
+    missing.splice(1, 0, "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN");
+  }
+
+  return missing;
+}
+
+function getAiGatewayLiveSmokeToken(env: WorkerBindings): string {
+  const runtimeToken = env.CLOUDFLARE_API_TOKEN?.trim();
+
+  if (runtimeToken) {
+    return runtimeToken;
+  }
+
+  return env.AI_GATEWAY_LIVE_SMOKE_TOKEN?.trim() ?? "";
 }
 
 async function failedCloudflareQueueResult({

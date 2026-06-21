@@ -1,16 +1,16 @@
 # Model Provider Live Smoke Readiness
 
-> **Status**: CLI live smoke passed; deployed Worker/log evidence still open
-> **Last Updated**: 2026-06-22 07:20 +08
+> **Status**: CLI and deployed Worker live smoke passed; log evidence still open
+> **Last Updated**: 2026-06-22 07:31 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Task Contract**:
 > `tasks/contracts/model-provider-live-smoke-readiness.contract.md`
 
-This slice prepares the live AI Gateway smoke path without claiming a live
-Cloudflare model call has succeeded. It updates the model-provider contract to
-Cloudflare's current AI Gateway REST API shape, wires an AI SDK
-OpenAI-compatible `generateText`/`streamText` helper, and exposes a guarded
-Worker live-smoke route.
+This slice proves the live AI Gateway smoke path without enabling product model
+calls. It updates the model-provider contract to Cloudflare's current AI
+Gateway REST API shape, wires an AI SDK OpenAI-compatible
+`generateText`/`streamText` helper, and exposes a guarded Worker live-smoke
+route.
 
 References checked:
 
@@ -30,7 +30,7 @@ References checked:
 | Worker route | `POST /agent/model-provider/live-smoke` | Guarded by `x-aiphabee-smoke: model-provider-live-v1`; returns missing env without secrets |
 | Live smoke script | `scripts/smoke-ai-gateway-live.mjs` | Runs the same SDK execution boundary only when required env is present |
 | Readiness checker | `scripts/check-model-provider-live-readiness.mjs` | No-network check for contract/script/env/tracker consistency |
-| Tracker | A5 + Sprint 0.4 live rows | Remain unchecked until deployed Worker and AI Gateway log/cost evidence is complete |
+| Tracker | A5 + Sprint 0.4 live rows | Remain unchecked until AI Gateway log/cost/cache/rate-limit/fallback evidence is complete |
 
 ## P2 Concrete Trace
 
@@ -61,15 +61,15 @@ Reason:
 - Current product runtime contract has `model_calls_enabled=false`.
 - Transient Wrangler OAuth can execute the CLI smoke without committing
   Cloudflare credentials.
-- The tracker live smoke item still requires deployed Worker route evidence and
-  AI Gateway request/cost/cache/rate-limit/fallback logs.
+- The tracker live smoke item still requires AI Gateway
+  request/cost/cache/rate-limit/fallback logs.
 
 Tradeoff:
 
 - The proof command, Worker route, and expected no-secret evidence shape are now
   explicit and covered by local fake-provider tests.
-- Sprint live smoke remains blocked until deployed Worker smoke evidence plus
-  AI Gateway logs/cost/fallback evidence are captured.
+- Sprint live smoke remains blocked until AI Gateway logs/cost/fallback
+  evidence are captured.
 
 ## Latest CLI Live Evidence
 
@@ -87,6 +87,20 @@ Observed at `2026-06-22 07:20 +08` using transient Wrangler OAuth env only:
 - `output_hash=sha256:52d2532a33eb1ce82ca41f0a425edd6a975af763e53a8657ed096a1847e6a590`
 - `response_hash=sha256:ff2af979fe25d61a65e71f92ce920fce59aa86ac24409cae7071ac277c143f3d`
 
+## Latest Deployed Worker Evidence
+
+Observed at `2026-06-22 07:31 +08` through Wrangler OAuth live harness:
+
+- route: `POST /agent/model-provider/live-smoke`
+- worker: `aiphabee-worker`
+- `status=ok`
+- operation count: `2`
+- temporary `AI_GATEWAY_LIVE_SMOKE_TOKEN` secret injected by Wrangler
+  `--secrets-file`
+- dedicated smoke secret cleanup verified: `true`
+- response hash:
+  `sha256:908a43d9a0b52e15f06ae890db0c7f131a0c661958a5ac25eb37d449c1cf3a9d`
+
 ## Verification
 
 Required for this readiness slice:
@@ -102,8 +116,6 @@ Required for this readiness slice:
 
 Required before checking the live Sprint item:
 
-- Deployed Worker `POST /agent/model-provider/live-smoke` must return
-  `status=ok` with no raw identifiers or model output.
 - Evidence must show `status=ok`, HTTP 2xx, gateway/model hashes,
   `generateText`/`streamText` token counts, and response/output hashes.
 - AI Gateway logs must show real request, cost/token, rate-limit/cache/fallback
@@ -113,8 +125,7 @@ Required before checking the live Sprint item:
 
 - Long-lived live Cloudflare credentials are not configured in this machine
   environment or committed to repo artifacts.
-- `AIPHABEE_AI_GATEWAY` remains unprovisioned in the binding contract.
 - Product Worker `model_calls_enabled` remains false.
-- CLI `generateText` / `streamText` integration is live-verified against
-  Cloudflare; deployed Worker route live verification is still missing.
+- CLI and deployed Worker `generateText` / `streamText` integration are
+  live-verified against Cloudflare.
 - AI Gateway fallback/cache/rate-limit log evidence is still missing.

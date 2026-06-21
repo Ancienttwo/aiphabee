@@ -28,7 +28,7 @@
     "unified_billing": true
   },
   "live_smoke": {
-    "status": "ready_missing_env",
+    "status": "partial_live_passed",
     "script": "scripts/smoke-ai-gateway-live.mjs",
     "check_script": "scripts/check-model-provider-live-readiness.mjs",
     "command": "npm run smoke:ai-gateway-live",

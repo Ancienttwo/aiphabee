@@ -25,3 +25,7 @@ node scripts/smoke-ai-gateway-live.mjs --dry-run
   it requires `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
   `AI_GATEWAY_NAME`, and `AI_GATEWAY_SMOKE_MODEL`, and does not print account
   IDs, gateway IDs, model IDs, raw model output, or secret values.
+- The deployed Worker route smoke can be run through
+  `npm run smoke:cloudflare-bindings-wrangler-live`; it injects a dedicated
+  temporary `AI_GATEWAY_LIVE_SMOKE_TOKEN` Worker secret and removes that smoke
+  secret after the route call.

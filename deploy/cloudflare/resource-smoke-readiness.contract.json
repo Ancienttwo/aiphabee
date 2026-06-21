@@ -125,7 +125,8 @@
       "AIPHABEE_RUN_COORDINATOR",
       "AIPHABEE_ARTIFACTS",
       "AIPHABEE_CONFIG",
-      "AIPHABEE_EVAL_STORE"
+      "AIPHABEE_EVAL_STORE",
+      "AIPHABEE_AI_GATEWAY"
     ],
     "resource_names": {
       "worker": "aiphabee-worker",
@@ -135,7 +136,8 @@
       "durable_object_namespace": "AiphaBeeRunCoordinator",
       "r2_bucket": "aiphabee-artifacts",
       "kv_namespace_title": "AIPHABEE_CONFIG",
-      "d1_database": "AIPHABEE_EVAL_STORE"
+      "d1_database": "AIPHABEE_EVAL_STORE",
+      "ai_gateway": "default"
     },
     "live_smoke_results": [
       {
@@ -169,13 +171,13 @@
       {
         "surface": "d1_database_list",
         "result": "AIPHABEE_EVAL_STORE found"
+      },
+      {
+        "surface": "ai_gateway_model_request_smoke",
+        "result": "AIPHABEE_AI_GATEWAY deployed Worker model-provider route smoke passed"
       }
     ],
     "blocked_bindings": [
-      {
-        "binding_name": "AIPHABEE_AI_GATEWAY",
-        "reason": "ai_gateway_api_auth_error"
-      },
       {
         "binding_name": "AIPHABEE_HYPERDRIVE",
         "reason": "hyperdrive_requires_postgres_origin"
@@ -187,7 +189,10 @@
     "runner": "wrangler_oauth_cli",
     "command": "npm run smoke:cloudflare-bindings-wrangler-live",
     "required_env": [
-      "CLOUDFLARE_ACCOUNT_ID"
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "AI_GATEWAY_NAME",
+      "AI_GATEWAY_SMOKE_MODEL"
     ],
     "synthetic_prefix": "aiphabee-smoke",
     "passed_surfaces": [
@@ -217,6 +222,12 @@
         "result": "passed"
       },
       {
+        "binding_name": "AIPHABEE_AI_GATEWAY",
+        "surface": "ai_gateway_model_request_smoke",
+        "result": "passed",
+        "response_hash": "sha256:908a43d9a0b52e15f06ae890db0c7f131a0c661958a5ac25eb37d449c1cf3a9d"
+      },
+      {
         "binding_name": "AIPHABEE_CONFIG",
         "surface": "kv_put_get_delete",
         "result": "passed"
@@ -237,11 +248,6 @@
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "surface": "cron_natural_trigger_evidence",
         "reason": "cron handler and deploy config smoke passed, but natural scheduled event evidence is not claimed"
-      },
-      {
-        "binding_name": "AIPHABEE_AI_GATEWAY",
-        "surface": "ai_gateway_model_request_smoke",
-        "reason": "ai_gateway_api_auth_error"
       },
       {
         "binding_name": "AIPHABEE_HYPERDRIVE",

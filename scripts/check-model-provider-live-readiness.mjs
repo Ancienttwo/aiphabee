@@ -119,8 +119,8 @@ function validateContract(
     errors.push("version must match model provider live-smoke readiness version");
   }
 
-  if (value.status !== "ready_missing_env") {
-    errors.push("status must be ready_missing_env until a real live smoke passes");
+  if (value.status !== "partial_live_passed") {
+    errors.push("status must be partial_live_passed after CLI and deployed Worker smoke pass");
   }
 
   if (value.provider_contract !== providerContractPath) {
@@ -218,8 +218,8 @@ function validateProviderContract(value) {
     errors.push("provider gateway status must remain planned until live provisioned");
   }
 
-  if (value.live_smoke.status !== "ready_missing_env") {
-    errors.push("provider live_smoke status must remain ready_missing_env");
+  if (value.live_smoke.status !== "partial_live_passed") {
+    errors.push("provider live_smoke status must be partial_live_passed");
   }
 
   errors.push(
@@ -336,6 +336,7 @@ function validateRuntimeIntegration(agentRuntimeValue, workerValue) {
     "model-provider-live-v1",
     "CLOUDFLARE_ACCOUNT_ID",
     "CLOUDFLARE_API_TOKEN",
+    "AI_GATEWAY_LIVE_SMOKE_TOKEN",
     "AI_GATEWAY_NAME",
     "AI_GATEWAY_SMOKE_MODEL"
   ]) {

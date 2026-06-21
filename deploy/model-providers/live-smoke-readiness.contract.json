@@ -1,6 +1,6 @@
 {
   "version": "2026-06-22.model-provider-live-smoke-readiness.v0",
-  "status": "ready_missing_env",
+  "status": "partial_live_passed",
   "provider_contract": "deploy/model-providers/providers.contract.json",
   "docs_source": "https://developers.cloudflare.com/ai-gateway/usage/rest-api/",
   "cloudflare_changelog_source": "https://developers.cloudflare.com/changelog/post/2026-05-21-rest-api/",
@@ -49,7 +49,6 @@
     "Model provider live execution smoke"
   ],
   "not_claimed": [
-    "deployed_worker_live_route_smoke_succeeded",
     "ai_gateway_cost_log_verified",
     "ai_gateway_rate_limit_cache_fallback_log_verified",
     "fallback_log_verified",
@@ -79,5 +78,16 @@
     "prompt_hash": "sha256:cc0738fbdc07b7efb612df1099584e63ecee327e4d0f0bba22ad28e6707ce156",
     "output_hash": "sha256:52d2532a33eb1ce82ca41f0a425edd6a975af763e53a8657ed096a1847e6a590",
     "response_hash": "sha256:ff2af979fe25d61a65e71f92ce920fce59aa86ac24409cae7071ac277c143f3d"
+  },
+  "latest_deployed_worker_live_smoke": {
+    "observed_at": "2026-06-22T07:31:00+08:00",
+    "status": "ok",
+    "route": "POST /agent/model-provider/live-smoke",
+    "runner": "wrangler_oauth_cli",
+    "worker": "aiphabee-worker",
+    "secret_injection": "temporary_ai_gateway_live_smoke_token",
+    "secret_cleanup_verified": true,
+    "operation_count": 2,
+    "response_hash": "sha256:908a43d9a0b52e15f06ae890db0c7f131a0c661958a5ac25eb37d449c1cf3a9d"
   }
 }
