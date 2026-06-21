@@ -888,6 +888,7 @@ app.post("/analytics/screen-securities", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const screen = screenSecurities({
     asOf: normalizeString(body.as_of ?? body.asOf),
+    classificationAsOf: normalizeString(body.classification_as_of ?? body.classificationAsOf),
     conditions: normalizeScreenConditionInputs(body.conditions),
     financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
     financialTo: normalizeString(body.financial_to ?? body.financialTo),

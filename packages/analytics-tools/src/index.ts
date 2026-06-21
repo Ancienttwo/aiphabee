@@ -92,7 +92,10 @@ export interface CompareSecuritiesResult {
 
 export type ScreenSecuritiesOperator = "eq" | "gte" | "lte";
 export type ScreenSecuritiesField = FinancialFactMetric | "last_price";
-export type ScreenSecuritiesStatus = "planned_with_preview" | "unsupported_query";
+export type ScreenSecuritiesStatus =
+  | "blocked_future_data"
+  | "planned_with_preview"
+  | "unsupported_query";
 
 export interface ScreenSecuritiesCondition {
   editable: true;
@@ -106,6 +109,7 @@ export interface ScreenSecuritiesCondition {
 
 export interface ScreenSecuritiesInput {
   asOf?: string;
+  classificationAsOf?: string;
   conditions?: Array<Partial<ScreenSecuritiesCondition>>;
   financialFrom?: string;
   financialTo?: string;
@@ -145,6 +149,14 @@ export interface ScreenSecuritiesResult {
   methodology_version: typeof SCREEN_SECURITIES_VERSION;
   natural_language?: string;
   parsed_conditions: ScreenSecuritiesCondition[];
+  point_in_time_guard: {
+    classification_as_of: string;
+    future_data_policy: "block_future_classification";
+    requested_as_of: string;
+    security_master_as_of: string;
+    status: "blocked_future_data" | "enforced";
+    uses_latest_classification: false;
+  };
   requires_confirmation_before_live_execution: true;
   status: ScreenSecuritiesStatus;
   toolName: "screen_securities";
@@ -641,6 +653,8 @@ export function getScreenSecuritiesCapabilities() {
     live_data_access: false,
     package: "@aiphabee/analytics-tools" as const,
     preview_execution: true,
+    point_in_time_guard: true,
+    prevents_future_classification: true,
     requires_confirmation_before_live_execution: true,
     route: "POST /analytics/screen-securities" as const,
     status: "screen_securities_scaffold" as const,
@@ -764,11 +778,43 @@ export function compareSecurities(input: CompareSecuritiesInput): CompareSecurit
 
 export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecuritiesResult {
   const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const pointInTimeGuard = createScreenPointInTimeGuard(asOf, input.classificationAsOf);
   const naturalLanguage = input.naturalLanguage?.trim();
   const parsedConditions = normalizeScreenConditions(
     input.conditions,
     naturalLanguage
   );
+
+  if (pointInTimeGuard.status === "blocked_future_data") {
+    return {
+      as_of: asOf,
+      data_version: SCREEN_SECURITIES_VERSION,
+      editable_before_execution: true,
+      execution_preview: {
+        hit_count: 0,
+        hits: [],
+        ranking_method: "matched_condition_count_then_symbol",
+        rejected_count: 0,
+        rejected_rows: [],
+        universe_size: 0
+      },
+      frontend_rendering: false,
+      live_data_access: false,
+      methodology_version: SCREEN_SECURITIES_VERSION,
+      natural_language: naturalLanguage,
+      parsed_conditions: parsedConditions,
+      point_in_time_guard: pointInTimeGuard,
+      requires_confirmation_before_live_execution: true,
+      status: "blocked_future_data",
+      toolName: "screen_securities",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
   const universe =
     input.universe?.map((security) => security.trim()).filter((security) => security.length > 0) ??
     DEFAULT_SCREEN_UNIVERSE;
@@ -802,6 +848,7 @@ export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecurities
       methodology_version: SCREEN_SECURITIES_VERSION,
       natural_language: naturalLanguage,
       parsed_conditions: [],
+      point_in_time_guard: pointInTimeGuard,
       requires_confirmation_before_live_execution: true,
       status: "unsupported_query",
       toolName: "screen_securities",
@@ -842,6 +889,7 @@ export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecurities
     methodology_version: SCREEN_SECURITIES_VERSION,
     natural_language: naturalLanguage,
     parsed_conditions: parsedConditions,
+    point_in_time_guard: pointInTimeGuard,
     requires_confirmation_before_live_execution: true,
     status: "planned_with_preview",
     toolName: "screen_securities",
@@ -1880,6 +1928,24 @@ function getPercentileSubjectSourceTool(
   metricId: PercentileMetricId
 ): PercentileSubjectMetric["source_tool"] {
   return metricId === "net_margin" ? "get_financial_ratios" : "calculate_returns_risk";
+}
+
+function createScreenPointInTimeGuard(
+  asOf: string,
+  classificationAsOf: string | undefined
+): ScreenSecuritiesResult["point_in_time_guard"] {
+  const requestedAsOf = asOf.slice(0, 10);
+  const resolvedClassificationAsOf = classificationAsOf?.slice(0, 10) ?? requestedAsOf;
+
+  return {
+    classification_as_of: resolvedClassificationAsOf,
+    future_data_policy: "block_future_classification",
+    requested_as_of: requestedAsOf,
+    security_master_as_of: requestedAsOf,
+    status:
+      resolvedClassificationAsOf > requestedAsOf ? "blocked_future_data" : "enforced",
+    uses_latest_classification: false
+  };
 }
 
 function normalizeScreenConditions(

@@ -59,6 +59,7 @@ DoD.
 | SEC-02 代码与实体分离 | AIP-P0-SEC-02 | Data Engineering | 0.2 / 1.1 | Security master schema and migration tests | Sprint 1.1 exit: company/instrument/listing history is persisted | Design baseline complete; runtime pending |
 | SEC-03 歧义返回候选 | AIP-P0-SEC-03 | Data Engineering / Product | 1.2 | Ambiguous lookup contract tests | Sprint 1.2 exit: no silent guessing in tool responses | `resolve_security` no-live scaffold returns candidates without selected instrument for ambiguous synthetic lookups |
 | SEC-04 上市状态/币种/覆盖 | AIP-P0-SEC-04 | Data Engineering | 1.2 | Profile fixture tests for listed/suspended/delisted coverage | Sprint 1.2 exit: profile tool exposes status/currency/coverage | `get_security_profile` no-live scaffold complete for synthetic listed/suspended/delisted profiles; live security master reads pending |
+| SEC-05 历史成分/行业/名称 | AIP-P0-SEC-05 | Data Engineering / Analytics Engineering | 2.1 / 3.1 | Historical constituent/industry/name point-in-time tests | Sprint 2.1 exit: historical screening does not use future classification | Backend future-classification guard complete via `screen_securities`; live historical constituents/industry/name security-master data remain open |
 
 ## Agent Runtime
 
@@ -91,7 +92,7 @@ DoD.
 |---|---|---|---|---|---|---|
 | ANA-01 2-5 证券比较 | AIP-P0-ANA-01 | Analytics Engineering | 2.1 | Comparison fixture tests across 2-5 securities | Sprint 2.1 exit: comparison handles currency/unit incompatibility | Backend scaffold complete via `compare_securities`; frontend/MCP/live FX remain open |
 | ANA-02 同业/指数/历史分位 | AIP-P0-ANA-02 | Analytics Engineering / Data | 2.1 | Peer/index/percentile point-in-time tests | Sprint 2.1 exit: benchmark and constituents are as-of correct | Backend scaffold complete via `compare_percentiles`; live constituents/frontend/MCP remain open |
-| ANA-03 自然语言筛选 | AIP-P0-ANA-03 | Analytics Engineering / Agent Runtime | 2.1 | Natural-language to structured filter tests | Sprint 2.1 exit: conditions are editable before execution | Backend scaffold complete via deterministic `screen_securities`; frontend/live execution remain open |
+| ANA-03 自然语言筛选 | AIP-P0-ANA-03 | Analytics Engineering / Agent Runtime | 2.1 | Natural-language to structured filter tests | Sprint 2.1 exit: conditions are editable before execution | Backend scaffold complete via deterministic `screen_securities` with future-classification guard; frontend/live execution remain open |
 | ANA-04 命中原因可解释 | AIP-P0-ANA-04 | Analytics Engineering / Product | 2.1 | Ranking explanation snapshot tests | Sprint 2.1 exit: each hit exposes why it matched | Backend scaffold complete via `screen_securities` preview explanations; frontend expandable UI remains open |
 | ANA-07 收益/波动/回撤/Beta | AIP-P0-ANA-07 | Analytics Engineering | 2.1 | Deterministic calculation golden tests | Sprint 2.1 exit: return/risk metrics are inside defined tolerance | Backend scaffold complete via `calculate_returns_risk`; frontend/MCP/live benchmark constituents remain open |
 

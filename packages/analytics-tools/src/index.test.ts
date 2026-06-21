@@ -106,7 +106,9 @@ describe("compare securities scaffold", () => {
       editable_conditions: true,
       frontend_rendering: false,
       live_data_access: false,
+      point_in_time_guard: true,
       preview_execution: true,
+      prevents_future_classification: true,
       requires_confirmation_before_live_execution: true,
       route: "POST /analytics/screen-securities",
       status: "screen_securities_scaffold",
@@ -127,6 +129,14 @@ describe("compare securities scaffold", () => {
       requires_confirmation_before_live_execution: true,
       status: "planned_with_preview",
       toolName: "screen_securities"
+    });
+    expect(result.point_in_time_guard).toEqual({
+      classification_as_of: "2026-01-07",
+      future_data_policy: "block_future_classification",
+      requested_as_of: "2026-01-07",
+      security_master_as_of: "2026-01-07",
+      status: "enforced",
+      uses_latest_classification: false
     });
     expect(result.parsed_conditions).toEqual([
       expect.objectContaining({
@@ -159,6 +169,47 @@ describe("compare securities scaffold", () => {
     expect(result.execution_preview.rejected_rows[0]?.reasons).toContain(
       "revenue:missing_value_excluded"
     );
+  });
+
+  it("blocks future classification for historical screens", () => {
+    const result = screenSecurities({
+      asOf: "2024-12-31T16:00:00+08:00",
+      classificationAsOf: "2026-01-07",
+      naturalLanguage: "revenue above 100000",
+      requestId: "req_screen_future_guard"
+    });
+
+    expect(result.status).toBe("blocked_future_data");
+    expect(result.execution_preview.universe_size).toBe(0);
+    expect(result.point_in_time_guard).toEqual({
+      classification_as_of: "2026-01-07",
+      future_data_policy: "block_future_classification",
+      requested_as_of: "2024-12-31",
+      security_master_as_of: "2024-12-31",
+      status: "blocked_future_data",
+      uses_latest_classification: false
+    });
+    expect(result.parsed_conditions[0]).toMatchObject({
+      field: "revenue",
+      operator: "gte",
+      value: 100000
+    });
+  });
+
+  it("allows same-day classification timestamps for historical screens", () => {
+    const result = screenSecurities({
+      asOf: "2024-12-31T16:00:00+08:00",
+      classificationAsOf: "2024-12-31T09:30:00+08:00",
+      naturalLanguage: "revenue above 100000",
+      requestId: "req_screen_same_day_guard"
+    });
+
+    expect(result.status).toBe("planned_with_preview");
+    expect(result.point_in_time_guard).toMatchObject({
+      classification_as_of: "2024-12-31",
+      requested_as_of: "2024-12-31",
+      status: "enforced"
+    });
   });
 
   it("uses explicit structured conditions when provided", () => {

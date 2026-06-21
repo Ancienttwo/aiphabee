@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const contractPath = "deploy/analytics/screen-securities.contract.json";
-const requiredItems = ["ANA-03", "ANA-04", "US-W05"];
+const requiredItems = ["ANA-03", "ANA-04", "SEC-05", "US-W05"];
 const requiredTools = [
   "compare_securities",
   "resolve_security",
@@ -16,6 +16,10 @@ const requiredOutputFields = [
   "parsed_conditions",
   "editable_before_execution",
   "execution_preview",
+  "point_in_time_guard",
+  "requested_as_of",
+  "classification_as_of",
+  "security_master_as_of",
   "hits",
   "why",
   "rejected_rows"
@@ -138,11 +142,21 @@ function validateScreenContract(value) {
     "preview_execution",
     "missing_value_rule_visible",
     "hit_reasons_visible",
-    "ranking_explainable"
+    "ranking_explainable",
+    "point_in_time_guard",
+    "prevents_future_classification"
   ]) {
     if (value[field] !== true) {
       errors.push(`screen_contract.${field} must be true`);
     }
+  }
+
+  if (value.uses_latest_classification !== false) {
+    errors.push("screen_contract.uses_latest_classification must be false");
+  }
+
+  if (value.future_data_policy !== "block_future_classification") {
+    errors.push("screen_contract.future_data_policy must be block_future_classification");
   }
 
   errors.push(

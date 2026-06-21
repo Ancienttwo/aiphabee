@@ -371,6 +371,14 @@ interface ScreenSecuritiesBody {
       operator: string;
       value: number;
     }>;
+    point_in_time_guard: {
+      classification_as_of: string;
+      future_data_policy: string;
+      requested_as_of: string;
+      security_master_as_of: string;
+      status: string;
+      uses_latest_classification: boolean;
+    };
     requires_confirmation_before_live_execution: boolean;
     status: string;
     toolName: string;
@@ -2221,6 +2229,14 @@ describe("worker runtime", () => {
       hit_count: 1,
       universe_size: 3
     });
+    expect(body.data.point_in_time_guard).toEqual({
+      classification_as_of: "2026-01-07",
+      future_data_policy: "block_future_classification",
+      requested_as_of: "2026-01-07",
+      security_master_as_of: "2026-01-07",
+      status: "enforced",
+      uses_latest_classification: false
+    });
     expect(body.data.execution_preview.hits[0]).toMatchObject({
       rank: 1,
       score: 2,
@@ -2237,6 +2253,36 @@ describe("worker runtime", () => {
       route: "POST /analytics/screen-securities"
     });
     expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("blocks screen execution when classification is after historical as_of", async () => {
+    const response = await app.request("/analytics/screen-securities", {
+      body: JSON.stringify({
+        as_of: "2024-12-31T16:00:00+08:00",
+        classification_as_of: "2026-01-07",
+        natural_language: "revenue above 100000"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-screen-future-guard"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ScreenSecuritiesBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_future_data");
+    expect(body.data.execution_preview.universe_size).toBe(0);
+    expect(body.data.point_in_time_guard).toEqual({
+      classification_as_of: "2026-01-07",
+      future_data_policy: "block_future_classification",
+      requested_as_of: "2024-12-31",
+      security_master_as_of: "2024-12-31",
+      status: "blocked_future_data",
+      uses_latest_classification: false
+    });
+    expect(body.usage.rows).toBe(0);
   });
 
   it("compares securities and explains incomplete rows", async () => {

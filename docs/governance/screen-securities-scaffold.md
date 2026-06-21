@@ -1,7 +1,7 @@
 # Screen Securities Scaffold
 
 > **Status**: Verified backend scaffold
-> **Last Updated**: 2026-06-21 06:00 +08
+> **Last Updated**: 2026-06-21 12:30 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-screen-securities-scaffold.md`
 > **Task Contract**: `tasks/contracts/screen-securities-scaffold.contract.md`
@@ -9,7 +9,9 @@
 This slice continues Sprint 2.1 with a backend-only `screen_securities`
 scaffold. It turns deterministic supported phrases into editable structured
 conditions, previews results on a synthetic universe, and returns why each hit
-matched or why each rejected row failed.
+matched or why each rejected row failed. A later point-in-time guard slice now
+also blocks historical screens when classification metadata is dated after the
+requested as-of date.
 
 ## P1 Architecture Map
 
@@ -19,7 +21,7 @@ matched or why each rejected row failed.
 | Runtime route | `GET /analytics/runtime` | Reports compare and screen capabilities |
 | Screen route | `POST /analytics/screen-securities` | Returns parsed conditions and preview results |
 | Source surface | `compareSecurities()` | Reuses security/profile/quote/financial fanout |
-| Contract | `deploy/analytics/screen-securities.contract.json` | Guards ANA-03/ANA-04/US-W05 behavior |
+| Contract | `deploy/analytics/screen-securities.contract.json` | Guards ANA-03/ANA-04/SEC-05/US-W05 behavior |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace
@@ -32,7 +34,9 @@ matched or why each rejected row failed.
 4. The package evaluates a synthetic universe through `compareSecurities()`.
 5. Hits return matched condition IDs and `why` strings.
 6. Non-hits return rejection reasons such as missing values or failed thresholds.
-7. The Worker returns the result in the shared standard envelope.
+7. The point-in-time guard blocks execution when `classification_as_of` is after
+   the requested `as_of`.
+8. The Worker returns the result in the shared standard envelope.
 
 ## P3 Design Decision
 
@@ -64,6 +68,7 @@ Passed:
 - `npm run build --workspace @aiphabee/analytics-tools`
 - `npm run build --workspace @aiphabee/worker`
 - local Worker smoke for `POST /analytics/screen-securities`
+- local Worker smoke for blocked future classification
 
 Observed screen behavior:
 
@@ -72,6 +77,7 @@ Observed screen behavior:
   "toolName": "screen_securities",
   "status": "planned_with_preview",
   "parsed_conditions": ["revenue_gte_100000", "net_income_gte_0"],
+  "point_in_time_guard": "enforced",
   "hit_count": 1,
   "top_hit": "00700.HK"
 }
@@ -81,7 +87,8 @@ Observed screen behavior:
 
 - Frontend screening UI remains delegated.
 - Broad NLP and model-assisted parsing are not implemented.
-- Live universe execution and high-cost queueing are not implemented.
+- Live universe execution, live historical classification data, and high-cost
+  queueing are not implemented.
 - Financial ratios are covered by `docs/governance/financial-ratios-scaffold.md`;
   return/risk/Beta engines are covered by
   `docs/governance/returns-risk-scaffold.md`.
