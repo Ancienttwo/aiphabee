@@ -24,7 +24,8 @@ Implemented the Sprint 2.2 backend `search_announcements` scaffold for DOC-01.
 - `get_announcement` excerpt retrieval is covered by the separate
   `get-announcement-scaffold` slice.
 - No live original document fetch.
-- No pgvector search.
+- Semantic document search is covered by the separate
+  `semantic-document-search-scaffold` slice; live pgvector remains disabled.
 - No cross-period document diff.
 - No saved research run persistence or replay.
 - No frontend research-library UI.

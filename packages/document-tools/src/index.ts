@@ -6,11 +6,13 @@ import {
 export const DOCUMENT_TOOLS_VERSION =
   "2026-06-21.phase2.search-announcements-scaffold.v0";
 export const DOCUMENT_TOOLS_RUNTIME_VERSION =
-  "2026-06-21.phase2.document-sanitizer-scaffold.v0";
+  "2026-06-21.phase2.semantic-document-search-scaffold.v0";
 export const GET_ANNOUNCEMENT_VERSION =
   "2026-06-21.phase2.get-announcement-scaffold.v0";
 export const DOCUMENT_SANITIZER_VERSION =
   "2026-06-21.phase2.document-sanitizer-scaffold.v0";
+export const DOCUMENT_SEMANTIC_SEARCH_VERSION =
+  "2026-06-21.phase2.semantic-document-search-scaffold.v0";
 
 export type SearchAnnouncementCategory = "buyback" | "dividend" | "results";
 export type SearchAnnouncementLanguage = "en" | "zh-Hant";
@@ -22,6 +24,7 @@ export type DocumentSanitizationRemovedItem =
   | "script_tag"
   | "suspicious_instruction";
 export type DocumentSanitizationStatus = "clean" | "sanitized";
+export type SearchDocumentsStatus = "found" | "not_found";
 
 export interface DocumentTrustPolicy {
   content_is_untrusted_data: true;
@@ -49,6 +52,20 @@ export interface SearchAnnouncementsInput {
   limit?: number;
   requestId: string;
   securityQuery?: string;
+  to?: string;
+}
+
+export interface SearchDocumentsInput {
+  asOf?: string;
+  categories?: string[];
+  documentIds?: string[];
+  from?: string;
+  instrumentId?: string;
+  language?: string;
+  limit?: number;
+  minScore?: number;
+  query?: string;
+  requestId: string;
   to?: string;
 }
 
@@ -200,6 +217,76 @@ export interface GetAnnouncementResult {
   };
 }
 
+export interface SearchDocumentsResultItem {
+  category: SearchAnnouncementCategory;
+  chunk_id: string;
+  document_id: string;
+  evidence_locator: AnnouncementExcerptLocator;
+  instrument_id: string;
+  language: SearchAnnouncementLanguage;
+  metadata: {
+    anchor: string;
+    page: number;
+    paragraph: number;
+    published_at: string;
+    section_id: string;
+    source_record_id: string;
+    symbol: string;
+  };
+  rank: number;
+  sanitized_snippet: string;
+  score_explanation: string[];
+  section_id: string;
+  similarity_score: number;
+  source_record_id: string;
+  title: string;
+  untrusted_document: true;
+}
+
+export interface SearchDocumentsResult {
+  as_of: string;
+  data_version: typeof DOCUMENT_SEMANTIC_SEARCH_VERSION;
+  document_trust_policy: DocumentTrustPolicy;
+  filters: {
+    categories: SearchAnnouncementCategory[];
+    date_basis: "published_at";
+    document_ids: string[];
+    from: string;
+    instrument_id?: string;
+    language?: SearchAnnouncementLanguage;
+    limit: number;
+    min_score: number;
+    query: string;
+    to: string;
+  };
+  frontend_rendering: false;
+  index: {
+    embedding_model: "synthetic-text-embedding-v0";
+    index_name: "document_chunks_pgvector_synthetic";
+    metadata_filter_pushdown: true;
+    pgvector_first: true;
+    vectorize_optional: true;
+  };
+  live_data_access: false;
+  live_pgvector: false;
+  methodology_version: typeof DOCUMENT_SEMANTIC_SEARCH_VERSION;
+  original_document_fetch: false;
+  result_count: number;
+  results: SearchDocumentsResultItem[];
+  sanitization_policy: DocumentSanitizationPolicy;
+  search_engine: "synthetic_pgvector_scaffold";
+  sql_emitted: false;
+  status: SearchDocumentsStatus;
+  toolName: "search_documents";
+  total_count: number;
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  vector_search: true;
+}
+
 interface SyntheticAnnouncementRecord {
   announcement_id: string;
   category: SearchAnnouncementCategory;
@@ -234,6 +321,7 @@ const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 5;
 const DEFAULT_EXCERPT_CHARS = 240;
 const MAX_EXCERPT_CHARS = 400;
+const DEFAULT_SEMANTIC_MIN_SCORE = 0.15;
 const ALL_CATEGORIES: SearchAnnouncementCategory[] = ["results", "dividend", "buyback"];
 
 const SYNTHETIC_ANNOUNCEMENTS: readonly SyntheticAnnouncementRecord[] = [
@@ -381,6 +469,40 @@ export function getDocumentSanitizerCapabilities() {
   };
 }
 
+export function getSearchDocumentsCapabilities() {
+  return {
+    date_basis: "published_at" as const,
+    embedding_model: "synthetic-text-embedding-v0" as const,
+    frontend_rendering: false,
+    index_name: "document_chunks_pgvector_synthetic" as const,
+    live_data_access: false,
+    live_pgvector: false,
+    metadata_filter_pushdown: true,
+    original_document_fetch: false,
+    package: "@aiphabee/document-tools" as const,
+    pgvector_first: true,
+    route: "POST /documents/search-documents" as const,
+    search_engine: "synthetic_pgvector_scaffold" as const,
+    status: "search_documents_scaffold" as const,
+    supported_filters: [
+      "query",
+      "instrument_id",
+      "document_ids",
+      "from",
+      "to",
+      "categories",
+      "language",
+      "min_score",
+      "limit"
+    ] as const,
+    tool_name: "search_documents" as const,
+    untrusted_document_policy: true,
+    vector_search: true,
+    vectorize_optional: true,
+    version: DOCUMENT_SEMANTIC_SEARCH_VERSION
+  };
+}
+
 export function getDocumentToolsCapabilities() {
   return {
     document_sanitizer: getDocumentSanitizerCapabilities(),
@@ -389,9 +511,14 @@ export function getDocumentToolsCapabilities() {
     live_data_access: false,
     package: "@aiphabee/document-tools" as const,
     route: "POST /documents/search-announcements" as const,
-    routes: ["POST /documents/search-announcements", "POST /documents/get-announcement"] as const,
+    routes: [
+      "POST /documents/search-announcements",
+      "POST /documents/get-announcement",
+      "POST /documents/search-documents"
+    ] as const,
     runtime_route: "GET /documents/runtime" as const,
     search_announcements: getSearchAnnouncementsCapabilities(),
+    search_documents: getSearchDocumentsCapabilities(),
     status: "document_tools_scaffold" as const,
     version: DOCUMENT_TOOLS_RUNTIME_VERSION
   };
@@ -552,6 +679,88 @@ export function getAnnouncement(input: GetAnnouncementInput): GetAnnouncementRes
   });
 }
 
+export function searchDocuments(input: SearchDocumentsInput): SearchDocumentsResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const from = input.from ?? DEFAULT_FROM;
+  const to = input.to ?? DEFAULT_TO;
+  const categories = normalizeCategories(input.categories);
+  const documentIds = normalizeDocumentIds(input.documentIds);
+  const language = normalizeLanguage(input.language);
+  const limit = normalizeLimit(input.limit);
+  const minScore = normalizeMinScore(input.minScore);
+  const query = normalizeSearchQuery(input.query);
+  const queryTokens = createSemanticTokens(query);
+  const candidateRows = SYNTHETIC_ANNOUNCEMENT_DOCUMENTS.flatMap((document) =>
+    document.sections.map((section) =>
+      createSemanticDocumentCandidate(document, section, queryTokens)
+    )
+  )
+    .filter(
+      (candidate) =>
+        categories.includes(candidate.category) &&
+        (documentIds.length === 0 || documentIds.includes(candidate.document_id)) &&
+        (input.instrumentId === undefined || candidate.instrument_id === input.instrumentId) &&
+        (language === undefined || candidate.language === language) &&
+        candidate.metadata.published_at.slice(0, 10) >= from &&
+        candidate.metadata.published_at.slice(0, 10) <= to &&
+        candidate.similarity_score >= minScore
+    )
+    .sort(
+      (left, right) =>
+        right.similarity_score - left.similarity_score ||
+        right.metadata.published_at.localeCompare(left.metadata.published_at) ||
+        left.chunk_id.localeCompare(right.chunk_id)
+    );
+  const results = candidateRows.slice(0, limit).map((candidate, index) => ({
+    ...candidate,
+    rank: index + 1
+  }));
+
+  return {
+    as_of: asOf,
+    data_version: DOCUMENT_SEMANTIC_SEARCH_VERSION,
+    document_trust_policy: createDocumentTrustPolicy(),
+    filters: {
+      categories,
+      date_basis: "published_at",
+      document_ids: documentIds,
+      from,
+      instrument_id: input.instrumentId,
+      language,
+      limit,
+      min_score: minScore,
+      query,
+      to
+    },
+    frontend_rendering: false,
+    index: {
+      embedding_model: "synthetic-text-embedding-v0",
+      index_name: "document_chunks_pgvector_synthetic",
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      vectorize_optional: true
+    },
+    live_data_access: false,
+    live_pgvector: false,
+    methodology_version: DOCUMENT_SEMANTIC_SEARCH_VERSION,
+    original_document_fetch: false,
+    result_count: results.length,
+    results,
+    sanitization_policy: createDocumentSanitizationPolicy(),
+    search_engine: "synthetic_pgvector_scaffold",
+    sql_emitted: false,
+    status: results.length > 0 ? "found" : "not_found",
+    toolName: "search_documents",
+    total_count: candidateRows.length,
+    usage: {
+      cached: false,
+      credits: results.length > 0 ? 2 : 0,
+      rows: results.length
+    },
+    vector_search: true
+  };
+}
+
 function createSearchAnnouncementResultItem(
   announcement: SyntheticAnnouncementRecord,
   normalizedKeyword: string | undefined
@@ -649,6 +858,68 @@ function createGetAnnouncementExcerpt(
     },
     section_id: section.section_id,
     section_title: section.section_title,
+    untrusted_document: true
+  };
+}
+
+function createSemanticDocumentCandidate(
+  document: SyntheticAnnouncementDocument,
+  section: SyntheticAnnouncementSection,
+  queryTokens: string[]
+): Omit<SearchDocumentsResultItem, "rank"> {
+  const sanitized = sanitizeDocumentExcerpt(section.excerpt);
+  const announcement = document.announcement;
+  const textForScoring = [
+    announcement.title,
+    announcement.category,
+    announcement.symbol,
+    section.section_title,
+    sanitized.text
+  ].join(" ");
+  const candidateTokens = new Set(createSemanticTokens(textForScoring));
+  const matchedTokens = queryTokens.filter((token) => candidateTokens.has(token));
+  const tokenScore =
+    queryTokens.length === 0 ? 0 : matchedTokens.length / Math.max(queryTokens.length, 1);
+  const titleScore =
+    queryTokens.length > 0 &&
+    queryTokens.some((token) => announcement.title.toLowerCase().includes(token))
+      ? 0.15
+      : 0;
+  const categoryScore = queryTokens.includes(announcement.category) ? 0.1 : 0;
+  const similarityScore = Math.min(1, tokenScore + titleScore + categoryScore);
+  const scoreExplanation =
+    matchedTokens.length > 0
+      ? matchedTokens.map((token) => `matched:${token}`)
+      : ["metadata_filter_only"];
+
+  return {
+    category: announcement.category,
+    chunk_id: `${document.document_id}:${section.section_id}`,
+    document_id: document.document_id,
+    evidence_locator: createAnnouncementExcerptLocator(
+      announcement.announcement_id,
+      announcement.source_record_id,
+      section.page,
+      section.paragraph,
+      section.anchor
+    ),
+    instrument_id: announcement.instrument_id,
+    language: announcement.language,
+    metadata: {
+      anchor: section.anchor,
+      page: section.page,
+      paragraph: section.paragraph,
+      published_at: announcement.published_at,
+      section_id: section.section_id,
+      source_record_id: announcement.source_record_id,
+      symbol: announcement.symbol
+    },
+    sanitized_snippet: sanitized.text.slice(0, DEFAULT_EXCERPT_CHARS),
+    score_explanation: scoreExplanation,
+    section_id: section.section_id,
+    similarity_score: Number(similarityScore.toFixed(6)),
+    source_record_id: announcement.source_record_id,
+    title: announcement.title,
     untrusted_document: true
   };
 }
@@ -911,6 +1182,14 @@ function normalizeExcerptChars(limit: number | undefined): number {
   return Math.min(limit, MAX_EXCERPT_CHARS);
 }
 
+function normalizeMinScore(score: number | undefined): number {
+  if (score === undefined || Number.isNaN(score) || score < 0 || score > 1) {
+    return DEFAULT_SEMANTIC_MIN_SCORE;
+  }
+
+  return score;
+}
+
 function normalizeSections(sections: string[] | undefined): string[] {
   if (sections === undefined) {
     return [];
@@ -919,4 +1198,30 @@ function normalizeSections(sections: string[] | undefined): string[] {
   return sections
     .map((section) => section.trim())
     .filter((section, index, values) => section.length > 0 && values.indexOf(section) === index);
+}
+
+function normalizeDocumentIds(documentIds: string[] | undefined): string[] {
+  if (documentIds === undefined) {
+    return [];
+  }
+
+  return documentIds
+    .map((documentId) => documentId.trim())
+    .filter(
+      (documentId, index, values) =>
+        documentId.length > 0 && values.indexOf(documentId) === index
+    );
+}
+
+function normalizeSearchQuery(query: string | undefined): string {
+  return query?.trim() ?? "";
+}
+
+function createSemanticTokens(value: string): string[] {
+  const tokens = value
+    .toLowerCase()
+    .split(/[^a-z0-9\u4e00-\u9fff]+/u)
+    .filter((token) => token.length >= 2);
+
+  return tokens.filter((token, index) => tokens.indexOf(token) === index);
 }

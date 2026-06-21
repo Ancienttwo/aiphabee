@@ -29,7 +29,8 @@ US-W06.
 - No full-document return.
 - DOC-03 announcement-excerpt sanitizer is covered by the separate
   `document-sanitizer-scaffold` slice.
-- No pgvector search.
+- Semantic document search is covered by the separate
+  `semantic-document-search-scaffold` slice; live pgvector remains disabled.
 - No cross-period document diff.
 - No saved research run persistence or replay.
 - No frontend research-library UI.

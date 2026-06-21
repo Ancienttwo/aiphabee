@@ -5,6 +5,8 @@ import {
   getAnnouncementCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
+  getSearchDocumentsCapabilities,
+  searchDocuments,
   searchAnnouncements
 } from "./index";
 
@@ -39,6 +41,19 @@ describe("search announcements scaffold", () => {
       status: "document_sanitizer_scaffold",
       tool_invocation_allowed_from_document: false,
       tool_name: "document_sanitizer"
+    });
+    expect(getSearchDocumentsCapabilities()).toMatchObject({
+      embedding_model: "synthetic-text-embedding-v0",
+      index_name: "document_chunks_pgvector_synthetic",
+      live_pgvector: false,
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      route: "POST /documents/search-documents",
+      search_engine: "synthetic_pgvector_scaffold",
+      status: "search_documents_scaffold",
+      tool_name: "search_documents",
+      vector_search: true,
+      vectorize_optional: true
     });
     expect(getSearchAnnouncementsCapabilities()).toMatchObject({
       date_basis: "published_at",
@@ -149,6 +164,104 @@ describe("search announcements scaffold", () => {
     expect(result.status).toBe("not_found");
     expect(result.row_count).toBe(0);
     expect(result.total_count).toBe(0);
+    expect(result.usage.credits).toBe(0);
+  });
+});
+
+describe("semantic document search scaffold", () => {
+  it("returns pgvector-style semantic matches with metadata locators", () => {
+    const result = searchDocuments({
+      categories: ["dividend"],
+      from: "2026-01-01",
+      limit: 1,
+      query: "payment date dividend",
+      requestId: "req_search_documents",
+      to: "2026-01-07"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      live_pgvector: false,
+      original_document_fetch: false,
+      result_count: 1,
+      search_engine: "synthetic_pgvector_scaffold",
+      status: "found",
+      toolName: "search_documents",
+      vector_search: true
+    });
+    expect(result.index).toEqual({
+      embedding_model: "synthetic-text-embedding-v0",
+      index_name: "document_chunks_pgvector_synthetic",
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      vectorize_optional: true
+    });
+    expect(result.filters).toMatchObject({
+      date_basis: "published_at",
+      from: "2026-01-01",
+      query: "payment date dividend",
+      to: "2026-01-07"
+    });
+    expect(result.results[0]).toMatchObject({
+      category: "dividend",
+      chunk_id: "doc_ann_00700_20260103_dividend:dividend_timetable",
+      document_id: "doc_ann_00700_20260103_dividend",
+      evidence_locator: {
+        anchor: "dividend-timetable",
+        page: 2,
+        paragraph: 3,
+        source_record_id: "src_announcement_00700_20260103_dividend"
+      },
+      rank: 1,
+      section_id: "dividend_timetable",
+      source_record_id: "src_announcement_00700_20260103_dividend",
+      title: "Dividend Timetable Update",
+      untrusted_document: true
+    });
+    expect(result.results[0]?.similarity_score).toBeGreaterThanOrEqual(0.9);
+    expect(result.results[0]?.score_explanation).toEqual([
+      "matched:payment",
+      "matched:date",
+      "matched:dividend"
+    ]);
+    expect(result.results[0]?.sanitized_snippet).not.toMatch(
+      /<script|callTool|grant_access|ignore previous instructions|invoke tools|run tool_call/iu
+    );
+    expect(result.document_trust_policy).toEqual({
+      content_is_untrusted_data: true,
+      prompt_injection_isolated: true,
+      scripts_executable: false
+    });
+    expect(result.usage.rows).toBe(1);
+  });
+
+  it("applies document metadata filters before ranking", () => {
+    const result = searchDocuments({
+      documentIds: ["doc_ann_00700_20240320_results"],
+      limit: 1,
+      query: "segment revenue payment date",
+      requestId: "req_search_documents_filtered"
+    });
+
+    expect(result.status).toBe("found");
+    expect(result.results.map((row) => row.document_id)).toEqual([
+      "doc_ann_00700_20240320_results"
+    ]);
+    expect(result.results[0]?.section_id).toBe("financial_highlights");
+    expect(result.filters.document_ids).toEqual(["doc_ann_00700_20240320_results"]);
+  });
+
+  it("returns not_found when semantic score is below threshold", () => {
+    const result = searchDocuments({
+      minScore: 0.95,
+      query: "unrelated macro commodity weather",
+      requestId: "req_search_documents_empty"
+    });
+
+    expect(result.status).toBe("not_found");
+    expect(result.result_count).toBe(0);
+    expect(result.results).toEqual([]);
     expect(result.usage.credits).toBe(0);
   });
 });

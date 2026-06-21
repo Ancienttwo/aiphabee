@@ -65,6 +65,8 @@ import {
   getAnnouncementCapabilities,
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
+  getSearchDocumentsCapabilities,
+  searchDocuments,
   searchAnnouncements
 } from "@aiphabee/document-tools";
 import {
@@ -1267,6 +1269,51 @@ app.post("/documents/get-announcement", async (c) => {
             methodology_version: result.methodology_version,
             source: "document-get-announcement",
             source_record_id: result.source?.source_record_id ?? "get-announcement"
+          }
+        ],
+        requestId,
+        usage: result.usage
+      }
+    )
+  );
+});
+
+app.post("/documents/search-documents", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = searchDocuments({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    categories: normalizeStringArray(body.categories ?? body.document_categories),
+    documentIds: normalizeStringArray(body.document_ids ?? body.documentIds),
+    from: normalizeString(body.from ?? body.published_from ?? body.publishedFrom),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    language: normalizeString(body.language),
+    limit: normalizeOptionalInteger(body.limit),
+    minScore: normalizeOptionalNumber(body.min_score ?? body.minScore),
+    query: normalizeString(body.query ?? body.semantic_query ?? body.semanticQuery),
+    requestId,
+    to: normalizeString(body.to ?? body.published_to ?? body.publishedTo)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...result,
+        capability: getSearchDocumentsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: result.data_version,
+        methodologyVersion: result.methodology_version,
+        provenance: [
+          {
+            data_version: result.data_version,
+            methodology_version: result.methodology_version,
+            source: "document-search-documents",
+            source_record_id: "search-documents"
           }
         ],
         requestId,

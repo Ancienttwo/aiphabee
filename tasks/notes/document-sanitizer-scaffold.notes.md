@@ -28,7 +28,8 @@ Implemented the Sprint 2.2 backend document sanitizer scaffold for DOC-03.
 - No user-input sanitizer coverage.
 - No live original document fetch.
 - No full-document return.
-- No pgvector search.
+- Semantic document search is covered by the separate
+  `semantic-document-search-scaffold` slice; live pgvector remains disabled.
 - No cross-period document diff.
 - No saved research run persistence or replay.
 - No frontend research-library UI.

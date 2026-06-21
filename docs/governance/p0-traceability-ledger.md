@@ -84,7 +84,7 @@ DoD.
 | STK-03 财务三表事实趋势 | AIP-P0-STK-03 | Data Engineering | 1.4 | Financial facts point-in-time tests | Sprint 1.4 exit: facts show period/currency/unit/published/restated version | Not started |
 | STK-04 估值/盈利派生指标 | AIP-P0-STK-04 | Analytics Engineering | 1.4 | Metric library formula tests | Sprint 1.4 exit: derived metrics expose definitions and anomaly handling | Not started |
 | STK-05 公司行动时间线 | AIP-P0-STK-05 | Data Engineering | 1.4 | Corporate action chronology fixture tests | Sprint 1.4 exit: actions are traceable and affect adjusted series correctly | Not started |
-| STK-06 公告与文件检索 | AIP-P0-STK-06 | Product Engineering / Document | 1.4 / 2.2 | Announcement search contract tests | Sprint 2.2 exit: announcements link to original evidence | Not started |
+| STK-06 公告与文件检索 | AIP-P0-STK-06 | Product Engineering / Document | 1.4 / 2.2 | Announcement search contract tests | Sprint 2.2 exit: announcements link to original evidence | Backend scaffold complete via workbench announcement search plus `search_announcements`, `get_announcement`, sanitizer, and semantic search document surfaces; frontend/live original fetch remain open |
 
 ## Analytics
 
@@ -100,7 +100,7 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| DOC-01 公告检索 | AIP-P0-DOC-01 | Document Engineering | 2.2 | Announcement index search tests | Sprint 2.2 exit: search by company/date/category/keyword works | Backend scaffold complete via `search_announcements`; live index/pgvector/frontend remain open |
+| DOC-01 公告检索 | AIP-P0-DOC-01 | Document Engineering | 2.2 | Announcement index search tests | Sprint 2.2 exit: search by company/date/category/keyword works | Backend scaffold complete via `search_announcements` and `search_documents`; live pgvector/frontend remain open |
 | DOC-02 原文定位摘录 | AIP-P0-DOC-02 | Document Engineering / Product | 2.2 | Citation locator tests | Sprint 2.2 exit: excerpts locate to page/paragraph/source record | Backend scaffold complete via `get_announcement`; live original document fetch/full document return/frontend remain open |
 | DOC-03 文档作不可信数据 | AIP-P0-DOC-03 | Security Engineering / Document | 2.2 / Always-on A3 | Prompt-injection fixture tests | Sprint 2.2 exit: document text cannot change system/tool policy | Backend document sanitizer scaffold complete for announcement excerpts via `document_sanitizer`; webpage/user-input sanitizer coverage remains open |
 | RES-01 保存完整 run | AIP-P0-RES-01 | Product Engineering / Platform | 2.2 | Run persistence and replay contract tests | Sprint 2.2 exit: saved run includes question/tools/evidence/model/prompt versions | Not started |

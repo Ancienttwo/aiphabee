@@ -540,6 +540,18 @@ interface DocumentRuntimeBody {
       tool_invocation_allowed_from_document: boolean;
       tool_name: string;
     };
+    search_documents: {
+      index_name: string;
+      live_pgvector: boolean;
+      metadata_filter_pushdown: boolean;
+      pgvector_first: boolean;
+      route: string;
+      search_engine: string;
+      status: string;
+      tool_name: string;
+      vector_search: boolean;
+      vectorize_optional: boolean;
+    };
     status: string;
   };
   ok: true;
@@ -675,6 +687,68 @@ interface GetAnnouncementBody {
       source_record_id: string;
       symbol: string;
     };
+    status: string;
+    toolName: string;
+    vector_search: boolean;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface SearchDocumentsBody {
+  data: {
+    capability: {
+      index_name: string;
+      live_pgvector: boolean;
+      metadata_filter_pushdown: boolean;
+      pgvector_first: boolean;
+      route: string;
+      search_engine: string;
+      tool_name: string;
+      vector_search: boolean;
+      vectorize_optional: boolean;
+    };
+    document_trust_policy: {
+      content_is_untrusted_data: boolean;
+      prompt_injection_isolated: boolean;
+      scripts_executable: boolean;
+    };
+    filters: {
+      date_basis: string;
+      query: string;
+    };
+    frontend_rendering: boolean;
+    index: {
+      index_name: string;
+      metadata_filter_pushdown: boolean;
+      pgvector_first: boolean;
+      vectorize_optional: boolean;
+    };
+    live_data_access: boolean;
+    live_pgvector: boolean;
+    original_document_fetch: boolean;
+    result_count: number;
+    results: Array<{
+      chunk_id: string;
+      document_id: string;
+      evidence_locator: {
+        page: number;
+        paragraph: number;
+        source_record_id: string;
+      };
+      rank: number;
+      sanitized_snippet: string;
+      score_explanation: string[];
+      section_id: string;
+      similarity_score: number;
+      source_record_id: string;
+      title: string;
+      untrusted_document: boolean;
+    }>;
+    search_engine: string;
     status: string;
     toolName: string;
     vector_search: boolean;
@@ -2868,6 +2942,18 @@ describe("worker runtime", () => {
       tool_invocation_allowed_from_document: false,
       tool_name: "document_sanitizer"
     });
+    expect(body.data.search_documents).toMatchObject({
+      index_name: "document_chunks_pgvector_synthetic",
+      live_pgvector: false,
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      route: "POST /documents/search-documents",
+      search_engine: "synthetic_pgvector_scaffold",
+      status: "search_documents_scaffold",
+      tool_name: "search_documents",
+      vector_search: true,
+      vectorize_optional: true
+    });
   });
 
   it("searches announcements by company, date, category, and keyword", async () => {
@@ -3069,6 +3155,94 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("not_found");
     expect(body.data.excerpts).toEqual([]);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("searches document chunks through the semantic search scaffold", async () => {
+    const response = await app.request("/documents/search-documents", {
+      body: JSON.stringify({
+        categories: ["dividend"],
+        from: "2026-01-01",
+        limit: 1,
+        query: "payment date dividend",
+        to: "2026-01-07"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-search-documents"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SearchDocumentsBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      live_pgvector: false,
+      original_document_fetch: false,
+      result_count: 1,
+      search_engine: "synthetic_pgvector_scaffold",
+      status: "found",
+      toolName: "search_documents",
+      vector_search: true
+    });
+    expect(body.data.capability).toMatchObject({
+      index_name: "document_chunks_pgvector_synthetic",
+      live_pgvector: false,
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      route: "POST /documents/search-documents",
+      vector_search: true,
+      vectorize_optional: true
+    });
+    expect(body.data.index).toMatchObject({
+      index_name: "document_chunks_pgvector_synthetic",
+      metadata_filter_pushdown: true,
+      pgvector_first: true,
+      vectorize_optional: true
+    });
+    expect(body.data.results[0]).toMatchObject({
+      chunk_id: "doc_ann_00700_20260103_dividend:dividend_timetable",
+      document_id: "doc_ann_00700_20260103_dividend",
+      evidence_locator: {
+        page: 2,
+        paragraph: 3,
+        source_record_id: "src_announcement_00700_20260103_dividend"
+      },
+      rank: 1,
+      section_id: "dividend_timetable",
+      source_record_id: "src_announcement_00700_20260103_dividend",
+      title: "Dividend Timetable Update",
+      untrusted_document: true
+    });
+    expect(body.data.results[0]?.similarity_score).toBeGreaterThanOrEqual(0.9);
+    expect(body.data.results[0]?.sanitized_snippet).not.toMatch(
+      /<script|callTool|grant_access|ignore previous instructions|invoke tools|run tool_call/iu
+    );
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("returns no semantic document rows below the requested score threshold", async () => {
+    const response = await app.request("/documents/search-documents", {
+      body: JSON.stringify({
+        min_score: 0.95,
+        query: "unrelated macro commodity weather"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-search-documents-empty"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SearchDocumentsBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("not_found");
+    expect(body.data.results).toEqual([]);
     expect(body.usage.rows).toBe(0);
   });
 

@@ -113,7 +113,9 @@ Observed root check residual:
 ## Residual Gaps
 
 - Webpage and user-input sanitizer coverage are not implemented.
-- pgvector/semantic announcement search is not implemented.
+- Semantic document search is covered by
+  `docs/governance/semantic-document-search-scaffold.md`; live pgvector remains
+  disabled.
 - Cross-period document diff and numeric extraction are not implemented.
 - Saved research runs and replay are not implemented.
 - Frontend research-library UI remains delegated.
