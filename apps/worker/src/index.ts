@@ -175,6 +175,7 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  createComplianceOpsReleaseGatePlan,
   getPublicDocsManifest,
   getPublicOperationsCapabilities,
   getPublicStatusPage
@@ -614,6 +615,50 @@ app.get("/public/docs", (c) => {
         }
       }
     )
+  );
+});
+
+app.post("/public/release-gates/compliance-ops/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const body = (await c.req.json<Record<string, unknown>>().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  const plan = createComplianceOpsReleaseGatePlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    marketingCopySnippets: normalizeStringArray(
+      body.marketing_copy_snippets ?? body.marketingCopySnippets ?? body.copy
+    ),
+    requestId,
+    supportAgentId: normalizeString(body.support_agent_id ?? body.supportAgentId),
+    targetRequestId: normalizeString(
+      body.target_request_id ?? body.targetRequestId ?? body.request_id ?? body.requestId
+    ),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(plan, {
+      asOf: plan.docs_gate.public_status_page.as_of,
+      dataVersion: plan.version,
+      methodologyVersion: plan.version,
+      provenance: [
+        {
+          data_version: plan.version,
+          methodology_version: plan.version,
+          source: "public-ops",
+          source_record_id: "compliance-ops-release-gate-plan"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: plan.release_checks.length
+      }
+    })
   );
 });
 

@@ -16,6 +16,10 @@ interface RootRouteBody {
 interface PublicRuntimeBody {
   data: {
     auth_required: boolean;
+    compliance_ops_release_gate: {
+      route: string;
+      status: string;
+    };
     docs_route: string;
     document_kinds: string[];
     frontend: boolean;
@@ -81,6 +85,75 @@ interface PublicDocsBody {
     route: string;
     sql_emitted: boolean;
     status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface ComplianceOpsReleaseGatePlanBody {
+  data: {
+    audit_export_drill: {
+      audit_event: {
+        event_type: string;
+        outcome: string;
+        request_id: string;
+        route: string;
+      };
+      event_count: number;
+      export_format: string;
+      required_fields: string[];
+      sensitive_payload_released: boolean;
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    compliance_boundary: {
+      external_legal_opinion_present: boolean;
+      reviewed_surfaces: string[];
+      type4_written_opinion_required: boolean;
+    };
+    incident_response_drill: {
+      support_plan: {
+        investigation: {
+          planned_sources: string[];
+          target_request_id: string;
+        };
+        privacy: {
+          sensitive_content_released: boolean;
+        };
+        request_id_visible: boolean;
+        status: string;
+      };
+    };
+    kill_switch_drill: {
+      plan: {
+        decision: {
+          model_request_blocked: boolean;
+          safe_degradation_required: boolean;
+          tool_execution_blocked: boolean;
+        };
+        safe_degradation: {
+          user_visible_state: boolean;
+        };
+      };
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_id: string;
+    route: string;
+    status: string;
+    validation: Record<string, boolean>;
+    version: string;
   };
   ok: true;
   usage: {
@@ -5652,6 +5725,10 @@ describe("worker runtime", () => {
       "terms_of_service"
     ]);
     expect(body.data.status_components).toContain("remote_mcp");
+    expect(body.data.compliance_ops_release_gate).toMatchObject({
+      route: "POST /public/release-gates/compliance-ops/plan",
+      status: "compliance_ops_release_gate_scaffold"
+    });
   });
 
   it("serves public status page components with evidence routes", async () => {
@@ -5735,6 +5812,99 @@ describe("worker runtime", () => {
     });
     expect(body.data.capability.status).toBe("public_status_docs_scaffold");
     expect(body.usage.rows).toBe(4);
+  });
+
+  it("plans compliance ops release gate drills without live writes", async () => {
+    const response = await app.request("/public/release-gates/compliance-ops/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-22T00:00:00.000Z",
+        support_agent_id: "support_agent_001",
+        target_request_id: "req_incident_target",
+        workspace_id: "workspace_ops"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-compliance-ops-release-gate"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ComplianceOpsReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        route: "POST /public/release-gates/compliance-ops/plan",
+        status: "compliance_ops_release_gate_scaffold"
+      },
+      request_id: "req-compliance-ops-release-gate",
+      route: "POST /public/release-gates/compliance-ops/plan",
+      status: "planned_no_write",
+      version: "2026-06-22.phase3.compliance-ops-release-gate-scaffold.v0"
+    });
+    expect(body.data.compliance_boundary).toMatchObject({
+      external_legal_opinion_present: false,
+      reviewed_surfaces: ["product_pages", "prompts", "marketing_copy", "pricing"],
+      type4_written_opinion_required: true
+    });
+    expect(body.data.kill_switch_drill.plan.decision).toMatchObject({
+      model_request_blocked: true,
+      safe_degradation_required: true,
+      tool_execution_blocked: true
+    });
+    expect(body.data.kill_switch_drill.plan.safe_degradation.user_visible_state).toBe(true);
+    expect(body.data.incident_response_drill.support_plan).toMatchObject({
+      request_id_visible: true,
+      status: "planned_no_write"
+    });
+    expect(body.data.incident_response_drill.support_plan.investigation).toMatchObject({
+      target_request_id: "req_incident_target"
+    });
+    expect(body.data.incident_response_drill.support_plan.investigation.planned_sources).toContain(
+      "public_status_component"
+    );
+    expect(body.data.incident_response_drill.support_plan.privacy.sensitive_content_released).toBe(
+      false
+    );
+    expect(body.data.audit_export_drill).toMatchObject({
+      event_count: 1,
+      export_format: "jsonl",
+      sensitive_payload_released: false
+    });
+    expect(body.data.audit_export_drill.required_fields).toContain("request_id");
+    expect(body.data.audit_export_drill.required_fields).toContain("audit.denied_tools");
+    expect(body.data.audit_export_drill.audit_event).toMatchObject({
+      event_type: "run.audit",
+      outcome: "rejected",
+      request_id: "req-compliance-ops-release-gate",
+      route: "POST /public/release-gates/compliance-ops/plan"
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "type4_research_boundary_copy_reviewed",
+      "marketing_copy_forbidden_advice_claims_absent",
+      "kill_switch_safe_degradation_drill_planned",
+      "incident_response_request_id_trace_drill_planned",
+      "audit_export_contains_required_fields_and_excludes_sensitive_payloads",
+      "public_status_incident_disclosure_surface_present"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "external_compliance_legal_signoff_missing",
+        "live_kill_switch_flag_source_missing",
+        "live_incident_feed_missing",
+        "live_audit_export_store_missing",
+        "frontend_release_ops_ui_missing"
+      ],
+      gate_status: "blocked_live_compliance_ops_validation",
+      no_live_release_claim: true
+    });
+    expect(body.data.validation.all_checks_passed).toBe(true);
+    expect(body.data.validation.live_release_claimed).toBe(false);
+    expect(body.usage.rows).toBe(6);
   });
 
   it("serves support runtime capabilities for request_id investigation", async () => {

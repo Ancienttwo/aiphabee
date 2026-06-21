@@ -13,5 +13,10 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aiphabee/agent-runtime": "file:../agent-runtime",
+    "@aiphabee/observability": "file:../observability",
+    "@aiphabee/support-ops": "file:../support-ops"
   }
 }

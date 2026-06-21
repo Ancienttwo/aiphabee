@@ -517,6 +517,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql",
+      "purpose": "Create empty compliance/ops release gate scaffolds for Type 4 research-boundary review, kill-switch drill, incident response trace, and audit export drill without enabling live signoff, incident feeds, audit stores, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.compliance_ops_release_gate",
+        "audit.compliance_ops_drill_event",
+        "governance.compliance_ops_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

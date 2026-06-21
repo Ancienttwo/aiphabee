@@ -1,0 +1,137 @@
+{
+  "version": "2026-06-22.phase3.compliance-ops-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/public-ops",
+  "runtime_route": "GET /public/runtime",
+  "route": "POST /public/release-gates/compliance-ops/plan",
+  "standard_response_envelope": true,
+  "docs_route": "GET /public/docs",
+  "public_status_route": "GET /public/status",
+  "kill_switch_route": "POST /agent/kill-switch/plan",
+  "incident_response_route": "POST /support/request-id-investigation/plan",
+  "audit_event_contract": "deploy/observability/events.contract.json",
+  "covered_sprint_3_3_items": [
+    "compliance_boundary_and_marketing_copy_review",
+    "kill_switch_incident_response_audit_export_drills"
+  ],
+  "frontend": false,
+  "live_compliance_signoff": false,
+  "live_kill_switch_flag_source": false,
+  "live_incident_feed": false,
+  "live_audit_export_store": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "compliance_boundary": {
+    "type4_written_opinion_required": true,
+    "external_legal_opinion_present": false,
+    "review_source": "docs/researches/AiphaBee_PRD_v1.0.md#14.2",
+    "allowed_terms": [
+      "research",
+      "analysis",
+      "data_explanation",
+      "研究",
+      "分析",
+      "数据解释"
+    ],
+    "forbidden_claims": [
+      "stock_pick",
+      "investment_advice",
+      "buy_sell_recommendation",
+      "position_sizing_advice",
+      "suitability_conclusion",
+      "guaranteed_return",
+      "copy_trading"
+    ],
+    "reviewed_surfaces": [
+      "product_pages",
+      "prompts",
+      "marketing_copy",
+      "pricing"
+    ]
+  },
+  "kill_switch_drill": {
+    "model_request_blocked": true,
+    "tool_execution_blocked": true,
+    "safe_degradation_required": true,
+    "live_flag_reads": false
+  },
+  "incident_response_drill": {
+    "request_id_trace_required": true,
+    "public_status_component_source_required": true,
+    "sensitive_content_released": false,
+    "live_log_reads": false,
+    "live_billing_provider_reads": false
+  },
+  "audit_export_drill": {
+    "export_format": "jsonl",
+    "sensitive_payload_released": false,
+    "live_log_reads": false,
+    "required_fields": [
+      "event_id",
+      "event_type",
+      "request_id",
+      "run_id",
+      "route",
+      "event_version",
+      "outcome",
+      "audit.data_version",
+      "audit.methodology_version",
+      "audit.denied_tools",
+      "audit.requested_tools"
+    ],
+    "forbidden_fields": [
+      "raw_prompt",
+      "generated_answer",
+      "oauth_access_token",
+      "session_secret",
+      "payment_identifier",
+      "direct_contact"
+    ]
+  },
+  "required_checks": [
+    "type4_research_boundary_copy_reviewed",
+    "marketing_copy_forbidden_advice_claims_absent",
+    "kill_switch_safe_degradation_drill_planned",
+    "incident_response_request_id_trace_drill_planned",
+    "audit_export_contains_required_fields_and_excludes_sensitive_payloads",
+    "public_status_incident_disclosure_surface_present"
+  ],
+  "required_output_fields": [
+    "compliance_boundary",
+    "kill_switch_drill",
+    "incident_response_drill",
+    "audit_export_drill",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "tables": [
+    "core.compliance_ops_release_gate",
+    "audit.compliance_ops_drill_event",
+    "governance.compliance_ops_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_compliance_ops_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "security",
+      "compliance",
+      "legal",
+      "ops"
+    ],
+    "blockers": [
+      "external_compliance_legal_signoff_missing",
+      "live_kill_switch_flag_source_missing",
+      "live_incident_feed_missing",
+      "live_audit_export_store_missing",
+      "frontend_release_ops_ui_missing"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/public-ops/public-status-docs.contract.json",
+    "deploy/agent/kill-switch.contract.json",
+    "deploy/support/request-id-investigation.contract.json",
+    "deploy/observability/events.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}
