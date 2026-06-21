@@ -473,6 +473,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621136000_mcp_auth_limits_release_gate_scaffold.sql",
+      "purpose": "Create empty MCP auth, key lifecycle, cursor, quota, limit, and stable error release gate governance scaffolds without enabling live OAuth, API key generation, limiter enforcement, ledger writes, or tool execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_auth_limits_release_gate",
+        "governance.mcp_auth_limits_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

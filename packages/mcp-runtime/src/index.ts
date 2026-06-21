@@ -42,6 +42,8 @@ export const MCP_COMPATIBILITY_STATUS_VERSION =
   "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0";
 export const MCP_PROTOCOL_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0";
+export const MCP_AUTH_LIMITS_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0";
 export const MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION = "2025-03-26";
 export const MCP_COMPATIBILITY_MONITORED_PROTOCOL_VERSIONS = [
   "2025-03-26",
@@ -55,6 +57,15 @@ export const MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS = [
   "tools_call_input_schema_validation",
   "tools_call_output_schema_contract",
   "compatibility_vectors_present"
+] as const;
+export const MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS = [
+  "oauth_scope_catalog_and_pkce_ready",
+  "oauth_revoke_denies_future_calls",
+  "api_key_rotation_denies_old_key",
+  "api_key_revoke_denies_future_calls",
+  "cursor_pagination_bypass_blocked",
+  "quota_and_limit_bypass_blocked",
+  "standard_error_codes_stable"
 ] as const;
 
 export const MCP_SUPPORTED_METHODS = [
@@ -324,6 +335,16 @@ export interface CreateMcpProtocolReleaseGatePlanInput {
   allowedOrigins?: readonly string[];
   clientName?: string;
   clientVersion?: string;
+  origin?: string;
+  pendingCredits?: number;
+  requestId: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
+}
+
+export interface CreateMcpAuthLimitsReleaseGatePlanInput {
+  allowedOrigins?: readonly string[];
   origin?: string;
   pendingCredits?: number;
   requestId: string;
@@ -1381,6 +1402,11 @@ export function getMcpRuntimeCapabilities() {
       MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS,
     mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan" as const,
     mcp_protocol_release_gate_version: MCP_PROTOCOL_RELEASE_GATE_VERSION,
+    mcp_auth_limits_release_gate_ready: true,
+    mcp_auth_limits_release_gate_required_checks:
+      MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS,
+    mcp_auth_limits_release_gate_route: "POST /mcp/release-gates/auth-limits/plan" as const,
+    mcp_auth_limits_release_gate_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
     mcp_target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
     live_tool_execution: false,
     mcp_api_redistribution_rights_confirmed: false,
@@ -1891,6 +1917,307 @@ export function createMcpProtocolReleaseGatePlan(
     usage: createMcpUsageSummary(input, 0, releaseChecks.length),
     validation,
     version: MCP_PROTOCOL_RELEASE_GATE_VERSION
+  };
+}
+
+export function getMcpAuthLimitsReleaseGateCapabilities() {
+  return {
+    api_key_revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+    api_key_rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+    cursor_pagination_ready: true,
+    live_api_key_generation: false,
+    live_auth_middleware: false,
+    live_limiter_enforcement: false,
+    live_oauth_provider: false,
+    live_tool_execution: false,
+    mcp_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION,
+    oauth_authorize_route: "POST /mcp/oauth/authorize/plan" as const,
+    oauth_revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+    package: "@aiphabee/mcp-runtime" as const,
+    protocol_route: "POST /mcp" as const,
+    required_checks: MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS,
+    route: "POST /mcp/release-gates/auth-limits/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    standard_error_codes: MCP_STANDARD_ERROR_CODES,
+    status: "mcp_auth_limits_release_gate_scaffold" as const,
+    version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION
+  };
+}
+
+export function createMcpAuthLimitsReleaseGatePlan(
+  input: CreateMcpAuthLimitsReleaseGatePlanInput
+) {
+  const origin = normalizeText(input.origin) ?? DEFAULT_MCP_ALLOWED_ORIGINS[0];
+  const allowedOrigins = input.allowedOrigins ?? DEFAULT_MCP_ALLOWED_ORIGINS;
+  const requestedScopes = ["security.read", "market.read", "analytics.run"] as const;
+  const priceHistoryArgs = {
+    cursor: "cursor_1",
+    from: "2026-01-02",
+    instrument_id: "HK:00700",
+    limit: 3,
+    to: "2026-01-07"
+  };
+  const authorizePlan = createMcpOAuthAuthorizePlan({
+    clientId: "client_mcp_auth_limits_gate",
+    codeChallenge: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO0123456789_-",
+    codeChallengeMethod: "S256",
+    origin,
+    redirectUri: "https://client.example/oauth/callback",
+    requestId: `${input.requestId}:oauth-authorize`,
+    requestedScopes,
+    workspaceId: input.workspaceId
+  });
+  const oauthRevokePlan = createMcpOAuthRevokePlan({
+    connectionId: "mcp_connection_release_gate",
+    reason: "release_gate_revocation_probe",
+    requestId: `${input.requestId}:oauth-revoke`
+  });
+  const apiKeyRotatePlan = createMcpApiKeyRotatePlan({
+    ipAllowlist: ["203.0.113.10"],
+    keyId: "mcp_key_release_gate",
+    reason: "release_gate_rotation_probe",
+    requestId: `${input.requestId}:api-key-rotate`,
+    requestedScopes,
+    rotationAfterDays: 60
+  });
+  const apiKeyRevokePlan = createMcpApiKeyRevokePlan({
+    keyId: "mcp_key_release_gate",
+    reason: "release_gate_revoke_probe",
+    requestId: `${input.requestId}:api-key-revoke`
+  });
+  const validPriceHistoryPlan = createMcpProtocolPlan({
+    allowedOrigins,
+    connectionId: "mcp_connection_active",
+    credentialKind: "oauth_connection",
+    credentialStatus: "active",
+    grantedScopes: ["prices:read"],
+    mcpRedistributionRightsConfirmed: true,
+    method: "tools/call",
+    origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:price-history-valid`,
+    toolArguments: priceHistoryArgs,
+    toolName: "get_price_history",
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const oauthRevokedDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      connectionId: "mcp_connection_release_gate",
+      credentialKind: "oauth_connection",
+      credentialStatus: "revoked",
+      grantedScopes: ["prices:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:oauth-revoked-denied`,
+      revokedAt: "2026-06-21T00:00:00.000Z",
+      toolArguments: priceHistoryArgs,
+      toolName: "get_price_history"
+    })
+  );
+  const apiKeyRotatedDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      credentialKind: "api_key",
+      credentialStatus: "rotated",
+      grantedScopes: ["prices:read"],
+      keyId: "mcp_key_release_gate",
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:api-key-rotated-denied`,
+      rotatedAt: "2026-06-21T00:00:00.000Z",
+      toolArguments: priceHistoryArgs,
+      toolName: "get_price_history"
+    })
+  );
+  const tooManyRowsDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      connectionId: "mcp_connection_active",
+      credentialKind: "oauth_connection",
+      credentialStatus: "active",
+      grantedScopes: ["prices:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:too-many-rows-denied`,
+      toolArguments: {
+        ...priceHistoryArgs,
+        limit: 4
+      },
+      toolName: "get_price_history"
+    })
+  );
+  const timeRangeDenied = captureMcpProtocolReleaseGateError(() =>
+    createMcpProtocolPlan({
+      allowedOrigins,
+      connectionId: "mcp_connection_active",
+      credentialKind: "oauth_connection",
+      credentialStatus: "active",
+      grantedScopes: ["prices:read"],
+      mcpRedistributionRightsConfirmed: true,
+      method: "tools/call",
+      origin,
+      requestId: `${input.requestId}:time-range-denied`,
+      toolArguments: {
+        ...priceHistoryArgs,
+        from: "2025-01-01",
+        to: "2026-12-31"
+      },
+      toolName: "get_price_history"
+    })
+  );
+  const boundedRetrieval = validPriceHistoryPlan.tool_call?.bounded_retrieval;
+  const toolLimits = validPriceHistoryPlan.tool_call?.tool_limits;
+  const requiredMappings = {
+    MCP_CREDENTIAL_REVOKED: getMcpRuntimeStandardError("MCP_CREDENTIAL_REVOKED"),
+    MCP_REDISTRIBUTION_RIGHTS_REQUIRED: getMcpRuntimeStandardError(
+      "MCP_REDISTRIBUTION_RIGHTS_REQUIRED"
+    ),
+    TOOL_LIMIT_EXCEEDED: getMcpRuntimeStandardError("TOOL_LIMIT_EXCEEDED"),
+    TOOL_SCOPE_REQUIRED: getMcpRuntimeStandardError("TOOL_SCOPE_REQUIRED"),
+    TOOL_TIME_RANGE_EXCEEDED: getMcpRuntimeStandardError("TOOL_TIME_RANGE_EXCEEDED")
+  };
+  const capability = getMcpAuthLimitsReleaseGateCapabilities();
+  const validation = {
+    api_key_revoke_denies_future_calls:
+      apiKeyRevokePlan.revocation_plan.future_calls_denied_after_revoke &&
+      apiKeyRevokePlan.api_key_live === false,
+    api_key_rotation_denies_old_key:
+      apiKeyRotatePlan.api_key.old_key_future_calls_denied_after_rotation &&
+      apiKeyRotatePlan.api_key.live_secret_generated === false &&
+      apiKeyRotatedDenied.code === "MCP_CREDENTIAL_REVOKED" &&
+      apiKeyRotatedDenied.standard_error_code === "AUTH_REQUIRED",
+    cursor_pagination_bypass_blocked:
+      boundedRetrieval?.cursor_pagination.enabled === true &&
+      boundedRetrieval.cursor_pagination.cursor === "cursor_1" &&
+      boundedRetrieval.cursor_pagination.cursor_bound_to_request &&
+      boundedRetrieval.cursor_pagination.cursor_opaque &&
+      boundedRetrieval.plan_or_rights_bypass_blocked,
+    oauth_revoke_denies_future_calls:
+      oauthRevokePlan.revocation_plan.future_calls_denied_after_revoke &&
+      oauthRevokedDenied.code === "MCP_CREDENTIAL_REVOKED" &&
+      oauthRevokedDenied.standard_error_code === "AUTH_REQUIRED",
+    oauth_scope_catalog_and_pkce_ready:
+      authorizePlan.pkce.code_challenge_method === "S256" &&
+      authorizePlan.pkce.plain_method_allowed === false &&
+      authorizePlan.consent.requested_scope_count === requestedScopes.length &&
+      requestedScopes.every((scope) =>
+        authorizePlan.consent.scopes.some(
+          (grant) => grant.scope === scope && grant.revocable
+        )
+      ),
+    quota_and_limit_bypass_blocked:
+      boundedRetrieval?.max_rows_enforced === true &&
+      boundedRetrieval.row_limit.max_limit === 3 &&
+      boundedRetrieval.row_limit.too_many_rows_error_code === "TOO_MANY_ROWS" &&
+      tooManyRowsDenied.code === "TOOL_LIMIT_EXCEEDED" &&
+      tooManyRowsDenied.standard_error_code === "TOO_MANY_ROWS" &&
+      timeRangeDenied.code === "TOOL_TIME_RANGE_EXCEEDED" &&
+      timeRangeDenied.standard_error_code === "OUT_OF_RANGE" &&
+      toolLimits?.rate_limit.status === "planned_no_live" &&
+      toolLimits.budget.pre_debit_required &&
+      toolLimits.budget.failure_refund_required &&
+      toolLimits.ordinary_pool_protection,
+    standard_error_codes_stable:
+      requiredMappings.MCP_CREDENTIAL_REVOKED === "AUTH_REQUIRED" &&
+      requiredMappings.MCP_REDISTRIBUTION_RIGHTS_REQUIRED === "DATA_NOT_LICENSED" &&
+      requiredMappings.TOOL_LIMIT_EXCEEDED === "TOO_MANY_ROWS" &&
+      requiredMappings.TOOL_SCOPE_REQUIRED === "SCOPE_DENIED" &&
+      requiredMappings.TOOL_TIME_RANGE_EXCEEDED === "OUT_OF_RANGE" &&
+      MCP_STANDARD_ERROR_CODES.includes("RATE_LIMITED") &&
+      MCP_STANDARD_ERROR_CODES.includes("BUDGET_EXCEEDED") &&
+      getMcpStandardErrorDefinition("RATE_LIMITED").retry_after_required &&
+      getMcpStandardErrorDefinition("BUDGET_EXCEEDED").category === "limit"
+  };
+  const releaseChecks = capability.required_checks.map((check) => ({
+    check,
+    evidence:
+      check === "oauth_scope_catalog_and_pkce_ready"
+        ? "OAuth authorize planner exposes S256 PKCE and revocable scope grants for security.read, market.read, and analytics.run"
+        : check === "oauth_revoke_denies_future_calls"
+          ? "OAuth revoke planner marks future calls denied and revoked connection maps to AUTH_REQUIRED before tools/call"
+          : check === "api_key_rotation_denies_old_key"
+            ? "API key rotation planner denies old key future calls and rotated key maps to AUTH_REQUIRED before tools/call"
+            : check === "api_key_revoke_denies_future_calls"
+              ? "API key revoke planner marks future calls denied without storing raw key material"
+              : check === "cursor_pagination_bypass_blocked"
+                ? "get_price_history bounded retrieval requires opaque request-bound cursor metadata and blocks plan/rights bypass"
+                : check === "quota_and_limit_bypass_blocked"
+                  ? "get_price_history rejects row-limit and time-window bypasses and exposes no-live rate, concurrency, and budget guards"
+                  : "MCP runtime maps auth, scope, rights, row-limit, time-window, rate, and budget failures to stable PRD standard errors",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    api_key_gate: {
+      revoke_plan: apiKeyRevokePlan,
+      rotated_key_denial: apiKeyRotatedDenied,
+      rotate_plan: apiKeyRotatePlan
+    },
+    capability,
+    data_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+    error_stability_gate: {
+      limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"] as const,
+      required_mappings: requiredMappings,
+      standard_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION,
+      standard_error_codes: MCP_STANDARD_ERROR_CODES,
+      standard_error_definitions: MCP_STANDARD_ERROR_DEFINITIONS
+    },
+    frontend_rendering: false,
+    limit_gate: {
+      bounded_retrieval: boundedRetrieval,
+      time_range_denial: timeRangeDenied,
+      too_many_rows_denial: tooManyRowsDenied,
+      tool_limits: toolLimits,
+      valid_tool_call: validPriceHistoryPlan.tool_call
+    },
+    live_api_key_generation: false,
+    live_auth_middleware: false,
+    live_db_writes: false,
+    live_limiter_enforcement: false,
+    live_oauth_provider: false,
+    live_tool_execution: false,
+    methodology_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+    model_calls: false,
+    oauth_scope_gate: {
+      authorize_plan: authorizePlan,
+      revoke_plan: oauthRevokePlan,
+      revoked_connection_denial: oauthRevokedDenied
+    },
+    persistent_writes: false,
+    provenance: [
+      {
+        data_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+        methodology_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+        source: "mcp-runtime",
+        source_record_id: "mcp_auth_limits_release_gate"
+      }
+    ],
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_oauth_provider_missing",
+        "live_token_store_missing",
+        "live_api_key_secret_generation_missing",
+        "live_limiter_window_reads_missing",
+        "live_usage_ledger_writes_missing"
+      ],
+      gate_status: "blocked_live_mcp_auth_limits_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "security", "billing", "data-rights"]
+    },
+    request_id: input.requestId,
+    route: "POST /mcp/release-gates/auth-limits/plan" as const,
+    sql_emitted: false,
+    status: "planned_no_write" as const,
+    usage: createMcpUsageSummary(input, 0, releaseChecks.length),
+    validation,
+    version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION
   };
 }
 

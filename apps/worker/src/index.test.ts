@@ -3544,6 +3544,10 @@ interface McpRuntimeBody {
     mcp_compatibility_status_route: string;
     mcp_compatibility_status_version: string;
     mcp_live_client_e2e_passed: boolean;
+    mcp_auth_limits_release_gate_ready: boolean;
+    mcp_auth_limits_release_gate_required_checks: string[];
+    mcp_auth_limits_release_gate_route: string;
+    mcp_auth_limits_release_gate_version: string;
     mcp_protocol_release_gate_ready: boolean;
     mcp_protocol_release_gate_required_checks: string[];
     mcp_protocol_release_gate_route: string;
@@ -3744,6 +3748,123 @@ interface McpProtocolReleaseGatePlanBody {
       };
       requested_tool_name?: string;
       required_scope?: string;
+    };
+    status: string;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface McpAuthLimitsReleaseGatePlanBody {
+  data: {
+    api_key_gate: {
+      revoke_plan: {
+        revocation_plan: {
+          future_calls_denied_after_revoke: boolean;
+          live_invalidation: boolean;
+        };
+      };
+      rotated_key_denial: {
+        code: string;
+        standard_error_code: string;
+      };
+      rotate_plan: {
+        api_key: {
+          live_secret_generated: boolean;
+          old_key_future_calls_denied_after_rotation: boolean;
+        };
+      };
+    };
+    capability: {
+      live_auth_middleware: boolean;
+      live_limiter_enforcement: boolean;
+      live_oauth_provider: boolean;
+      route: string;
+      status: string;
+    };
+    error_stability_gate: {
+      limiter_error_codes: string[];
+      required_mappings: Record<string, string>;
+      standard_error_code_version: string;
+      standard_error_codes: string[];
+    };
+    frontend_rendering: boolean;
+    limit_gate: {
+      bounded_retrieval?: {
+        cursor_pagination: {
+          cursor: string | null;
+          cursor_bound_to_request: boolean;
+          cursor_opaque: boolean;
+          enabled: boolean;
+          parameter: string | null;
+        };
+        max_rows_enforced: boolean;
+        row_limit: {
+          effective_limit: number;
+          max_limit: number;
+          too_many_rows_error_code: string;
+        };
+      };
+      time_range_denial: {
+        code: string;
+        standard_error_code: string;
+      };
+      too_many_rows_denial: {
+        code: string;
+        standard_error_code: string;
+      };
+      tool_limits?: {
+        limiter_version: string;
+        ordinary_pool_protection: boolean;
+        rate_limit: {
+          live_window_reads: boolean;
+          rate_limited_error_code: string;
+          status: string;
+        };
+      };
+    };
+    live_auth_middleware: boolean;
+    live_limiter_enforcement: boolean;
+    live_oauth_provider: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    oauth_scope_gate: {
+      authorize_plan: {
+        consent: {
+          scopes: Array<{
+            revocable: boolean;
+            scope: string;
+          }>;
+        };
+        pkce: {
+          code_challenge_method: string;
+          plain_method_allowed: boolean;
+        };
+      };
+      revoked_connection_denial: {
+        code: string;
+        standard_error_code: string;
+      };
+      revoke_plan: {
+        revocation_plan: {
+          future_calls_denied_after_revoke: boolean;
+          token_invalidation_live: boolean;
+        };
+      };
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
     };
     status: string;
     validation: Record<string, boolean>;
@@ -11404,6 +11525,10 @@ describe("worker runtime", () => {
       mcp_compatibility_status_version:
         "2026-06-21.phase2.mcp-compatibility-status-scaffold.v0",
       mcp_live_client_e2e_passed: false,
+      mcp_auth_limits_release_gate_ready: true,
+      mcp_auth_limits_release_gate_route: "POST /mcp/release-gates/auth-limits/plan",
+      mcp_auth_limits_release_gate_version:
+        "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
       mcp_protocol_release_gate_ready: true,
       mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan",
       mcp_protocol_release_gate_version:
@@ -11470,6 +11595,15 @@ describe("worker runtime", () => {
       "tools_call_input_schema_validation",
       "tools_call_output_schema_contract",
       "compatibility_vectors_present"
+    ]);
+    expect(body.data.mcp_auth_limits_release_gate_required_checks).toEqual([
+      "oauth_scope_catalog_and_pkce_ready",
+      "oauth_revoke_denies_future_calls",
+      "api_key_rotation_denies_old_key",
+      "api_key_revoke_denies_future_calls",
+      "cursor_pagination_bypass_blocked",
+      "quota_and_limit_bypass_blocked",
+      "standard_error_codes_stable"
     ]);
     expect(body.data.supported_oauth_scopes).toContain("market.read");
     expect(body.data.standard_error_codes).toEqual([
@@ -11709,6 +11843,155 @@ describe("worker runtime", () => {
     expect(body.data.compatibility_gate.test_vectors.map((vector) => vector.name)).toContain(
       "streamable_http_post"
     );
+    expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
+    expect(body.usage.rows).toBe(7);
+  });
+
+  it("plans MCP auth, key, cursor, limit, and error release gate without live execution", async () => {
+    const response = await app.request("/mcp/release-gates/auth-limits/plan", {
+      body: JSON.stringify({
+        plan_code: "developer",
+        used_credits: 12,
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-auth-limits-release-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpAuthLimitsReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        live_auth_middleware: false,
+        live_limiter_enforcement: false,
+        live_oauth_provider: false,
+        route: "POST /mcp/release-gates/auth-limits/plan",
+        status: "mcp_auth_limits_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_auth_middleware: false,
+      live_limiter_enforcement: false,
+      live_oauth_provider: false,
+      live_tool_execution: false,
+      model_calls: false,
+      release_gate: {
+        blockers: [
+          "live_oauth_provider_missing",
+          "live_token_store_missing",
+          "live_api_key_secret_generation_missing",
+          "live_limiter_window_reads_missing",
+          "live_usage_ledger_writes_missing"
+        ],
+        gate_status: "blocked_live_mcp_auth_limits_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["platform", "security", "billing", "data-rights"]
+      },
+      status: "planned_no_write",
+      version: "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0"
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "oauth_scope_catalog_and_pkce_ready",
+      "oauth_revoke_denies_future_calls",
+      "api_key_rotation_denies_old_key",
+      "api_key_revoke_denies_future_calls",
+      "cursor_pagination_bypass_blocked",
+      "quota_and_limit_bypass_blocked",
+      "standard_error_codes_stable"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.oauth_scope_gate.authorize_plan).toMatchObject({
+      consent: {
+        scopes: [
+          {
+            revocable: true,
+            scope: "security.read"
+          },
+          {
+            revocable: true,
+            scope: "market.read"
+          },
+          {
+            revocable: true,
+            scope: "analytics.run"
+          }
+        ]
+      },
+      pkce: {
+        code_challenge_method: "S256",
+        plain_method_allowed: false
+      }
+    });
+    expect(body.data.oauth_scope_gate.revoke_plan.revocation_plan).toMatchObject({
+      future_calls_denied_after_revoke: true,
+      token_invalidation_live: false
+    });
+    expect(body.data.oauth_scope_gate.revoked_connection_denial).toMatchObject({
+      code: "MCP_CREDENTIAL_REVOKED",
+      standard_error_code: "AUTH_REQUIRED"
+    });
+    expect(body.data.api_key_gate.rotate_plan.api_key).toMatchObject({
+      live_secret_generated: false,
+      old_key_future_calls_denied_after_rotation: true
+    });
+    expect(body.data.api_key_gate.revoke_plan.revocation_plan).toMatchObject({
+      future_calls_denied_after_revoke: true,
+      live_invalidation: false
+    });
+    expect(body.data.api_key_gate.rotated_key_denial).toMatchObject({
+      code: "MCP_CREDENTIAL_REVOKED",
+      standard_error_code: "AUTH_REQUIRED"
+    });
+    expect(body.data.limit_gate.bounded_retrieval).toMatchObject({
+      cursor_pagination: {
+        cursor: "cursor_1",
+        cursor_bound_to_request: true,
+        cursor_opaque: true,
+        enabled: true,
+        parameter: "cursor"
+      },
+      max_rows_enforced: true,
+      row_limit: {
+        effective_limit: 3,
+        max_limit: 3,
+        too_many_rows_error_code: "TOO_MANY_ROWS"
+      }
+    });
+    expect(body.data.limit_gate.too_many_rows_denial).toMatchObject({
+      code: "TOOL_LIMIT_EXCEEDED",
+      standard_error_code: "TOO_MANY_ROWS"
+    });
+    expect(body.data.limit_gate.time_range_denial).toMatchObject({
+      code: "TOOL_TIME_RANGE_EXCEEDED",
+      standard_error_code: "OUT_OF_RANGE"
+    });
+    expect(body.data.limit_gate.tool_limits).toMatchObject({
+      limiter_version: "2026-06-21.phase2.mcp-tool-limiter-scaffold.v0",
+      ordinary_pool_protection: true,
+      rate_limit: {
+        live_window_reads: false,
+        rate_limited_error_code: "RATE_LIMITED",
+        status: "planned_no_live"
+      }
+    });
+    expect(body.data.error_stability_gate.required_mappings).toMatchObject({
+      MCP_CREDENTIAL_REVOKED: "AUTH_REQUIRED",
+      MCP_REDISTRIBUTION_RIGHTS_REQUIRED: "DATA_NOT_LICENSED",
+      TOOL_LIMIT_EXCEEDED: "TOO_MANY_ROWS",
+      TOOL_SCOPE_REQUIRED: "SCOPE_DENIED",
+      TOOL_TIME_RANGE_EXCEEDED: "OUT_OF_RANGE"
+    });
+    expect(body.data.error_stability_gate.limiter_error_codes).toEqual([
+      "RATE_LIMITED",
+      "BUDGET_EXCEEDED"
+    ]);
     expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
     expect(body.usage.rows).toBe(7);
   });

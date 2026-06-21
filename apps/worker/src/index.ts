@@ -136,6 +136,7 @@ import {
 } from "@aiphabee/market-data";
 import {
   McpRuntimeInputError,
+  createMcpAuthLimitsReleaseGatePlan,
   createMcpCompatibilityStatusPlan,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
@@ -146,6 +147,7 @@ import {
   createMcpProtocolPlan,
   createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
+  getMcpAuthLimitsReleaseGateCapabilities,
   getMcpApiKeyCapabilities,
   getMcpCompatibilityStatusCapabilities,
   getMcpOAuthCapabilities,
@@ -3054,6 +3056,54 @@ app.post("/mcp/release-gates/protocol/plan", async (c) => {
       {
         dataVersion: "mcp-protocol-release-gate-scaffold-v0",
         methodologyVersion: "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
+        source: "mcp-runtime"
+      }
+    );
+  }
+});
+
+app.post("/mcp/release-gates/auth-limits/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpAuthLimitsReleaseGatePlan({
+      origin: c.req.header("origin") ?? normalizeString(body.origin),
+      pendingCredits: normalizeOptionalNumber(body.pending_credits ?? body.pendingCredits),
+      requestId,
+      usagePlanCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+      usedCredits: normalizeOptionalNumber(body.used_credits ?? body.usedCredits),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpAuthLimitsReleaseGateCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(
+      c,
+      error,
+      requestId,
+      "MCP auth and limits release gate plan failed",
+      {
+        dataVersion: "mcp-auth-limits-release-gate-scaffold-v0",
+        methodologyVersion: "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
         source: "mcp-runtime"
       }
     );

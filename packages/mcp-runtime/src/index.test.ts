@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS,
+  MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
   MCP_COMPATIBILITY_STATUS_VERSION,
   MCP_PROTOCOL_RELEASE_GATE_REQUIRED_CHECKS,
   MCP_PROTOCOL_RELEASE_GATE_VERSION,
@@ -8,6 +10,7 @@ import {
   MCP_STANDARD_ERROR_CODES_VERSION,
   MCP_TOOL_LIMITER_VERSION,
   McpRuntimeInputError,
+  createMcpAuthLimitsReleaseGatePlan,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
   createMcpApiKeyRotatePlan,
@@ -19,6 +22,7 @@ import {
   createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
   getMcpApiKeyCapabilities,
+  getMcpAuthLimitsReleaseGateCapabilities,
   getMcpOAuthCapabilities,
   getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
@@ -108,6 +112,10 @@ describe("mcp endpoint default-deny scaffold", () => {
       mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan",
       mcp_protocol_release_gate_version:
         "2026-06-21.phase3.mcp-protocol-release-gate-scaffold.v0",
+      mcp_auth_limits_release_gate_ready: true,
+      mcp_auth_limits_release_gate_route: "POST /mcp/release-gates/auth-limits/plan",
+      mcp_auth_limits_release_gate_version:
+        "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
       mcp_target_protocol_version: "2025-03-26",
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
@@ -164,6 +172,15 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(getMcpRuntimeCapabilities().monitored_protocol_versions).toEqual([
       "2025-03-26",
       "2025-11-25"
+    ]);
+    expect(getMcpRuntimeCapabilities().mcp_auth_limits_release_gate_required_checks).toEqual([
+      "oauth_scope_catalog_and_pkce_ready",
+      "oauth_revoke_denies_future_calls",
+      "api_key_rotation_denies_old_key",
+      "api_key_revoke_denies_future_calls",
+      "cursor_pagination_bypass_blocked",
+      "quota_and_limit_bypass_blocked",
+      "standard_error_codes_stable"
     ]);
   });
 
@@ -373,6 +390,208 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(plan.usage).toMatchObject({
       credits: 0,
       request_id: "req-mcp-protocol-release-gate",
+      rows: 7,
+      usage_reconciliation_status: "planned_no_live"
+    });
+  });
+
+  it("plans MCP auth, key, cursor, limit, and error release gate checks", () => {
+    const plan = createMcpAuthLimitsReleaseGatePlan({
+      requestId: "req-mcp-auth-limits-release-gate",
+      usagePlanCode: "developer",
+      usedCredits: 12,
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(MCP_AUTH_LIMITS_RELEASE_GATE_VERSION).toBe(
+      "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0"
+    );
+    expect(getMcpAuthLimitsReleaseGateCapabilities()).toMatchObject({
+      api_key_revoke_route: "POST /mcp/api-keys/revoke/plan",
+      api_key_rotate_route: "POST /mcp/api-keys/rotate/plan",
+      cursor_pagination_ready: true,
+      live_api_key_generation: false,
+      live_auth_middleware: false,
+      live_limiter_enforcement: false,
+      live_oauth_provider: false,
+      live_tool_execution: false,
+      mcp_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION,
+      oauth_authorize_route: "POST /mcp/oauth/authorize/plan",
+      oauth_revoke_route: "POST /mcp/oauth/revoke/plan",
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      route: "POST /mcp/release-gates/auth-limits/plan",
+      runtime_route: "GET /mcp/runtime",
+      status: "mcp_auth_limits_release_gate_scaffold",
+      version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION
+    });
+    expect(getMcpAuthLimitsReleaseGateCapabilities().required_checks).toEqual(
+      MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS
+    );
+    expect(plan).toMatchObject({
+      data_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+      frontend_rendering: false,
+      live_api_key_generation: false,
+      live_auth_middleware: false,
+      live_db_writes: false,
+      live_limiter_enforcement: false,
+      live_oauth_provider: false,
+      live_tool_execution: false,
+      methodology_version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /mcp/release-gates/auth-limits/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: MCP_AUTH_LIMITS_RELEASE_GATE_VERSION
+    });
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "oauth_scope_catalog_and_pkce_ready",
+      "oauth_revoke_denies_future_calls",
+      "api_key_rotation_denies_old_key",
+      "api_key_revoke_denies_future_calls",
+      "cursor_pagination_bypass_blocked",
+      "quota_and_limit_bypass_blocked",
+      "standard_error_codes_stable"
+    ]);
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(plan.oauth_scope_gate.authorize_plan).toMatchObject({
+      consent: {
+        clear_scope_display: true,
+        requested_scope_count: 3,
+        user_consent_required: true
+      },
+      live_oauth_provider: false,
+      oauth_flow: "authorization_code_pkce",
+      pkce: {
+        code_challenge_method: "S256",
+        plain_method_allowed: false
+      },
+      revocation: {
+        revocable: true,
+        revoke_route: "POST /mcp/oauth/revoke/plan"
+      }
+    });
+    expect(plan.oauth_scope_gate.authorize_plan.consent.scopes.map((scope) => scope.scope)).toEqual([
+      "security.read",
+      "market.read",
+      "analytics.run"
+    ]);
+    expect(
+      plan.oauth_scope_gate.authorize_plan.consent.scopes.every((scope) => scope.revocable)
+    ).toBe(true);
+    expect(plan.oauth_scope_gate.revoke_plan.revocation_plan).toMatchObject({
+      future_calls_denied_after_revoke: true,
+      token_invalidation_live: false
+    });
+    expect(plan.oauth_scope_gate.revoked_connection_denial).toMatchObject({
+      code: "MCP_CREDENTIAL_REVOKED",
+      standard_error_code: "AUTH_REQUIRED"
+    });
+    expect(plan.api_key_gate.rotate_plan).toMatchObject({
+      api_key: {
+        live_secret_generated: false,
+        old_key_future_calls_denied_after_rotation: true,
+        rotation_overlap_seconds: 0
+      },
+      hash_storage: {
+        raw_key_stored: false
+      },
+      server_to_server: {
+        allowed_only: true,
+        browser_use_allowed: false
+      }
+    });
+    expect(plan.api_key_gate.revoke_plan.revocation_plan).toMatchObject({
+      future_calls_denied_after_revoke: true,
+      live_invalidation: false
+    });
+    expect(plan.api_key_gate.rotated_key_denial).toMatchObject({
+      code: "MCP_CREDENTIAL_REVOKED",
+      standard_error_code: "AUTH_REQUIRED"
+    });
+    expect(plan.limit_gate.bounded_retrieval).toMatchObject({
+      cursor_pagination: {
+        cursor: "cursor_1",
+        cursor_bound_to_request: true,
+        cursor_opaque: true,
+        enabled: true,
+        parameter: "cursor"
+      },
+      max_rows_enforced: true,
+      plan_or_rights_bypass_blocked: true,
+      row_limit: {
+        effective_limit: 3,
+        max_limit: 3,
+        too_many_rows_error_code: "TOO_MANY_ROWS"
+      },
+      time_range_limit: {
+        out_of_range_error_code: "OUT_OF_RANGE",
+        time_range_enforced: true,
+        window_days: 6
+      }
+    });
+    expect(plan.limit_gate.too_many_rows_denial).toMatchObject({
+      code: "TOOL_LIMIT_EXCEEDED",
+      standard_error_code: "TOO_MANY_ROWS"
+    });
+    expect(plan.limit_gate.time_range_denial).toMatchObject({
+      code: "TOOL_TIME_RANGE_EXCEEDED",
+      standard_error_code: "OUT_OF_RANGE"
+    });
+    expect(plan.limit_gate.tool_limits).toMatchObject({
+      budget: {
+        budget_exceeded_error_code: "BUDGET_EXCEEDED",
+        failure_refund_required: true,
+        live_debit: false,
+        pre_debit_required: true
+      },
+      concurrency: {
+        high_cost_pool_isolated: true,
+        live_inflight_reads: false,
+        pool: "mcp_standard"
+      },
+      limiter_version: MCP_TOOL_LIMITER_VERSION,
+      ordinary_pool_protection: true,
+      rate_limit: {
+        live_window_reads: false,
+        rate_limited_error_code: "RATE_LIMITED",
+        status: "planned_no_live"
+      }
+    });
+    expect(plan.error_stability_gate).toMatchObject({
+      required_mappings: {
+        MCP_CREDENTIAL_REVOKED: "AUTH_REQUIRED",
+        MCP_REDISTRIBUTION_RIGHTS_REQUIRED: "DATA_NOT_LICENSED",
+        TOOL_LIMIT_EXCEEDED: "TOO_MANY_ROWS",
+        TOOL_SCOPE_REQUIRED: "SCOPE_DENIED",
+        TOOL_TIME_RANGE_EXCEEDED: "OUT_OF_RANGE"
+      },
+      standard_error_code_version: MCP_STANDARD_ERROR_CODES_VERSION
+    });
+    expect(plan.error_stability_gate.limiter_error_codes).toEqual([
+      "RATE_LIMITED",
+      "BUDGET_EXCEEDED"
+    ]);
+    expect(plan.error_stability_gate.standard_error_codes).toEqual(MCP_STANDARD_ERROR_CODES);
+    expect(Object.values(plan.validation).every(Boolean)).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      blockers: [
+        "live_oauth_provider_missing",
+        "live_token_store_missing",
+        "live_api_key_secret_generation_missing",
+        "live_limiter_window_reads_missing",
+        "live_usage_ledger_writes_missing"
+      ],
+      gate_status: "blocked_live_mcp_auth_limits_validation",
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "security", "billing", "data-rights"]
+    });
+    expect(plan.usage).toMatchObject({
+      credits: 0,
+      request_id: "req-mcp-auth-limits-release-gate",
       rows: 7,
       usage_reconciliation_status: "planned_no_live"
     });

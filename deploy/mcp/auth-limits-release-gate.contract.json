@@ -1,0 +1,128 @@
+{
+  "version": "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp/release-gates/auth-limits/plan",
+  "protocol_route": "POST /mcp",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_api_key_generation": false,
+  "live_auth_middleware": false,
+  "live_db_writes": false,
+  "live_limiter_enforcement": false,
+  "live_oauth_provider": false,
+  "live_tool_execution": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "required_runtime_capability_fields": [
+    "mcp_auth_limits_release_gate_ready",
+    "mcp_auth_limits_release_gate_route",
+    "mcp_auth_limits_release_gate_version",
+    "mcp_auth_limits_release_gate_required_checks",
+    "oauth_pkce_ready",
+    "oauth_revoke_enforced_before_new_calls",
+    "api_key_rotation_old_key_denied",
+    "api_key_revoke_enforced_before_new_calls",
+    "cursor_pagination_ready",
+    "pagination_or_rights_bypass_blocked",
+    "max_row_limit_enforced",
+    "time_range_limits_ready",
+    "mcp_tool_limiter_ready",
+    "standard_error_codes_ready"
+  ],
+  "required_checks": [
+    "oauth_scope_catalog_and_pkce_ready",
+    "oauth_revoke_denies_future_calls",
+    "api_key_rotation_denies_old_key",
+    "api_key_revoke_denies_future_calls",
+    "cursor_pagination_bypass_blocked",
+    "quota_and_limit_bypass_blocked",
+    "standard_error_codes_stable"
+  ],
+  "required_output_fields": [
+    "oauth_scope_gate",
+    "api_key_gate",
+    "limit_gate",
+    "error_stability_gate",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "oauth_policy": {
+    "sample_scopes": ["security.read", "market.read", "analytics.run"],
+    "pkce_method": "S256",
+    "plain_method_allowed": false,
+    "scopes_revocable": true,
+    "revoke_route": "POST /mcp/oauth/revoke/plan",
+    "revoked_standard_error": "AUTH_REQUIRED"
+  },
+  "api_key_policy": {
+    "server_to_server_only": true,
+    "raw_key_stored": false,
+    "live_secret_generated": false,
+    "old_key_future_calls_denied_after_rotation": true,
+    "future_calls_denied_after_revoke": true,
+    "rotated_standard_error": "AUTH_REQUIRED"
+  },
+  "limit_policy": {
+    "sample_tool_name": "get_price_history",
+    "required_scope": "prices:read",
+    "cursor_parameter": "cursor",
+    "cursor_opaque": true,
+    "cursor_bound_to_request": true,
+    "plan_or_rights_bypass_blocked": true,
+    "max_rows_enforced": true,
+    "max_limit": 3,
+    "too_many_rows_internal_error": "TOOL_LIMIT_EXCEEDED",
+    "too_many_rows_standard_error": "TOO_MANY_ROWS",
+    "time_range_internal_error": "TOOL_TIME_RANGE_EXCEEDED",
+    "time_range_standard_error": "OUT_OF_RANGE",
+    "rate_limit_standard_error": "RATE_LIMITED",
+    "budget_standard_error": "BUDGET_EXCEEDED",
+    "live_window_reads": false,
+    "live_debit": false
+  },
+  "error_stability_policy": {
+    "standard_error_code_version": "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+    "required_mappings": {
+      "MCP_CREDENTIAL_REVOKED": "AUTH_REQUIRED",
+      "MCP_REDISTRIBUTION_RIGHTS_REQUIRED": "DATA_NOT_LICENSED",
+      "TOOL_LIMIT_EXCEEDED": "TOO_MANY_ROWS",
+      "TOOL_SCOPE_REQUIRED": "SCOPE_DENIED",
+      "TOOL_TIME_RANGE_EXCEEDED": "OUT_OF_RANGE"
+    },
+    "limiter_error_codes": ["RATE_LIMITED", "BUDGET_EXCEEDED"]
+  },
+  "release_gate": {
+    "gate_status": "blocked_live_mcp_auth_limits_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": ["platform", "security", "billing", "data-rights"],
+    "blockers": [
+      "live_oauth_provider_missing",
+      "live_token_store_missing",
+      "live_api_key_secret_generation_missing",
+      "live_limiter_window_reads_missing",
+      "live_usage_ledger_writes_missing"
+    ]
+  },
+  "tables": [
+    "core.mcp_auth_limits_release_gate",
+    "governance.mcp_auth_limits_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "mcp_oauth_scope_revoke_key_rotation",
+    "mcp_cursor_and_limit_bypass_blocked",
+    "mcp_standard_error_stability"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/oauth-pkce.contract.json",
+    "deploy/mcp/api-key.contract.json",
+    "deploy/mcp/revocation-enforcement.contract.json",
+    "deploy/mcp/pagination-limits.contract.json",
+    "deploy/mcp/tool-limiter.contract.json",
+    "deploy/mcp/error-codes.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}
