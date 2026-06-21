@@ -33,6 +33,7 @@ import {
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
+  getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -4096,6 +4097,267 @@ app.post("/agent/release-gates/product-agent/plan", async (c) => {
       createErrorEnvelope("INTERNAL_ERROR", "product Agent release gate planning failed", {
         asOf: new Date().toISOString(),
         methodologyVersion: "product-agent-release-gate-scaffold-v0",
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      500
+    );
+  }
+});
+
+app.post("/agent/release-gates/label-budget/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const highCostToolName =
+      normalizeString(body.high_cost_tool_name ?? body.highCostToolName ?? body.tool_name ?? body.toolName) ??
+      "run_event_study";
+    const workspaceId =
+      normalizeString(body.workspace_id ?? body.workspaceId) ?? "workspace_research";
+    const subscriptionId =
+      normalizeString(body.subscription_id ?? body.subscriptionId) ??
+      `subscription_${workspaceId}`;
+    const labelPlan = createToolLoopAgentPlan({
+      locale: normalizeString(body.locale ?? body.response_locale ?? body.responseLocale),
+      prompt:
+        normalizeString(body.prompt) ??
+        "Label fact, calculation, inference, and unknown claims for 00700.HK.",
+      requestId: `${requestId}:claim-labels`,
+      requestedTools: [
+        "resolve_security",
+        "get_entitlements",
+        "get_financial_facts",
+        "get_data_lineage"
+      ],
+      responseDepth: normalizeString(body.response_depth ?? body.responseDepth),
+      securityQuery: normalizeString(body.security_query ?? body.securityQuery) ?? "00700.HK",
+      userId: normalizeString(body.user_id ?? body.userId),
+      workspaceId
+    });
+    const answerContract = labelPlan.answer_evidence_contract;
+    const unconfirmedHighCostPlan = planHighCostAnalyticsQueue({
+      eventCount: normalizeOptionalInteger(body.event_count ?? body.eventCount) ?? 1,
+      eventWindowDays:
+        normalizeOptionalInteger(body.event_window_days ?? body.eventWindowDays) ?? 11,
+      metricCount: normalizeOptionalInteger(body.metric_count ?? body.metricCount),
+      requestId: `${requestId}:high-cost-unconfirmed`,
+      securities: normalizeStringArray(body.securities),
+      toolName: highCostToolName,
+      universeSize: normalizeOptionalInteger(body.universe_size ?? body.universeSize),
+      userConfirmed: false
+    });
+    const confirmedHighCostPlan = planHighCostAnalyticsQueue({
+      eventCount: normalizeOptionalInteger(body.event_count ?? body.eventCount) ?? 1,
+      eventWindowDays:
+        normalizeOptionalInteger(body.event_window_days ?? body.eventWindowDays) ?? 11,
+      metricCount: normalizeOptionalInteger(body.metric_count ?? body.metricCount),
+      requestId: `${requestId}:high-cost-confirmed`,
+      securities: normalizeStringArray(body.securities),
+      toolName: highCostToolName,
+      universeSize: normalizeOptionalInteger(body.universe_size ?? body.universeSize),
+      userConfirmed: true
+    });
+    const unconfirmedReservation = createHighCostUsageReservationPlan({
+      estimatedCredits: unconfirmedHighCostPlan.cost_estimate.credit_weight,
+      requestId: `${requestId}:reservation-unconfirmed`,
+      subscriptionId,
+      taskId:
+        unconfirmedHighCostPlan.enqueue_plan.planned_task_id ??
+        unconfirmedHighCostPlan.enqueue_plan.queue_key ??
+        `task_${requestId}_unconfirmed`,
+      toolName: highCostToolName,
+      userConfirmed: false,
+      workspaceId
+    });
+    const confirmedReservation = createHighCostUsageReservationPlan({
+      estimatedCredits: confirmedHighCostPlan.cost_estimate.credit_weight,
+      executionStatus: normalizeHighCostUsageExecutionStatus(
+        body.execution_status ?? body.executionStatus
+      ),
+      requestId: `${requestId}:reservation-confirmed`,
+      subscriptionId,
+      taskId:
+        confirmedHighCostPlan.enqueue_plan.planned_task_id ??
+        confirmedHighCostPlan.enqueue_plan.queue_key ??
+        `task_${requestId}_confirmed`,
+      toolName: highCostToolName,
+      userConfirmed: true,
+      workspaceId
+    });
+    const claimLabelGate = {
+      answer_contract_version: answerContract.version,
+      evidence_strength: answerContract.evidence_strength,
+      required_claim_labels: answerContract.claim_labels.required_labels,
+      sample_claim_controls: [
+        {
+          effective: answerContract.claim_labels.fact_requires_evidence_card,
+          label: "fact",
+          required_binding: "evidence_card"
+        },
+        {
+          effective: answerContract.claim_labels.calculation_requires_calculation_ref,
+          label: "calculation",
+          required_binding: "calculation_ref"
+        },
+        {
+          effective: answerContract.claim_labels.inference_requires_evidence_strength,
+          label: "inference",
+          required_binding: "evidence_strength"
+        },
+        {
+          effective: answerContract.claim_labels.unknown_requires_missing_reason,
+          label: "unknown",
+          required_binding: "missing_reason"
+        }
+      ],
+      validation_rules: answerContract.validation_rules
+    };
+    const highCostBudgetGate = {
+      analytics_capability: getHighCostAnalyticsQueueCapabilities(),
+      confirmed_plan: confirmedHighCostPlan,
+      confirmation_required_before_enqueue:
+        unconfirmedHighCostPlan.usage_policy.requires_confirmation_before_enqueue,
+      failure_refund_required: confirmedReservation.failure_refund.required,
+      high_cost_threshold: unconfirmedHighCostPlan.cost_estimate.high_cost_threshold,
+      pre_debit_required: confirmedReservation.pre_debit.required,
+      usage_reservation_capability: getHighCostUsageReservationCapabilities(),
+      reservation_after_confirmation: confirmedReservation,
+      reservation_before_confirmation: unconfirmedReservation,
+      unconfirmed_plan: unconfirmedHighCostPlan,
+      usage_ledger_link_required: confirmedReservation.usage_ledger_link_required
+    };
+    const validation = {
+      budget_estimate_present: unconfirmedHighCostPlan.cost_estimate.credit_weight > 0,
+      fact_label_requires_evidence_card: answerContract.claim_labels.fact_requires_evidence_card,
+      high_cost_requires_confirmation:
+        unconfirmedHighCostPlan.status === "confirmation_required" &&
+        unconfirmedHighCostPlan.enqueue_plan.status === "awaiting_confirmation",
+      high_cost_routes_to_independent_pool:
+        confirmedHighCostPlan.scheduling_decision.independent_pool_required &&
+        confirmedHighCostPlan.scheduling_decision.concurrency_pool === "analytics_high_cost",
+      inference_label_requires_evidence_strength:
+        answerContract.claim_labels.inference_requires_evidence_strength,
+      no_confidence_score_display: answerContract.evidence_strength.confidence_score_display === false,
+      no_frontend_rendering:
+        labelPlan.answer_evidence_contract.frontend_rendering === false &&
+        unconfirmedHighCostPlan.frontend_rendering === false,
+      no_live_execution:
+        labelPlan.actual_tool_execution === false &&
+        unconfirmedHighCostPlan.durable_queue_writes === false &&
+        confirmedReservation.live_ledger_writes === false,
+      pre_debit_planned_after_confirmation:
+        confirmedReservation.status === "planned_no_write" &&
+        confirmedReservation.pre_debit.status === "planned_no_write",
+      unknown_label_requires_missing_reason:
+        answerContract.claim_labels.unknown_requires_missing_reason,
+      user_confirmation_blocks_enqueue_until_present:
+        confirmedHighCostPlan.status === "queued_planned" &&
+        unconfirmedHighCostPlan.status === "confirmation_required"
+    };
+    const releaseChecks = getAgentLabelBudgetReleaseGateCapabilities().required_checks.map(
+      (check) => ({
+        check,
+        evidence:
+          check === "fact_label_requires_evidence_card"
+            ? "answer_evidence_contract.claim_labels.fact_requires_evidence_card=true"
+            : check === "inference_label_requires_evidence_strength"
+              ? "answer_evidence_contract.claim_labels.inference_requires_evidence_strength=true"
+              : check === "unknown_label_requires_missing_reason"
+                ? "answer_evidence_contract.claim_labels.unknown_requires_missing_reason=true"
+                : check === "high_cost_task_requires_budget_estimate"
+                  ? "planHighCostAnalyticsQueue.cost_estimate.credit_weight > 0"
+                  : check === "high_cost_task_requires_confirmation_before_enqueue"
+                    ? "unconfirmed high-cost plan returns confirmation_required and awaiting_confirmation"
+                    : "confirmed high-cost usage reservation plans pre_debit and failure_refund",
+        status: "planned_no_write"
+      })
+    );
+    const version = getAgentLabelBudgetReleaseGateCapabilities().version;
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          actual_tool_execution: false,
+          capability: getAgentLabelBudgetReleaseGateCapabilities(),
+          claim_label_gate: claimLabelGate,
+          frontend_rendering: false,
+          high_cost_budget_gate: highCostBudgetGate,
+          live_db_writes: false,
+          live_queue_writes: false,
+          live_tool_execution: false,
+          model_calls: false,
+          persistent_writes: false,
+          release_checks: releaseChecks,
+          release_gate: {
+            blockers: [
+              "actual_generated_answer_label_parser_missing",
+              "frontend_budget_confirmation_ui_missing",
+              "live_high_cost_queue_execution_missing"
+            ],
+            gate_status: "blocked_live_label_budget_validation",
+            no_live_release_claim: true,
+            required_signoffs: ["product", "agent", "analytics", "billing"]
+          },
+          request_id: requestId,
+          route: "POST /agent/release-gates/label-budget/plan",
+          sql_emitted: false,
+          status: "planned_no_write",
+          validation,
+          version
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: version,
+          methodologyVersion: version,
+          provenance: [
+            {
+              data_version: version,
+              methodology_version: version,
+              source: "agent-runtime",
+              source_record_id: "agent-label-budget-release-gate-plan"
+            }
+          ],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: releaseChecks.length
+          }
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError) {
+      const code =
+        error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
+      const status = error.code === "UNREGISTERED_TOOL" ? 403 : 400;
+
+      return c.json(
+        createErrorEnvelope(code, error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "agent-label-budget-release-gate-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        status
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "Agent label budget release gate planning failed", {
+        asOf: new Date().toISOString(),
+        methodologyVersion: "agent-label-budget-release-gate-scaffold-v0",
         requestId,
         usage: {
           cached: false,

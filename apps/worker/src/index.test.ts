@@ -2118,6 +2118,24 @@ interface AgentRuntimeBody {
       tool_loop_route: string;
       version: string;
     };
+    agent_label_budget_release_gate: {
+      actual_tool_execution: boolean;
+      analytics_high_cost_route: string;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_queue_writes: boolean;
+      live_tool_execution: boolean;
+      model_calls: boolean;
+      persistent_writes: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      tool_loop_route: string;
+      usage_reservation_route: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -2172,6 +2190,90 @@ interface AgentKillSwitchPlanBody {
       target: string;
       tool_kill_switch: boolean;
     };
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AgentLabelBudgetReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    claim_label_gate: {
+      evidence_strength: {
+        confidence_score_display: boolean;
+      };
+      required_claim_labels: string[];
+      sample_claim_controls: Array<{
+        effective: boolean;
+        label: string;
+        required_binding: string;
+      }>;
+      validation_rules: string[];
+    };
+    frontend_rendering: boolean;
+    high_cost_budget_gate: {
+      confirmed_plan: {
+        enqueue_plan: {
+          status: string;
+        };
+        scheduling_decision: {
+          concurrency_pool: string;
+          independent_pool_required: boolean;
+        };
+        status: string;
+      };
+      confirmation_required_before_enqueue: boolean;
+      failure_refund_required: boolean;
+      pre_debit_required: boolean;
+      reservation_after_confirmation: {
+        pre_debit: {
+          status: string;
+        };
+        status: string;
+        user_confirmed: boolean;
+      };
+      reservation_before_confirmation: {
+        pre_debit: {
+          status: string;
+        };
+        status: string;
+        user_confirmed: boolean;
+      };
+      unconfirmed_plan: {
+        cost_estimate: {
+          credit_weight: number;
+        };
+        enqueue_plan: {
+          status: string;
+        };
+        status: string;
+        usage_policy: {
+          requires_confirmation_before_enqueue: boolean;
+        };
+      };
+      usage_ledger_link_required: boolean;
+    };
+    live_queue_writes: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    validation: Record<string, boolean>;
     version: string;
   };
   ok: true;
@@ -7912,6 +8014,31 @@ describe("worker runtime", () => {
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
+    expect(body.data.agent_label_budget_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      analytics_high_cost_route: "POST /analytics/high-cost/plan",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/label-budget/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_label_budget_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      usage_reservation_route: "POST /usage/high-cost/reservation/plan",
+      version: "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0"
+    });
+    expect(body.data.agent_label_budget_release_gate.required_checks).toEqual([
+      "fact_label_requires_evidence_card",
+      "inference_label_requires_evidence_strength",
+      "unknown_label_requires_missing_reason",
+      "high_cost_task_requires_budget_estimate",
+      "high_cost_task_requires_confirmation_before_enqueue",
+      "high_cost_usage_reservation_pre_debit_and_refund"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -8039,6 +8166,126 @@ describe("worker runtime", () => {
       tool_planning_blocked_until_clarified: true
     });
     expect(body.usage.rows).toBe(5);
+  });
+
+  it("plans Agent label and high-cost budget release gate without live queue writes", async () => {
+    const response = await app.request("/agent/release-gates/label-budget/plan", {
+      body: JSON.stringify({
+        event_count: 1,
+        event_window_days: 11,
+        high_cost_tool_name: "run_event_study",
+        security_query: "00700.HK",
+        subscription_id: "subscription_release_gate",
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-label-budget-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentLabelBudgetReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/label-budget/plan",
+        status: "agent_label_budget_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      release_gate: {
+        gate_status: "blocked_live_label_budget_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["product", "agent", "analytics", "billing"]
+      },
+      version: "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0"
+    });
+    expect(body.data.claim_label_gate.required_claim_labels).toEqual([
+      "fact",
+      "calculation",
+      "inference",
+      "unknown"
+    ]);
+    expect(body.data.claim_label_gate.sample_claim_controls).toEqual([
+      { effective: true, label: "fact", required_binding: "evidence_card" },
+      { effective: true, label: "calculation", required_binding: "calculation_ref" },
+      { effective: true, label: "inference", required_binding: "evidence_strength" },
+      { effective: true, label: "unknown", required_binding: "missing_reason" }
+    ]);
+    expect(body.data.claim_label_gate.evidence_strength.confidence_score_display).toBe(false);
+    expect(body.data.claim_label_gate.validation_rules).toContain("require_layer_label_per_claim");
+    expect(body.data.high_cost_budget_gate).toMatchObject({
+      confirmed_plan: {
+        enqueue_plan: {
+          status: "would_enqueue"
+        },
+        scheduling_decision: {
+          concurrency_pool: "analytics_high_cost",
+          independent_pool_required: true
+        },
+        status: "queued_planned"
+      },
+      confirmation_required_before_enqueue: true,
+      failure_refund_required: true,
+      pre_debit_required: true,
+      reservation_after_confirmation: {
+        pre_debit: {
+          status: "planned_no_write"
+        },
+        status: "planned_no_write",
+        user_confirmed: true
+      },
+      reservation_before_confirmation: {
+        pre_debit: {
+          status: "awaiting_confirmation"
+        },
+        status: "confirmation_required",
+        user_confirmed: false
+      },
+      unconfirmed_plan: {
+        enqueue_plan: {
+          status: "awaiting_confirmation"
+        },
+        status: "confirmation_required",
+        usage_policy: {
+          requires_confirmation_before_enqueue: true
+        }
+      },
+      usage_ledger_link_required: true
+    });
+    expect(body.data.high_cost_budget_gate.unconfirmed_plan.cost_estimate.credit_weight).toBe(28);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "fact_label_requires_evidence_card",
+      "inference_label_requires_evidence_strength",
+      "unknown_label_requires_missing_reason",
+      "high_cost_task_requires_budget_estimate",
+      "high_cost_task_requires_confirmation_before_enqueue",
+      "high_cost_usage_reservation_pre_debit_and_refund"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      budget_estimate_present: true,
+      fact_label_requires_evidence_card: true,
+      high_cost_requires_confirmation: true,
+      high_cost_routes_to_independent_pool: true,
+      inference_label_requires_evidence_strength: true,
+      no_confidence_score_display: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      pre_debit_planned_after_confirmation: true,
+      unknown_label_requires_missing_reason: true,
+      user_confirmation_blocks_enqueue_until_present: true
+    });
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans model/tool kill switch safe degradation without live flags", async () => {

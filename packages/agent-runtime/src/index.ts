@@ -36,6 +36,8 @@ export const AGENT_KILL_SWITCH_VERSION =
   "2026-06-21.phase2.kill-switch-scaffold.v0";
 export const PRODUCT_AGENT_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.product-agent-release-gate-scaffold.v0";
+export const AGENT_LABEL_BUDGET_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -79,6 +81,18 @@ export const PRODUCT_AGENT_RELEASE_GATE_TABLES = [
   "core.product_agent_release_gate",
   "governance.product_agent_release_gate_contract"
 ] as const;
+export const AGENT_LABEL_BUDGET_RELEASE_GATE_CHECKS = [
+  "fact_label_requires_evidence_card",
+  "inference_label_requires_evidence_strength",
+  "unknown_label_requires_missing_reason",
+  "high_cost_task_requires_budget_estimate",
+  "high_cost_task_requires_confirmation_before_enqueue",
+  "high_cost_usage_reservation_pre_debit_and_refund"
+] as const;
+export const AGENT_LABEL_BUDGET_RELEASE_GATE_TABLES = [
+  "core.agent_label_budget_release_gate",
+  "governance.agent_label_budget_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -87,6 +101,8 @@ export type AgentWorkflowTaskStatus = "planned_no_write";
 export type ProductAgentReleaseGateCheck =
   (typeof PRODUCT_AGENT_RELEASE_GATE_CHECKS)[number];
 export type ProductAgentReleaseGateStatus = "planned_no_write";
+export type AgentLabelBudgetReleaseGateCheck =
+  (typeof AGENT_LABEL_BUDGET_RELEASE_GATE_CHECKS)[number];
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -154,6 +170,26 @@ export interface ProductAgentReleaseGateCapabilities {
   tables: typeof PRODUCT_AGENT_RELEASE_GATE_TABLES;
   tool_loop_route: "POST /agent/runs/plan";
   version: typeof PRODUCT_AGENT_RELEASE_GATE_VERSION;
+}
+
+export interface AgentLabelBudgetReleaseGateCapabilities {
+  actual_tool_execution: false;
+  analytics_high_cost_route: "POST /analytics/high-cost/plan";
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_queue_writes: false;
+  live_tool_execution: false;
+  model_calls: false;
+  persistent_writes: false;
+  required_checks: typeof AGENT_LABEL_BUDGET_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/label-budget/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_label_budget_release_gate_scaffold";
+  tables: typeof AGENT_LABEL_BUDGET_RELEASE_GATE_TABLES;
+  tool_loop_route: "POST /agent/runs/plan";
+  usage_reservation_route: "POST /usage/high-cost/reservation/plan";
+  version: typeof AGENT_LABEL_BUDGET_RELEASE_GATE_VERSION;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -300,6 +336,7 @@ export interface AgentRuntimeCapabilities {
     version: typeof AGENT_WORKFLOW_TASK_VERSION;
   };
   product_agent_release_gate: ProductAgentReleaseGateCapabilities;
+  agent_label_budget_release_gate: AgentLabelBudgetReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -1428,6 +1465,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     },
     workflow_tasks: getAgentWorkflowTaskCapabilities(),
     product_agent_release_gate: getProductAgentReleaseGateCapabilities(),
+    agent_label_budget_release_gate: getAgentLabelBudgetReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -1461,6 +1499,28 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       mcp_redistribution: false,
       model_calls: false
     }
+  };
+}
+
+export function getAgentLabelBudgetReleaseGateCapabilities(): AgentLabelBudgetReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    analytics_high_cost_route: "POST /analytics/high-cost/plan",
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_queue_writes: false,
+    live_tool_execution: false,
+    model_calls: false,
+    persistent_writes: false,
+    required_checks: AGENT_LABEL_BUDGET_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/label-budget/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_label_budget_release_gate_scaffold",
+    tables: AGENT_LABEL_BUDGET_RELEASE_GATE_TABLES,
+    tool_loop_route: "POST /agent/runs/plan",
+    usage_reservation_route: "POST /usage/high-cost/reservation/plan",
+    version: AGENT_LABEL_BUDGET_RELEASE_GATE_VERSION
   };
 }
 

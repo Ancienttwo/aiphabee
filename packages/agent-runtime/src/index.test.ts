@@ -9,6 +9,7 @@ import {
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
   createWorkflowTaskPlan,
+  getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
   getProductAgentReleaseGateCapabilities
@@ -167,6 +168,31 @@ describe("agent runtime scaffold", () => {
       "answer_contract_blocks_unsourced_numbers",
       "deterministic_calculations_keep_model_out"
     ]);
+    expect(capabilities.agent_label_budget_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      analytics_high_cost_route: "POST /analytics/high-cost/plan",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/label-budget/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_label_budget_release_gate_scaffold",
+      tool_loop_route: "POST /agent/runs/plan",
+      usage_reservation_route: "POST /usage/high-cost/reservation/plan",
+      version: "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0"
+    });
+    expect(capabilities.agent_label_budget_release_gate.required_checks).toEqual([
+      "fact_label_requires_evidence_card",
+      "inference_label_requires_evidence_strength",
+      "unknown_label_requires_missing_reason",
+      "high_cost_task_requires_budget_estimate",
+      "high_cost_task_requires_confirmation_before_enqueue",
+      "high_cost_usage_reservation_pre_debit_and_refund"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -174,6 +200,29 @@ describe("agent runtime scaffold", () => {
         standardResponseEnvelope: true
       }
     });
+  });
+
+  it("exposes Agent label and high-cost budget release gate capability", () => {
+    const capability = getAgentLabelBudgetReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      analytics_high_cost_route: "POST /analytics/high-cost/plan",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /agent/release-gates/label-budget/plan",
+      sql_emitted: false,
+      status: "agent_label_budget_release_gate_scaffold",
+      usage_reservation_route: "POST /usage/high-cost/reservation/plan"
+    });
+    expect(capability.tables).toEqual([
+      "core.agent_label_budget_release_gate",
+      "governance.agent_label_budget_release_gate_contract"
+    ]);
   });
 
   it("exposes product Agent release gate capability without live execution", () => {

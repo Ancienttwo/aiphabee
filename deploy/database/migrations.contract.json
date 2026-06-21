@@ -440,6 +440,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql",
+      "purpose": "Create empty Agent label budget release gate and governance scaffolds for claim-label enforcement and high-cost budget confirmation without enabling live queue execution or ledger writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_label_budget_release_gate",
+        "governance.agent_label_budget_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
