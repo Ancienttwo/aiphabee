@@ -1917,16 +1917,23 @@ app.post("/mcp", async (c) => {
 
   try {
     const result = createMcpProtocolPlan({
+      accountId: normalizeString(params.account_id ?? params.accountId),
       clientName: normalizeString(params.client_name ?? params.clientName),
       clientVersion: normalizeString(params.client_version ?? params.clientVersion),
       grantedScopes: [],
+      membershipId: normalizeString(params.membership_id ?? params.membershipId),
       method: normalizeString(body.method),
       mcpRedistributionRightsConfirmed: false,
       origin: c.req.header("origin") ?? undefined,
+      pendingCredits: normalizeOptionalNumber(params.pending_credits ?? params.pendingCredits),
       requestId,
       requestedScopes: normalizeStringArray(params.scopes ?? body.scopes),
+      subscriptionId: normalizeString(params.subscription_id ?? params.subscriptionId),
       toolArguments: params.arguments,
-      toolName: normalizeString(params.name ?? params.tool_name ?? params.toolName)
+      toolName: normalizeString(params.name ?? params.tool_name ?? params.toolName),
+      usagePlanCode: normalizeUsageQuotaPlanCode(params.plan_code ?? params.planCode),
+      usedCredits: normalizeOptionalNumber(params.used_credits ?? params.usedCredits),
+      workspaceId: normalizeString(params.workspace_id ?? params.workspaceId)
     });
 
     return c.json(

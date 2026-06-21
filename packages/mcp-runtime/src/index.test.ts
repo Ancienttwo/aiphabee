@@ -65,7 +65,12 @@ describe("mcp endpoint default-deny scaffold", () => {
       time_range_limits_ready: true,
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
-      tool_versioning_ready: true
+      tool_versioning_ready: true,
+      usage_envelope_ready: true,
+      usage_envelope_version: "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0",
+      usage_remaining_ready: true,
+      usage_request_id_visible: true,
+      usage_reconciliation_ready: true
     });
   });
 
@@ -547,7 +552,10 @@ describe("mcp endpoint default-deny scaffold", () => {
         limit: 3,
         to: "2026-01-07"
       },
-      toolName: "get_price_history"
+      toolName: "get_price_history",
+      usagePlanCode: "developer",
+      usedCredits: 120,
+      workspaceId: "workspace_mcp"
     });
 
     expect(plan.tool_call?.bounded_retrieval).toMatchObject({
@@ -579,6 +587,58 @@ describe("mcp endpoint default-deny scaffold", () => {
         to: "2026-01-07",
         window_days: 6
       }
+    });
+    expect(plan.usage).toMatchObject({
+      credit_limit: 10000,
+      credits: 3,
+      credits_remaining: 9877,
+      credits_used: 120,
+      request_id: "req-mcp-tool-call-bounded",
+      request_id_visible: true,
+      rows: 3,
+      usage_reconciliation_status: "planned_no_live"
+    });
+    expect(plan.tool_call?.usage_envelope).toMatchObject({
+      billable_credits: 0,
+      channel: "mcp",
+      credits_remaining_after_estimate: 9877,
+      estimated_credits: 3,
+      live_billing_reconciliation: false,
+      live_ledger_reads: false,
+      persistent_writes: false,
+      request_id: "req-mcp-tool-call-bounded",
+      request_id_visible: true,
+      usage_envelope_version: "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0"
+    });
+    expect(plan.tool_call?.usage_envelope.quota_display).toMatchObject({
+      channel: "mcp",
+      request_id: "req-mcp-tool-call-bounded",
+      request_id_visible: true,
+      quota: {
+        credit_limit: 10000,
+        credits_pending: 3,
+        credits_remaining: 9877,
+        credits_used: 120,
+        plan_code: "developer"
+      },
+      status: "planned_no_write"
+    });
+    expect(plan.tool_call?.usage_envelope.ledger_event).toMatchObject({
+      event: {
+        channel: "mcp",
+        dataset: "price_history",
+        meteredRows: 3,
+        operation: "tool_call",
+        requestId: "req-mcp-tool-call-bounded",
+        toolName: "get_price_history",
+        workspaceId: "workspace_mcp"
+      },
+      ledgerEntry: {
+        billableState: "preview",
+        creditDelta: 3
+      },
+      status: "write_planned",
+      writeReady: false
     });
   });
 

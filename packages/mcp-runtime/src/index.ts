@@ -5,6 +5,15 @@ import {
   type RegisteredToolDefinition,
   type RegisteredToolName
 } from "@aiphabee/tool-registry";
+import {
+  USAGE_LEDGER_EVENT_WRITER_VERSION,
+  USAGE_QUOTA_DISPLAY_VERSION,
+  createUsageLedgerEventPlan,
+  createUsageQuotaDisplayPlan,
+  type UsageLedgerEventPlan,
+  type UsageQuotaDisplayPlan,
+  type UsageQuotaPlanCode
+} from "@aiphabee/usage-ledger";
 
 export const MCP_RUNTIME_VERSION =
   "2026-06-21.phase2.mcp-endpoint-default-deny-scaffold.v0";
@@ -16,6 +25,8 @@ export const MCP_TOOL_SCHEMA_VALIDATION_VERSION =
   "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0";
 export const MCP_PAGINATION_LIMITS_VERSION =
   "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0";
+export const MCP_USAGE_ENVELOPE_VERSION =
+  "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0";
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -151,17 +162,24 @@ export class McpRuntimeInputError extends Error {
 }
 
 export interface CreateMcpProtocolPlanInput {
+  accountId?: string;
   allowedOrigins?: readonly string[];
   clientName?: string;
   clientVersion?: string;
   grantedScopes?: readonly string[];
+  membershipId?: string;
   method?: string;
   mcpRedistributionRightsConfirmed?: boolean;
   origin?: string;
+  pendingCredits?: number;
   requestId: string;
   requestedScopes?: readonly string[];
+  subscriptionId?: string;
   toolArguments?: unknown;
   toolName?: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
 }
 
 export interface CreateMcpOAuthAuthorizePlanInput {
@@ -310,6 +328,42 @@ export interface McpToolBoundedRetrievalPlan {
     to_parameters: readonly string[];
     window_days: null | number;
   };
+}
+
+export interface McpUsageSummary {
+  cached: false;
+  credit_limit: number;
+  credits: number;
+  credits_pending: number;
+  credits_remaining: number;
+  credits_used: number;
+  freshness_target_minutes: 5;
+  live_ledger_reads: false;
+  request_id: string;
+  request_id_visible: true;
+  rows: number;
+  usage_reconciliation_status: "planned_no_live";
+}
+
+export interface McpUsageEnvelopePlan {
+  billable_credits: 0;
+  channel: "mcp";
+  credits_remaining_after_estimate: number;
+  estimated_credits: number;
+  ledger_event: UsageLedgerEventPlan;
+  live_billing_reconciliation: false;
+  live_ledger_reads: false;
+  persistent_writes: false;
+  quota_display: UsageQuotaDisplayPlan;
+  reconciliation: {
+    status: "planned_no_live";
+    target_delay_minutes: 5;
+    usage_ledger_event_writer_version: typeof USAGE_LEDGER_EVENT_WRITER_VERSION;
+    usage_quota_display_version: typeof USAGE_QUOTA_DISPLAY_VERSION;
+  };
+  request_id: string;
+  request_id_visible: true;
+  usage_envelope_version: typeof MCP_USAGE_ENVELOPE_VERSION;
 }
 
 export interface McpOAuthScopeGrant {
@@ -658,6 +712,7 @@ export interface McpProtocolPlan {
     required_scope: string;
     schema_validation: "validated";
     structured_content_validation: "planned_no_live";
+    usage_envelope: McpUsageEnvelopePlan;
   };
   tools_list?: {
     blocked_tool_count: number;
@@ -666,11 +721,7 @@ export interface McpProtocolPlan {
     tools: McpToolDescriptor[];
   };
   transport: "streamable_http";
-  usage: {
-    cached: false;
-    credits: 0;
-    rows: number;
-  };
+  usage: McpUsageSummary;
   version: typeof MCP_RUNTIME_VERSION;
 }
 
@@ -829,6 +880,13 @@ export function getMcpRuntimeCapabilities() {
     time_range_limits_ready: true,
     tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
     tool_versioning_ready: true,
+    usage_envelope_ready: true,
+    usage_envelope_version: MCP_USAGE_ENVELOPE_VERSION,
+    usage_ledger_event_writer_version: USAGE_LEDGER_EVENT_WRITER_VERSION,
+    usage_quota_display_version: USAGE_QUOTA_DISPLAY_VERSION,
+    usage_remaining_ready: true,
+    usage_request_id_visible: true,
+    usage_reconciliation_ready: true,
     supported_oauth_scopes: MCP_OAUTH_SCOPE_DEFINITIONS.map(
       (definition) => definition.scope
     ),
@@ -1257,13 +1315,20 @@ export function createMcpProtocolPlan(
 
   const rightsConfirmed = input.mcpRedistributionRightsConfirmed === true;
   const basePlan = createBasePlan({
+    accountId: input.accountId,
     allowedOrigins,
     clientName: input.clientName,
     clientVersion: input.clientVersion,
+    membershipId: input.membershipId,
     method,
     origin,
+    pendingCredits: input.pendingCredits,
     requestId: input.requestId,
-    rightsConfirmed
+    rightsConfirmed,
+    subscriptionId: input.subscriptionId,
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
   });
 
   if (method === "initialize") {
@@ -1296,9 +1361,7 @@ export function createMcpProtocolPlan(
         tools
       },
       usage: {
-        cached: false,
-        credits: 0,
-        rows: tools.length
+        ...createMcpUsageSummary(input, 0, tools.length)
       }
     };
   }
@@ -1307,13 +1370,20 @@ export function createMcpProtocolPlan(
 }
 
 function createBasePlan(input: {
+  accountId?: string;
   allowedOrigins: readonly string[];
   clientName?: string;
   clientVersion?: string;
+  membershipId?: string;
   method: McpMethod;
   origin: string;
+  pendingCredits?: number;
   requestId: string;
   rightsConfirmed: boolean;
+  subscriptionId?: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
 }): McpProtocolPlan {
   return {
     api_key_live: false,
@@ -1371,11 +1441,7 @@ function createBasePlan(input: {
       ? "planned_no_live_execution"
       : "planned_default_deny",
     transport: "streamable_http",
-    usage: {
-      cached: false,
-      credits: 0,
-      rows: 0
-    },
+    usage: createMcpUsageSummary(input, 0, 0),
     version: MCP_RUNTIME_VERSION
   };
 }
@@ -1431,6 +1497,7 @@ function createToolCallPlan(
 
   const inputValidation = createToolInputValidationPlan(tool, input.toolArguments);
   const boundedRetrieval = createToolBoundedRetrievalPlan(tool, input.toolArguments);
+  const usageEnvelope = createMcpToolUsageEnvelope(tool, input, boundedRetrieval);
 
   return {
     ...basePlan,
@@ -1449,13 +1516,14 @@ function createToolCallPlan(
       requested_tool_name: tool.name,
       required_scope: tool.permissions.requiredScope,
       schema_validation: "validated",
-      structured_content_validation: "planned_no_live"
+      structured_content_validation: "planned_no_live",
+      usage_envelope: usageEnvelope
     },
-    usage: {
-      cached: false,
-      credits: 0,
-      rows: 1
-    }
+    usage: createMcpUsageSummary(
+      input,
+      usageEnvelope.estimated_credits,
+      boundedRetrieval.row_limit.effective_limit
+    )
   };
 }
 
@@ -1609,6 +1677,112 @@ function createToolBoundedRetrievalPlan(
       window_days: timeRange.windowDays
     }
   };
+}
+
+function createMcpToolUsageEnvelope(
+  tool: RegisteredToolDefinition,
+  input: CreateMcpProtocolPlanInput,
+  boundedRetrieval: McpToolBoundedRetrievalPlan
+): McpUsageEnvelopePlan {
+  const estimatedCredits = Math.max(1, boundedRetrieval.row_limit.effective_limit);
+  const quotaDisplay = createUsageQuotaDisplayPlan({
+    accountId: input.accountId,
+    channel: "mcp",
+    pendingCredits: normalizeUsageCreditCount(input.pendingCredits) + estimatedCredits,
+    planCode: input.usagePlanCode,
+    requestId: input.requestId,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const dataset = tool.permissions.dataClasses[0] ?? tool.name;
+  const ledgerEvent = createUsageLedgerEventPlan({
+    accountId: input.accountId,
+    cached: false,
+    channel: "mcp",
+    credits: estimatedCredits,
+    dataVersion: MCP_USAGE_ENVELOPE_VERSION,
+    dataset,
+    gatewayStatus: "planned_no_live_execution",
+    membershipId: input.membershipId,
+    meteredFields: tool.permissions.dataClasses.length,
+    meteredRows: boundedRetrieval.row_limit.effective_limit,
+    methodologyVersion: MCP_USAGE_ENVELOPE_VERSION,
+    occurredAt: "1970-01-01T00:00:00.000Z",
+    operation: "tool_call",
+    outputUnits: 0,
+    qualityState: "PASS",
+    requestId: input.requestId,
+    rightsPolicyVersion: "mcp-default-deny-planned-v0",
+    sourceRecordId: `mcp_usage_${tool.name}`,
+    subscriptionId: input.subscriptionId,
+    toolName: tool.name,
+    workspaceId: input.workspaceId
+  });
+
+  return {
+    billable_credits: 0,
+    channel: "mcp",
+    credits_remaining_after_estimate: quotaDisplay.quota.credits_remaining,
+    estimated_credits: estimatedCredits,
+    ledger_event: ledgerEvent,
+    live_billing_reconciliation: false,
+    live_ledger_reads: false,
+    persistent_writes: false,
+    quota_display: quotaDisplay,
+    reconciliation: {
+      status: "planned_no_live",
+      target_delay_minutes: 5,
+      usage_ledger_event_writer_version: USAGE_LEDGER_EVENT_WRITER_VERSION,
+      usage_quota_display_version: USAGE_QUOTA_DISPLAY_VERSION
+    },
+    request_id: input.requestId,
+    request_id_visible: true,
+    usage_envelope_version: MCP_USAGE_ENVELOPE_VERSION
+  };
+}
+
+function createMcpUsageSummary(
+  input: {
+    accountId?: string;
+    pendingCredits?: number;
+    requestId: string;
+    usagePlanCode?: UsageQuotaPlanCode;
+    usedCredits?: number;
+    workspaceId?: string;
+  },
+  estimatedCredits: number,
+  rows: number
+): McpUsageSummary {
+  const quotaDisplay = createUsageQuotaDisplayPlan({
+    accountId: input.accountId,
+    channel: "mcp",
+    pendingCredits: normalizeUsageCreditCount(input.pendingCredits) + estimatedCredits,
+    planCode: input.usagePlanCode,
+    requestId: input.requestId,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+
+  return {
+    cached: false,
+    credit_limit: quotaDisplay.quota.credit_limit,
+    credits: estimatedCredits,
+    credits_pending: quotaDisplay.quota.credits_pending,
+    credits_remaining: quotaDisplay.quota.credits_remaining,
+    credits_used: quotaDisplay.quota.credits_used,
+    freshness_target_minutes: quotaDisplay.freshness_target_minutes,
+    live_ledger_reads: quotaDisplay.live_ledger_reads,
+    request_id: input.requestId,
+    request_id_visible: true,
+    rows,
+    usage_reconciliation_status: "planned_no_live"
+  };
+}
+
+function normalizeUsageCreditCount(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
 }
 
 function getRequestedLimit(

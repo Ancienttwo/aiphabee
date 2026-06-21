@@ -1654,6 +1654,11 @@ interface McpRuntimeBody {
     tool_call_input_strict_validation: boolean;
     tool_schema_validation_version: string;
     tool_versioning_ready: boolean;
+    usage_envelope_ready: boolean;
+    usage_envelope_version: string;
+    usage_remaining_ready: boolean;
+    usage_request_id_visible: boolean;
+    usage_reconciliation_ready: boolean;
     supported_oauth_scopes: string[];
     supported_methods: string[];
     transport: string;
@@ -5884,6 +5889,11 @@ describe("worker runtime", () => {
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
       tool_versioning_ready: true,
+      usage_envelope_ready: true,
+      usage_envelope_version: "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0",
+      usage_remaining_ready: true,
+      usage_request_id_visible: true,
+      usage_reconciliation_ready: true,
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
     });
