@@ -1,0 +1,89 @@
+{
+  "version": "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/task-replay-mode/plan",
+  "workflow_task_route": "POST /agent/workflows/tasks/plan",
+  "workflow_resume_route": "GET /agent/workflows/tasks/:task_id",
+  "research_save_route": "POST /research/runs/save/plan",
+  "research_replay_route": "POST /research/runs/replay/plan",
+  "localized_response_route": "POST /agent/runs/plan",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_queue_writes": false,
+  "live_tool_execution": false,
+  "live_workflow_execution": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "workflow_resume_policy": {
+    "task_id_visible": true,
+    "resume_handle_required": true,
+    "resumable": true,
+    "disconnect_safe": true,
+    "checkpoint_table": "core.workflow_task_checkpoint",
+    "completion_notification_planned": true
+  },
+  "saved_report_replay_policy": {
+    "deterministic_replay_seed_required": true,
+    "old_report_immutable": true,
+    "old_report_mutation_allowed": false,
+    "silent_rewrite_allowed": false,
+    "diff_summary_required": true,
+    "replay_execution_status": "planned_no_write"
+  },
+  "mode_invariant_policy": {
+    "supported_response_depths": ["newbie", "professional"],
+    "response_depth_changes_data": false,
+    "preserve_conclusion": true,
+    "preserve_data_values": true,
+    "preserve_source_record_ids": true,
+    "preserve_methodology_versions": true,
+    "preserve_evidence_card_refs": true,
+    "newbie_adds_examples": true,
+    "professional_can_show_raw_formula_and_source_fields": true
+  },
+  "required_checks": [
+    "long_task_returns_task_id_and_resume_handle",
+    "long_task_checkpoint_state_is_disconnect_safe",
+    "saved_report_has_deterministic_replay_seed",
+    "replay_preserves_old_report_snapshot",
+    "newbie_professional_depth_preserves_data_contract",
+    "mode_switch_changes_presentation_only"
+  ],
+  "required_output_fields": [
+    "workflow_resume_gate",
+    "saved_report_replay_gate",
+    "mode_invariant_gate",
+    "release_checks",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_task_replay_mode_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": ["product", "agent", "research", "operations"],
+    "blockers": [
+      "live_workflow_resume_execution_missing",
+      "live_replay_job_execution_missing",
+      "frontend_mode_switch_release_ui_missing"
+    ]
+  },
+  "tables": [
+    "core.task_replay_mode_release_gate",
+    "governance.task_replay_mode_release_gate_contract"
+  ],
+  "covered_sprint_3_3_items": [
+    "long_task_resume",
+    "saved_report_replay",
+    "newbie_professional_mode_invariant"
+  ],
+  "linked_contracts": [
+    "deploy/agent/workflow-task.contract.json",
+    "deploy/research/research-run-save.contract.json",
+    "deploy/research/research-run-replay.contract.json",
+    "deploy/agent/localized-response.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

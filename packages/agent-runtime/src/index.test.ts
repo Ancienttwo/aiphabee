@@ -12,7 +12,8 @@ import {
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
-  getProductAgentReleaseGateCapabilities
+  getProductAgentReleaseGateCapabilities,
+  getTaskReplayModeReleaseGateCapabilities
 } from "./index";
 
 describe("agent runtime scaffold", () => {
@@ -193,6 +194,33 @@ describe("agent runtime scaffold", () => {
       "high_cost_task_requires_confirmation_before_enqueue",
       "high_cost_usage_reservation_pre_debit_and_refund"
     ]);
+    expect(capabilities.task_replay_mode_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      localized_response_route: "POST /agent/runs/plan",
+      model_calls: false,
+      persistent_writes: false,
+      research_replay_route: "POST /research/runs/replay/plan",
+      research_save_route: "POST /research/runs/save/plan",
+      route: "POST /agent/release-gates/task-replay-mode/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "task_replay_mode_release_gate_scaffold",
+      version: "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0",
+      workflow_task_route: "POST /agent/workflows/tasks/plan"
+    });
+    expect(capabilities.task_replay_mode_release_gate.required_checks).toEqual([
+      "long_task_returns_task_id_and_resume_handle",
+      "long_task_checkpoint_state_is_disconnect_safe",
+      "saved_report_has_deterministic_replay_seed",
+      "replay_preserves_old_report_snapshot",
+      "newbie_professional_depth_preserves_data_contract",
+      "mode_switch_changes_presentation_only"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -222,6 +250,40 @@ describe("agent runtime scaffold", () => {
     expect(capability.tables).toEqual([
       "core.agent_label_budget_release_gate",
       "governance.agent_label_budget_release_gate_contract"
+    ]);
+  });
+
+  it("exposes task replay mode release gate capability", () => {
+    const capability = getTaskReplayModeReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      localized_response_route: "POST /agent/runs/plan",
+      model_calls: false,
+      persistent_writes: false,
+      research_replay_route: "POST /research/runs/replay/plan",
+      research_save_route: "POST /research/runs/save/plan",
+      route: "POST /agent/release-gates/task-replay-mode/plan",
+      sql_emitted: false,
+      status: "task_replay_mode_release_gate_scaffold",
+      workflow_task_route: "POST /agent/workflows/tasks/plan"
+    });
+    expect(capability.tables).toEqual([
+      "core.task_replay_mode_release_gate",
+      "governance.task_replay_mode_release_gate_contract"
+    ]);
+    expect(capability.required_checks).toEqual([
+      "long_task_returns_task_id_and_resume_handle",
+      "long_task_checkpoint_state_is_disconnect_safe",
+      "saved_report_has_deterministic_replay_seed",
+      "replay_preserves_old_report_snapshot",
+      "newbie_professional_depth_preserves_data_contract",
+      "mode_switch_changes_presentation_only"
     ]);
   });
 

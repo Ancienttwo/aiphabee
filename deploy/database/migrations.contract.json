@@ -451,6 +451,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql",
+      "purpose": "Create empty task replay mode release gate and governance scaffolds for resumable long tasks, saved-report replay, and response-depth invariants without enabling live workflow or replay execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.task_replay_mode_release_gate",
+        "governance.task_replay_mode_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

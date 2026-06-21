@@ -37,6 +37,7 @@ import {
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
   getProductAgentReleaseGateCapabilities,
+  getTaskReplayModeReleaseGateCapabilities,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
   type AgentRunSkeletonInput
@@ -4365,6 +4366,419 @@ app.post("/agent/release-gates/label-budget/plan", async (c) => {
           rows: 0
         }
       }),
+      500
+    );
+  }
+});
+
+app.post("/agent/release-gates/task-replay-mode/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  try {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const prompt =
+      normalizeString(body.prompt ?? body.question) ??
+      "Explain 00700.HK revenue, free cash flow, and ROE with saved report replay.";
+    const securityQuery =
+      normalizeString(body.security_query ?? body.securityQuery) ?? "00700.HK";
+    const userId = normalizeString(body.user_id ?? body.userId) ?? "user_internal_alpha";
+    const workspaceId =
+      normalizeString(body.workspace_id ?? body.workspaceId) ?? "workspace_research";
+    const locale =
+      normalizeString(body.locale ?? body.response_locale ?? body.responseLocale) ??
+      "zh-Hant";
+    const requestedTools = normalizeStringArray(body.tools) ?? [
+      "resolve_security",
+      "get_security_profile",
+      "get_financial_facts",
+      "get_data_lineage",
+      "get_entitlements"
+    ];
+    const notificationChannels = normalizeAgentWorkflowNotificationChannels(
+      body.notification_channels ?? body.notificationChannels
+    );
+    const workflowTask = createWorkflowTaskPlan({
+      asOf: normalizeString(body.as_of ?? body.asOf),
+      locale,
+      maxSteps: normalizeOptionalInteger(body.max_steps ?? body.maxSteps),
+      notificationChannels,
+      prompt,
+      requestId: `${requestId}:workflow-resume`,
+      requestedTools,
+      responseDepth: "professional",
+      securityQuery,
+      userId,
+      workflowKind:
+        normalizeAgentWorkflowTaskKind(body.workflow_kind ?? body.workflowKind) ??
+        "deep_report",
+      workspaceId
+    });
+    const savedToolCalls: ResearchRunToolCallInput[] = [
+      {
+        dataVersion: "synthetic-hk-equity-facts-v1",
+        input: {
+          metrics: ["revenue", "free_cash_flow", "roe"],
+          security: securityQuery
+        },
+        inputSchemaId: "get_financial_facts.input.v1",
+        methodologyVersion: "financial-facts-scaffold-v0",
+        outputSchemaId: "get_financial_facts.output.v1",
+        requestId: `${requestId}:tool-financial-facts-saved`,
+        toolCallId: `tool_call_${requestId}_financial_facts_saved`,
+        toolName: "get_financial_facts",
+        toolVersion: "financial-facts-scaffold-v0"
+      },
+      {
+        dataVersion: "synthetic-evidence-lineage-v1",
+        input: {
+          source_record_id: "src_00700_fy2024_annual_results"
+        },
+        inputSchemaId: "get_data_lineage.input.v1",
+        methodologyVersion: "evidence-lineage-scaffold-v0",
+        outputSchemaId: "get_data_lineage.output.v1",
+        requestId: `${requestId}:tool-lineage-saved`,
+        toolCallId: `tool_call_${requestId}_lineage_saved`,
+        toolName: "get_data_lineage",
+        toolVersion: "evidence-lineage-scaffold-v0"
+      }
+    ];
+    const savedEvidenceRecords: ResearchRunEvidenceInput[] = [
+      {
+        citationLabel: "Tencent FY2024 annual results",
+        dataVersion: "synthetic-hk-equity-facts-v1",
+        documentLocation: {
+          anchor: "financial-summary",
+          documentId: "doc_00700_fy2024_annual_results",
+          page: 12,
+          paragraph: 4,
+          sourceRecordId: "src_00700_fy2024_annual_results"
+        },
+        evidenceRecordId: "evidence_00700_fy2024_financials",
+        methodologyVersion: "financial-facts-scaffold-v0",
+        sourceRecordIds: ["src_00700_fy2024_annual_results"]
+      }
+    ];
+    const savedRun =
+      normalizeResearchSavedRun(body.saved_run ?? body.savedRun) ??
+      createResearchRunSavePlan({
+        answerHash: "answer_hash_saved_report_baseline",
+        asOf: normalizeString(body.as_of ?? body.asOf),
+        evidenceRecords: savedEvidenceRecords,
+        modelProvider: "cloudflare_ai_gateway",
+        modelVersion:
+          normalizeString(body.saved_model_version ?? body.savedModelVersion) ??
+          "dry-run-model-v1",
+        parameters: {
+          locale,
+          response_depth: "professional",
+          security: securityQuery
+        },
+        promptTemplateId: "agent_research_answer_v0",
+        promptVersion:
+          normalizeString(body.saved_prompt_version ?? body.savedPromptVersion) ??
+          "agent-answer-evidence-v1",
+        question: prompt,
+        requestId: `${requestId}:saved-report`,
+        runId: `research_run_${requestId}_saved_report`,
+        toolCalls: savedToolCalls,
+        userId,
+        workspaceId
+      });
+    const currentRun =
+      normalizeResearchReplayCurrentRun(body.current_run ?? body.currentRun) ?? {
+        answerHash: "answer_hash_replay_candidate",
+        asOf: normalizeString(body.current_as_of ?? body.currentAsOf),
+        channel: "web" as const,
+        evidenceRecords: [
+          {
+            citationLabel: "Tencent FY2024 annual results corrected",
+            dataVersion: "synthetic-hk-equity-facts-v2",
+            documentLocation: {
+              anchor: "financial-summary-corrected",
+              documentId: "doc_00700_fy2024_annual_results_corrected",
+              page: 12,
+              paragraph: 5,
+              sourceRecordId: "src_00700_fy2024_annual_results_corrected"
+            },
+            evidenceRecordId: "evidence_00700_fy2024_financials_corrected",
+            methodologyVersion: "financial-facts-scaffold-v0",
+            sourceRecordIds: ["src_00700_fy2024_annual_results_corrected"]
+          }
+        ],
+        modelProvider: "cloudflare_ai_gateway",
+        modelVersion:
+          normalizeString(body.current_model_version ?? body.currentModelVersion) ??
+          "dry-run-model-v1",
+        parameters: {
+          locale,
+          replay_reason: "saved_report_replay_release_gate",
+          response_depth: "professional",
+          security: securityQuery
+        },
+        promptTemplateId: "agent_research_answer_v0",
+        promptVersion:
+          normalizeString(body.current_prompt_version ?? body.currentPromptVersion) ??
+          "agent-answer-evidence-v1",
+        question: prompt,
+        requestId: `${requestId}:replay-current`,
+        runId: `research_run_${requestId}_replay_current`,
+        toolCalls: savedToolCalls.map((toolCall) => ({
+          ...toolCall,
+          dataVersion:
+            toolCall.toolName === "get_financial_facts"
+              ? "synthetic-hk-equity-facts-v2"
+              : toolCall.dataVersion,
+          requestId: `${requestId}:${toolCall.toolName}-current`,
+          toolCallId: `${toolCall.toolCallId}_current`
+        })),
+        userId,
+        workspaceId
+      };
+    const replayPlan = createResearchRunReplayPlan({
+      currentRun,
+      replayReason:
+        normalizeString(body.replay_reason ?? body.replayReason) ??
+        "release gate saved report replay",
+      requestId: `${requestId}:saved-report-replay`,
+      savedRun
+    });
+    const newbiePlan = createToolLoopAgentPlan({
+      locale,
+      prompt,
+      requestId: `${requestId}:newbie-mode`,
+      requestedTools,
+      responseDepth: "newbie",
+      securityQuery,
+      userId,
+      workspaceId
+    });
+    const professionalPlan = createToolLoopAgentPlan({
+      locale,
+      prompt,
+      requestId: `${requestId}:professional-mode`,
+      requestedTools,
+      responseDepth: "professional",
+      securityQuery,
+      userId,
+      workspaceId
+    });
+    const newbiePresentation = newbiePlan.answer_evidence_contract.presentation;
+    const professionalPresentation =
+      professionalPlan.answer_evidence_contract.presentation;
+    const sameToolPolicy =
+      JSON.stringify(newbiePlan.run_context.toolset.tools.map((tool) => tool.name)) ===
+      JSON.stringify(professionalPlan.run_context.toolset.tools.map((tool) => tool.name));
+    const sameNumericPolicy =
+      JSON.stringify(newbiePlan.numeric_source_guard.allowed_sources) ===
+        JSON.stringify(professionalPlan.numeric_source_guard.allowed_sources) &&
+      JSON.stringify(newbiePlan.numeric_source_guard.blocked_sources) ===
+        JSON.stringify(professionalPlan.numeric_source_guard.blocked_sources);
+    const sameEvidenceContract =
+      JSON.stringify(newbiePlan.answer_evidence_contract.claim_labels) ===
+        JSON.stringify(professionalPlan.answer_evidence_contract.claim_labels) &&
+      JSON.stringify(newbiePlan.answer_evidence_contract.evidence_cards.required_fields) ===
+        JSON.stringify(professionalPlan.answer_evidence_contract.evidence_cards.required_fields);
+    const newbieDepthInvariant = Object.values(
+      newbiePresentation.response_depth_invariant
+    ).every(Boolean);
+    const professionalDepthInvariant = Object.values(
+      professionalPresentation.response_depth_invariant
+    ).every(Boolean);
+    const workflowResumeGate = {
+      capability: getAgentWorkflowTaskCapabilities(),
+      checkpoint_state_table: workflowTask.resume.state_table,
+      disconnect_safe: workflowTask.resume.disconnect_safe,
+      long_task_boundary: workflowTask.long_task_boundary,
+      notification: workflowTask.notification,
+      resume: workflowTask.resume,
+      task_id: workflowTask.task_id,
+      task_id_visible: workflowTask.task_id_visible,
+      workflow: workflowTask.workflow,
+      workflow_task: workflowTask
+    };
+    const savedReportReplayGate = {
+      old_report: replayPlan.old_report,
+      replay_capability: getResearchRuntimeCapabilities(),
+      replay_diff: replayPlan.diff_summary,
+      replay_execution: replayPlan.replay_execution,
+      replay_plan: replayPlan,
+      replay_snapshot_id: replayPlan.replay_snapshot_id,
+      saved_report: savedRun,
+      saved_snapshot_id: replayPlan.saved_snapshot_id,
+      save_replay_seed: savedRun.replay_seed
+    };
+    const modeInvariantGate = {
+      changed_surface: {
+        newbie_response_depth: newbiePresentation.response_depth,
+        professional_response_depth: professionalPresentation.response_depth,
+        response_depth_policy: professionalPresentation.response_depth_policy
+      },
+      localized_response_capability: getAgentRuntimeCapabilities().response_presentation,
+      newbie_plan: {
+        answer_contract: newbiePlan.answer_evidence_contract,
+        requested_tool_names: newbiePlan.run_context.toolset.tools.map((tool) => tool.name),
+        response_depth: newbiePresentation.response_depth
+      },
+      professional_plan: {
+        answer_contract: professionalPlan.answer_evidence_contract,
+        requested_tool_names: professionalPlan.run_context.toolset.tools.map(
+          (tool) => tool.name
+        ),
+        response_depth: professionalPresentation.response_depth
+      },
+      shared_contract: {
+        newbie_depth_invariant: newbieDepthInvariant,
+        professional_depth_invariant: professionalDepthInvariant,
+        response_depth_changes_data: false,
+        same_evidence_contract: sameEvidenceContract,
+        same_numeric_source_policy: sameNumericPolicy,
+        same_tool_policy: sameToolPolicy
+      }
+    };
+    const validation = {
+      checkpoint_state_is_disconnect_safe:
+        workflowTask.resume.disconnect_safe &&
+        workflowTask.resume.state_table === "core.workflow_task_checkpoint",
+      long_task_returns_task_id_and_resume_handle:
+        workflowTask.task_id_visible &&
+        workflowTask.task_id.length > 0 &&
+        workflowTask.resume.resumable &&
+        workflowTask.resume.resume_handle.length > 0,
+      mode_switch_changes_presentation_only:
+        newbiePresentation.response_depth === "newbie" &&
+        professionalPresentation.response_depth === "professional" &&
+        sameToolPolicy &&
+        sameNumericPolicy &&
+        sameEvidenceContract,
+      newbie_professional_depth_preserves_data_contract:
+        newbieDepthInvariant && professionalDepthInvariant,
+      no_frontend_rendering:
+        workflowTask.frontend_rendering === false &&
+        replayPlan.frontend_rendering === false &&
+        newbiePlan.answer_evidence_contract.frontend_rendering === false,
+      no_live_execution:
+        workflowTask.live_workflow_execution === false &&
+        replayPlan.replay_execution.live_model_call === false &&
+        replayPlan.replay_execution.live_tool_execution === false &&
+        newbiePlan.actual_tool_execution === false &&
+        professionalPlan.actual_tool_execution === false,
+      replay_preserves_old_report_snapshot:
+        replayPlan.old_report.immutable_report_snapshot &&
+        replayPlan.old_report.mutation_allowed === false &&
+        replayPlan.old_report.silent_rewrite_allowed === false &&
+        replayPlan.old_report.preserved_snapshot_id === savedRun.snapshot_id,
+      saved_report_has_deterministic_replay_seed:
+        savedRun.replay_seed.deterministic_replay_ready &&
+        savedRun.replay_seed.replay_route === "POST /research/runs/replay/plan" &&
+        savedRun.replay_seed.snapshot_id === savedRun.snapshot_id
+    };
+    const capability = getTaskReplayModeReleaseGateCapabilities();
+    const releaseChecks = capability.required_checks.map((check) => ({
+      check,
+      evidence:
+        check === "long_task_returns_task_id_and_resume_handle"
+          ? "createWorkflowTaskPlan returns task_id, task_id_visible=true, resumable=true, and resume_handle"
+          : check === "long_task_checkpoint_state_is_disconnect_safe"
+            ? "workflow task resume uses core.workflow_task_checkpoint and disconnect_safe=true"
+            : check === "saved_report_has_deterministic_replay_seed"
+              ? "createResearchRunSavePlan returns replay_seed.deterministic_replay_ready=true"
+              : check === "replay_preserves_old_report_snapshot"
+                ? "createResearchRunReplayPlan preserves saved_snapshot_id and blocks mutation/silent rewrite"
+                : check === "newbie_professional_depth_preserves_data_contract"
+                  ? "localized response response_depth_invariant keeps conclusion/data/evidence/source/methodology fields"
+                  : "newbie/professional plans share tool, numeric-source, and evidence contracts",
+      status: "planned_no_write"
+    }));
+    const version = capability.version;
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          actual_tool_execution: false,
+          capability,
+          frontend_rendering: false,
+          live_db_writes: false,
+          live_queue_writes: false,
+          live_tool_execution: false,
+          live_workflow_execution: false,
+          mode_invariant_gate: modeInvariantGate,
+          model_calls: false,
+          persistent_writes: false,
+          release_checks: releaseChecks,
+          release_gate: {
+            blockers: [
+              "live_workflow_resume_execution_missing",
+              "live_replay_job_execution_missing",
+              "frontend_mode_switch_release_ui_missing"
+            ],
+            gate_status: "blocked_live_task_replay_mode_validation",
+            no_live_release_claim: true,
+            required_signoffs: ["product", "agent", "research", "operations"]
+          },
+          request_id: requestId,
+          route: "POST /agent/release-gates/task-replay-mode/plan",
+          saved_report_replay_gate: savedReportReplayGate,
+          sql_emitted: false,
+          status: "planned_no_write",
+          validation,
+          version,
+          workflow_resume_gate: workflowResumeGate
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: version,
+          methodologyVersion: version,
+          provenance: [
+            {
+              data_version: version,
+              methodology_version: version,
+              source: "agent-runtime",
+              source_record_id: "task-replay-mode-release-gate-plan"
+            }
+          ],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: releaseChecks.length
+          }
+        }
+      )
+    );
+  } catch (error) {
+    if (error instanceof AgentRuntimeInputError || error instanceof ResearchRunInputError) {
+      return c.json(
+        createErrorEnvelope("SCOPE_DENIED", error.message, {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "task-replay-mode-release-gate-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }),
+        400
+      );
+    }
+
+    return c.json(
+      createErrorEnvelope(
+        "INTERNAL_ERROR",
+        "task replay mode release gate planning failed",
+        {
+          asOf: new Date().toISOString(),
+          methodologyVersion: "task-replay-mode-release-gate-scaffold-v0",
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }
+      ),
       500
     );
   }

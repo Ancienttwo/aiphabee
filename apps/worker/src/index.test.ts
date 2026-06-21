@@ -2136,6 +2136,26 @@ interface AgentRuntimeBody {
       usage_reservation_route: string;
       version: string;
     };
+    task_replay_mode_release_gate: {
+      actual_tool_execution: boolean;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_queue_writes: boolean;
+      live_tool_execution: boolean;
+      live_workflow_execution: boolean;
+      localized_response_route: string;
+      model_calls: boolean;
+      persistent_writes: boolean;
+      required_checks: string[];
+      research_replay_route: string;
+      research_save_route: string;
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      version: string;
+      workflow_task_route: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -2275,6 +2295,95 @@ interface AgentLabelBudgetReleaseGatePlanBody {
     };
     validation: Record<string, boolean>;
     version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface TaskReplayModeReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_db_writes: boolean;
+    live_queue_writes: boolean;
+    live_tool_execution: boolean;
+    live_workflow_execution: boolean;
+    mode_invariant_gate: {
+      changed_surface: {
+        newbie_response_depth: string;
+        professional_response_depth: string;
+      };
+      localized_response_capability: {
+        response_depth_changes_data: boolean;
+      };
+      shared_contract: {
+        newbie_depth_invariant: boolean;
+        professional_depth_invariant: boolean;
+        response_depth_changes_data: boolean;
+        same_evidence_contract: boolean;
+        same_numeric_source_policy: boolean;
+        same_tool_policy: boolean;
+      };
+    };
+    model_calls: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    saved_report_replay_gate: {
+      old_report: {
+        immutable_report_snapshot: boolean;
+        mutation_allowed: boolean;
+        preserved_snapshot_id: string;
+        silent_rewrite_allowed: boolean;
+      };
+      replay_diff: {
+        changed: boolean;
+        data_changed: boolean;
+      };
+      replay_execution: {
+        execution_status: string;
+        live_model_call: boolean;
+        live_tool_execution: boolean;
+      };
+      replay_snapshot_id: string;
+      saved_snapshot_id: string;
+      save_replay_seed: {
+        deterministic_replay_ready: boolean;
+        replay_route: string;
+        snapshot_id: string;
+      };
+    };
+    status: string;
+    validation: Record<string, boolean>;
+    version: string;
+    workflow_resume_gate: {
+      checkpoint_state_table: string;
+      disconnect_safe: boolean;
+      resume: {
+        resume_handle: string;
+        resume_route: string;
+        resumable: boolean;
+      };
+      task_id: string;
+      task_id_visible: boolean;
+      workflow: {
+        binding: string;
+        start_status: string;
+      };
+    };
   };
   ok: true;
   usage: {
@@ -8039,6 +8148,33 @@ describe("worker runtime", () => {
       "high_cost_task_requires_confirmation_before_enqueue",
       "high_cost_usage_reservation_pre_debit_and_refund"
     ]);
+    expect(body.data.task_replay_mode_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      localized_response_route: "POST /agent/runs/plan",
+      model_calls: false,
+      persistent_writes: false,
+      research_replay_route: "POST /research/runs/replay/plan",
+      research_save_route: "POST /research/runs/save/plan",
+      route: "POST /agent/release-gates/task-replay-mode/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "task_replay_mode_release_gate_scaffold",
+      version: "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0",
+      workflow_task_route: "POST /agent/workflows/tasks/plan"
+    });
+    expect(body.data.task_replay_mode_release_gate.required_checks).toEqual([
+      "long_task_returns_task_id_and_resume_handle",
+      "long_task_checkpoint_state_is_disconnect_safe",
+      "saved_report_has_deterministic_replay_seed",
+      "replay_preserves_old_report_snapshot",
+      "newbie_professional_depth_preserves_data_contract",
+      "mode_switch_changes_presentation_only"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -8284,6 +8420,134 @@ describe("worker runtime", () => {
       pre_debit_planned_after_confirmation: true,
       unknown_label_requires_missing_reason: true,
       user_confirmation_blocks_enqueue_until_present: true
+    });
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans task replay mode release gate without live workflow or replay execution", async () => {
+    const response = await app.request("/agent/release-gates/task-replay-mode/plan", {
+      body: JSON.stringify({
+        locale: "zh-Hant",
+        prompt: "用新手和专业模式解释 00700.HK 的收入、自由现金流和 ROE",
+        security_query: "00700.HK",
+        user_id: "user_internal_alpha",
+        workflow_kind: "deep_report",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-task-replay-mode-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as TaskReplayModeReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/task-replay-mode/plan",
+        status: "task_replay_mode_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_queue_writes: false,
+      live_tool_execution: false,
+      live_workflow_execution: false,
+      model_calls: false,
+      release_gate: {
+        gate_status: "blocked_live_task_replay_mode_validation",
+        no_live_release_claim: true,
+        required_signoffs: ["product", "agent", "research", "operations"]
+      },
+      status: "planned_no_write",
+      version: "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0"
+    });
+    expect(body.data.workflow_resume_gate).toMatchObject({
+      checkpoint_state_table: "core.workflow_task_checkpoint",
+      disconnect_safe: true,
+      resume: {
+        resume_route: "GET /agent/workflows/tasks/:task_id",
+        resumable: true
+      },
+      task_id_visible: true,
+      workflow: {
+        binding: "AIPHABEE_RESEARCH_WORKFLOW",
+        start_status: "not_started"
+      }
+    });
+    expect(body.data.workflow_resume_gate.task_id).toContain(
+      "workflow_task_req_task_replay_mode_gate_route_workflow_resume_deep_report"
+    );
+    expect(body.data.workflow_resume_gate.resume.resume_handle).toContain(
+      body.data.workflow_resume_gate.task_id
+    );
+    expect(body.data.saved_report_replay_gate).toMatchObject({
+      old_report: {
+        immutable_report_snapshot: true,
+        mutation_allowed: false,
+        silent_rewrite_allowed: false
+      },
+      replay_diff: {
+        changed: true,
+        data_changed: true
+      },
+      replay_execution: {
+        execution_status: "planned_no_write",
+        live_model_call: false,
+        live_tool_execution: false
+      },
+      save_replay_seed: {
+        deterministic_replay_ready: true,
+        replay_route: "POST /research/runs/replay/plan"
+      }
+    });
+    expect(body.data.saved_report_replay_gate.old_report.preserved_snapshot_id).toBe(
+      body.data.saved_report_replay_gate.saved_snapshot_id
+    );
+    expect(body.data.saved_report_replay_gate.save_replay_seed.snapshot_id).toBe(
+      body.data.saved_report_replay_gate.saved_snapshot_id
+    );
+    expect(body.data.saved_report_replay_gate.replay_snapshot_id).not.toBe(
+      body.data.saved_report_replay_gate.saved_snapshot_id
+    );
+    expect(body.data.mode_invariant_gate.changed_surface).toMatchObject({
+      newbie_response_depth: "newbie",
+      professional_response_depth: "professional"
+    });
+    expect(body.data.mode_invariant_gate.localized_response_capability).toMatchObject({
+      response_depth_changes_data: false
+    });
+    expect(body.data.mode_invariant_gate.shared_contract).toEqual({
+      newbie_depth_invariant: true,
+      professional_depth_invariant: true,
+      response_depth_changes_data: false,
+      same_evidence_contract: true,
+      same_numeric_source_policy: true,
+      same_tool_policy: true
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "long_task_returns_task_id_and_resume_handle",
+      "long_task_checkpoint_state_is_disconnect_safe",
+      "saved_report_has_deterministic_replay_seed",
+      "replay_preserves_old_report_snapshot",
+      "newbie_professional_depth_preserves_data_contract",
+      "mode_switch_changes_presentation_only"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      checkpoint_state_is_disconnect_safe: true,
+      long_task_returns_task_id_and_resume_handle: true,
+      mode_switch_changes_presentation_only: true,
+      newbie_professional_depth_preserves_data_contract: true,
+      no_frontend_rendering: true,
+      no_live_execution: true,
+      replay_preserves_old_report_snapshot: true,
+      saved_report_has_deterministic_replay_seed: true
     });
     expect(body.usage.rows).toBe(6);
   });

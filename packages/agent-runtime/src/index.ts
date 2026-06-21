@@ -38,6 +38,8 @@ export const PRODUCT_AGENT_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.product-agent-release-gate-scaffold.v0";
 export const AGENT_LABEL_BUDGET_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.agent-label-budget-release-gate-scaffold.v0";
+export const TASK_REPLAY_MODE_RELEASE_GATE_VERSION =
+  "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 
 export const AGENT_RUNTIME_LIMITS = {
@@ -93,6 +95,18 @@ export const AGENT_LABEL_BUDGET_RELEASE_GATE_TABLES = [
   "core.agent_label_budget_release_gate",
   "governance.agent_label_budget_release_gate_contract"
 ] as const;
+export const TASK_REPLAY_MODE_RELEASE_GATE_CHECKS = [
+  "long_task_returns_task_id_and_resume_handle",
+  "long_task_checkpoint_state_is_disconnect_safe",
+  "saved_report_has_deterministic_replay_seed",
+  "replay_preserves_old_report_snapshot",
+  "newbie_professional_depth_preserves_data_contract",
+  "mode_switch_changes_presentation_only"
+] as const;
+export const TASK_REPLAY_MODE_RELEASE_GATE_TABLES = [
+  "core.task_replay_mode_release_gate",
+  "governance.task_replay_mode_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -103,6 +117,8 @@ export type ProductAgentReleaseGateCheck =
 export type ProductAgentReleaseGateStatus = "planned_no_write";
 export type AgentLabelBudgetReleaseGateCheck =
   (typeof AGENT_LABEL_BUDGET_RELEASE_GATE_CHECKS)[number];
+export type TaskReplayModeReleaseGateCheck =
+  (typeof TASK_REPLAY_MODE_RELEASE_GATE_CHECKS)[number];
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -190,6 +206,28 @@ export interface AgentLabelBudgetReleaseGateCapabilities {
   tool_loop_route: "POST /agent/runs/plan";
   usage_reservation_route: "POST /usage/high-cost/reservation/plan";
   version: typeof AGENT_LABEL_BUDGET_RELEASE_GATE_VERSION;
+}
+
+export interface TaskReplayModeReleaseGateCapabilities {
+  actual_tool_execution: false;
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_queue_writes: false;
+  live_tool_execution: false;
+  live_workflow_execution: false;
+  localized_response_route: "POST /agent/runs/plan";
+  model_calls: false;
+  persistent_writes: false;
+  required_checks: typeof TASK_REPLAY_MODE_RELEASE_GATE_CHECKS;
+  research_replay_route: "POST /research/runs/replay/plan";
+  research_save_route: "POST /research/runs/save/plan";
+  route: "POST /agent/release-gates/task-replay-mode/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "task_replay_mode_release_gate_scaffold";
+  tables: typeof TASK_REPLAY_MODE_RELEASE_GATE_TABLES;
+  version: typeof TASK_REPLAY_MODE_RELEASE_GATE_VERSION;
+  workflow_task_route: "POST /agent/workflows/tasks/plan";
 }
 
 export interface AgentRuntimeCapabilities {
@@ -337,6 +375,7 @@ export interface AgentRuntimeCapabilities {
   };
   product_agent_release_gate: ProductAgentReleaseGateCapabilities;
   agent_label_budget_release_gate: AgentLabelBudgetReleaseGateCapabilities;
+  task_replay_mode_release_gate: TaskReplayModeReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -1466,6 +1505,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     workflow_tasks: getAgentWorkflowTaskCapabilities(),
     product_agent_release_gate: getProductAgentReleaseGateCapabilities(),
     agent_label_budget_release_gate: getAgentLabelBudgetReleaseGateCapabilities(),
+    task_replay_mode_release_gate: getTaskReplayModeReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -1499,6 +1539,30 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       mcp_redistribution: false,
       model_calls: false
     }
+  };
+}
+
+export function getTaskReplayModeReleaseGateCapabilities(): TaskReplayModeReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_queue_writes: false,
+    live_tool_execution: false,
+    live_workflow_execution: false,
+    localized_response_route: "POST /agent/runs/plan",
+    model_calls: false,
+    persistent_writes: false,
+    required_checks: TASK_REPLAY_MODE_RELEASE_GATE_CHECKS,
+    research_replay_route: "POST /research/runs/replay/plan",
+    research_save_route: "POST /research/runs/save/plan",
+    route: "POST /agent/release-gates/task-replay-mode/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "task_replay_mode_release_gate_scaffold",
+    tables: TASK_REPLAY_MODE_RELEASE_GATE_TABLES,
+    version: TASK_REPLAY_MODE_RELEASE_GATE_VERSION,
+    workflow_task_route: "POST /agent/workflows/tasks/plan"
   };
 }
 
