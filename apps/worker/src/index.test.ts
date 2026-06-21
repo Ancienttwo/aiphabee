@@ -183,6 +183,15 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    high_cost_analytics_queue: {
+      high_cost_threshold: number;
+      independent_concurrency_pool: boolean;
+      max_parallel_high_cost: number;
+      queue_name: string;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     percentile_comparison: {
       benchmark_types: string[];
       formula_version: string;
@@ -210,6 +219,47 @@ interface AnalyticsRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface HighCostAnalyticsPlanBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    cost_estimate: {
+      credit_weight: number;
+      high_cost_threshold: number;
+      rows_estimate: number;
+    };
+    durable_queue_writes: boolean;
+    enqueue_plan: {
+      planned_task_id?: string;
+      queue_key?: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    scheduling_decision: {
+      concurrency_pool: string;
+      independent_pool_required: boolean;
+      max_parallel: number;
+      queue_name?: string;
+      queue_required: boolean;
+    };
+    status: string;
+    toolName: string;
+    usage_policy: {
+      failure_refund_required: boolean;
+      pre_debit_required: boolean;
+      user_confirmed: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface PercentileComparisonBody {
@@ -2002,6 +2052,15 @@ describe("worker runtime", () => {
       status: "financial_ratios_scaffold",
       tool_name: "get_financial_ratios"
     });
+    expect(body.data.high_cost_analytics_queue).toMatchObject({
+      high_cost_threshold: 8,
+      independent_concurrency_pool: true,
+      max_parallel_high_cost: 2,
+      queue_name: "analytics-high-cost",
+      route: "POST /analytics/high-cost/plan",
+      status: "high_cost_analytics_queue_scaffold",
+      tool_name: "plan_high_cost_analytics"
+    });
     expect(body.data.percentile_comparison).toMatchObject({
       benchmark_types: ["peer", "index", "history"],
       formula_version: "percentile-comparison-v0",
@@ -2022,6 +2081,87 @@ describe("worker runtime", () => {
       route: "POST /analytics/screen-securities",
       status: "screen_securities_scaffold",
       tool_name: "screen_securities"
+    });
+  });
+
+  it("plans high-cost analytics into an independent pool after confirmation", async () => {
+    const response = await app.request("/analytics/high-cost/plan", {
+      body: JSON.stringify({
+        securities: ["00700.HK", "00001.HK", "00005.HK", "00011.HK", "00012.HK"],
+        tool_name: "compare_securities",
+        user_confirmed: true
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-high-cost-compare"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HighCostAnalyticsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      durable_queue_writes: false,
+      frontend_rendering: false,
+      live_data_access: false,
+      status: "queued_planned",
+      toolName: "plan_high_cost_analytics"
+    });
+    expect(body.data.cost_estimate).toMatchObject({
+      credit_weight: 8,
+      high_cost_threshold: 8,
+      rows_estimate: 5
+    });
+    expect(body.data.scheduling_decision).toMatchObject({
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      max_parallel: 2,
+      queue_name: "analytics-high-cost",
+      queue_required: true
+    });
+    expect(body.data.enqueue_plan).toMatchObject({
+      planned_task_id: "planned_compare_securities_req-high-cost-compare:compare_securities",
+      status: "would_enqueue"
+    });
+    expect(body.data.usage_policy).toMatchObject({
+      failure_refund_required: true,
+      pre_debit_required: true,
+      user_confirmed: true
+    });
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("requires confirmation before queueing high-cost screen plans", async () => {
+    const response = await app.request("/analytics/high-cost/plan", {
+      body: JSON.stringify({
+        tool_name: "screen_securities",
+        universe_size: 500,
+        user_confirmed: false
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-high-cost-screen"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HighCostAnalyticsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("confirmation_required");
+    expect(body.data.cost_estimate).toMatchObject({
+      credit_weight: 13,
+      rows_estimate: 500
+    });
+    expect(body.data.scheduling_decision).toMatchObject({
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      queue_required: true
+    });
+    expect(body.data.enqueue_plan).toMatchObject({
+      queue_key: "analytics-high-cost:screen_securities:req-high-cost-screen:screen_securities",
+      status: "awaiting_confirmation"
     });
   });
 

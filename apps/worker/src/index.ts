@@ -25,10 +25,12 @@ import {
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getHighCostAnalyticsQueueCapabilities,
   getPercentileComparisonCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   screenSecurities,
+  planHighCostAnalyticsQueue,
   type PercentileBenchmarkType,
   type PercentileMetricId,
   type ScreenSecuritiesCondition
@@ -702,6 +704,7 @@ app.get("/analytics/runtime", (c) => {
   const financialRatiosCapability = getFinancialRatiosCapabilities();
   const returnsRiskCapability = getReturnsRiskCapabilities();
   const percentileComparisonCapability = getPercentileComparisonCapabilities();
+  const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
 
   return c.json(
     createSuccessEnvelope(
@@ -709,6 +712,7 @@ app.get("/analytics/runtime", (c) => {
         package: "@aiphabee/analytics-tools",
         compare_securities: capability,
         financial_ratios: financialRatiosCapability,
+        high_cost_analytics_queue: highCostAnalyticsQueueCapability,
         percentile_comparison: percentileComparisonCapability,
         returns_risk: returnsRiskCapability,
         screen_securities: screenCapability,
@@ -720,7 +724,8 @@ app.get("/analytics/runtime", (c) => {
           screenCapability.route,
           financialRatiosCapability.route,
           returnsRiskCapability.route,
-          percentileComparisonCapability.route
+          percentileComparisonCapability.route,
+          highCostAnalyticsQueueCapability.route
         ],
         status: "analytics_tools_scaffold"
       },
@@ -742,6 +747,46 @@ app.get("/analytics/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.post("/analytics/high-cost/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = planHighCostAnalyticsQueue({
+    metricCount: normalizeOptionalInteger(body.metric_count ?? body.metricCount),
+    requestId,
+    securities: normalizeStringArray(body.securities),
+    toolName: normalizeString(body.tool_name ?? body.toolName),
+    universeSize: normalizeOptionalInteger(body.universe_size ?? body.universeSize),
+    userConfirmed: normalizeOptionalBoolean(body.user_confirmed ?? body.userConfirmed)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getHighCostAnalyticsQueueCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: [
+          {
+            data_version: plan.data_version,
+            methodology_version: plan.methodology_version,
+            source: "analytics-high-cost-plan",
+            source_record_id: "high-cost-analytics-queue"
+          }
+        ],
+        requestId,
+        usage: plan.usage
       }
     )
   );

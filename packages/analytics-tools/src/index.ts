@@ -29,6 +29,8 @@ export const RETURNS_RISK_VERSION =
   "2026-06-21.phase2.returns-risk-scaffold.v0";
 export const PERCENTILE_COMPARISON_VERSION =
   "2026-06-21.phase2.percentile-comparison-scaffold.v0";
+export const HIGH_COST_ANALYTICS_QUEUE_VERSION =
+  "2026-06-21.phase2.high-cost-analytics-queue-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -397,6 +399,77 @@ export interface PercentileComparisonResult {
   };
 }
 
+export type HighCostAnalyticsToolName = "compare_securities" | "screen_securities";
+export type HighCostAnalyticsPlanStatus =
+  | "confirmation_required"
+  | "inline_allowed"
+  | "queued_planned"
+  | "unsupported_tool";
+
+export interface HighCostAnalyticsQueueInput {
+  metricCount?: number;
+  requestId: string;
+  securities?: string[];
+  toolName?: string;
+  universeSize?: number;
+  userConfirmed?: boolean;
+}
+
+export interface HighCostAnalyticsQueuePlanResult {
+  as_of: string;
+  cost_estimate: {
+    credit_weight: number;
+    high_cost_threshold: typeof HIGH_COST_ANALYTICS_THRESHOLD;
+    reason_codes: string[];
+    rows_estimate: number;
+    source: "deterministic_scaffold";
+    tool_weight_range?: {
+      max: number;
+      min: number;
+    };
+  };
+  data_version: typeof HIGH_COST_ANALYTICS_QUEUE_VERSION;
+  durable_queue_writes: false;
+  enqueue_plan: {
+    idempotency_key: string;
+    planned_task_id?: string;
+    queue_key?: string;
+    retry_policy: {
+      max_attempts: 2;
+      retryable_errors: readonly ["timeout", "rate_limited", "transient_provider_error"];
+    };
+    status: "awaiting_confirmation" | "not_required" | "unsupported_tool" | "would_enqueue";
+  };
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof HIGH_COST_ANALYTICS_QUEUE_VERSION;
+  scheduling_decision: {
+    analytics_tool_name?: HighCostAnalyticsToolName;
+    concurrency_pool: "analytics_high_cost" | "analytics_standard" | "unsupported";
+    independent_pool_required: boolean;
+    inline_allowed: boolean;
+    max_parallel: number;
+    ordinary_pool_protected: true;
+    queue_name?: "analytics-high-cost";
+    queue_required: boolean;
+  };
+  sql_emitted: false;
+  status: HighCostAnalyticsPlanStatus;
+  toolName: "plan_high_cost_analytics";
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  usage_policy: {
+    failure_refund_required: boolean;
+    pre_debit_required: boolean;
+    requires_confirmation_before_enqueue: boolean;
+    usage_ledger_link_required: true;
+    user_confirmed: boolean;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -422,6 +495,23 @@ const DEFAULT_PERCENTILE_METRIC_ID: PercentileMetricId = "net_margin";
 const PERCENTILE_COMPARISON_FORMULA_VERSION = "percentile-comparison-v0";
 const DEFAULT_SCREEN_UNIVERSE = ["00700.HK", "08001.HK", "00001.HK"];
 const FINANCIAL_RATIO_FORMULA_VERSION = "financial-ratios-v0";
+const HIGH_COST_ANALYTICS_THRESHOLD = 8;
+const HIGH_COST_ANALYTICS_MAX_PARALLEL = 2;
+const STANDARD_ANALYTICS_MAX_PARALLEL = 8;
+const HIGH_COST_ANALYTICS_QUEUE_ROUTE = "POST /analytics/high-cost/plan";
+const HIGH_COST_ANALYTICS_TOOL_WEIGHTS: Record<
+  HighCostAnalyticsToolName,
+  { max: number; min: number }
+> = {
+  compare_securities: {
+    max: 15,
+    min: 5
+  },
+  screen_securities: {
+    max: 20,
+    min: 8
+  }
+};
 const REQUIRED_FINANCIAL_METRICS: FinancialFactMetric[] = [
   "revenue",
   "net_income",
@@ -634,11 +724,14 @@ export function getCompareSecuritiesCapabilities() {
   return {
     allow_fx_conversion_without_rate: false,
     frontend_rendering: false,
+    high_cost_queueing: true,
+    high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
     live_data_access: false,
     max_securities: 5,
     metrics: REQUIRED_FINANCIAL_METRICS,
     min_securities: 2,
     package: "@aiphabee/analytics-tools" as const,
+    queue_route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
     route: "POST /analytics/compare-securities" as const,
     status: "compare_securities_scaffold" as const,
     tool_name: "compare_securities" as const,
@@ -650,11 +743,14 @@ export function getScreenSecuritiesCapabilities() {
   return {
     editable_conditions: true,
     frontend_rendering: false,
+    high_cost_queueing: true,
+    high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
     live_data_access: false,
     package: "@aiphabee/analytics-tools" as const,
     preview_execution: true,
     point_in_time_guard: true,
     prevents_future_classification: true,
+    queue_route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
     requires_confirmation_before_live_execution: true,
     route: "POST /analytics/screen-securities" as const,
     status: "screen_securities_scaffold" as const,
@@ -716,6 +812,31 @@ export function getPercentileComparisonCapabilities() {
   };
 }
 
+export function getHighCostAnalyticsQueueCapabilities() {
+  return {
+    durable_queue_writes: false,
+    frontend_rendering: false,
+    high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+    independent_concurrency_pool: true,
+    live_data_access: false,
+    max_parallel_high_cost: HIGH_COST_ANALYTICS_MAX_PARALLEL,
+    ordinary_pool_protected: true,
+    package: "@aiphabee/analytics-tools" as const,
+    queue_name: "analytics-high-cost" as const,
+    route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
+    status: "high_cost_analytics_queue_scaffold" as const,
+    supported_tools: ["screen_securities", "compare_securities"] as const,
+    tool_name: "plan_high_cost_analytics" as const,
+    usage_policy: {
+      failure_refund_required: true,
+      pre_debit_required: true,
+      requires_confirmation_before_enqueue: true,
+      usage_ledger_link_required: true
+    },
+    version: HIGH_COST_ANALYTICS_QUEUE_VERSION
+  };
+}
+
 export function compareSecurities(input: CompareSecuritiesInput): CompareSecuritiesResult {
   const requestedSecurities = input.securities
     .map((security) => security.trim())
@@ -773,6 +894,101 @@ export function compareSecurities(input: CompareSecuritiesInput): CompareSecurit
         (rows.length > 0 ? 1 : 0),
       rows: surfaces.reduce((sum, surface) => sum + createSurfaceRows(surface), 0) + rows.length
     }
+  };
+}
+
+export function planHighCostAnalyticsQueue(
+  input: HighCostAnalyticsQueueInput
+): HighCostAnalyticsQueuePlanResult {
+  const asOf = "2026-01-07T16:15:00+08:00";
+  const analyticsToolName = normalizeHighCostAnalyticsToolName(input.toolName);
+  const idempotencyKey = createAnalyticsQueueIdempotencyKey(input.requestId, input.toolName);
+
+  if (analyticsToolName === undefined) {
+    return {
+      as_of: asOf,
+      cost_estimate: {
+        credit_weight: 0,
+        high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+        reason_codes: ["unsupported_analytics_tool"],
+        rows_estimate: 0,
+        source: "deterministic_scaffold"
+      },
+      data_version: HIGH_COST_ANALYTICS_QUEUE_VERSION,
+      durable_queue_writes: false,
+      enqueue_plan: {
+        idempotency_key: idempotencyKey,
+        retry_policy: createHighCostAnalyticsRetryPolicy(),
+        status: "unsupported_tool"
+      },
+      frontend_rendering: false,
+      live_data_access: false,
+      methodology_version: HIGH_COST_ANALYTICS_QUEUE_VERSION,
+      scheduling_decision: {
+        concurrency_pool: "unsupported",
+        independent_pool_required: false,
+        inline_allowed: false,
+        max_parallel: 0,
+        ordinary_pool_protected: true,
+        queue_required: false
+      },
+      sql_emitted: false,
+      status: "unsupported_tool",
+      toolName: "plan_high_cost_analytics",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      },
+      usage_policy: createHighCostAnalyticsUsagePolicy(input.userConfirmed)
+    };
+  }
+
+  const costEstimate = estimateHighCostAnalyticsCost(analyticsToolName, input);
+  const queueRequired = costEstimate.credit_weight >= HIGH_COST_ANALYTICS_THRESHOLD;
+  const userConfirmed = input.userConfirmed === true;
+  const status: HighCostAnalyticsPlanStatus = queueRequired
+    ? userConfirmed
+      ? "queued_planned"
+      : "confirmation_required"
+    : "inline_allowed";
+
+  return {
+    as_of: asOf,
+    cost_estimate: costEstimate,
+    data_version: HIGH_COST_ANALYTICS_QUEUE_VERSION,
+    durable_queue_writes: false,
+    enqueue_plan: createHighCostAnalyticsEnqueuePlan({
+      analyticsToolName,
+      idempotencyKey,
+      queueRequired,
+      status,
+      userConfirmed
+    }),
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: HIGH_COST_ANALYTICS_QUEUE_VERSION,
+    scheduling_decision: {
+      analytics_tool_name: analyticsToolName,
+      concurrency_pool: queueRequired ? "analytics_high_cost" : "analytics_standard",
+      independent_pool_required: queueRequired,
+      inline_allowed: !queueRequired,
+      max_parallel: queueRequired
+        ? HIGH_COST_ANALYTICS_MAX_PARALLEL
+        : STANDARD_ANALYTICS_MAX_PARALLEL,
+      ordinary_pool_protected: true,
+      queue_name: queueRequired ? "analytics-high-cost" : undefined,
+      queue_required: queueRequired
+    },
+    sql_emitted: false,
+    status,
+    toolName: "plan_high_cost_analytics",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: 1
+    },
+    usage_policy: createHighCostAnalyticsUsagePolicy(input.userConfirmed)
   };
 }
 
@@ -1928,6 +2144,116 @@ function getPercentileSubjectSourceTool(
   metricId: PercentileMetricId
 ): PercentileSubjectMetric["source_tool"] {
   return metricId === "net_margin" ? "get_financial_ratios" : "calculate_returns_risk";
+}
+
+function normalizeHighCostAnalyticsToolName(
+  value: string | undefined
+): HighCostAnalyticsToolName | undefined {
+  return value === "compare_securities" || value === "screen_securities" ? value : undefined;
+}
+
+function estimateHighCostAnalyticsCost(
+  toolName: HighCostAnalyticsToolName,
+  input: HighCostAnalyticsQueueInput
+): HighCostAnalyticsQueuePlanResult["cost_estimate"] {
+  const toolWeightRange = HIGH_COST_ANALYTICS_TOOL_WEIGHTS[toolName];
+  const metricCount = clampPositiveInteger(input.metricCount, 1);
+
+  if (toolName === "screen_securities") {
+    const universeSize = clampPositiveInteger(input.universeSize, DEFAULT_SCREEN_UNIVERSE.length);
+    const universeWeight = Math.ceil(universeSize / 100);
+    const creditWeight = Math.min(toolWeightRange.max, toolWeightRange.min + universeWeight);
+
+    return {
+      credit_weight: creditWeight,
+      high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+      reason_codes: [
+        "prd_screen_securities_weight_8_20",
+        "screening_uses_independent_pool"
+      ],
+      rows_estimate: universeSize,
+      source: "deterministic_scaffold",
+      tool_weight_range: toolWeightRange
+    };
+  }
+
+  const securityCount = Math.max(input.securities?.length ?? 0, 2);
+  const breadthWeight = Math.max(0, securityCount - 2);
+  const metricWeight = Math.max(0, metricCount - REQUIRED_FINANCIAL_METRICS.length);
+  const creditWeight = Math.min(
+    toolWeightRange.max,
+    toolWeightRange.min + breadthWeight + metricWeight
+  );
+
+  return {
+    credit_weight: creditWeight,
+    high_cost_threshold: HIGH_COST_ANALYTICS_THRESHOLD,
+    reason_codes:
+      creditWeight >= HIGH_COST_ANALYTICS_THRESHOLD
+        ? ["prd_compare_securities_weight_5_15", "large_comparison_uses_independent_pool"]
+        : ["prd_compare_securities_weight_5_15", "small_comparison_can_use_standard_pool"],
+    rows_estimate: securityCount,
+    source: "deterministic_scaffold",
+    tool_weight_range: toolWeightRange
+  };
+}
+
+function createHighCostAnalyticsEnqueuePlan(input: {
+  analyticsToolName: HighCostAnalyticsToolName;
+  idempotencyKey: string;
+  queueRequired: boolean;
+  status: HighCostAnalyticsPlanStatus;
+  userConfirmed: boolean;
+}): HighCostAnalyticsQueuePlanResult["enqueue_plan"] {
+  if (!input.queueRequired) {
+    return {
+      idempotency_key: input.idempotencyKey,
+      retry_policy: createHighCostAnalyticsRetryPolicy(),
+      status: "not_required"
+    };
+  }
+
+  const queueKey = `analytics-high-cost:${input.analyticsToolName}:${input.idempotencyKey}`;
+
+  return {
+    idempotency_key: input.idempotencyKey,
+    planned_task_id: input.userConfirmed
+      ? `planned_${input.analyticsToolName}_${input.idempotencyKey}`
+      : undefined,
+    queue_key: queueKey,
+    retry_policy: createHighCostAnalyticsRetryPolicy(),
+    status: input.status === "confirmation_required" ? "awaiting_confirmation" : "would_enqueue"
+  };
+}
+
+function createHighCostAnalyticsUsagePolicy(
+  userConfirmed: boolean | undefined
+): HighCostAnalyticsQueuePlanResult["usage_policy"] {
+  return {
+    failure_refund_required: true,
+    pre_debit_required: true,
+    requires_confirmation_before_enqueue: true,
+    usage_ledger_link_required: true,
+    user_confirmed: userConfirmed === true
+  };
+}
+
+function createHighCostAnalyticsRetryPolicy(): HighCostAnalyticsQueuePlanResult["enqueue_plan"]["retry_policy"] {
+  return {
+    max_attempts: 2,
+    retryable_errors: ["timeout", "rate_limited", "transient_provider_error"]
+  };
+}
+
+function createAnalyticsQueueIdempotencyKey(
+  requestId: string,
+  toolName: string | undefined
+): string {
+  return `${requestId}:${toolName ?? "unsupported"}`.replaceAll(/[^A-Za-z0-9:_-]/gu, "_");
+}
+
+function clampPositiveInteger(value: number | undefined, fallback: number): number {
+  return value === undefined || !Number.isInteger(value) || value < 1 ? fallback : value;
 }
 
 function createScreenPointInTimeGuard(

@@ -118,7 +118,7 @@ DoD.
 | MCP-07 usage/剩余/request_id | AIP-P0-MCP-07 | Platform Engineering / Billing | 2.3 | Usage envelope reconciliation tests | Sprint 2.3 exit: calls expose usage and request IDs | Contract scaffold started; runtime ledger pending |
 | MCP-08 标准错误码 | AIP-P0-MCP-08 | Platform Engineering | 1.2 / 2.3 | Error envelope contract tests | Sprint 2.3 exit: clients distinguish auth/right/limit/data/system errors | Contract scaffold started; tool integration pending |
 | MCP-09 Developer Console | AIP-P0-MCP-09 | Product Engineering / Platform | 2.3 | Console first-call smoke tests | Sprint 2.3 exit: target client first call median below 10 minutes | Not started |
-| MCP-11 工具级速率/并发/预算 | AIP-P0-MCP-11 | Platform Engineering / Billing | 2.3 | Rate/concurrency/budget limiter tests | Sprint 2.3 exit: high-cost tools cannot starve normal queries | Not started |
+| MCP-11 工具级速率/并发/预算 | AIP-P0-MCP-11 | Platform Engineering / Billing | 2.3 | Rate/concurrency/budget limiter tests | Sprint 2.3 exit: high-cost tools cannot starve normal queries | Analytics high-cost pool planner scaffold complete for `screen_securities` / `compare_securities`; live MCP limiter, queue writes, and ledger debits pending |
 | MCP-12 兼容性测试/状态页 | AIP-P0-MCP-12 | Platform Engineering / Developer Relations | 2.3 / 3.2 | MCP Inspector and status page smoke tests | Sprint 3.2 exit: protocol compatibility and status are public | Not started |
 
 ## Data Governance

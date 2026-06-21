@@ -6,9 +6,11 @@ import {
   getCompareSecuritiesCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
+  getHighCostAnalyticsQueueCapabilities,
   getPercentileComparisonCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
+  planHighCostAnalyticsQueue,
   screenSecurities
 } from "./index";
 
@@ -17,10 +19,13 @@ describe("compare securities scaffold", () => {
     expect(getCompareSecuritiesCapabilities()).toMatchObject({
       allow_fx_conversion_without_rate: false,
       frontend_rendering: false,
+      high_cost_queueing: true,
+      high_cost_threshold: 8,
       live_data_access: false,
       max_securities: 5,
       min_securities: 2,
       package: "@aiphabee/analytics-tools",
+      queue_route: "POST /analytics/high-cost/plan",
       route: "POST /analytics/compare-securities",
       status: "compare_securities_scaffold",
       tool_name: "compare_securities"
@@ -105,10 +110,13 @@ describe("compare securities scaffold", () => {
     expect(getScreenSecuritiesCapabilities()).toMatchObject({
       editable_conditions: true,
       frontend_rendering: false,
+      high_cost_queueing: true,
+      high_cost_threshold: 8,
       live_data_access: false,
       point_in_time_guard: true,
       preview_execution: true,
       prevents_future_classification: true,
+      queue_route: "POST /analytics/high-cost/plan",
       requires_confirmation_before_live_execution: true,
       route: "POST /analytics/screen-securities",
       status: "screen_securities_scaffold",
@@ -243,6 +251,112 @@ describe("compare securities scaffold", () => {
     expect(result.status).toBe("unsupported_query");
     expect(result.parsed_conditions).toEqual([]);
     expect(result.execution_preview.hit_count).toBe(0);
+  });
+
+  it("reports high-cost analytics queue capabilities", () => {
+    expect(getHighCostAnalyticsQueueCapabilities()).toMatchObject({
+      durable_queue_writes: false,
+      high_cost_threshold: 8,
+      independent_concurrency_pool: true,
+      max_parallel_high_cost: 2,
+      ordinary_pool_protected: true,
+      queue_name: "analytics-high-cost",
+      route: "POST /analytics/high-cost/plan",
+      status: "high_cost_analytics_queue_scaffold",
+      supported_tools: ["screen_securities", "compare_securities"],
+      tool_name: "plan_high_cost_analytics",
+      usage_policy: {
+        failure_refund_required: true,
+        pre_debit_required: true,
+        requires_confirmation_before_enqueue: true,
+        usage_ledger_link_required: true
+      }
+    });
+  });
+
+  it("requires confirmation before queueing high-cost screens", () => {
+    const result = planHighCostAnalyticsQueue({
+      requestId: "req_high_cost_screen",
+      toolName: "screen_securities",
+      universeSize: 500,
+      userConfirmed: false
+    });
+
+    expect(result).toMatchObject({
+      durable_queue_writes: false,
+      frontend_rendering: false,
+      live_data_access: false,
+      status: "confirmation_required",
+      toolName: "plan_high_cost_analytics"
+    });
+    expect(result.cost_estimate).toMatchObject({
+      credit_weight: 13,
+      high_cost_threshold: 8,
+      rows_estimate: 500,
+      tool_weight_range: {
+        max: 20,
+        min: 8
+      }
+    });
+    expect(result.scheduling_decision).toMatchObject({
+      analytics_tool_name: "screen_securities",
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      ordinary_pool_protected: true,
+      queue_name: "analytics-high-cost",
+      queue_required: true
+    });
+    expect(result.enqueue_plan).toMatchObject({
+      queue_key: "analytics-high-cost:screen_securities:req_high_cost_screen:screen_securities",
+      status: "awaiting_confirmation"
+    });
+    expect(result.usage_policy).toMatchObject({
+      failure_refund_required: true,
+      pre_debit_required: true,
+      user_confirmed: false
+    });
+  });
+
+  it("plans confirmed large comparisons into the high-cost pool", () => {
+    const result = planHighCostAnalyticsQueue({
+      metricCount: 4,
+      requestId: "req_high_cost_compare",
+      securities: ["00700.HK", "00001.HK", "00005.HK", "00011.HK", "00012.HK"],
+      toolName: "compare_securities",
+      userConfirmed: true
+    });
+
+    expect(result.status).toBe("queued_planned");
+    expect(result.cost_estimate.credit_weight).toBe(8);
+    expect(result.scheduling_decision).toMatchObject({
+      concurrency_pool: "analytics_high_cost",
+      independent_pool_required: true,
+      queue_required: true
+    });
+    expect(result.enqueue_plan).toMatchObject({
+      planned_task_id: "planned_compare_securities_req_high_cost_compare:compare_securities",
+      status: "would_enqueue"
+    });
+    expect(result.usage_policy.user_confirmed).toBe(true);
+  });
+
+  it("keeps small comparisons on the standard analytics pool", () => {
+    const result = planHighCostAnalyticsQueue({
+      requestId: "req_standard_compare",
+      securities: ["00700.HK", "00001.HK"],
+      toolName: "compare_securities"
+    });
+
+    expect(result.status).toBe("inline_allowed");
+    expect(result.cost_estimate.credit_weight).toBe(5);
+    expect(result.scheduling_decision).toMatchObject({
+      concurrency_pool: "analytics_standard",
+      independent_pool_required: false,
+      inline_allowed: true,
+      max_parallel: 8,
+      queue_required: false
+    });
+    expect(result.enqueue_plan.status).toBe("not_required");
   });
 
   it("reports financial ratios capabilities", () => {
