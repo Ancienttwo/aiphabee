@@ -11,8 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WatchlistIndexRouteImport } from './routes/watchlist/index'
+import { Route as StockIndexRouteImport } from './routes/stock/index'
+import { Route as ScreenIndexRouteImport } from './routes/screen/index'
+import { Route as McpIndexRouteImport } from './routes/mcp/index'
+import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as IposIndexRouteImport } from './routes/ipos/index'
+import { Route as DocumentsIndexRouteImport } from './routes/documents/index'
+import { Route as CompareIndexRouteImport } from './routes/compare/index'
+import { Route as AskIndexRouteImport } from './routes/ask/index'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as StockInstrumentIdRouteImport } from './routes/stock/$instrumentId'
 import { Route as IposIpoIdRouteImport } from './routes/ipos/$ipoId'
+import { Route as AskRunIdRouteImport } from './routes/ask/$runId'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -24,9 +35,59 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WatchlistIndexRoute = WatchlistIndexRouteImport.update({
+  id: '/watchlist/',
+  path: '/watchlist/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StockIndexRoute = StockIndexRouteImport.update({
+  id: '/stock/',
+  path: '/stock/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScreenIndexRoute = ScreenIndexRouteImport.update({
+  id: '/screen/',
+  path: '/screen/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpIndexRoute = McpIndexRouteImport.update({
+  id: '/mcp/',
+  path: '/mcp/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IposIndexRoute = IposIndexRouteImport.update({
   id: '/ipos/',
   path: '/ipos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
+  id: '/documents/',
+  path: '/documents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareIndexRoute = CompareIndexRouteImport.update({
+  id: '/compare/',
+  path: '/compare/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskIndexRoute = AskIndexRouteImport.update({
+  id: '/ask/',
+  path: '/ask/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/account/',
+  path: '/account/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StockInstrumentIdRoute = StockInstrumentIdRouteImport.update({
+  id: '/stock/$instrumentId',
+  path: '/stock/$instrumentId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IposIpoIdRoute = IposIpoIdRouteImport.update({
@@ -34,39 +95,134 @@ const IposIpoIdRoute = IposIpoIdRouteImport.update({
   path: '/ipos/$ipoId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AskRunIdRoute = AskRunIdRouteImport.update({
+  id: '/ask/$runId',
+  path: '/ask/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/stock/$instrumentId': typeof StockInstrumentIdRoute
+  '/account/': typeof AccountIndexRoute
+  '/ask/': typeof AskIndexRoute
+  '/compare/': typeof CompareIndexRoute
+  '/documents/': typeof DocumentsIndexRoute
   '/ipos/': typeof IposIndexRoute
+  '/library/': typeof LibraryIndexRoute
+  '/mcp/': typeof McpIndexRoute
+  '/screen/': typeof ScreenIndexRoute
+  '/stock/': typeof StockIndexRoute
+  '/watchlist/': typeof WatchlistIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/stock/$instrumentId': typeof StockInstrumentIdRoute
+  '/account': typeof AccountIndexRoute
+  '/ask': typeof AskIndexRoute
+  '/compare': typeof CompareIndexRoute
+  '/documents': typeof DocumentsIndexRoute
   '/ipos': typeof IposIndexRoute
+  '/library': typeof LibraryIndexRoute
+  '/mcp': typeof McpIndexRoute
+  '/screen': typeof ScreenIndexRoute
+  '/stock': typeof StockIndexRoute
+  '/watchlist': typeof WatchlistIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/stock/$instrumentId': typeof StockInstrumentIdRoute
+  '/account/': typeof AccountIndexRoute
+  '/ask/': typeof AskIndexRoute
+  '/compare/': typeof CompareIndexRoute
+  '/documents/': typeof DocumentsIndexRoute
   '/ipos/': typeof IposIndexRoute
+  '/library/': typeof LibraryIndexRoute
+  '/mcp/': typeof McpIndexRoute
+  '/screen/': typeof ScreenIndexRoute
+  '/stock/': typeof StockIndexRoute
+  '/watchlist/': typeof WatchlistIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/ask/$runId'
+    | '/ipos/$ipoId'
+    | '/stock/$instrumentId'
+    | '/account/'
+    | '/ask/'
+    | '/compare/'
+    | '/documents/'
+    | '/ipos/'
+    | '/library/'
+    | '/mcp/'
+    | '/screen/'
+    | '/stock/'
+    | '/watchlist/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos'
-  id: '__root__' | '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/ask/$runId'
+    | '/ipos/$ipoId'
+    | '/stock/$instrumentId'
+    | '/account'
+    | '/ask'
+    | '/compare'
+    | '/documents'
+    | '/ipos'
+    | '/library'
+    | '/mcp'
+    | '/screen'
+    | '/stock'
+    | '/watchlist'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/ask/$runId'
+    | '/ipos/$ipoId'
+    | '/stock/$instrumentId'
+    | '/account/'
+    | '/ask/'
+    | '/compare/'
+    | '/documents/'
+    | '/ipos/'
+    | '/library/'
+    | '/mcp/'
+    | '/screen/'
+    | '/stock/'
+    | '/watchlist/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  AskRunIdRoute: typeof AskRunIdRoute
   IposIpoIdRoute: typeof IposIpoIdRoute
+  StockInstrumentIdRoute: typeof StockInstrumentIdRoute
+  AccountIndexRoute: typeof AccountIndexRoute
+  AskIndexRoute: typeof AskIndexRoute
+  CompareIndexRoute: typeof CompareIndexRoute
+  DocumentsIndexRoute: typeof DocumentsIndexRoute
   IposIndexRoute: typeof IposIndexRoute
+  LibraryIndexRoute: typeof LibraryIndexRoute
+  McpIndexRoute: typeof McpIndexRoute
+  ScreenIndexRoute: typeof ScreenIndexRoute
+  StockIndexRoute: typeof StockIndexRoute
+  WatchlistIndexRoute: typeof WatchlistIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -85,11 +241,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/watchlist/': {
+      id: '/watchlist/'
+      path: '/watchlist'
+      fullPath: '/watchlist/'
+      preLoaderRoute: typeof WatchlistIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stock/': {
+      id: '/stock/'
+      path: '/stock'
+      fullPath: '/stock/'
+      preLoaderRoute: typeof StockIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/screen/': {
+      id: '/screen/'
+      path: '/screen'
+      fullPath: '/screen/'
+      preLoaderRoute: typeof ScreenIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp/': {
+      id: '/mcp/'
+      path: '/mcp'
+      fullPath: '/mcp/'
+      preLoaderRoute: typeof McpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library/': {
+      id: '/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof LibraryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ipos/': {
       id: '/ipos/'
       path: '/ipos'
       fullPath: '/ipos/'
       preLoaderRoute: typeof IposIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents/': {
+      id: '/documents/'
+      path: '/documents'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof DocumentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/': {
+      id: '/compare/'
+      path: '/compare'
+      fullPath: '/compare/'
+      preLoaderRoute: typeof CompareIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask/': {
+      id: '/ask/'
+      path: '/ask'
+      fullPath: '/ask/'
+      preLoaderRoute: typeof AskIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stock/$instrumentId': {
+      id: '/stock/$instrumentId'
+      path: '/stock/$instrumentId'
+      fullPath: '/stock/$instrumentId'
+      preLoaderRoute: typeof StockInstrumentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ipos/$ipoId': {
@@ -99,14 +325,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IposIpoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ask/$runId': {
+      id: '/ask/$runId'
+      path: '/ask/$runId'
+      fullPath: '/ask/$runId'
+      preLoaderRoute: typeof AskRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  AskRunIdRoute: AskRunIdRoute,
   IposIpoIdRoute: IposIpoIdRoute,
+  StockInstrumentIdRoute: StockInstrumentIdRoute,
+  AccountIndexRoute: AccountIndexRoute,
+  AskIndexRoute: AskIndexRoute,
+  CompareIndexRoute: CompareIndexRoute,
+  DocumentsIndexRoute: DocumentsIndexRoute,
   IposIndexRoute: IposIndexRoute,
+  LibraryIndexRoute: LibraryIndexRoute,
+  McpIndexRoute: McpIndexRoute,
+  ScreenIndexRoute: ScreenIndexRoute,
+  StockIndexRoute: StockIndexRoute,
+  WatchlistIndexRoute: WatchlistIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
