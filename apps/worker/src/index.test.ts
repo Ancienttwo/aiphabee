@@ -395,6 +395,98 @@ interface HkDataDomainsCrossMarketPlanBody {
   };
 }
 
+interface LicensedAdviceRuntimeBody {
+  data: {
+    advice_generation_enabled: boolean;
+    auth_required: boolean;
+    default_status: string;
+    exploration_plan: {
+      advice_generation_enabled: boolean;
+      allowed_surfaces: string[];
+      forbidden_unlicensed_outputs: string[];
+      required_controls: string[];
+      route: string;
+      status: string;
+    };
+    frontend: boolean;
+    live_model_execution: boolean;
+    order_execution: boolean;
+    persistent_writes: boolean;
+    route: string;
+    runtime_route: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface LicensedAdviceExplorationPlanBody {
+  data: {
+    advice_output_policy: {
+      buy_sell_hold_recommendation: boolean;
+      copy_trading_instruction: boolean;
+      evidence_only_fallback: boolean;
+      order_routing: boolean;
+      personalized_suitability_conclusion: boolean;
+      research_tool_boundary_preserved_until_licensed: boolean;
+      target_position_size: boolean;
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    compliance_controls: {
+      answer_evidence_route: string;
+      compliance_release_gate_route: string;
+      kill_switch_policy_id?: string;
+      kill_switch_route: string;
+      mvp_boundary_contract: string;
+    };
+    frontend: boolean;
+    legal_review: {
+      external_legal_opinion_required: boolean;
+      legal_review_status: string;
+      regulatory_source_urls: string[];
+      type4_written_opinion_id?: string;
+    };
+    licensed_path: {
+      licensed_entity_id?: string;
+      proposed_surface: string;
+      responsible_officer_id?: string;
+      route2_source: string;
+      supervision_required: boolean;
+    };
+    live_model_execution: boolean;
+    order_execution: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    sql_emitted: boolean;
+    status: string;
+    suitability_controls: {
+      advice_record_retention_policy_id?: string;
+      complaint_handling_policy_id?: string;
+      human_review_queue_id?: string;
+      suitability_profile_schema_id?: string;
+      suitability_required: boolean;
+    };
+    validation: {
+      legal_review_approved: boolean;
+      licensed_path_present: boolean;
+      supervision_controls_present: boolean;
+      suitability_controls_present: boolean;
+      unsupported_surfaces: string[];
+    };
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface ComplianceOpsReleaseGatePlanBody {
   data: {
     audit_export_drill: {
@@ -8049,6 +8141,148 @@ describe("worker runtime", () => {
     expect(body.data.validation.all_checks_passed).toBe(true);
     expect(body.data.validation.live_release_claimed).toBe(false);
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("serves licensed advice runtime with advice generation disabled", async () => {
+    const response = await app.request("/compliance/licensed-advice/runtime", {
+      headers: {
+        "x-request-id": "req-licensed-advice-runtime"
+      }
+    });
+    const body = (await response.json()) as LicensedAdviceRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      advice_generation_enabled: false,
+      auth_required: true,
+      default_status: "blocked_until_licensed_path_confirmed",
+      frontend: false,
+      live_model_execution: false,
+      order_execution: false,
+      persistent_writes: false,
+      route: "GET /compliance/licensed-advice/runtime",
+      runtime_route: "GET /compliance/licensed-advice/runtime",
+      sql_emitted: false,
+      status: "licensed_advice_exploration_scaffold"
+    });
+    expect(body.data.exploration_plan).toMatchObject({
+      advice_generation_enabled: false,
+      route: "POST /compliance/licensed-advice/exploration/plan",
+      status: "licensed_advice_exploration_scaffold"
+    });
+    expect(body.data.exploration_plan.forbidden_unlicensed_outputs).toContain(
+      "buy_sell_hold_recommendation"
+    );
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans licensed advice exploration without generating advice or orders", async () => {
+    const response = await app.request("/compliance/licensed-advice/exploration/plan", {
+      body: JSON.stringify({
+        advice_record_retention_policy_id: "retention_policy_001",
+        complaint_handling_policy_id: "complaint_policy_001",
+        human_review_queue_id: "human_review_queue_001",
+        kill_switch_policy_id: "kill_switch_policy_001",
+        legal_review_status: "approved",
+        licensed_entity_id: "licensed_entity_001",
+        proposed_surface: "suitability_based_recommendation",
+        responsible_officer_id: "ro_001",
+        suitability_profile_schema_id: "suitability_schema_001",
+        type4_written_opinion_id: "type4_opinion_001",
+        workspace_id: "ws_compliance_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-licensed-advice-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as LicensedAdviceExplorationPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_model_execution: false,
+      order_execution: false,
+      persistent_writes: false,
+      request_id: "req-licensed-advice-plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_compliance_alpha"
+    });
+    expect(body.data.advice_output_policy).toEqual({
+      buy_sell_hold_recommendation: false,
+      copy_trading_instruction: false,
+      evidence_only_fallback: true,
+      order_routing: false,
+      personalized_suitability_conclusion: false,
+      research_tool_boundary_preserved_until_licensed: true,
+      target_position_size: false
+    });
+    expect(body.data.legal_review).toMatchObject({
+      external_legal_opinion_required: true,
+      legal_review_status: "approved",
+      type4_written_opinion_id: "type4_opinion_001"
+    });
+    expect(body.data.legal_review.regulatory_source_urls).toContain(
+      "https://www.sfc.hk/en/Rules-and-standards/Suitability-requirement"
+    );
+    expect(body.data.licensed_path).toMatchObject({
+      licensed_entity_id: "licensed_entity_001",
+      proposed_surface: "suitability_based_recommendation",
+      responsible_officer_id: "ro_001",
+      supervision_required: true
+    });
+    expect(body.data.suitability_controls).toMatchObject({
+      advice_record_retention_policy_id: "retention_policy_001",
+      complaint_handling_policy_id: "complaint_policy_001",
+      human_review_queue_id: "human_review_queue_001",
+      suitability_profile_schema_id: "suitability_schema_001",
+      suitability_required: true
+    });
+    expect(body.data.compliance_controls).toMatchObject({
+      answer_evidence_route: "POST /agent/runs/validate-answer",
+      compliance_release_gate_route: "POST /public/release-gates/compliance-ops/plan",
+      kill_switch_policy_id: "kill_switch_policy_001",
+      kill_switch_route: "POST /agent/kill-switch/plan"
+    });
+    expect(body.data.validation).toMatchObject({
+      legal_review_approved: true,
+      licensed_path_present: true,
+      required_context_present: true,
+      supervision_controls_present: true,
+      suitability_controls_present: true,
+      unsupported_surfaces: []
+    });
+    expect(body.usage.rows).toBe(8);
+  });
+
+  it("blocks licensed advice exploration until the licensed path is confirmed", async () => {
+    const response = await app.request("/compliance/licensed-advice/exploration/plan", {
+      body: JSON.stringify({
+        proposed_surface: "personalized_buy_sell_hold",
+        workspace_id: "ws_compliance_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-licensed-advice-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as LicensedAdviceExplorationPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_unlicensed_path");
+    expect(body.data.validation.licensed_path_present).toBe(false);
+    expect(body.data.validation.legal_review_approved).toBe(false);
+    expect(body.data.advice_output_policy.buy_sell_hold_recommendation).toBe(false);
+    expect(body.data.order_execution).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("plans public publication and unit economics release gate without live writes", async () => {

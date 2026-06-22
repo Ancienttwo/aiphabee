@@ -629,6 +629,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql",
+      "purpose": "Create empty licensed advice exploration scaffolds for Route 2 licensed-path assessment, suitability controls, supervised review records, and forbidden unlicensed advice output policy without enabling advice generation, live model execution, order execution, persistent writes, SQL execution, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.licensed_advice_exploration",
+        "core.suitability_control_profile",
+        "audit.licensed_advice_review_event",
+        "governance.licensed_advice_exploration_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

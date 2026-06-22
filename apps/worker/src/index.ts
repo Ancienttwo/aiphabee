@@ -143,6 +143,11 @@ import {
   getFinancialRestatementCapabilities
 } from "@aiphabee/financial-facts";
 import {
+  createLicensedAdviceExplorationPlan,
+  getLicensedAdviceExplorationCapabilities,
+  getLicensedAdviceRuntimeCapabilities
+} from "@aiphabee/licensed-advice-runtime";
+import {
   MarketCalendarInputError,
   getMarketCalendar,
   getMarketCalendarCapabilities
@@ -1287,6 +1292,91 @@ app.post("/public/release-gates/compliance-ops/plan", async (c) => {
         rows: plan.release_checks.length
       }
     })
+  );
+});
+
+app.get("/compliance/licensed-advice/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getLicensedAdviceRuntimeCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "licensed-advice-runtime-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/compliance/licensed-advice/exploration/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createLicensedAdviceExplorationPlan({
+    adviceRecordRetentionPolicyId: normalizeString(
+      body.advice_record_retention_policy_id ?? body.adviceRecordRetentionPolicyId
+    ),
+    complaintHandlingPolicyId: normalizeString(
+      body.complaint_handling_policy_id ?? body.complaintHandlingPolicyId
+    ),
+    humanReviewQueueId: normalizeString(body.human_review_queue_id ?? body.humanReviewQueueId),
+    killSwitchPolicyId: normalizeString(body.kill_switch_policy_id ?? body.killSwitchPolicyId),
+    legalReviewStatus: normalizeString(body.legal_review_status ?? body.legalReviewStatus),
+    licensedEntityId: normalizeString(body.licensed_entity_id ?? body.licensedEntityId),
+    proposedSurface: normalizeString(body.proposed_surface ?? body.proposedSurface),
+    requestId,
+    responsibleOfficerId: normalizeString(
+      body.responsible_officer_id ?? body.responsibleOfficerId
+    ),
+    suitabilityProfileSchemaId: normalizeString(
+      body.suitability_profile_schema_id ?? body.suitabilityProfileSchemaId
+    ),
+    type4WrittenOpinionId: normalizeString(
+      body.type4_written_opinion_id ?? body.type4WrittenOpinionId
+    ),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getLicensedAdviceExplorationCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "licensed-advice-runtime-contract",
+            source_record_id: "licensed-advice-exploration-plan"
+          }
+        ],
+        requestId,
+        usage: plan.usage
+      }
+    )
   );
 });
 

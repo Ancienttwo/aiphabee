@@ -1,0 +1,100 @@
+{
+  "version": "2026-06-22.phase4.licensed-advice-exploration-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/licensed-advice-runtime",
+  "runtime_route": "GET /compliance/licensed-advice/runtime",
+  "route": "POST /compliance/licensed-advice/exploration/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "advice_generation_enabled": false,
+  "live_model_execution": false,
+  "order_execution": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_phase4_items": [
+    "持牌路径确认",
+    "个性化建议探索",
+    "suitability_controls",
+    "supervised_advice_records"
+  ],
+  "supported_surfaces": [
+    "personalized_buy_sell_hold",
+    "portfolio_rebalance",
+    "position_sizing",
+    "suitability_based_recommendation",
+    "licensed_partner_referral"
+  ],
+  "required_controls": [
+    "type4_written_opinion",
+    "licensed_entity_or_partner",
+    "responsible_officer_supervision",
+    "suitability_profile_controls",
+    "advice_record_retention",
+    "human_review_escalation",
+    "kill_switch_policy",
+    "complaint_handling_path"
+  ],
+  "forbidden_unlicensed_outputs": [
+    "buy_sell_hold_recommendation",
+    "target_position_size",
+    "personalized_suitability_conclusion",
+    "order_routing",
+    "copy_trading_instruction"
+  ],
+  "regulatory_source_urls": [
+    "https://www.sfc.hk/en/Regulatory-functions/Intermediaries/Licensing/Do-you-need-a-licence-or-registration",
+    "https://www.sfc.hk/en/Rules-and-standards/Suitability-requirement"
+  ],
+  "security_contract": {
+    "type4_written_opinion_required": true,
+    "licensed_entity_required": true,
+    "responsible_officer_supervision_required": true,
+    "suitability_controls_required": true,
+    "advice_record_retention_required": true,
+    "human_review_required": true,
+    "kill_switch_required": true,
+    "complaint_handling_required": true,
+    "advice_generation_enabled": false,
+    "order_execution": false,
+    "live_model_execution": false,
+    "persistent_writes": false,
+    "raw_risk_profile_stored": false,
+    "raw_personal_contact_stored": false
+  },
+  "integration_routes": {
+    "runtime": "GET /compliance/licensed-advice/runtime",
+    "plan": "POST /compliance/licensed-advice/exploration/plan",
+    "compliance_release_gate": "POST /public/release-gates/compliance-ops/plan",
+    "kill_switch": "POST /agent/kill-switch/plan",
+    "answer_evidence": "POST /agent/runs/validate-answer"
+  },
+  "tables": [
+    "core.licensed_advice_exploration",
+    "core.suitability_control_profile",
+    "audit.licensed_advice_review_event",
+    "governance.licensed_advice_exploration_contract"
+  ],
+  "required_output_fields": [
+    "advice_output_policy",
+    "legal_review",
+    "licensed_path",
+    "suitability_controls",
+    "compliance_controls",
+    "validation"
+  ],
+  "blocked_statuses": [
+    "blocked_missing_context",
+    "blocked_supervision_controls_missing",
+    "blocked_suitability_controls_missing",
+    "blocked_unlicensed_path",
+    "blocked_unsupported_surface"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/public-ops/compliance-ops-release-gate.contract.json",
+    "deploy/public-ops/mvp-product-boundary-copy.contract.json",
+    "deploy/agent/kill-switch.contract.json",
+    "deploy/agent/answer-evidence-contract.contract.json",
+    "deploy/observability/events.contract.json"
+  ]
+}
