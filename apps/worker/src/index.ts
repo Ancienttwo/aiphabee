@@ -352,6 +352,7 @@ interface WorkerBindings {
   AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
   AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -802,6 +803,10 @@ const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_QUEUE_SMOKE_POLL_MS = 500;
 const CLOUDFLARE_WORKFLOW_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_WORKFLOW_SMOKE_POLL_MS = 500;
+const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE = "/agent/runs/model-execution-audit-smoke";
+const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_HEADER_VALUE = "agent-model-execution-audit-v1";
+const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1271,6 +1276,110 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
         error instanceof AgentRuntimeInputError ? error.code : "AI_GATEWAY_REQUEST_FAILED",
       request_id: requestId,
       route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
+      status: "failed",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
+app.post(AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    AGENT_MODEL_EXECUTION_AUDIT_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentModelExecutionAuditSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentModelExecutionAuditSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  try {
+    const modelProviderResult = await runAiGatewayLiveSmoke({
+      accountId: c.env.CLOUDFLARE_ACCOUNT_ID ?? "",
+      apiToken: getAiGatewayLiveSmokeToken(c.env ?? {}),
+      gatewayId: c.env.AI_GATEWAY_NAME ?? "",
+      model: c.env.AI_GATEWAY_SMOKE_MODEL ?? ""
+    });
+    const auditResult = await createAgentModelExecutionAuditSmokeResult(
+      modelProviderResult,
+      requestId
+    );
+    const bodyWithoutHash = {
+      agent_model_execution_audit_result: auditResult,
+      request_id: requestId,
+      route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
+      status: auditResult.status === "passed" ? "ok" : "failed",
+      version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      auditResult.status === "passed" ? 200 : 502
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code:
+        error instanceof AgentRuntimeInputError ? error.code : "AGENT_MODEL_AUDIT_SMOKE_FAILED",
+      request_id: requestId,
+      route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
       status: "failed",
       version: AI_GATEWAY_LIVE_SMOKE_VERSION
     };
@@ -10419,6 +10528,20 @@ function getAiGatewayLiveSmokeToken(env: WorkerBindings): string {
   return env.AI_GATEWAY_LIVE_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingAgentModelExecutionAuditSmokeEnv(env: WorkerBindings): string[] {
+  const missingEnv = missingAiGatewayLiveSmokeEnv(env);
+
+  if (getAgentModelExecutionAuditSmokeToken(env).length < 16) {
+    return [AGENT_MODEL_EXECUTION_AUDIT_SMOKE_TOKEN_BINDING, ...missingEnv];
+  }
+
+  return missingEnv;
+}
+
+function getAgentModelExecutionAuditSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?.trim() ?? "";
+}
+
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
   return getAgentToolExecutionSmokeToken(env).length >= 16
     ? []
@@ -11262,6 +11385,18 @@ function isEvidenceLiveDbWriteSmokeAuthorized(
   return c.req.header("authorization") === `Bearer ${token}`;
 }
 
+function isAgentModelExecutionAuditSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getAgentModelExecutionAuditSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
 function isAgentToolExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = getAgentToolExecutionSmokeToken(c.env ?? {});
 
@@ -11280,6 +11415,100 @@ function isMcpLiveExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings
   }
 
   return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+async function createAgentModelExecutionAuditSmokeResult(
+  modelProviderResult: Awaited<ReturnType<typeof runAiGatewayLiveSmoke>>,
+  requestId: string
+): Promise<Record<string, unknown>> {
+  const inputTokens =
+    modelProviderResult.generate_text.input_tokens + modelProviderResult.stream_text.input_tokens;
+  const outputTokens =
+    modelProviderResult.generate_text.output_tokens + modelProviderResult.stream_text.output_tokens;
+  const totalTokens =
+    modelProviderResult.generate_text.total_tokens + modelProviderResult.stream_text.total_tokens;
+  const latencyMs =
+    modelProviderResult.generate_text.latency_ms + modelProviderResult.stream_text.latency_ms;
+  const syntheticUserIdHash = await hashRuntimeSmokeString("agent-model-audit-smoke-user");
+  const syntheticWorkspaceIdHash = await hashRuntimeSmokeString(
+    "agent-model-audit-smoke-workspace"
+  );
+  const syntheticTokenClientHash = await hashRuntimeSmokeString(
+    "agent-model-audit-smoke-token-client"
+  );
+  const outputHash = await hashRuntimeSmokeString(
+    JSON.stringify({
+      generate_text: modelProviderResult.generate_text.output_hash,
+      stream_text: modelProviderResult.stream_text.output_hash
+    })
+  );
+
+  return {
+    actual_model_execution: modelProviderResult.status === "ok",
+    audit_event_preview: {
+      cache_hit: "not_verified_without_ai_gateway_read",
+      data_version: modelProviderResult.version,
+      denied_tools: [],
+      error_code: null,
+      estimated_cost_status: "ai_gateway_log_permission_required",
+      estimated_cost_usd: null,
+      event_type: "run.audit",
+      fallback_from_model_hash: null,
+      fallback_status: "not_triggered_by_smoke",
+      fallback_to_model_hash: null,
+      human_intervention: false,
+      input_summary_hash: modelProviderResult.prompt_hash,
+      input_tokens: inputTokens,
+      ip_risk_summary: "not_collected_in_smoke",
+      latency_ms: latencyMs,
+      methodology_version: modelProviderResult.version,
+      model_calls: true,
+      model_id_hash: modelProviderResult.model_hash,
+      model_provider: modelProviderResult.provider,
+      model_tier: "main",
+      model_version_hash: modelProviderResult.model_hash,
+      output_hash: outputHash,
+      output_tokens: outputTokens,
+      prompt_version_hash: modelProviderResult.prompt_hash,
+      rate_limit_status: "not_verified_without_ai_gateway_read",
+      request_id: requestId,
+      requested_tools: [],
+      retry_count: 0,
+      token_client_id_hash: syntheticTokenClientHash,
+      tool_call_count: 0,
+      tool_calls: [],
+      total_tokens: totalTokens,
+      user_id_hash: syntheticUserIdHash,
+      workspace_id_hash: syntheticWorkspaceIdHash
+    },
+    gateway_log_evidence: {
+      ai_gateway_logs_read: false,
+      cache_log_verified: false,
+      cost_log_verified: false,
+      fallback_log_verified: false,
+      rate_limit_log_verified: false,
+      required_permissions: ["AI Gateway Read", "Account Analytics Read"],
+      status: "blocked_external_permission"
+    },
+    hash_only_response: true,
+    http_status: modelProviderResult.http_status,
+    http_statuses: modelProviderResult.http_statuses,
+    live_model_execution: modelProviderResult.status === "ok",
+    live_model_token_streaming: modelProviderResult.stream_text.chunk_count > 0,
+    model_calls: true,
+    operation_count: modelProviderResult.operation_count,
+    persistent_writes: false,
+    provider: modelProviderResult.provider,
+    raw_model_output_returned: false,
+    response_hash: modelProviderResult.response_hash,
+    status: modelProviderResult.status === "ok" ? "passed" : "failed",
+    token_usage: {
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: totalTokens
+    },
+    version: modelProviderResult.version
+  };
 }
 
 async function executeMcpToolCallSmoke(

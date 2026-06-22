@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-22.phase1.agent-model-execution-audit-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /agent/runs/model-execution-audit-smoke",
+  "checker": "scripts/check-agent-model-execution-audit-smoke-contract.mjs",
+  "test_file": "apps/worker/src/agent-model-execution-audit-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "model_provider_route": "POST /agent/model-provider/live-smoke",
+  "model_provider_readiness_contract": "deploy/model-providers/live-smoke-readiness.contract.json",
+  "model_routing_audit_contract": "deploy/agent/model-routing-audit.contract.json",
+  "observability_event_contract": "deploy/observability/events.contract.json",
+  "smoke_token_binding": "AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "agent-model-execution-audit-v1"
+  },
+  "required_ai_gateway_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN",
+    "AI_GATEWAY_NAME",
+    "AI_GATEWAY_SMOKE_MODEL"
+  ],
+  "actual_model_execution": true,
+  "ai_sdk_generate_text": true,
+  "ai_sdk_stream_text": true,
+  "audit_event_preview": true,
+  "auth_enforced_before_model_execution": true,
+  "hash_only_response": true,
+  "raw_model_output_returned": false,
+  "persistent_writes": false,
+  "live_evidence_writes": false,
+  "live_usage_ledger_writes": false,
+  "frontend": false,
+  "gateway_log_evidence": {
+    "ai_gateway_logs_read": false,
+    "cost_log_verified": false,
+    "cache_log_verified": false,
+    "rate_limit_log_verified": false,
+    "fallback_log_verified": false,
+    "status": "blocked_external_permission",
+    "required_permissions": ["AI Gateway Read", "Account Analytics Read"]
+  },
+  "not_claimed": [
+    "ai_gateway_logs_read",
+    "cost_log_verified",
+    "cache_log_verified",
+    "rate_limit_log_verified",
+    "fallback_log_verified",
+    "live_usage_ledger_writes",
+    "frontend_ask_rendering"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/agent-model-execution-audit-smoke.test.ts",
+    "contract_check": "npm run check:agent-model-execution-audit-smoke",
+    "worker_typecheck": "npm run typecheck --workspace @aiphabee/worker"
+  }
+}
