@@ -53,11 +53,17 @@ import {
   calculateReturnsRisk,
   comparePercentiles,
   compareSecurities,
+  getBuybacksAndPlacements,
+  getBuybacksAndPlacementsCapabilities,
   getCompareSecuritiesCapabilities,
   getEventStudyCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
+  getMarketBreadth,
+  getMarketBreadthCapabilities,
+  getOwnershipAndShortSelling,
+  getOwnershipAndShortSellingCapabilities,
   getPercentileComparisonCapabilities,
   getPortfolioAnalytics,
   getPortfolioAnalyticsCapabilities,
@@ -2671,6 +2677,9 @@ app.get("/analytics/runtime", (c) => {
   const eventStudyCapability = getEventStudyCapabilities();
   const percentileComparisonCapability = getPercentileComparisonCapabilities();
   const portfolioAnalyticsCapability = getPortfolioAnalyticsCapabilities();
+  const marketBreadthCapability = getMarketBreadthCapabilities();
+  const ownershipShortSellingCapability = getOwnershipAndShortSellingCapabilities();
+  const buybacksPlacementsCapability = getBuybacksAndPlacementsCapabilities();
   const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
 
   return c.json(
@@ -2681,8 +2690,11 @@ app.get("/analytics/runtime", (c) => {
         event_study: eventStudyCapability,
         financial_ratios: financialRatiosCapability,
         high_cost_analytics_queue: highCostAnalyticsQueueCapability,
+        market_breadth: marketBreadthCapability,
+        ownership_and_short_selling: ownershipShortSellingCapability,
         percentile_comparison: percentileComparisonCapability,
         portfolio_analytics: portfolioAnalyticsCapability,
+        buybacks_and_placements: buybacksPlacementsCapability,
         returns_risk: returnsRiskCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
@@ -2696,6 +2708,9 @@ app.get("/analytics/runtime", (c) => {
           eventStudyCapability.route,
           percentileComparisonCapability.route,
           portfolioAnalyticsCapability.route,
+          marketBreadthCapability.route,
+          ownershipShortSellingCapability.route,
+          buybacksPlacementsCapability.route,
           highCostAnalyticsQueueCapability.route
         ],
         status: "analytics_tools_scaffold"
@@ -2818,6 +2833,129 @@ app.post("/analytics/portfolio", async (c) => {
         ],
         requestId,
         usage: portfolio.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/market-breadth", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const marketBreadth = getMarketBreadth({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    authorizedMarketStatistics: normalizeOptionalBoolean(
+      body.authorized_market_statistics ?? body.authorizedMarketStatistics
+    ),
+    market: normalizeString(body.market),
+    requestId,
+    universe: normalizeStringArray(body.universe)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...marketBreadth,
+        capability: getMarketBreadthCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: marketBreadth.data_version,
+        methodologyVersion: marketBreadth.methodology_version,
+        provenance: [
+          {
+            data_version: marketBreadth.data_version,
+            methodology_version: marketBreadth.methodology_version,
+            source: "analytics-market-breadth",
+            source_record_id: "market-breadth"
+          }
+        ],
+        requestId,
+        usage: marketBreadth.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/ownership-short-selling", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const ownershipShortSelling = getOwnershipAndShortSelling({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    authorizedMarketStatistics: normalizeOptionalBoolean(
+      body.authorized_market_statistics ?? body.authorizedMarketStatistics
+    ),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...ownershipShortSelling,
+        capability: getOwnershipAndShortSellingCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: ownershipShortSelling.data_version,
+        methodologyVersion: ownershipShortSelling.methodology_version,
+        provenance: [
+          {
+            data_version: ownershipShortSelling.data_version,
+            methodology_version: ownershipShortSelling.methodology_version,
+            source: "analytics-ownership-short-selling",
+            source_record_id: "ownership-short-selling"
+          }
+        ],
+        requestId,
+        usage: ownershipShortSelling.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/buybacks-placements", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const buybacksPlacements = getBuybacksAndPlacements({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    authorizedMarketStatistics: normalizeOptionalBoolean(
+      body.authorized_market_statistics ?? body.authorizedMarketStatistics
+    ),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...buybacksPlacements,
+        capability: getBuybacksAndPlacementsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: buybacksPlacements.data_version,
+        methodologyVersion: buybacksPlacements.methodology_version,
+        provenance: [
+          {
+            data_version: buybacksPlacements.data_version,
+            methodology_version: buybacksPlacements.methodology_version,
+            source: "analytics-buybacks-placements",
+            source_record_id: "buybacks-placements"
+          }
+        ],
+        requestId,
+        usage: buybacksPlacements.usage
       }
     )
   );

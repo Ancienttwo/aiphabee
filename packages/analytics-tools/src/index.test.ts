@@ -3,11 +3,17 @@ import {
   calculateReturnsRisk,
   compareSecurities,
   comparePercentiles,
+  getBuybacksAndPlacements,
+  getBuybacksAndPlacementsCapabilities,
   getCompareSecuritiesCapabilities,
   getEventStudyCapabilities,
   getFinancialRatios,
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
+  getMarketBreadth,
+  getMarketBreadthCapabilities,
+  getOwnershipAndShortSelling,
+  getOwnershipAndShortSellingCapabilities,
   getPercentileComparisonCapabilities,
   getPortfolioAnalytics,
   getPortfolioAnalyticsCapabilities,
@@ -874,5 +880,150 @@ describe("compare securities scaffold", () => {
     expect(result.comparisons.every((comparison) => comparison.blocked_reason === "security_resolution_required")).toBe(
       true
     );
+  });
+
+  it("reports market statistics capabilities", () => {
+    expect(getMarketBreadthCapabilities()).toMatchObject({
+      authorized_market_statistics_required: true,
+      frontend_rendering: false,
+      live_data_access: false,
+      route: "POST /analytics/market-breadth",
+      source_required: true,
+      sql_emitted: false,
+      status: "market_breadth_scaffold",
+      tool_name: "get_market_breadth"
+    });
+    expect(getOwnershipAndShortSellingCapabilities()).toMatchObject({
+      authorized_market_statistics_required: true,
+      frontend_rendering: false,
+      live_data_access: false,
+      route: "POST /analytics/ownership-short-selling",
+      source_required: true,
+      sql_emitted: false,
+      status: "ownership_short_selling_scaffold",
+      tool_name: "get_ownership_and_short_selling"
+    });
+    expect(getBuybacksAndPlacementsCapabilities()).toMatchObject({
+      authorized_market_statistics_required: true,
+      event_types: ["buyback", "placement", "rights_issue"],
+      frontend_rendering: false,
+      live_data_access: false,
+      route: "POST /analytics/buybacks-placements",
+      source_required: true,
+      sql_emitted: false,
+      status: "buybacks_placements_scaffold",
+      tool_name: "get_buybacks_and_placements"
+    });
+  });
+
+  it("plans market breadth only when market statistics are authorized", () => {
+    const blocked = getMarketBreadth({
+      requestId: "req_market_breadth_blocked"
+    });
+    const planned = getMarketBreadth({
+      authorizedMarketStatistics: true,
+      market: "HK",
+      requestId: "req_market_breadth_authorized",
+      universe: ["00700.HK", "00001.HK", "00005.HK"]
+    });
+
+    expect(blocked).toMatchObject({
+      live_data_access: false,
+      sql_emitted: false,
+      status: "blocked_authorization",
+      toolName: "get_market_breadth"
+    });
+    expect(blocked.authorization.authorized_market_statistics_supplied).toBe(false);
+    expect(planned).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      market: "HK",
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_market_breadth"
+    });
+    expect(planned.authorization).toEqual({
+      authorized_market_statistics_required: true,
+      authorized_market_statistics_supplied: true,
+      dataset_scope: "market_statistics_authorized_only"
+    });
+    expect(planned.breadth.advances).toBeGreaterThan(planned.breadth.declines);
+    expect(planned.breadth.industry_width.map((row) => row.industry)).toEqual([
+      "technology",
+      "financials",
+      "consumer"
+    ]);
+    expect(planned.source_record_ids).toContain("synthetic_market_breadth_technology_20260107");
+  });
+
+  it("blocks ownership and short-selling data without authorization", () => {
+    const result = getOwnershipAndShortSelling({
+      requestId: "req_ownership_blocked",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      live_data_access: false,
+      sql_emitted: false,
+      status: "blocked_authorization",
+      toolName: "get_ownership_and_short_selling"
+    });
+    expect(result.authorization.authorized_market_statistics_supplied).toBe(false);
+    expect(result.ownership.shareholding_disclosures).toEqual([]);
+    expect(result.short_selling.short_turnover).toBe(0);
+    expect(result.source_record_ids).toEqual([]);
+  });
+
+  it("plans authorized ownership and short-selling analysis with source records", () => {
+    const result = getOwnershipAndShortSelling({
+      authorizedMarketStatistics: true,
+      requestId: "req_ownership_authorized",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_ownership_and_short_selling"
+    });
+    expect(result.security).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(result.ownership.shareholding_disclosures).toHaveLength(2);
+    expect(result.short_selling).toMatchObject({
+      short_turnover: 186000000,
+      short_turnover_ratio: 0.0915
+    });
+    expect(result.source_record_ids).toContain("synthetic_short_selling_00700_20260107");
+  });
+
+  it("plans authorized buybacks placements and rights issues with source records", () => {
+    const result = getBuybacksAndPlacements({
+      authorizedMarketStatistics: true,
+      requestId: "req_capital_events_authorized",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_buybacks_and_placements"
+    });
+    expect(result.capital_events.map((event) => event.event_type)).toEqual([
+      "buyback",
+      "placement",
+      "rights_issue"
+    ]);
+    expect(result.capital_events[0]).toMatchObject({
+      currency: "HKD",
+      source_record_id: "synthetic_buyback_00700_20260105",
+      status: "completed"
+    });
+    expect(result.source_record_ids).toContain("synthetic_placement_00700_20260106");
   });
 });

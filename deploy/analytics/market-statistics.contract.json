@@ -1,0 +1,86 @@
+{
+  "version": "2026-06-22.phase4.market-statistics-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "authorized_market_statistics_required": true,
+  "covered_phase4_items": [
+    "get_market_breadth",
+    "get_ownership_and_short_selling",
+    "get_buybacks_and_placements",
+    "authorized_market_statistics"
+  ],
+  "routes": [
+    "POST /analytics/market-breadth",
+    "POST /analytics/ownership-short-selling",
+    "POST /analytics/buybacks-placements"
+  ],
+  "tools": [
+    {
+      "tool_name": "get_market_breadth",
+      "route": "POST /analytics/market-breadth",
+      "analytics_sections": [
+        "advances_declines",
+        "turnover_concentration",
+        "industry_width"
+      ],
+      "required_output_fields": [
+        "authorization",
+        "breadth",
+        "market",
+        "source_record_ids"
+      ]
+    },
+    {
+      "tool_name": "get_ownership_and_short_selling",
+      "route": "POST /analytics/ownership-short-selling",
+      "analytics_sections": [
+        "ownership",
+        "short_selling"
+      ],
+      "required_output_fields": [
+        "authorization",
+        "security",
+        "ownership",
+        "short_selling",
+        "source_record_ids"
+      ]
+    },
+    {
+      "tool_name": "get_buybacks_and_placements",
+      "route": "POST /analytics/buybacks-placements",
+      "analytics_sections": [
+        "buybacks",
+        "placements",
+        "rights_issues"
+      ],
+      "required_output_fields": [
+        "authorization",
+        "security",
+        "capital_events",
+        "source_record_ids"
+      ]
+    }
+  ],
+  "blocked_statuses": [
+    "blocked_authorization",
+    "blocked_resolution"
+  ],
+  "source_record_required": true,
+  "linked_contracts": [
+    "deploy/analytics/portfolio-analytics.contract.json",
+    "deploy/data-access/field-rights-runtime.contract.json",
+    "deploy/tools/tool-registry.contract.json"
+  ],
+  "forbidden_payloads": [
+    "raw_contact",
+    "secret",
+    "api_key",
+    "bearer_token"
+  ]
+}

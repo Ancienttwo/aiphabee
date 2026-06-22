@@ -35,6 +35,8 @@ export const EVENT_STUDY_VERSION =
   "2026-06-21.phase3.event-study-scaffold.v0";
 export const PORTFOLIO_ANALYTICS_VERSION =
   "2026-06-22.phase4.portfolio-analytics-scaffold.v0";
+export const MARKET_STATISTICS_VERSION =
+  "2026-06-22.phase4.market-statistics-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -662,6 +664,133 @@ export interface PortfolioAnalyticsResult {
   workspace_id?: string;
 }
 
+export type MarketStatisticsStatus =
+  | "blocked_authorization"
+  | "blocked_resolution"
+  | "planned";
+
+export interface MarketStatisticsInput {
+  asOf?: string;
+  authorizedMarketStatistics?: boolean;
+  instrumentId?: string;
+  market?: string;
+  requestId: string;
+  securityQuery?: string;
+  universe?: string[];
+}
+
+export interface MarketStatisticsAuthorization {
+  authorized_market_statistics_required: true;
+  authorized_market_statistics_supplied: boolean;
+  dataset_scope: "market_statistics_authorized_only";
+}
+
+export interface MarketBreadthIndustryWidth {
+  advances: number;
+  advance_decline_ratio: number;
+  declines: number;
+  industry: string;
+  turnover: number;
+  unchanged: number;
+}
+
+export interface MarketBreadthResult {
+  as_of: string;
+  authorization: MarketStatisticsAuthorization;
+  breadth: {
+    advance_decline_ratio: number;
+    advances: number;
+    declines: number;
+    industry_width: MarketBreadthIndustryWidth[];
+    turnover_concentration_top5: number;
+    unchanged: number;
+  };
+  data_version: typeof MARKET_STATISTICS_VERSION;
+  frontend_rendering: false;
+  live_data_access: false;
+  market: string;
+  methodology_version: typeof MARKET_STATISTICS_VERSION;
+  source_record_ids: string[];
+  sql_emitted: false;
+  status: Extract<MarketStatisticsStatus, "blocked_authorization" | "planned">;
+  toolName: "get_market_breadth";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
+export interface OwnershipAndShortSellingResult {
+  as_of: string;
+  authorization: MarketStatisticsAuthorization;
+  data_version: typeof MARKET_STATISTICS_VERSION;
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof MARKET_STATISTICS_VERSION;
+  ownership: {
+    shareholding_disclosures: Array<{
+      holder_type: "board_or_senior_management" | "substantial_shareholder";
+      holding_percent: number;
+      source_record_id: string;
+    }>;
+    top_holder_concentration: number;
+  };
+  security: {
+    input: string;
+    instrument_id?: string;
+    symbol?: string;
+  };
+  short_selling: {
+    short_turnover: number;
+    short_turnover_ratio: number;
+    source_record_id: string;
+  };
+  source_record_ids: string[];
+  sql_emitted: false;
+  status: MarketStatisticsStatus;
+  toolName: "get_ownership_and_short_selling";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
+export type BuybacksPlacementsEventType = "buyback" | "placement" | "rights_issue";
+
+export interface BuybacksPlacementsResult {
+  as_of: string;
+  authorization: MarketStatisticsAuthorization;
+  capital_events: Array<{
+    amount: number;
+    currency: string;
+    event_date: string;
+    event_type: BuybacksPlacementsEventType;
+    shares: number;
+    source_record_id: string;
+    status: "announced" | "completed";
+  }>;
+  data_version: typeof MARKET_STATISTICS_VERSION;
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof MARKET_STATISTICS_VERSION;
+  security: {
+    input: string;
+    instrument_id?: string;
+    symbol?: string;
+  };
+  source_record_ids: string[];
+  sql_emitted: false;
+  status: MarketStatisticsStatus;
+  toolName: "get_buybacks_and_placements";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -674,6 +803,8 @@ const DEFAULT_FINANCIAL_TO = "2023-12-31";
 const DEFAULT_RETURNS_RISK_ADJUSTMENT = "total_return_adjusted";
 const DEFAULT_RETURNS_RISK_FROM = "2026-01-05";
 const DEFAULT_RETURNS_RISK_TO = "2026-01-07";
+const DEFAULT_MARKET_STATISTICS_AS_OF = "2026-01-07T16:15:00+08:00";
+const DEFAULT_MARKET_STATISTICS_MARKET = "HK";
 const RETURNS_RISK_ANNUALIZATION_FACTOR = 252;
 const RETURNS_RISK_FORMULA_VERSION = "returns-risk-v0";
 const RETURNS_RISK_LIMIT = 3;
@@ -700,6 +831,74 @@ const HIGH_COST_ANALYTICS_THRESHOLD = 8;
 const HIGH_COST_ANALYTICS_MAX_PARALLEL = 2;
 const STANDARD_ANALYTICS_MAX_PARALLEL = 8;
 const HIGH_COST_ANALYTICS_QUEUE_ROUTE = "POST /analytics/high-cost/plan";
+const SYNTHETIC_MARKET_BREADTH_INDUSTRIES: MarketBreadthIndustryWidth[] = [
+  {
+    advances: 18,
+    advance_decline_ratio: 2,
+    declines: 9,
+    industry: "technology",
+    turnover: 4260000000,
+    unchanged: 3
+  },
+  {
+    advances: 11,
+    advance_decline_ratio: 1.375,
+    declines: 8,
+    industry: "financials",
+    turnover: 3180000000,
+    unchanged: 2
+  },
+  {
+    advances: 7,
+    advance_decline_ratio: 0.777778,
+    declines: 9,
+    industry: "consumer",
+    turnover: 1640000000,
+    unchanged: 4
+  }
+];
+const SYNTHETIC_OWNERSHIP_DISCLOSURES: OwnershipAndShortSellingResult["ownership"]["shareholding_disclosures"] =
+  [
+    {
+      holder_type: "substantial_shareholder",
+      holding_percent: 8.41,
+      source_record_id: "synthetic_ownership_substantial_holder_00700_20260107"
+    },
+    {
+      holder_type: "board_or_senior_management",
+      holding_percent: 1.12,
+      source_record_id: "synthetic_ownership_board_holder_00700_20260107"
+    }
+  ];
+const SYNTHETIC_CAPITAL_EVENTS: BuybacksPlacementsResult["capital_events"] = [
+  {
+    amount: 402000000,
+    currency: "HKD",
+    event_date: "2026-01-05",
+    event_type: "buyback",
+    shares: 1080000,
+    source_record_id: "synthetic_buyback_00700_20260105",
+    status: "completed"
+  },
+  {
+    amount: 2500000000,
+    currency: "HKD",
+    event_date: "2026-01-06",
+    event_type: "placement",
+    shares: 6500000,
+    source_record_id: "synthetic_placement_00700_20260106",
+    status: "announced"
+  },
+  {
+    amount: 780000000,
+    currency: "HKD",
+    event_date: "2026-01-07",
+    event_type: "rights_issue",
+    shares: 12000000,
+    source_record_id: "synthetic_rights_issue_00700_20260107",
+    status: "announced"
+  }
+];
 const HIGH_COST_ANALYTICS_TOOL_WEIGHTS: Record<
   HighCostAnalyticsToolName,
   { max: number; min: number }
@@ -1055,6 +1254,55 @@ export function getPortfolioAnalyticsCapabilities() {
   };
 }
 
+export function getMarketBreadthCapabilities() {
+  return {
+    analytics_sections: ["advances_declines", "turnover_concentration", "industry_width"] as const,
+    authorized_market_statistics_required: true,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    route: "POST /analytics/market-breadth" as const,
+    source_required: true,
+    sql_emitted: false,
+    status: "market_breadth_scaffold" as const,
+    tool_name: "get_market_breadth" as const,
+    version: MARKET_STATISTICS_VERSION
+  };
+}
+
+export function getOwnershipAndShortSellingCapabilities() {
+  return {
+    analytics_sections: ["ownership", "short_selling"] as const,
+    authorized_market_statistics_required: true,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    route: "POST /analytics/ownership-short-selling" as const,
+    source_required: true,
+    sql_emitted: false,
+    status: "ownership_short_selling_scaffold" as const,
+    tool_name: "get_ownership_and_short_selling" as const,
+    version: MARKET_STATISTICS_VERSION
+  };
+}
+
+export function getBuybacksAndPlacementsCapabilities() {
+  return {
+    analytics_sections: ["buybacks", "placements", "rights_issues"] as const,
+    authorized_market_statistics_required: true,
+    event_types: ["buyback", "placement", "rights_issue"] as const,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    route: "POST /analytics/buybacks-placements" as const,
+    source_required: true,
+    sql_emitted: false,
+    status: "buybacks_placements_scaffold" as const,
+    tool_name: "get_buybacks_and_placements" as const,
+    version: MARKET_STATISTICS_VERSION
+  };
+}
+
 export function getHighCostAnalyticsQueueCapabilities() {
   return {
     durable_queue_writes: false,
@@ -1132,6 +1380,138 @@ export function getPortfolioAnalytics(input: PortfolioAnalyticsInput): Portfolio
     totalMarketValue,
     usageRows: positions.length + weightedPositions.length,
     workspaceId: input.workspaceId
+  });
+}
+
+export function getMarketBreadth(input: MarketStatisticsInput): MarketBreadthResult {
+  const asOf = input.asOf ?? DEFAULT_MARKET_STATISTICS_AS_OF;
+  const authorized = input.authorizedMarketStatistics === true;
+  const authorization = createMarketStatisticsAuthorization(authorized);
+
+  if (!authorized) {
+    return {
+      as_of: asOf,
+      authorization,
+      breadth: createEmptyMarketBreadth(),
+      data_version: MARKET_STATISTICS_VERSION,
+      frontend_rendering: false,
+      live_data_access: false,
+      market: normalizePortfolioString(input.market) ?? DEFAULT_MARKET_STATISTICS_MARKET,
+      methodology_version: MARKET_STATISTICS_VERSION,
+      source_record_ids: [],
+      sql_emitted: false,
+      status: "blocked_authorization",
+      toolName: "get_market_breadth",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const industryWidth = createMarketBreadthIndustryWidth(input.universe);
+  const advances = industryWidth.reduce((sum, row) => sum + row.advances, 0);
+  const declines = industryWidth.reduce((sum, row) => sum + row.declines, 0);
+  const unchanged = industryWidth.reduce((sum, row) => sum + row.unchanged, 0);
+  const totalTurnover = industryWidth.reduce((sum, row) => sum + row.turnover, 0);
+  const topTurnover = industryWidth
+    .map((row) => row.turnover)
+    .sort((left, right) => right - left)
+    .slice(0, 5)
+    .reduce((sum, turnover) => sum + turnover, 0);
+
+  return {
+    as_of: asOf,
+    authorization,
+    breadth: {
+      advance_decline_ratio: roundRatio(advances, declines),
+      advances,
+      declines,
+      industry_width: industryWidth,
+      turnover_concentration_top5: totalTurnover > 0 ? roundMetric(topTurnover / totalTurnover) : 0,
+      unchanged
+    },
+    data_version: MARKET_STATISTICS_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    market: normalizePortfolioString(input.market) ?? DEFAULT_MARKET_STATISTICS_MARKET,
+    methodology_version: MARKET_STATISTICS_VERSION,
+    source_record_ids: industryWidth.map((row) => `synthetic_market_breadth_${row.industry}_20260107`),
+    sql_emitted: false,
+    status: "planned",
+    toolName: "get_market_breadth",
+    usage: {
+      cached: false,
+      credits: 2,
+      rows: industryWidth.length
+    }
+  };
+}
+
+export function getOwnershipAndShortSelling(
+  input: MarketStatisticsInput
+): OwnershipAndShortSellingResult {
+  const asOf = input.asOf ?? DEFAULT_MARKET_STATISTICS_AS_OF;
+  const authorized = input.authorizedMarketStatistics === true;
+  const authorization = createMarketStatisticsAuthorization(authorized);
+  const security = resolveMarketStatisticsSecurity(input, asOf);
+
+  if (!authorized) {
+    return createOwnershipAndShortSellingResult({
+      asOf,
+      authorization,
+      security,
+      status: "blocked_authorization"
+    });
+  }
+
+  if (security.instrument_id === undefined) {
+    return createOwnershipAndShortSellingResult({
+      asOf,
+      authorization,
+      security,
+      status: "blocked_resolution"
+    });
+  }
+
+  return createOwnershipAndShortSellingResult({
+    asOf,
+    authorization,
+    security,
+    status: "planned"
+  });
+}
+
+export function getBuybacksAndPlacements(input: MarketStatisticsInput): BuybacksPlacementsResult {
+  const asOf = input.asOf ?? DEFAULT_MARKET_STATISTICS_AS_OF;
+  const authorized = input.authorizedMarketStatistics === true;
+  const authorization = createMarketStatisticsAuthorization(authorized);
+  const security = resolveMarketStatisticsSecurity(input, asOf);
+
+  if (!authorized) {
+    return createBuybacksPlacementsResult({
+      asOf,
+      authorization,
+      security,
+      status: "blocked_authorization"
+    });
+  }
+
+  if (security.instrument_id === undefined) {
+    return createBuybacksPlacementsResult({
+      asOf,
+      authorization,
+      security,
+      status: "blocked_resolution"
+    });
+  }
+
+  return createBuybacksPlacementsResult({
+    asOf,
+    authorization,
+    security,
+    status: "planned"
   });
 }
 
@@ -2852,6 +3232,155 @@ function getPercentileSubjectSourceTool(
   return metricId === "net_margin" ? "get_financial_ratios" : "calculate_returns_risk";
 }
 
+function createMarketStatisticsAuthorization(
+  authorized: boolean
+): MarketStatisticsAuthorization {
+  return {
+    authorized_market_statistics_required: true,
+    authorized_market_statistics_supplied: authorized,
+    dataset_scope: "market_statistics_authorized_only"
+  };
+}
+
+function createEmptyMarketBreadth(): MarketBreadthResult["breadth"] {
+  return {
+    advance_decline_ratio: 0,
+    advances: 0,
+    declines: 0,
+    industry_width: [],
+    turnover_concentration_top5: 0,
+    unchanged: 0
+  };
+}
+
+function createMarketBreadthIndustryWidth(
+  universe: string[] | undefined
+): MarketBreadthIndustryWidth[] {
+  const universeFactor = Math.max(universe?.length ?? SYNTHETIC_MARKET_BREADTH_INDUSTRIES.length, 1);
+
+  return SYNTHETIC_MARKET_BREADTH_INDUSTRIES.map((row, index) => {
+    const scale = 1 + index / universeFactor;
+    const advances = Math.round(row.advances * scale);
+    const declines = Math.max(1, Math.round(row.declines * scale));
+
+    return {
+      advances,
+      advance_decline_ratio: roundRatio(advances, declines),
+      declines,
+      industry: row.industry,
+      turnover: roundMetric(row.turnover * scale),
+      unchanged: Math.round(row.unchanged * scale)
+    };
+  });
+}
+
+function resolveMarketStatisticsSecurity(
+  input: MarketStatisticsInput,
+  asOf: string
+): OwnershipAndShortSellingResult["security"] {
+  const instrumentId =
+    normalizePortfolioString(input.instrumentId) ??
+    (normalizePortfolioString(input.securityQuery)?.startsWith("eq_")
+      ? normalizePortfolioString(input.securityQuery)
+      : undefined);
+  const query = normalizePortfolioString(input.securityQuery);
+  const resolution =
+    instrumentId === undefined && query !== undefined
+      ? resolveSecurity({
+          asOf,
+          query
+        })
+      : undefined;
+  const selectedInstrumentId = instrumentId ?? resolution?.selectedInstrumentId;
+
+  return {
+    input: query ?? selectedInstrumentId ?? "security_unresolved",
+    instrument_id: selectedInstrumentId,
+    symbol: resolution?.candidates[0]?.symbol ?? query
+  };
+}
+
+function createOwnershipAndShortSellingResult(input: {
+  asOf: string;
+  authorization: MarketStatisticsAuthorization;
+  security: OwnershipAndShortSellingResult["security"];
+  status: MarketStatisticsStatus;
+}): OwnershipAndShortSellingResult {
+  const planned = input.status === "planned";
+  const disclosures = planned ? SYNTHETIC_OWNERSHIP_DISCLOSURES : [];
+  const shortSelling = planned
+    ? {
+        short_turnover: 186000000,
+        short_turnover_ratio: 0.0915,
+        source_record_id: "synthetic_short_selling_00700_20260107"
+      }
+    : {
+        short_turnover: 0,
+        short_turnover_ratio: 0,
+        source_record_id: ""
+      };
+  const sourceRecordIds = [
+    ...disclosures.map((disclosure) => disclosure.source_record_id),
+    shortSelling.source_record_id
+  ].filter((value) => value.length > 0);
+
+  return {
+    as_of: input.asOf,
+    authorization: input.authorization,
+    data_version: MARKET_STATISTICS_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: MARKET_STATISTICS_VERSION,
+    ownership: {
+      shareholding_disclosures: disclosures,
+      top_holder_concentration: roundMetric(
+        disclosures.reduce((sum, disclosure) => sum + disclosure.holding_percent, 0)
+      )
+    },
+    security: input.security,
+    short_selling: shortSelling,
+    source_record_ids: sourceRecordIds,
+    sql_emitted: false,
+    status: input.status,
+    toolName: "get_ownership_and_short_selling",
+    usage: {
+      cached: false,
+      credits: planned ? 2 : 0,
+      rows: planned ? disclosures.length + 1 : 0
+    }
+  };
+}
+
+function createBuybacksPlacementsResult(input: {
+  asOf: string;
+  authorization: MarketStatisticsAuthorization;
+  security: BuybacksPlacementsResult["security"];
+  status: MarketStatisticsStatus;
+}): BuybacksPlacementsResult {
+  const planned = input.status === "planned";
+  const events = planned ? SYNTHETIC_CAPITAL_EVENTS : [];
+
+  return {
+    as_of: input.asOf,
+    authorization: input.authorization,
+    capital_events: events,
+    data_version: MARKET_STATISTICS_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: MARKET_STATISTICS_VERSION,
+    security: input.security,
+    source_record_ids: events.map((event) => event.source_record_id),
+    sql_emitted: false,
+    status: input.status,
+    toolName: "get_buybacks_and_placements",
+    usage: {
+      cached: false,
+      credits: planned ? 2 : 0,
+      rows: events.length
+    }
+  };
+}
+
 function normalizePortfolioPositions(
   positions: PortfolioAnalyticsPositionInput[] | undefined
 ): PortfolioAnalyticsPositionInput[] {
@@ -3413,4 +3942,8 @@ function isScreenOperator(value: string): value is ScreenSecuritiesOperator {
 
 function roundMetric(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+function roundRatio(numerator: number, denominator: number): number {
+  return denominator === 0 ? numerator : roundMetric(numerator / denominator);
 }

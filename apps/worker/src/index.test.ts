@@ -1677,6 +1677,25 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    buybacks_and_placements: {
+      authorized_market_statistics_required: boolean;
+      event_types: string[];
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    market_breadth: {
+      authorized_market_statistics_required: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    ownership_and_short_selling: {
+      authorized_market_statistics_required: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     percentile_comparison: {
       benchmark_types: string[];
       formula_version: string;
@@ -1759,6 +1778,105 @@ interface PortfolioAnalyticsBody {
   ok: true;
   usage: {
     credits: number;
+    rows: number;
+  };
+}
+
+interface MarketBreadthBody {
+  data: {
+    authorization: {
+      authorized_market_statistics_required: boolean;
+      authorized_market_statistics_supplied: boolean;
+      dataset_scope: string;
+    };
+    breadth: {
+      advance_decline_ratio: number;
+      advances: number;
+      declines: number;
+      industry_width: Array<{
+        industry: string;
+      }>;
+      turnover_concentration_top5: number;
+      unchanged: number;
+    };
+    capability: {
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    market: string;
+    source_record_ids: string[];
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface OwnershipShortSellingBody {
+  data: {
+    authorization: {
+      authorized_market_statistics_supplied: boolean;
+    };
+    capability: {
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    ownership: {
+      shareholding_disclosures: Array<{
+        holder_type: string;
+        holding_percent: number;
+      }>;
+      top_holder_concentration: number;
+    };
+    security: {
+      instrument_id?: string;
+      symbol?: string;
+    };
+    short_selling: {
+      short_turnover: number;
+      short_turnover_ratio: number;
+    };
+    source_record_ids: string[];
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface BuybacksPlacementsBody {
+  data: {
+    capital_events: Array<{
+      event_type: string;
+      source_record_id: string;
+      status: string;
+    }>;
+    capability: {
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    source_record_ids: string[];
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
     rows: number;
   };
 }
@@ -9570,6 +9688,25 @@ describe("worker runtime", () => {
       status: "high_cost_analytics_queue_scaffold",
       tool_name: "plan_high_cost_analytics"
     });
+    expect(body.data.market_breadth).toMatchObject({
+      authorized_market_statistics_required: true,
+      route: "POST /analytics/market-breadth",
+      status: "market_breadth_scaffold",
+      tool_name: "get_market_breadth"
+    });
+    expect(body.data.ownership_and_short_selling).toMatchObject({
+      authorized_market_statistics_required: true,
+      route: "POST /analytics/ownership-short-selling",
+      status: "ownership_short_selling_scaffold",
+      tool_name: "get_ownership_and_short_selling"
+    });
+    expect(body.data.buybacks_and_placements).toMatchObject({
+      authorized_market_statistics_required: true,
+      event_types: ["buyback", "placement", "rights_issue"],
+      route: "POST /analytics/buybacks-placements",
+      status: "buybacks_placements_scaffold",
+      tool_name: "get_buybacks_and_placements"
+    });
     expect(body.data.percentile_comparison).toMatchObject({
       benchmark_types: ["peer", "index", "history"],
       formula_version: "percentile-comparison-v0",
@@ -9768,6 +9905,139 @@ describe("worker runtime", () => {
     expect(body.data.authorization.authorized_holdings_supplied).toBe(false);
     expect(body.data.trading_advice.personalized_advice).toBe(false);
     expect(body.usage.credits).toBe(0);
+  });
+
+  it("plans authorized market breadth without live data", async () => {
+    const response = await app.request("/analytics/market-breadth", {
+      body: JSON.stringify({
+        authorized_market_statistics: true,
+        market: "HK",
+        universe: ["00700.HK", "00001.HK", "00005.HK"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-breadth"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as MarketBreadthBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      market: "HK",
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_market_breadth"
+    });
+    expect(body.data.authorization).toEqual({
+      authorized_market_statistics_required: true,
+      authorized_market_statistics_supplied: true,
+      dataset_scope: "market_statistics_authorized_only"
+    });
+    expect(body.data.breadth.advances).toBeGreaterThan(body.data.breadth.declines);
+    expect(body.data.breadth.industry_width.map((row) => row.industry)).toEqual([
+      "technology",
+      "financials",
+      "consumer"
+    ]);
+    expect(body.data.capability).toMatchObject({
+      route: "POST /analytics/market-breadth",
+      status: "market_breadth_scaffold",
+      tool_name: "get_market_breadth"
+    });
+    expect(body.usage.rows).toBe(3);
+  });
+
+  it("blocks ownership and short-selling route without market statistics authorization", async () => {
+    const response = await app.request("/analytics/ownership-short-selling", {
+      body: JSON.stringify({
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-ownership-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as OwnershipShortSellingBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_authorization");
+    expect(body.data.authorization.authorized_market_statistics_supplied).toBe(false);
+    expect(body.data.ownership.shareholding_disclosures).toEqual([]);
+    expect(body.data.short_selling.short_turnover).toBe(0);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans authorized ownership short-selling and buybacks placements routes", async () => {
+    const ownershipResponse = await app.request("/analytics/ownership-short-selling", {
+      body: JSON.stringify({
+        authorized_market_statistics: true,
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-ownership-authorized"
+      },
+      method: "POST"
+    });
+    const buybacksResponse = await app.request("/analytics/buybacks-placements", {
+      body: JSON.stringify({
+        authorized_market_statistics: true,
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-buybacks-placements"
+      },
+      method: "POST"
+    });
+    const ownership = (await ownershipResponse.json()) as OwnershipShortSellingBody;
+    const buybacks = (await buybacksResponse.json()) as BuybacksPlacementsBody;
+
+    expect(ownershipResponse.status).toBe(200);
+    expect(buybacksResponse.status).toBe(200);
+    expect(ownership.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_ownership_and_short_selling"
+    });
+    expect(ownership.data.security).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(ownership.data.ownership.shareholding_disclosures).toHaveLength(2);
+    expect(ownership.data.short_selling.short_turnover_ratio).toBe(0.0915);
+    expect(ownership.data.capability).toMatchObject({
+      route: "POST /analytics/ownership-short-selling",
+      status: "ownership_short_selling_scaffold",
+      tool_name: "get_ownership_and_short_selling"
+    });
+    expect(buybacks.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_buybacks_and_placements"
+    });
+    expect(buybacks.data.capital_events.map((event) => event.event_type)).toEqual([
+      "buyback",
+      "placement",
+      "rights_issue"
+    ]);
+    expect(buybacks.data.source_record_ids).toContain("synthetic_buyback_00700_20260105");
+    expect(buybacks.data.capability).toMatchObject({
+      route: "POST /analytics/buybacks-placements",
+      status: "buybacks_placements_scaffold",
+      tool_name: "get_buybacks_and_placements"
+    });
   });
 
   it("requires confirmation before queueing high-cost screen plans", async () => {
