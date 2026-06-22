@@ -1,0 +1,14 @@
+{
+  "capture_id": "observability_otlp_eval_store",
+  "command": "npm run smoke:observability-live",
+  "script": "scripts/smoke-observability-live.mjs",
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "runner": "redacted-runner",
+  "exit_code": 1,
+  "status": "missing_env",
+  "output_sha256": null,
+  "redaction_status": "redacted_no_secrets",
+  "source_locator": "template:observability_otlp_eval_store:replace-after-run",
+  "evidence_refs": [],
+  "cleanup_verified": false
+}

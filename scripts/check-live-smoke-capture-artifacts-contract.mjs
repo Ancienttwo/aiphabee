@@ -41,6 +41,8 @@ const requiredTruePolicies = [
   "secret_store_capture_requires_cleanup",
   "packet_fixture_checker_reuses_packet_validator",
   "packet_fixture_checker_covers_invalid_packets",
+  "operator_handoff_templates_validate_as_missing_env_packets",
+  "operator_handoff_readme_lists_external_env_and_order",
   "ledger_transition_still_owned_by_live_smoke_evidence_ledger"
 ];
 const requiredForbiddenFields = [
@@ -129,12 +131,24 @@ function validateContract({ contract: value, ledger, packageJson, todos, tracker
     errors.push("packet_fixture_checker must be scripts/check-live-smoke-capture-packet-fixtures.mjs");
   }
 
+  if (value.handoff_checker !== "scripts/check-live-smoke-capture-handoff.mjs") {
+    errors.push("handoff_checker must be scripts/check-live-smoke-capture-handoff.mjs");
+  }
+
   if (value.artifact_directory !== "deploy/governance/live-smoke-capture-packets") {
     errors.push("artifact_directory must be deploy/governance/live-smoke-capture-packets");
   }
 
   if (value.packet_file_pattern !== "<capture_id>.capture.json") {
     errors.push("packet_file_pattern must be <capture_id>.capture.json");
+  }
+
+  if (value.template_directory !== "deploy/governance/live-smoke-capture-templates") {
+    errors.push("template_directory must be deploy/governance/live-smoke-capture-templates");
+  }
+
+  if (value.template_file_pattern !== "<capture_id>.capture.json") {
+    errors.push("template_file_pattern must be <capture_id>.capture.json");
   }
 
   errors.push(...validateSchema(value.capture_packet_schema));
@@ -292,6 +306,8 @@ function validateLinkedFiles(value) {
     value.preflight_checker,
     value.packet_checker,
     value.packet_fixture_checker,
+    value.handoff_checker,
+    value.template_directory,
     value.artifact_directory
   ]) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
@@ -321,6 +337,10 @@ function validatePackageScripts(value) {
     errors.push("package.json check:live-smoke-capture-packet-fixtures script is missing");
   }
 
+  if (scripts["check:live-smoke-capture-handoff"] !== "node scripts/check-live-smoke-capture-handoff.mjs") {
+    errors.push("package.json check:live-smoke-capture-handoff script is missing");
+  }
+
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-artifacts")) {
     errors.push("root check must include check:live-smoke-capture-artifacts");
   }
@@ -331,6 +351,10 @@ function validatePackageScripts(value) {
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-packet-fixtures")) {
     errors.push("root check must include check:live-smoke-capture-packet-fixtures");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-handoff")) {
+    errors.push("root check must include check:live-smoke-capture-handoff");
   }
 
   return errors;
@@ -344,8 +368,10 @@ function validateTrackerAndTodos(tracker, todos) {
     "npm run check:live-smoke-capture-artifacts",
     "npm run check:live-smoke-capture-packets",
     "npm run check:live-smoke-capture-packet-fixtures",
+    "npm run check:live-smoke-capture-handoff",
     "capture packet verifier",
     "capture packet fixtures",
+    "operator handoff templates",
     "hash-only",
     "cleanup proof"
   ]) {

@@ -9,12 +9,17 @@ Date: 2026-06-22
 - Added `deploy/governance/live-smoke-capture-packets/README.md`.
 - Added `scripts/check-live-smoke-capture-packets.mjs`.
 - Added `scripts/check-live-smoke-capture-packet-fixtures.mjs`.
+- Added `scripts/check-live-smoke-capture-handoff.mjs`.
+- Added six operator handoff templates under
+  `deploy/governance/live-smoke-capture-templates/`.
 - Added `npm run check:live-smoke-capture-artifacts` and wired it into full
   `npm run check`.
 - Added `npm run check:live-smoke-capture-packets` and wired it into full
   `npm run check`.
 - Added `npm run check:live-smoke-capture-packet-fixtures` and wired it into
   full `npm run check`.
+- Added `npm run check:live-smoke-capture-handoff` and wired it into full
+  `npm run check`.
 - Updated `docs/governance/live-smoke-evidence-ledger.md`,
   `docs/AiphaBee_Sprint_Tracker_v1.0.md`, and `tasks/todos.md`.
 
@@ -38,6 +43,12 @@ with output hash, non-hash evidence refs, provider-secret cleanup, non-
 destructive cleanup, raw-output fields, command mismatches, duplicate capture
 IDs, unexpected capture IDs, secret-like locators, and missing artifact
 directory regressions.
+
+The operator handoff templates reuse the same packet schema as six valid
+`missing_env` packets. The handoff checker verifies the templates, package
+script wiring, external env names, live-smoke command order, and operator copy
+path before any credentialed run writes redacted evidence into the production
+packet directory.
 
 ## Current State
 

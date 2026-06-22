@@ -24,6 +24,16 @@ The checker also has a non-networked fixture gate:
 npm run check:live-smoke-capture-packet-fixtures
 ```
 
+Credentialed operators can start from the handoff templates:
+
+```bash
+npm run check:live-smoke-capture-handoff
+```
+
+Those templates live under `deploy/governance/live-smoke-capture-templates/`
+and validate as safe `missing_env` packets until a real run replaces them with
+redacted, hash-only evidence metadata.
+
 Those capture packet fixtures cover empty-directory, complete-passed,
 missing-env, raw-output, bad-hash, duplicate, command-mismatch, and cleanup
 regressions using the same validator as the production packet checker.

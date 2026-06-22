@@ -14,6 +14,7 @@ npm run check:live-smoke-external-env-preflight
 npm run check:live-smoke-capture-artifacts
 npm run check:live-smoke-capture-packets
 npm run check:live-smoke-capture-packet-fixtures
+npm run check:live-smoke-capture-handoff
 npm run check:live-smoke-evidence-ledger-fixtures
 ```
 
@@ -40,6 +41,13 @@ complete passed packet set, missing-env packet set, missing `sha256:` output
 hash, missing-env output hash, non-hash evidence refs, provider-secret cleanup,
 non-destructive cleanup, raw output field, command mismatch, duplicate capture
 ID, unexpected capture ID, secret-like locator, and missing artifact directory.
+
+The capture handoff check validates the operator README plus six reusable
+`missing_env` packet templates under
+`deploy/governance/live-smoke-capture-templates/`. Those templates list the
+external env names, preserve the ledger command order, and must be copied into
+`deploy/governance/live-smoke-capture-packets/` only after a credentialed run
+replaces them with redacted hash-only metadata.
 
 The fixture check exercises the state transition rules without running live
 smoke commands: partial evidence cannot set `release_transition_allowed=true`;

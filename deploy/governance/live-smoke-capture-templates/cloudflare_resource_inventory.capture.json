@@ -1,0 +1,14 @@
+{
+  "capture_id": "cloudflare_resource_inventory",
+  "command": "npm run smoke:cloudflare-resources-live",
+  "script": "scripts/smoke-cloudflare-resources-live.mjs",
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "runner": "redacted-runner",
+  "exit_code": 1,
+  "status": "missing_env",
+  "output_sha256": null,
+  "redaction_status": "redacted_no_secrets",
+  "source_locator": "template:cloudflare_resource_inventory:replace-after-run",
+  "evidence_refs": [],
+  "cleanup_verified": false
+}

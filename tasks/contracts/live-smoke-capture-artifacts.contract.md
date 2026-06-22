@@ -20,6 +20,7 @@ ledger.
   - checker that aligns all six captures with the live smoke evidence ledger;
   - packet-directory verifier for future external run artifacts;
   - packet-directory fixture gate that reuses the same verifier;
+  - operator handoff templates for the six credentialed live smoke captures;
   - package/full-check integration;
   - governance docs, sprint tracker, and deferred-ledger updates.
 - Out of scope:
@@ -36,6 +37,9 @@ ledger.
 - `scripts/check-live-smoke-capture-artifacts-contract.mjs`
 - `scripts/check-live-smoke-capture-packets.mjs`
 - `scripts/check-live-smoke-capture-packet-fixtures.mjs`
+- `scripts/check-live-smoke-capture-handoff.mjs`
+- `deploy/governance/live-smoke-capture-templates/README.md`
+- `deploy/governance/live-smoke-capture-templates/*.capture.json`
 - `docs/governance/live-smoke-evidence-ledger.md`
 - `tasks/notes/live-smoke-capture-artifacts.notes.md`
 - `docs/AiphaBee_Sprint_Tracker_v1.0.md`
@@ -50,6 +54,7 @@ exit_criteria:
     - npm run check:live-smoke-capture-artifacts
     - npm run check:live-smoke-capture-packets
     - npm run check:live-smoke-capture-packet-fixtures
+    - npm run check:live-smoke-capture-handoff
     - npm run check:live-smoke-external-env-preflight
     - npm run check:live-smoke-evidence-ledger
     - npm run check:traceability-matrix
@@ -61,6 +66,8 @@ exit_criteria:
     - "Provider secret store captures require cleanup proof"
     - "Empty packet directory is accepted until external env arrives"
     - "Capture packet fixtures cover empty, complete, missing-env, bad-hash, raw-output, duplicate, command-mismatch, and cleanup regressions"
+    - "Operator handoff templates validate as missing-env packets before live execution"
+    - "Operator handoff README lists external env names and live-smoke command order"
     - "Any committed packet file must be strict redacted/hash-only evidence"
     - "No raw secrets, raw outputs, account IDs, resource IDs, OTLP headers, prompts, or model outputs are allowed"
 ```
