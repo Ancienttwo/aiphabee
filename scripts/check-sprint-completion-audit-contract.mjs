@@ -73,9 +73,9 @@ function validateContract(value) {
 
   if (
     !Array.isArray(value.completion_blocker_manifests) ||
-    value.completion_blocker_manifests.length !== 4
+    value.completion_blocker_manifests.length !== 5
   ) {
-    errors.push("completion_blocker_manifests must contain 4 blocker manifests");
+    errors.push("completion_blocker_manifests must contain 5 blocker manifests");
   }
 
   for (const path of [
@@ -173,6 +173,8 @@ function validateManifestBlockers(value) {
       expectEqual(errors, data.all_activation_gates_accepted, false, `${manifest.id}.all_activation_gates_accepted`);
     } else if (manifest.id === "mcp_target_client_live_e2e") {
       validateTargetClientE2e(errors, manifest, data);
+    } else if (manifest.id === "frontend_release_evidence") {
+      validateFrontendReleaseEvidence(errors, manifest, data);
     } else {
       errors.push(`unknown blocker manifest id ${manifest.id}`);
     }
@@ -231,6 +233,25 @@ function validateTargetClientE2e(errors, manifest, data) {
   for (const client of clients) {
     if (client.status !== "missing_external_e2e") {
       errors.push(`${manifest.id}.${client.client_name} must remain missing_external_e2e`);
+    }
+  }
+}
+
+function validateFrontendReleaseEvidence(errors, manifest, data) {
+  const surfaces = data.required_surfaces ?? [];
+  const acceptedCount = surfaces.filter((surface) => surface.status === "accepted").length;
+
+  expectEqual(errors, data.all_required_surfaces_accepted, false, `${manifest.id}.all_required_surfaces_accepted`);
+  expectEqual(errors, data.frontend_release_surfaces_complete, false, `${manifest.id}.frontend_release_surfaces_complete`);
+  expectEqual(errors, surfaces.length, manifest.expected_required_count, `${manifest.id}.required_count`);
+  expectEqual(errors, acceptedCount, manifest.expected_accepted_count, `${manifest.id}.accepted_count`);
+
+  for (const surface of surfaces) {
+    if (surface.status !== "missing_frontend_evidence") {
+      errors.push(`${manifest.id}.${surface.surface_id} must remain missing_frontend_evidence`);
+    }
+    if (!Array.isArray(surface.required_evidence) || surface.required_evidence.length === 0) {
+      errors.push(`${manifest.id}.${surface.surface_id} must list required_evidence`);
     }
   }
 }

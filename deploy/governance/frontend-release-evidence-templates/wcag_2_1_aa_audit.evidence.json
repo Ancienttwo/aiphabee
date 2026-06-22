@@ -1,0 +1,22 @@
+{
+  "accessibility_audit_hash": null,
+  "artifact_hashes": [],
+  "build_output_hash": null,
+  "frontend_handoff_hash": null,
+  "missing_evidence": [
+    "keyboard_navigation_passed",
+    "high_contrast_or_contrast_audit_passed",
+    "chart_text_summary_passed",
+    "focus_and_form_state_audit_passed",
+    "redaction_review"
+  ],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "redaction_status": "missing",
+  "review_summary_hash": null,
+  "route_test_hash": null,
+  "screenshot_hash": null,
+  "source_locator": "template:wcag_2_1_aa_audit:replace-after-evidence",
+  "status": "missing_frontend_evidence",
+  "surface_id": "wcag_2_1_aa_audit"
+}

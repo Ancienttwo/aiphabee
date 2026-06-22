@@ -1,0 +1,22 @@
+{
+  "accessibility_audit_hash": null,
+  "artifact_hashes": [],
+  "build_output_hash": null,
+  "frontend_handoff_hash": null,
+  "missing_evidence": [
+    "compare_two_to_five_securities_flow",
+    "screening_condition_editor_flow",
+    "why_and_rejected_reason_rendering",
+    "responsive_route_or_component_test",
+    "redaction_review"
+  ],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "redaction_status": "missing",
+  "review_summary_hash": null,
+  "route_test_hash": null,
+  "screenshot_hash": null,
+  "source_locator": "template:comparison_screening_ui:replace-after-evidence",
+  "status": "missing_frontend_evidence",
+  "surface_id": "comparison_screening_ui"
+}

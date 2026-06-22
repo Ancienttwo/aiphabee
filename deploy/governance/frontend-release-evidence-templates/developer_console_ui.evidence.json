@@ -1,0 +1,22 @@
+{
+  "accessibility_audit_hash": null,
+  "artifact_hashes": [],
+  "build_output_hash": null,
+  "frontend_handoff_hash": null,
+  "missing_evidence": [
+    "connection_wizard_rendered",
+    "api_key_oauth_scope_quota_logs_rendered",
+    "request_id_and_usage_fields_visible",
+    "target_client_example_flow_rendered",
+    "redaction_review"
+  ],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "redaction_status": "missing",
+  "review_summary_hash": null,
+  "route_test_hash": null,
+  "screenshot_hash": null,
+  "source_locator": "template:developer_console_ui:replace-after-evidence",
+  "status": "missing_frontend_evidence",
+  "surface_id": "developer_console_ui"
+}
