@@ -170,6 +170,7 @@ import {
 import {
   McpRuntimeInputError,
   createMcpAuthLimitsReleaseGatePlan,
+  createMcpClientMaturityPlan,
   createMcpCompatibilityStatusPlan,
   createMcpApiKeyCreatePlan,
   createMcpApiKeyRevokePlan,
@@ -183,6 +184,7 @@ import {
   createMcpTargetClientsConsoleReleaseGatePlan,
   getMcpAuthLimitsReleaseGateCapabilities,
   getMcpApiKeyCapabilities,
+  getMcpClientMaturityCapabilities,
   getMcpCompatibilityStatusCapabilities,
   getMcpOAuthCapabilities,
   getMcpProtocolReleaseGateCapabilities,
@@ -4558,6 +4560,57 @@ app.post("/mcp/release-gates/target-clients-console/plan", async (c) => {
         dataVersion: "mcp-target-clients-console-release-gate-scaffold-v0",
         methodologyVersion:
           "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
+        source: "mcp-runtime"
+      }
+    );
+  }
+});
+
+app.post("/mcp/client-maturity/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  try {
+    const result = createMcpClientMaturityPlan({
+      clientName: normalizeString(body.client_name ?? body.clientName),
+      clientVersion: normalizeString(body.client_version ?? body.clientVersion),
+      origin: c.req.header("origin") ?? normalizeString(body.origin),
+      pendingCredits: normalizeOptionalNumber(body.pending_credits ?? body.pendingCredits),
+      requestId,
+      requestedFeature: normalizeString(body.requested_feature ?? body.requestedFeature),
+      usagePlanCode: normalizeUsageQuotaPlanCode(body.plan_code ?? body.planCode),
+      usedCredits: normalizeOptionalNumber(body.used_credits ?? body.usedCredits),
+      workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+    });
+
+    return c.json(
+      createSuccessEnvelope(
+        {
+          ...result,
+          capability: getMcpClientMaturityCapabilities()
+        },
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: result.data_version,
+          methodologyVersion: result.methodology_version,
+          provenance: result.provenance,
+          requestId,
+          usage: result.usage
+        }
+      )
+    );
+  } catch (error) {
+    return handleMcpRuntimeError(
+      c,
+      error,
+      requestId,
+      "MCP client maturity plan failed",
+      {
+        dataVersion: "mcp-client-maturity-scaffold-v0",
+        methodologyVersion: "2026-06-22.phase4.mcp-client-maturity-scaffold.v0",
         source: "mcp-runtime"
       }
     );

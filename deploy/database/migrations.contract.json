@@ -642,6 +642,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql",
+      "purpose": "Create empty MCP client maturity assessment scaffolds for resources, prompts, and interactive Apps evaluation without enabling live resources, live prompts, interactive apps, component widgets, live tool execution, persistent writes, SQL execution, or frontend rendering.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_client_maturity_assessment",
+        "governance.mcp_client_maturity_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

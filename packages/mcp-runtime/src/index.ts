@@ -78,6 +78,34 @@ export const MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS = [
   "compatibility_status_linked",
   "no_live_console_or_client_claim"
 ] as const;
+export const MCP_CLIENT_MATURITY_VERSION =
+  "2026-06-22.phase4.mcp-client-maturity-scaffold.v0";
+export const MCP_CLIENT_MATURITY_REQUIRED_CHECKS = [
+  "target_clients_capability_matrix_present",
+  "resources_support_guarded_by_client_maturity",
+  "prompts_support_guarded_by_client_maturity",
+  "interactive_apps_support_blocked_until_client_stable",
+  "fallback_to_tools_only_documented",
+  "no_live_resources_prompts_apps_claim"
+] as const;
+export const MCP_CLIENT_MATURITY_FEATURES = [
+  "tools",
+  "resources",
+  "prompts",
+  "interactive_apps"
+] as const;
+export const MCP_CLIENT_MATURITY_TARGET_CLIENTS = [
+  "mcp_inspector",
+  "typescript_sdk_client",
+  "claude_desktop",
+  "cursor",
+  "chatgpt_connector"
+] as const;
+export const MCP_CLIENT_MATURITY_REFERENCE_URLS = [
+  "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+  "https://modelcontextprotocol.io/specification/2025-11-25/server/prompts",
+  "https://developers.openai.com/apps-sdk/concepts/mcp-server"
+] as const;
 
 export const MCP_SUPPORTED_METHODS = [
   "initialize",
@@ -161,6 +189,13 @@ export type McpMethod = (typeof MCP_SUPPORTED_METHODS)[number];
 export type McpOAuthScope = (typeof MCP_OAUTH_SCOPE_DEFINITIONS)[number]["scope"];
 export type McpCredentialKind = "api_key" | "oauth_connection";
 export type McpCredentialStatus = "active" | "revoked" | "rotated" | "unknown";
+export type McpClientMaturityFeature = (typeof MCP_CLIENT_MATURITY_FEATURES)[number];
+export type McpClientMaturityTargetClient =
+  (typeof MCP_CLIENT_MATURITY_TARGET_CLIENTS)[number];
+export type McpClientMaturityPlanStatus =
+  | "blocked_unknown_client"
+  | "blocked_unsupported_feature"
+  | "planned_no_live_mcp_client_maturity";
 export type McpIpRiskLevel = "high" | "low" | "medium" | "unknown";
 export type McpRuntimePlanStatus =
   | "planned_default_deny"
@@ -374,6 +409,19 @@ export interface CreateMcpTargetClientsConsoleReleaseGatePlanInput {
   origin?: string;
   pendingCredits?: number;
   requestId: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
+}
+
+export interface CreateMcpClientMaturityPlanInput {
+  allowedOrigins?: readonly string[];
+  clientName?: string;
+  clientVersion?: string;
+  origin?: string;
+  pendingCredits?: number;
+  requestId: string;
+  requestedFeature?: string;
   usagePlanCode?: UsageQuotaPlanCode;
   usedCredits?: number;
   workspaceId?: string;
@@ -1482,6 +1530,16 @@ export function getMcpRuntimeCapabilities() {
       MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
     mcp_target_client_e2e_matrix_ready: true,
     mcp_target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
+    mcp_client_maturity_ready: true,
+    mcp_client_maturity_reference_urls: MCP_CLIENT_MATURITY_REFERENCE_URLS,
+    mcp_client_maturity_required_checks: MCP_CLIENT_MATURITY_REQUIRED_CHECKS,
+    mcp_client_maturity_route: "POST /mcp/client-maturity/plan" as const,
+    mcp_client_maturity_supported_features: MCP_CLIENT_MATURITY_FEATURES,
+    mcp_client_maturity_target_clients: MCP_CLIENT_MATURITY_TARGET_CLIENTS,
+    mcp_client_maturity_version: MCP_CLIENT_MATURITY_VERSION,
+    mcp_interactive_apps_live: false,
+    mcp_prompts_live: false,
+    mcp_resources_live: false,
     developer_console_reconciliation_ready: true,
     live_tool_execution: false,
     mcp_api_redistribution_rights_confirmed: false,
@@ -2548,6 +2606,210 @@ export function createMcpTargetClientsConsoleReleaseGatePlan(
     usage: createMcpUsageSummary(input, 0, releaseChecks.length),
     validation,
     version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
+  };
+}
+
+export function getMcpClientMaturityCapabilities() {
+  return {
+    fallback_mode: "tools_only" as const,
+    interactive_apps_live: false,
+    live_client_e2e_passed: false,
+    package: "@aiphabee/mcp-runtime" as const,
+    prompts_live: false,
+    reference_urls: MCP_CLIENT_MATURITY_REFERENCE_URLS,
+    required_checks: MCP_CLIENT_MATURITY_REQUIRED_CHECKS,
+    resources_live: false,
+    route: "POST /mcp/client-maturity/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    status: "mcp_client_maturity_scaffold" as const,
+    supported_features: MCP_CLIENT_MATURITY_FEATURES,
+    target_client_matrix_ready: true,
+    target_clients: MCP_CLIENT_MATURITY_TARGET_CLIENTS,
+    target_clients_console_gate_route:
+      "POST /mcp/release-gates/target-clients-console/plan" as const,
+    tools_live: false,
+    tools_only_fallback_ready: true,
+    version: MCP_CLIENT_MATURITY_VERSION
+  };
+}
+
+export function createMcpClientMaturityPlan(input: CreateMcpClientMaturityPlanInput) {
+  const requestedClient = normalizeMcpClientMaturityTargetClient(input.clientName);
+  const requestedFeature = normalizeMcpClientMaturityFeature(input.requestedFeature);
+  const capability = getMcpClientMaturityCapabilities();
+  const compatibilityPlan = createMcpCompatibilityStatusPlan({
+    requestId: `${input.requestId}:compatibility`
+  });
+  const targetClientsGate = createMcpTargetClientsConsoleReleaseGatePlan({
+    allowedOrigins: input.allowedOrigins,
+    clientName: input.clientName,
+    clientVersion: input.clientVersion,
+    origin: input.origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:target-clients-console`,
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId: input.workspaceId
+  });
+  const clientCapabilityMatrix = MCP_CLIENT_MATURITY_TARGET_CLIENTS.map((clientName) => {
+    const compatibilityClient = compatibilityPlan.target_clients.find(
+      (client) => client.name === clientName
+    );
+    const chatgptConnector = clientName === "chatgpt_connector";
+
+    return {
+      client_name: clientName,
+      fallback_mode: "tools_only" as const,
+      interactive_apps: {
+        app_review_required: true,
+        live_enabled: false,
+        maturity: chatgptConnector ? "apps_sdk_candidate" : "not_targeted",
+        required_client_validation: true
+      },
+      live_e2e_passed: compatibilityClient?.live_e2e_passed ?? false,
+      prompts: {
+        live_enabled: false,
+        maturity: chatgptConnector ? "client_capability_unverified" : "requires_client_validation",
+        required_methods: ["prompts/list", "prompts/get"] as const,
+        user_initiated_selection_required: true
+      },
+      readiness_status: chatgptConnector
+        ? ("evaluate_apps_sdk_surface" as const)
+        : ("tools_only_until_client_e2e" as const),
+      resources: {
+        live_enabled: false,
+        maturity: chatgptConnector ? "embedded_resource_candidate" : "requires_client_validation",
+        required_methods: [
+          "resources/list",
+          "resources/read",
+          "resources/templates/list"
+        ] as const,
+        uri_permission_checks_required: true
+      },
+      tools: {
+        live_execution: false,
+        maturity: "local_contract_ready" as const,
+        route: "POST /mcp" as const
+      }
+    };
+  });
+  const status: McpClientMaturityPlanStatus =
+    input.clientName !== undefined && requestedClient === undefined
+      ? "blocked_unknown_client"
+      : input.requestedFeature !== undefined && requestedFeature === undefined
+        ? "blocked_unsupported_feature"
+        : "planned_no_live_mcp_client_maturity";
+  const publicationPolicy = {
+    component_widgets_live: false,
+    fallback_to_tools_only: true,
+    interactive_apps_live: false,
+    prompts_live: false,
+    resources_live: false,
+    tools_call_live_execution: false,
+    tool_result_embedded_resources_live: false
+  };
+  const validation = {
+    fallback_to_tools_only_documented:
+      publicationPolicy.fallback_to_tools_only &&
+      clientCapabilityMatrix.every((client) => client.fallback_mode === "tools_only"),
+    interactive_apps_support_blocked_until_client_stable:
+      publicationPolicy.interactive_apps_live === false &&
+      clientCapabilityMatrix.every((client) => client.interactive_apps.live_enabled === false),
+    no_live_resources_prompts_apps_claim:
+      publicationPolicy.resources_live === false &&
+      publicationPolicy.prompts_live === false &&
+      publicationPolicy.interactive_apps_live === false &&
+      publicationPolicy.component_widgets_live === false &&
+      targetClientsGate.live_client_e2e_passed === false,
+    prompts_support_guarded_by_client_maturity:
+      publicationPolicy.prompts_live === false &&
+      clientCapabilityMatrix.every((client) =>
+        client.prompts.required_methods.includes("prompts/list")
+      ),
+    resources_support_guarded_by_client_maturity:
+      publicationPolicy.resources_live === false &&
+      clientCapabilityMatrix.every((client) =>
+        client.resources.required_methods.includes("resources/read")
+      ),
+    target_clients_capability_matrix_present:
+      MCP_CLIENT_MATURITY_TARGET_CLIENTS.every((clientName) =>
+        clientCapabilityMatrix.some((client) => client.client_name === clientName)
+      )
+  };
+  const releaseChecks = capability.required_checks.map((check) => ({
+    check,
+    evidence:
+      check === "target_clients_capability_matrix_present"
+        ? "Maturity matrix enumerates Inspector, TypeScript SDK, Claude Desktop, Cursor, and ChatGPT Connector across tools/resources/prompts/interactive_apps"
+        : check === "resources_support_guarded_by_client_maturity"
+          ? "Resources/list/read/templates are documented as client-maturity guarded and not published live"
+          : check === "prompts_support_guarded_by_client_maturity"
+            ? "Prompts/list/get are documented as user-initiated and not published live"
+            : check === "interactive_apps_support_blocked_until_client_stable"
+              ? "Interactive Apps remain blocked until client stability, Apps SDK review, and live e2e evidence exist"
+              : check === "fallback_to_tools_only_documented"
+                ? "Every target client remains in tools-only fallback mode for this scaffold"
+                : "Resources, prompts, embedded resources, widgets, Apps SDK components, model calls, and live tool execution are all false",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    capability,
+    client_maturity_gate: {
+      candidate_feature: requestedFeature ?? "interactive_apps",
+      matrix: clientCapabilityMatrix,
+      requested_client: requestedClient ?? "all_target_clients",
+      status: "client_maturity_assessment_only" as const
+    },
+    compatibility_gate: {
+      live_client_e2e_passed: compatibilityPlan.live_client_e2e_passed,
+      status_route: compatibilityPlan.status_route,
+      target_protocol_version: compatibilityPlan.target_protocol_version
+    },
+    data_version: MCP_CLIENT_MATURITY_VERSION,
+    developer_console_live: false,
+    frontend_rendering: false,
+    live_client_e2e_passed: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    methodology_version: MCP_CLIENT_MATURITY_VERSION,
+    model_calls: false,
+    persistent_writes: false,
+    provenance: [
+      {
+        data_version: MCP_CLIENT_MATURITY_VERSION,
+        methodology_version: MCP_CLIENT_MATURITY_VERSION,
+        source: "mcp-runtime",
+        source_record_id: "mcp_client_maturity"
+      }
+    ],
+    publication_policy: publicationPolicy,
+    reference_urls: MCP_CLIENT_MATURITY_REFERENCE_URLS,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "live_resources_e2e_missing",
+        "live_prompts_e2e_missing",
+        "interactive_apps_client_stability_missing",
+        "client_capability_version_matrix_missing",
+        "apps_sdk_security_review_missing"
+      ],
+      gate_status: "blocked_live_mcp_client_maturity_validation" as const,
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "security", "developer-relations", "data-rights"]
+    },
+    request_id: input.requestId,
+    route: "POST /mcp/client-maturity/plan" as const,
+    sql_emitted: false,
+    status,
+    target_clients_console_gate: {
+      gate_status: targetClientsGate.release_gate.gate_status,
+      route: targetClientsGate.route,
+      usage: targetClientsGate.usage
+    },
+    usage: createMcpUsageSummary(input, 0, releaseChecks.length),
+    validation,
+    version: MCP_CLIENT_MATURITY_VERSION
   };
 }
 
@@ -4286,8 +4548,36 @@ function normalizeMcpMethod(value: string | undefined): McpMethod | undefined {
     : undefined;
 }
 
+function normalizeMcpClientMaturityFeature(
+  value: string | undefined
+): McpClientMaturityFeature | undefined {
+  const normalized = normalizeSlug(value);
+  return MCP_CLIENT_MATURITY_FEATURES.includes(normalized as McpClientMaturityFeature)
+    ? (normalized as McpClientMaturityFeature)
+    : undefined;
+}
+
+function normalizeMcpClientMaturityTargetClient(
+  value: string | undefined
+): McpClientMaturityTargetClient | undefined {
+  const normalized = normalizeSlug(value);
+  return MCP_CLIENT_MATURITY_TARGET_CLIENTS.includes(
+    normalized as McpClientMaturityTargetClient
+  )
+    ? (normalized as McpClientMaturityTargetClient)
+    : undefined;
+}
+
 function normalizeText(value: string | undefined): string | undefined {
   const normalized = value?.trim();
+  return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+}
+
+function normalizeSlug(value: string | undefined): string | undefined {
+  const normalized = normalizeText(value)
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "_")
+    .replace(/^_+|_+$/gu, "");
   return normalized === undefined || normalized.length === 0 ? undefined : normalized;
 }
 

@@ -8,6 +8,8 @@ import {
   MCP_REVOCATION_ENFORCEMENT_VERSION,
   MCP_STANDARD_ERROR_CODES,
   MCP_STANDARD_ERROR_CODES_VERSION,
+  MCP_CLIENT_MATURITY_REQUIRED_CHECKS,
+  MCP_CLIENT_MATURITY_VERSION,
   MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS,
   MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
   MCP_TOOL_LIMITER_VERSION,
@@ -20,12 +22,14 @@ import {
   createMcpOAuthAuthorizePlan,
   createMcpOAuthRevokePlan,
   createMcpOAuthTokenPlan,
+  createMcpClientMaturityPlan,
   createMcpProtocolPlan,
   createMcpProtocolReleaseGatePlan,
   createMcpRevocationEnforcementPlan,
   createMcpTargetClientsConsoleReleaseGatePlan,
   getMcpApiKeyCapabilities,
   getMcpAuthLimitsReleaseGateCapabilities,
+  getMcpClientMaturityCapabilities,
   getMcpOAuthCapabilities,
   getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
@@ -127,6 +131,12 @@ describe("mcp endpoint default-deny scaffold", () => {
         "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
       mcp_target_client_e2e_matrix_ready: true,
       mcp_target_protocol_version: "2025-03-26",
+      mcp_client_maturity_ready: true,
+      mcp_client_maturity_route: "POST /mcp/client-maturity/plan",
+      mcp_client_maturity_version: "2026-06-22.phase4.mcp-client-maturity-scaffold.v0",
+      mcp_interactive_apps_live: false,
+      mcp_prompts_live: false,
+      mcp_resources_live: false,
       developer_console_reconciliation_ready: true,
       mcp_limiter_error_codes: ["RATE_LIMITED", "BUDGET_EXCEEDED"],
       mcp_limiter_live: false,
@@ -213,6 +223,14 @@ describe("mcp endpoint default-deny scaffold", () => {
       "request_usage_scope_and_key_reconciliation_ready",
       "compatibility_status_linked",
       "no_live_console_or_client_claim"
+    ]);
+    expect(getMcpRuntimeCapabilities().mcp_client_maturity_required_checks).toEqual([
+      "target_clients_capability_matrix_present",
+      "resources_support_guarded_by_client_maturity",
+      "prompts_support_guarded_by_client_maturity",
+      "interactive_apps_support_blocked_until_client_stable",
+      "fallback_to_tools_only_documented",
+      "no_live_resources_prompts_apps_claim"
     ]);
   });
 
@@ -803,6 +821,134 @@ describe("mcp endpoint default-deny scaffold", () => {
       rows: 7,
       usage_reconciliation_status: "planned_no_live"
     });
+  });
+
+  it("plans MCP resources prompts and interactive apps client maturity without live publication", () => {
+    const plan = createMcpClientMaturityPlan({
+      clientName: "ChatGPT Connector",
+      clientVersion: "apps-sdk-preview",
+      requestId: "req-mcp-client-maturity",
+      requestedFeature: "interactive apps",
+      usagePlanCode: "developer",
+      workspaceId: "workspace_mcp"
+    });
+
+    expect(MCP_CLIENT_MATURITY_VERSION).toBe(
+      "2026-06-22.phase4.mcp-client-maturity-scaffold.v0"
+    );
+    expect(getMcpClientMaturityCapabilities()).toMatchObject({
+      fallback_mode: "tools_only",
+      interactive_apps_live: false,
+      live_client_e2e_passed: false,
+      package: "@aiphabee/mcp-runtime",
+      prompts_live: false,
+      resources_live: false,
+      route: "POST /mcp/client-maturity/plan",
+      runtime_route: "GET /mcp/runtime",
+      status: "mcp_client_maturity_scaffold",
+      target_client_matrix_ready: true,
+      tools_only_fallback_ready: true,
+      version: MCP_CLIENT_MATURITY_VERSION
+    });
+    expect(getMcpClientMaturityCapabilities().required_checks).toEqual(
+      MCP_CLIENT_MATURITY_REQUIRED_CHECKS
+    );
+    expect(plan).toMatchObject({
+      data_version: MCP_CLIENT_MATURITY_VERSION,
+      developer_console_live: false,
+      frontend_rendering: false,
+      live_client_e2e_passed: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      methodology_version: MCP_CLIENT_MATURITY_VERSION,
+      model_calls: false,
+      persistent_writes: false,
+      route: "POST /mcp/client-maturity/plan",
+      sql_emitted: false,
+      status: "planned_no_live_mcp_client_maturity",
+      version: MCP_CLIENT_MATURITY_VERSION
+    });
+    expect(plan.client_maturity_gate).toMatchObject({
+      candidate_feature: "interactive_apps",
+      requested_client: "chatgpt_connector",
+      status: "client_maturity_assessment_only"
+    });
+    expect(plan.client_maturity_gate.matrix.map((client) => client.client_name)).toEqual([
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ]);
+    expect(
+      plan.client_maturity_gate.matrix.every(
+        (client) =>
+          client.fallback_mode === "tools_only" &&
+          client.live_e2e_passed === false &&
+          client.resources.live_enabled === false &&
+          client.prompts.live_enabled === false &&
+          client.interactive_apps.live_enabled === false &&
+          client.tools.live_execution === false
+      )
+    ).toBe(true);
+    expect(plan.publication_policy).toEqual({
+      component_widgets_live: false,
+      fallback_to_tools_only: true,
+      interactive_apps_live: false,
+      prompts_live: false,
+      resources_live: false,
+      tools_call_live_execution: false,
+      tool_result_embedded_resources_live: false
+    });
+    expect(plan.reference_urls).toEqual([
+      "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+      "https://modelcontextprotocol.io/specification/2025-11-25/server/prompts",
+      "https://developers.openai.com/apps-sdk/concepts/mcp-server"
+    ]);
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "target_clients_capability_matrix_present",
+      "resources_support_guarded_by_client_maturity",
+      "prompts_support_guarded_by_client_maturity",
+      "interactive_apps_support_blocked_until_client_stable",
+      "fallback_to_tools_only_documented",
+      "no_live_resources_prompts_apps_claim"
+    ]);
+    expect(Object.values(plan.validation).every(Boolean)).toBe(true);
+    expect(plan.release_gate).toMatchObject({
+      blockers: [
+        "live_resources_e2e_missing",
+        "live_prompts_e2e_missing",
+        "interactive_apps_client_stability_missing",
+        "client_capability_version_matrix_missing",
+        "apps_sdk_security_review_missing"
+      ],
+      gate_status: "blocked_live_mcp_client_maturity_validation",
+      no_live_release_claim: true
+    });
+    expect(plan.target_clients_console_gate).toMatchObject({
+      gate_status: "blocked_live_mcp_target_clients_console_validation",
+      route: "POST /mcp/release-gates/target-clients-console/plan"
+    });
+    expect(plan.usage).toMatchObject({
+      credits: 0,
+      request_id: "req-mcp-client-maturity",
+      rows: 6,
+      usage_reconciliation_status: "planned_no_live"
+    });
+  });
+
+  it("blocks MCP client maturity assessment for unknown clients", () => {
+    const plan = createMcpClientMaturityPlan({
+      clientName: "unknown-client",
+      requestId: "req-mcp-client-maturity-unknown",
+      requestedFeature: "resources"
+    });
+
+    expect(plan.status).toBe("blocked_unknown_client");
+    expect(plan.publication_policy.resources_live).toBe(false);
+    expect(plan.publication_policy.prompts_live).toBe(false);
+    expect(plan.publication_policy.interactive_apps_live).toBe(false);
+    expect(plan.release_gate.no_live_release_claim).toBe(true);
   });
 
   it("maps MCP runtime input failures to stable PRD standard errors", () => {

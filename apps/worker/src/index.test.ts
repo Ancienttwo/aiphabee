@@ -4763,6 +4763,13 @@ interface McpRuntimeBody {
     mcp_target_clients_console_release_gate_route: string;
     mcp_target_clients_console_release_gate_version: string;
     mcp_target_client_e2e_matrix_ready: boolean;
+    mcp_client_maturity_ready: boolean;
+    mcp_client_maturity_required_checks: string[];
+    mcp_client_maturity_route: string;
+    mcp_client_maturity_version: string;
+    mcp_interactive_apps_live: boolean;
+    mcp_prompts_live: boolean;
+    mcp_resources_live: boolean;
     mcp_protocol_release_gate_ready: boolean;
     mcp_protocol_release_gate_required_checks: string[];
     mcp_protocol_release_gate_route: string;
@@ -5189,6 +5196,79 @@ interface McpTargetClientsConsoleReleaseGatePlanBody {
         status: string;
       }>;
     };
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface McpClientMaturityPlanBody {
+  data: {
+    capability: {
+      fallback_mode: string;
+      interactive_apps_live: boolean;
+      prompts_live: boolean;
+      resources_live: boolean;
+      route: string;
+      status: string;
+      target_client_matrix_ready: boolean;
+      tools_only_fallback_ready: boolean;
+    };
+    client_maturity_gate: {
+      candidate_feature: string;
+      matrix: Array<{
+        client_name: string;
+        fallback_mode: string;
+        interactive_apps: {
+          live_enabled: boolean;
+          maturity: string;
+        };
+        live_e2e_passed: boolean;
+        prompts: {
+          live_enabled: boolean;
+          required_methods: string[];
+        };
+        resources: {
+          live_enabled: boolean;
+          required_methods: string[];
+        };
+        tools: {
+          live_execution: boolean;
+          route: string;
+        };
+      }>;
+      requested_client: string;
+      status: string;
+    };
+    developer_console_live: boolean;
+    frontend_rendering: boolean;
+    live_client_e2e_passed: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    publication_policy: {
+      component_widgets_live: boolean;
+      fallback_to_tools_only: boolean;
+      interactive_apps_live: boolean;
+      prompts_live: boolean;
+      resources_live: boolean;
+      tools_call_live_execution: boolean;
+      tool_result_embedded_resources_live: boolean;
+    };
+    reference_urls: string[];
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    route: string;
+    status: string;
     validation: Record<string, boolean>;
     version: string;
   };
@@ -15564,6 +15644,12 @@ describe("worker runtime", () => {
       mcp_target_clients_console_release_gate_version:
         "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
       mcp_target_client_e2e_matrix_ready: true,
+      mcp_client_maturity_ready: true,
+      mcp_client_maturity_route: "POST /mcp/client-maturity/plan",
+      mcp_client_maturity_version: "2026-06-22.phase4.mcp-client-maturity-scaffold.v0",
+      mcp_interactive_apps_live: false,
+      mcp_prompts_live: false,
+      mcp_resources_live: false,
       mcp_protocol_release_gate_ready: true,
       mcp_protocol_release_gate_route: "POST /mcp/release-gates/protocol/plan",
       mcp_protocol_release_gate_version:
@@ -15649,6 +15735,14 @@ describe("worker runtime", () => {
       "request_usage_scope_and_key_reconciliation_ready",
       "compatibility_status_linked",
       "no_live_console_or_client_claim"
+    ]);
+    expect(body.data.mcp_client_maturity_required_checks).toEqual([
+      "target_clients_capability_matrix_present",
+      "resources_support_guarded_by_client_maturity",
+      "prompts_support_guarded_by_client_maturity",
+      "interactive_apps_support_blocked_until_client_stable",
+      "fallback_to_tools_only_documented",
+      "no_live_resources_prompts_apps_claim"
     ]);
     expect(body.data.supported_oauth_scopes).toContain("market.read");
     expect(body.data.standard_error_codes).toEqual([
@@ -16186,6 +16280,108 @@ describe("worker runtime", () => {
     ]);
     expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
     expect(body.usage.rows).toBe(7);
+  });
+
+  it("plans MCP resources prompts and interactive apps client maturity without live publication", async () => {
+    const response = await app.request("/mcp/client-maturity/plan", {
+      body: JSON.stringify({
+        client_name: "ChatGPT Connector",
+        client_version: "apps-sdk-preview",
+        plan_code: "developer",
+        requested_feature: "interactive apps",
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-client-maturity-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpClientMaturityPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        fallback_mode: "tools_only",
+        interactive_apps_live: false,
+        prompts_live: false,
+        resources_live: false,
+        route: "POST /mcp/client-maturity/plan",
+        status: "mcp_client_maturity_scaffold",
+        target_client_matrix_ready: true,
+        tools_only_fallback_ready: true
+      },
+      developer_console_live: false,
+      frontend_rendering: false,
+      live_client_e2e_passed: false,
+      live_tool_execution: false,
+      model_calls: false,
+      route: "POST /mcp/client-maturity/plan",
+      status: "planned_no_live_mcp_client_maturity",
+      version: "2026-06-22.phase4.mcp-client-maturity-scaffold.v0"
+    });
+    expect(body.data.client_maturity_gate).toMatchObject({
+      candidate_feature: "interactive_apps",
+      requested_client: "chatgpt_connector",
+      status: "client_maturity_assessment_only"
+    });
+    expect(body.data.client_maturity_gate.matrix.map((client) => client.client_name)).toEqual([
+      "mcp_inspector",
+      "typescript_sdk_client",
+      "claude_desktop",
+      "cursor",
+      "chatgpt_connector"
+    ]);
+    expect(
+      body.data.client_maturity_gate.matrix.every(
+        (client) =>
+          client.fallback_mode === "tools_only" &&
+          client.live_e2e_passed === false &&
+          client.resources.live_enabled === false &&
+          client.prompts.live_enabled === false &&
+          client.interactive_apps.live_enabled === false &&
+          client.tools.live_execution === false
+      )
+    ).toBe(true);
+    expect(body.data.publication_policy).toEqual({
+      component_widgets_live: false,
+      fallback_to_tools_only: true,
+      interactive_apps_live: false,
+      prompts_live: false,
+      resources_live: false,
+      tools_call_live_execution: false,
+      tool_result_embedded_resources_live: false
+    });
+    expect(body.data.reference_urls).toContain(
+      "https://developers.openai.com/apps-sdk/concepts/mcp-server"
+    );
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "target_clients_capability_matrix_present",
+      "resources_support_guarded_by_client_maturity",
+      "prompts_support_guarded_by_client_maturity",
+      "interactive_apps_support_blocked_until_client_stable",
+      "fallback_to_tools_only_documented",
+      "no_live_resources_prompts_apps_claim"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "live_resources_e2e_missing",
+        "live_prompts_e2e_missing",
+        "interactive_apps_client_stability_missing",
+        "client_capability_version_matrix_missing",
+        "apps_sdk_security_review_missing"
+      ],
+      gate_status: "blocked_live_mcp_client_maturity_validation",
+      no_live_release_claim: true
+    });
+    expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
+    expect(body.usage.rows).toBe(6);
   });
 
   it("serves MCP OAuth PKCE capabilities with revocable scope catalog", async () => {

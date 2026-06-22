@@ -1,0 +1,98 @@
+{
+  "version": "2026-06-22.phase4.mcp-client-maturity-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/mcp-runtime",
+  "runtime_route": "GET /mcp/runtime",
+  "route": "POST /mcp/client-maturity/plan",
+  "protocol_route": "POST /mcp",
+  "target_clients_console_gate_route": "POST /mcp/release-gates/target-clients-console/plan",
+  "compatibility_status_route": "GET /mcp/compatibility/status",
+  "standard_response_envelope": true,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_client_e2e_passed": false,
+  "live_resources": false,
+  "live_prompts": false,
+  "live_interactive_apps": false,
+  "live_tool_execution": false,
+  "live_db_writes": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "covered_phase4_items": [
+    "MCP resources",
+    "MCP prompts",
+    "interactive MCP Apps",
+    "client_maturity_assessment"
+  ],
+  "target_clients": [
+    "mcp_inspector",
+    "typescript_sdk_client",
+    "claude_desktop",
+    "cursor",
+    "chatgpt_connector"
+  ],
+  "supported_features": [
+    "tools",
+    "resources",
+    "prompts",
+    "interactive_apps"
+  ],
+  "required_checks": [
+    "target_clients_capability_matrix_present",
+    "resources_support_guarded_by_client_maturity",
+    "prompts_support_guarded_by_client_maturity",
+    "interactive_apps_support_blocked_until_client_stable",
+    "fallback_to_tools_only_documented",
+    "no_live_resources_prompts_apps_claim"
+  ],
+  "required_output_fields": [
+    "client_maturity_gate",
+    "publication_policy",
+    "compatibility_gate",
+    "target_clients_console_gate",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "reference_urls": [
+    "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+    "https://modelcontextprotocol.io/specification/2025-11-25/server/prompts",
+    "https://developers.openai.com/apps-sdk/concepts/mcp-server"
+  ],
+  "publication_policy": {
+    "fallback_to_tools_only": true,
+    "resources_live": false,
+    "prompts_live": false,
+    "interactive_apps_live": false,
+    "component_widgets_live": false,
+    "tool_result_embedded_resources_live": false,
+    "tools_call_live_execution": false
+  },
+  "release_gate": {
+    "gate_status": "blocked_live_mcp_client_maturity_validation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "platform",
+      "security",
+      "developer-relations",
+      "data-rights"
+    ],
+    "blockers": [
+      "live_resources_e2e_missing",
+      "live_prompts_e2e_missing",
+      "interactive_apps_client_stability_missing",
+      "client_capability_version_matrix_missing",
+      "apps_sdk_security_review_missing"
+    ]
+  },
+  "tables": [
+    "core.mcp_client_maturity_assessment",
+    "governance.mcp_client_maturity_contract"
+  ],
+  "linked_contracts": [
+    "deploy/mcp/target-clients-console-release-gate.contract.json",
+    "deploy/mcp/compatibility.contract.json",
+    "deploy/mcp/protocol-release-gate.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}
