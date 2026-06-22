@@ -9,6 +9,8 @@ import {
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
   getPercentileComparisonCapabilities,
+  getPortfolioAnalytics,
+  getPortfolioAnalyticsCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   planHighCostAnalyticsQueue,
@@ -394,6 +396,101 @@ describe("compare securities scaffold", () => {
       planned_task_id: "planned_run_event_study_req_high_cost_event_study:run_event_study",
       status: "would_enqueue"
     });
+  });
+
+  it("reports portfolio analytics capabilities without trading advice", () => {
+    expect(getPortfolioAnalyticsCapabilities()).toMatchObject({
+      analytics_sections: ["allocation", "concentration", "returns_risk_summary"],
+      authorized_holdings_required: true,
+      frontend_rendering: false,
+      live_data_access: false,
+      personalized_advice: false,
+      route: "POST /analytics/portfolio",
+      sql_emitted: false,
+      status: "portfolio_analytics_scaffold",
+      tool_name: "get_portfolio_analytics",
+      trading_advice: false
+    });
+  });
+
+  it("blocks portfolio analytics without authorized holdings", () => {
+    const result = getPortfolioAnalytics({
+      positions: [
+        {
+          marketValue: 70000,
+          securityQuery: "00700.HK"
+        }
+      ],
+      requestId: "req_portfolio_blocked"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "blocked_authorization",
+      toolName: "get_portfolio_analytics"
+    });
+    expect(result.authorization).toEqual({
+      authorized_holdings_required: true,
+      authorized_holdings_supplied: false,
+      portfolio_scope: "user_authorized_holdings_only"
+    });
+    expect(result.trading_advice).toEqual({
+      buy_sell_hold_recommendation: false,
+      personalized_advice: false,
+      rebalance_instruction: false
+    });
+  });
+
+  it("plans portfolio allocation, concentration, and weighted risk from authorized holdings", () => {
+    const result = getPortfolioAnalytics({
+      authorizedHoldings: true,
+      positions: [
+        {
+          quantity: 100,
+          securityQuery: "00700.HK"
+        },
+        {
+          marketValue: 10000,
+          securityQuery: "00001.HK"
+        }
+      ],
+      requestId: "req_portfolio_analytics",
+      workspaceId: "ws_authorized_portfolio"
+    });
+
+    expect(result).toMatchObject({
+      analytics_sections: ["allocation", "concentration", "returns_risk_summary"],
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_portfolio_analytics",
+      workspace_id: "ws_authorized_portfolio"
+    });
+    expect(result.allocation).toMatchObject({
+      currency: "HKD",
+      included_position_count: 2,
+      total_market_value: 54820
+    });
+    expect(result.positions.map((position) => [position.symbol, position.status, position.weight])).toEqual([
+      ["00700.HK", "included", 0.817585],
+      ["00001.HK", "included", 0.182415]
+    ]);
+    expect(result.concentration).toEqual({
+      issuer_count: 2,
+      top3_weight: 1,
+      top_position_weight: 0.817585
+    });
+    expect(result.risk_summary).toMatchObject({
+      computed_position_count: 1,
+      portfolio_beta: 0.817585,
+      portfolio_total_return: 0.00997,
+      weighted_average_daily_return: 0.005941
+    });
+    expect(result.trading_advice.buy_sell_hold_recommendation).toBe(false);
+    expect(result.positions[0]?.source_record_ids.length).toBeGreaterThan(0);
   });
 
   it("reports financial ratios capabilities", () => {

@@ -1673,6 +1673,14 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    portfolio_analytics: {
+      authorized_holdings_required: boolean;
+      personalized_advice: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+      trading_advice: boolean;
+    };
     returns_risk: {
       formula_version: string;
       golden_tolerance: number;
@@ -1693,6 +1701,55 @@ interface AnalyticsRuntimeBody {
     status: string;
   };
   ok: true;
+}
+
+interface PortfolioAnalyticsBody {
+  data: {
+    allocation: {
+      included_position_count: number;
+      total_market_value: number;
+    };
+    authorization: {
+      authorized_holdings_required: boolean;
+      authorized_holdings_supplied: boolean;
+      portfolio_scope: string;
+    };
+    capability: {
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    concentration: {
+      issuer_count: number;
+      top_position_weight: number;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    positions: Array<{
+      source_record_ids: string[];
+      status: string;
+      symbol?: string;
+      weight?: number;
+    }>;
+    risk_summary: {
+      computed_position_count: number;
+      portfolio_beta?: number;
+      portfolio_total_return?: number;
+    };
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+    trading_advice: {
+      buy_sell_hold_recommendation: boolean;
+      personalized_advice: boolean;
+      rebalance_instruction: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
 }
 
 interface HighCostAnalyticsPlanBody {
@@ -9432,6 +9489,14 @@ describe("worker runtime", () => {
       status: "percentile_comparison_scaffold",
       tool_name: "compare_percentiles"
     });
+    expect(body.data.portfolio_analytics).toMatchObject({
+      authorized_holdings_required: true,
+      personalized_advice: false,
+      route: "POST /analytics/portfolio",
+      status: "portfolio_analytics_scaffold",
+      tool_name: "get_portfolio_analytics",
+      trading_advice: false
+    });
     expect(body.data.returns_risk).toMatchObject({
       formula_version: "returns-risk-v0",
       golden_tolerance: 0.000001,
@@ -9520,6 +9585,101 @@ describe("worker runtime", () => {
       status: "not_triggered"
     });
     expect(body.usage.rows).toBe(1);
+  });
+
+  it("plans portfolio analytics only from authorized holdings without trading advice", async () => {
+    const response = await app.request("/analytics/portfolio", {
+      body: JSON.stringify({
+        authorized_holdings: true,
+        positions: [
+          {
+            quantity: 100,
+            security_query: "00700.HK"
+          },
+          {
+            market_value: 10000,
+            security_query: "00001.HK"
+          }
+        ],
+        workspace_id: "ws_authorized_portfolio"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-portfolio-analytics"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PortfolioAnalyticsBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_portfolio_analytics"
+    });
+    expect(body.data.authorization).toEqual({
+      authorized_holdings_required: true,
+      authorized_holdings_supplied: true,
+      portfolio_scope: "user_authorized_holdings_only"
+    });
+    expect(body.data.allocation).toMatchObject({
+      included_position_count: 2,
+      total_market_value: 54820
+    });
+    expect(body.data.concentration).toMatchObject({
+      issuer_count: 2,
+      top_position_weight: 0.817585
+    });
+    expect(body.data.risk_summary).toMatchObject({
+      computed_position_count: 1,
+      portfolio_beta: 0.817585,
+      portfolio_total_return: 0.00997
+    });
+    expect(body.data.positions.map((position) => [position.symbol, position.status, position.weight])).toEqual([
+      ["00700.HK", "included", 0.817585],
+      ["00001.HK", "included", 0.182415]
+    ]);
+    expect(body.data.trading_advice).toEqual({
+      buy_sell_hold_recommendation: false,
+      personalized_advice: false,
+      rebalance_instruction: false
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /analytics/portfolio",
+      status: "portfolio_analytics_scaffold",
+      tool_name: "get_portfolio_analytics"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("blocks portfolio analytics when authorized holdings are not supplied", async () => {
+    const response = await app.request("/analytics/portfolio", {
+      body: JSON.stringify({
+        positions: [
+          {
+            market_value: 70000,
+            security_query: "00700.HK"
+          }
+        ]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-portfolio-unauthorized"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PortfolioAnalyticsBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_authorization");
+    expect(body.data.positions).toEqual([]);
+    expect(body.data.authorization.authorized_holdings_supplied).toBe(false);
+    expect(body.data.trading_advice.personalized_advice).toBe(false);
+    expect(body.usage.credits).toBe(0);
   });
 
   it("requires confirmation before queueing high-cost screen plans", async () => {

@@ -1,0 +1,50 @@
+{
+  "version": "2026-06-22.phase4.portfolio-analytics-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/portfolio",
+  "tool_name": "get_portfolio_analytics",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_phase4_items": [
+    "get_portfolio_analytics",
+    "P1",
+    "user_authorized_holdings",
+    "no_trading_advice"
+  ],
+  "source_tools": [
+    "resolve_security",
+    "get_quote_snapshot",
+    "calculate_returns_risk"
+  ],
+  "portfolio_contract": {
+    "authorized_holdings_required": true,
+    "portfolio_scope": "user_authorized_holdings_only",
+    "trading_advice": false,
+    "personalized_advice": false,
+    "buy_sell_hold_recommendation": false,
+    "rebalance_instruction": false,
+    "analytics_sections": [
+      "allocation",
+      "concentration",
+      "returns_risk_summary"
+    ],
+    "required_output_fields": [
+      "authorization",
+      "allocation",
+      "positions",
+      "concentration",
+      "risk_summary",
+      "trading_advice",
+      "source_record_ids"
+    ],
+    "blocked_statuses": [
+      "blocked_authorization",
+      "blocked_empty_portfolio"
+    ]
+  }
+}

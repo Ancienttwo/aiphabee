@@ -33,6 +33,8 @@ export const HIGH_COST_ANALYTICS_QUEUE_VERSION =
   "2026-06-21.phase2.high-cost-analytics-queue-scaffold.v0";
 export const EVENT_STUDY_VERSION =
   "2026-06-21.phase3.event-study-scaffold.v0";
+export const PORTFOLIO_ANALYTICS_VERSION =
+  "2026-06-22.phase4.portfolio-analytics-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -570,6 +572,96 @@ export interface HighCostAnalyticsQueuePlanResult {
   };
 }
 
+export type PortfolioAnalyticsStatus =
+  | "blocked_authorization"
+  | "blocked_empty_portfolio"
+  | "planned";
+export type PortfolioAnalyticsPositionStatus =
+  | "blocked_resolution"
+  | "included"
+  | "missing_market_value";
+
+export interface PortfolioAnalyticsPositionInput {
+  costBasis?: number;
+  currency?: string;
+  instrumentId?: string;
+  marketValue?: number;
+  quantity?: number;
+  securityQuery?: string;
+}
+
+export interface PortfolioAnalyticsInput {
+  asOf?: string;
+  authorizedHoldings?: boolean;
+  positions?: PortfolioAnalyticsPositionInput[];
+  requestId: string;
+  workspaceId?: string;
+}
+
+export interface PortfolioAnalyticsPosition {
+  cost_basis?: number;
+  currency?: string;
+  input: string;
+  instrument_id?: string;
+  market_value?: number;
+  quantity?: number;
+  return_metrics?: {
+    average_daily_return?: number;
+    beta?: number;
+    total_return?: number;
+  };
+  return_risk_status?: ReturnsRiskResult["status"];
+  source_record_ids: string[];
+  status: PortfolioAnalyticsPositionStatus;
+  symbol?: string;
+  weight?: number;
+}
+
+export interface PortfolioAnalyticsResult {
+  allocation: {
+    currency: string;
+    included_position_count: number;
+    total_market_value: number;
+  };
+  analytics_sections: readonly ["allocation", "concentration", "returns_risk_summary"];
+  as_of: string;
+  authorization: {
+    authorized_holdings_required: true;
+    authorized_holdings_supplied: boolean;
+    portfolio_scope: "user_authorized_holdings_only";
+  };
+  concentration: {
+    issuer_count: number;
+    top3_weight: number;
+    top_position_weight: number;
+  };
+  data_version: typeof PORTFOLIO_ANALYTICS_VERSION;
+  frontend_rendering: false;
+  live_data_access: false;
+  methodology_version: typeof PORTFOLIO_ANALYTICS_VERSION;
+  positions: PortfolioAnalyticsPosition[];
+  risk_summary: {
+    computed_position_count: number;
+    portfolio_beta?: number;
+    portfolio_total_return?: number;
+    weighted_average_daily_return?: number;
+  };
+  sql_emitted: false;
+  status: PortfolioAnalyticsStatus;
+  toolName: "get_portfolio_analytics";
+  trading_advice: {
+    buy_sell_hold_recommendation: false;
+    personalized_advice: false;
+    rebalance_instruction: false;
+  };
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  workspace_id?: string;
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -946,6 +1038,23 @@ export function getPercentileComparisonCapabilities() {
   };
 }
 
+export function getPortfolioAnalyticsCapabilities() {
+  return {
+    analytics_sections: ["allocation", "concentration", "returns_risk_summary"] as const,
+    authorized_holdings_required: true,
+    frontend_rendering: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    personalized_advice: false,
+    route: "POST /analytics/portfolio" as const,
+    sql_emitted: false,
+    status: "portfolio_analytics_scaffold" as const,
+    tool_name: "get_portfolio_analytics" as const,
+    trading_advice: false,
+    version: PORTFOLIO_ANALYTICS_VERSION
+  };
+}
+
 export function getHighCostAnalyticsQueueCapabilities() {
   return {
     durable_queue_writes: false,
@@ -969,6 +1078,61 @@ export function getHighCostAnalyticsQueueCapabilities() {
     },
     version: HIGH_COST_ANALYTICS_QUEUE_VERSION
   };
+}
+
+export function getPortfolioAnalytics(input: PortfolioAnalyticsInput): PortfolioAnalyticsResult {
+  const asOf = input.asOf ?? "2026-01-07T16:15:00+08:00";
+  const authorizedHoldings = input.authorizedHoldings === true;
+  const positions = normalizePortfolioPositions(input.positions);
+
+  if (!authorizedHoldings) {
+    return createPortfolioAnalyticsResult({
+      asOf,
+      positions: [],
+      status: "blocked_authorization",
+      usageRows: 0,
+      workspaceId: input.workspaceId
+    });
+  }
+
+  if (positions.length === 0) {
+    return createPortfolioAnalyticsResult({
+      asOf,
+      positions: [],
+      status: "blocked_empty_portfolio",
+      usageRows: 0,
+      workspaceId: input.workspaceId
+    });
+  }
+
+  const portfolioPositions = positions.map((position) =>
+    createPortfolioAnalyticsPosition(position, asOf)
+  );
+  const includedPositions = portfolioPositions.filter(
+    (position) => position.status === "included" && position.market_value !== undefined
+  );
+  const totalMarketValue = roundMetric(
+    includedPositions.reduce((sum, position) => sum + (position.market_value ?? 0), 0)
+  );
+  const weightedPositions =
+    totalMarketValue > 0
+      ? portfolioPositions.map((position) => ({
+          ...position,
+          weight:
+            position.market_value === undefined
+              ? undefined
+              : roundMetric(position.market_value / totalMarketValue)
+        }))
+      : portfolioPositions;
+
+  return createPortfolioAnalyticsResult({
+    asOf,
+    positions: weightedPositions,
+    status: "planned",
+    totalMarketValue,
+    usageRows: positions.length + weightedPositions.length,
+    workspaceId: input.workspaceId
+  });
 }
 
 export function compareSecurities(input: CompareSecuritiesInput): CompareSecuritiesResult {
@@ -2686,6 +2850,222 @@ function getPercentileSubjectSourceTool(
   metricId: PercentileMetricId
 ): PercentileSubjectMetric["source_tool"] {
   return metricId === "net_margin" ? "get_financial_ratios" : "calculate_returns_risk";
+}
+
+function normalizePortfolioPositions(
+  positions: PortfolioAnalyticsPositionInput[] | undefined
+): PortfolioAnalyticsPositionInput[] {
+  return (
+    positions
+      ?.filter((position) => typeof position === "object" && position !== null)
+      .map((position) => ({
+        costBasis: normalizeFiniteNumber(position.costBasis),
+        currency: normalizePortfolioCurrency(position.currency),
+        instrumentId: normalizePortfolioString(position.instrumentId),
+        marketValue: normalizeFiniteNumber(position.marketValue),
+        quantity: normalizeFiniteNumber(position.quantity),
+        securityQuery: normalizePortfolioString(position.securityQuery)
+      }))
+      .filter(
+        (position) =>
+          position.instrumentId !== undefined ||
+          position.securityQuery !== undefined ||
+          position.marketValue !== undefined
+      ) ?? []
+  );
+}
+
+function createPortfolioAnalyticsPosition(
+  position: PortfolioAnalyticsPositionInput,
+  asOf: string
+): PortfolioAnalyticsPosition {
+  const resolution =
+    position.instrumentId === undefined && position.securityQuery !== undefined
+      ? resolveSecurity({
+          asOf,
+          query: position.securityQuery
+        })
+      : undefined;
+  const instrumentId = position.instrumentId ?? resolution?.selectedInstrumentId;
+  const input = position.securityQuery ?? position.instrumentId ?? "unknown_position";
+
+  if (instrumentId === undefined) {
+    return {
+      cost_basis: position.costBasis,
+      currency: position.currency,
+      input,
+      market_value: position.marketValue,
+      quantity: position.quantity,
+      source_record_ids: resolution?.provenance.map((ref) => ref.source_record_id) ?? [],
+      status: "blocked_resolution"
+    };
+  }
+
+  const quote = getQuoteSnapshot({
+    asOf,
+    fields: ["lastPrice"],
+    instrumentId
+  });
+  const quotePrice = quote.quote?.fields.lastPrice;
+  const marketValue =
+    position.marketValue ??
+    (position.quantity !== undefined && quotePrice !== undefined
+      ? roundMetric(position.quantity * quotePrice)
+      : undefined);
+  const returnsRisk = calculateReturnsRisk({
+    asOf,
+    benchmarkInstrumentId: instrumentId,
+    instrumentId,
+    requestId: `portfolio:${instrumentId}`
+  });
+  const returnMetrics = createPortfolioReturnMetrics(returnsRisk);
+  const sourceRecordIds = [
+    ...(resolution?.provenance.map((ref) => ref.source_record_id) ?? []),
+    ...quote.provenance.map((ref) => ref.source_record_id),
+    ...returnsRisk.metrics.flatMap((metric) => metric.source_record_ids)
+  ];
+
+  return {
+    cost_basis: position.costBasis,
+    currency: position.currency ?? quote.quote?.currency ?? resolution?.candidates[0]?.currency,
+    input,
+    instrument_id: instrumentId,
+    market_value: marketValue,
+    quantity: position.quantity,
+    return_metrics: returnMetrics,
+    return_risk_status: returnsRisk.status,
+    source_record_ids: [...new Set(sourceRecordIds)],
+    status: marketValue === undefined ? "missing_market_value" : "included",
+    symbol: quote.quote?.symbol ?? resolution?.candidates[0]?.symbol
+  };
+}
+
+function createPortfolioAnalyticsResult(input: {
+  asOf: string;
+  positions: PortfolioAnalyticsPosition[];
+  status: PortfolioAnalyticsStatus;
+  totalMarketValue?: number;
+  usageRows: number;
+  workspaceId?: string;
+}): PortfolioAnalyticsResult {
+  const includedPositions = input.positions.filter(
+    (position) => position.status === "included" && position.market_value !== undefined
+  );
+  const totalMarketValue =
+    input.totalMarketValue ??
+    roundMetric(includedPositions.reduce((sum, position) => sum + (position.market_value ?? 0), 0));
+  const weights = includedPositions
+    .map((position) => position.weight ?? 0)
+    .sort((left, right) => right - left);
+
+  return {
+    allocation: {
+      currency: includedPositions[0]?.currency ?? "HKD",
+      included_position_count: includedPositions.length,
+      total_market_value: totalMarketValue
+    },
+    analytics_sections: ["allocation", "concentration", "returns_risk_summary"],
+    as_of: input.asOf,
+    authorization: {
+      authorized_holdings_required: true,
+      authorized_holdings_supplied: input.status !== "blocked_authorization",
+      portfolio_scope: "user_authorized_holdings_only"
+    },
+    concentration: {
+      issuer_count: new Set(includedPositions.map((position) => position.instrument_id)).size,
+      top3_weight: roundMetric(weights.slice(0, 3).reduce((sum, weight) => sum + weight, 0)),
+      top_position_weight: roundMetric(weights[0] ?? 0)
+    },
+    data_version: PORTFOLIO_ANALYTICS_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    methodology_version: PORTFOLIO_ANALYTICS_VERSION,
+    positions: input.positions,
+    risk_summary: createPortfolioRiskSummary(includedPositions),
+    sql_emitted: false,
+    status: input.status,
+    toolName: "get_portfolio_analytics",
+    trading_advice: {
+      buy_sell_hold_recommendation: false,
+      personalized_advice: false,
+      rebalance_instruction: false
+    },
+    usage: {
+      cached: false,
+      credits: input.status === "planned" ? 3 : 0,
+      rows: input.usageRows
+    },
+    workspace_id: input.workspaceId
+  };
+}
+
+function createPortfolioReturnMetrics(
+  returnsRisk: ReturnsRiskResult
+): PortfolioAnalyticsPosition["return_metrics"] {
+  return {
+    average_daily_return: getReturnsRiskMetricValue(returnsRisk, "average_daily_return"),
+    beta: getReturnsRiskMetricValue(returnsRisk, "beta"),
+    total_return: getReturnsRiskMetricValue(returnsRisk, "total_return")
+  };
+}
+
+function createPortfolioRiskSummary(positions: PortfolioAnalyticsPosition[]): PortfolioAnalyticsResult["risk_summary"] {
+  const computablePositions = positions.filter(
+    (position) =>
+      position.weight !== undefined &&
+      position.return_metrics !== undefined &&
+      Object.values(position.return_metrics).some((value) => value !== undefined)
+  );
+
+  return {
+    computed_position_count: computablePositions.length,
+    portfolio_beta: roundOptionalWeightedMetric(computablePositions, "beta"),
+    portfolio_total_return: roundOptionalWeightedMetric(computablePositions, "total_return"),
+    weighted_average_daily_return: roundOptionalWeightedMetric(
+      computablePositions,
+      "average_daily_return"
+    )
+  };
+}
+
+function getReturnsRiskMetricValue(
+  returnsRisk: ReturnsRiskResult,
+  metricId: ReturnsRiskMetricId
+): number | undefined {
+  return returnsRisk.metrics.find((metric) => metric.metric_id === metricId)?.value;
+}
+
+function roundOptionalWeightedMetric(
+  positions: PortfolioAnalyticsPosition[],
+  metricId: keyof NonNullable<PortfolioAnalyticsPosition["return_metrics"]>
+): number | undefined {
+  const values = positions
+    .map((position) => ({
+      value: position.return_metrics?.[metricId],
+      weight: position.weight
+    }))
+    .filter(
+      (item): item is { value: number; weight: number } =>
+        item.value !== undefined && item.weight !== undefined
+    );
+
+  return values.length === 0
+    ? undefined
+    : roundMetric(values.reduce((sum, item) => sum + item.value * item.weight, 0));
+}
+
+function normalizeFiniteNumber(value: number | undefined): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+function normalizePortfolioString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+}
+
+function normalizePortfolioCurrency(value: string | undefined): string | undefined {
+  const trimmed = normalizePortfolioString(value);
+  return trimmed === undefined ? undefined : trimmed.toUpperCase();
 }
 
 function normalizeHighCostAnalyticsToolName(

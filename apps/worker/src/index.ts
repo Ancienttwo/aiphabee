@@ -59,6 +59,8 @@ import {
   getFinancialRatiosCapabilities,
   getHighCostAnalyticsQueueCapabilities,
   getPercentileComparisonCapabilities,
+  getPortfolioAnalytics,
+  getPortfolioAnalyticsCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
   runEventStudy,
@@ -66,6 +68,7 @@ import {
   planHighCostAnalyticsQueue,
   type PercentileBenchmarkType,
   type PercentileMetricId,
+  type PortfolioAnalyticsPositionInput,
   type ScreenSecuritiesCondition
 } from "@aiphabee/analytics-tools";
 import {
@@ -2657,6 +2660,7 @@ app.get("/analytics/runtime", (c) => {
   const returnsRiskCapability = getReturnsRiskCapabilities();
   const eventStudyCapability = getEventStudyCapabilities();
   const percentileComparisonCapability = getPercentileComparisonCapabilities();
+  const portfolioAnalyticsCapability = getPortfolioAnalyticsCapabilities();
   const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
 
   return c.json(
@@ -2668,6 +2672,7 @@ app.get("/analytics/runtime", (c) => {
         financial_ratios: financialRatiosCapability,
         high_cost_analytics_queue: highCostAnalyticsQueueCapability,
         percentile_comparison: percentileComparisonCapability,
+        portfolio_analytics: portfolioAnalyticsCapability,
         returns_risk: returnsRiskCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
@@ -2680,6 +2685,7 @@ app.get("/analytics/runtime", (c) => {
           returnsRiskCapability.route,
           eventStudyCapability.route,
           percentileComparisonCapability.route,
+          portfolioAnalyticsCapability.route,
           highCostAnalyticsQueueCapability.route
         ],
         status: "analytics_tools_scaffold"
@@ -2761,6 +2767,47 @@ app.post("/analytics/high-cost/plan", async (c) => {
         ],
         requestId,
         usage: plan.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/portfolio", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const portfolio = getPortfolioAnalytics({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    authorizedHoldings: normalizeOptionalBoolean(
+      body.authorized_holdings ?? body.authorizedHoldings
+    ),
+    positions: normalizePortfolioPositionInputs(body.positions),
+    requestId,
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...portfolio,
+        capability: getPortfolioAnalyticsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: portfolio.data_version,
+        methodologyVersion: portfolio.methodology_version,
+        provenance: [
+          {
+            data_version: portfolio.data_version,
+            methodology_version: portfolio.methodology_version,
+            source: "analytics-portfolio",
+            source_record_id: "portfolio-analytics"
+          }
+        ],
+        requestId,
+        usage: portfolio.usage
       }
     )
   );
@@ -10372,6 +10419,23 @@ function normalizeScreenConditionInputs(
               ? (item.operator as ScreenSecuritiesCondition["operator"])
               : undefined,
           value: normalizeOptionalNumber(item.value)
+        }))
+    : undefined;
+}
+
+function normalizePortfolioPositionInputs(
+  value: unknown
+): PortfolioAnalyticsPositionInput[] | undefined {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is Record<string, unknown> => isPlainRecord(item))
+        .map((item) => ({
+          costBasis: normalizeOptionalNumber(item.cost_basis ?? item.costBasis),
+          currency: normalizeString(item.currency),
+          instrumentId: normalizeString(item.instrument_id ?? item.instrumentId),
+          marketValue: normalizeOptionalNumber(item.market_value ?? item.marketValue),
+          quantity: normalizeOptionalNumber(item.quantity),
+          securityQuery: normalizeString(item.security_query ?? item.securityQuery)
         }))
     : undefined;
 }
