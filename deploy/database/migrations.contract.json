@@ -700,6 +700,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
+      "purpose": "Create guarded Agent run state and checkpoint persistence smoke tables for Sprint 1.3 durable state validation without enabling production run persistence, user-facing resume, frontend rendering, or unguarded SQL execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_run_state",
+        "core.agent_run_checkpoint",
+        "governance.agent_run_state_persistence_smoke_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -357,6 +357,7 @@ interface WorkerBindings {
   AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -599,6 +600,29 @@ interface AgentRunLiveWriteSmokeResult {
     "core.usage_ledger_entry"
   ];
   usage_event_id_hash?: string;
+}
+
+interface AgentRunStatePersistenceSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  checkpoint_id_hash?: string;
+  cleanup_verified?: boolean;
+  deleted_rows?: number;
+  detail_hash?: string;
+  durable_run_state_smoke?: true;
+  failure_code?: string;
+  idempotency_key_hash?: string;
+  inserted_rows?: number;
+  operation_count?: number;
+  production_persistence_enabled?: false;
+  query_hash?: string;
+  resume_token_hash?: string;
+  run_state_id_hash?: string;
+  selected_rows?: number;
+  status: CloudflareBindingSmokeStatus;
+  surface: "agent_run_state_checkpoint_insert_select_update_delete";
+  tables?: ["core.agent_run_state", "core.agent_run_checkpoint"];
+  updated_rows?: number;
+  user_facing_resume_enabled?: false;
 }
 
 interface AgentRunRequestBody {
@@ -860,6 +884,12 @@ const AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN_BINDING =
   "AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN";
 const AGENT_RUN_LIVE_WRITE_SMOKE_VERSION =
   "2026-06-22.phase1.agent-run-live-write-smoke.v0";
+const AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE = "/agent/runs/state-persistence-smoke";
+const AGENT_RUN_STATE_PERSISTENCE_SMOKE_HEADER_VALUE = "agent-run-state-persistence-v1";
+const AGENT_RUN_STATE_PERSISTENCE_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN";
+const AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION =
+  "2026-06-22.phase1.agent-run-state-persistence-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1697,6 +1727,79 @@ app.post(AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE, async (c) => {
     route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
     status: result.status === "passed" ? "ok" : "failed",
     version: AGENT_RUN_LIVE_WRITE_SMOKE_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
+});
+
+app.post(AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    AGENT_RUN_STATE_PERSISTENCE_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentRunStatePersistenceSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentRunStatePersistenceSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const result = await runAgentRunStatePersistenceSmoke(c.env ?? {}, requestId);
+  const bodyWithoutHash = {
+    agent_run_state_persistence_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION
   };
   const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
 
@@ -11260,6 +11363,265 @@ async function runAgentRunLiveWriteSmoke(
   }
 }
 
+async function runAgentRunStatePersistenceSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<AgentRunStatePersistenceSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingAgentRunStatePersistenceSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const safeRequestId = requestId.replace(/[^A-Za-z0-9_]/gu, "_").slice(0, 80);
+  const runId = `agent_run_state_smoke_${safeRequestId}`;
+  const runStateId = `run_state_${runId}`;
+  const checkpointId = `checkpoint_${runId}_step_1`;
+  const accountId = `account_${runId}`;
+  const workspaceId = `workspace_${runId}`;
+  const resumeToken = `resume_${runId}`;
+  const idempotencyKey = `idempotency_${runId}_step_1`;
+  const smokeVersion = AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION;
+  const initialStatePayload = JSON.stringify({
+    completed_step_count: 0,
+    current_step_id: "step.fetch_quote",
+    recovery_state: {
+      checkpoint_table: "core.agent_run_checkpoint",
+      persisted: true,
+      state_store: "core.agent_run_state"
+    },
+    requested_tools: ["get_quote_snapshot"],
+    route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+    run_id: runId,
+    status: "running",
+    total_step_count: 2,
+    version: smokeVersion
+  });
+  const checkpointPayload = JSON.stringify({
+    checkpoint_sequence: 1,
+    completed_step_id: "step.fetch_quote",
+    evidence_binding: "hash_only",
+    next_step_id: "step.answer_contract",
+    retry_attempt_count: 0,
+    status: "completed",
+    version: smokeVersion
+  });
+  const partialStatePayload = JSON.stringify({
+    completed_step_count: 1,
+    current_step_id: "step.answer_contract",
+    recovery_state: {
+      checkpoint_table: "core.agent_run_checkpoint",
+      persisted: true,
+      state_store: "core.agent_run_state"
+    },
+    requested_tools: ["get_quote_snapshot"],
+    route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
+    run_id: runId,
+    status: "partial",
+    total_step_count: 2,
+    version: smokeVersion
+  });
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  const queryLabel = "agent-run-state-persistence-smoke:v0:state-checkpoint";
+  const resumeTokenHash = await hashRuntimeSmokeString(resumeToken);
+  const idempotencyKeyHash = await hashRuntimeSmokeString(idempotencyKey);
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const stateInsert = await client.query(
+      `insert into core.agent_run_state (
+        run_state_id,
+        run_id,
+        request_id,
+        workspace_id,
+        account_id,
+        status,
+        current_step_id,
+        completed_step_count,
+        total_step_count,
+        resume_token_hash,
+        idempotency_key_hash,
+        state_json,
+        state_hash,
+        default_rights_status
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $14)
+      on conflict (run_state_id) do update set
+        run_id = excluded.run_id,
+        request_id = excluded.request_id,
+        workspace_id = excluded.workspace_id,
+        account_id = excluded.account_id,
+        status = excluded.status,
+        current_step_id = excluded.current_step_id,
+        completed_step_count = excluded.completed_step_count,
+        total_step_count = excluded.total_step_count,
+        resume_token_hash = excluded.resume_token_hash,
+        idempotency_key_hash = excluded.idempotency_key_hash,
+        state_json = excluded.state_json,
+        state_hash = excluded.state_hash,
+        default_rights_status = excluded.default_rights_status,
+        updated_at = now()`,
+      [
+        runStateId,
+        runId,
+        requestId,
+        workspaceId,
+        accountId,
+        "running",
+        "step.fetch_quote",
+        0,
+        2,
+        resumeTokenHash,
+        idempotencyKeyHash,
+        initialStatePayload,
+        await hashRuntimeSmokeString(initialStatePayload),
+        "default_deny"
+      ]
+    );
+    const checkpointInsert = await client.query(
+      `insert into core.agent_run_checkpoint (
+        checkpoint_id,
+        run_state_id,
+        step_id,
+        step_status,
+        checkpoint_sequence,
+        checkpoint_json,
+        checkpoint_hash,
+        idempotency_key_hash,
+        evidence_record_id,
+        usage_event_id,
+        default_rights_status
+      )
+      values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
+      on conflict (checkpoint_id) do update set
+        run_state_id = excluded.run_state_id,
+        step_id = excluded.step_id,
+        step_status = excluded.step_status,
+        checkpoint_sequence = excluded.checkpoint_sequence,
+        checkpoint_json = excluded.checkpoint_json,
+        checkpoint_hash = excluded.checkpoint_hash,
+        idempotency_key_hash = excluded.idempotency_key_hash,
+        evidence_record_id = excluded.evidence_record_id,
+        usage_event_id = excluded.usage_event_id,
+        default_rights_status = excluded.default_rights_status`,
+      [
+        checkpointId,
+        runStateId,
+        "step.fetch_quote",
+        "completed",
+        1,
+        checkpointPayload,
+        await hashRuntimeSmokeString(checkpointPayload),
+        idempotencyKeyHash,
+        null,
+        null,
+        "default_deny"
+      ]
+    );
+    const stateSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.agent_run_state
+      where run_state_id = $1 and status = 'running'`,
+      [runStateId]
+    );
+    const checkpointSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.agent_run_checkpoint
+      where checkpoint_id = $1 and step_status = 'completed'`,
+      [checkpointId]
+    );
+    const stateUpdate = await client.query(
+      `update core.agent_run_state
+      set status = $2,
+        current_step_id = $3,
+        completed_step_count = $4,
+        state_json = $5::jsonb,
+        state_hash = $6,
+        updated_at = now()
+      where run_state_id = $1`,
+      [
+        runStateId,
+        "partial",
+        "step.answer_contract",
+        1,
+        partialStatePayload,
+        await hashRuntimeSmokeString(partialStatePayload)
+      ]
+    );
+    const updatedStateSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.agent_run_state
+      where run_state_id = $1 and status = 'partial' and completed_step_count = 1`,
+      [runStateId]
+    );
+    const selectedRows =
+      Number(stateSelect.rows[0]?.row_count ?? 0) +
+      Number(checkpointSelect.rows[0]?.row_count ?? 0) +
+      Number(updatedStateSelect.rows[0]?.row_count ?? 0);
+
+    if (selectedRows !== 3 || (stateUpdate.rowCount ?? 0) !== 1) {
+      throw new Error("agent run state persistence smoke readback mismatch");
+    }
+
+    const checkpointDelete = await client.query(
+      `delete from core.agent_run_checkpoint
+      where checkpoint_id = $1`,
+      [checkpointId]
+    );
+    const stateDelete = await client.query(
+      `delete from core.agent_run_state
+      where run_state_id = $1`,
+      [runStateId]
+    );
+
+    await client.query("COMMIT");
+    committed = true;
+
+    const insertedRows = (stateInsert.rowCount ?? 0) + (checkpointInsert.rowCount ?? 0);
+    const deletedRows = (checkpointDelete.rowCount ?? 0) + (stateDelete.rowCount ?? 0);
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      checkpoint_id_hash: await hashRuntimeSmokeString(checkpointId),
+      cleanup_verified: deletedRows === insertedRows,
+      deleted_rows: deletedRows,
+      durable_run_state_smoke: true,
+      idempotency_key_hash: idempotencyKeyHash,
+      inserted_rows: insertedRows,
+      operation_count: 10,
+      production_persistence_enabled: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      resume_token_hash: resumeTokenHash,
+      run_state_id_hash: await hashRuntimeSmokeString(runStateId),
+      selected_rows: selectedRows,
+      status: "passed",
+      surface: "agent_run_state_checkpoint_insert_select_update_delete",
+      tables: ["core.agent_run_state", "core.agent_run_checkpoint"],
+      updated_rows: stateUpdate.rowCount ?? 0,
+      user_facing_resume_enabled: false
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedAgentRunStatePersistenceSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "agent_run_state_persistence_failed",
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 function handleCloudflareScheduled(
   controller: RuntimeScheduledController,
   env: WorkerBindings,
@@ -11375,6 +11737,20 @@ function missingAgentRunLiveWriteSmokeResult(failureCode: string): AgentRunLiveW
   };
 }
 
+function missingAgentRunStatePersistenceSmokeResult(
+  failureCode: string
+): AgentRunStatePersistenceSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    durable_run_state_smoke: true,
+    failure_code: failureCode,
+    production_persistence_enabled: false,
+    status: "missing_binding",
+    surface: "agent_run_state_checkpoint_insert_select_update_delete",
+    user_facing_resume_enabled: false
+  };
+}
+
 function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
   const requiredEnv: Array<readonly [string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
@@ -11448,6 +11824,16 @@ function missingAgentRunLiveWriteSmokeEnv(env: WorkerBindings): string[] {
 
 function getAgentRunLiveWriteSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function missingAgentRunStatePersistenceSmokeEnv(env: WorkerBindings): string[] {
+  return getAgentRunStatePersistenceSmokeToken(env).length >= 16
+    ? []
+    : [AGENT_RUN_STATE_PERSISTENCE_SMOKE_TOKEN_BINDING];
+}
+
+function getAgentRunStatePersistenceSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?.trim() ?? "";
 }
 
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
@@ -11615,6 +12001,28 @@ async function failedAgentRunLiveWriteSmokeResult({
     query_hash: await hashRuntimeSmokeString(queryLabel),
     status: "failed",
     surface: "agent_run_audit_evidence_usage_insert_select_delete"
+  };
+}
+
+async function failedAgentRunStatePersistenceSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<AgentRunStatePersistenceSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    durable_run_state_smoke: true,
+    failure_code: failureCode,
+    production_persistence_enabled: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "agent_run_state_checkpoint_insert_select_update_delete",
+    user_facing_resume_enabled: false
   };
 }
 
@@ -12349,6 +12757,18 @@ function isAgentGeneratedAnswerEvidenceSmokeAuthorized(
 
 function isAgentRunLiveWriteSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = getAgentRunLiveWriteSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isAgentRunStatePersistenceSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getAgentRunStatePersistenceSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;

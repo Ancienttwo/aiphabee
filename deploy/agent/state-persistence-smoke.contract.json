@@ -1,0 +1,51 @@
+{
+  "version": "2026-06-22.phase1.agent-run-state-persistence-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /agent/runs/state-persistence-smoke",
+  "checker": "scripts/check-agent-run-state-persistence-smoke-contract.mjs",
+  "test_file": "apps/worker/src/agent-run-state-persistence-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "migration": "supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "failure_recovery_contract": "deploy/agent/failure-recovery-policy.contract.json",
+  "agent_live_write_contract": "deploy/agent/run-live-write-smoke.contract.json",
+  "smoke_token_binding": "AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "agent-run-state-persistence-v1"
+  },
+  "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+  "actual_hyperdrive_execution": true,
+  "transactional_insert_select_update_delete": true,
+  "durable_run_state_smoke": true,
+  "checkpoint_smoke": true,
+  "state_transition_verified": true,
+  "resume_token_hash_only": true,
+  "idempotency_key_hash_only": true,
+  "cleanup_verified": true,
+  "auth_enforced_before_db": true,
+  "hash_only_response": true,
+  "production_persistence_enabled": false,
+  "user_facing_resume_enabled": false,
+  "arbitrary_user_tool_loop_execution": false,
+  "frontend": false,
+  "tables": [
+    "core.agent_run_state",
+    "core.agent_run_checkpoint"
+  ],
+  "not_claimed": [
+    "production_agent_run_persistence",
+    "arbitrary_user_tool_loop_execution",
+    "user_facing_live_model_streaming",
+    "frontend_resume_rendering",
+    "production_billing_posting",
+    "workflow_task_checkpoint_writes",
+    "queue_notification_fanout"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/agent-run-state-persistence-smoke.test.ts",
+    "contract_check": "npm run check:agent-run-state-persistence-smoke",
+    "worker_typecheck": "npm run typecheck --workspace @aiphabee/worker",
+    "database_check": "npm run check:database"
+  }
+}
