@@ -1,0 +1,95 @@
+{
+  "version": "2026-06-22.phase1.sprint1-live-data-activation.v0",
+  "status": "blocked_external_activation",
+  "checker": "scripts/check-sprint1-live-data-activation-contract.mjs",
+  "tracker_items": [
+    "Sprint 1.1: Data Access Gateway live Serving",
+    "Sprint 1.1: Usage ledger live writes + billing reconciliation"
+  ],
+  "covered_prd_items": ["DAT-06", "ACC-04", "PRD §11.1", "PRD §12.2", "PRD §15.3"],
+  "release_transition_allowed": false,
+  "frontend": false,
+  "live_serving_reads": false,
+  "live_serving_sql_execution": false,
+  "live_usage_writes": false,
+  "billing_reconciliation_posting": false,
+  "linked_contracts": [
+    "deploy/gateway/access.contract.json",
+    "deploy/database/migrations.contract.json",
+    "deploy/governance/serving-quality-live-readiness.contract.json",
+    "deploy/governance/field-rights-live-policy-source.contract.json",
+    "deploy/usage/quota-display.contract.json",
+    "deploy/usage/billing-reconciliation.contract.json"
+  ],
+  "required_checks": [
+    "npm run check:data-gateway",
+    "npm run check:database",
+    "npm run check:field-rights-live-policy-source",
+    "npm run check:serving-quality-live-readiness",
+    "npm run check:usage-quota-display",
+    "npm run check:usage-billing-reconciliation"
+  ],
+  "activation_gates": [
+    {
+      "id": "signed_partner_data_contract",
+      "status": "missing",
+      "blocks": ["live_serving_reads", "live_usage_writes"],
+      "required_evidence": ["signed_dataset_scope", "field_rights_matrix", "usage_metering_terms"]
+    },
+    {
+      "id": "partner_serving_rows_loaded",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows"]
+    },
+    {
+      "id": "field_rights_policy_source_live",
+      "status": "missing",
+      "blocks": ["live_serving_reads", "live_usage_writes"],
+      "required_evidence": ["live_entitlement_policy_rows", "policy_version", "workspace_plan_channel_matrix"]
+    },
+    {
+      "id": "hyperdrive_select_1_passed",
+      "status": "missing",
+      "blocks": ["live_serving_sql_execution"],
+      "required_evidence": ["hyperdrive_config", "read_only_select_1", "connection_redaction_proof"]
+    },
+    {
+      "id": "serving_sql_execution_enabled",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["row_limit_enforced", "field_projection_enforced", "cache_key_material_verified"]
+    },
+    {
+      "id": "quality_owner_cutover_approved",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["PASS_WARN_release_policy", "HOLD_REJECT_RAW_isolation", "quality_owner_signoff"]
+    },
+    {
+      "id": "usage_event_live_write_passed",
+      "status": "missing",
+      "blocks": ["live_usage_writes"],
+      "required_evidence": ["core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"]
+    },
+    {
+      "id": "usage_ledger_entry_live_write_passed",
+      "status": "missing",
+      "blocks": ["live_usage_writes"],
+      "required_evidence": ["core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"]
+    },
+    {
+      "id": "billing_reconciliation_live_read_passed",
+      "status": "missing",
+      "blocks": ["billing_reconciliation_posting"],
+      "required_evidence": ["invoice_line_trace", "usage_to_invoice_consistency", "freshness_under_5_minutes"]
+    }
+  ],
+  "not_claimed": [
+    "partner_rows_loaded",
+    "live_serving_reads_complete",
+    "live_usage_writes_complete",
+    "billing_reconciliation_posted",
+    "sprint1_1_live_data_complete"
+  ]
+}
