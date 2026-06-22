@@ -589,6 +589,20 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622007000_enterprise_controls_scaffold.sql",
+      "purpose": "Create empty Team and Enterprise seats, SSO, audit, and private data connector scaffolds without enabling live identity-provider calls, directory sync, private connector calls, persistent writes, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.enterprise_seat_assignment",
+        "core.enterprise_sso_config",
+        "audit.enterprise_admin_event",
+        "core.private_data_connector",
+        "governance.enterprise_controls_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

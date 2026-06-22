@@ -650,6 +650,18 @@ interface AccountRuntimeBody {
       revoke_supported: boolean;
       status: string;
     };
+    enterprise_controls: {
+      frontend: boolean;
+      live_directory_sync: boolean;
+      live_identity_provider_calls: boolean;
+      live_private_connector_calls: boolean;
+      persistent_writes: boolean;
+      plan_codes: string[];
+      route: string;
+      sql_emitted: boolean;
+      status: string;
+      supported_controls: string[];
+    };
     forbidden_payloads: string[];
     frontend: boolean;
     login_methods: string[];
@@ -848,6 +860,76 @@ interface AccountDataRequestPlanBody {
       required_context_present: boolean;
       retention_policy_present: boolean;
       unsupported_scopes: string[];
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AccountEnterpriseControlsPlanBody {
+  data: {
+    audit: {
+      audit_event: string;
+      raw_payload_stored: boolean;
+      request_id: string;
+      table: string;
+      write_status: string;
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    controls: {
+      audit: {
+        export_status: string;
+        raw_payload_stored: boolean;
+        retention_required: boolean;
+      };
+      private_data_connector: {
+        connection_test_status: string;
+        connector_kind: string;
+        credential_material_stored: boolean;
+        rights_gateway_required: boolean;
+        write_status: string;
+      };
+      seats: {
+        directory_sync_status: string;
+        pending_invite_count: number;
+        seat_limit: number;
+        write_status: string;
+      };
+      sso: {
+        credential_material_stored: boolean;
+        domain_hash_provided: boolean;
+        identity_provider_calls: boolean;
+        metadata_validation_status: string;
+        protocol: string;
+        write_status: string;
+      };
+    };
+    frontend: boolean;
+    live_directory_sync: boolean;
+    live_identity_provider_calls: boolean;
+    live_private_connector_calls: boolean;
+    persistent_writes: boolean;
+    plan_code: string;
+    requested_controls: string[];
+    security: {
+      credential_material_stored: boolean;
+      default_deny_until_approved: boolean;
+      partner_rights_matrix_required: boolean;
+      raw_connection_string_included: boolean;
+      raw_email_included: boolean;
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      allowed_plan_codes: string[];
+      enterprise_plan_required: boolean;
+      required_context_present: boolean;
+      unsupported_controls: string[];
     };
   };
   ok: true;
@@ -8284,6 +8366,23 @@ describe("worker runtime", () => {
       revoke_supported: true,
       status: "planned_no_write"
     });
+    expect(body.data.enterprise_controls).toMatchObject({
+      frontend: false,
+      live_directory_sync: false,
+      live_identity_provider_calls: false,
+      live_private_connector_calls: false,
+      persistent_writes: false,
+      route: "POST /account/enterprise-controls/plan",
+      sql_emitted: false,
+      status: "enterprise_controls_scaffold"
+    });
+    expect(body.data.enterprise_controls.plan_codes).toEqual(["team", "enterprise"]);
+    expect(body.data.enterprise_controls.supported_controls).toEqual([
+      "seats",
+      "sso",
+      "audit",
+      "private_data_connector"
+    ]);
     expect(body.data.authorized_memory).toMatchObject({
       actual_memory_reads: false,
       editable: true,
@@ -8333,6 +8432,104 @@ describe("worker runtime", () => {
     });
     expect(body.data.subscription_lifecycle.supported_actions).toContain("enter_grace_period");
     expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("plans Team Enterprise controls without live providers or writes", async () => {
+    const response = await app.request("/account/enterprise-controls/plan", {
+      body: JSON.stringify({
+        account_id: "acct_enterprise_admin_001",
+        plan_code: "enterprise",
+        private_connector_kind: "customer_warehouse",
+        private_connector_name: "warehouse_readonly_alpha",
+        requested_controls: ["seats", "sso", "audit", "private_data_connector"],
+        seat_limit: 250,
+        sso_domain_hash: "sha256:domain-hash",
+        sso_protocol: "saml",
+        workspace_id: "ws_enterprise_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-enterprise-controls"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountEnterpriseControlsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_directory_sync: false,
+      live_identity_provider_calls: false,
+      live_private_connector_calls: false,
+      persistent_writes: false,
+      plan_code: "enterprise",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.controls.seats).toMatchObject({
+      directory_sync_status: "planned_no_live",
+      pending_invite_count: 3,
+      seat_limit: 250,
+      write_status: "planned_no_write"
+    });
+    expect(body.data.controls.sso).toMatchObject({
+      credential_material_stored: false,
+      domain_hash_provided: true,
+      identity_provider_calls: false,
+      metadata_validation_status: "planned_no_live",
+      protocol: "saml",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.controls.audit).toMatchObject({
+      export_status: "planned_no_write",
+      raw_payload_stored: false,
+      retention_required: true
+    });
+    expect(body.data.controls.private_data_connector).toMatchObject({
+      connection_test_status: "planned_no_live",
+      connector_kind: "customer_warehouse",
+      credential_material_stored: false,
+      rights_gateway_required: true,
+      write_status: "planned_no_write"
+    });
+    expect(body.data.security).toEqual({
+      credential_material_stored: false,
+      default_deny_until_approved: true,
+      partner_rights_matrix_required: true,
+      raw_connection_string_included: false,
+      raw_email_included: false
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /account/enterprise-controls/plan",
+      status: "enterprise_controls_scaffold"
+    });
+    expect(body.usage.rows).toBe(4);
+  });
+
+  it("blocks enterprise controls for non-enterprise plans", async () => {
+    const response = await app.request("/account/enterprise-controls/plan", {
+      body: JSON.stringify({
+        account_id: "acct_internal_001",
+        plan_code: "developer",
+        requested_controls: ["seats"],
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-enterprise-controls-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AccountEnterpriseControlsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_enterprise_plan_required");
+    expect(body.data.validation.allowed_plan_codes).toEqual(["team", "enterprise"]);
+    expect(body.data.persistent_writes).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("serves Pro and Developer package pricing catalog without live billing", async () => {

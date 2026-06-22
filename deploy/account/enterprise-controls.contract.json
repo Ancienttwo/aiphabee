@@ -1,0 +1,82 @@
+{
+  "version": "2026-06-22.phase4.enterprise-controls-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/account-runtime",
+  "runtime_route": "GET /account/runtime",
+  "route": "POST /account/enterprise-controls/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_directory_sync": false,
+  "live_identity_provider_calls": false,
+  "live_private_connector_calls": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "covered_phase4_items": [
+    "Team/Enterprise",
+    "seats",
+    "SSO",
+    "audit",
+    "private_data_connector"
+  ],
+  "plan_codes": ["team", "enterprise"],
+  "supported_controls": ["seats", "sso", "audit", "private_data_connector"],
+  "sso_protocols": ["saml", "oidc"],
+  "private_data_connector_kinds": [
+    "customer_warehouse",
+    "managed_bucket",
+    "private_api"
+  ],
+  "audit": {
+    "required": true,
+    "audit_event": "account.enterprise_controls.plan",
+    "event_table": "audit.enterprise_admin_event",
+    "raw_payload_stored": false
+  },
+  "security_contract": {
+    "team_enterprise_only": true,
+    "credential_material_stored": false,
+    "raw_connection_string_included": false,
+    "raw_email_included": false,
+    "partner_rights_matrix_required": true,
+    "default_deny_until_approved": true
+  },
+  "tables": [
+    "core.enterprise_seat_assignment",
+    "core.enterprise_sso_config",
+    "audit.enterprise_admin_event",
+    "core.private_data_connector",
+    "governance.enterprise_controls_contract"
+  ],
+  "required_output_fields": [
+    "account",
+    "workspace",
+    "plan_code",
+    "requested_controls",
+    "controls",
+    "audit",
+    "security",
+    "validation"
+  ],
+  "blocked_statuses": [
+    "blocked_missing_context",
+    "blocked_enterprise_plan_required",
+    "blocked_unsupported_control"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/account/session.contract.json",
+    "deploy/account/subscription-lifecycle.contract.json",
+    "deploy/gateway/field-rights-runtime.contract.json"
+  ],
+  "forbidden_payloads": [
+    "raw_email",
+    "password",
+    "oauth_access_token",
+    "oauth_refresh_token",
+    "session_secret",
+    "connection_string",
+    "private_key",
+    "api_key",
+    "credential_material"
+  ]
+}

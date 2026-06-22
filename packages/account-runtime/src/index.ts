@@ -8,6 +8,8 @@ export const PACKAGE_PRICING_VERSION =
   "2026-06-21.phase3.package-pricing-scaffold.v0";
 export const ACCOUNT_DATA_REQUEST_VERSION =
   "2026-06-21.phase3.account-data-request-scaffold.v0";
+export const ENTERPRISE_CONTROLS_VERSION =
+  "2026-06-22.phase4.enterprise-controls-scaffold.v0";
 
 export const ACCOUNT_LOGIN_METHODS = [
   "email_passwordless",
@@ -56,6 +58,19 @@ export const AUTHORIZED_SESSION_MEMORY_KEYS = [
 ] as const;
 export const PACKAGE_PRICING_PLAN_CODES = ["pro", "developer"] as const;
 export const PACKAGE_PRICING_USAGE_CHANNELS = ["web_agent", "mcp"] as const;
+export const ENTERPRISE_CONTROL_PLAN_CODES = ["team", "enterprise"] as const;
+export const ENTERPRISE_CONTROL_MODULES = [
+  "seats",
+  "sso",
+  "audit",
+  "private_data_connector"
+] as const;
+export const ENTERPRISE_SSO_PROTOCOLS = ["saml", "oidc"] as const;
+export const PRIVATE_DATA_CONNECTOR_KINDS = [
+  "customer_warehouse",
+  "managed_bucket",
+  "private_api"
+] as const;
 
 export type AccountLoginMethod = (typeof ACCOUNT_LOGIN_METHODS)[number];
 export type AccountPlanCode = (typeof ACCOUNT_PLAN_CODES)[number];
@@ -67,6 +82,10 @@ export type AccountDataRequestAction = (typeof ACCOUNT_DATA_REQUEST_ACTIONS)[num
 export type AccountDataRequestScope = (typeof ACCOUNT_DATA_REQUEST_SCOPES)[number];
 export type PackagePricingPlanCode = (typeof PACKAGE_PRICING_PLAN_CODES)[number];
 export type PackagePricingUsageChannel = (typeof PACKAGE_PRICING_USAGE_CHANNELS)[number];
+export type EnterpriseControlPlanCode = (typeof ENTERPRISE_CONTROL_PLAN_CODES)[number];
+export type EnterpriseControlModule = (typeof ENTERPRISE_CONTROL_MODULES)[number];
+export type EnterpriseSsoProtocol = (typeof ENTERPRISE_SSO_PROTOCOLS)[number];
+export type PrivateDataConnectorKind = (typeof PRIVATE_DATA_CONNECTOR_KINDS)[number];
 export type SubscriptionBillingState =
   | "active"
   | "canceled"
@@ -89,6 +108,11 @@ export type AuthorizedSessionMemoryPlanStatus =
 export type AccountDataRequestPlanStatus =
   | "blocked_missing_context"
   | "blocked_unsupported_scope"
+  | "planned_no_write";
+export type EnterpriseControlsPlanStatus =
+  | "blocked_enterprise_plan_required"
+  | "blocked_missing_context"
+  | "blocked_unsupported_control"
   | "planned_no_write";
 
 export type AccountDataRequestExecutionStepAction =
@@ -131,6 +155,19 @@ export interface AccountDataRequestPlanInput {
   workspaceId?: string;
 }
 
+export interface EnterpriseControlsPlanInput {
+  accountId?: string;
+  planCode?: AccountPlanCode;
+  privateConnectorKind?: PrivateDataConnectorKind;
+  privateConnectorName?: string;
+  requestedControls?: string[];
+  requestId: string;
+  seatLimit?: number;
+  ssoDomainHash?: string;
+  ssoProtocol?: EnterpriseSsoProtocol;
+  workspaceId?: string;
+}
+
 export interface AccountRuntimeCapabilities {
   auth_provider_calls: false;
   authorized_memory: {
@@ -164,6 +201,7 @@ export interface AccountRuntimeCapabilities {
     revoke_supported: true;
     status: "planned_no_write";
   };
+  enterprise_controls: EnterpriseControlsCapabilities;
   forbidden_payloads: readonly [
     "raw_email",
     "password",
@@ -247,6 +285,53 @@ export interface AccountDataRequestCapabilities {
   ];
   user_visible_controls: readonly ["download", "delete_request", "status"];
   version: typeof ACCOUNT_DATA_REQUEST_VERSION;
+}
+
+export interface EnterpriseControlsCapabilities {
+  audit: {
+    audit_event: "account.enterprise_controls.plan";
+    event_table: "audit.enterprise_admin_event";
+    export_status: "planned_no_write";
+    raw_payload_stored: false;
+    required: true;
+  };
+  frontend: false;
+  live_directory_sync: false;
+  live_identity_provider_calls: false;
+  live_private_connector_calls: false;
+  package: "@aiphabee/account-runtime";
+  persistent_writes: false;
+  plan_codes: typeof ENTERPRISE_CONTROL_PLAN_CODES;
+  private_data_connector: {
+    connector_kinds: typeof PRIVATE_DATA_CONNECTOR_KINDS;
+    credential_material_stored: false;
+    rights_gateway_required: true;
+    table: "core.private_data_connector";
+  };
+  route: "POST /account/enterprise-controls/plan";
+  runtime_route: "GET /account/runtime";
+  seats: {
+    directory_sync_status: "planned_no_live";
+    max_planned_seats: 5000;
+    table: "core.enterprise_seat_assignment";
+  };
+  sql_emitted: false;
+  sso: {
+    credential_material_stored: false;
+    identity_provider_calls: false;
+    protocols: typeof ENTERPRISE_SSO_PROTOCOLS;
+    table: "core.enterprise_sso_config";
+  };
+  status: "enterprise_controls_scaffold";
+  supported_controls: typeof ENTERPRISE_CONTROL_MODULES;
+  tables: readonly [
+    "core.enterprise_seat_assignment",
+    "core.enterprise_sso_config",
+    "audit.enterprise_admin_event",
+    "core.private_data_connector",
+    "governance.enterprise_controls_contract"
+  ];
+  version: typeof ENTERPRISE_CONTROLS_VERSION;
 }
 
 export interface PackagePricingCapabilities {
@@ -604,6 +689,88 @@ export interface AccountDataRequestPlan {
   };
 }
 
+export interface EnterpriseControlsPlan {
+  account: {
+    account_id: string;
+    table: "core.account";
+  };
+  audit: {
+    actor_account_id: string;
+    audit_event: "account.enterprise_controls.plan";
+    audit_event_id: string;
+    raw_payload_stored: false;
+    request_id: string;
+    table: "audit.enterprise_admin_event";
+    write_status: "planned_no_write";
+  };
+  controls: {
+    audit: {
+      event_table: "audit.enterprise_admin_event";
+      export_status: "planned_no_write" | "not_requested";
+      raw_payload_stored: false;
+      requested: boolean;
+      retention_required: true;
+    };
+    private_data_connector: {
+      connection_test_status: "not_requested" | "planned_no_live";
+      connector_kind: PrivateDataConnectorKind;
+      connector_name: string;
+      credential_material_stored: false;
+      requested: boolean;
+      rights_gateway_required: true;
+      table: "core.private_data_connector";
+      write_status: "not_requested" | "planned_no_write";
+    };
+    seats: {
+      directory_sync_status: "not_requested" | "planned_no_live";
+      pending_invite_count: number;
+      requested: boolean;
+      seat_limit: number;
+      table: "core.enterprise_seat_assignment";
+      write_status: "not_requested" | "planned_no_write";
+    };
+    sso: {
+      credential_material_stored: false;
+      domain_hash_provided: boolean;
+      identity_provider_calls: false;
+      metadata_validation_status: "not_requested" | "planned_no_live";
+      protocol: EnterpriseSsoProtocol;
+      requested: boolean;
+      table: "core.enterprise_sso_config";
+      write_status: "not_requested" | "planned_no_write";
+    };
+  };
+  frontend: false;
+  live_directory_sync: false;
+  live_identity_provider_calls: false;
+  live_private_connector_calls: false;
+  persistent_writes: false;
+  plan_code: AccountPlanCode;
+  requested_controls: EnterpriseControlModule[];
+  security: {
+    credential_material_stored: false;
+    default_deny_until_approved: true;
+    partner_rights_matrix_required: true;
+    raw_connection_string_included: false;
+    raw_email_included: false;
+  };
+  sql_emitted: false;
+  status: EnterpriseControlsPlanStatus;
+  tables: EnterpriseControlsCapabilities["tables"];
+  validation: {
+    allowed_plan_codes: typeof ENTERPRISE_CONTROL_PLAN_CODES;
+    enterprise_plan_required: true;
+    required_context_present: boolean;
+    requested_controls: EnterpriseControlModule[];
+    unsupported_controls: string[];
+  };
+  version: typeof ENTERPRISE_CONTROLS_VERSION;
+  workspace: {
+    table: "core.workspace";
+    workspace_id: string;
+  };
+}
+
 const ACCOUNT_TABLES: AccountRuntimeCapabilities["tables"] = [
   "core.account",
   "core.workspace",
@@ -630,6 +797,13 @@ const ACCOUNT_DATA_REQUEST_TABLES: AccountDataRequestCapabilities["tables"] = [
   "core.account_data_request_item",
   "audit.account_data_request_event",
   "governance.account_data_request_contract"
+];
+const ENTERPRISE_CONTROLS_TABLES: EnterpriseControlsCapabilities["tables"] = [
+  "core.enterprise_seat_assignment",
+  "core.enterprise_sso_config",
+  "audit.enterprise_admin_event",
+  "core.private_data_connector",
+  "governance.enterprise_controls_contract"
 ];
 const PACKAGE_PRICING_TABLES: PackagePricingCapabilities["tables"] = [
   "core.subscription_plan",
@@ -707,6 +881,7 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
       revoke_supported: true,
       status: "planned_no_write"
     },
+    enterprise_controls: getEnterpriseControlsCapabilities(),
     forbidden_payloads: FORBIDDEN_PAYLOADS,
     frontend: false,
     login_methods: ACCOUNT_LOGIN_METHODS,
@@ -728,6 +903,49 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
     status: "internal_account_session_manual_plan_scaffold",
     tables: ACCOUNT_TABLES,
     version: ACCOUNT_RUNTIME_VERSION
+  };
+}
+
+export function getEnterpriseControlsCapabilities(): EnterpriseControlsCapabilities {
+  return {
+    audit: {
+      audit_event: "account.enterprise_controls.plan",
+      event_table: "audit.enterprise_admin_event",
+      export_status: "planned_no_write",
+      raw_payload_stored: false,
+      required: true
+    },
+    frontend: false,
+    live_directory_sync: false,
+    live_identity_provider_calls: false,
+    live_private_connector_calls: false,
+    package: "@aiphabee/account-runtime",
+    persistent_writes: false,
+    plan_codes: ENTERPRISE_CONTROL_PLAN_CODES,
+    private_data_connector: {
+      connector_kinds: PRIVATE_DATA_CONNECTOR_KINDS,
+      credential_material_stored: false,
+      rights_gateway_required: true,
+      table: "core.private_data_connector"
+    },
+    route: "POST /account/enterprise-controls/plan",
+    runtime_route: "GET /account/runtime",
+    seats: {
+      directory_sync_status: "planned_no_live",
+      max_planned_seats: 5000,
+      table: "core.enterprise_seat_assignment"
+    },
+    sql_emitted: false,
+    sso: {
+      credential_material_stored: false,
+      identity_provider_calls: false,
+      protocols: ENTERPRISE_SSO_PROTOCOLS,
+      table: "core.enterprise_sso_config"
+    },
+    status: "enterprise_controls_scaffold",
+    supported_controls: ENTERPRISE_CONTROL_MODULES,
+    tables: ENTERPRISE_CONTROLS_TABLES,
+    version: ENTERPRISE_CONTROLS_VERSION
   };
 }
 
@@ -1092,6 +1310,125 @@ export function createSubscriptionLifecyclePlan(
   };
 }
 
+export function createEnterpriseControlsPlan(
+  input: EnterpriseControlsPlanInput
+): EnterpriseControlsPlan {
+  const accountId = normalizeIdentifier(input.accountId, "account_unresolved");
+  const workspaceId = normalizeIdentifier(input.workspaceId, "workspace_unresolved");
+  const planCode = input.planCode ?? "team";
+  const requestedControls = normalizeRequestedEnterpriseControls(input.requestedControls);
+  const controls = requestedControls.filter(isEnterpriseControlModule);
+  const unsupportedControls = requestedControls.filter(
+    (control) => !isEnterpriseControlModule(control)
+  );
+  const requiredContextPresent =
+    input.accountId !== undefined &&
+    input.accountId.length > 0 &&
+    input.workspaceId !== undefined &&
+    input.workspaceId.length > 0 &&
+    input.planCode !== undefined;
+  const status: EnterpriseControlsPlanStatus =
+    !requiredContextPresent
+      ? "blocked_missing_context"
+      : !isEnterpriseControlPlanCode(planCode)
+        ? "blocked_enterprise_plan_required"
+        : unsupportedControls.length > 0
+          ? "blocked_unsupported_control"
+          : "planned_no_write";
+  const planned = status === "planned_no_write";
+  const requested = new Set<EnterpriseControlModule>(
+    controls.length > 0 ? controls : [...ENTERPRISE_CONTROL_MODULES]
+  );
+  const seatLimit = normalizeSeatLimit(input.seatLimit);
+  const ssoProtocol = input.ssoProtocol ?? "saml";
+  const privateConnectorKind = input.privateConnectorKind ?? "customer_warehouse";
+
+  return {
+    account: {
+      account_id: accountId,
+      table: "core.account"
+    },
+    audit: {
+      actor_account_id: accountId,
+      audit_event: "account.enterprise_controls.plan",
+      audit_event_id: `audit_enterprise_controls_${sanitizeForId(input.requestId)}`,
+      raw_payload_stored: false,
+      request_id: input.requestId,
+      table: "audit.enterprise_admin_event",
+      write_status: "planned_no_write"
+    },
+    controls: {
+      audit: {
+        event_table: "audit.enterprise_admin_event",
+        export_status: requested.has("audit") && planned ? "planned_no_write" : "not_requested",
+        raw_payload_stored: false,
+        requested: requested.has("audit"),
+        retention_required: true
+      },
+      private_data_connector: {
+        connection_test_status:
+          requested.has("private_data_connector") && planned ? "planned_no_live" : "not_requested",
+        connector_kind: privateConnectorKind,
+        connector_name: normalizeIdentifier(input.privateConnectorName, "private_connector_planned"),
+        credential_material_stored: false,
+        requested: requested.has("private_data_connector"),
+        rights_gateway_required: true,
+        table: "core.private_data_connector",
+        write_status:
+          requested.has("private_data_connector") && planned ? "planned_no_write" : "not_requested"
+      },
+      seats: {
+        directory_sync_status: requested.has("seats") && planned ? "planned_no_live" : "not_requested",
+        pending_invite_count: requested.has("seats") && planned ? Math.min(3, seatLimit) : 0,
+        requested: requested.has("seats"),
+        seat_limit: seatLimit,
+        table: "core.enterprise_seat_assignment",
+        write_status: requested.has("seats") && planned ? "planned_no_write" : "not_requested"
+      },
+      sso: {
+        credential_material_stored: false,
+        domain_hash_provided:
+          input.ssoDomainHash !== undefined && input.ssoDomainHash.trim().length > 0,
+        identity_provider_calls: false,
+        metadata_validation_status: requested.has("sso") && planned ? "planned_no_live" : "not_requested",
+        protocol: ssoProtocol,
+        requested: requested.has("sso"),
+        table: "core.enterprise_sso_config",
+        write_status: requested.has("sso") && planned ? "planned_no_write" : "not_requested"
+      }
+    },
+    frontend: false,
+    live_directory_sync: false,
+    live_identity_provider_calls: false,
+    live_private_connector_calls: false,
+    persistent_writes: false,
+    plan_code: planCode,
+    requested_controls: controls.length > 0 ? controls : [...ENTERPRISE_CONTROL_MODULES],
+    security: {
+      credential_material_stored: false,
+      default_deny_until_approved: true,
+      partner_rights_matrix_required: true,
+      raw_connection_string_included: false,
+      raw_email_included: false
+    },
+    sql_emitted: false,
+    status,
+    tables: ENTERPRISE_CONTROLS_TABLES,
+    validation: {
+      allowed_plan_codes: ENTERPRISE_CONTROL_PLAN_CODES,
+      enterprise_plan_required: true,
+      required_context_present: requiredContextPresent,
+      requested_controls: controls.length > 0 ? controls : [...ENTERPRISE_CONTROL_MODULES],
+      unsupported_controls: unsupportedControls
+    },
+    version: ENTERPRISE_CONTROLS_VERSION,
+    workspace: {
+      table: "core.workspace",
+      workspace_id: workspaceId
+    }
+  };
+}
+
 export function createAuthorizedSessionMemoryPlan(
   input: AuthorizedSessionMemoryPlanInput
 ): AuthorizedSessionMemoryPlan {
@@ -1327,12 +1664,37 @@ function normalizeRequestedDataRequestScopes(value: string[] | undefined): strin
   return unique.length > 0 ? unique : [...ACCOUNT_DATA_REQUEST_SCOPES];
 }
 
+function normalizeRequestedEnterpriseControls(value: string[] | undefined): string[] {
+  const controls = (value ?? [...ENTERPRISE_CONTROL_MODULES])
+    .map((control) => control.trim())
+    .filter((control) => control.length > 0);
+  const unique = [...new Set(controls)];
+
+  return unique.length > 0 ? unique : [...ENTERPRISE_CONTROL_MODULES];
+}
+
+function normalizeSeatLimit(value: number | undefined): number {
+  if (value === undefined || !Number.isInteger(value) || value < 1) {
+    return 25;
+  }
+
+  return Math.min(value, 5000);
+}
+
 function isAuthorizedSessionMemoryKey(value: string): value is AuthorizedSessionMemoryKey {
   return AUTHORIZED_SESSION_MEMORY_KEYS.includes(value as AuthorizedSessionMemoryKey);
 }
 
 function isAccountDataRequestScope(value: string): value is AccountDataRequestScope {
   return ACCOUNT_DATA_REQUEST_SCOPES.includes(value as AccountDataRequestScope);
+}
+
+function isEnterpriseControlPlanCode(value: AccountPlanCode): value is EnterpriseControlPlanCode {
+  return ENTERPRISE_CONTROL_PLAN_CODES.includes(value as EnterpriseControlPlanCode);
+}
+
+function isEnterpriseControlModule(value: string): value is EnterpriseControlModule {
+  return ENTERPRISE_CONTROL_MODULES.includes(value as EnterpriseControlModule);
 }
 
 function isAccountDataRequestDeleteAllowedScope(value: AccountDataRequestScope): boolean {

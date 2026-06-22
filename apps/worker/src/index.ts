@@ -9,7 +9,9 @@ import {
   createAccountDataRequestPlan,
   createAccountSessionPlan,
   createAuthorizedSessionMemoryPlan,
+  createEnterpriseControlsPlan,
   createSubscriptionLifecyclePlan,
+  getEnterpriseControlsCapabilities,
   getAccountDataRequestCapabilities,
   getAccountRuntimeCapabilities,
   getPackagePricingCatalog,
@@ -21,6 +23,8 @@ import {
   type AccountDataRequestAction,
   type AccountSessionAction,
   type AuthorizedSessionMemoryAction,
+  type EnterpriseSsoProtocol,
+  type PrivateDataConnectorKind,
   type SubscriptionBillingState,
   type SubscriptionLifecycleAction
 } from "@aiphabee/account-runtime";
@@ -1590,6 +1594,7 @@ app.get("/account/runtime", (c) => {
       {
         ...getAccountRuntimeCapabilities(),
         data_requests: getAccountDataRequestCapabilities(),
+        enterprise_controls: getEnterpriseControlsCapabilities(),
         subscription_lifecycle: getSubscriptionLifecycleCapabilities()
       },
       {
@@ -1691,6 +1696,60 @@ app.post("/account/data-requests/plan", async (c) => {
           cached: false,
           credits: 0,
           rows: plan.status === "planned_no_write" ? plan.execution_plan.length : 0
+        }
+      }
+    )
+  );
+});
+
+app.post("/account/enterprise-controls/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createEnterpriseControlsPlan({
+    accountId: normalizeString(body.account_id ?? body.accountId),
+    planCode: normalizeAccountPlanCode(body.plan_code ?? body.planCode),
+    privateConnectorKind: normalizePrivateDataConnectorKind(
+      body.private_connector_kind ?? body.privateConnectorKind
+    ),
+    privateConnectorName: normalizeString(
+      body.private_connector_name ?? body.privateConnectorName
+    ),
+    requestedControls: normalizeStringArray(
+      body.requested_controls ?? body.requestedControls ?? body.controls
+    ),
+    requestId,
+    seatLimit: normalizeOptionalInteger(body.seat_limit ?? body.seatLimit),
+    ssoDomainHash: normalizeString(body.sso_domain_hash ?? body.ssoDomainHash),
+    ssoProtocol: normalizeEnterpriseSsoProtocol(body.sso_protocol ?? body.ssoProtocol),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getEnterpriseControlsCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "account-runtime",
+            source_record_id: "enterprise-controls-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.status === "planned_no_write" ? plan.requested_controls.length : 0
         }
       }
     )
@@ -10732,6 +10791,18 @@ function normalizeAccountDataRequestAction(value: unknown): AccountDataRequestAc
   return typeof value === "string" &&
     ACCOUNT_DATA_REQUEST_ACTIONS.includes(value as AccountDataRequestAction)
     ? (value as AccountDataRequestAction)
+    : undefined;
+}
+
+function normalizeEnterpriseSsoProtocol(value: unknown): EnterpriseSsoProtocol | undefined {
+  return value === "saml" || value === "oidc" ? value : undefined;
+}
+
+function normalizePrivateDataConnectorKind(
+  value: unknown
+): PrivateDataConnectorKind | undefined {
+  return value === "customer_warehouse" || value === "managed_bucket" || value === "private_api"
+    ? value
     : undefined;
 }
 

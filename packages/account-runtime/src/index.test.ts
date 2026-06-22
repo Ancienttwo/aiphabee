@@ -3,9 +3,11 @@ import {
   createAccountDataRequestPlan,
   createAccountSessionPlan,
   createAuthorizedSessionMemoryPlan,
+  createEnterpriseControlsPlan,
   createSubscriptionLifecyclePlan,
   getAccountDataRequestCapabilities,
   getAccountRuntimeCapabilities,
+  getEnterpriseControlsCapabilities,
   getPackagePricingCatalog,
   getPackagePricingCapabilities,
   getSubscriptionLifecycleCapabilities
@@ -30,6 +32,22 @@ describe("account runtime scaffold", () => {
     expect(getAccountRuntimeCapabilities().manual_plan_assignment.allowed_plan_codes).toContain(
       "developer"
     );
+    expect(getAccountRuntimeCapabilities().enterprise_controls).toMatchObject({
+      frontend: false,
+      live_directory_sync: false,
+      live_identity_provider_calls: false,
+      live_private_connector_calls: false,
+      persistent_writes: false,
+      route: "POST /account/enterprise-controls/plan",
+      sql_emitted: false,
+      status: "enterprise_controls_scaffold"
+    });
+    expect(getAccountRuntimeCapabilities().enterprise_controls.supported_controls).toEqual([
+      "seats",
+      "sso",
+      "audit",
+      "private_data_connector"
+    ]);
     expect(getAccountRuntimeCapabilities().data_requests).toMatchObject({
       frontend: false,
       live_data_export: false,
@@ -70,6 +88,40 @@ describe("account runtime scaffold", () => {
         "session_secret"
       ])
     );
+  });
+
+  it("reports Team and Enterprise controls without live providers", () => {
+    expect(getEnterpriseControlsCapabilities()).toMatchObject({
+      frontend: false,
+      live_directory_sync: false,
+      live_identity_provider_calls: false,
+      live_private_connector_calls: false,
+      package: "@aiphabee/account-runtime",
+      persistent_writes: false,
+      route: "POST /account/enterprise-controls/plan",
+      runtime_route: "GET /account/runtime",
+      sql_emitted: false,
+      status: "enterprise_controls_scaffold",
+      version: "2026-06-22.phase4.enterprise-controls-scaffold.v0"
+    });
+    expect(getEnterpriseControlsCapabilities().plan_codes).toEqual(["team", "enterprise"]);
+    expect(getEnterpriseControlsCapabilities().supported_controls).toEqual([
+      "seats",
+      "sso",
+      "audit",
+      "private_data_connector"
+    ]);
+    expect(getEnterpriseControlsCapabilities().sso).toMatchObject({
+      credential_material_stored: false,
+      identity_provider_calls: false,
+      protocols: ["saml", "oidc"],
+      table: "core.enterprise_sso_config"
+    });
+    expect(getEnterpriseControlsCapabilities().private_data_connector).toMatchObject({
+      credential_material_stored: false,
+      rights_gateway_required: true,
+      table: "core.private_data_connector"
+    });
   });
 
   it("reports account data request capabilities with retention policy controls", () => {
@@ -308,6 +360,103 @@ describe("account runtime scaffold", () => {
       raw_prompt_included: false,
       retained_for_audit_scopes: ["usage_ledger"]
     });
+  });
+
+  it("plans Team and Enterprise seats SSO audit and private data connectors without writes", () => {
+    const plan = createEnterpriseControlsPlan({
+      accountId: "acct_enterprise_admin_001",
+      planCode: "enterprise",
+      privateConnectorKind: "customer_warehouse",
+      privateConnectorName: "warehouse_readonly_alpha",
+      requestedControls: ["seats", "sso", "audit", "private_data_connector"],
+      requestId: "req_enterprise_controls",
+      seatLimit: 250,
+      ssoDomainHash: "sha256:domain-hash",
+      ssoProtocol: "saml",
+      workspaceId: "ws_enterprise_alpha"
+    });
+
+    expect(plan).toMatchObject({
+      frontend: false,
+      live_directory_sync: false,
+      live_identity_provider_calls: false,
+      live_private_connector_calls: false,
+      persistent_writes: false,
+      plan_code: "enterprise",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(plan.requested_controls).toEqual([
+      "seats",
+      "sso",
+      "audit",
+      "private_data_connector"
+    ]);
+    expect(plan.controls.seats).toMatchObject({
+      directory_sync_status: "planned_no_live",
+      pending_invite_count: 3,
+      requested: true,
+      seat_limit: 250,
+      table: "core.enterprise_seat_assignment",
+      write_status: "planned_no_write"
+    });
+    expect(plan.controls.sso).toMatchObject({
+      credential_material_stored: false,
+      domain_hash_provided: true,
+      identity_provider_calls: false,
+      metadata_validation_status: "planned_no_live",
+      protocol: "saml",
+      write_status: "planned_no_write"
+    });
+    expect(plan.controls.audit).toMatchObject({
+      event_table: "audit.enterprise_admin_event",
+      export_status: "planned_no_write",
+      raw_payload_stored: false,
+      retention_required: true
+    });
+    expect(plan.controls.private_data_connector).toMatchObject({
+      connection_test_status: "planned_no_live",
+      connector_kind: "customer_warehouse",
+      connector_name: "warehouse_readonly_alpha",
+      credential_material_stored: false,
+      rights_gateway_required: true,
+      write_status: "planned_no_write"
+    });
+    expect(plan.security).toEqual({
+      credential_material_stored: false,
+      default_deny_until_approved: true,
+      partner_rights_matrix_required: true,
+      raw_connection_string_included: false,
+      raw_email_included: false
+    });
+    expect(plan.validation).toMatchObject({
+      enterprise_plan_required: true,
+      required_context_present: true,
+      unsupported_controls: []
+    });
+  });
+
+  it("blocks enterprise controls for non-enterprise plans and unsupported controls", () => {
+    const proPlan = createEnterpriseControlsPlan({
+      accountId: "acct_internal_001",
+      planCode: "pro",
+      requestId: "req_enterprise_controls_pro",
+      workspaceId: "ws_internal_alpha"
+    });
+    const unsupportedPlan = createEnterpriseControlsPlan({
+      accountId: "acct_internal_001",
+      planCode: "team",
+      requestedControls: ["seats", "raw_admin_export"],
+      requestId: "req_enterprise_controls_unsupported",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(proPlan.status).toBe("blocked_enterprise_plan_required");
+    expect(proPlan.validation.allowed_plan_codes).toEqual(["team", "enterprise"]);
+    expect(proPlan.persistent_writes).toBe(false);
+    expect(unsupportedPlan.status).toBe("blocked_unsupported_control");
+    expect(unsupportedPlan.validation.unsupported_controls).toEqual(["raw_admin_export"]);
+    expect(unsupportedPlan.controls.seats.write_status).toBe("not_requested");
   });
 
   it("plans account data deletion with retention holds and blocks unsupported scopes", () => {
