@@ -17,7 +17,8 @@
     "deploy/governance/p0-field-distribution-status.contract.json",
     "deploy/public-ops/mvp-product-boundary-copy.contract.json",
     "deploy/gateway/p0-rights-matrix-coverage.contract.json",
-    "deploy/gateway/field-authorization-config.contract.json"
+    "deploy/gateway/field-authorization-config.contract.json",
+    "deploy/governance/gate0-signed-evidence-transition-review.contract.json"
   ],
   "required_prd_14_1_dimensions": [
     "data_owner_source",

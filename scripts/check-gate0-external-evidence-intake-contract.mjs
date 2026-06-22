@@ -41,7 +41,8 @@ const requiredLinkedContracts = [
   "deploy/governance/p0-field-distribution-status.contract.json",
   "deploy/public-ops/mvp-product-boundary-copy.contract.json",
   "deploy/gateway/p0-rights-matrix-coverage.contract.json",
-  "deploy/gateway/field-authorization-config.contract.json"
+  "deploy/gateway/field-authorization-config.contract.json",
+  "deploy/governance/gate0-signed-evidence-transition-review.contract.json"
 ];
 const requiredForbiddenClaims = [
   "external_approval_complete_without_evidence",

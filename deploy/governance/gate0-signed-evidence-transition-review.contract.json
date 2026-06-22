@@ -1,0 +1,169 @@
+{
+  "version": "2026-06-23.gate0-signed-evidence-transition-review.v0",
+  "status": "pending_gate0_transition_review",
+  "checker": "scripts/check-gate0-signed-evidence-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-gate0-signed-evidence-transition-review-fixtures.mjs",
+  "signed_evidence_manifest_contract": "deploy/governance/gate0-signed-evidence-manifest.contract.json",
+  "external_evidence_intake_contract": "deploy/governance/gate0-external-evidence-intake.contract.json",
+  "signed_evidence_packet_directory": "deploy/governance/gate0-signed-evidence-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "external_approvals_complete": false,
+  "sprint0_1_external_approval_checkbox_complete": false,
+  "accepted_packets_are_sufficient_alone": false,
+  "required_packet_ids": [
+    "field_rights_matrix",
+    "hkex_vendor_licensing_memo",
+    "type4_product_boundary_opinion",
+    "pcpd_privacy_path_assessment",
+    "commercial_settlement_schedule",
+    "gate0_signature_register"
+  ],
+  "global_blockers": [
+    "external_approvals_complete_missing",
+    "partner_signed_matrix_missing",
+    "legal_opinion_missing",
+    "pcpd_path_missing",
+    "commercial_terms_missing",
+    "gate0_signature_missing",
+    "manifest_external_approvals_incomplete",
+    "manifest_release_transition_not_allowed"
+  ],
+  "transition_policy": {
+    "accepted_signed_evidence_packet_required": true,
+    "manifest_packet_accepted_required": true,
+    "intake_external_approval_required": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "accepted_packet_alone_never_completes_gate0": true,
+    "hash_only_packet_validator_remains_source_of_truth": true,
+    "default_deny_until_manifest_release_transition": true
+  },
+  "gate0_transition_reviews": [
+    {
+      "packet_id": "field_rights_matrix",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "field_rights_matrix",
+      "linked_intake_packet": "field_rights_matrix",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "partner_signed_matrix_missing"
+      ]
+    },
+    {
+      "packet_id": "hkex_vendor_licensing_memo",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "hkex_vendor_licensing_memo",
+      "linked_intake_packet": "hkex_vendor_licensing_memo",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "partner_signed_matrix_missing"
+      ]
+    },
+    {
+      "packet_id": "type4_product_boundary_opinion",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "type4_product_boundary_opinion",
+      "linked_intake_packet": "type4_product_boundary_opinion",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "legal_opinion_missing"
+      ]
+    },
+    {
+      "packet_id": "pcpd_privacy_path_assessment",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "pcpd_privacy_path_assessment",
+      "linked_intake_packet": "pcpd_privacy_path_assessment",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "pcpd_path_missing"
+      ]
+    },
+    {
+      "packet_id": "commercial_settlement_schedule",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "commercial_settlement_schedule",
+      "linked_intake_packet": "commercial_settlement_schedule",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "commercial_terms_missing"
+      ]
+    },
+    {
+      "packet_id": "gate0_signature_register",
+      "tracker_status": "\u2610",
+      "signed_evidence_packet_required": true,
+      "linked_manifest_packet": "gate0_signature_register",
+      "linked_intake_packet": "gate0_signature_register",
+      "packet_status": "missing",
+      "manifest_packet_status": "missing",
+      "intake_packet_status": "pending_external",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_signed_evidence_packet_missing",
+        "manifest_packet_missing",
+        "intake_external_approval_missing",
+        "gate0_signature_missing"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Gate 0 signed evidence transition review \u5df2\u5efa\u7acb",
+    "| 2026-06-23 | 1.0hn | \u5b8c\u6210 `gate0-signed-evidence-transition-review`",
+    "| 0.1 | \u6cd5\u52a1\u00b7\u6388\u6743\u00b7\u76d1\u7ba1 Gate | \ud83d\udfe6 | 2 / 8 | \u2610 |",
+    "\u7b7e\u5b57\u672a\u5230\u4f4d"
+  ],
+  "required_todos_fragments": [
+    "Gate 0 signed evidence transition review",
+    "npm run check:gate0-signed-evidence-transition-review",
+    "accepted packet alone cannot complete Gate 0"
+  ],
+  "not_claimed": [
+    "external_approvals_complete",
+    "sprint0_1_external_approvals_complete",
+    "phase0_gate_complete",
+    "field_rights_matrix_signed",
+    "type4_written_opinion",
+    "pcpd_approval",
+    "commercial_terms_signed",
+    "gate0_decision_signed",
+    "all_sprints_complete"
+  ]
+}

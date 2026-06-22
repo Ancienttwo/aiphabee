@@ -18,6 +18,7 @@ npm run check:gate0-signed-evidence-packets
 npm run check:gate0-signed-evidence-packet-fixtures
 npm run check:gate0-signed-evidence-handoff
 npm run check:gate0-signed-evidence-manifest
+npm run check:gate0-signed-evidence-transition-review
 npm run check:sprint-completion-audit
 ```
 

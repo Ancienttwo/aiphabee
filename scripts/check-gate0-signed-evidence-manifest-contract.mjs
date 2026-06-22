@@ -11,6 +11,9 @@ const requiredVersion = "2026-06-22.gate0-signed-evidence-manifest.v0";
 const handoffCheckerPath = "scripts/check-gate0-signed-evidence-handoff.mjs";
 const packetCheckerPath = "scripts/check-gate0-signed-evidence-packets.mjs";
 const packetFixtureCheckerPath = "scripts/check-gate0-signed-evidence-packet-fixtures.mjs";
+const transitionReviewContractPath = "deploy/governance/gate0-signed-evidence-transition-review.contract.json";
+const transitionReviewCheckerPath = "scripts/check-gate0-signed-evidence-transition-review-contract.mjs";
+const transitionReviewFixtureCheckerPath = "scripts/check-gate0-signed-evidence-transition-review-fixtures.mjs";
 const packetDirectoryPath = "deploy/governance/gate0-signed-evidence-packets";
 const packetFilePattern = "<packet_id>.evidence.json";
 const templateDirectoryPath = "deploy/governance/gate0-signed-evidence-templates";
@@ -111,6 +114,18 @@ function validateManifest({ intake, manifest: value, packageJson, tracker }) {
     errors.push(`packet_fixture_checker must be ${packetFixtureCheckerPath}`);
   }
 
+  if (value.transition_review_contract !== transitionReviewContractPath) {
+    errors.push(`transition_review_contract must be ${transitionReviewContractPath}`);
+  }
+
+  if (value.transition_review_checker !== transitionReviewCheckerPath) {
+    errors.push(`transition_review_checker must be ${transitionReviewCheckerPath}`);
+  }
+
+  if (value.transition_review_fixture_checker !== transitionReviewFixtureCheckerPath) {
+    errors.push(`transition_review_fixture_checker must be ${transitionReviewFixtureCheckerPath}`);
+  }
+
   if (value.packet_directory !== packetDirectoryPath) {
     errors.push(`packet_directory must be ${packetDirectoryPath}`);
   }
@@ -149,6 +164,9 @@ function validateManifest({ intake, manifest: value, packageJson, tracker }) {
       value.handoff_checker,
       value.packet_checker,
       value.packet_fixture_checker,
+      value.transition_review_contract,
+      value.transition_review_checker,
+      value.transition_review_fixture_checker,
       value.packet_directory,
       value.template_directory
     ])
@@ -320,6 +338,7 @@ function validateCompletionPolicy(value) {
     all_packets_have_evidence_refs: true,
     all_packets_status: "accepted",
     all_refs_have_sha256: true,
+    accepted_packet_alone_never_completes_gate0: true,
     accepted_packets_must_be_promoted_to_manifest_before_sprint_checkbox: true,
     no_ref_contains_secret_material: true,
     operator_handoff_readme_lists_packet_order: true,
@@ -328,7 +347,8 @@ function validateCompletionPolicy(value) {
     packet_fixture_checker_reuses_packet_validator: true,
     release_transition_sets_default_deny_exceptions_only_from_accepted_matrix: true,
     sprint0_1_checkbox_may_be_checked_only_when_external_approvals_complete: true,
-    submitted_packets_do_not_unlock_gate0: true
+    submitted_packets_do_not_unlock_gate0: true,
+    transition_review_cross_checks_intake_and_manifest: true
   };
   const errors = [];
 
@@ -406,6 +426,19 @@ function validatePackageScript(packageJson) {
     return ["package.json must expose check:gate0-signed-evidence-packet-fixtures"];
   }
 
+  const transitionReviewScript = packageJson?.scripts?.["check:gate0-signed-evidence-transition-review"];
+
+  if (transitionReviewScript !== `node ${transitionReviewCheckerPath}`) {
+    return ["package.json must expose check:gate0-signed-evidence-transition-review"];
+  }
+
+  const transitionReviewFixturesScript =
+    packageJson?.scripts?.["check:gate0-signed-evidence-transition-review-fixtures"];
+
+  if (transitionReviewFixturesScript !== `node ${transitionReviewFixtureCheckerPath}`) {
+    return ["package.json must expose check:gate0-signed-evidence-transition-review-fixtures"];
+  }
+
   const checkScript = String(packageJson?.scripts?.check ?? "");
 
   for (const requiredScript of [
@@ -413,7 +446,9 @@ function validatePackageScript(packageJson) {
     "npm run check:gate0-signed-evidence-manifest-fixtures",
     "npm run check:gate0-signed-evidence-handoff",
     "npm run check:gate0-signed-evidence-packets",
-    "npm run check:gate0-signed-evidence-packet-fixtures"
+    "npm run check:gate0-signed-evidence-packet-fixtures",
+    "npm run check:gate0-signed-evidence-transition-review",
+    "npm run check:gate0-signed-evidence-transition-review-fixtures"
   ]) {
     if (!checkScript.includes(requiredScript)) {
       return [`package.json check script must include ${requiredScript}`];
@@ -430,7 +465,8 @@ function validateTracker(tracker) {
     "字段级权利矩阵",
     "签字",
     "外部审批",
-    "Gate 0 signed evidence packet verifier"
+    "Gate 0 signed evidence packet verifier",
+    "Gate 0 signed evidence transition review"
   ];
 
   return required.filter((item) => !tracker.includes(item)).map((item) => `tracker missing ${item}`);

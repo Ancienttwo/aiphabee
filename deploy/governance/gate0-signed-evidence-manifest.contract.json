@@ -8,6 +8,9 @@
   "handoff_checker": "scripts/check-gate0-signed-evidence-handoff.mjs",
   "packet_checker": "scripts/check-gate0-signed-evidence-packets.mjs",
   "packet_fixture_checker": "scripts/check-gate0-signed-evidence-packet-fixtures.mjs",
+  "transition_review_contract": "deploy/governance/gate0-signed-evidence-transition-review.contract.json",
+  "transition_review_checker": "scripts/check-gate0-signed-evidence-transition-review-contract.mjs",
+  "transition_review_fixture_checker": "scripts/check-gate0-signed-evidence-transition-review-fixtures.mjs",
   "packet_directory": "deploy/governance/gate0-signed-evidence-packets",
   "packet_file_pattern": "<packet_id>.evidence.json",
   "template_directory": "deploy/governance/gate0-signed-evidence-templates",
@@ -125,6 +128,8 @@
     "packet_fixture_checker_reuses_packet_validator": true,
     "submitted_packets_do_not_unlock_gate0": true,
     "accepted_packets_must_be_promoted_to_manifest_before_sprint_checkbox": true,
+    "transition_review_cross_checks_intake_and_manifest": true,
+    "accepted_packet_alone_never_completes_gate0": true,
     "operator_handoff_templates_validate_as_missing_packets": true,
     "operator_handoff_readme_lists_packet_order": true,
     "release_transition_sets_default_deny_exceptions_only_from_accepted_matrix": true,
@@ -137,5 +142,11 @@
     "secret_or_credential_material",
     "web_rights_imply_mcp_rights",
     "unconfirmed_field_allowed"
+  ],
+  "not_claimed": [
+    "gate0_transition_review_complete",
+    "external_approvals_complete",
+    "phase0_gate_complete",
+    "all_sprints_complete"
   ]
 }

@@ -234,6 +234,8 @@ function validateHandoff({
     "npm run check:gate0-signed-evidence-manifest-fixtures",
     "npm run check:gate0-signed-evidence-packets",
     "npm run check:gate0-signed-evidence-packet-fixtures",
+    "npm run check:gate0-signed-evidence-transition-review",
+    "npm run check:gate0-signed-evidence-transition-review-fixtures",
     "deploy/governance/gate0-signed-evidence-packets",
     "DEFAULT_DENY",
     "DATA_NOT_LICENSED",
