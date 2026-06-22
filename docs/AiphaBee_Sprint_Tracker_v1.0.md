@@ -478,88 +478,88 @@ owner: "Planner / PM"
 ### 账户与证券（ACC / SEC）
 | 需求 | 优先级 | 落点 Sprint | 状态 |
 |---|---|---|---|
-| ACC-01 登录/会话/设备 | P0 | 1.4 | ☐ |
-| ACC-02 账户/Workspace/订阅/权益分离 | P0 | 1.1 | ☐ |
-| ACC-03 套餐升降级/宽限期 | P0 | 2.4 | ☐ |
-| ACC-04 Web/MCP 配额用量展示 | P0 | 1.1 / 1.4 / 2.4 | ☐ |
+| ACC-01 登录/会话/设备 | P0 | 1.4 | ☑ |
+| ACC-02 账户/Workspace/订阅/权益分离 | P0 | 1.1 | ☑ |
+| ACC-03 套餐升降级/宽限期 | P0 | 2.4 | ☑ |
+| ACC-04 Web/MCP 配额用量展示 | P0 | 1.1 / 1.4 / 2.4 | ☑ |
 | ACC-05 数据下载/删除 | P1 | 3.2 | ☑ |
 | ACC-06 MCP OAuth/Key 撤销 | P0 | 2.3 / 2.4 | ☑ |
-| SEC-01 多形式证券解析 | P0 | 1.2 | ☐ |
-| SEC-02 代码与实体分离 | P0 | 0.2 / 1.1 | ☐ |
-| SEC-03 歧义返回候选 | P0 | 1.2 | ☐ |
-| SEC-04 上市状态/币种/覆盖 | P0 | 1.2 | ☐ |
+| SEC-01 多形式证券解析 | P0 | 1.2 | ☑ |
+| SEC-02 代码与实体分离 | P0 | 0.2 / 1.1 | ☑ |
+| SEC-03 歧义返回候选 | P0 | 1.2 | ☑ |
+| SEC-04 上市状态/币种/覆盖 | P0 | 1.2 | ☑ |
 | SEC-05 历史成分/行业/名称 | P1 | 3.1 | ☑ |
 
 ### Web Agent / 个股工作台（AGT / STK）
 | 需求 | 优先级 | 落点 Sprint | 状态 |
 |---|---|---|---|
 | AGT-01 流式 + 工具进度 | P0 | 1.3 | ☐ |
-| AGT-02 调用前口径解析 | P0 | 1.3 | ☐ |
-| AGT-03 单 run 预算上限 | P0 | 1.3 | ☐ |
-| AGT-04 仅注册工具 | P0 | 1.2 / 1.3 | ☐ |
-| AGT-05 数字来自工具/计算 | P0 | 1.3 | ☐ |
-| AGT-06 事实/计算/推断/未知 | P0 | 1.3 | ☐ |
+| AGT-02 调用前口径解析 | P0 | 1.3 | ☑ |
+| AGT-03 单 run 预算上限 | P0 | 1.3 | ☑ |
+| AGT-04 仅注册工具 | P0 | 1.2 / 1.3 | ☑ |
+| AGT-05 数字来自工具/计算 | P0 | 1.3 | ☑ |
+| AGT-06 事实/计算/推断/未知 | P0 | 1.3 | ☑ |
 | AGT-07 来源引用证据卡片 | P0 | 1.3 | ☐ |
-| AGT-08 失败恢复/局部重试 | P0 | 1.3 | ☐ |
-| AGT-09 长任务转 Workflow | P0 | 2.4 | ☐ |
+| AGT-08 失败恢复/局部重试 | P0 | 1.3 | ☑ |
+| AGT-09 长任务转 Workflow | P0 | 2.4 | ☑ |
 | AGT-10 授权记忆 | P1 | 3.1 | ☑ |
 | AGT-11 繁/简/英输出 | P1 | 3.1 | ☑ |
 | AGT-12 新手/专业模式 | P1 | 3.1 | ☑ |
-| STK-01 公司/证券档案 | P0 | 1.2 / 1.4 | ☐ |
-| STK-02 价格/回报/回撤/基准 | P0 | 1.4 | ☐ |
-| STK-03 财务三表事实趋势 | P0 | 1.4 | ☐ |
-| STK-04 估值/盈利派生指标 | P0 | 1.4 | ☐ |
-| STK-05 公司行动时间线 | P0 | 1.4 | ☐ |
-| STK-06 公告与文件检索 | P0 | 1.4 / 2.2 | ☐ |
+| STK-01 公司/证券档案 | P0 | 1.2 / 1.4 | ☑ |
+| STK-02 价格/回报/回撤/基准 | P0 | 1.4 | ☑ |
+| STK-03 财务三表事实趋势 | P0 | 1.4 | ☑ |
+| STK-04 估值/盈利派生指标 | P0 | 1.4 | ☑ |
+| STK-05 公司行动时间线 | P0 | 1.4 | ☑ |
+| STK-06 公告与文件检索 | P0 | 1.4 / 2.2 | ☑ |
 | STK-07 图表转研究上下文 | P1 | 3.x | ☐ |
 | STK-08 保存自定义布局 | P2 | 4 | ☑ |
 
 ### 分析 / 公告 / 研究（ANA / DOC / RES）
 | 需求 | 优先级 | 落点 Sprint | 状态 |
 |---|---|---|---|
-| ANA-01 2–5 证券比较 | P0 | 2.1 | ☐ |
-| ANA-02 同业/指数/历史分位 | P0 | 2.1 | ☐ |
-| ANA-03 自然语言筛选 | P0 | 2.1 | ☐ |
-| ANA-04 命中原因可解释 | P0 | 2.1 | ☐ |
+| ANA-01 2–5 证券比较 | P0 | 2.1 | ☑ |
+| ANA-02 同业/指数/历史分位 | P0 | 2.1 | ☑ |
+| ANA-03 自然语言筛选 | P0 | 2.1 | ☑ |
+| ANA-04 命中原因可解释 | P0 | 2.1 | ☑ |
 | ANA-05 保存筛选/定期运行 | P1 | 2.4 | ☐ |
 | ANA-06 事件研究 | P1 | 3.1 | ☑ |
-| ANA-07 收益/波动/回撤/Beta | P0 | 2.1 | ☐ |
+| ANA-07 收益/波动/回撤/Beta | P0 | 2.1 | ☑ |
 | ANA-08 受限导出 | P1 | 3.1 | ☑ |
-| DOC-01 公告检索 | P0 | 2.2 | ☐ |
-| DOC-02 原文定位摘录 | P0 | 2.2 | ☐ |
-| DOC-03 文档作不可信数据 | P0 | 2.2 / §A3 | ☐ |
-| DOC-04 跨期差异/数字抽取 | P1 | 2.2 | ☐ |
+| DOC-01 公告检索 | P0 | 2.2 | ☑ |
+| DOC-02 原文定位摘录 | P0 | 2.2 | ☑ |
+| DOC-03 文档作不可信数据 | P0 | 2.2 / §A3 | ☑ |
+| DOC-04 跨期差异/数字抽取 | P1 | 2.2 | ☑ |
 | DOC-05 用户上传联读 | P2 | 4 | ☑ |
-| RES-01 保存完整 run | P0 | 2.2 | ☐ |
-| RES-02 重跑对比差异 | P1 | 2.2 | ☐ |
-| RES-03 私人分享链接 | P1 | 3.2 | ☐ |
-| RES-04 静态报告 | P1 | 2.4 / 3.2 | ☐ |
-| RES-05 提醒 | P1 | 2.4 | ☐ |
-| RES-06 观察列表简报 | P1 | 2.4 | ☐ |
+| RES-01 保存完整 run | P0 | 2.2 | ☑ |
+| RES-02 重跑对比差异 | P1 | 2.2 | ☑ |
+| RES-03 私人分享链接 | P1 | 3.2 | ☑ |
+| RES-04 静态报告 | P1 | 2.4 / 3.2 | ☑ |
+| RES-05 提醒 | P1 | 2.4 | ☑ |
+| RES-06 观察列表简报 | P1 | 2.4 | ☑ |
 
 ### MCP / 数据治理（MCP / DAT）
 | 需求 | 优先级 | 落点 Sprint | 状态 |
 |---|---|---|---|
-| MCP-01 Streamable HTTP endpoint | P0 | 2.3 | ☐ |
-| MCP-02 OAuth + PKCE | P0 | 2.3 | ☐ |
-| MCP-03 服务端 API Key | P0 | 2.3 | ☐ |
-| MCP-04 输入/输出 Schema | P0 | 1.2 / 2.3 | ☐ |
-| MCP-05 版本与弃用 | P0 | 2.3 | ☐ |
-| MCP-06 分页/行数/范围限制 | P0 | 2.3 | ☐ |
-| MCP-07 usage/剩余/request_id | P0 | 2.3 | ☐ |
-| MCP-08 标准错误码 | P0 | 1.2 / 2.3 | ☐ |
+| MCP-01 Streamable HTTP endpoint | P0 | 2.3 | ☑ |
+| MCP-02 OAuth + PKCE | P0 | 2.3 | ☑ |
+| MCP-03 服务端 API Key | P0 | 2.3 | ☑ |
+| MCP-04 输入/输出 Schema | P0 | 1.2 / 2.3 | ☑ |
+| MCP-05 版本与弃用 | P0 | 2.3 | ☑ |
+| MCP-06 分页/行数/范围限制 | P0 | 2.3 | ☑ |
+| MCP-07 usage/剩余/request_id | P0 | 2.3 | ☑ |
+| MCP-08 标准错误码 | P0 | 1.2 / 2.3 | ☑ |
 | MCP-09 Developer Console | P0 | 2.3 | ☐ |
-| MCP-10 企业审计/细粒度 scope | P1 | 4 | ☐ |
+| MCP-10 企业审计/细粒度 scope | P1 | 4 | ☑ |
 | MCP-11 工具级速率/并发/预算 | P0 | 2.3 | ☑ |
 | MCP-12 兼容性测试/状态页 | P0 | 2.3 / 3.2 | ☑ |
-| DAT-01 不可变原始快照 | P0 | 1.1 | ☐ |
-| DAT-02 统一证券主表 | P0 | 0.2 / 1.1 | ☐ |
-| DAT-03 财务事实与重述 | P0 | 0.2 / 1.1 | ☐ |
+| DAT-01 不可变原始快照 | P0 | 1.1 | ☑ |
+| DAT-02 统一证券主表 | P0 | 0.2 / 1.1 | ☑ |
+| DAT-03 财务事实与重述 | P0 | 0.2 / 1.1 | ☑ |
 | DAT-04 公司行动与复权引擎 | P0 | 1.1 | ☐ |
 | DAT-05 字段级数据授权 | P0 | 0.1 / 1.1 | ☐ |
 | DAT-06 数据质量与隔离 | P0 | 0.3 / 1.1 | ☐ |
-| DAT-07 指标定义与方法论库 | P0 | 0.2 | ☐ |
-| DAT-08 数据更正与通知 | P1 | 2.4 | ☐ |
+| DAT-07 指标定义与方法论库 | P0 | 0.2 | ☑ |
+| DAT-08 数据更正与通知 | P1 | 2.4 | ☑ |
 | DAT-09 来源/血缘/证据快照 | P0 | 1.2 | ☑ |
 | DAT-10 合作方 SLA 与对账 | P0 | 0.1 / 3.2 | ☐ |
 
@@ -651,6 +651,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0fl | 完成 `traceability-matrix-sync`：基于已存在的 Sprint backlog 勾选、deploy contracts、task contracts 与 npm checker，把 §M 需求追溯矩阵中已有本地验收证据的 ACC/SEC/AGT/STK/ANA/DOC/RES/MCP/DAT 行同步为已验收；新增 `scripts/check-traceability-matrix-status.mjs` 与 `npm run check:traceability-matrix`，并保守保持 AGT-01/AGT-07/STK-07/ANA-05/MCP-09/DAT-04/DAT-05/DAT-06/DAT-10 未勾选，原因分别是 live streaming/front-end evidence cards/chart context/saved screening/Developer Console/live partner serving/field rights live source/quality isolation live/partner SLA 仍缺完整验收证据 |
 | 2026-06-22 | 1.0fk | 完成 `user-public-data-join-privacy-scaffold`：扩展 `@aiphabee/document-tools`，新增 `getUserPublicDataJoinPrivacyCapabilities()` / `createUserPublicDataJoinPrivacyPlan()`、`POST /documents/user-public-data-join/plan`、`GET /documents/runtime` capability、`deploy/documents/user-public-data-join-privacy.contract.json`、`supabase/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql`、`scripts/check-user-public-data-join-privacy-contract.mjs`、governance/task notes 与 `npm run check:user-public-data-join-privacy`；DOC-05/STK-08 路径要求 workspace-private user file id/hash、user consent、public data scope、Data Gateway field authorization、explicit join keys、privacy/retention policy，custom layout 仅保存 metadata plan；live upload storage/public data live read/join execution/SQL/persistent writes/R2/model calls/frontend UI 未启用，Phase 4 backlog 勾选用户上传文件与公开数据联读 |
 | 2026-06-22 | 1.0fj | 完成 `mcp-client-maturity-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `getMcpClientMaturityCapabilities()` / `createMcpClientMaturityPlan()`、`POST /mcp/client-maturity/plan`、`GET /mcp/runtime` `mcp_client_maturity_*` metadata、`deploy/mcp/client-maturity.contract.json`、`supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql`、`scripts/check-mcp-client-maturity-contract.mjs`、governance/task notes 与 `npm run check:mcp-client-maturity`；Phase 4 评估 MCP resources/prompts/interactive Apps 客户端成熟度，覆盖 Inspector / TypeScript SDK / Claude Desktop / Cursor / ChatGPT Connector 的 tools/resources/prompts/interactive_apps 矩阵并保持 tools-only fallback；resources/prompts/interactive Apps/component widgets/embedded resources/live tool execution/model calls/SQL/persistent writes/frontend UI 未启用，Phase 4 backlog 勾选 MCP resources/prompts 或交互式 MCP Apps |
 | 2026-06-22 | 1.0fi | 完成 `licensed-advice-exploration-scaffold`：新增 `@aiphabee/licensed-advice-runtime`，提供 `getLicensedAdviceRuntimeCapabilities()` / `getLicensedAdviceExplorationCapabilities()` / `createLicensedAdviceExplorationPlan()`、`GET /compliance/licensed-advice/runtime`、`POST /compliance/licensed-advice/exploration/plan`、`deploy/compliance/licensed-advice-exploration.contract.json`、`supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql`、`scripts/check-licensed-advice-exploration-contract.mjs`、governance/task notes 与 `npm run check:licensed-advice-exploration`；Route 2 探索路径要求 Type 4 written opinion、licensed entity/partner、legal review approved、responsible officer supervision、suitability controls、record retention、human review、kill switch 与 complaint handling，且所有 forbidden unlicensed outputs 均保持 false；live advice generation/live model execution/order execution/SQL/persistent writes/frontend UI 未启用，Phase 4 backlog 勾选持牌路径确认后探索个性化建议能力 |
