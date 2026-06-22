@@ -307,6 +307,7 @@ import {
   createPartnerSlaReconciliationReadinessReport,
   createPartnerSupportReleaseGatePlan,
   createUsageBillingReconciliationPlan,
+  createUsageLedgerEventPlan,
   createUsageQuotaDisplayPlan,
   getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
@@ -355,6 +356,7 @@ interface WorkerBindings {
   AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -568,6 +570,35 @@ interface EvidenceLiveDbWriteSmokeResult {
   status: CloudflareBindingSmokeStatus;
   surface: "evidence_record_source_ref_insert_select_delete";
   tables?: ["core.evidence_record", "core.evidence_source_ref"];
+}
+
+interface AgentRunLiveWriteSmokeResult {
+  audit_event_hash?: string;
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  cleanup_verified?: boolean;
+  deleted_rows?: number;
+  detail_hash?: string;
+  evidence_record_id_hash?: string;
+  failure_code?: string;
+  inserted_rows?: number;
+  ledger_entry_id_hash?: string;
+  operation_count?: number;
+  production_persistence_enabled?: false;
+  query_hash?: string;
+  selected_rows?: number;
+  status: CloudflareBindingSmokeStatus;
+  surface: "agent_run_audit_evidence_usage_insert_select_delete";
+  tables?: [
+    "audit.agent_run_audit_event",
+    "core.evidence_record",
+    "core.evidence_source_ref",
+    "core.account",
+    "core.workspace",
+    "core.usage_meter_rule",
+    "core.usage_event",
+    "core.usage_ledger_entry"
+  ];
+  usage_event_id_hash?: string;
 }
 
 interface AgentRunRequestBody {
@@ -823,6 +854,12 @@ const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_TOKEN_BINDING =
   "AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN";
 const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION =
   "2026-06-22.phase1.agent-generated-answer-evidence-smoke.v0";
+const AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE = "/agent/runs/live-write-smoke";
+const AGENT_RUN_LIVE_WRITE_SMOKE_HEADER_VALUE = "agent-run-live-write-v1";
+const AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN";
+const AGENT_RUN_LIVE_WRITE_SMOKE_VERSION =
+  "2026-06-22.phase1.agent-run-live-write-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1600,6 +1637,76 @@ app.post(AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE, async (c) => {
       502
     );
   }
+});
+
+app.post(AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== AGENT_RUN_LIVE_WRITE_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentRunLiveWriteSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AGENT_RUN_LIVE_WRITE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentRunLiveWriteSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const result = await runAgentRunLiveWriteSmoke(c.env ?? {}, requestId);
+  const bodyWithoutHash = {
+    agent_run_live_write_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: AGENT_RUN_LIVE_WRITE_SMOKE_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
 });
 
 app.get("/public/runtime", (c) => {
@@ -10603,6 +10710,556 @@ async function runEvidenceLiveDbWriteSmoke(
   }
 }
 
+async function runAgentRunLiveWriteSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<AgentRunLiveWriteSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingAgentRunLiveWriteSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const safeRequestId = requestId.replace(/[^A-Za-z0-9_]/gu, "_").slice(0, 80);
+  const runId = `agent_run_live_write_smoke_${safeRequestId}`;
+  const accountId = `account_${runId}`;
+  const workspaceId = `workspace_${runId}`;
+  const smokeVersion = AGENT_RUN_LIVE_WRITE_SMOKE_VERSION;
+  const sourceRecordId = `source:${runId}`;
+  const [auditEvent] = createAgentDryRunTelemetry({
+    dataVersion: "agent-run-live-write-smoke-v0",
+    environment: "smoke",
+    estimatedCostUsd: 0,
+    inputTokens: 4,
+    latencyMs: 1,
+    maxSteps: 2,
+    methodologyVersion: smokeVersion,
+    modelId: "agent-run-live-write-smoke-no-model",
+    modelTier: "smoke",
+    modelVersion: "agent-run-live-write-smoke-v0",
+    outcome: "success",
+    outputHash: await hashRuntimeSmokeString("agent-run-live-write-smoke-output"),
+    outputTokens: 6,
+    requestId,
+    requestedTools: ["get_quote_snapshot"],
+    route: `POST ${AGENT_RUN_LIVE_WRITE_SMOKE_ROUTE}`,
+    runId,
+    toolVersions: [
+      {
+        tool_name: "get_quote_snapshot",
+        tool_version: "get_quote_snapshot@smoke"
+      }
+    ],
+    userId: accountId,
+    workspaceId
+  });
+  const evidencePlan = createEvidenceRecordPlan({
+    dataVersion: "agent-run-live-write-smoke-source-v0",
+    inputSchemaId: "tool.get_quote_snapshot.input.v0",
+    methodologyVersion: smokeVersion,
+    outputSchemaId: "tool.get_quote_snapshot.output.v0",
+    requestId,
+    sourceRecords: [
+      {
+        dataVersion: "agent-run-live-write-smoke-source-v0",
+        methodologyVersion: smokeVersion,
+        source: "agent-run-live-write-smoke",
+        sourceRecordId
+      }
+    ],
+    toolName: "get_quote_snapshot",
+    toolVersion: "get_quote_snapshot@smoke",
+    userVisibleLabel: "Agent run live write smoke"
+  });
+  const usagePlan = createUsageLedgerEventPlan({
+    accountId,
+    cached: false,
+    channel: "web",
+    credits: 1,
+    dataVersion: "agent-run-live-write-smoke-usage-v0",
+    dataset: "agent_run_smoke",
+    gatewayStatus: "ok",
+    inputUnits: 4,
+    meteredFields: 1,
+    meteredRows: 1,
+    methodologyVersion: smokeVersion,
+    occurredAt: "2026-06-22T00:00:00.000Z",
+    operation: "agent_run",
+    outputUnits: 6,
+    qualityState: "PASS",
+    requestId,
+    rightsPolicyVersion: "default_deny",
+    runId,
+    sourceRecordId,
+    toolName: "get_quote_snapshot",
+    workspaceId
+  });
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  const evidenceRecord = evidencePlan.evidenceRecord;
+  const sourceRef = evidencePlan.sourceRefs[0];
+  const auditEventJson = JSON.stringify(auditEvent);
+  const queryLabel = "agent-run-live-write-smoke:v0:audit-evidence-usage";
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const auditInsert = await client.query(
+      `insert into audit.agent_run_audit_event (
+        audit_event_id,
+        event_type,
+        event_version,
+        request_id,
+        run_id,
+        route,
+        outcome,
+        event_json,
+        payload_hash,
+        default_rights_status
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
+      on conflict (audit_event_id) do update set
+        event_version = excluded.event_version,
+        request_id = excluded.request_id,
+        run_id = excluded.run_id,
+        route = excluded.route,
+        outcome = excluded.outcome,
+        event_json = excluded.event_json,
+        payload_hash = excluded.payload_hash,
+        default_rights_status = excluded.default_rights_status`,
+      [
+        auditEvent.event_id,
+        auditEvent.event_type,
+        auditEvent.event_version,
+        auditEvent.request_id,
+        auditEvent.run_id,
+        auditEvent.route,
+        auditEvent.outcome,
+        auditEventJson,
+        await hashRuntimeSmokeString(auditEventJson),
+        "default_deny"
+      ]
+    );
+    const evidenceInsert = await client.query(
+      `insert into core.evidence_record (
+        evidence_record_id,
+        request_id,
+        tool_name,
+        tool_version,
+        input_schema_id,
+        output_schema_id,
+        data_version,
+        methodology_version,
+        as_of,
+        rights_state,
+        quality_state,
+        citation_label,
+        citation_visibility,
+        live_write_state,
+        source_record_count
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      on conflict (evidence_record_id) do update set
+        request_id = excluded.request_id,
+        tool_name = excluded.tool_name,
+        tool_version = excluded.tool_version,
+        input_schema_id = excluded.input_schema_id,
+        output_schema_id = excluded.output_schema_id,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version,
+        as_of = excluded.as_of,
+        rights_state = excluded.rights_state,
+        quality_state = excluded.quality_state,
+        citation_label = excluded.citation_label,
+        citation_visibility = excluded.citation_visibility,
+        live_write_state = excluded.live_write_state,
+        source_record_count = excluded.source_record_count,
+        updated_at = now()`,
+      [
+        evidenceRecord.evidenceRecordId,
+        evidenceRecord.requestId,
+        evidenceRecord.toolName,
+        evidenceRecord.toolVersion,
+        evidenceRecord.inputSchemaId ?? null,
+        evidenceRecord.outputSchemaId ?? null,
+        evidenceRecord.dataVersion,
+        evidenceRecord.methodologyVersion,
+        evidencePlan.asOf,
+        evidenceRecord.rightsState,
+        "PASS",
+        evidencePlan.citation.label,
+        evidencePlan.citation.visibility,
+        "planned_no_write",
+        evidencePlan.sourceRefs.length
+      ]
+    );
+    const sourceRefInsert = await client.query(
+      `insert into core.evidence_source_ref (
+        evidence_source_ref_id,
+        evidence_record_id,
+        source,
+        source_record_id,
+        data_version,
+        methodology_version,
+        rights_state
+      )
+      values ($1, $2, $3, $4, $5, $6, $7)
+      on conflict (evidence_record_id, source_record_id, data_version) do update set
+        source = excluded.source,
+        methodology_version = excluded.methodology_version,
+        rights_state = excluded.rights_state`,
+      [
+        sourceRef.evidenceSourceRefId,
+        sourceRef.evidenceRecordId,
+        sourceRef.source,
+        sourceRef.sourceRecordId,
+        sourceRef.dataVersion,
+        sourceRef.methodologyVersion,
+        "default_deny"
+      ]
+    );
+    const accountInsert = await client.query(
+      `insert into core.account (
+        account_id,
+        email_hash,
+        display_name,
+        status,
+        region,
+        default_timezone,
+        data_retention_state,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8)
+      on conflict (account_id) do update set
+        email_hash = excluded.email_hash,
+        display_name = excluded.display_name,
+        status = excluded.status,
+        region = excluded.region,
+        default_timezone = excluded.default_timezone,
+        data_retention_state = excluded.data_retention_state,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        accountId,
+        await hashRuntimeSmokeString(accountId),
+        "Agent run live write smoke",
+        "active",
+        "HK",
+        "Asia/Hong_Kong",
+        "standard",
+        sourceRecordId
+      ]
+    );
+    const workspaceInsert = await client.query(
+      `insert into core.workspace (
+        workspace_id,
+        owner_account_id,
+        display_name,
+        billing_region,
+        data_region,
+        status,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7)
+      on conflict (workspace_id) do update set
+        owner_account_id = excluded.owner_account_id,
+        display_name = excluded.display_name,
+        billing_region = excluded.billing_region,
+        data_region = excluded.data_region,
+        status = excluded.status,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [workspaceId, accountId, "Agent run live write smoke", "HK", "HK", "active", sourceRecordId]
+    );
+    const meterRuleInsert = await client.query(
+      `insert into core.usage_meter_rule (
+        meter_rule_id,
+        meter_name,
+        channel,
+        dataset,
+        operation,
+        unit_name,
+        credit_weight,
+        rights_policy_version,
+        methodology_version,
+        effective_from,
+        status,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      on conflict (meter_rule_id) do update set
+        meter_name = excluded.meter_name,
+        channel = excluded.channel,
+        dataset = excluded.dataset,
+        operation = excluded.operation,
+        unit_name = excluded.unit_name,
+        credit_weight = excluded.credit_weight,
+        rights_policy_version = excluded.rights_policy_version,
+        methodology_version = excluded.methodology_version,
+        effective_from = excluded.effective_from,
+        status = excluded.status,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        usagePlan.ledgerEntry.meterRuleId,
+        "Agent run smoke credit",
+        usagePlan.event.channel,
+        usagePlan.event.dataset,
+        usagePlan.event.operation,
+        "credit",
+        usagePlan.ledgerEntry.creditDelta,
+        usagePlan.event.rightsPolicyVersion,
+        usagePlan.event.methodologyVersion,
+        usagePlan.event.occurredAt,
+        "planned",
+        sourceRecordId
+      ]
+    );
+    const usageEventInsert = await client.query(
+      `insert into core.usage_event (
+        usage_event_id,
+        request_id,
+        run_id,
+        workspace_id,
+        account_id,
+        channel,
+        dataset,
+        tool_name,
+        operation,
+        occurred_at,
+        metered_rows,
+        metered_fields,
+        input_units,
+        output_units,
+        cache_state,
+        quality_state,
+        data_version,
+        methodology_version,
+        rights_policy_version,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      on conflict (usage_event_id) do update set
+        request_id = excluded.request_id,
+        run_id = excluded.run_id,
+        workspace_id = excluded.workspace_id,
+        account_id = excluded.account_id,
+        channel = excluded.channel,
+        dataset = excluded.dataset,
+        tool_name = excluded.tool_name,
+        operation = excluded.operation,
+        occurred_at = excluded.occurred_at,
+        metered_rows = excluded.metered_rows,
+        metered_fields = excluded.metered_fields,
+        input_units = excluded.input_units,
+        output_units = excluded.output_units,
+        cache_state = excluded.cache_state,
+        quality_state = excluded.quality_state,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version,
+        rights_policy_version = excluded.rights_policy_version,
+        source_record_id = excluded.source_record_id`,
+      [
+        usagePlan.event.usageEventId,
+        usagePlan.event.requestId,
+        usagePlan.event.runId ?? null,
+        usagePlan.event.workspaceId,
+        usagePlan.event.accountId ?? null,
+        usagePlan.event.channel,
+        usagePlan.event.dataset,
+        usagePlan.event.toolName ?? null,
+        usagePlan.event.operation,
+        usagePlan.event.occurredAt,
+        usagePlan.event.meteredRows,
+        usagePlan.event.meteredFields,
+        usagePlan.event.inputUnits,
+        usagePlan.event.outputUnits,
+        usagePlan.event.cacheState,
+        usagePlan.event.qualityState,
+        usagePlan.event.dataVersion,
+        usagePlan.event.methodologyVersion,
+        usagePlan.event.rightsPolicyVersion,
+        usagePlan.event.sourceRecordId
+      ]
+    );
+    const ledgerEntryInsert = await client.query(
+      `insert into core.usage_ledger_entry (
+        ledger_entry_id,
+        usage_event_id,
+        workspace_id,
+        account_id,
+        subscription_id,
+        meter_rule_id,
+        credit_delta,
+        billable_state,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      on conflict (ledger_entry_id) do update set
+        usage_event_id = excluded.usage_event_id,
+        workspace_id = excluded.workspace_id,
+        account_id = excluded.account_id,
+        subscription_id = excluded.subscription_id,
+        meter_rule_id = excluded.meter_rule_id,
+        credit_delta = excluded.credit_delta,
+        billable_state = excluded.billable_state,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        usagePlan.ledgerEntry.ledgerEntryId,
+        usagePlan.ledgerEntry.usageEventId,
+        usagePlan.ledgerEntry.workspaceId,
+        usagePlan.ledgerEntry.accountId ?? null,
+        usagePlan.ledgerEntry.subscriptionId ?? null,
+        usagePlan.ledgerEntry.meterRuleId,
+        usagePlan.ledgerEntry.creditDelta,
+        usagePlan.ledgerEntry.billableState,
+        usagePlan.ledgerEntry.sourceRecordId
+      ]
+    );
+    const auditSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from audit.agent_run_audit_event
+      where audit_event_id = $1 and event_type = 'run.audit'`,
+      [auditEvent.event_id]
+    );
+    const evidenceSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.evidence_record
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const usageSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.usage_event
+      where usage_event_id = $1`,
+      [usagePlan.event.usageEventId]
+    );
+    const ledgerSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.usage_ledger_entry
+      where ledger_entry_id = $1`,
+      [usagePlan.ledgerEntry.ledgerEntryId]
+    );
+    const selectedRows =
+      Number(auditSelect.rows[0]?.row_count ?? 0) +
+      Number(evidenceSelect.rows[0]?.row_count ?? 0) +
+      Number(usageSelect.rows[0]?.row_count ?? 0) +
+      Number(ledgerSelect.rows[0]?.row_count ?? 0);
+
+    if (selectedRows !== 4) {
+      throw new Error("agent run live write smoke readback mismatch");
+    }
+
+    const ledgerDelete = await client.query(
+      `delete from core.usage_ledger_entry
+      where ledger_entry_id = $1`,
+      [usagePlan.ledgerEntry.ledgerEntryId]
+    );
+    const usageEventDelete = await client.query(
+      `delete from core.usage_event
+      where usage_event_id = $1`,
+      [usagePlan.event.usageEventId]
+    );
+    const meterRuleDelete = await client.query(
+      `delete from core.usage_meter_rule
+      where meter_rule_id = $1`,
+      [usagePlan.ledgerEntry.meterRuleId]
+    );
+    const sourceRefDelete = await client.query(
+      `delete from core.evidence_source_ref
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const evidenceDelete = await client.query(
+      `delete from core.evidence_record
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const workspaceDelete = await client.query(
+      `delete from core.workspace
+      where workspace_id = $1`,
+      [workspaceId]
+    );
+    const accountDelete = await client.query(
+      `delete from core.account
+      where account_id = $1`,
+      [accountId]
+    );
+    const auditDelete = await client.query(
+      `delete from audit.agent_run_audit_event
+      where audit_event_id = $1`,
+      [auditEvent.event_id]
+    );
+
+    await client.query("COMMIT");
+    committed = true;
+
+    const insertedRows =
+      (auditInsert.rowCount ?? 0) +
+      (evidenceInsert.rowCount ?? 0) +
+      (sourceRefInsert.rowCount ?? 0) +
+      (accountInsert.rowCount ?? 0) +
+      (workspaceInsert.rowCount ?? 0) +
+      (meterRuleInsert.rowCount ?? 0) +
+      (usageEventInsert.rowCount ?? 0) +
+      (ledgerEntryInsert.rowCount ?? 0);
+    const deletedRows =
+      (ledgerDelete.rowCount ?? 0) +
+      (usageEventDelete.rowCount ?? 0) +
+      (meterRuleDelete.rowCount ?? 0) +
+      (sourceRefDelete.rowCount ?? 0) +
+      (evidenceDelete.rowCount ?? 0) +
+      (workspaceDelete.rowCount ?? 0) +
+      (accountDelete.rowCount ?? 0) +
+      (auditDelete.rowCount ?? 0);
+
+    return {
+      audit_event_hash: await hashRuntimeSmokeString(auditEvent.event_id),
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      cleanup_verified: deletedRows === insertedRows,
+      deleted_rows: deletedRows,
+      evidence_record_id_hash: await hashRuntimeSmokeString(evidenceRecord.evidenceRecordId),
+      inserted_rows: insertedRows,
+      ledger_entry_id_hash: await hashRuntimeSmokeString(usagePlan.ledgerEntry.ledgerEntryId),
+      operation_count: 21,
+      production_persistence_enabled: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      selected_rows: selectedRows,
+      status: "passed",
+      surface: "agent_run_audit_evidence_usage_insert_select_delete",
+      tables: [
+        "audit.agent_run_audit_event",
+        "core.evidence_record",
+        "core.evidence_source_ref",
+        "core.account",
+        "core.workspace",
+        "core.usage_meter_rule",
+        "core.usage_event",
+        "core.usage_ledger_entry"
+      ],
+      usage_event_id_hash: await hashRuntimeSmokeString(usagePlan.event.usageEventId)
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedAgentRunLiveWriteSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "agent_run_live_write_failed",
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 function handleCloudflareScheduled(
   controller: RuntimeScheduledController,
   env: WorkerBindings,
@@ -10708,6 +11365,16 @@ function missingEvidenceLiveDbWriteSmokeResult(
   };
 }
 
+function missingAgentRunLiveWriteSmokeResult(failureCode: string): AgentRunLiveWriteSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    production_persistence_enabled: false,
+    status: "missing_binding",
+    surface: "agent_run_audit_evidence_usage_insert_select_delete"
+  };
+}
+
 function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
   const requiredEnv: Array<readonly [string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
@@ -10771,6 +11438,16 @@ function missingAgentGeneratedAnswerEvidenceSmokeEnv(env: WorkerBindings): strin
 
 function getAgentGeneratedAnswerEvidenceSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function missingAgentRunLiveWriteSmokeEnv(env: WorkerBindings): string[] {
+  return getAgentRunLiveWriteSmokeToken(env).length >= 16
+    ? []
+    : [AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN_BINDING];
+}
+
+function getAgentRunLiveWriteSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?.trim() ?? "";
 }
 
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
@@ -10918,6 +11595,26 @@ async function failedEvidenceLiveDbWriteSmokeResult({
     query_hash: await hashRuntimeSmokeString(queryLabel),
     status: "failed",
     surface: "evidence_record_source_ref_insert_select_delete"
+  };
+}
+
+async function failedAgentRunLiveWriteSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<AgentRunLiveWriteSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    production_persistence_enabled: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "agent_run_audit_evidence_usage_insert_select_delete"
   };
 }
 
@@ -11642,6 +12339,16 @@ function isAgentGeneratedAnswerEvidenceSmokeAuthorized(
   c: Context<{ Bindings: WorkerBindings }>
 ): boolean {
   const token = getAgentGeneratedAnswerEvidenceSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isAgentRunLiveWriteSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const token = getAgentRunLiveWriteSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;

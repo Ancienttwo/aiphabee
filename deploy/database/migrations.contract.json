@@ -689,6 +689,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622015000_agent_run_live_write_smoke.sql",
+      "purpose": "Create a guarded Agent run audit event table and smoke contract for Sprint 1.3 live write validation without enabling product run persistence, frontend rendering, or unguarded SQL execution.",
+      "schemas": ["audit", "governance"],
+      "tables": [
+        "audit.agent_run_audit_event",
+        "governance.agent_run_live_write_smoke_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

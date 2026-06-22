@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-22.phase1.agent-run-live-write-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /agent/runs/live-write-smoke",
+  "checker": "scripts/check-agent-run-live-write-smoke-contract.mjs",
+  "test_file": "apps/worker/src/agent-run-live-write-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "migration": "supabase/migrations/20260622015000_agent_run_live_write_smoke.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "observability_event_contract": "deploy/observability/events.contract.json",
+  "evidence_live_db_write_contract": "deploy/evidence/live-db-write-smoke.contract.json",
+  "usage_ledger_contract": "deploy/usage/quota-display.contract.json",
+  "smoke_token_binding": "AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "agent-run-live-write-v1"
+  },
+  "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+  "actual_hyperdrive_execution": true,
+  "transactional_insert_select_delete": true,
+  "live_audit_write_smoke": true,
+  "live_evidence_write_smoke": true,
+  "live_usage_ledger_write_smoke": true,
+  "cleanup_verified": true,
+  "auth_enforced_before_db": true,
+  "hash_only_response": true,
+  "production_persistence_enabled": false,
+  "billing_posted": false,
+  "durable_run_state_persistence": false,
+  "frontend": false,
+  "user_facing_streaming": false,
+  "tables": [
+    "audit.agent_run_audit_event",
+    "core.evidence_record",
+    "core.evidence_source_ref",
+    "core.account",
+    "core.workspace",
+    "core.usage_meter_rule",
+    "core.usage_event",
+    "core.usage_ledger_entry"
+  ],
+  "not_claimed": [
+    "production_agent_run_persistence",
+    "durable_run_state_persistence",
+    "user_facing_live_model_streaming",
+    "frontend_ask_rendering",
+    "production_billing_posting",
+    "ai_gateway_logs_read",
+    "production_unsourced_numeric_sampling"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/agent-run-live-write-smoke.test.ts",
+    "contract_check": "npm run check:agent-run-live-write-smoke",
+    "worker_typecheck": "npm run typecheck --workspace @aiphabee/worker",
+    "database_check": "npm run check:database"
+  }
+}
