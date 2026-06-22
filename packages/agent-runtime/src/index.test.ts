@@ -10,6 +10,7 @@ import {
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
   createToolLoopAgentPlan,
+  createUnsourcedNumericSamplingReport,
   validatePostGenerationEvidenceBinding,
   createWorkflowTaskPlan,
   getAgentLabelBudgetReleaseGateCapabilities,
@@ -19,6 +20,7 @@ import {
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
+  UNSOURCED_NUMERIC_SAMPLING_VERSION,
   type AiGatewayLiveSmokeFetch
 } from "./index";
 
@@ -627,6 +629,145 @@ describe("agent runtime scaffold", () => {
       binding_status: "bound_calculation",
       calculation_id: "deterministic_return_risk_v0",
       source_record_id: "price-history-00700-2025"
+    });
+  });
+
+  it("creates a deterministic unsourced numeric sampling report with eval v1 threshold", () => {
+    const acceptedSamples = Array.from({ length: 1000 }, (_, index) => ({
+      kind: "accepted_answer" as const,
+      sampleId: `accepted-${index + 1}`,
+      validationInput: {
+        claims: [
+          {
+            claimId: `accepted_claim_${index + 1}`,
+            dataVersion: "synthetic-financial-facts-v0",
+            label: "fact" as const,
+            methodologyVersion: "deterministic-financial-growth-v0",
+            sourceRecordId: `financial-fact-00700-revenue-${index + 1}`,
+            text: `00700.HK revenue grew ${10 + (index % 5)}%.`
+          }
+        ],
+        requestId: `req-sampling-accepted-${index + 1}`
+      }
+    }));
+    const blockedProbes = Array.from({ length: 3 }, (_, index) => ({
+      kind: "blocked_probe" as const,
+      sampleId: `blocked-probe-${index + 1}`,
+      validationInput: {
+        claims: [
+          {
+            claimId: `blocked_probe_claim_${index + 1}`,
+            label: "fact" as const,
+            text: `00700.HK margin expanded ${index + 1}.1% without source.`
+          }
+        ],
+        requestId: `req-sampling-blocked-probe-${index + 1}`
+      }
+    }));
+    const report = createUnsourcedNumericSamplingReport([...acceptedSamples, ...blockedProbes]);
+
+    expect(report).toMatchObject({
+      accepted_sample_count: 1000,
+      actual_tool_execution: false,
+      blocked_probe_count: 3,
+      detected_blocked_probe_count: 3,
+      eval_metric_source: "eval_v1_unsourced_numeric_claims",
+      live_evidence_binding: false,
+      minimum_accepted_samples: 1000,
+      minimum_blocked_probes: 3,
+      model_calls: false,
+      observed_rate: 0,
+      persistent_writes: false,
+      route: "POST /agent/runs/validate-answer",
+      sql_emitted: false,
+      status: "local_sampling_passed",
+      target_rate: 0.001,
+      unsourced_claim_count: 0,
+      validation_version: "2026-06-22.phase3.post-generation-evidence-binding.v0",
+      version: UNSOURCED_NUMERIC_SAMPLING_VERSION
+    });
+    expect(report.samples).toHaveLength(1003);
+    expect(report.samples[0]).toMatchObject({
+      kind: "accepted_answer",
+      output_allowed: true,
+      status: "passed"
+    });
+    expect(report.samples.at(-1)).toMatchObject({
+      blocked_claim_count: 1,
+      kind: "blocked_probe",
+      output_allowed: false,
+      status: "blocked_unsourced_numeric_claim"
+    });
+  });
+
+  it("fails deterministic unsourced numeric sampling at the strict eval v1 boundary", () => {
+    const acceptedSamples = Array.from({ length: 999 }, (_, index) => ({
+      kind: "accepted_answer" as const,
+      sampleId: `accepted-bound-${index + 1}`,
+      validationInput: {
+        claims: [
+          {
+            claimId: `accepted_bound_claim_${index + 1}`,
+            dataVersion: "synthetic-financial-facts-v0",
+            label: "fact" as const,
+            methodologyVersion: "deterministic-financial-growth-v0",
+            sourceRecordId: `financial-fact-00700-roe-${index + 1}`,
+            text: `00700.HK ROE was ${15 + (index % 5)}%.`
+          }
+        ],
+        requestId: `req-sampling-bound-accepted-${index + 1}`
+      }
+    }));
+    const unsourcedAcceptedSample = {
+      kind: "accepted_answer" as const,
+      sampleId: "accepted-unsourced-boundary",
+      validationInput: {
+        claims: [
+          {
+            claimId: "accepted_unsourced_claim",
+            label: "fact" as const,
+            text: "00700.HK revenue grew 12.4% without a source binding."
+          }
+        ],
+        requestId: "req-sampling-boundary-unsourced"
+      }
+    };
+    const blockedProbes = Array.from({ length: 3 }, (_, index) => ({
+      kind: "blocked_probe" as const,
+      sampleId: `blocked-bound-probe-${index + 1}`,
+      validationInput: {
+        claims: [
+          {
+            claimId: `blocked_bound_probe_claim_${index + 1}`,
+            label: "fact" as const,
+            text: `00700.HK profit margin improved ${index + 1}.2% without a binding.`
+          }
+        ],
+        requestId: `req-sampling-bound-blocked-probe-${index + 1}`
+      }
+    }));
+    const report = createUnsourcedNumericSamplingReport([
+      ...acceptedSamples,
+      unsourcedAcceptedSample,
+      ...blockedProbes
+    ]);
+
+    expect(report).toMatchObject({
+      accepted_sample_count: 1000,
+      blocked_probe_count: 3,
+      detected_blocked_probe_count: 3,
+      observed_rate: 0.001,
+      status: "local_sampling_failed",
+      target_rate: 0.001,
+      unsourced_claim_count: 1
+    });
+    expect(
+      report.samples.find((sample) => sample.sample_id === "accepted-unsourced-boundary")
+    ).toMatchObject({
+      blocked_claim_count: 1,
+      kind: "accepted_answer",
+      output_allowed: false,
+      status: "blocked_unsourced_numeric_claim"
     });
   });
 

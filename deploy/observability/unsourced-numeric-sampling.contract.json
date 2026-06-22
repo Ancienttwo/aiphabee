@@ -1,0 +1,48 @@
+{
+  "version": "2026-06-22.phase4.unsourced-numeric-sampling-gate.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "validator_route": "POST /agent/runs/validate-answer",
+  "linked_eval_contract": "deploy/observability/eval-v1.contract.json",
+  "post_generation_contract": "deploy/governance/post-generation-evidence-binding.contract.json",
+  "sample_source": "deterministic_fixture_corpus",
+  "minimum_accepted_samples": 1000,
+  "minimum_blocked_probes": 3,
+  "target_rate": 0.001,
+  "pass_operator": "observed_rate_lt_target_rate",
+  "required_sample_kinds": [
+    "accepted_answer",
+    "blocked_probe"
+  ],
+  "required_report_fields": [
+    "version",
+    "validation_version",
+    "status",
+    "target_rate",
+    "observed_rate",
+    "accepted_sample_count",
+    "blocked_probe_count",
+    "detected_blocked_probe_count",
+    "unsourced_claim_count",
+    "samples",
+    "eval_metric_source"
+  ],
+  "model_calls": false,
+  "actual_tool_execution": false,
+  "live_evidence_binding": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "frontend_rendering": false,
+  "not_claimed": [
+    "production_live_sampling_complete",
+    "live_model_output_sampling",
+    "frontend_evidence_cards",
+    "persistent_eval_writes",
+    "partner_approved_production_corpus"
+  ],
+  "required_tracker_markers": [
+    "check:unsourced-numeric-sampling",
+    "production/live sampling",
+    "- [ ] 「无来源具体金融数字」抽样 < 0.1%"
+  ]
+}

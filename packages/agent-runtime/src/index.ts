@@ -35,6 +35,11 @@ export const NUMERIC_SOURCE_GUARD_VERSION =
   "2026-06-21.phase1.numeric-source-guard-scaffold.v0";
 export const POST_GENERATION_EVIDENCE_BINDING_VERSION =
   "2026-06-22.phase3.post-generation-evidence-binding.v0";
+export const UNSOURCED_NUMERIC_SAMPLING_VERSION =
+  "2026-06-22.phase4.unsourced-numeric-sampling-gate.v0";
+export const UNSOURCED_NUMERIC_SAMPLING_TARGET_RATE = 0.001;
+export const UNSOURCED_NUMERIC_SAMPLING_MIN_ACCEPTED_SAMPLES = 1000;
+export const UNSOURCED_NUMERIC_SAMPLING_MIN_BLOCKED_PROBES = 3;
 export const ANSWER_EVIDENCE_CONTRACT_VERSION =
   "2026-06-21.phase1.answer-evidence-contract-scaffold.v0";
 export const AGENT_RESPONSE_PRESENTATION_VERSION =
@@ -705,6 +710,49 @@ export interface AgentPostGenerationEvidenceBindingValidation {
   status: AgentPostGenerationEvidenceBindingStatus;
   validation_rules: AgentPostGenerationEvidenceBindingPolicy["validation_rules"];
   version: typeof POST_GENERATION_EVIDENCE_BINDING_VERSION;
+}
+
+export type AgentUnsourcedNumericSamplingSampleKind = "accepted_answer" | "blocked_probe";
+export type AgentUnsourcedNumericSamplingStatus =
+  | "local_sampling_failed"
+  | "local_sampling_passed";
+
+export interface AgentUnsourcedNumericSamplingSampleInput {
+  kind: AgentUnsourcedNumericSamplingSampleKind;
+  sampleId: string;
+  validationInput: ValidatePostGenerationEvidenceBindingInput;
+}
+
+export interface AgentUnsourcedNumericSamplingSampleResult {
+  blocked_claim_count: number;
+  kind: AgentUnsourcedNumericSamplingSampleKind;
+  numeric_claim_count: number;
+  output_allowed: boolean;
+  request_id: string;
+  sample_id: string;
+  status: AgentPostGenerationEvidenceBindingStatus;
+}
+
+export interface AgentUnsourcedNumericSamplingReport {
+  accepted_sample_count: number;
+  actual_tool_execution: false;
+  blocked_probe_count: number;
+  detected_blocked_probe_count: number;
+  eval_metric_source: "eval_v1_unsourced_numeric_claims";
+  live_evidence_binding: false;
+  minimum_accepted_samples: typeof UNSOURCED_NUMERIC_SAMPLING_MIN_ACCEPTED_SAMPLES;
+  minimum_blocked_probes: typeof UNSOURCED_NUMERIC_SAMPLING_MIN_BLOCKED_PROBES;
+  model_calls: false;
+  observed_rate: number | null;
+  persistent_writes: false;
+  route: "POST /agent/runs/validate-answer";
+  samples: AgentUnsourcedNumericSamplingSampleResult[];
+  sql_emitted: false;
+  status: AgentUnsourcedNumericSamplingStatus;
+  target_rate: typeof UNSOURCED_NUMERIC_SAMPLING_TARGET_RATE;
+  unsourced_claim_count: number;
+  validation_version: typeof POST_GENERATION_EVIDENCE_BINDING_VERSION;
+  version: typeof UNSOURCED_NUMERIC_SAMPLING_VERSION;
 }
 
 export interface AgentNumericSourceGuard {
@@ -3947,6 +3995,66 @@ export function validatePostGenerationEvidenceBinding(
     status: outputAllowed ? "passed" : "blocked_unsourced_numeric_claim",
     validation_rules: createPostGenerationEvidenceBindingPolicy().validation_rules,
     version: POST_GENERATION_EVIDENCE_BINDING_VERSION
+  };
+}
+
+export function createUnsourcedNumericSamplingReport(
+  samples: readonly AgentUnsourcedNumericSamplingSampleInput[]
+): AgentUnsourcedNumericSamplingReport {
+  const sampleResults = samples.map((sample) => {
+    const validation = validatePostGenerationEvidenceBinding(sample.validationInput);
+
+    return {
+      blocked_claim_count: validation.blocked_claim_count,
+      kind: sample.kind,
+      numeric_claim_count: validation.numeric_claims.length,
+      output_allowed: validation.output_allowed,
+      request_id: validation.request_id,
+      sample_id: sample.sampleId.trim() || validation.request_id,
+      status: validation.status
+    };
+  });
+  const acceptedSamples = sampleResults.filter((sample) => sample.kind === "accepted_answer");
+  const blockedProbes = sampleResults.filter((sample) => sample.kind === "blocked_probe");
+  const unsourcedClaimCount = acceptedSamples.reduce(
+    (total, sample) => total + sample.blocked_claim_count,
+    0
+  );
+  const observedRate =
+    acceptedSamples.length > 0 ? unsourcedClaimCount / acceptedSamples.length : null;
+  const detectedBlockedProbeCount = blockedProbes.filter(
+    (sample) =>
+      sample.output_allowed === false &&
+      sample.blocked_claim_count > 0 &&
+      sample.status === "blocked_unsourced_numeric_claim"
+  ).length;
+  const passed =
+    acceptedSamples.length >= UNSOURCED_NUMERIC_SAMPLING_MIN_ACCEPTED_SAMPLES &&
+    blockedProbes.length >= UNSOURCED_NUMERIC_SAMPLING_MIN_BLOCKED_PROBES &&
+    detectedBlockedProbeCount === blockedProbes.length &&
+    observedRate !== null &&
+    observedRate < UNSOURCED_NUMERIC_SAMPLING_TARGET_RATE;
+
+  return {
+    accepted_sample_count: acceptedSamples.length,
+    actual_tool_execution: false,
+    blocked_probe_count: blockedProbes.length,
+    detected_blocked_probe_count: detectedBlockedProbeCount,
+    eval_metric_source: "eval_v1_unsourced_numeric_claims",
+    live_evidence_binding: false,
+    minimum_accepted_samples: UNSOURCED_NUMERIC_SAMPLING_MIN_ACCEPTED_SAMPLES,
+    minimum_blocked_probes: UNSOURCED_NUMERIC_SAMPLING_MIN_BLOCKED_PROBES,
+    model_calls: false,
+    observed_rate: observedRate,
+    persistent_writes: false,
+    route: "POST /agent/runs/validate-answer",
+    samples: sampleResults,
+    sql_emitted: false,
+    status: passed ? "local_sampling_passed" : "local_sampling_failed",
+    target_rate: UNSOURCED_NUMERIC_SAMPLING_TARGET_RATE,
+    unsourced_claim_count: unsourcedClaimCount,
+    validation_version: POST_GENERATION_EVIDENCE_BINDING_VERSION,
+    version: UNSOURCED_NUMERIC_SAMPLING_VERSION
   };
 }
 
