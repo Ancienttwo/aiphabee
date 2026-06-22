@@ -1,0 +1,92 @@
+{
+  "version": "2026-06-22.phase3.partner-sla-reconciliation-readiness.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/usage-ledger",
+  "runtime_route": "GET /usage/runtime",
+  "route": "GET /usage/partner-sla/reconciliation-readiness",
+  "standard_response_envelope": true,
+  "covered_requirement": "DAT-10",
+  "covered_sprint_3_2_item": "partner_sla_and_reconciliation_daily_weekly_readiness",
+  "partner_reconciliation_route": "POST /usage/partner-reconciliation/plan",
+  "partner_support_release_gate_route": "POST /usage/release-gates/partner-support/plan",
+  "frontend": false,
+  "billing_provider_calls": false,
+  "live_ledger_reads": false,
+  "live_support_log_reads": false,
+  "live_partner_report_artifact_store": false,
+  "partner_portal_delivery": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "supported_cadences": ["daily", "weekly"],
+  "required_sla_fields": [
+    "data_delay_minutes",
+    "missing_rows",
+    "error_count",
+    "backfill_count"
+  ],
+  "required_checks": [
+    "daily_report_generated",
+    "weekly_report_generated",
+    "sla_counters_cover_delay_missing_error_backfill",
+    "request_usage_trace_complete",
+    "partner_support_release_gate_passed",
+    "live_surfaces_blocked",
+    "sensitive_payloads_excluded"
+  ],
+  "required_output_fields": [
+    "daily_report",
+    "weekly_report",
+    "sla_summary",
+    "support_release_gate",
+    "readiness",
+    "release_checks",
+    "release_gate",
+    "usage_fixture_rows"
+  ],
+  "tables": [
+    "core.usage_event",
+    "core.usage_ledger_entry",
+    "core.partner_reconciliation_report",
+    "core.partner_reconciliation_report_line",
+    "audit.partner_reconciliation_event",
+    "governance.partner_reconciliation_contract",
+    "core.partner_support_release_gate",
+    "audit.partner_support_drill_event",
+    "governance.partner_support_release_gate_contract"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_partner_sla_reconciliation",
+    "no_live_release_claim": true,
+    "required_signoffs": [
+      "data-partner",
+      "support",
+      "billing",
+      "ops",
+      "compliance"
+    ],
+    "blockers": [
+      "live_usage_ledger_reads_missing",
+      "live_partner_report_artifact_store_missing",
+      "partner_portal_delivery_missing",
+      "final_partner_settlement_approval_missing"
+    ]
+  },
+  "privacy": {
+    "sensitive_payloads_excluded": true,
+    "forbidden_payloads": [
+      "raw_prompt",
+      "generated_answer",
+      "raw_email",
+      "raw_personal_contact",
+      "credential_material",
+      "payment_identifier",
+      "document_body"
+    ]
+  },
+  "linked_contracts": [
+    "deploy/usage/partner-reconciliation-report.contract.json",
+    "deploy/usage/partner-support-release-gate.contract.json",
+    "deploy/support/request-id-investigation.contract.json",
+    "deploy/database/migrations.contract.json"
+  ]
+}

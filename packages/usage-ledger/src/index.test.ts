@@ -3,6 +3,7 @@ import {
   createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
+  createPartnerSlaReconciliationReadinessReport,
   createPartnerSupportReleaseGatePlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
@@ -10,6 +11,7 @@ import {
   getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
+  getPartnerSlaReconciliationReadinessCapabilities,
   getPartnerSupportReleaseGateCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageQuotaDisplayCapabilities,
@@ -272,6 +274,36 @@ describe("usage ledger event writer scaffold", () => {
       "support_request_id_investigation_metadata_only",
       "sensitive_payloads_excluded",
       "live_artifact_and_log_reads_blocked"
+    ]);
+  });
+
+  it("reports partner SLA reconciliation readiness capabilities", () => {
+    expect(getPartnerSlaReconciliationReadinessCapabilities()).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+      partner_support_release_gate_route: "POST /usage/release-gates/partner-support/plan",
+      persistent_writes: false,
+      route: "GET /usage/partner-sla/reconciliation-readiness",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_sla_reconciliation_readiness_scaffold"
+    });
+    expect(getPartnerSlaReconciliationReadinessCapabilities().supported_cadences).toEqual([
+      "daily",
+      "weekly"
+    ]);
+    expect(getPartnerSlaReconciliationReadinessCapabilities().required_checks).toEqual([
+      "daily_report_generated",
+      "weekly_report_generated",
+      "sla_counters_cover_delay_missing_error_backfill",
+      "request_usage_trace_complete",
+      "partner_support_release_gate_passed",
+      "live_surfaces_blocked",
+      "sensitive_payloads_excluded"
     ]);
   });
 
@@ -636,6 +668,95 @@ describe("usage ledger event writer scaffold", () => {
       artifact_writes: false,
       raw_personal_contact_included: false
     });
+  });
+
+  it("builds DAT-10 partner SLA reconciliation readiness from daily and weekly reports", () => {
+    const report = createPartnerSlaReconciliationReadinessReport({
+      partnerId: "partner_hk_data",
+      periodEnd: "2026-06-08T00:00:00.000Z",
+      periodStart: "2026-06-01T00:00:00.000Z",
+      requestId: "req_partner_sla_readiness",
+      workspaceId: "ws_partner_sla_alpha"
+    });
+
+    expect(report).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      persistent_writes: false,
+      request_id: "req_partner_sla_readiness",
+      sql_emitted: false,
+      status: "partner_sla_reconciliation_readiness_passed",
+      workspace_id: "ws_partner_sla_alpha"
+    });
+    expect(report.capability).toMatchObject({
+      route: "GET /usage/partner-sla/reconciliation-readiness",
+      status: "partner_sla_reconciliation_readiness_scaffold"
+    });
+    expect(report.daily_report).toMatchObject({
+      partner_id: "partner_hk_data",
+      status: "planned_no_write"
+    });
+    expect(report.daily_report.period.cadence).toBe("daily");
+    expect(report.weekly_report.period.cadence).toBe("weekly");
+    expect(report.daily_report.rows).toHaveLength(4);
+    expect(report.weekly_report.rows).toHaveLength(4);
+    expect(report.sla_summary).toEqual({
+      backfill_count: 1,
+      daily_line_count: 4,
+      delayed_line_count: 1,
+      error_count: 1,
+      missing_rows: 3,
+      weekly_line_count: 4
+    });
+    expect(report.readiness).toEqual({
+      all_checks_passed: true,
+      daily_report_generated: true,
+      live_release_claimed: false,
+      live_surfaces_blocked: true,
+      partner_support_release_gate_passed: true,
+      request_usage_trace_complete: true,
+      sensitive_payloads_excluded: true,
+      sla_counters_cover_delay_missing_error_backfill: true,
+      weekly_report_generated: true
+    });
+    expect(report.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(report.release_checks.map((check) => check.check_id)).toEqual([
+      "daily_report_generated",
+      "weekly_report_generated",
+      "sla_counters_cover_delay_missing_error_backfill",
+      "request_usage_trace_complete",
+      "partner_support_release_gate_passed",
+      "live_surfaces_blocked",
+      "sensitive_payloads_excluded"
+    ]);
+    expect(report.weekly_report.traceability).toMatchObject({
+      traceable_to_usage_ledger: true,
+      traceable_usage_event_count: 4
+    });
+    expect(report.weekly_report.sla).toMatchObject({
+      daily_weekly_report: true,
+      status: "attention_required"
+    });
+    expect(report.weekly_report.sla.required_fields).toEqual([
+      "data_delay_minutes",
+      "missing_rows",
+      "error_count",
+      "backfill_count"
+    ]);
+    expect(report.support_release_gate.validation.all_checks_passed).toBe(true);
+    expect(report.release_gate).toEqual({
+      blockers: [
+        "live_usage_ledger_reads_missing",
+        "live_partner_report_artifact_store_missing",
+        "partner_portal_delivery_missing",
+        "final_partner_settlement_approval_missing"
+      ],
+      status: "blocked_live_partner_sla_reconciliation"
+    });
+    expect(report.usage_fixture_rows).toHaveLength(4);
   });
 
   it("blocks partner reconciliation reports without rows or traceable context", () => {

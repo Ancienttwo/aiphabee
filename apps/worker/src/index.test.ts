@@ -1365,6 +1365,25 @@ interface UsageRuntimeBody {
       supported_cadences: string[];
       trace_fields: string[];
     };
+    partner_sla_reconciliation_readiness: {
+      frontend: boolean;
+      group_by: string[];
+      live_ledger_reads: boolean;
+      live_partner_report_artifact_store: boolean;
+      live_support_log_reads: boolean;
+      partner_portal_delivery: boolean;
+      partner_reconciliation_route: string;
+      partner_support_release_gate_route: string;
+      persistent_writes: boolean;
+      required_checks: string[];
+      required_sla_fields: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      supported_cadences: string[];
+      trace_fields: string[];
+    };
     partner_support_release_gate: {
       billing_provider_calls: boolean;
       frontend: boolean;
@@ -1541,6 +1560,71 @@ interface UsagePartnerSupportReleaseGatePlanBody {
     };
     validation: Record<string, boolean>;
     workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface UsagePartnerSlaReconciliationReadinessBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    daily_report: {
+      period: {
+        cadence: string;
+      };
+      rows: unknown[];
+      status: string;
+    };
+    frontend: boolean;
+    live_ledger_reads: boolean;
+    live_partner_report_artifact_store: boolean;
+    live_support_log_reads: boolean;
+    partner_portal_delivery: boolean;
+    readiness: Record<string, boolean>;
+    release_checks: Array<{
+      check_id: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      status: string;
+    };
+    request_id: string;
+    sla_summary: {
+      backfill_count: number;
+      daily_line_count: number;
+      delayed_line_count: number;
+      error_count: number;
+      missing_rows: number;
+      weekly_line_count: number;
+    };
+    sql_emitted: boolean;
+    status: string;
+    support_release_gate: {
+      validation: {
+        all_checks_passed: boolean;
+      };
+    };
+    usage_fixture_rows: unknown[];
+    weekly_report: {
+      period: {
+        cadence: string;
+      };
+      sla: {
+        required_fields: string[];
+        status: string;
+      };
+      status: string;
+      traceability: {
+        traceable_to_usage_ledger: boolean;
+        traceable_usage_event_count: number;
+      };
+    };
   };
   ok: true;
   usage: {
@@ -9934,6 +10018,30 @@ describe("worker runtime", () => {
       "package_code",
       "user_id"
     ]);
+    expect(body.data.partner_sla_reconciliation_readiness).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+      partner_support_release_gate_route: "POST /usage/release-gates/partner-support/plan",
+      persistent_writes: false,
+      route: "GET /usage/partner-sla/reconciliation-readiness",
+      runtime_route: "GET /usage/runtime",
+      sql_emitted: false,
+      status: "partner_sla_reconciliation_readiness_scaffold"
+    });
+    expect(body.data.partner_sla_reconciliation_readiness.supported_cadences).toEqual([
+      "daily",
+      "weekly"
+    ]);
+    expect(body.data.partner_sla_reconciliation_readiness.required_sla_fields).toEqual([
+      "data_delay_minutes",
+      "missing_rows",
+      "error_count",
+      "backfill_count"
+    ]);
     expect(body.data.high_cost_reservation).toMatchObject({
       failure_refund_required: true,
       live_ledger_writes: false,
@@ -9988,6 +10096,82 @@ describe("worker runtime", () => {
     expect(body.data.partner_support_release_gate.required_checks).toContain(
       "support_request_id_investigation_metadata_only"
     );
+  });
+
+  it("serves DAT-10 partner SLA reconciliation readiness without live ledger reads", async () => {
+    const response = await app.request("/usage/partner-sla/reconciliation-readiness", {
+      headers: {
+        "x-request-id": "req-usage-partner-sla-readiness"
+      }
+    });
+    const body = (await response.json()) as UsagePartnerSlaReconciliationReadinessBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_ledger_reads: false,
+      live_partner_report_artifact_store: false,
+      live_support_log_reads: false,
+      partner_portal_delivery: false,
+      request_id: "req-usage-partner-sla-readiness",
+      sql_emitted: false,
+      status: "partner_sla_reconciliation_readiness_passed"
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "GET /usage/partner-sla/reconciliation-readiness",
+      status: "partner_sla_reconciliation_readiness_scaffold"
+    });
+    expect(body.data.daily_report.period.cadence).toBe("daily");
+    expect(body.data.daily_report.status).toBe("planned_no_write");
+    expect(body.data.daily_report.rows).toHaveLength(4);
+    expect(body.data.weekly_report.period.cadence).toBe("weekly");
+    expect(body.data.weekly_report.status).toBe("planned_no_write");
+    expect(body.data.weekly_report.traceability).toMatchObject({
+      traceable_to_usage_ledger: true,
+      traceable_usage_event_count: 4
+    });
+    expect(body.data.weekly_report.sla.required_fields).toEqual([
+      "data_delay_minutes",
+      "missing_rows",
+      "error_count",
+      "backfill_count"
+    ]);
+    expect(body.data.weekly_report.sla.status).toBe("attention_required");
+    expect(body.data.sla_summary).toEqual({
+      backfill_count: 1,
+      daily_line_count: 4,
+      delayed_line_count: 1,
+      error_count: 1,
+      missing_rows: 3,
+      weekly_line_count: 4
+    });
+    expect(body.data.readiness).toMatchObject({
+      all_checks_passed: true,
+      daily_report_generated: true,
+      live_release_claimed: false,
+      live_surfaces_blocked: true,
+      partner_support_release_gate_passed: true,
+      request_usage_trace_complete: true,
+      sensitive_payloads_excluded: true,
+      sla_counters_cover_delay_missing_error_backfill: true,
+      weekly_report_generated: true
+    });
+    expect(body.data.release_checks).toHaveLength(7);
+    expect(body.data.release_checks.every((check) => check.status === "pass")).toBe(true);
+    expect(body.data.support_release_gate.validation.all_checks_passed).toBe(true);
+    expect(body.data.release_gate).toEqual({
+      blockers: [
+        "live_usage_ledger_reads_missing",
+        "live_partner_report_artifact_store_missing",
+        "partner_portal_delivery_missing",
+        "final_partner_settlement_approval_missing"
+      ],
+      status: "blocked_live_partner_sla_reconciliation"
+    });
+    expect(body.data.usage_fixture_rows).toHaveLength(4);
+    expect(body.usage.rows).toBe(7);
   });
 
   it("plans billing rules release gate checks against package, subscription, and usage surfaces", async () => {

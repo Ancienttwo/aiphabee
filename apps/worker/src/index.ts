@@ -300,12 +300,14 @@ import {
   createBillingRulesReleaseGatePlan,
   createHighCostUsageReservationPlan,
   createPartnerReconciliationReportPlan,
+  createPartnerSlaReconciliationReadinessReport,
   createPartnerSupportReleaseGatePlan,
   createUsageBillingReconciliationPlan,
   createUsageQuotaDisplayPlan,
   getBillingRulesReleaseGateCapabilities,
   getHighCostUsageReservationCapabilities,
   getPartnerReconciliationReportCapabilities,
+  getPartnerSlaReconciliationReadinessCapabilities,
   getPartnerSupportReleaseGateCapabilities,
   getUsageBillingReconciliationCapabilities,
   getUsageLedgerEventWriterCapabilities,
@@ -2682,6 +2684,8 @@ app.get("/usage/runtime", (c) => {
         billing_reconciliation: getUsageBillingReconciliationCapabilities(),
         high_cost_reservation: getHighCostUsageReservationCapabilities(),
         partner_reconciliation_report: getPartnerReconciliationReportCapabilities(),
+        partner_sla_reconciliation_readiness:
+          getPartnerSlaReconciliationReadinessCapabilities(),
         partner_support_release_gate: getPartnerSupportReleaseGateCapabilities()
       },
       {
@@ -2788,6 +2792,37 @@ app.post("/usage/release-gates/partner-support/plan", async (c) => {
         }
       }
     )
+  );
+});
+
+app.get("/usage/partner-sla/reconciliation-readiness", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = createPartnerSlaReconciliationReadinessReport({
+    requestId
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(report, {
+      asOf: new Date().toISOString(),
+      dataVersion: report.version,
+      methodologyVersion: report.version,
+      provenance: [
+        {
+          data_version: report.version,
+          methodology_version: report.version,
+          source: "partner-sla-reconciliation-readiness",
+          source_record_id: "partner-sla-reconciliation-readiness-report"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: report.release_checks.length
+      }
+    })
   );
 });
 

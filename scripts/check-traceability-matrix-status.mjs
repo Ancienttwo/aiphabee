@@ -58,14 +58,14 @@ const requiredChecked = [
   "DAT-05",
   "DAT-06",
   "DAT-07",
-  "DAT-08"
+  "DAT-08",
+  "DAT-10"
 ];
 const requiredUnchecked = [
   "AGT-01",
   "AGT-07",
   "STK-07",
-  "MCP-09",
-  "DAT-10"
+  "MCP-09"
 ];
 const evidencePaths = [
   "docs/governance/traceability-matrix-sync.md",
@@ -114,17 +114,21 @@ const evidencePaths = [
   "deploy/tools/p0-tool-catalog.contract.json",
   "deploy/tools/resolve-security.contract.json",
   "deploy/usage/quota-display.contract.json",
+  "deploy/usage/partner-sla-reconciliation-readiness.contract.json",
   "deploy/watchlist/alerts.contract.json",
   "deploy/watchlist/briefings.contract.json",
   "docs/governance/corporate-action-benchmark-parity-scaffold.md",
   "docs/governance/field-rights-live-policy-source-readiness.md",
   "docs/governance/serving-quality-live-readiness.md",
+  "docs/governance/partner-sla-reconciliation-readiness.md",
   "tasks/contracts/corporate-action-benchmark-parity-scaffold.contract.md",
   "tasks/contracts/field-rights-live-policy-source-readiness.contract.md",
   "tasks/contracts/serving-quality-live-readiness.contract.md",
+  "tasks/contracts/partner-sla-reconciliation-readiness.contract.md",
   "tasks/notes/corporate-action-benchmark-parity-scaffold.notes.md",
   "tasks/notes/field-rights-live-policy-source-readiness.notes.md",
-  "tasks/notes/serving-quality-live-readiness.notes.md"
+  "tasks/notes/serving-quality-live-readiness.notes.md",
+  "tasks/notes/partner-sla-reconciliation-readiness.notes.md"
 ];
 
 const tracker = readText(trackerPath);
@@ -213,6 +217,10 @@ function validatePackageScripts(value) {
 function validateChangelog(text) {
   if (!text.includes("| 2026-06-22 | 1.0fl | 完成 `traceability-matrix-sync`")) {
     return ["tracker changelog must include version 1.0fl for traceability-matrix-sync"];
+  }
+
+  if (!text.includes("| 2026-06-22 | 1.0fq | 完成 `partner-sla-reconciliation-readiness`")) {
+    return ["tracker changelog must include version 1.0fq for partner-sla-reconciliation-readiness"];
   }
 
   return [];

@@ -30,6 +30,8 @@ export const BILLING_RULES_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.billing-rules-release-gate-scaffold.v0";
 export const PARTNER_SUPPORT_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.partner-support-release-gate-scaffold.v0";
+export const PARTNER_SLA_RECONCILIATION_READINESS_VERSION =
+  "2026-06-22.phase3.partner-sla-reconciliation-readiness.v0";
 
 export const USAGE_QUOTA_CHANNELS = ["web_agent", "mcp"] as const;
 export const USAGE_QUOTA_PLAN_CODES = [
@@ -68,6 +70,15 @@ export const PARTNER_SUPPORT_RELEASE_GATE_CHECKS = [
   "support_request_id_investigation_metadata_only",
   "sensitive_payloads_excluded",
   "live_artifact_and_log_reads_blocked"
+] as const;
+export const PARTNER_SLA_RECONCILIATION_READINESS_CHECKS = [
+  "daily_report_generated",
+  "weekly_report_generated",
+  "sla_counters_cover_delay_missing_error_backfill",
+  "request_usage_trace_complete",
+  "partner_support_release_gate_passed",
+  "live_surfaces_blocked",
+  "sensitive_payloads_excluded"
 ] as const;
 export const PARTNER_SUPPORT_RELEASE_GATE_TABLES = [
   "core.partner_support_release_gate",
@@ -109,6 +120,8 @@ export type BillingRulesReleaseGateCheckId =
   (typeof BILLING_RULES_RELEASE_GATE_CHECKS)[number];
 export type PartnerSupportReleaseGateCheckId =
   (typeof PARTNER_SUPPORT_RELEASE_GATE_CHECKS)[number];
+export type PartnerSlaReconciliationReadinessCheckId =
+  (typeof PARTNER_SLA_RECONCILIATION_READINESS_CHECKS)[number];
 
 export interface UsageLedgerEventPlanInput {
   accountId?: string;
@@ -751,6 +764,93 @@ export interface PartnerSupportReleaseGatePlan {
   workspace_id: string;
 }
 
+export interface PartnerSlaReconciliationReadinessCapabilities {
+  frontend: false;
+  group_by: typeof PARTNER_RECONCILIATION_REPORT_GROUP_BY;
+  live_ledger_reads: false;
+  live_partner_report_artifact_store: false;
+  live_support_log_reads: false;
+  package: "@aiphabee/usage-ledger";
+  partner_portal_delivery: false;
+  partner_reconciliation_route: "POST /usage/partner-reconciliation/plan";
+  partner_support_release_gate_route: "POST /usage/release-gates/partner-support/plan";
+  persistent_writes: false;
+  required_checks: typeof PARTNER_SLA_RECONCILIATION_READINESS_CHECKS;
+  required_sla_fields: readonly [
+    "data_delay_minutes",
+    "missing_rows",
+    "error_count",
+    "backfill_count"
+  ];
+  route: "GET /usage/partner-sla/reconciliation-readiness";
+  runtime_route: "GET /usage/runtime";
+  sql_emitted: false;
+  status: "partner_sla_reconciliation_readiness_scaffold";
+  supported_cadences: typeof PARTNER_RECONCILIATION_REPORT_CADENCES;
+  trace_fields: readonly [
+    "request_id",
+    "usage_event_id",
+    "dataset",
+    "channel",
+    "package_code",
+    "user_id"
+  ];
+  version: typeof PARTNER_SLA_RECONCILIATION_READINESS_VERSION;
+}
+
+export interface PartnerSlaReconciliationReadinessReport {
+  capability: PartnerSlaReconciliationReadinessCapabilities;
+  daily_report: PartnerReconciliationReportPlan;
+  frontend: false;
+  live_ledger_reads: false;
+  live_partner_report_artifact_store: false;
+  live_support_log_reads: false;
+  partner_portal_delivery: false;
+  persistent_writes: false;
+  readiness: {
+    all_checks_passed: boolean;
+    daily_report_generated: boolean;
+    live_release_claimed: false;
+    live_surfaces_blocked: boolean;
+    partner_support_release_gate_passed: boolean;
+    request_usage_trace_complete: boolean;
+    sensitive_payloads_excluded: boolean;
+    sla_counters_cover_delay_missing_error_backfill: boolean;
+    weekly_report_generated: boolean;
+  };
+  release_checks: Array<{
+    check_id: PartnerSlaReconciliationReadinessCheckId;
+    evidence: string;
+    status: "blocked" | "pass";
+  }>;
+  release_gate: {
+    blockers: readonly [
+      "live_usage_ledger_reads_missing",
+      "live_partner_report_artifact_store_missing",
+      "partner_portal_delivery_missing",
+      "final_partner_settlement_approval_missing"
+    ];
+    status: "blocked_live_partner_sla_reconciliation";
+  };
+  request_id: string;
+  sla_summary: {
+    backfill_count: number;
+    daily_line_count: number;
+    delayed_line_count: number;
+    error_count: number;
+    missing_rows: number;
+    weekly_line_count: number;
+  };
+  sql_emitted: false;
+  status: "partner_sla_reconciliation_readiness_passed";
+  support_release_gate: PartnerSupportReleaseGatePlan;
+  tables: readonly string[];
+  usage_fixture_rows: PartnerReconciliationUsageRowInput[];
+  version: typeof PARTNER_SLA_RECONCILIATION_READINESS_VERSION;
+  weekly_report: PartnerReconciliationReportPlan;
+  workspace_id: string;
+}
+
 const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["tables"] = [
   "core.workspace_subscription",
   "core.usage_event",
@@ -769,6 +869,11 @@ const PARTNER_RECONCILIATION_REPORT_TABLES: PartnerReconciliationReportPlan["tab
   "audit.partner_reconciliation_event",
   "governance.partner_reconciliation_contract"
 ];
+
+const PARTNER_SLA_RECONCILIATION_READINESS_TABLES = [
+  ...PARTNER_RECONCILIATION_REPORT_TABLES,
+  ...PARTNER_SUPPORT_RELEASE_GATE_TABLES
+] as const;
 
 const HIGH_COST_USAGE_RESERVATION_TABLES: HighCostUsageReservationPlan["tables"] = [
   "core.workspace_subscription",
@@ -1502,6 +1607,263 @@ export function createPartnerSupportReleaseGatePlan(
     tables: PARTNER_SUPPORT_RELEASE_GATE_TABLES,
     validation,
     version: PARTNER_SUPPORT_RELEASE_GATE_VERSION,
+    workspace_id: workspaceId
+  };
+}
+
+export function getPartnerSlaReconciliationReadinessCapabilities(): PartnerSlaReconciliationReadinessCapabilities {
+  return {
+    frontend: false,
+    group_by: PARTNER_RECONCILIATION_REPORT_GROUP_BY,
+    live_ledger_reads: false,
+    live_partner_report_artifact_store: false,
+    live_support_log_reads: false,
+    package: "@aiphabee/usage-ledger",
+    partner_portal_delivery: false,
+    partner_reconciliation_route: "POST /usage/partner-reconciliation/plan",
+    partner_support_release_gate_route: "POST /usage/release-gates/partner-support/plan",
+    persistent_writes: false,
+    required_checks: PARTNER_SLA_RECONCILIATION_READINESS_CHECKS,
+    required_sla_fields: ["data_delay_minutes", "missing_rows", "error_count", "backfill_count"],
+    route: "GET /usage/partner-sla/reconciliation-readiness",
+    runtime_route: "GET /usage/runtime",
+    sql_emitted: false,
+    status: "partner_sla_reconciliation_readiness_scaffold",
+    supported_cadences: PARTNER_RECONCILIATION_REPORT_CADENCES,
+    trace_fields: ["request_id", "usage_event_id", "dataset", "channel", "package_code", "user_id"],
+    version: PARTNER_SLA_RECONCILIATION_READINESS_VERSION
+  };
+}
+
+export function createPartnerSlaReconciliationReadinessReport(
+  input: {
+    partnerId?: string;
+    periodEnd?: string;
+    periodStart?: string;
+    requestId?: string;
+    workspaceId?: string;
+  } = {}
+): PartnerSlaReconciliationReadinessReport {
+  const requestId = normalizeIdentifier(
+    input.requestId,
+    "req_partner_sla_reconciliation_readiness"
+  );
+  const partnerId = normalizeIdentifier(input.partnerId, "partner_hk_data");
+  const workspaceId = normalizeIdentifier(input.workspaceId, "ws_partner_sla_alpha");
+  const periodStart = normalizeIdentifier(input.periodStart, "2026-06-01T00:00:00.000Z");
+  const periodEnd = normalizeIdentifier(input.periodEnd, "2026-06-08T00:00:00.000Z");
+  const usageRows: PartnerReconciliationUsageRowInput[] = [
+    {
+      channel: "mcp",
+      credits: 12,
+      dataset: "quote_snapshot",
+      meteredRows: 240,
+      packageCode: "developer",
+      requestId: `${requestId}:quote-ok`,
+      usageCount: 12,
+      usageEventId: `usage_event_${sanitizeId(requestId)}_quote_ok`,
+      userId: "partner_user_001"
+    },
+    {
+      backfillCount: 1,
+      channel: "mcp",
+      credits: 4,
+      dataDelayMinutes: 18,
+      dataset: "price_history",
+      meteredRows: 80,
+      missingRows: 3,
+      packageCode: "developer",
+      requestId: `${requestId}:price-delay`,
+      usageCount: 4,
+      usageEventId: `usage_event_${sanitizeId(requestId)}_price_delay`,
+      userId: "partner_user_001"
+    },
+    {
+      channel: "web",
+      credits: 8,
+      dataset: "financial_facts",
+      errorCount: 1,
+      meteredRows: 120,
+      packageCode: "pro",
+      requestId: `${requestId}:financial-error`,
+      usageCount: 3,
+      usageEventId: `usage_event_${sanitizeId(requestId)}_financial_error`,
+      userId: "partner_user_002"
+    },
+    {
+      channel: "api",
+      credits: 6,
+      dataset: "corporate_actions",
+      meteredRows: 30,
+      packageCode: "team",
+      requestId: `${requestId}:corporate-actions-ok`,
+      usageCount: 2,
+      usageEventId: `usage_event_${sanitizeId(requestId)}_corporate_actions_ok`,
+      userId: "partner_user_003"
+    }
+  ];
+  const dailyReport = createPartnerReconciliationReportPlan({
+    cadence: "daily",
+    format: "json",
+    partnerId,
+    periodEnd,
+    periodStart,
+    requestId: `${requestId}:daily`,
+    usageRows,
+    workspaceId
+  });
+  const weeklyReport = createPartnerReconciliationReportPlan({
+    cadence: "weekly",
+    format: "csv",
+    partnerId,
+    periodEnd,
+    periodStart,
+    requestId: `${requestId}:weekly`,
+    usageRows,
+    workspaceId
+  });
+  const supportReleaseGate = createPartnerSupportReleaseGatePlan({
+    partnerId,
+    periodEnd,
+    periodStart,
+    requestId: `${requestId}:support-gate`,
+    supportAgentId: "support_agent_partner_ops",
+    targetRequestId: "req_partner_mcp_quote_001",
+    workspaceId
+  });
+  const dailyReportGenerated =
+    dailyReport.status === "planned_no_write" &&
+    dailyReport.period.cadence === "daily" &&
+    dailyReport.rows.length > 0;
+  const weeklyReportGenerated =
+    weeklyReport.status === "planned_no_write" &&
+    weeklyReport.period.cadence === "weekly" &&
+    weeklyReport.rows.length > 0;
+  const slaCountersCoverDelayMissingErrorBackfill =
+    dailyReport.sla.required_fields.includes("data_delay_minutes") &&
+    dailyReport.sla.required_fields.includes("missing_rows") &&
+    dailyReport.sla.required_fields.includes("error_count") &&
+    dailyReport.sla.required_fields.includes("backfill_count") &&
+    weeklyReport.summary.delayed_line_count > 0 &&
+    weeklyReport.summary.missing_rows > 0 &&
+    weeklyReport.summary.error_count > 0 &&
+    weeklyReport.summary.backfill_count > 0;
+  const requestUsageTraceComplete =
+    dailyReport.traceability.traceable_to_usage_ledger === true &&
+    weeklyReport.traceability.traceable_to_usage_ledger === true &&
+    dailyReport.traceability.traceable_usage_event_count === usageRows.length &&
+    weeklyReport.traceability.traceable_usage_event_count === usageRows.length;
+  const partnerSupportReleaseGatePassed =
+    supportReleaseGate.validation.all_checks_passed === true &&
+    supportReleaseGate.release_checks.every((check) => check.status === "pass");
+  const liveSurfacesBlocked =
+    dailyReport.live_ledger_reads === false &&
+    dailyReport.export.artifact_writes === false &&
+    weeklyReport.live_ledger_reads === false &&
+    weeklyReport.export.artifact_writes === false &&
+    supportReleaseGate.live_ledger_reads === false &&
+    supportReleaseGate.live_partner_report_artifact_store === false &&
+    supportReleaseGate.live_support_log_reads === false &&
+    supportReleaseGate.partner_portal_delivery === false &&
+    supportReleaseGate.persistent_writes === false;
+  const sensitivePayloadsExcluded =
+    dailyReport.privacy.credential_material_included === false &&
+    dailyReport.privacy.raw_email_included === false &&
+    dailyReport.privacy.raw_payment_identifier_included === false &&
+    weeklyReport.export.raw_payment_identifiers_included === false &&
+    weeklyReport.export.raw_personal_contact_included === false &&
+    supportReleaseGate.validation.sensitive_payloads_excluded === true;
+  const readiness: PartnerSlaReconciliationReadinessReport["readiness"] = {
+    all_checks_passed:
+      dailyReportGenerated &&
+      weeklyReportGenerated &&
+      slaCountersCoverDelayMissingErrorBackfill &&
+      requestUsageTraceComplete &&
+      partnerSupportReleaseGatePassed &&
+      liveSurfacesBlocked &&
+      sensitivePayloadsExcluded,
+    daily_report_generated: dailyReportGenerated,
+    live_release_claimed: false,
+    live_surfaces_blocked: liveSurfacesBlocked,
+    partner_support_release_gate_passed: partnerSupportReleaseGatePassed,
+    request_usage_trace_complete: requestUsageTraceComplete,
+    sensitive_payloads_excluded: sensitivePayloadsExcluded,
+    sla_counters_cover_delay_missing_error_backfill: slaCountersCoverDelayMissingErrorBackfill,
+    weekly_report_generated: weeklyReportGenerated
+  };
+
+  return {
+    capability: getPartnerSlaReconciliationReadinessCapabilities(),
+    daily_report: dailyReport,
+    frontend: false,
+    live_ledger_reads: false,
+    live_partner_report_artifact_store: false,
+    live_support_log_reads: false,
+    partner_portal_delivery: false,
+    persistent_writes: false,
+    readiness,
+    release_checks: [
+      {
+        check_id: "daily_report_generated",
+        evidence: "Daily partner reconciliation report returns grouped report lines",
+        status: readiness.daily_report_generated ? "pass" : "blocked"
+      },
+      {
+        check_id: "weekly_report_generated",
+        evidence: "Weekly partner reconciliation report returns grouped report lines",
+        status: readiness.weekly_report_generated ? "pass" : "blocked"
+      },
+      {
+        check_id: "sla_counters_cover_delay_missing_error_backfill",
+        evidence: "SLA counters expose delay, missing rows, error count, and backfill count",
+        status: readiness.sla_counters_cover_delay_missing_error_backfill ? "pass" : "blocked"
+      },
+      {
+        check_id: "request_usage_trace_complete",
+        evidence: "Every fixture row has request_id and usage_event_id traceability",
+        status: readiness.request_usage_trace_complete ? "pass" : "blocked"
+      },
+      {
+        check_id: "partner_support_release_gate_passed",
+        evidence: "Partner support release gate validates report, request drill-down, SLA counters, and metadata-only investigation",
+        status: readiness.partner_support_release_gate_passed ? "pass" : "blocked"
+      },
+      {
+        check_id: "live_surfaces_blocked",
+        evidence: "Live ledger reads, artifact writes, support log reads, partner portal delivery, and persistent writes remain disabled",
+        status: readiness.live_surfaces_blocked ? "pass" : "blocked"
+      },
+      {
+        check_id: "sensitive_payloads_excluded",
+        evidence: "Partner report and support outputs exclude credentials, raw contact/payment data, prompts, and generated answers",
+        status: readiness.sensitive_payloads_excluded ? "pass" : "blocked"
+      }
+    ],
+    release_gate: {
+      blockers: [
+        "live_usage_ledger_reads_missing",
+        "live_partner_report_artifact_store_missing",
+        "partner_portal_delivery_missing",
+        "final_partner_settlement_approval_missing"
+      ],
+      status: "blocked_live_partner_sla_reconciliation"
+    },
+    request_id: requestId,
+    sla_summary: {
+      backfill_count: weeklyReport.summary.backfill_count,
+      daily_line_count: dailyReport.summary.line_count,
+      delayed_line_count: weeklyReport.summary.delayed_line_count,
+      error_count: weeklyReport.summary.error_count,
+      missing_rows: weeklyReport.summary.missing_rows,
+      weekly_line_count: weeklyReport.summary.line_count
+    },
+    sql_emitted: false,
+    status: "partner_sla_reconciliation_readiness_passed",
+    support_release_gate: supportReleaseGate,
+    tables: [...new Set(PARTNER_SLA_RECONCILIATION_READINESS_TABLES)],
+    usage_fixture_rows: usageRows,
+    version: PARTNER_SLA_RECONCILIATION_READINESS_VERSION,
+    weekly_report: weeklyReport,
     workspace_id: workspaceId
   };
 }
