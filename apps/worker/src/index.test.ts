@@ -5022,6 +5022,13 @@ interface McpRuntimeBody {
     mcp_target_clients_console_release_gate_route: string;
     mcp_target_clients_console_release_gate_version: string;
     mcp_target_client_e2e_matrix_ready: boolean;
+    mcp_developer_console_backend_ready: boolean;
+    mcp_developer_console_forbidden_fields: string[];
+    mcp_developer_console_live: boolean;
+    mcp_developer_console_log_fields: string[];
+    mcp_developer_console_required_checks: string[];
+    mcp_developer_console_route: string;
+    mcp_developer_console_version: string;
     mcp_client_maturity_ready: boolean;
     mcp_client_maturity_required_checks: string[];
     mcp_client_maturity_route: string;
@@ -5454,6 +5461,112 @@ interface McpTargetClientsConsoleReleaseGatePlanBody {
         planned_checks: string[];
         status: string;
       }>;
+    };
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface McpDeveloperConsolePlanBody {
+  data: {
+    capability: {
+      api_key_secret_generation_live: boolean;
+      connection_guide_artifact: string;
+      developer_console_live: boolean;
+      first_call_time_target_minutes: number;
+      live_console_log_store: boolean;
+      live_usage_ledger_reads: boolean;
+      route: string;
+      status: string;
+    };
+    connection_guide: {
+      artifact: string;
+      first_call_time_target_minutes: number;
+      protocol_route: string;
+      steps: Array<{
+        route: string;
+        step: string;
+      }>;
+      target_clients: Array<{
+        client_name: string;
+        connection_guide_artifact: string;
+        first_call_time_target_minutes: number;
+      }>;
+    };
+    credentials: {
+      api_key: {
+        create_route: string;
+        live_secret_generation: boolean;
+        one_time_display: boolean;
+        server_to_server_only: boolean;
+      };
+      oauth: {
+        authorize_route: string;
+        live_oauth_provider: boolean;
+        pkce_methods: string[];
+        token_storage_live: boolean;
+      };
+    };
+    developer_console_live: boolean;
+    examples: {
+      calls: Array<{
+        live_execution: boolean;
+        method: string;
+      }>;
+      live_tool_execution: boolean;
+    };
+    frontend_rendering: boolean;
+    live_api_key_generation: boolean;
+    live_console_log_store: boolean;
+    live_oauth_provider: boolean;
+    live_tool_execution: boolean;
+    live_usage_ledger_reads: boolean;
+    model_calls: boolean;
+    quota_panel: {
+      freshness_target_minutes: number;
+      live_ledger_reads: boolean;
+      request_id: string;
+      request_id_visible: boolean;
+    };
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+    };
+    request_log_panel: {
+      fields: string[];
+      forbidden_fields: string[];
+      live_log_store: boolean;
+      sample_rows: Array<{
+        client_name: string;
+        credential_kind: string;
+        request_id: string;
+        scope: string;
+        tool_name: string;
+        workspace_id: string;
+      }>;
+      usage_ledger_reads_live: boolean;
+    };
+    route: string;
+    scope_panel: {
+      scope_catalog: Array<{
+        revocable: boolean;
+        scope: string;
+      }>;
+      scope_visibility: boolean;
+    };
+    status: string;
+    target_clients_console_gate: {
+      gate_status: string;
+      route: string;
     };
     validation: Record<string, boolean>;
     version: string;
@@ -16414,6 +16527,11 @@ describe("worker runtime", () => {
       mcp_target_clients_console_release_gate_version:
         "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0",
       mcp_target_client_e2e_matrix_ready: true,
+      mcp_developer_console_backend_ready: true,
+      mcp_developer_console_live: false,
+      mcp_developer_console_route: "POST /mcp/developer-console/plan",
+      mcp_developer_console_version:
+        "2026-06-22.phase2.mcp-developer-console-backend-scaffold.v0",
       mcp_client_maturity_ready: true,
       mcp_client_maturity_route: "POST /mcp/client-maturity/plan",
       mcp_client_maturity_version: "2026-06-22.phase4.mcp-client-maturity-scaffold.v0",
@@ -16506,6 +16624,18 @@ describe("worker runtime", () => {
       "compatibility_status_linked",
       "no_live_console_or_client_claim"
     ]);
+    expect(body.data.mcp_developer_console_required_checks).toEqual([
+      "connection_guide_surface_ready",
+      "api_key_and_oauth_routes_linked",
+      "scope_catalog_visible",
+      "quota_usage_summary_visible",
+      "request_log_schema_ready",
+      "examples_cover_initialize_tools_list_tools_call",
+      "first_call_guide_under_10_minute_target",
+      "no_live_console_claim"
+    ]);
+    expect(body.data.mcp_developer_console_log_fields).toContain("request_id");
+    expect(body.data.mcp_developer_console_forbidden_fields).toContain("raw_api_key");
     expect(body.data.mcp_client_maturity_required_checks).toEqual([
       "target_clients_capability_matrix_present",
       "resources_support_guarded_by_client_maturity",
@@ -17050,6 +17180,167 @@ describe("worker runtime", () => {
     ]);
     expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
     expect(body.usage.rows).toBe(7);
+  });
+
+  it("plans MCP Developer Console backend payload without live Console surfaces", async () => {
+    const response = await app.request("/mcp/developer-console/plan", {
+      body: JSON.stringify({
+        client_name: "mcp-inspector",
+        client_version: "0.16.0",
+        plan_code: "developer",
+        used_credits: 12,
+        workspace_id: "workspace_mcp"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://app.aiphabee.com",
+        "x-request-id": "req-mcp-developer-console-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as McpDeveloperConsolePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      capability: {
+        api_key_secret_generation_live: false,
+        connection_guide_artifact: "docs/public/mcp.md",
+        developer_console_live: false,
+        first_call_time_target_minutes: 10,
+        live_console_log_store: false,
+        live_usage_ledger_reads: false,
+        route: "POST /mcp/developer-console/plan",
+        status: "mcp_developer_console_backend_scaffold"
+      },
+      developer_console_live: false,
+      frontend_rendering: false,
+      live_api_key_generation: false,
+      live_console_log_store: false,
+      live_oauth_provider: false,
+      live_tool_execution: false,
+      live_usage_ledger_reads: false,
+      model_calls: false,
+      route: "POST /mcp/developer-console/plan",
+      status: "planned_no_live_developer_console",
+      version: "2026-06-22.phase2.mcp-developer-console-backend-scaffold.v0"
+    });
+    expect(body.data.release_checks.map((check) => check.check)).toEqual([
+      "connection_guide_surface_ready",
+      "api_key_and_oauth_routes_linked",
+      "scope_catalog_visible",
+      "quota_usage_summary_visible",
+      "request_log_schema_ready",
+      "examples_cover_initialize_tools_list_tools_call",
+      "first_call_guide_under_10_minute_target",
+      "no_live_console_claim"
+    ]);
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.connection_guide).toMatchObject({
+      artifact: "docs/public/mcp.md",
+      first_call_time_target_minutes: 10,
+      protocol_route: "POST /mcp"
+    });
+    expect(body.data.connection_guide.steps.map((step) => step.step)).toEqual([
+      "choose_credential",
+      "initialize",
+      "list_tools",
+      "first_tool_call"
+    ]);
+    expect(
+      body.data.connection_guide.target_clients.every(
+        (client) =>
+          client.connection_guide_artifact === "docs/public/mcp.md" &&
+          client.first_call_time_target_minutes === 10
+      )
+    ).toBe(true);
+    expect(body.data.credentials).toMatchObject({
+      api_key: {
+        create_route: "POST /mcp/api-keys/create/plan",
+        live_secret_generation: false,
+        one_time_display: true,
+        server_to_server_only: true
+      },
+      oauth: {
+        authorize_route: "POST /mcp/oauth/authorize/plan",
+        live_oauth_provider: false,
+        pkce_methods: ["S256"],
+        token_storage_live: false
+      }
+    });
+    expect(body.data.scope_panel.scope_catalog.map((definition) => definition.scope)).toContain(
+      "market.read"
+    );
+    expect(body.data.scope_panel.scope_catalog.every((definition) => definition.revocable)).toBe(
+      true
+    );
+    expect(body.data.quota_panel).toMatchObject({
+      freshness_target_minutes: 5,
+      live_ledger_reads: false,
+      request_id: "req-mcp-developer-console-route",
+      request_id_visible: true
+    });
+    expect(body.data.request_log_panel).toMatchObject({
+      live_log_store: false,
+      usage_ledger_reads_live: false
+    });
+    expect(body.data.request_log_panel.fields).toEqual([
+      "request_id",
+      "workspace_id",
+      "client_name",
+      "client_version",
+      "credential_kind",
+      "credential_reference",
+      "scope",
+      "tool_name",
+      "tool_version",
+      "status",
+      "standard_error_code",
+      "credits",
+      "credits_remaining",
+      "usage_event_id",
+      "data_version",
+      "methodology_version",
+      "source_record_id"
+    ]);
+    expect(body.data.request_log_panel.forbidden_fields).toContain("raw_api_key");
+    expect(body.data.request_log_panel.sample_rows[0]).toMatchObject({
+      client_name: "mcp-inspector",
+      credential_kind: "oauth_connection",
+      request_id: "req-mcp-developer-console-route:example-tools-call",
+      scope: "quotes:read",
+      tool_name: "get_quote_snapshot",
+      workspace_id: "workspace_mcp"
+    });
+    expect(body.data.examples.calls.map((example) => example.method)).toEqual([
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ]);
+    expect(body.data.examples.calls.every((example) => example.live_execution === false)).toBe(
+      true
+    );
+    expect(body.data.release_gate).toMatchObject({
+      blockers: [
+        "developer_console_ui_missing",
+        "live_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "live_target_client_e2e_missing"
+      ],
+      gate_status: "blocked_live_mcp_developer_console_validation",
+      no_live_release_claim: true
+    });
+    expect(body.data.target_clients_console_gate).toMatchObject({
+      gate_status: "blocked_live_mcp_target_clients_console_validation",
+      route: "POST /mcp/release-gates/target-clients-console/plan"
+    });
+    expect(Object.values(body.data.validation).every(Boolean)).toBe(true);
+    expect(body.usage.rows).toBe(8);
   });
 
   it("plans MCP resources prompts and interactive apps client maturity without live publication", async () => {

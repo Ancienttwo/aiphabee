@@ -678,6 +678,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql",
+      "purpose": "Create empty MCP Developer Console request-log and contract scaffolds for MCP-09 without enabling frontend rendering, live Console log storage, live usage ledger reads, live credential material generation, live OAuth provider calls, live tool execution, persistent writes, or SQL execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.mcp_developer_console_request_log",
+        "governance.mcp_developer_console_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -46,6 +46,8 @@ export const MCP_AUTH_LIMITS_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.mcp-auth-limits-release-gate-scaffold.v0";
 export const MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0";
+export const MCP_DEVELOPER_CONSOLE_VERSION =
+  "2026-06-22.phase2.mcp-developer-console-backend-scaffold.v0";
 export const MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION = "2025-03-26";
 export const MCP_COMPATIBILITY_MONITORED_PROTOCOL_VERSIONS = [
   "2025-03-26",
@@ -77,6 +79,45 @@ export const MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS = [
   "request_usage_scope_and_key_reconciliation_ready",
   "compatibility_status_linked",
   "no_live_console_or_client_claim"
+] as const;
+export const MCP_DEVELOPER_CONSOLE_REQUIRED_CHECKS = [
+  "connection_guide_surface_ready",
+  "api_key_and_oauth_routes_linked",
+  "scope_catalog_visible",
+  "quota_usage_summary_visible",
+  "request_log_schema_ready",
+  "examples_cover_initialize_tools_list_tools_call",
+  "first_call_guide_under_10_minute_target",
+  "no_live_console_claim"
+] as const;
+export const MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS = [
+  "request_id",
+  "workspace_id",
+  "client_name",
+  "client_version",
+  "credential_kind",
+  "credential_reference",
+  "scope",
+  "tool_name",
+  "tool_version",
+  "status",
+  "standard_error_code",
+  "credits",
+  "credits_remaining",
+  "usage_event_id",
+  "data_version",
+  "methodology_version",
+  "source_record_id"
+] as const;
+export const MCP_DEVELOPER_CONSOLE_FORBIDDEN_FIELDS = [
+  "raw_api_key",
+  "oauth_access_token",
+  "oauth_refresh_token",
+  "raw_prompt",
+  "raw_generated_answer",
+  "raw_document_body",
+  "payment_identifier",
+  "personal_contact"
 ] as const;
 export const MCP_CLIENT_MATURITY_VERSION =
   "2026-06-22.phase4.mcp-client-maturity-scaffold.v0";
@@ -202,6 +243,7 @@ export type McpRuntimePlanStatus =
   | "planned_no_live_execution";
 export type McpOAuthPlanStatus = "planned_no_live_oauth";
 export type McpApiKeyPlanStatus = "planned_no_live_api_key";
+export type McpDeveloperConsolePlanStatus = "planned_no_live_developer_console";
 export type McpRevocationEnforcementStatus =
   "planned_no_live_revocation_enforcement";
 export type McpStandardErrorCategory =
@@ -403,6 +445,18 @@ export interface CreateMcpAuthLimitsReleaseGatePlanInput {
 }
 
 export interface CreateMcpTargetClientsConsoleReleaseGatePlanInput {
+  allowedOrigins?: readonly string[];
+  clientName?: string;
+  clientVersion?: string;
+  origin?: string;
+  pendingCredits?: number;
+  requestId: string;
+  usagePlanCode?: UsageQuotaPlanCode;
+  usedCredits?: number;
+  workspaceId?: string;
+}
+
+export interface CreateMcpDeveloperConsolePlanInput {
   allowedOrigins?: readonly string[];
   clientName?: string;
   clientVersion?: string;
@@ -1529,6 +1583,13 @@ export function getMcpRuntimeCapabilities() {
     mcp_target_clients_console_release_gate_version:
       MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
     mcp_target_client_e2e_matrix_ready: true,
+    mcp_developer_console_backend_ready: true,
+    mcp_developer_console_forbidden_fields: MCP_DEVELOPER_CONSOLE_FORBIDDEN_FIELDS,
+    mcp_developer_console_live: false,
+    mcp_developer_console_log_fields: MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS,
+    mcp_developer_console_required_checks: MCP_DEVELOPER_CONSOLE_REQUIRED_CHECKS,
+    mcp_developer_console_route: "POST /mcp/developer-console/plan" as const,
+    mcp_developer_console_version: MCP_DEVELOPER_CONSOLE_VERSION,
     mcp_target_protocol_version: MCP_COMPATIBILITY_TARGET_PROTOCOL_VERSION,
     mcp_client_maturity_ready: true,
     mcp_client_maturity_reference_urls: MCP_CLIENT_MATURITY_REFERENCE_URLS,
@@ -2384,6 +2445,34 @@ export function getMcpTargetClientsConsoleReleaseGateCapabilities() {
   };
 }
 
+export function getMcpDeveloperConsoleCapabilities() {
+  return {
+    api_key_create_route: "POST /mcp/api-keys/create/plan" as const,
+    api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
+    api_key_secret_generation_live: false,
+    compatibility_status_route: "GET /mcp/compatibility/status" as const,
+    connection_guide_artifact: "docs/public/mcp.md" as const,
+    developer_console_live: false,
+    first_call_time_target_minutes: 10,
+    frontend_rendering: false,
+    live_console_log_store: false,
+    live_usage_ledger_reads: false,
+    oauth_runtime_route: "GET /mcp/oauth/runtime" as const,
+    package: "@aiphabee/mcp-runtime" as const,
+    protocol_route: "POST /mcp" as const,
+    request_log_fields: MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS,
+    route: "POST /mcp/developer-console/plan" as const,
+    runtime_route: "GET /mcp/runtime" as const,
+    scope_catalog: MCP_OAUTH_SCOPE_DEFINITIONS,
+    status: "mcp_developer_console_backend_scaffold" as const,
+    target_clients_console_gate_route:
+      "POST /mcp/release-gates/target-clients-console/plan" as const,
+    usage_request_id_visible: true,
+    usage_reconciliation_ready: true,
+    version: MCP_DEVELOPER_CONSOLE_VERSION
+  };
+}
+
 export function createMcpTargetClientsConsoleReleaseGatePlan(
   input: CreateMcpTargetClientsConsoleReleaseGatePlanInput
 ) {
@@ -2426,35 +2515,8 @@ export function createMcpTargetClientsConsoleReleaseGatePlan(
     ],
     status: client.status
   }));
-  const consoleReconciliationFields = [
-    "request_id",
-    "workspace_id",
-    "client_name",
-    "client_version",
-    "credential_kind",
-    "credential_reference",
-    "scope",
-    "tool_name",
-    "tool_version",
-    "status",
-    "standard_error_code",
-    "credits",
-    "credits_remaining",
-    "usage_event_id",
-    "data_version",
-    "methodology_version",
-    "source_record_id"
-  ] as const;
-  const consoleForbiddenFields = [
-    "raw_api_key",
-    "oauth_access_token",
-    "oauth_refresh_token",
-    "raw_prompt",
-    "raw_generated_answer",
-    "raw_document_body",
-    "payment_identifier",
-    "personal_contact"
-  ] as const;
+  const consoleReconciliationFields = MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS;
+  const consoleForbiddenFields = MCP_DEVELOPER_CONSOLE_FORBIDDEN_FIELDS;
   const consoleReconciliationGate = {
     api_key_rotation_route: "POST /mcp/api-keys/rotate/plan" as const,
     api_key_runtime_route: "GET /mcp/api-keys/runtime" as const,
@@ -2606,6 +2668,300 @@ export function createMcpTargetClientsConsoleReleaseGatePlan(
     usage: createMcpUsageSummary(input, 0, releaseChecks.length),
     validation,
     version: MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION
+  };
+}
+
+export function createMcpDeveloperConsolePlan(input: CreateMcpDeveloperConsolePlanInput) {
+  const origin = normalizeText(input.origin) ?? DEFAULT_MCP_ALLOWED_ORIGINS[0];
+  const allowedOrigins = input.allowedOrigins ?? DEFAULT_MCP_ALLOWED_ORIGINS;
+  const clientName = normalizeText(input.clientName) ?? "mcp-inspector";
+  const clientVersion = normalizeText(input.clientVersion) ?? "local";
+  const workspaceId = normalizeText(input.workspaceId) ?? "workspace_mcp";
+  const usage = createMcpUsageSummary(input, 0, MCP_DEVELOPER_CONSOLE_REQUIRED_CHECKS.length);
+  const compatibilityPlan = createMcpCompatibilityStatusPlan({
+    requestId: `${input.requestId}:compatibility`
+  });
+  const targetClientsGate = createMcpTargetClientsConsoleReleaseGatePlan({
+    allowedOrigins,
+    clientName,
+    clientVersion,
+    origin,
+    pendingCredits: input.pendingCredits,
+    requestId: `${input.requestId}:target-clients-console`,
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId
+  });
+  const initializeExample = createMcpProtocolPlan({
+    allowedOrigins,
+    clientName,
+    clientVersion,
+    method: "initialize",
+    origin,
+    requestId: `${input.requestId}:example-initialize`
+  });
+  const toolsListExample = createMcpProtocolPlan({
+    allowedOrigins,
+    clientName,
+    clientVersion,
+    method: "tools/list",
+    origin,
+    requestId: `${input.requestId}:example-tools-list`
+  });
+  const toolsCallExample = createMcpProtocolPlan({
+    allowedOrigins,
+    clientName,
+    clientVersion,
+    connectionId: "mcp_connection_console_example",
+    credentialKind: "oauth_connection",
+    credentialStatus: "active",
+    grantedScopes: ["quotes:read"],
+    method: "tools/call",
+    mcpRedistributionRightsConfirmed: true,
+    origin,
+    requestId: `${input.requestId}:example-tools-call`,
+    toolArguments: {
+      instrument_id: "HK:00700"
+    },
+    toolName: "get_quote_snapshot",
+    usagePlanCode: input.usagePlanCode,
+    usedCredits: input.usedCredits,
+    workspaceId
+  });
+  const exampleCalls = [
+    {
+      live_execution: initializeExample.live_tool_execution,
+      method: "initialize" as const,
+      protocol_route: "POST /mcp" as const,
+      request_id: initializeExample.request_id,
+      status: initializeExample.status
+    },
+    {
+      live_execution: toolsListExample.live_tool_execution,
+      method: "tools/list" as const,
+      protocol_route: "POST /mcp" as const,
+      request_id: toolsListExample.request_id,
+      returned_tool_count: toolsListExample.tools_list?.returned_tool_count ?? 0,
+      status: toolsListExample.status
+    },
+    {
+      live_execution: toolsCallExample.live_tool_execution,
+      method: "tools/call" as const,
+      protocol_route: "POST /mcp" as const,
+      request_id: toolsCallExample.request_id,
+      required_scope: toolsCallExample.tool_call?.required_scope ?? "quotes:read",
+      status: toolsCallExample.status,
+      tool_name: toolsCallExample.tool_call?.requested_tool_name ?? "get_quote_snapshot"
+    }
+  ];
+  const requestLogSampleRow = {
+    client_name: clientName,
+    client_version: clientVersion,
+    credential_kind: "oauth_connection" as const,
+    credential_reference: "mcp_connection_console_example",
+    credits: toolsCallExample.usage.credits,
+    credits_remaining: toolsCallExample.usage.credits_remaining,
+    data_version: MCP_DEVELOPER_CONSOLE_VERSION,
+    methodology_version: MCP_DEVELOPER_CONSOLE_VERSION,
+    request_id: toolsCallExample.request_id,
+    scope: toolsCallExample.tool_call?.required_scope ?? "quotes:read",
+    source_record_id: "mcp_developer_console_sample_call",
+    standard_error_code: null as null | McpStandardErrorCode,
+    status: toolsCallExample.status,
+    tool_name: toolsCallExample.tool_call?.requested_tool_name ?? "get_quote_snapshot",
+    tool_version: "get_quote_snapshot@1",
+    usage_event_id: null as null | string,
+    workspace_id: workspaceId
+  };
+  const validation = {
+    api_key_and_oauth_routes_linked:
+      getMcpApiKeyCapabilities().create_route === "POST /mcp/api-keys/create/plan" &&
+      getMcpOAuthCapabilities().authorize_route === "POST /mcp/oauth/authorize/plan",
+    connection_guide_surface_ready:
+      targetClientsGate.target_client_gate.first_call_time_target_minutes <= 10 &&
+      targetClientsGate.target_client_gate.matrix.every(
+        (client) => client.connection_guide_artifact === "docs/public/mcp.md"
+      ),
+    examples_cover_initialize_tools_list_tools_call:
+      ["initialize", "tools/list", "tools/call"].every((method) =>
+        exampleCalls.some((example) => example.method === method)
+      ),
+    first_call_guide_under_10_minute_target:
+      targetClientsGate.target_client_gate.first_call_time_target_minutes <= 10,
+    no_live_console_claim:
+      targetClientsGate.developer_console_live === false &&
+      targetClientsGate.live_console_log_store === false &&
+      targetClientsGate.live_usage_ledger_reads === false,
+    quota_usage_summary_visible:
+      usage.request_id_visible &&
+      usage.freshness_target_minutes === 5 &&
+      usage.live_ledger_reads === false,
+    request_log_schema_ready:
+      MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS.every((field) => field in requestLogSampleRow) &&
+      MCP_DEVELOPER_CONSOLE_FORBIDDEN_FIELDS.every((field) => !(field in requestLogSampleRow)),
+    scope_catalog_visible:
+      MCP_OAUTH_SCOPE_DEFINITIONS.length >= 9 &&
+      MCP_OAUTH_SCOPE_DEFINITIONS.some((definition) => definition.scope === "market.read")
+  };
+  const releaseChecks = MCP_DEVELOPER_CONSOLE_REQUIRED_CHECKS.map((check) => ({
+    check,
+    evidence:
+      check === "connection_guide_surface_ready"
+        ? "Connection guide points at docs/public/mcp.md and target-client rows carry a 10 minute first-call target"
+        : check === "api_key_and_oauth_routes_linked"
+          ? "Console links API key create/rotate/revoke plans and OAuth authorize/token/revoke plans without generating live secrets"
+          : check === "scope_catalog_visible"
+            ? "Console exposes the PRD 9.7 MCP scope catalog with revocable scope grants"
+            : check === "quota_usage_summary_visible"
+              ? "Console quota panel uses request_id-visible usage summary with no live ledger reads"
+              : check === "request_log_schema_ready"
+                ? "Console request log schema includes request, workspace, client, credential, scope, tool, usage, error, and provenance fields while excluding secrets"
+                : check === "examples_cover_initialize_tools_list_tools_call"
+                  ? "Example panel includes initialize, tools/list, and tools/call protocol examples with no live execution"
+                  : check === "first_call_guide_under_10_minute_target"
+                    ? "First-call target remains 10 minutes for target clients"
+                    : "Developer Console UI, log store, live usage ledger reads, live key generation, live OAuth, and live tools remain disabled",
+    status: "planned_no_write" as const
+  }));
+
+  return {
+    capability: getMcpDeveloperConsoleCapabilities(),
+    compatibility_status: {
+      live_client_e2e_passed: compatibilityPlan.live_client_e2e_passed,
+      route: compatibilityPlan.status_route,
+      target_protocol_version: compatibilityPlan.target_protocol_version
+    },
+    connection_guide: {
+      artifact: "docs/public/mcp.md" as const,
+      first_call_time_target_minutes: 10,
+      protocol_route: "POST /mcp" as const,
+      steps: [
+        {
+          description: "Choose OAuth PKCE or a server-to-server API key.",
+          route: "POST /mcp/oauth/authorize/plan" as const,
+          step: "choose_credential" as const
+        },
+        {
+          description: "Initialize the Streamable HTTP MCP connection.",
+          route: "POST /mcp" as const,
+          step: "initialize" as const
+        },
+        {
+          description: "Run tools/list and confirm visible tool metadata.",
+          route: "POST /mcp" as const,
+          step: "list_tools" as const
+        },
+        {
+          description: "Run a scoped read-only tool call and reconcile request_id.",
+          route: "POST /mcp" as const,
+          step: "first_tool_call" as const
+        }
+      ],
+      target_clients: targetClientsGate.target_client_gate.matrix
+    },
+    credentials: {
+      api_key: {
+        create_route: "POST /mcp/api-keys/create/plan" as const,
+        live_secret_generation: false,
+        one_time_display: true,
+        revoke_route: "POST /mcp/api-keys/revoke/plan" as const,
+        rotate_route: "POST /mcp/api-keys/rotate/plan" as const,
+        runtime_route: "GET /mcp/api-keys/runtime" as const,
+        server_to_server_only: true
+      },
+      oauth: {
+        authorize_route: "POST /mcp/oauth/authorize/plan" as const,
+        live_oauth_provider: false,
+        pkce_methods: ["S256"] as const,
+        revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+        runtime_route: "GET /mcp/oauth/runtime" as const,
+        third_party_token_passthrough: false,
+        token_route: "POST /mcp/oauth/token/plan" as const,
+        token_storage_live: false
+      }
+    },
+    data_version: MCP_DEVELOPER_CONSOLE_VERSION,
+    developer_console_live: false,
+    examples: {
+      calls: exampleCalls,
+      live_tool_execution: false,
+      protocol_route: "POST /mcp" as const
+    },
+    frontend_rendering: false,
+    live_api_key_generation: false,
+    live_console_log_store: false,
+    live_oauth_provider: false,
+    live_tool_execution: false,
+    live_usage_ledger_reads: false,
+    methodology_version: MCP_DEVELOPER_CONSOLE_VERSION,
+    model_calls: false,
+    persistent_writes: false,
+    provenance: [
+      {
+        data_version: MCP_DEVELOPER_CONSOLE_VERSION,
+        methodology_version: MCP_DEVELOPER_CONSOLE_VERSION,
+        source: "mcp-runtime",
+        source_record_id: "mcp_developer_console_backend"
+      }
+    ],
+    quota_panel: {
+      display_fields: [
+        "request_id",
+        "plan_code",
+        "period",
+        "credit_limit",
+        "credits_used",
+        "credits_pending",
+        "credits_remaining"
+      ] as const,
+      freshness_target_minutes: usage.freshness_target_minutes,
+      live_ledger_reads: false,
+      request_id: usage.request_id,
+      request_id_visible: true,
+      usage
+    },
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers: [
+        "developer_console_ui_missing",
+        "live_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "live_target_client_e2e_missing"
+      ],
+      gate_status: "blocked_live_mcp_developer_console_validation" as const,
+      no_live_release_claim: true,
+      required_signoffs: ["platform", "developer-relations", "support", "billing", "security"]
+    },
+    request_id: input.requestId,
+    request_log_panel: {
+      fields: MCP_DEVELOPER_CONSOLE_REQUEST_LOG_FIELDS,
+      forbidden_fields: MCP_DEVELOPER_CONSOLE_FORBIDDEN_FIELDS,
+      live_log_store: false,
+      sample_rows: [requestLogSampleRow],
+      status_source: "GET /mcp/compatibility/status" as const,
+      usage_ledger_reads_live: false
+    },
+    route: "POST /mcp/developer-console/plan" as const,
+    scope_panel: {
+      revoke_route: "POST /mcp/oauth/revoke/plan" as const,
+      scope_catalog: MCP_OAUTH_SCOPE_DEFINITIONS.map((definition) => ({
+        ...definition,
+        revocable: true as const
+      })),
+      scope_visibility: true
+    },
+    sql_emitted: false,
+    status: "planned_no_live_developer_console" as McpDeveloperConsolePlanStatus,
+    target_clients_console_gate: {
+      gate_status: targetClientsGate.release_gate.gate_status,
+      route: targetClientsGate.route,
+      validation: targetClientsGate.validation
+    },
+    usage,
+    validation,
+    version: MCP_DEVELOPER_CONSOLE_VERSION
   };
 }
 
