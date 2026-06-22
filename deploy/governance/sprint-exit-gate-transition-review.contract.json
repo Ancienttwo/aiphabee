@@ -39,14 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "comparison_screening_frontend_evidence_missing": {
-      "owner_manifest_ids": ["frontend_release_evidence"],
-      "owner_check_commands": [
-        "check:frontend-release-evidence-handoff",
-        "check:frontend-release-evidence-packets"
-      ],
-      "closure_evidence_refs": ["comparison_screening_ui"]
-    },
     "research_library_frontend_evidence_missing": {
       "owner_manifest_ids": ["frontend_release_evidence"],
       "owner_check_commands": [
@@ -209,11 +201,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence"],
-      "manual_blocking_conditions": ["comparison_screening_frontend_evidence_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
-        "blocker_manifest:frontend_release_evidence",
-        "comparison_screening_frontend_evidence_missing"
+        "blocker_manifest:frontend_release_evidence"
       ]
     },
     {
@@ -413,7 +404,9 @@
     "Production user run frontend persistence blocker 已转为 frontend/live-smoke manifest blocker",
     "| 2026-06-23 | 1.0ib | 完成 `production-user-run-frontend-blocker-routing`",
     "Internal account/eval frontend live wiring blocker 已转为 frontend/Sprint1 live-data manifest blocker",
-    "| 2026-06-23 | 1.0ic | 完成 `internal-account-eval-frontend-blocker-routing`"
+    "| 2026-06-23 | 1.0ic | 完成 `internal-account-eval-frontend-blocker-routing`",
+    "Comparison screening frontend blocker 已转为 frontend manifest blocker",
+    "| 2026-06-23 | 1.0id | 完成 `comparison-screening-frontend-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -428,7 +421,8 @@
     "Partner live Serving/usage blocker routing",
     "Partner source rows signoff blocker routing",
     "Production user run frontend blocker routing",
-    "Internal account/eval frontend blocker routing"
+    "Internal account/eval frontend blocker routing",
+    "Comparison screening frontend blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
