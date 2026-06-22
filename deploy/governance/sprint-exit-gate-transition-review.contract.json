@@ -39,20 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "internal_account_eval_frontend_live_wiring_missing": {
-      "owner_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
-      "owner_check_commands": [
-        "check:frontend-release-evidence-handoff",
-        "check:authorized-session-memory",
-        "check:eval-v1",
-        "check:sprint1-live-data-transition-review"
-      ],
-      "closure_evidence_refs": [
-        "agent_ask_progress_ui",
-        "wcag_2_1_aa_audit",
-        "billing_reconciliation_live_read_passed"
-      ]
-    },
     "comparison_screening_frontend_evidence_missing": {
       "owner_manifest_ids": ["frontend_release_evidence"],
       "owner_check_commands": [
@@ -210,11 +196,10 @@
       "backlog_complete": true,
       "completion_allowed": false,
       "blocker_manifest_ids": ["sprint1_live_data_evidence", "frontend_release_evidence"],
-      "manual_blocking_conditions": ["internal_account_eval_frontend_live_wiring_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:sprint1_live_data_evidence",
-        "blocker_manifest:frontend_release_evidence",
-        "internal_account_eval_frontend_live_wiring_missing"
+        "blocker_manifest:frontend_release_evidence"
       ]
     },
     {
@@ -426,7 +411,9 @@
     "Partner source rows/data-platform signoff blocker 已转为 Sprint1 live-data manifest blocker",
     "| 2026-06-23 | 1.0ia | 完成 `partner-source-rows-signoff-blocker-routing`",
     "Production user run frontend persistence blocker 已转为 frontend/live-smoke manifest blocker",
-    "| 2026-06-23 | 1.0ib | 完成 `production-user-run-frontend-blocker-routing`"
+    "| 2026-06-23 | 1.0ib | 完成 `production-user-run-frontend-blocker-routing`",
+    "Internal account/eval frontend live wiring blocker 已转为 frontend/Sprint1 live-data manifest blocker",
+    "| 2026-06-23 | 1.0ic | 完成 `internal-account-eval-frontend-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -440,7 +427,8 @@
     "Credentialed live smoke blocker routing",
     "Partner live Serving/usage blocker routing",
     "Partner source rows signoff blocker routing",
-    "Production user run frontend blocker routing"
+    "Production user run frontend blocker routing",
+    "Internal account/eval frontend blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
