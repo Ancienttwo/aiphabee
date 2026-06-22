@@ -351,6 +351,7 @@ import {
 interface WorkerBindings {
   AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
+  AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
@@ -545,6 +546,24 @@ interface CloudflareHyperdriveSmokeResult {
   selected_value_hash?: string;
   status: CloudflareBindingSmokeStatus;
   surface: "hyperdrive_select_1_smoke";
+}
+
+interface EvidenceLiveDbWriteSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  deleted_rows?: number;
+  detail_hash?: string;
+  evidence_record_id_hash?: string;
+  failure_code?: string;
+  inserted_rows?: number;
+  live_write_state?: "planned_no_write";
+  operation_count?: number;
+  query_hash?: string;
+  selected_rows?: number;
+  source_ref_count?: number;
+  source_ref_hashes?: string[];
+  status: CloudflareBindingSmokeStatus;
+  surface: "evidence_record_source_ref_insert_select_delete";
+  tables?: ["core.evidence_record", "core.evidence_source_ref"];
 }
 
 interface AgentRunRequestBody {
@@ -770,6 +789,9 @@ const CLOUDFLARE_CRON_SMOKE_KIND = "aiphabee.cron.smoke.v1";
 const CLOUDFLARE_MAINTENANCE_CRON = "*/30 * * * *";
 const CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron-natural/latest`;
 const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
+const EVIDENCE_LIVE_DB_SMOKE_ROUTE = "/evidence/records/live-db-smoke";
+const EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE = "evidence-lineage-live-db-v1";
+const EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING = "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
@@ -1099,6 +1121,79 @@ app.post(CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     hyperdriveResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(EVIDENCE_LIVE_DB_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${EVIDENCE_LIVE_DB_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingEvidenceLiveDbWriteSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${EVIDENCE_LIVE_DB_SMOKE_ROUTE}`,
+      status: "missing_env"
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isEvidenceLiveDbWriteSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${EVIDENCE_LIVE_DB_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const evidenceLiveDbWriteResult = await runEvidenceLiveDbWriteSmoke(
+    c.env ?? {},
+    requestId
+  );
+  const bodyWithoutHash = {
+    evidence_live_db_write_result: evidenceLiveDbWriteResult,
+    missing_bindings:
+      evidenceLiveDbWriteResult.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${EVIDENCE_LIVE_DB_SMOKE_ROUTE}`,
+    status: evidenceLiveDbWriteResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    evidenceLiveDbWriteResult.status === "passed" ? 200 : 424
   );
 });
 
@@ -9893,6 +9988,211 @@ async function runCloudflareHyperdriveSmoke(
   }
 }
 
+async function runEvidenceLiveDbWriteSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<EvidenceLiveDbWriteSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingEvidenceLiveDbWriteSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const plan = createEvidenceRecordPlan({
+    dataVersion: "evidence-live-db-smoke-source-v0",
+    inputSchemaId: "tool.get_quote_snapshot.input.v0",
+    methodologyVersion: "2026-06-22.phase1.evidence-live-db-write-smoke.v0",
+    outputSchemaId: "tool.get_quote_snapshot.output.v0",
+    requestId,
+    sourceRecords: [
+      {
+        dataVersion: "evidence-live-db-smoke-source-v0",
+        methodologyVersion: "2026-06-22.phase1.evidence-live-db-write-smoke.v0",
+        source: "evidence-live-db-smoke",
+        sourceRecordId: `source:${requestId}`
+      }
+    ],
+    toolName: "get_quote_snapshot",
+    toolVersion: "get_quote_snapshot@smoke",
+    userVisibleLabel: "Evidence live DB write smoke"
+  });
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  const evidenceRecord = plan.evidenceRecord;
+  const queryLabel = "evidence-live-db-write-smoke:v0:insert-select-delete";
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const recordInsert = await client.query(
+      `insert into core.evidence_record (
+        evidence_record_id,
+        request_id,
+        tool_name,
+        tool_version,
+        input_schema_id,
+        output_schema_id,
+        data_version,
+        methodology_version,
+        as_of,
+        rights_state,
+        quality_state,
+        citation_label,
+        citation_visibility,
+        live_write_state,
+        source_record_count
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      on conflict (evidence_record_id) do update set
+        request_id = excluded.request_id,
+        tool_name = excluded.tool_name,
+        tool_version = excluded.tool_version,
+        input_schema_id = excluded.input_schema_id,
+        output_schema_id = excluded.output_schema_id,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version,
+        as_of = excluded.as_of,
+        rights_state = excluded.rights_state,
+        quality_state = excluded.quality_state,
+        citation_label = excluded.citation_label,
+        citation_visibility = excluded.citation_visibility,
+        live_write_state = excluded.live_write_state,
+        source_record_count = excluded.source_record_count,
+        updated_at = now()`,
+      [
+        evidenceRecord.evidenceRecordId,
+        evidenceRecord.requestId,
+        evidenceRecord.toolName,
+        evidenceRecord.toolVersion,
+        evidenceRecord.inputSchemaId ?? null,
+        evidenceRecord.outputSchemaId ?? null,
+        evidenceRecord.dataVersion,
+        evidenceRecord.methodologyVersion,
+        plan.asOf,
+        evidenceRecord.rightsState,
+        "PASS",
+        plan.citation.label,
+        plan.citation.visibility,
+        "planned_no_write",
+        plan.sourceRefs.length
+      ]
+    );
+
+    let sourceRefInsertRows = 0;
+
+    for (const sourceRef of plan.sourceRefs) {
+      const sourceRefInsert = await client.query(
+        `insert into core.evidence_source_ref (
+          evidence_source_ref_id,
+          evidence_record_id,
+          source,
+          source_record_id,
+          data_version,
+          methodology_version,
+          rights_state
+        )
+        values ($1, $2, $3, $4, $5, $6, $7)
+        on conflict (evidence_record_id, source_record_id, data_version) do update set
+          source = excluded.source,
+          methodology_version = excluded.methodology_version,
+          rights_state = excluded.rights_state`,
+        [
+          sourceRef.evidenceSourceRefId,
+          sourceRef.evidenceRecordId,
+          sourceRef.source,
+          sourceRef.sourceRecordId,
+          sourceRef.dataVersion,
+          sourceRef.methodologyVersion,
+          "default_deny"
+        ]
+      );
+      sourceRefInsertRows += sourceRefInsert.rowCount ?? 0;
+    }
+
+    const recordSelect = await client.query<{
+      evidence_record_id: string;
+      live_write_state: string;
+      source_record_count: number | string;
+    }>(
+      `select evidence_record_id, live_write_state, source_record_count
+      from core.evidence_record
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const sourceRefCountSelect = await client.query<{ source_ref_count: number | string }>(
+      `select count(*)::int as source_ref_count
+      from core.evidence_source_ref
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const selectedRecord = recordSelect.rows[0];
+    const selectedSourceRefCount = Number(
+      sourceRefCountSelect.rows[0]?.source_ref_count ?? 0
+    );
+
+    if (
+      recordSelect.rows.length !== 1 ||
+      selectedRecord?.evidence_record_id !== evidenceRecord.evidenceRecordId ||
+      selectedRecord.live_write_state !== "planned_no_write" ||
+      Number(selectedRecord.source_record_count) !== plan.sourceRefs.length ||
+      selectedSourceRefCount !== plan.sourceRefs.length
+    ) {
+      throw new Error("evidence live DB write smoke readback mismatch");
+    }
+
+    const sourceRefDelete = await client.query(
+      `delete from core.evidence_source_ref
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+    const recordDelete = await client.query(
+      `delete from core.evidence_record
+      where evidence_record_id = $1`,
+      [evidenceRecord.evidenceRecordId]
+    );
+
+    await client.query("COMMIT");
+    committed = true;
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      deleted_rows: (sourceRefDelete.rowCount ?? 0) + (recordDelete.rowCount ?? 0),
+      evidence_record_id_hash: await hashRuntimeSmokeString(evidenceRecord.evidenceRecordId),
+      inserted_rows: (recordInsert.rowCount ?? 0) + sourceRefInsertRows,
+      live_write_state: "planned_no_write",
+      operation_count: 8 + plan.sourceRefs.length,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      selected_rows: recordSelect.rows.length,
+      source_ref_count: selectedSourceRefCount,
+      source_ref_hashes: await Promise.all(
+        plan.sourceRefs.map((sourceRef) =>
+          hashRuntimeSmokeString(sourceRef.evidenceSourceRefId)
+        )
+      ),
+      status: "passed",
+      surface: "evidence_record_source_ref_insert_select_delete",
+      tables: ["core.evidence_record", "core.evidence_source_ref"]
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedEvidenceLiveDbWriteSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "evidence_live_db_write_failed",
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 function handleCloudflareScheduled(
   controller: RuntimeScheduledController,
   env: WorkerBindings,
@@ -9987,6 +10287,17 @@ function missingCloudflareHyperdriveResult(
   };
 }
 
+function missingEvidenceLiveDbWriteSmokeResult(
+  failureCode: string
+): EvidenceLiveDbWriteSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "evidence_record_source_ref_insert_select_delete"
+  };
+}
+
 function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
   const requiredEnv: Array<readonly [string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
@@ -10012,6 +10323,16 @@ function getAiGatewayLiveSmokeToken(env: WorkerBindings): string {
   }
 
   return env.AI_GATEWAY_LIVE_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function missingEvidenceLiveDbWriteSmokeEnv(env: WorkerBindings): string[] {
+  return getEvidenceLiveDbWriteSmokeToken(env).length >= 16
+    ? []
+    : [EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING];
+}
+
+function getEvidenceLiveDbWriteSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?.trim() ?? "";
 }
 
 async function failedCloudflareQueueResult({
@@ -10120,6 +10441,25 @@ async function failedCloudflareHyperdriveResult({
     query_hash: await hashRuntimeSmokeString(query),
     status: "failed",
     surface: "hyperdrive_select_1_smoke"
+  };
+}
+
+async function failedEvidenceLiveDbWriteSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<EvidenceLiveDbWriteSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "evidence_record_source_ref_insert_select_delete"
   };
 }
 
@@ -10804,6 +11144,18 @@ function normalizeString(value: unknown): string | undefined {
 
 function normalizeBoolean(value: unknown): boolean {
   return value === true || value === "true";
+}
+
+function isEvidenceLiveDbWriteSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getEvidenceLiveDbWriteSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
 }
 
 function isMcpLiveExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {

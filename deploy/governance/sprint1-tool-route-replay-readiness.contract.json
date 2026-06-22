@@ -1,6 +1,6 @@
 {
-  "version": "2026-06-22.phase1.tool-route-replay-readiness.v2",
-  "status": "blocked_live_db_partner_sources",
+  "version": "2026-06-22.phase1.tool-route-replay-readiness.v3",
+  "status": "blocked_partner_sources",
   "prd_source": "docs/researches/AiphaBee_PRD_v1.0.md#9.2",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md#sprint-12--tool-registry--原子数据工具--证据血缘",
   "checker": "scripts/check-tool-route-replay-readiness-contract.mjs",
@@ -22,6 +22,7 @@
     "agent_tool_enforcement": "deploy/agent/tool-enforcement.contract.json",
     "evidence_lineage_tools": "deploy/tools/evidence-lineage.contract.json",
     "evidence_lineage_service": "deploy/evidence/service.contract.json",
+    "evidence_live_db_write_smoke": "deploy/evidence/live-db-write-smoke.contract.json",
     "golden_tool_manifest": "tests/golden/tools/manifest.json"
   },
   "route_replay_policy": {
@@ -32,7 +33,7 @@
     "mcp_live_protocol_execution": true,
     "runtime_schema_serving": true,
     "live_route_replay": true,
-    "live_db_writes": false,
+    "live_db_writes": true,
     "partner_source_rows": false,
     "release_transition_allowed": false
   },
@@ -136,6 +137,13 @@
       "expected_count": 0
     },
     {
+      "id": "evidence_live_db_write_smoke",
+      "contract": "deploy/evidence/live-db-write-smoke.contract.json",
+      "command": "npm run check:evidence-live-db-write-smoke",
+      "expected_status": "local_contract",
+      "expected_count": 1
+    },
+    {
       "id": "golden_fixtures",
       "contract": "tests/golden/tools/manifest.json",
       "command": "npm run test:golden",
@@ -144,14 +152,6 @@
     }
   ],
   "blockers": [
-    {
-      "id": "live_db_writes",
-      "source_contract": "deploy/evidence/service.contract.json",
-      "source_field": "live_db_writes",
-      "current_value": false,
-      "required_evidence": ["evidence_record_insert_smoke", "source_ref_insert_smoke"],
-      "release_blocker": true
-    },
     {
       "id": "partner_source_rows",
       "source_contract": "deploy/evidence/service.contract.json",
@@ -163,7 +163,6 @@
   ],
   "not_claimed": [
     "sprint1_2_exit_dod_complete",
-    "live_db_writes",
     "partner_source_rows"
   ]
 }

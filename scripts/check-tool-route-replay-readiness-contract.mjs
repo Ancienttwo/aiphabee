@@ -7,7 +7,7 @@ const contractPath = "deploy/governance/sprint1-tool-route-replay-readiness.cont
 const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
-const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v2";
+const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v3";
 const requiredTools = [
   "resolve_security",
   "get_security_profile",
@@ -28,6 +28,7 @@ const requiredTools = [
 ];
 const requiredLinkedContracts = {
   agent_tool_enforcement: "deploy/agent/tool-enforcement.contract.json",
+  evidence_live_db_write_smoke: "deploy/evidence/live-db-write-smoke.contract.json",
   evidence_lineage_service: "deploy/evidence/service.contract.json",
   evidence_lineage_tools: "deploy/tools/evidence-lineage.contract.json",
   golden_tool_manifest: "tests/golden/tools/manifest.json",
@@ -57,10 +58,11 @@ const requiredSurfaceIds = [
   "agent_tool_enforcement",
   "evidence_lineage_tools",
   "evidence_lineage_service",
+  "evidence_live_db_write_smoke",
   "tool_route_replay",
   "golden_fixtures"
 ];
-const requiredBlockers = ["live_db_writes", "partner_source_rows"];
+const requiredBlockers = ["partner_source_rows"];
 const requiredNotClaimed = ["sprint1_2_exit_dod_complete", ...requiredBlockers];
 const forbiddenTextPatterns = [
   /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,
@@ -117,8 +119,8 @@ function validateReadiness({ contracts, packageJson, readiness: value, todos, tr
     errors.push(`version must be ${expectedVersion}`);
   }
 
-  if (value.status !== "blocked_live_db_partner_sources") {
-    errors.push("status must be blocked_live_db_partner_sources");
+  if (value.status !== "blocked_partner_sources") {
+    errors.push("status must be blocked_partner_sources");
   }
 
   if (value.checker !== "scripts/check-tool-route-replay-readiness-contract.mjs") {
@@ -155,6 +157,10 @@ function readSourceContracts(value) {
 
   return {
     agentToolEnforcement: readJson(linked.agent_tool_enforcement ?? requiredLinkedContracts.agent_tool_enforcement),
+    evidenceLiveDbWriteSmoke: readJson(
+      linked.evidence_live_db_write_smoke ??
+        requiredLinkedContracts.evidence_live_db_write_smoke
+    ),
     evidenceLineageService: readJson(linked.evidence_lineage_service ?? requiredLinkedContracts.evidence_lineage_service),
     evidenceLineageTools: readJson(linked.evidence_lineage_tools ?? requiredLinkedContracts.evidence_lineage_tools),
     goldenManifest: readJson(linked.golden_tool_manifest ?? requiredLinkedContracts.golden_tool_manifest),
@@ -207,7 +213,8 @@ function validateRouteReplayPolicy(value) {
     "no_live_posture_guarded",
     "live_route_replay",
     "mcp_live_protocol_execution",
-    "runtime_schema_serving"
+    "runtime_schema_serving",
+    "live_db_writes"
   ];
 
   for (const field of requiredTrue) {
@@ -220,7 +227,7 @@ function validateRouteReplayPolicy(value) {
     errors.push("route_replay_policy.release_transition_allowed must be false until live blockers clear");
   }
 
-  for (const field of ["live_db_writes", "partner_source_rows"]) {
+  for (const field of ["partner_source_rows"]) {
     if (value[field] !== false) {
       errors.push(`route_replay_policy.${field} must be false until remaining live blockers clear`);
     }
@@ -350,6 +357,7 @@ function validateSourceContracts(contracts) {
   errors.push(...validateAgentToolEnforcement(contracts.agentToolEnforcement));
   errors.push(...validateEvidenceLineageTools(contracts.evidenceLineageTools));
   errors.push(...validateEvidenceLineageService(contracts.evidenceLineageService));
+  errors.push(...validateEvidenceLiveDbWriteSmoke(contracts.evidenceLiveDbWriteSmoke));
   errors.push(...validateGoldenManifest(contracts.goldenManifest));
 
   return errors;
@@ -662,6 +670,58 @@ function validateEvidenceLineageService(value) {
   return errors;
 }
 
+function validateEvidenceLiveDbWriteSmoke(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["evidence live DB write smoke contract must be an object"];
+  }
+
+  if (value.status !== "local_contract") {
+    errors.push("evidence live DB write smoke status must be local_contract");
+  }
+
+  if (value.route !== "POST /evidence/records/live-db-smoke") {
+    errors.push("evidence live DB write smoke route must be POST /evidence/records/live-db-smoke");
+  }
+
+  if (
+    value.hyperdrive_binding !== "AIPHABEE_HYPERDRIVE" ||
+    value.smoke_token_binding !== "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN"
+  ) {
+    errors.push("evidence live DB write smoke must bind Hyperdrive and the dedicated smoke token");
+  }
+
+  for (const field of [
+    "live_db_writes",
+    "insert_smoke",
+    "select_readback",
+    "delete_cleanup",
+    "transactional_rollback_on_failure",
+    "hash_only_response"
+  ]) {
+    if (value[field] !== true) {
+      errors.push(`evidence live DB write smoke ${field} must be true`);
+    }
+  }
+
+  for (const field of ["partner_source_rows", "frontend", "production_evidence_persistence"]) {
+    if (value[field] !== false) {
+      errors.push(`evidence live DB write smoke ${field} must remain false`);
+    }
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.tables,
+      ["core.evidence_record", "core.evidence_source_ref"],
+      "evidence_live_db_write_smoke.tables"
+    )
+  );
+
+  return errors;
+}
+
 function validateGoldenManifest(value) {
   const errors = [];
 
@@ -707,6 +767,7 @@ function validatePackageScripts(value) {
   const errors = [];
   const scripts = value?.scripts ?? {};
   const requiredScripts = {
+    "check:evidence-live-db-write-smoke": "node scripts/check-evidence-live-db-write-smoke-contract.mjs",
     "check:mcp-protocol-tool-execution-smoke": "node scripts/check-mcp-protocol-tool-execution-smoke-contract.mjs",
     "check:tool-route-replay": "node scripts/check-tool-route-replay-contract.mjs",
     "check:tool-route-replay-readiness": "node scripts/check-tool-route-replay-readiness-contract.mjs",
@@ -732,6 +793,8 @@ function validateTrackerAndTodos(tracker, todos) {
 
   for (const text of [
     "tool route replay readiness",
+    "Evidence live DB write smoke",
+    "npm run check:evidence-live-db-write-smoke",
     "MCP protocol tool execution smoke",
     "npm run check:mcp-protocol-tool-execution-smoke",
     "npm run check:tool-route-replay",

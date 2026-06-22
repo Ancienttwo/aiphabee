@@ -17,6 +17,7 @@ const baseContext = {
 };
 const baseContracts = {
   agentToolEnforcement: readJson("deploy/agent/tool-enforcement.contract.json"),
+  evidenceLiveDbWriteSmoke: readJson("deploy/evidence/live-db-write-smoke.contract.json"),
   evidenceLineageService: readJson("deploy/evidence/service.contract.json"),
   evidenceLineageTools: readJson("deploy/tools/evidence-lineage.contract.json"),
   goldenManifest: readJson("tests/golden/tools/manifest.json"),
@@ -36,7 +37,7 @@ const baseContracts = {
 const scenarios = [
   {
     expectValid: true,
-    name: "current_blocked_readiness",
+    name: "current_partner_blocked_readiness",
     readiness: baseReadiness
   },
   {
@@ -53,6 +54,33 @@ const scenarios = [
     name: "mcp_live_protocol_execution_regressed",
     readiness: mutate(baseReadiness, (readiness) => {
       readiness.route_replay_policy.mcp_live_protocol_execution = false;
+    })
+  },
+  {
+    expectedError: "route_replay_policy.live_db_writes must be true",
+    expectValid: false,
+    name: "live_db_write_policy_regressed",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.route_replay_policy.live_db_writes = false;
+    })
+  },
+  {
+    expectedError: "evidence live DB write smoke live_db_writes must be true",
+    expectValid: false,
+    name: "evidence_live_db_write_smoke_regressed",
+    contracts: mutate(baseContracts, (contracts) => {
+      contracts.evidenceLiveDbWriteSmoke.live_db_writes = false;
+    }),
+    readiness: baseReadiness
+  },
+  {
+    expectedError: "validated_surfaces missing evidence_live_db_write_smoke",
+    expectValid: false,
+    name: "evidence_live_db_write_surface_missing",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.validated_surfaces = readiness.validated_surfaces.filter(
+        (surface) => surface.id !== "evidence_live_db_write_smoke"
+      );
     })
   },
   {

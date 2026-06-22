@@ -55,8 +55,8 @@ exit_criteria:
 
 - Passing this task proves local guarded protocol execution, not production MCP
   client readiness.
-- Sprint 1.2 DoD stays unchecked until live DB writes and partner source rows
-  have evidence.
+- Sprint 1.2 DoD stays unchecked until partner source rows and data-owner
+  signoff have evidence.
 
 ## Rollback Point
 

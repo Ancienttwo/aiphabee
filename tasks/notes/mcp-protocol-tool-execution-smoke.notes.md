@@ -28,6 +28,6 @@ deterministic local verifier to exercise the execution path.
 
 ## Deferred
 
-- Evidence record/source-ref insert smoke.
 - Partner source-row sample manifest and data-owner signoff.
+- Production Evidence/Lineage persistence path.
 - SDK/Inspector or target-client e2e.

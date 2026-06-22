@@ -1,0 +1,37 @@
+{
+  "version": "2026-06-22.phase1.evidence-live-db-write-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /evidence/records/live-db-smoke",
+  "checker": "scripts/check-evidence-live-db-write-smoke-contract.mjs",
+  "test_file": "apps/worker/src/evidence-live-db-write-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+  "smoke_token_binding": "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "evidence-lineage-live-db-v1"
+  },
+  "tables": ["core.evidence_record", "core.evidence_source_ref"],
+  "sample_tool_name": "get_quote_snapshot",
+  "default_rights_status": "default_deny",
+  "live_db_writes": true,
+  "insert_smoke": true,
+  "select_readback": true,
+  "delete_cleanup": true,
+  "transactional_rollback_on_failure": true,
+  "hash_only_response": true,
+  "partner_source_rows": false,
+  "frontend": false,
+  "production_evidence_persistence": false,
+  "not_claimed": [
+    "partner_source_rows",
+    "production_evidence_persistence",
+    "data_owner_source_row_signoff",
+    "frontend"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/evidence-live-db-write-smoke.test.ts",
+    "contract_check": "npm run check:evidence-live-db-write-smoke",
+    "readiness_check": "npm run check:tool-route-replay-readiness"
+  }
+}

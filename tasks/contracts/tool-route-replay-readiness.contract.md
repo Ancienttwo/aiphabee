@@ -11,7 +11,7 @@
 ## Goal
 
 Guard the Sprint 1.2 transition from static tool golden fixtures to live route
-replay by making the remaining blockers explicit and machine-checkable.
+replay by making the remaining blocker explicit and machine-checkable.
 
 ## Scope
 
@@ -21,13 +21,14 @@ replay by making the remaining blockers explicit and machine-checkable.
     manifest cross-checks;
   - MCP runtime schema snapshot serving cross-check;
   - guarded MCP protocol tool execution smoke cross-check;
-  - no-live DB/partner posture validation;
+  - guarded Evidence live DB write smoke cross-check;
+  - partner-source posture validation;
   - fixture scenarios for early release, missing blockers, catalog drift, and
     checked DoD regressions;
   - tracker and deferred-ledger updates.
 - Out of scope:
   - partner source rows;
-  - live Evidence/Lineage DB writes;
+  - production Evidence/Lineage persistence;
   - frontend.
 
 ## Exit Criteria
@@ -35,9 +36,10 @@ replay by making the remaining blockers explicit and machine-checkable.
 ```yaml
 exit_criteria:
   content_checks:
-    - "Readiness contract records both remaining live blockers"
+    - "Readiness contract records partner source rows as the remaining live blocker"
     - "Runtime schema serving is validated through mcp runtime schema snapshot"
     - "MCP protocol tool execution smoke is validated through the guarded smoke contract"
+    - "Evidence live DB write smoke is validated through the guarded smoke contract"
     - "release_transition_allowed remains false"
     - "All 16 P0 tools remain aligned across catalog/schema/MCP/golden/agent surfaces"
     - "Sprint 1.2 exit DoD remains unchecked"
@@ -45,6 +47,7 @@ exit_criteria:
   commands_succeed:
     - npm run check:tool-route-replay-readiness
     - npm run check:tool-route-replay-readiness-fixtures
+    - npm run check:evidence-live-db-write-smoke
     - npm run check:mcp-protocol-tool-execution-smoke
     - npm run check:p0-tool-catalog
     - npm run check:tool-schemas
@@ -61,7 +64,8 @@ exit_criteria:
 ## Acceptance Notes
 
 - Passing the readiness check means the blocked state is correctly represented.
-- It does not claim live DB writes or partner row readiness.
+- It claims only guarded smoke DB writes, not partner row readiness or production
+  Evidence persistence.
 
 ## Rollback Point
 

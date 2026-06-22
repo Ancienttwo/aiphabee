@@ -1,6 +1,6 @@
 # Tool Route Replay Readiness
 
-> **Status**: Blocked on live DB writes and partner rows
+> **Status**: Blocked on partner rows
 > **Last Updated**: 2026-06-22 00:00 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Task Contract**:
@@ -8,10 +8,10 @@
 
 This slice adds a Sprint 1.2 readiness ledger for moving from static golden
 fixtures to route replay and live execution. It now consumes the local
-Worker-level route replay contract and the guarded MCP protocol tool execution
-smoke contract, but it still does not enable live DB writes or partner source
-rows. Runtime schema serving is represented by the `mcp_runtime_schema_snapshot`
-validated surface and remains no-live.
+Worker-level route replay contract, the guarded MCP protocol tool execution
+smoke contract, and the guarded Evidence live DB write smoke contract, but it
+still does not enable partner source rows. Runtime schema serving is represented
+by the `mcp_runtime_schema_snapshot` validated surface and remains no-live.
 
 ## P1 Architecture Map
 
@@ -23,6 +23,7 @@ validated surface and remains no-live.
 | MCP protocol tool execution smoke | `deploy/mcp/protocol-tool-execution-smoke.contract.json` | Owns guarded `POST /mcp` `tools/call` route execution evidence |
 | Agent enforcement | `deploy/agent/tool-enforcement.contract.json` | Owns registered-tool/no-arbitrary-SQL/URL guard |
 | Evidence service | `deploy/evidence/service.contract.json` | Owns no-write evidence/source-ref planner |
+| Evidence live DB write smoke | `deploy/evidence/live-db-write-smoke.contract.json` | Owns guarded Hyperdrive insert/read/delete evidence |
 | Golden manifest | `tests/golden/tools/manifest.json` | Owns one synthetic fixture per P0 tool |
 | Tool route replay | `deploy/governance/sprint1-tool-route-replay.contract.json` | Owns local Worker route replay evidence |
 | Readiness ledger | `deploy/governance/sprint1-tool-route-replay-readiness.contract.json` | Owns remaining live blockers and no-release claim |
@@ -33,7 +34,8 @@ validated surface and remains no-live.
 2. The checker loads the P0 catalog, registry, tool schema, MCP schema
    validation/runtime-schema/versioning/pagination/usage/protocol, MCP protocol
    tool execution smoke, Agent enforcement, Evidence/Lineage service,
-   Evidence/Lineage tools, tool route replay contract, and golden manifest.
+   Evidence/Lineage tools, Evidence live DB write smoke, tool route replay
+   contract, and golden manifest.
 3. It verifies all 16 PRD §9.2 tool names still align across the local catalog
    surfaces.
 4. It verifies local server-orchestrated route replay is backed by
@@ -42,9 +44,12 @@ validated surface and remains no-live.
 5. It verifies guarded MCP `tools/call` execution remains backed by
    `apps/worker/src/mcp-protocol-tool-execution-smoke.test.ts` and
    `deploy/mcp/protocol-tool-execution-smoke.contract.json`.
-6. It verifies the remaining live blockers remain explicit:
-   `live_db_writes` and `partner_source_rows`.
-7. It keeps `release_transition_allowed=false` and requires the Sprint 1.2 DoD
+6. It verifies guarded Evidence live DB write smoke remains backed by
+   `apps/worker/src/evidence-live-db-write-smoke.test.ts` and
+   `deploy/evidence/live-db-write-smoke.contract.json`.
+7. It verifies the remaining live blocker remains explicit:
+   `partner_source_rows`.
+8. It keeps `release_transition_allowed=false` and requires the Sprint 1.2 DoD
    line to remain unchecked until the live evidence exists.
 
 ## P3 Design Decision
@@ -56,8 +61,11 @@ static fixtures alone did not exercise a server route. The route replay contract
 now proves local Worker route replay against the canonical golden projection,
 and the MCP smoke contract proves a guarded protocol `tools/call` can execute a
 registered Worker tool route only after rights, scope, and revocation checks.
-The readiness ledger still keeps live DB writes and partner source rows blocked
-until their own evidence exists.
+The readiness ledger now treats live DB writes as smoke-verified only through a
+dedicated header and `AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN`; it still keeps
+partner source rows blocked until their own evidence and data-owner signoff
+exist. The base Evidence service contract remains no-write so production
+evidence persistence is not accidentally claimed by the smoke route.
 
 At 10x scale, tool drift fails first at the P0 catalog and readiness checker:
 adding a tool to schemas, MCP, golden fixtures, or enforcement without keeping
@@ -69,6 +77,7 @@ Expected checks for this slice:
 
 - `npm run check:tool-route-replay-readiness`
 - `npm run check:mcp-protocol-tool-execution-smoke`
+- `npm run check:evidence-live-db-write-smoke`
 - `npm run check:tool-route-replay`
 - `npm run check:tool-route-replay-readiness-fixtures`
 - `npm run check:p0-tool-catalog`
@@ -84,5 +93,6 @@ Expected checks for this slice:
 
 ## Residual Gaps
 
-- Evidence/Lineage live DB writes are absent.
 - Partner source rows and data-owner signoff are absent.
+- Production Evidence/Lineage persistence remains intentionally unclaimed by
+  the smoke-only route.
