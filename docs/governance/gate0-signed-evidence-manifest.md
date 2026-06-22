@@ -11,6 +11,7 @@ Machine-readable contract:
 
 ```bash
 npm run check:gate0-signed-evidence-manifest
+npm run check:gate0-signed-evidence-manifest-fixtures
 ```
 
 ## Current State
@@ -41,6 +42,11 @@ A packet can become `accepted` only when every evidence reference has:
 
 Sprint 0.1 can be checked only when all required packets are accepted and the
 manifest checker passes.
+
+The fixture checker validates both the current pending manifest and a complete
+accepted manifest, then asserts that partial release flags, accepted packets
+without refs, invalid SHA-256 refs, mismatched approval statuses, unredacted
+refs, and missing packets retaining active refs are rejected.
 
 ## Runtime Transition Rule
 

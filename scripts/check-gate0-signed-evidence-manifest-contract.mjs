@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const manifestPath = "deploy/governance/gate0-signed-evidence-manifest.contract.json";
 const intakePath = "deploy/governance/gate0-external-evidence-intake.contract.json";
@@ -34,32 +35,40 @@ const forbiddenTextPatterns = [
   /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
 ];
 
-const manifest = readJson(manifestPath);
-const intake = readJson(intakePath);
-const packageJson = readJson(packageJsonPath);
-const tracker = readText(trackerPath);
-const errors = validateManifest({ intake, manifest, packageJson, tracker });
-
-if (errors.length > 0) {
-  emit(
-    {
-      errors,
-      path: manifestPath,
-      status: "invalid_contract"
-    },
-    1
-  );
+if (isMainModule()) {
+  runCli();
 }
 
-emit(
-  {
-    accepted_packets: manifest.required_packets.filter((packet) => packet.status === "accepted").length,
-    required_packets: manifest.required_packets.length,
-    release_transition_allowed: manifest.release_transition_allowed,
-    status: "ok"
-  },
-  0
-);
+export { validateManifest };
+
+function runCli() {
+  const manifest = readJson(manifestPath);
+  const intake = readJson(intakePath);
+  const packageJson = readJson(packageJsonPath);
+  const tracker = readText(trackerPath);
+  const errors = validateManifest({ intake, manifest, packageJson, tracker });
+
+  if (errors.length > 0) {
+    emit(
+      {
+        errors,
+        path: manifestPath,
+        status: "invalid_contract"
+      },
+      1
+    );
+  }
+
+  emit(
+    {
+      accepted_packets: manifest.required_packets.filter((packet) => packet.status === "accepted").length,
+      required_packets: manifest.required_packets.length,
+      release_transition_allowed: manifest.release_transition_allowed,
+      status: "ok"
+    },
+    0
+  );
+}
 
 function validateManifest({ intake, manifest: value, packageJson, tracker }) {
   const errors = [];
@@ -322,8 +331,21 @@ function validatePackageScript(packageJson) {
     return ["package.json must expose check:gate0-signed-evidence-manifest"];
   }
 
-  if (!String(packageJson?.scripts?.check ?? "").includes("npm run check:gate0-signed-evidence-manifest")) {
-    return ["package.json check script must include check:gate0-signed-evidence-manifest"];
+  const fixturesScript = packageJson?.scripts?.["check:gate0-signed-evidence-manifest-fixtures"];
+
+  if (fixturesScript !== "node scripts/check-gate0-signed-evidence-manifest-fixtures.mjs") {
+    return ["package.json must expose check:gate0-signed-evidence-manifest-fixtures"];
+  }
+
+  const checkScript = String(packageJson?.scripts?.check ?? "");
+
+  for (const requiredScript of [
+    "npm run check:gate0-signed-evidence-manifest",
+    "npm run check:gate0-signed-evidence-manifest-fixtures"
+  ]) {
+    if (!checkScript.includes(requiredScript)) {
+      return [`package.json check script must include ${requiredScript}`];
+    }
   }
 
   return [];
@@ -387,6 +409,10 @@ function readText(path) {
 
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMainModule() {
+  return Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 }
 
 function emit(value, code) {
