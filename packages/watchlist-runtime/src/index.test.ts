@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  createAlertToolPlan,
   createWatchlistBriefingPlan,
   createWatchlistAlertsPlan,
+  getCreateAlertToolCapabilities,
   getWatchlistBriefingCapabilities,
   getWatchlistRuntimeCapabilities
 } from "./index";
@@ -73,6 +75,34 @@ describe("watchlist alerts scaffold", () => {
     expect(getWatchlistBriefingCapabilities().tables).toEqual([
       "core.watchlist_briefing",
       "core.watchlist_briefing_item"
+    ]);
+  });
+
+  it("reports create_alert tool capabilities", () => {
+    expect(getCreateAlertToolCapabilities()).toMatchObject({
+      alert_planner_route: "POST /watchlist/alerts/plan",
+      create_alert_scope: "alerts.write",
+      dedupe_ready: true,
+      event_queue: "AIPHABEE_EVENTS_QUEUE",
+      explicit_confirmation_required: true,
+      frontend: false,
+      idempotency_key_required: true,
+      independent_scope_required: true,
+      live_db_writes: false,
+      live_tool_execution: false,
+      notification_fanout: false,
+      persistent_writes: false,
+      queue_writes: false,
+      route: "POST /tools/create-alert",
+      runtime_route: "GET /watchlist/runtime",
+      sql_emitted: false,
+      status: "create_alert_tool_scaffold",
+      tool_name: "create_alert"
+    });
+    expect(getCreateAlertToolCapabilities().supported_alert_kinds).toEqual([
+      "price",
+      "announcement",
+      "metric"
     ]);
   });
 
@@ -193,6 +223,60 @@ describe("watchlist alerts scaffold", () => {
       credits: 0,
       rows: 6
     });
+  });
+
+  it("plans create_alert through the watchlist alert planner without writes", () => {
+    const plan = createAlertToolPlan({
+      alertKinds: ["price"],
+      channels: ["in_app"],
+      condition: {
+        comparator: "above",
+        priceField: "last",
+        threshold: 390
+      },
+      explicitConfirmation: true,
+      frequency: "realtime",
+      idempotencyKey: "create-alert-idem-00700-realtime",
+      requestId: "req-create-alert-tool",
+      securityQuery: "00700.HK",
+      userId: "user_internal_alpha",
+      workspaceId: "workspace_research"
+    });
+
+    expect(plan).toMatchObject({
+      frontend: false,
+      live_tool_execution: false,
+      request_id: "req-create-alert-tool",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "create_alert"
+    });
+    expect(plan.planner).toEqual({
+      route: "POST /watchlist/alerts/plan",
+      tool_name: "plan_watchlist_alerts",
+      version: "2026-06-21.phase2.watchlist-alerts-scaffold.v0"
+    });
+    expect(plan.alert_rule).toMatchObject({
+      alert_kinds: ["price"],
+      explicit_confirmation: true,
+      idempotency_key: "create-alert-idem-00700-realtime",
+      independent_scope: "alerts.write",
+      write_status: "planned_no_write"
+    });
+    expect(plan.persistence_plan).toMatchObject({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      write_status: "planned_no_write"
+    });
+    expect(plan.validation).toEqual({
+      explicit_confirmation_provided: true,
+      explicit_confirmation_required: true,
+      idempotency_key_required: true,
+      required_context_present: true,
+      scope_required: "alerts.write"
+    });
+    expect(plan.provenance.some((entry) => entry.source === "create-alert-tool-plan")).toBe(true);
   });
 
   it("requires explicit confirmation before planning alert writes", () => {

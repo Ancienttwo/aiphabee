@@ -1,5 +1,7 @@
 export const WATCHLIST_ALERTS_VERSION =
   "2026-06-21.phase2.watchlist-alerts-scaffold.v0";
+export const CREATE_ALERT_TOOL_VERSION =
+  "2026-06-22.phase4.create-alert-tool-scaffold.v0";
 export const WATCHLIST_BRIEFING_VERSION =
   "2026-06-21.phase2.watchlist-briefings-scaffold.v0";
 
@@ -103,6 +105,36 @@ export interface WatchlistAlertRuntimeCapabilities {
     "core.watchlist_alert_event"
   ];
   version: typeof WATCHLIST_ALERTS_VERSION;
+}
+
+export interface CreateAlertToolCapabilities {
+  alert_planner_route: "POST /watchlist/alerts/plan";
+  create_alert_scope: "alerts.write";
+  dedupe_ready: true;
+  event_queue: "AIPHABEE_EVENTS_QUEUE";
+  explicit_confirmation_required: true;
+  frequency_controls: true;
+  frontend: false;
+  idempotency_key_required: true;
+  independent_scope_required: true;
+  live_db_writes: false;
+  live_tool_execution: false;
+  notification_fanout: false;
+  package: "@aiphabee/watchlist-runtime";
+  persistent_writes: false;
+  quiet_period_controls: true;
+  queue_writes: false;
+  route: "POST /tools/create-alert";
+  runtime_route: "GET /watchlist/runtime";
+  source_required: true;
+  sql_emitted: false;
+  status: "create_alert_tool_scaffold";
+  supported_alert_kinds: readonly WatchlistAlertKind[];
+  supported_channels: readonly WatchlistAlertChannel[];
+  supported_frequencies: readonly WatchlistAlertFrequency[];
+  tables: WatchlistAlertRuntimeCapabilities["tables"];
+  tool_name: "create_alert";
+  version: typeof CREATE_ALERT_TOOL_VERSION;
 }
 
 export interface WatchlistAlertsPlan {
@@ -210,6 +242,21 @@ export interface WatchlistAlertsPlan {
     workspace_id: string;
   };
 }
+
+export type CreateAlertToolPlan = Omit<
+  WatchlistAlertsPlan,
+  "data_version" | "methodology_version" | "toolName" | "version"
+> & {
+  data_version: typeof CREATE_ALERT_TOOL_VERSION;
+  methodology_version: typeof CREATE_ALERT_TOOL_VERSION;
+  planner: {
+    route: "POST /watchlist/alerts/plan";
+    tool_name: "plan_watchlist_alerts";
+    version: typeof WATCHLIST_ALERTS_VERSION;
+  };
+  toolName: "create_alert";
+  version: typeof CREATE_ALERT_TOOL_VERSION;
+};
 
 export interface WatchlistBriefingPlan {
   as_of: string;
@@ -328,6 +375,38 @@ export function getWatchlistRuntimeCapabilities(): WatchlistAlertRuntimeCapabili
     supported_frequencies: WATCHLIST_ALERT_FREQUENCIES,
     tables: WATCHLIST_ALERT_TABLES,
     version: WATCHLIST_ALERTS_VERSION
+  };
+}
+
+export function getCreateAlertToolCapabilities(): CreateAlertToolCapabilities {
+  return {
+    alert_planner_route: "POST /watchlist/alerts/plan",
+    create_alert_scope: "alerts.write",
+    dedupe_ready: true,
+    event_queue: "AIPHABEE_EVENTS_QUEUE",
+    explicit_confirmation_required: true,
+    frequency_controls: true,
+    frontend: false,
+    idempotency_key_required: true,
+    independent_scope_required: true,
+    live_db_writes: false,
+    live_tool_execution: false,
+    notification_fanout: false,
+    package: "@aiphabee/watchlist-runtime",
+    persistent_writes: false,
+    quiet_period_controls: true,
+    queue_writes: false,
+    route: "POST /tools/create-alert",
+    runtime_route: "GET /watchlist/runtime",
+    source_required: true,
+    sql_emitted: false,
+    status: "create_alert_tool_scaffold",
+    supported_alert_kinds: WATCHLIST_ALERT_KINDS,
+    supported_channels: WATCHLIST_ALERT_CHANNELS,
+    supported_frequencies: WATCHLIST_ALERT_FREQUENCIES,
+    tables: WATCHLIST_ALERT_TABLES,
+    tool_name: "create_alert",
+    version: CREATE_ALERT_TOOL_VERSION
   };
 }
 
@@ -503,6 +582,32 @@ export function createWatchlistAlertsPlan(
       user_id: userId,
       workspace_id: workspaceId
     }
+  };
+}
+
+export function createAlertToolPlan(input: CreateWatchlistAlertsPlanInput): CreateAlertToolPlan {
+  const plan = createWatchlistAlertsPlan(input);
+
+  return {
+    ...plan,
+    data_version: CREATE_ALERT_TOOL_VERSION,
+    methodology_version: CREATE_ALERT_TOOL_VERSION,
+    planner: {
+      route: "POST /watchlist/alerts/plan",
+      tool_name: "plan_watchlist_alerts",
+      version: WATCHLIST_ALERTS_VERSION
+    },
+    provenance: [
+      ...plan.provenance,
+      {
+        data_version: CREATE_ALERT_TOOL_VERSION,
+        methodology_version: CREATE_ALERT_TOOL_VERSION,
+        source: "create-alert-tool-plan",
+        source_record_id: `create_alert_tool_${plan.alert_rule.rule_id}`
+      }
+    ],
+    toolName: "create_alert",
+    version: CREATE_ALERT_TOOL_VERSION
   };
 }
 

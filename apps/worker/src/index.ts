@@ -282,10 +282,13 @@ import {
   WATCHLIST_ALERT_CHANNELS,
   WATCHLIST_ALERT_FREQUENCIES,
   WATCHLIST_ALERT_KINDS,
+  createAlertToolPlan,
   createWatchlistAlertsPlan,
   createWatchlistBriefingPlan,
+  getCreateAlertToolCapabilities,
   getWatchlistBriefingCapabilities,
   getWatchlistRuntimeCapabilities,
+  type CreateWatchlistAlertsPlanInput,
   type WatchlistAlertChannel,
   type WatchlistAlertConditionInput,
   type WatchlistAlertFrequency,
@@ -2571,32 +2574,39 @@ app.post("/watchlist/alerts/plan", async (c) => {
   c.header("Cache-Control", "no-store");
 
   const body = (await c.req.json().catch(() => ({}))) as WatchlistAlertsRequestBody;
-  const plan = createWatchlistAlertsPlan({
-    alertKinds: normalizeWatchlistAlertKinds(body.alert_kinds ?? body.alertKinds),
-    channels: normalizeWatchlistAlertChannels(body.channels),
-    condition: normalizeWatchlistAlertCondition(body.condition),
-    explicitConfirmation: normalizeOptionalBoolean(
-      body.explicit_confirmation ?? body.explicitConfirmation
-    ),
-    frequency: normalizeWatchlistAlertFrequency(body.frequency),
-    idempotencyKey: normalizeString(body.idempotency_key ?? body.idempotencyKey),
-    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
-    metricIds: normalizeStringArray(body.metric_ids ?? body.metricIds),
-    quietHoursEnd: normalizeString(body.quiet_hours_end ?? body.quietHoursEnd),
-    quietHoursStart: normalizeString(body.quiet_hours_start ?? body.quietHoursStart),
-    requestId,
-    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
-    timezone: normalizeString(body.timezone),
-    userId: normalizeString(body.user_id ?? body.userId),
-    watchlistId: normalizeString(body.watchlist_id ?? body.watchlistId),
-    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
-  });
+  const plan = createWatchlistAlertsPlan(normalizeWatchlistAlertsPlanInput(body, requestId));
 
   return c.json(
     createSuccessEnvelope(
       {
         ...plan,
         capability: getWatchlistRuntimeCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: plan.provenance,
+        requestId,
+        usage: plan.usage
+      }
+    )
+  );
+});
+
+app.post("/tools/create-alert", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as WatchlistAlertsRequestBody;
+  const plan = createAlertToolPlan(normalizeWatchlistAlertsPlanInput(body, requestId));
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getCreateAlertToolCapabilities()
       },
       {
         asOf: new Date().toISOString(),
@@ -9726,6 +9736,32 @@ function normalizeOptionalInteger(value: unknown): number | undefined {
 
 function normalizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeWatchlistAlertsPlanInput(
+  body: WatchlistAlertsRequestBody,
+  requestId: string
+): CreateWatchlistAlertsPlanInput {
+  return {
+    alertKinds: normalizeWatchlistAlertKinds(body.alert_kinds ?? body.alertKinds),
+    channels: normalizeWatchlistAlertChannels(body.channels),
+    condition: normalizeWatchlistAlertCondition(body.condition),
+    explicitConfirmation: normalizeOptionalBoolean(
+      body.explicit_confirmation ?? body.explicitConfirmation
+    ),
+    frequency: normalizeWatchlistAlertFrequency(body.frequency),
+    idempotencyKey: normalizeString(body.idempotency_key ?? body.idempotencyKey),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    metricIds: normalizeStringArray(body.metric_ids ?? body.metricIds),
+    quietHoursEnd: normalizeString(body.quiet_hours_end ?? body.quietHoursEnd),
+    quietHoursStart: normalizeString(body.quiet_hours_start ?? body.quietHoursStart),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery),
+    timezone: normalizeString(body.timezone),
+    userId: normalizeString(body.user_id ?? body.userId),
+    watchlistId: normalizeString(body.watchlist_id ?? body.watchlistId),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  };
 }
 
 function normalizeHighCostUsageExecutionStatus(

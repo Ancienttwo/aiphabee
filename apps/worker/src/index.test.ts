@@ -1488,9 +1488,14 @@ interface WatchlistAlertsPlanBody {
       write_status: string;
     };
     capability: {
+      alert_planner_route?: string;
       explicit_confirmation_required: boolean;
+      idempotency_key_required?: boolean;
+      independent_scope_required?: boolean;
+      persistent_writes?: boolean;
       route: string;
       status: string;
+      tool_name?: string;
     };
     channels: string[];
     dedupe: {
@@ -1547,6 +1552,12 @@ interface WatchlistAlertsPlanBody {
       tables: string[];
       write_status: string;
     };
+    planner?: {
+      route: string;
+      tool_name: string;
+      version: string;
+    };
+    request_id: string;
     sql_emitted: boolean;
     status: string;
     toolName: string;
@@ -9336,6 +9347,83 @@ describe("worker runtime", () => {
       cached: false,
       credits: 0,
       rows: 6
+    });
+  });
+
+  it("plans create_alert tool writes with confirmation scope and idempotency", async () => {
+    const response = await app.request("/tools/create-alert", {
+      body: JSON.stringify({
+        alert_kinds: ["price"],
+        channels: ["in_app"],
+        condition: {
+          comparator: "above",
+          price_field: "last",
+          threshold: 390
+        },
+        explicit_confirmation: true,
+        frequency: "realtime",
+        idempotency_key: "create-alert-idem-00700-realtime",
+        security_query: "00700.HK",
+        user_id: "user_internal_alpha",
+        workspace_id: "workspace_research"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-create-alert-tool"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as WatchlistAlertsPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_tool_execution: false,
+      request_id: "req-create-alert-tool",
+      sql_emitted: false,
+      status: "planned_no_write",
+      toolName: "create_alert"
+    });
+    expect(body.data.capability).toMatchObject({
+      alert_planner_route: "POST /watchlist/alerts/plan",
+      explicit_confirmation_required: true,
+      idempotency_key_required: true,
+      independent_scope_required: true,
+      persistent_writes: false,
+      route: "POST /tools/create-alert",
+      status: "create_alert_tool_scaffold",
+      tool_name: "create_alert"
+    });
+    expect(body.data.planner).toEqual({
+      route: "POST /watchlist/alerts/plan",
+      tool_name: "plan_watchlist_alerts",
+      version: "2026-06-21.phase2.watchlist-alerts-scaffold.v0"
+    });
+    expect(body.data.alert_rule).toMatchObject({
+      alert_kinds: ["price"],
+      explicit_confirmation: true,
+      idempotency_key: "create-alert-idem-00700-realtime",
+      independent_scope: "alerts.write",
+      write_status: "planned_no_write"
+    });
+    expect(body.data.persistence_plan).toMatchObject({
+      live_db_writes: false,
+      queue_writes: false,
+      sql_emitted: false,
+      write_status: "planned_no_write"
+    });
+    expect(body.data.validation).toEqual({
+      explicit_confirmation_provided: true,
+      explicit_confirmation_required: true,
+      idempotency_key_required: true,
+      required_context_present: true,
+      scope_required: "alerts.write"
+    });
+    expect(body.usage).toMatchObject({
+      credits: 0,
+      rows: 2
     });
   });
 
