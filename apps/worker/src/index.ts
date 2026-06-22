@@ -351,6 +351,7 @@ import {
 interface WorkerBindings {
   AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
+  AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -789,6 +790,9 @@ const CLOUDFLARE_CRON_SMOKE_KIND = "aiphabee.cron.smoke.v1";
 const CLOUDFLARE_MAINTENANCE_CRON = "*/30 * * * *";
 const CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron-natural/latest`;
 const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
+const AGENT_TOOL_EXECUTION_SMOKE_ROUTE = "/agent/runs/tool-execution-evidence-smoke";
+const AGENT_TOOL_EXECUTION_SMOKE_HEADER_VALUE = "agent-tool-execution-evidence-v1";
+const AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING = "AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN";
 const EVIDENCE_LIVE_DB_SMOKE_ROUTE = "/evidence/records/live-db-smoke";
 const EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE = "evidence-lineage-live-db-v1";
 const EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING = "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN";
@@ -7546,6 +7550,96 @@ app.post("/agent/runs/validate-answer", async (c) => {
   }
 });
 
+app.post(AGENT_TOOL_EXECUTION_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== AGENT_TOOL_EXECUTION_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_TOOL_EXECUTION_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentToolExecutionSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_TOOL_EXECUTION_SMOKE_ROUTE}`,
+      status: "missing_env"
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentToolExecutionSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_TOOL_EXECUTION_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  try {
+    const result = await executeAgentToolExecutionEvidenceSmoke(requestId);
+    const bodyWithoutHash = {
+      agent_tool_execution_evidence_result: result,
+      request_id: requestId,
+      route: `POST ${AGENT_TOOL_EXECUTION_SMOKE_ROUTE}`,
+      status: result.status === "passed" ? "ok" : "failed",
+      synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      result.status === "passed" ? 200 : 424
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code:
+        error instanceof McpRuntimeInputError ? error.code : "AGENT_TOOL_EXECUTION_SMOKE_FAILED",
+      request_id: requestId,
+      route: `POST ${AGENT_TOOL_EXECUTION_SMOKE_ROUTE}`,
+      status: "failed"
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
 app.post("/agent/workflows/tasks/plan", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   let requestedToolsForTelemetry: string[] = [];
@@ -10325,6 +10419,16 @@ function getAiGatewayLiveSmokeToken(env: WorkerBindings): string {
   return env.AI_GATEWAY_LIVE_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
+  return getAgentToolExecutionSmokeToken(env).length >= 16
+    ? []
+    : [AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING];
+}
+
+function getAgentToolExecutionSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?.trim() ?? "";
+}
+
 function missingEvidenceLiveDbWriteSmokeEnv(env: WorkerBindings): string[] {
   return getEvidenceLiveDbWriteSmokeToken(env).length >= 16
     ? []
@@ -11158,6 +11262,16 @@ function isEvidenceLiveDbWriteSmokeAuthorized(
   return c.req.header("authorization") === `Bearer ${token}`;
 }
 
+function isAgentToolExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const token = getAgentToolExecutionSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
 function isMcpLiveExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = c.env?.AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN;
 
@@ -11171,6 +11285,14 @@ function isMcpLiveExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings
 async function executeMcpToolCallSmoke(
   params: Record<string, unknown>,
   requestId: string
+): Promise<Record<string, unknown>> {
+  return executeRegisteredWorkerToolRouteSmoke(params, requestId, "tool");
+}
+
+async function executeRegisteredWorkerToolRouteSmoke(
+  params: Record<string, unknown>,
+  requestId: string,
+  requestSuffix: string
 ): Promise<Record<string, unknown>> {
   const toolName = normalizeString(params.name ?? params.tool_name ?? params.toolName);
 
@@ -11193,7 +11315,7 @@ async function executeMcpToolCallSmoke(
     body: JSON.stringify(isPlainRecord(params.arguments) ? params.arguments : {}),
     headers: {
       "content-type": "application/json",
-      "x-request-id": `${requestId}:tool`
+      "x-request-id": `${requestId}:${requestSuffix}`
     },
     method: "POST"
   });
@@ -11215,8 +11337,166 @@ async function executeMcpToolCallSmoke(
           cached: false,
           credits: 0,
           rows: 0
-        }
+      }
   };
+}
+
+async function executeAgentToolExecutionEvidenceSmoke(
+  requestId: string
+): Promise<Record<string, unknown>> {
+  const toolCall = {
+    arguments: {
+      instrument_id: "eq_hk_00700",
+      mode: "delayed"
+    },
+    name: "get_quote_snapshot"
+  };
+  const toolResult = await executeRegisteredWorkerToolRouteSmoke(
+    toolCall,
+    requestId,
+    "agent-tool"
+  );
+  const sourceRecord = getFirstSmokeSourceRecord(toolResult.provenance);
+
+  if (sourceRecord === undefined) {
+    return {
+      actual_tool_execution: toolResult.ok === true && toolResult.status_code === 200,
+      failure_code: "missing_tool_provenance",
+      hash_only_response: true,
+      live_evidence_binding: false,
+      model_calls: false,
+      persistent_writes: false,
+      status: "failed",
+      tool_result: createSmokeToolResultSummary(toolResult),
+      version: "2026-06-22.phase1.agent-tool-execution-evidence-smoke.v0"
+    };
+  }
+
+  const evidenceCardId = "agent-tool-execution-smoke-quote-card";
+  const claimId = "agent-tool-execution-smoke-sourced-price";
+  const sourcedValidation = validatePostGenerationEvidenceBinding({
+    answerText: "Tencent quote snapshot returned 382.4 HKD.",
+    asOf: "2026-06-22T00:00:00.000Z",
+    claims: [
+      {
+        claimId,
+        dataVersion: sourceRecord.dataVersion,
+        evidenceCardId,
+        label: "fact",
+        methodologyVersion: sourceRecord.methodologyVersion,
+        sourceRecordId: sourceRecord.sourceRecordId,
+        text: "Tencent quote snapshot returned 382.4 HKD."
+      }
+    ],
+    evidenceCards: [
+      {
+        cardId: evidenceCardId,
+        dataVersion: sourceRecord.dataVersion,
+        methodologyVersion: sourceRecord.methodologyVersion,
+        sourceRecordId: sourceRecord.sourceRecordId
+      }
+    ],
+    requestId: `${requestId}:evidence-binding`
+  });
+  const unsourcedProbe = validatePostGenerationEvidenceBinding({
+    answerText: "Tencent quote snapshot returned 382.4 HKD.",
+    asOf: "2026-06-22T00:00:00.000Z",
+    claims: [
+      {
+        claimId: "agent-tool-execution-smoke-unsourced-price",
+        label: "fact",
+        text: "Tencent quote snapshot returned 382.4 HKD."
+      }
+    ],
+    requestId: `${requestId}:unsourced-probe`
+  });
+  const actualToolExecution = toolResult.ok === true && toolResult.status_code === 200;
+  const sourcedBindingPassed =
+    sourcedValidation.output_allowed === true && sourcedValidation.blocked_claim_count === 0;
+  const unsourcedProbeBlocked =
+    unsourcedProbe.output_allowed === false &&
+    unsourcedProbe.failure_code === "UNSOURCED_NUMERIC_CLAIM";
+  const toolResultHash = await hashRuntimeSmokeString(JSON.stringify(toolResult.data ?? null));
+  const sourceRecordHash = await hashRuntimeSmokeString(sourceRecord.sourceRecordId);
+
+  return {
+    actual_tool_execution: actualToolExecution,
+    evidence_binding_validation: {
+      blocked_claim_count: sourcedValidation.blocked_claim_count,
+      failure_code: sourcedValidation.failure_code ?? null,
+      numeric_claim_count: sourcedValidation.numeric_claims.length,
+      output_allowed: sourcedValidation.output_allowed,
+      route: sourcedValidation.route,
+      status: sourcedValidation.status,
+      version: sourcedValidation.version
+    },
+    hash_only_response: true,
+    live_evidence_binding: false,
+    model_calls: false,
+    persistent_writes: false,
+    sample_tool: {
+      name: "get_quote_snapshot",
+      request_id: toolResult.request_id,
+      route: toolResult.route
+    },
+    source_record_hash: sourceRecordHash,
+    status:
+      actualToolExecution && sourcedBindingPassed && unsourcedProbeBlocked ? "passed" : "failed",
+    tool_result: createSmokeToolResultSummary(toolResult),
+    tool_result_hash: toolResultHash,
+    unsourced_numeric_probe: {
+      blocked_claim_count: unsourcedProbe.blocked_claim_count,
+      failure_code: unsourcedProbe.failure_code ?? null,
+      numeric_claim_count: unsourcedProbe.numeric_claims.length,
+      output_allowed: unsourcedProbe.output_allowed,
+      status: unsourcedProbe.status
+    },
+    version: "2026-06-22.phase1.agent-tool-execution-evidence-smoke.v0"
+  };
+}
+
+function createSmokeToolResultSummary(toolResult: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ok: toolResult.ok === true,
+    provenance_count: Array.isArray(toolResult.provenance) ? toolResult.provenance.length : 0,
+    route: toolResult.route,
+    status_code: toolResult.status_code,
+    usage: isPlainRecord(toolResult.usage) ? toolResult.usage : undefined
+  };
+}
+
+function getFirstSmokeSourceRecord(
+  provenance: unknown
+): { dataVersion: string; methodologyVersion: string; sourceRecordId: string } | undefined {
+  if (!Array.isArray(provenance)) {
+    return undefined;
+  }
+
+  for (const item of provenance) {
+    if (!isPlainRecord(item)) {
+      continue;
+    }
+
+    const sourceRecordId = normalizeString(item.source_record_id ?? item.sourceRecordId);
+    const dataVersion = normalizeString(item.data_version ?? item.dataVersion);
+    const methodologyVersion = normalizeString(
+      item.methodology_version ?? item.methodologyVersion
+    );
+
+    if (
+      sourceRecordId !== undefined &&
+      dataVersion !== undefined &&
+      methodologyVersion !== undefined
+    ) {
+      return {
+        dataVersion,
+        methodologyVersion,
+        sourceRecordId
+      };
+    }
+  }
+
+  return undefined;
 }
 
 function normalizePerformanceAvailabilityObservations(
