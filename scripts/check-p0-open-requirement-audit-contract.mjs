@@ -5,6 +5,15 @@ import { resolve } from "node:path";
 const contractPath = "deploy/governance/p0-open-requirement-audit.contract.json";
 const packageJsonPath = "package.json";
 const expectedChangelog = "| 2026-06-23 | 1.0hf | 完成 `p0-open-requirement-audit`";
+const frontendEvidenceHandoffPath = "deploy/governance/frontend-release-evidence-handoff.contract.json";
+const p0EvidenceHandoffPath = "deploy/governance/p0-open-requirement-evidence-handoff.contract.json";
+const p0TransitionReviewPath = "deploy/governance/p0-open-requirement-transition-review.contract.json";
+const p0RequirementCodes = ["AGT-01", "AGT-07", "MCP-09"];
+const requiredP0FrontendSurfaceIds = [
+  "agent_ask_progress_ui",
+  "agent_evidence_card_ui",
+  "developer_console_ui"
+];
 
 const contract = readJson(contractPath);
 const packageJson = readJson(packageJsonPath);
@@ -70,13 +79,19 @@ function validateContract(value) {
   expectIncludes(
     errors,
     value.linked_evidence_handoffs,
-    "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
+    p0EvidenceHandoffPath,
     "linked_evidence_handoffs.p0_open_requirement_evidence"
   );
   expectIncludes(
     errors,
+    value.linked_evidence_handoffs,
+    frontendEvidenceHandoffPath,
+    "linked_evidence_handoffs.frontend_release_evidence"
+  );
+  expectIncludes(
+    errors,
     value.linked_transition_reviews,
-    "deploy/governance/p0-open-requirement-transition-review.contract.json",
+    p0TransitionReviewPath,
     "linked_transition_reviews.p0_open_requirement_transition_review"
   );
 
@@ -124,6 +139,7 @@ function validateContract(value) {
     "agt_01_complete",
     "agt_07_complete",
     "mcp_09_complete",
+    "frontend_release_evidence_accepted",
     "p0_transition_review_complete",
     "all_p0_requirements_complete",
     "all_sprints_complete"
@@ -236,8 +252,9 @@ function validateLinkedContracts() {
   const consoleLogStore = readJson("deploy/mcp/developer-console-log-store-smoke.contract.json");
   const targetClientHandoff = readJson("deploy/mcp/target-client-live-e2e-handoff.contract.json");
   const targetClientsConsoleGate = readJson("deploy/mcp/target-clients-console-release-gate.contract.json");
-  const p0EvidenceHandoff = readJson("deploy/governance/p0-open-requirement-evidence-handoff.contract.json");
-  const p0TransitionReview = readJson("deploy/governance/p0-open-requirement-transition-review.contract.json");
+  const p0EvidenceHandoff = readJson(p0EvidenceHandoffPath);
+  const frontendEvidenceHandoff = readJson(frontendEvidenceHandoffPath);
+  const p0TransitionReview = readJson(p0TransitionReviewPath);
 
   expectEqual(errors, toolLoop.streaming_transport, "server_sent_events", "toolLoop.streaming_transport");
   expectEqual(errors, toolLoop.stream_model_calls, false, "toolLoop.stream_model_calls");
@@ -348,7 +365,7 @@ function validateLinkedContracts() {
   expectArray(
     errors,
     p0EvidenceHandoff.required_requirement_codes,
-    ["AGT-01", "AGT-07", "MCP-09"],
+    p0RequirementCodes,
     "p0EvidenceHandoff.required_requirement_codes"
   );
   expectIncludes(
@@ -358,9 +375,34 @@ function validateLinkedContracts() {
     "p0EvidenceHandoff.not_claimed.accepted_requirement_evidence"
   );
 
+  expectEqual(errors, frontendEvidenceHandoff.status, "pending_frontend_release_evidence", "frontendEvidenceHandoff.status");
+  expectEqual(errors, frontendEvidenceHandoff.release_transition_allowed, false, "frontendEvidenceHandoff.release_transition_allowed");
+  expectEqual(errors, frontendEvidenceHandoff.all_required_surfaces_accepted, false, "frontendEvidenceHandoff.all_required_surfaces_accepted");
+  expectEqual(errors, frontendEvidenceHandoff.frontend_release_surfaces_complete, false, "frontendEvidenceHandoff.frontend_release_surfaces_complete");
+  expectIncludes(
+    errors,
+    frontendEvidenceHandoff.linked_contracts,
+    p0TransitionReviewPath,
+    "frontendEvidenceHandoff.linked_contracts.p0TransitionReview"
+  );
+  for (const surfaceId of requiredP0FrontendSurfaceIds) {
+    expectIncludes(
+      errors,
+      frontendEvidenceHandoff.required_surface_ids,
+      surfaceId,
+      `frontendEvidenceHandoff.required_surface_ids.${surfaceId}`
+    );
+  }
+
   expectEqual(errors, p0TransitionReview.status, "pending_transition_review", "p0TransitionReview.status");
   expectEqual(errors, p0TransitionReview.release_transition_allowed, false, "p0TransitionReview.release_transition_allowed");
   expectEqual(errors, p0TransitionReview.all_p0_requirements_complete, false, "p0TransitionReview.all_p0_requirements_complete");
+  expectEqual(
+    errors,
+    p0TransitionReview.frontend_evidence_handoff_contract,
+    frontendEvidenceHandoffPath,
+    "p0TransitionReview.frontend_evidence_handoff_contract"
+  );
   expectEqual(
     errors,
     p0TransitionReview.accepted_packets_are_sufficient_alone,
@@ -370,8 +412,14 @@ function validateLinkedContracts() {
   expectArray(
     errors,
     p0TransitionReview.required_requirement_codes,
-    ["AGT-01", "AGT-07", "MCP-09"],
+    p0RequirementCodes,
     "p0TransitionReview.required_requirement_codes"
+  );
+  expectEqual(
+    errors,
+    p0TransitionReview.transition_policy?.frontend_release_evidence_required,
+    true,
+    "p0TransitionReview.transition_policy.frontend_release_evidence_required"
   );
 
   return errors;

@@ -10,6 +10,7 @@ const scenarios = [
       "MCP-09": false
     },
     name: "missing packets and blocked gates",
+    frontendPacketStatuses: {},
     packetStatuses: {},
     gatesReady: []
   },
@@ -21,8 +22,21 @@ const scenarios = [
       "MCP-09": false
     },
     name: "accepted packet alone is insufficient",
+    frontendPacketStatuses: {},
     packetStatuses: acceptedPackets(),
     gatesReady: []
+  },
+  {
+    expected_all_completion_allowed: false,
+    expected_completion_allowed: {
+      "AGT-01": false,
+      "AGT-07": false,
+      "MCP-09": false
+    },
+    name: "accepted packets and linked gates still need frontend evidence",
+    frontendPacketStatuses: {},
+    packetStatuses: acceptedPackets(),
+    gatesReady: ["AGT-01", "AGT-07", "MCP-09"]
   },
   {
     expected_all_completion_allowed: false,
@@ -31,7 +45,8 @@ const scenarios = [
       "AGT-07": false,
       "MCP-09": false
     },
-    name: "partial gates only unlock the matching requirement",
+    name: "partial gates and frontend evidence only unlock the matching requirement",
+    frontendPacketStatuses: acceptedFrontendPackets(),
     packetStatuses: acceptedPackets(),
     gatesReady: ["AGT-01"]
   },
@@ -42,7 +57,8 @@ const scenarios = [
       "AGT-07": true,
       "MCP-09": true
     },
-    name: "all accepted packets and all linked gates unlock transition",
+    name: "all accepted packets, frontend evidence, and linked gates unlock transition",
+    frontendPacketStatuses: acceptedFrontendPackets(),
     packetStatuses: acceptedPackets(),
     gatesReady: ["AGT-01", "AGT-07", "MCP-09"]
   }
@@ -52,6 +68,13 @@ const errors = [];
 
 for (const scenario of scenarios) {
   const transitionReview = deriveP0OpenRequirementTransitionReview({
+    frontendPacketResult: {
+      all_required_accepted: Object.keys(scenario.frontendPacketStatuses).length === 6,
+      errors: [],
+      packet_files: [],
+      packet_statuses: scenario.frontendPacketStatuses,
+      status: "fixture"
+    },
     linkedContracts: buildLinkedContracts(scenario.gatesReady),
     packetResult: {
       all_required_accepted: Object.keys(scenario.packetStatuses).length === 3,
@@ -82,6 +105,9 @@ for (const scenario of scenarios) {
     if (decision.completion_allowed === true && decision.linked_release_gates_ready !== true) {
       errors.push(`${scenario.name}: ${decision.requirement_code} unlocked without linked release gates`);
     }
+    if (decision.completion_allowed === true && decision.frontend_evidence_accepted !== true) {
+      errors.push(`${scenario.name}: ${decision.requirement_code} unlocked without frontend evidence`);
+    }
   }
 }
 
@@ -99,7 +125,7 @@ if (errors.length > 0) {
 emit(
   {
     allowed_scenarios: 1,
-    blocked_scenarios: 2,
+    blocked_scenarios: 3,
     partial_scenarios: 1,
     scenarios: scenarios.length,
     status: "ok"
@@ -112,6 +138,17 @@ function acceptedPackets() {
     "AGT-01": "accepted",
     "AGT-07": "accepted",
     "MCP-09": "accepted"
+  };
+}
+
+function acceptedFrontendPackets() {
+  return {
+    agent_ask_progress_ui: "accepted",
+    agent_evidence_card_ui: "accepted",
+    comparison_screening_ui: "accepted",
+    developer_console_ui: "accepted",
+    research_library_ui: "accepted",
+    wcag_2_1_aa_audit: "accepted"
   };
 }
 

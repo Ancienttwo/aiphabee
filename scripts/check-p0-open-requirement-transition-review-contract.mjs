@@ -3,12 +3,19 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { validateFrontendReleaseEvidencePackets } from "./check-frontend-release-evidence-packets.mjs";
 import { validateP0OpenRequirementEvidencePackets } from "./check-p0-open-requirement-evidence-packets.mjs";
 
 const contractPath = "deploy/governance/p0-open-requirement-transition-review.contract.json";
 const packagePath = "package.json";
 const expectedChangelog = "| 2026-06-23 | 1.0hh | 完成 `p0-open-requirement-transition-review`";
 const requiredCodes = ["AGT-01", "AGT-07", "MCP-09"];
+const frontendEvidenceHandoffPath = "deploy/governance/frontend-release-evidence-handoff.contract.json";
+const requirementFrontendSurfaceIds = {
+  "AGT-01": "agent_ask_progress_ui",
+  "AGT-07": "agent_evidence_card_ui",
+  "MCP-09": "developer_console_ui"
+};
 
 if (isMainModule()) {
   runCli();
@@ -24,6 +31,7 @@ function runCli() {
   const packageJson = readJson(packagePath);
   const openRequirementAudit = readJson(contract.open_requirement_audit_contract);
   const evidenceHandoff = readJson(contract.evidence_handoff_contract);
+  const frontendEvidenceHandoff = readJson(contract.frontend_evidence_handoff_contract);
   const tracker = readText(contract.tracker);
   const todos = readText(contract.todos);
   const packetDirectory = evidenceHandoff.packet_directory;
@@ -37,14 +45,27 @@ function runCli() {
     packetDirectoryExists: existsSync(resolve(process.cwd(), packetDirectory)),
     packetFiles
   });
+  const frontendPacketDirectory = frontendEvidenceHandoff.packet_directory;
+  const frontendPacketFiles = existsSync(resolve(process.cwd(), frontendPacketDirectory))
+    ? listPacketFiles(frontendPacketDirectory)
+    : [];
+  const frontendPacketResult = validateFrontendReleaseEvidencePackets({
+    contract: frontendEvidenceHandoff,
+    packageJson,
+    packetDirectoryExists: existsSync(resolve(process.cwd(), frontendPacketDirectory)),
+    packetFiles: frontendPacketFiles
+  });
   const linkedContracts = readLinkedContracts();
   const transitionReview = deriveP0OpenRequirementTransitionReview({
+    frontendPacketResult,
     linkedContracts,
     packetResult
   });
   const errors = validateP0OpenRequirementTransitionReview({
     contract,
     evidenceHandoff,
+    frontendEvidenceHandoff,
+    frontendPacketResult,
     linkedContracts,
     openRequirementAudit,
     packageJson,
@@ -58,6 +79,7 @@ function runCli() {
     emit(
       {
         errors,
+        frontend_packet_result: frontendPacketResult,
         packet_result: packetResult,
         status: "invalid_p0_open_requirement_transition_review",
         transition_review: transitionReview
@@ -69,6 +91,11 @@ function runCli() {
   emit(
     {
       completion_allowed_count: transitionReview.decisions.filter((decision) => decision.completion_allowed).length,
+      frontend_packet_result: {
+        all_required_accepted: frontendPacketResult.all_required_accepted,
+        packet_files: frontendPacketResult.packet_files,
+        status: frontendPacketResult.status
+      },
       packet_result: {
         all_required_accepted: packetResult.all_required_accepted,
         packet_files: packetResult.packet_files,
@@ -83,47 +110,40 @@ function runCli() {
   );
 }
 
-function deriveP0OpenRequirementTransitionReview({ linkedContracts, packetResult }) {
+function deriveP0OpenRequirementTransitionReview({ frontendPacketResult = {}, linkedContracts, packetResult }) {
   const packetStatuses = packetResult.packet_statuses ?? {};
+  const frontendPacketStatuses = frontendPacketResult.packet_statuses ?? {};
+  const frontendEvidenceAccepted = (code) =>
+    frontendPacketStatuses[requirementFrontendSurfaceIds[code]] === "accepted";
+  const buildDecision = ({ code, linked_release_gates_ready }) => ({
+    completion_allowed:
+      packetStatuses[code] === "accepted" &&
+      frontendEvidenceAccepted(code) &&
+      linked_release_gates_ready,
+    frontend_evidence_accepted: frontendEvidenceAccepted(code),
+    frontend_surface_id: requirementFrontendSurfaceIds[code],
+    linked_release_gates_ready,
+    packet_accepted: packetStatuses[code] === "accepted",
+    requirement_code: code
+  });
+
   const decisions = [
-    {
-      completion_allowed:
-        packetStatuses["AGT-01"] === "accepted" &&
-        linkedContracts.liveModelStreaming.release_transition_allowed === true &&
-        linkedContracts.userToolLoop.release_transition_allowed === true,
+    buildDecision({
+      code: "AGT-01",
       linked_release_gates_ready:
         linkedContracts.liveModelStreaming.release_transition_allowed === true &&
-        linkedContracts.userToolLoop.release_transition_allowed === true,
-      packet_accepted: packetStatuses["AGT-01"] === "accepted",
-      requirement_code: "AGT-01"
-    },
-    {
-      completion_allowed:
-        packetStatuses["AGT-07"] === "accepted" &&
-        linkedContracts.modelCorpus.release_transition_allowed === true &&
-        linkedContracts.generatedEvidence.frontend === true &&
-        linkedContracts.generatedEvidence.live_evidence_writes === true &&
-        !linkedContracts.postGeneration.not_claimed?.includes("frontend_evidence_card_rendering"),
+        linkedContracts.userToolLoop.release_transition_allowed === true
+    }),
+    buildDecision({
+      code: "AGT-07",
       linked_release_gates_ready:
         linkedContracts.modelCorpus.release_transition_allowed === true &&
         linkedContracts.generatedEvidence.frontend === true &&
         linkedContracts.generatedEvidence.live_evidence_writes === true &&
-        !linkedContracts.postGeneration.not_claimed?.includes("frontend_evidence_card_rendering"),
-      packet_accepted: packetStatuses["AGT-07"] === "accepted",
-      requirement_code: "AGT-07"
-    },
-    {
-      completion_allowed:
-        packetStatuses["MCP-09"] === "accepted" &&
-        linkedContracts.targetClientHandoff.all_target_client_packets_accepted === true &&
-        linkedContracts.targetClientsConsoleGate.live_client_e2e_passed === true &&
-        linkedContracts.targetClientsConsoleGate.frontend_rendering === true &&
-        linkedContracts.targetClientsConsoleGate.live_console_log_store === true &&
-        linkedContracts.targetClientsConsoleGate.live_usage_ledger_reads === true &&
-        linkedContracts.developerConsole.developer_console_live === true &&
-        linkedContracts.developerConsole.frontend_rendering === true &&
-        linkedContracts.developerConsole.live_console_log_store === true &&
-        linkedContracts.developerConsole.live_usage_ledger_reads === true,
+        !linkedContracts.postGeneration.not_claimed?.includes("frontend_evidence_card_rendering")
+    }),
+    buildDecision({
+      code: "MCP-09",
       linked_release_gates_ready:
         linkedContracts.targetClientHandoff.all_target_client_packets_accepted === true &&
         linkedContracts.targetClientsConsoleGate.live_client_e2e_passed === true &&
@@ -133,10 +153,8 @@ function deriveP0OpenRequirementTransitionReview({ linkedContracts, packetResult
         linkedContracts.developerConsole.developer_console_live === true &&
         linkedContracts.developerConsole.frontend_rendering === true &&
         linkedContracts.developerConsole.live_console_log_store === true &&
-        linkedContracts.developerConsole.live_usage_ledger_reads === true,
-      packet_accepted: packetStatuses["MCP-09"] === "accepted",
-      requirement_code: "MCP-09"
-    }
+        linkedContracts.developerConsole.live_usage_ledger_reads === true
+    })
   ];
 
   return {
@@ -148,6 +166,8 @@ function deriveP0OpenRequirementTransitionReview({ linkedContracts, packetResult
 function validateP0OpenRequirementTransitionReview({
   contract,
   evidenceHandoff,
+  frontendEvidenceHandoff,
+  frontendPacketResult,
   linkedContracts,
   openRequirementAudit,
   packageJson,
@@ -162,6 +182,7 @@ function validateP0OpenRequirementTransitionReview({
     ...validateTracker(contract, tracker),
     ...validateTodos(contract, todos),
     ...validateEvidenceHandoff(contract, evidenceHandoff, packetResult),
+    ...validateFrontendEvidenceHandoff(contract, frontendEvidenceHandoff, frontendPacketResult),
     ...validateOpenRequirementAudit(contract, openRequirementAudit),
     ...validateLinkedGateState(linkedContracts),
     ...validateTransitionDecisions(contract, transitionReview)
@@ -169,6 +190,9 @@ function validateP0OpenRequirementTransitionReview({
 
   if (packetResult.errors.length > 0) {
     errors.push(...packetResult.errors.map((error) => `packet validator failed: ${error}`));
+  }
+  if (frontendPacketResult.errors.length > 0) {
+    errors.push(...frontendPacketResult.errors.map((error) => `frontend packet validator failed: ${error}`));
   }
 
   return errors;
@@ -183,6 +207,7 @@ function validateContract(value) {
   expectEqual(errors, value.fixture_checker, "scripts/check-p0-open-requirement-transition-review-fixtures.mjs", "fixture_checker");
   expectEqual(errors, value.open_requirement_audit_contract, "deploy/governance/p0-open-requirement-audit.contract.json", "open_requirement_audit_contract");
   expectEqual(errors, value.evidence_handoff_contract, "deploy/governance/p0-open-requirement-evidence-handoff.contract.json", "evidence_handoff_contract");
+  expectEqual(errors, value.frontend_evidence_handoff_contract, frontendEvidenceHandoffPath, "frontend_evidence_handoff_contract");
   expectEqual(errors, value.tracker, "docs/AiphaBee_Sprint_Tracker_v1.0.md", "tracker");
   expectEqual(errors, value.todos, "tasks/todos.md", "todos");
   expectEqual(errors, value.release_transition_allowed, false, "release_transition_allowed");
@@ -193,6 +218,7 @@ function validateContract(value) {
   for (const [key, expected] of Object.entries({
     accepted_packet_alone_never_completes_requirement: true,
     accepted_packet_required: true,
+    frontend_release_evidence_required: true,
     hash_only_packet_validator_remains_source_of_truth: true,
     linked_release_gate_required: true,
     sprint_exit_gate_change_requires_review: true,
@@ -215,6 +241,8 @@ function validateContract(value) {
 
     expectEqual(errors, review.tracker_status, "☐", `${code}.tracker_status`);
     expectEqual(errors, review.evidence_packet_required, true, `${code}.evidence_packet_required`);
+    expectEqual(errors, review.frontend_evidence_required, true, `${code}.frontend_evidence_required`);
+    expectEqual(errors, review.frontend_surface_id, requirementFrontendSurfaceIds[code], `${code}.frontend_surface_id`);
     expectEqual(errors, review.completion_allowed, false, `${code}.completion_allowed`);
     if (!Array.isArray(review.linked_release_gates) || review.linked_release_gates.length === 0) {
       errors.push(`${code}.linked_release_gates must not be empty`);
@@ -231,6 +259,8 @@ function validateContract(value) {
 
   for (const claim of [
     "accepted_packets_present",
+    "frontend_release_evidence_accepted",
+    "frontend_release_surfaces_complete",
     "release_transition_allowed",
     "all_p0_requirements_complete",
     "all_sprints_complete"
@@ -315,6 +345,36 @@ function validateEvidenceHandoff(value, evidenceHandoff, packetResult) {
   return errors;
 }
 
+function validateFrontendEvidenceHandoff(value, frontendEvidenceHandoff, frontendPacketResult) {
+  const errors = [];
+
+  expectEqual(errors, frontendEvidenceHandoff.status, "pending_frontend_release_evidence", "frontendEvidenceHandoff.status");
+  expectEqual(errors, frontendEvidenceHandoff.release_transition_allowed, false, "frontendEvidenceHandoff.release_transition_allowed");
+  expectEqual(errors, frontendEvidenceHandoff.all_required_surfaces_accepted, false, "frontendEvidenceHandoff.all_required_surfaces_accepted");
+  expectEqual(errors, frontendEvidenceHandoff.frontend_release_surfaces_complete, false, "frontendEvidenceHandoff.frontend_release_surfaces_complete");
+  expectIncludes(
+    errors,
+    frontendEvidenceHandoff.linked_contracts,
+    contractPath,
+    "frontendEvidenceHandoff.linked_contracts.p0_transition_review"
+  );
+
+  for (const code of value.required_requirement_codes ?? []) {
+    expectIncludes(
+      errors,
+      frontendEvidenceHandoff.required_surface_ids,
+      requirementFrontendSurfaceIds[code],
+      `frontendEvidenceHandoff.required_surface_ids.${code}`
+    );
+  }
+
+  if (frontendPacketResult.all_required_accepted === true) {
+    errors.push("current repo must not contain all accepted frontend release evidence packets while transition review is pending");
+  }
+
+  return errors;
+}
+
 function validateOpenRequirementAudit(value, openRequirementAudit) {
   const errors = [];
 
@@ -331,6 +391,12 @@ function validateOpenRequirementAudit(value, openRequirementAudit) {
     openRequirementAudit.linked_transition_reviews,
     "deploy/governance/p0-open-requirement-transition-review.contract.json",
     "openRequirementAudit.linked_transition_reviews"
+  );
+  expectIncludes(
+    errors,
+    openRequirementAudit.linked_evidence_handoffs,
+    frontendEvidenceHandoffPath,
+    "openRequirementAudit.linked_evidence_handoffs.frontend_release_evidence"
   );
 
   return errors;
@@ -376,6 +442,8 @@ function validateTransitionDecisions(value, transitionReview) {
 
     expectEqual(errors, decision.completion_allowed, false, `${decision.requirement_code}.completion_allowed`);
     expectEqual(errors, decision.completion_allowed, review?.completion_allowed, `${decision.requirement_code}.contract_completion_allowed`);
+    expectEqual(errors, decision.frontend_evidence_accepted, false, `${decision.requirement_code}.frontend_evidence_accepted`);
+    expectEqual(errors, decision.frontend_surface_id, review?.frontend_surface_id, `${decision.requirement_code}.contract_frontend_surface_id`);
   }
 
   return errors;

@@ -10,7 +10,8 @@
   "frontend_delegated": true,
   "external_evidence_required": true,
   "linked_evidence_handoffs": [
-    "deploy/governance/p0-open-requirement-evidence-handoff.contract.json"
+    "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
+    "deploy/governance/frontend-release-evidence-handoff.contract.json"
   ],
   "linked_transition_reviews": [
     "deploy/governance/p0-open-requirement-transition-review.contract.json"
@@ -98,6 +99,7 @@
   "required_tracker_fragments": [
     "P0 open requirement blocker audit 已建立",
     "P0 open requirement evidence handoff 已建立",
+    "Frontend release evidence handoff 已建立",
     "P0 open requirement transition review 已建立",
     "| AGT-01 流式 + 工具进度 | P0 | 1.3 | ☐ |",
     "| AGT-07 来源引用证据卡片 | P0 | 1.3 | ☐ |",
@@ -116,6 +118,7 @@
   "required_todos_fragments": [
     "P0 open requirement blocker audit",
     "P0 open requirement evidence handoff",
+    "Frontend release evidence handoff",
     "P0 open requirement transition review",
     "AGT-01 / AGT-07 / MCP-09",
     "npm run check:p0-open-requirement-audit"
@@ -127,6 +130,7 @@
     "frontend_ask_progress_complete",
     "frontend_evidence_cards_complete",
     "developer_console_ui_complete",
+    "frontend_release_evidence_accepted",
     "live_target_client_e2e_complete",
     "p0_transition_review_complete",
     "all_p0_requirements_complete",

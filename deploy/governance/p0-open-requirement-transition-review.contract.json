@@ -5,6 +5,7 @@
   "fixture_checker": "scripts/check-p0-open-requirement-transition-review-fixtures.mjs",
   "open_requirement_audit_contract": "deploy/governance/p0-open-requirement-audit.contract.json",
   "evidence_handoff_contract": "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
+  "frontend_evidence_handoff_contract": "deploy/governance/frontend-release-evidence-handoff.contract.json",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
   "todos": "tasks/todos.md",
   "release_transition_allowed": false,
@@ -13,6 +14,7 @@
   "required_requirement_codes": ["AGT-01", "AGT-07", "MCP-09"],
   "transition_policy": {
     "accepted_packet_required": true,
+    "frontend_release_evidence_required": true,
     "linked_release_gate_required": true,
     "tracker_checkbox_change_requires_review": true,
     "sprint_exit_gate_change_requires_review": true,
@@ -24,12 +26,15 @@
       "requirement_code": "AGT-01",
       "tracker_status": "☐",
       "evidence_packet_required": true,
+      "frontend_evidence_required": true,
+      "frontend_surface_id": "agent_ask_progress_ui",
       "completion_allowed": false,
       "linked_release_gates": [
         "deploy/agent/live-model-streaming-release-gate.contract.json",
         "deploy/agent/user-tool-loop-execution-release-gate.contract.json"
       ],
       "blocking_conditions": [
+        "accepted_frontend_release_evidence_packet",
         "frontend_ask_progress_rendering",
         "user_facing_live_model_token_streaming",
         "arbitrary_user_tool_loop_execution",
@@ -40,6 +45,8 @@
       "requirement_code": "AGT-07",
       "tracker_status": "☐",
       "evidence_packet_required": true,
+      "frontend_evidence_required": true,
+      "frontend_surface_id": "agent_evidence_card_ui",
       "completion_allowed": false,
       "linked_release_gates": [
         "deploy/agent/model-output-corpus-release-gate.contract.json",
@@ -47,6 +54,7 @@
         "deploy/governance/post-generation-evidence-binding.contract.json"
       ],
       "blocking_conditions": [
+        "accepted_frontend_release_evidence_packet",
         "frontend_clickable_evidence_cards",
         "live_evidence_writes",
         "production_generated_answer_evidence_binding",
@@ -57,6 +65,8 @@
       "requirement_code": "MCP-09",
       "tracker_status": "☐",
       "evidence_packet_required": true,
+      "frontend_evidence_required": true,
+      "frontend_surface_id": "developer_console_ui",
       "completion_allowed": false,
       "linked_release_gates": [
         "deploy/mcp/target-client-live-e2e-handoff.contract.json",
@@ -65,6 +75,7 @@
         "deploy/mcp/developer-console-log-store-smoke.contract.json"
       ],
       "blocking_conditions": [
+        "accepted_frontend_release_evidence_packet",
         "frontend_console_ui",
         "production_console_log_store_cutover",
         "live_usage_ledger_reads",
@@ -75,11 +86,15 @@
   ],
   "required_tracker_fragments": [
     "P0 open requirement transition review 已建立",
-    "| 2026-06-23 | 1.0hh | 完成 `p0-open-requirement-transition-review`"
+    "Frontend release evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hh | 完成 `p0-open-requirement-transition-review`",
+    "| 2026-06-23 | 1.0hp | 完成 `p0-transition-frontend-evidence-link`"
   ],
   "required_todos_fragments": [
     "P0 open requirement transition review",
+    "Frontend release evidence handoff",
     "npm run check:p0-open-requirement-transition-review",
+    "npm run check:frontend-release-evidence-packets",
     "accepted packet alone"
   ],
   "not_claimed": [
@@ -87,6 +102,8 @@
     "agt_07_complete",
     "mcp_09_complete",
     "accepted_packets_present",
+    "frontend_release_evidence_accepted",
+    "frontend_release_surfaces_complete",
     "release_transition_allowed",
     "all_p0_requirements_complete",
     "all_sprints_complete"
