@@ -21,6 +21,7 @@ Cloudflare smoke path can write/read/delete a prompt-free `run.eval`
 | OTLP destination | `OTLP_EXPORTER_OTLP_ENDPOINT`, `OTLP_EXPORTER_OTLP_HEADERS` | Names-only env contract, no values |
 | Runtime capability | `GET /observability/runtime` | Reports planned/configured status and disables writes/export |
 | Contract checker | `scripts/check-observability-contract.mjs` | Validates event sinks, env schema, and binding manifest |
+| Live smoke readiness | `deploy/observability/live-smoke-readiness.contract.json` / `scripts/smoke-observability-live.mjs` | Synthetic OTLP JSON export and D1 eval-store record write/read/delete rerun harness |
 | Live export/write | Partial smoke only | No OTLP request, product D1 writes, dashboard, or alerting |
 
 ## P2 Concrete Trace
@@ -56,6 +57,17 @@ Guarded eval-store smoke trace:
    deletes/drops the synthetic smoke table.
 4. The response returns only status, operation counts, and hashes.
 
+Live smoke readiness trace:
+
+1. `npm run check:observability-live-readiness` validates the live readiness
+   contract, source observability sinks, package scripts, and no-secret output
+   rules.
+2. `npm run smoke:observability-live -- --dry-run` reports required env without
+   network access.
+3. A future real run sends one synthetic OTLP JSON log and runs remote D1
+   create/insert/select/delete/drop against a prompt-free eval-store smoke
+   table, returning only hashes/status/counts.
+
 ## P3 Design Decision
 
 Selected guarded eval-store smoke over product live OTLP/D1 writes.
@@ -76,12 +88,16 @@ Tradeoff:
 - Runtime can show whether live wiring is configured.
 - It still cannot prove production telemetry export, retention, dashboards,
   eval analytics queries, or a post-upgrade live Cloudflare rerun.
+- The live-smoke harness now makes OTLP + eval-store rerun executable when
+  operator env/auth is present, without enabling product writes.
 
 ## Verification
 
 Passed:
 
 - `npm run check:observability`
+- `npm run check:observability-live-readiness`
+- `npm run smoke:observability-live -- --dry-run`
 - `npm run check:bindings`
 - `npm run check:env`
 - `npm run test`
@@ -115,7 +131,8 @@ Observed `/observability/runtime` fields:
 
 ## Residual Gaps
 
-- Real OTLP destination and header secret are not configured.
+- Real OTLP destination and header secret are not configured in the current
+  shell.
 - Product eval-store writes, dashboards, alerting, and retention policy are
   absent. D1 resource-level synthetic write/read has passed in the Cloudflare
   resource smoke slice; the eval-record-specific path is implemented and awaits

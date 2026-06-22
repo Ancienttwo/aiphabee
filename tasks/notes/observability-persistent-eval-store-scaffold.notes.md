@@ -18,10 +18,15 @@
 - Later Cloudflare smoke readiness upgraded the guarded D1 path to write/read a
   prompt-free `run.eval` eval-store record in `aiphabee_eval_store_smoke`, then
   delete/drop the synthetic smoke table. Product runtime writes remain disabled.
+- Added a follow-on live smoke readiness harness for OTLP JSON export and remote
+  D1 eval-store write/read/delete rerun; the live command remains explicit and
+  unrun without OTLP/D1 env.
 
 ## Verification
 
 - Passed: `npm run check:observability`
+- Passed: `npm run check:observability-live-readiness`
+- Passed: `npm run smoke:observability-live -- --dry-run`
 - Passed: `npm run check:bindings`
 - Passed: `npm run check:env`
 - Passed: `npm run test`

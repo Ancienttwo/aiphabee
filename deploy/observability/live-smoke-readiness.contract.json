@@ -1,0 +1,59 @@
+{
+  "version": "2026-06-22.phase0.observability-live-smoke-readiness.v0",
+  "status": "readiness_no_secret",
+  "source_contract": "deploy/observability/events.contract.json",
+  "script": "scripts/smoke-observability-live.mjs",
+  "checker": "scripts/check-observability-live-readiness.mjs",
+  "package_scripts": {
+    "check": "check:observability-live-readiness",
+    "smoke": "smoke:observability-live"
+  },
+  "required_env": [
+    "OTLP_EXPORTER_OTLP_ENDPOINT",
+    "OTLP_EXPORTER_OTLP_HEADERS",
+    "CLOUDFLARE_D1_DATABASE_NAME"
+  ],
+  "auth_sources": [
+    "OTLP destination accepts configured headers",
+    "Wrangler authenticated session or CLOUDFLARE_API_TOKEN"
+  ],
+  "synthetic_surfaces": [
+    {
+      "name": "otlp_http_log_export",
+      "status": "readiness_not_run",
+      "operation": "POST synthetic OTLP JSON log record to OTLP_EXPORTER_OTLP_ENDPOINT",
+      "output": "endpoint hash, response status, response hash"
+    },
+    {
+      "name": "eval_store_record_write_read_delete",
+      "status": "readiness_not_run",
+      "operation": "wrangler d1 execute against CLOUDFLARE_D1_DATABASE_NAME with synthetic eval-store record",
+      "output": "database name hash, table hash, record hash, operation count"
+    }
+  ],
+  "pass_conditions": [
+    "OTLP endpoint returns a 2xx response for the synthetic log export",
+    "D1 eval-store smoke table is created",
+    "synthetic eval-store record is inserted and selected back with matching schema_version/result/record_json",
+    "synthetic eval-store record is deleted and smoke table is dropped",
+    "output contains no OTLP header values, raw response body, prompt text, token, secret, or password"
+  ],
+  "forbidden_output_fields": [
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "password",
+    "otlp_headers",
+    "raw_response",
+    "raw_output",
+    "record_json"
+  ],
+  "not_claimed": [
+    "production OTLP pipeline is retained",
+    "dashboard exists",
+    "alerting exists",
+    "product eval writes are enabled",
+    "live smoke passed"
+  ]
+}
