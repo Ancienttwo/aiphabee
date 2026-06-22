@@ -354,6 +354,7 @@ interface WorkerBindings {
   AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -814,6 +815,14 @@ const AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN_BINDING =
   "AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN";
 const AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION =
   "2026-06-22.phase1.agent-live-tool-loop-smoke.v0";
+const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE =
+  "/agent/runs/generated-answer-evidence-smoke";
+const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_HEADER_VALUE =
+  "agent-generated-answer-evidence-v1";
+const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN";
+const AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION =
+  "2026-06-22.phase1.agent-generated-answer-evidence-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1483,6 +1492,103 @@ app.post(AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE, async (c) => {
       route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
       status: "failed",
       version: AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
+app.post(AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentGeneratedAnswerEvidenceSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentGeneratedAnswerEvidenceSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  try {
+    const result = await executeAgentGeneratedAnswerEvidenceSmoke(requestId);
+    const bodyWithoutHash = {
+      agent_generated_answer_evidence_result: result,
+      request_id: requestId,
+      route: `POST ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE}`,
+      status: result.status === "passed" ? "ok" : "failed",
+      version: AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      result.status === "passed" ? 200 : 502
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code:
+        error instanceof AgentRuntimeInputError || error instanceof McpRuntimeInputError
+          ? error.code
+          : "AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_FAILED",
+      request_id: requestId,
+      route: `POST ${AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_ROUTE}`,
+      status: "failed",
+      version: AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION
     };
     const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
 
@@ -10657,6 +10763,16 @@ function getAgentLiveToolLoopSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingAgentGeneratedAnswerEvidenceSmokeEnv(env: WorkerBindings): string[] {
+  return getAgentGeneratedAnswerEvidenceSmokeToken(env).length >= 16
+    ? []
+    : [AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_TOKEN_BINDING];
+}
+
+function getAgentGeneratedAnswerEvidenceSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?.trim() ?? "";
+}
+
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
   return getAgentToolExecutionSmokeToken(env).length >= 16
     ? []
@@ -11522,6 +11638,18 @@ function isAgentLiveToolLoopSmokeAuthorized(c: Context<{ Bindings: WorkerBinding
   return c.req.header("authorization") === `Bearer ${token}`;
 }
 
+function isAgentGeneratedAnswerEvidenceSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getAgentGeneratedAnswerEvidenceSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
 function isAgentToolExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = getAgentToolExecutionSmokeToken(c.env ?? {});
 
@@ -11917,6 +12045,142 @@ async function executeAgentToolExecutionEvidenceSmoke(
       status: unsourcedProbe.status
     },
     version: "2026-06-22.phase1.agent-tool-execution-evidence-smoke.v0"
+  };
+}
+
+async function executeAgentGeneratedAnswerEvidenceSmoke(
+  requestId: string
+): Promise<Record<string, unknown>> {
+  const generatedAnswerText = "Tencent quote snapshot returned 382.4 HKD.";
+  const toolCall = {
+    arguments: {
+      instrument_id: "eq_hk_00700",
+      mode: "delayed"
+    },
+    name: "get_quote_snapshot"
+  };
+  const toolResult = await executeRegisteredWorkerToolRouteSmoke(
+    toolCall,
+    requestId,
+    "generated-answer-tool"
+  );
+  const generatedAnswerTextHash = await hashRuntimeSmokeString(generatedAnswerText);
+  const toolResultHash = await hashRuntimeSmokeString(JSON.stringify(toolResult.data ?? null));
+  const sourceRecord = getFirstSmokeSourceRecord(toolResult.provenance);
+  const actualToolExecution = toolResult.ok === true && toolResult.status_code === 200;
+
+  if (sourceRecord === undefined) {
+    return {
+      actual_tool_execution: actualToolExecution,
+      answer_text_returned: false,
+      failure_code: "missing_tool_provenance",
+      frontend: false,
+      generated_answer_text_hash: generatedAnswerTextHash,
+      generated_answer_validation: false,
+      hash_only_response: true,
+      live_evidence_binding: false,
+      live_evidence_writes: false,
+      live_model_output_corpus: false,
+      live_usage_ledger_writes: false,
+      model_calls: false,
+      model_generation_live: false,
+      persistent_writes: false,
+      raw_tool_output_returned: false,
+      status: "failed",
+      tool_result: createSmokeToolResultSummary(toolResult),
+      tool_result_hash: toolResultHash,
+      version: AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION
+    };
+  }
+
+  const evidenceCardId = "agent-generated-answer-smoke-quote-card";
+  const claimId = "agent-generated-answer-smoke-sourced-price";
+  const sourcedValidation = validatePostGenerationEvidenceBinding({
+    answerText: generatedAnswerText,
+    asOf: "2026-06-22T00:00:00.000Z",
+    claims: [
+      {
+        claimId,
+        dataVersion: sourceRecord.dataVersion,
+        evidenceCardId,
+        label: "fact",
+        methodologyVersion: sourceRecord.methodologyVersion,
+        sourceRecordId: sourceRecord.sourceRecordId,
+        text: generatedAnswerText
+      }
+    ],
+    evidenceCards: [
+      {
+        cardId: evidenceCardId,
+        dataVersion: sourceRecord.dataVersion,
+        methodologyVersion: sourceRecord.methodologyVersion,
+        sourceRecordId: sourceRecord.sourceRecordId
+      }
+    ],
+    requestId: `${requestId}:generated-answer-sourced`
+  });
+  const unsourcedGeneratedAnswerProbe = validatePostGenerationEvidenceBinding({
+    answerText: generatedAnswerText,
+    asOf: "2026-06-22T00:00:00.000Z",
+    requestId: `${requestId}:generated-answer-unsourced`
+  });
+  const sourcedBindingPassed =
+    sourcedValidation.output_allowed === true && sourcedValidation.blocked_claim_count === 0;
+  const unsourcedGeneratedAnswerBlocked =
+    unsourcedGeneratedAnswerProbe.output_allowed === false &&
+    unsourcedGeneratedAnswerProbe.failure_code === "UNSOURCED_NUMERIC_CLAIM";
+  const sourceRecordHash = await hashRuntimeSmokeString(sourceRecord.sourceRecordId);
+  const status =
+    actualToolExecution && sourcedBindingPassed && unsourcedGeneratedAnswerBlocked
+      ? "passed"
+      : "failed";
+
+  return {
+    actual_tool_execution: actualToolExecution,
+    answer_text_returned: false,
+    evidence_binding_validation: {
+      blocked_claim_count: sourcedValidation.blocked_claim_count,
+      failure_code: sourcedValidation.failure_code ?? null,
+      numeric_claim_count: sourcedValidation.numeric_claims.length,
+      output_allowed: sourcedValidation.output_allowed,
+      route: sourcedValidation.route,
+      status: sourcedValidation.status,
+      version: sourcedValidation.version
+    },
+    evidence_card_binding_probe: true,
+    frontend: false,
+    generated_answer_text_hash: generatedAnswerTextHash,
+    generated_answer_validation: true,
+    hash_only_response: true,
+    live_evidence_binding: false,
+    live_evidence_writes: false,
+    live_model_output_corpus: false,
+    live_usage_ledger_writes: false,
+    model_calls: false,
+    model_generation_live: false,
+    persistent_writes: false,
+    raw_tool_output_returned: false,
+    sample_tool: {
+      name: "get_quote_snapshot",
+      request_id: toolResult.request_id,
+      route: toolResult.route
+    },
+    source_record_hash: sourceRecordHash,
+    status,
+    tool_result: createSmokeToolResultSummary(toolResult),
+    tool_result_hash: toolResultHash,
+    unsourced_generated_answer_probe: {
+      blocked_claim_count: unsourcedGeneratedAnswerProbe.blocked_claim_count,
+      failure_code: unsourcedGeneratedAnswerProbe.failure_code ?? null,
+      numeric_claim_count: unsourcedGeneratedAnswerProbe.numeric_claims.length,
+      output_allowed: unsourcedGeneratedAnswerProbe.output_allowed,
+      status: unsourcedGeneratedAnswerProbe.status
+    },
+    validation: {
+      generated_answer_text_bound_to_evidence_card: sourcedBindingPassed,
+      unsourced_generated_answer_blocked: unsourcedGeneratedAnswerBlocked
+    },
+    version: AGENT_GENERATED_ANSWER_EVIDENCE_SMOKE_VERSION
   };
 }
 
