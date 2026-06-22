@@ -7,6 +7,8 @@ import { validateSprint1LiveDataEvidencePackets } from "./check-sprint1-live-dat
 const manifestPath = "deploy/governance/sprint1-live-data-evidence-manifest.contract.json";
 const packagePath = "package.json";
 const readmePath = "deploy/governance/sprint1-live-data-evidence-templates/README.md";
+const transitionReviewCheckerPath = "scripts/check-sprint1-live-data-transition-review-contract.mjs";
+const transitionReviewFixtureCheckerPath = "scripts/check-sprint1-live-data-transition-review-fixtures.mjs";
 
 const manifest = readJson(manifestPath);
 const packageJson = readJson(packagePath);
@@ -54,6 +56,14 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
     errors.push("manifest.handoff_checker must be scripts/check-sprint1-live-data-evidence-handoff.mjs");
   }
 
+  if (value.transition_review_checker !== transitionReviewCheckerPath) {
+    errors.push(`manifest.transition_review_checker must be ${transitionReviewCheckerPath}`);
+  }
+
+  if (value.transition_review_fixture_checker !== transitionReviewFixtureCheckerPath) {
+    errors.push(`manifest.transition_review_fixture_checker must be ${transitionReviewFixtureCheckerPath}`);
+  }
+
   if (value.template_directory !== "deploy/governance/sprint1-live-data-evidence-templates") {
     errors.push("manifest.template_directory must be deploy/governance/sprint1-live-data-evidence-templates");
   }
@@ -70,6 +80,14 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
     errors.push("evidence policy must require handoff README to list gate order");
   }
 
+  if (!value.evidence_policy?.accepted_evidence_packet_alone_never_completes_live_data) {
+    errors.push("evidence policy must require accepted packets alone to never complete live data");
+  }
+
+  if (!value.evidence_policy?.transition_review_cross_checks_activation_gates) {
+    errors.push("evidence policy must require transition review to cross-check activation gates");
+  }
+
   const scripts = packageJson?.scripts ?? {};
   if (
     scripts["check:sprint1-live-data-evidence-handoff"] !==
@@ -79,6 +97,24 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
   }
   if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-evidence-handoff")) {
     errors.push("root check must include check:sprint1-live-data-evidence-handoff");
+  }
+  if (
+    scripts["check:sprint1-live-data-transition-review"] !==
+    "node scripts/check-sprint1-live-data-transition-review-contract.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-transition-review script is missing");
+  }
+  if (
+    scripts["check:sprint1-live-data-transition-review-fixtures"] !==
+    "node scripts/check-sprint1-live-data-transition-review-fixtures.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-transition-review-fixtures script is missing");
+  }
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-transition-review")) {
+    errors.push("root check must include check:sprint1-live-data-transition-review");
+  }
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-transition-review-fixtures")) {
+    errors.push("root check must include check:sprint1-live-data-transition-review-fixtures");
   }
 
   if (!templateDirectoryExists) {
@@ -157,6 +193,7 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
     "npm run check:sprint1-live-data-evidence-handoff",
     "npm run check:sprint1-live-data-evidence-packets",
     "npm run check:sprint1-live-data-evidence-manifest",
+    "npm run check:sprint1-live-data-transition-review",
     "deploy/governance/sprint1-live-data-evidence-packets",
     "sha256:"
   ]) {

@@ -26,9 +26,14 @@ Operator order:
    `signed_at`, `approver_role`, `redaction_status`, and `source_locator` with
    redacted metadata from the external evidence. Use `sha256:` refs only.
 5. Run `npm run check:sprint1-live-data-evidence-packets`.
-6. Only after all packets validate as accepted, update
+6. Run `npm run check:sprint1-live-data-transition-review`; accepted packets
+   alone must stay blocked until the activation gates are also updated.
+7. Only after all packets validate as accepted, update
    `deploy/governance/sprint1-live-data-evidence-manifest.contract.json` and run
    `npm run check:sprint1-live-data-evidence-manifest`.
+8. Rerun `npm run check:sprint1-live-data-activation` and
+   `npm run check:sprint1-live-data-transition-review` before changing any
+   Sprint 1.1 or Sprint 1.2 tracker checkbox.
 
 Required evidence names by gate:
 

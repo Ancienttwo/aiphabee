@@ -1,0 +1,215 @@
+{
+  "version": "2026-06-23.phase1.sprint1-live-data-transition-review.v0",
+  "status": "pending_live_data_transition_review",
+  "checker": "scripts/check-sprint1-live-data-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-sprint1-live-data-transition-review-fixtures.mjs",
+  "evidence_manifest_contract": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
+  "activation_contract": "deploy/governance/sprint1-live-data-activation.contract.json",
+  "evidence_packet_directory": "deploy/governance/sprint1-live-data-evidence-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_live_data_gates_complete": false,
+  "sprint1_1_live_data_checkbox_complete": false,
+  "accepted_evidence_packets_are_sufficient_alone": false,
+  "required_gate_ids": [
+    "signed_partner_data_contract",
+    "partner_serving_rows_loaded",
+    "field_rights_policy_source_live",
+    "hyperdrive_select_1_passed",
+    "serving_sql_execution_enabled",
+    "quality_owner_cutover_approved",
+    "usage_event_live_write_passed",
+    "usage_ledger_entry_live_write_passed",
+    "billing_reconciliation_live_read_passed"
+  ],
+  "transition_policy": {
+    "accepted_evidence_packet_required": true,
+    "manifest_gate_accepted_required": true,
+    "activation_gate_accepted_required": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "accepted_evidence_packet_alone_never_completes_live_data": true,
+    "hash_only_packet_validator_remains_source_of_truth": true
+  },
+  "live_data_transition_reviews": [
+    {
+      "gate_id": "signed_partner_data_contract",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "signed_partner_data_contract",
+      "linked_activation_gate": "signed_partner_data_contract",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_reads_missing",
+        "live_usage_writes_missing"
+      ]
+    },
+    {
+      "gate_id": "partner_serving_rows_loaded",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "partner_serving_rows_loaded",
+      "linked_activation_gate": "partner_serving_rows_loaded",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_reads_missing"
+      ]
+    },
+    {
+      "gate_id": "field_rights_policy_source_live",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "field_rights_policy_source_live",
+      "linked_activation_gate": "field_rights_policy_source_live",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_reads_missing",
+        "live_usage_writes_missing"
+      ]
+    },
+    {
+      "gate_id": "hyperdrive_select_1_passed",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "hyperdrive_select_1_passed",
+      "linked_activation_gate": "hyperdrive_select_1_passed",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_sql_execution_missing"
+      ]
+    },
+    {
+      "gate_id": "serving_sql_execution_enabled",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "serving_sql_execution_enabled",
+      "linked_activation_gate": "serving_sql_execution_enabled",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_reads_missing"
+      ]
+    },
+    {
+      "gate_id": "quality_owner_cutover_approved",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "quality_owner_cutover_approved",
+      "linked_activation_gate": "quality_owner_cutover_approved",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_serving_reads_missing"
+      ]
+    },
+    {
+      "gate_id": "usage_event_live_write_passed",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "usage_event_live_write_passed",
+      "linked_activation_gate": "usage_event_live_write_passed",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_usage_writes_missing"
+      ]
+    },
+    {
+      "gate_id": "usage_ledger_entry_live_write_passed",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "usage_ledger_entry_live_write_passed",
+      "linked_activation_gate": "usage_ledger_entry_live_write_passed",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "live_usage_writes_missing"
+      ]
+    },
+    {
+      "gate_id": "billing_reconciliation_live_read_passed",
+      "tracker_status": "\u2610",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "billing_reconciliation_live_read_passed",
+      "linked_activation_gate": "billing_reconciliation_live_read_passed",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "activation_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "activation_gate_missing",
+        "billing_reconciliation_posting_missing"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Sprint 1 live data transition review \u5df2\u5efa\u7acb",
+    "| 2026-06-23 | 1.0hl | \u5b8c\u6210 `sprint1-live-data-transition-review`",
+    "| 1.1 | \u4e3b\u771f\u503c\u6e90 + Data Access Gateway | \ud83d\udfe6 | 22 / 26 | \u2610 |",
+    "| 1.2 | Tool Registry + \u539f\u5b50\u6570\u636e\u5de5\u5177 + \u8bc1\u636e/\u8840\u7f18 | \ud83d\udfe6 | 13 / 13 | \u2610 |",
+    "- [ ] **Data Access Gateway live Serving**",
+    "- [ ] **Usage ledger live writes + billing reconciliation**"
+  ],
+  "required_todos_fragments": [
+    "Sprint 1 live data transition review",
+    "npm run check:sprint1-live-data-transition-review",
+    "accepted evidence packet alone cannot complete Sprint 1 live data"
+  ],
+  "not_claimed": [
+    "partner_rows_loaded",
+    "live_serving_reads_complete",
+    "live_serving_sql_execution_complete",
+    "live_usage_writes_complete",
+    "billing_reconciliation_posted",
+    "sprint1_1_live_data_complete",
+    "sprint1_2_partner_source_rows_complete",
+    "all_sprints_complete"
+  ]
+}

@@ -6,6 +6,8 @@
   "evidence_manifest_checker": "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs",
   "evidence_manifest_fixture_checker": "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs",
   "evidence_manifest_doc": "docs/governance/sprint1-live-data-evidence-manifest.md",
+  "transition_review_checker": "scripts/check-sprint1-live-data-transition-review-contract.mjs",
+  "transition_review_fixture_checker": "scripts/check-sprint1-live-data-transition-review-fixtures.mjs",
   "tracker_items": [
     "Sprint 1.1: Data Access Gateway live Serving",
     "Sprint 1.1: Usage ledger live writes + billing reconciliation"
@@ -23,7 +25,11 @@
     "deploy/governance/serving-quality-live-readiness.contract.json",
     "deploy/governance/field-rights-live-policy-source.contract.json",
     "deploy/usage/quota-display.contract.json",
-    "deploy/usage/billing-reconciliation.contract.json"
+    "deploy/usage/billing-reconciliation.contract.json",
+    "deploy/governance/sprint1-live-data-transition-review.contract.json"
+  ],
+  "linked_transition_reviews": [
+    "deploy/governance/sprint1-live-data-transition-review.contract.json"
   ],
   "required_checks": [
     "npm run check:data-gateway",
@@ -31,7 +37,9 @@
     "npm run check:field-rights-live-policy-source",
     "npm run check:serving-quality-live-readiness",
     "npm run check:usage-quota-display",
-    "npm run check:usage-billing-reconciliation"
+    "npm run check:usage-billing-reconciliation",
+    "npm run check:sprint1-live-data-transition-review",
+    "npm run check:sprint1-live-data-transition-review-fixtures"
   ],
   "activation_gates": [
     {
@@ -94,6 +102,7 @@
     "live_serving_reads_complete",
     "live_usage_writes_complete",
     "billing_reconciliation_posted",
-    "sprint1_1_live_data_complete"
+    "sprint1_1_live_data_complete",
+    "live_data_transition_review_complete"
   ]
 }

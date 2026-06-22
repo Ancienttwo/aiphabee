@@ -11,6 +11,9 @@ const evidenceManifestPath = "deploy/governance/sprint1-live-data-evidence-manif
 const evidenceManifestCheckerPath = "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs";
 const evidenceManifestFixtureCheckerPath = "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs";
 const evidenceManifestDocPath = "docs/governance/sprint1-live-data-evidence-manifest.md";
+const transitionReviewContractPath = "deploy/governance/sprint1-live-data-transition-review.contract.json";
+const transitionReviewCheckerPath = "scripts/check-sprint1-live-data-transition-review-contract.mjs";
+const transitionReviewFixtureCheckerPath = "scripts/check-sprint1-live-data-transition-review-fixtures.mjs";
 const gatewayContractPath = "deploy/gateway/access.contract.json";
 const servingReadinessPath = "deploy/governance/serving-quality-live-readiness.contract.json";
 const quotaContractPath = "deploy/usage/quota-display.contract.json";
@@ -26,7 +29,8 @@ const requiredLinkedContracts = [
   "deploy/governance/serving-quality-live-readiness.contract.json",
   "deploy/governance/field-rights-live-policy-source.contract.json",
   "deploy/usage/quota-display.contract.json",
-  "deploy/usage/billing-reconciliation.contract.json"
+  "deploy/usage/billing-reconciliation.contract.json",
+  transitionReviewContractPath
 ];
 const requiredChecks = [
   "npm run check:data-gateway",
@@ -34,7 +38,9 @@ const requiredChecks = [
   "npm run check:field-rights-live-policy-source",
   "npm run check:serving-quality-live-readiness",
   "npm run check:usage-quota-display",
-  "npm run check:usage-billing-reconciliation"
+  "npm run check:usage-billing-reconciliation",
+  "npm run check:sprint1-live-data-transition-review",
+  "npm run check:sprint1-live-data-transition-review-fixtures"
 ];
 const requiredGateIds = [
   "signed_partner_data_contract",
@@ -52,7 +58,8 @@ const requiredNotClaimed = [
   "live_serving_reads_complete",
   "live_usage_writes_complete",
   "billing_reconciliation_posted",
-  "sprint1_1_live_data_complete"
+  "sprint1_1_live_data_complete",
+  "live_data_transition_review_complete"
 ];
 const requiredGatewayGuards = [
   "field_entitlement_policy_source_scaffold",
@@ -145,6 +152,13 @@ function validateContract({
     "evidence_manifest_fixture_checker"
   );
   expectEqual(errors, value.evidence_manifest_doc, evidenceManifestDocPath, "evidence_manifest_doc");
+  expectEqual(errors, value.transition_review_checker, transitionReviewCheckerPath, "transition_review_checker");
+  expectEqual(
+    errors,
+    value.transition_review_fixture_checker,
+    transitionReviewFixtureCheckerPath,
+    "transition_review_fixture_checker"
+  );
   expectEqual(errors, value.release_transition_allowed, false, "release_transition_allowed");
 
   for (const field of [
@@ -159,6 +173,7 @@ function validateContract({
 
   expectArray(errors, value.tracker_items, requiredTrackerItems, "tracker_items");
   expectArray(errors, value.linked_contracts, requiredLinkedContracts, "linked_contracts");
+  expectArray(errors, value.linked_transition_reviews, [transitionReviewContractPath], "linked_transition_reviews");
   expectArray(errors, value.required_checks, requiredChecks, "required_checks");
   expectArray(errors, value.not_claimed, requiredNotClaimed, "not_claimed");
   errors.push(...validateLinkedContracts(value.linked_contracts));
@@ -167,7 +182,10 @@ function validateContract({
       value.evidence_manifest,
       value.evidence_manifest_checker,
       value.evidence_manifest_fixture_checker,
-      value.evidence_manifest_doc
+      value.evidence_manifest_doc,
+      value.transition_review_checker,
+      value.transition_review_fixture_checker,
+      ...(value.linked_transition_reviews ?? [])
     ])
   );
   errors.push(...validateActivationGates(value.activation_gates));
@@ -314,6 +332,28 @@ function validatePackage(value) {
     errors.push("root check must include check:sprint1-live-data-evidence-manifest-fixtures");
   }
 
+  if (
+    scripts["check:sprint1-live-data-transition-review"] !==
+    "node scripts/check-sprint1-live-data-transition-review-contract.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-transition-review script is missing");
+  }
+
+  if (
+    scripts["check:sprint1-live-data-transition-review-fixtures"] !==
+    "node scripts/check-sprint1-live-data-transition-review-fixtures.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-transition-review-fixtures script is missing");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-transition-review")) {
+    errors.push("root check must include check:sprint1-live-data-transition-review");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-transition-review-fixtures")) {
+    errors.push("root check must include check:sprint1-live-data-transition-review-fixtures");
+  }
+
   return errors;
 }
 
@@ -327,6 +367,8 @@ function validateDocs({ docs, todos, tracker }) {
     "npm run check:sprint1-live-data-activation",
     "npm run check:sprint1-live-data-evidence-manifest",
     "npm run check:sprint1-live-data-evidence-manifest-fixtures",
+    "npm run check:sprint1-live-data-transition-review",
+    "sprint1-live-data-transition-review",
     "Data Access Gateway live Serving",
     "Usage ledger live writes",
     "partner_serving_rows_loaded",

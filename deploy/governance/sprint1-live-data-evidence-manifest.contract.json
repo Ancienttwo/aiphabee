@@ -6,6 +6,9 @@
   "packet_checker": "scripts/check-sprint1-live-data-evidence-packets.mjs",
   "packet_fixture_checker": "scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs",
   "handoff_checker": "scripts/check-sprint1-live-data-evidence-handoff.mjs",
+  "transition_review_contract": "deploy/governance/sprint1-live-data-transition-review.contract.json",
+  "transition_review_checker": "scripts/check-sprint1-live-data-transition-review-contract.mjs",
+  "transition_review_fixture_checker": "scripts/check-sprint1-live-data-transition-review-fixtures.mjs",
   "activation_contract": "deploy/governance/sprint1-live-data-activation.contract.json",
   "activation_doc": "docs/governance/sprint1-live-data-activation.md",
   "manifest_doc": "docs/governance/sprint1-live-data-evidence-manifest.md",
@@ -32,7 +35,9 @@
     "raw_partner_rows_forbidden_in_repo": true,
     "raw_database_values_forbidden_in_repo": true,
     "raw_billing_payloads_forbidden_in_repo": true,
-    "manifest_transition_still_owned_by_evidence_manifest": true
+    "manifest_transition_still_owned_by_evidence_manifest": true,
+    "accepted_evidence_packet_alone_never_completes_live_data": true,
+    "transition_review_cross_checks_activation_gates": true
   },
   "evidence_packet_schema": {
     "approver_role": "required_gates.required_approver_roles member or null when missing",
@@ -72,7 +77,8 @@
     "live_serving_sql_execution_complete",
     "live_usage_writes_complete",
     "billing_reconciliation_posted",
-    "sprint1_1_live_data_complete"
+    "sprint1_1_live_data_complete",
+    "live_data_transition_review_complete"
   ],
   "required_gates": [
     {

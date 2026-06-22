@@ -14,6 +14,9 @@ const expectedVersion = "2026-06-22.phase1.sprint1-live-data-evidence-manifest.v
 const packetCheckerPath = "scripts/check-sprint1-live-data-evidence-packets.mjs";
 const packetFixtureCheckerPath = "scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs";
 const handoffCheckerPath = "scripts/check-sprint1-live-data-evidence-handoff.mjs";
+const transitionReviewContractPath = "deploy/governance/sprint1-live-data-transition-review.contract.json";
+const transitionReviewCheckerPath = "scripts/check-sprint1-live-data-transition-review-contract.mjs";
+const transitionReviewFixtureCheckerPath = "scripts/check-sprint1-live-data-transition-review-fixtures.mjs";
 const packetDirectoryPath = "deploy/governance/sprint1-live-data-evidence-packets";
 const templateDirectoryPath = "deploy/governance/sprint1-live-data-evidence-templates";
 const requiredGateIds = [
@@ -33,7 +36,8 @@ const requiredNotClaimed = [
   "live_serving_sql_execution_complete",
   "live_usage_writes_complete",
   "billing_reconciliation_posted",
-  "sprint1_1_live_data_complete"
+  "sprint1_1_live_data_complete",
+  "live_data_transition_review_complete"
 ];
 const requiredPacketSchema = {
   approver_role: "required_gates.required_approver_roles member or null when missing",
@@ -146,6 +150,14 @@ function validateSprint1LiveDataEvidenceManifest({
   expectEqual(errors, value.packet_checker, packetCheckerPath, "packet_checker");
   expectEqual(errors, value.packet_fixture_checker, packetFixtureCheckerPath, "packet_fixture_checker");
   expectEqual(errors, value.handoff_checker, handoffCheckerPath, "handoff_checker");
+  expectEqual(errors, value.transition_review_contract, transitionReviewContractPath, "transition_review_contract");
+  expectEqual(errors, value.transition_review_checker, transitionReviewCheckerPath, "transition_review_checker");
+  expectEqual(
+    errors,
+    value.transition_review_fixture_checker,
+    transitionReviewFixtureCheckerPath,
+    "transition_review_fixture_checker"
+  );
   expectEqual(errors, value.activation_contract, activationPath, "activation_contract");
   expectEqual(errors, value.activation_doc, activationDocsPath, "activation_doc");
   expectEqual(errors, value.manifest_doc, docsPath, "manifest_doc");
@@ -179,6 +191,9 @@ function validateSprint1LiveDataEvidenceManifest({
       value.packet_checker,
       value.packet_fixture_checker,
       value.handoff_checker,
+      value.transition_review_contract,
+      value.transition_review_checker,
+      value.transition_review_fixture_checker,
       value.packet_directory,
       value.template_directory
     ])
@@ -208,7 +223,9 @@ function validateEvidencePolicy(value) {
     "raw_partner_rows_forbidden_in_repo",
     "raw_database_values_forbidden_in_repo",
     "raw_billing_payloads_forbidden_in_repo",
-    "manifest_transition_still_owned_by_evidence_manifest"
+    "manifest_transition_still_owned_by_evidence_manifest",
+    "accepted_evidence_packet_alone_never_completes_live_data",
+    "transition_review_cross_checks_activation_gates"
   ];
 
   for (const key of requiredTrue) {
@@ -431,7 +448,9 @@ function validatePackage(value) {
     "check:sprint1-live-data-evidence-manifest-fixtures": "node scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs",
     "check:sprint1-live-data-evidence-packets": "node scripts/check-sprint1-live-data-evidence-packets.mjs",
     "check:sprint1-live-data-evidence-packet-fixtures": "node scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs",
-    "check:sprint1-live-data-evidence-handoff": "node scripts/check-sprint1-live-data-evidence-handoff.mjs"
+    "check:sprint1-live-data-evidence-handoff": "node scripts/check-sprint1-live-data-evidence-handoff.mjs",
+    "check:sprint1-live-data-transition-review": "node scripts/check-sprint1-live-data-transition-review-contract.mjs",
+    "check:sprint1-live-data-transition-review-fixtures": "node scripts/check-sprint1-live-data-transition-review-fixtures.mjs"
   };
 
   for (const [script, command] of Object.entries(requiredScripts)) {
@@ -460,7 +479,10 @@ function validateDocs({ activationDocs, docs, todos, tracker }) {
     "npm run check:sprint1-live-data-evidence-packets",
     "npm run check:sprint1-live-data-evidence-packet-fixtures",
     "npm run check:sprint1-live-data-evidence-handoff",
+    "npm run check:sprint1-live-data-transition-review",
+    "npm run check:sprint1-live-data-transition-review-fixtures",
     "deploy/governance/sprint1-live-data-evidence-packets",
+    "sprint1-live-data-transition-review",
     "operator handoff templates",
     "hash-only evidence",
     "partner_serving_rows_loaded",
