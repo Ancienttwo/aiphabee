@@ -372,6 +372,7 @@ interface WorkerBindings {
   AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
+  AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
@@ -613,6 +614,32 @@ interface AgentRunLiveWriteSmokeResult {
     "core.usage_ledger_entry"
   ];
   usage_event_id_hash?: string;
+}
+
+interface McpDeveloperConsoleLogStoreSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  cleanup_verified?: boolean;
+  deleted_rows?: number;
+  detail_hash?: string;
+  developer_console_live?: false;
+  failure_code?: string;
+  frontend_rendering?: false;
+  inserted_rows?: number;
+  live_api_key_generation?: false;
+  live_console_log_store?: false;
+  live_console_log_store_smoke?: true;
+  live_oauth_provider?: false;
+  live_tool_execution?: false;
+  live_usage_ledger_reads?: false;
+  operation_count?: number;
+  production_console_log_store?: false;
+  query_hash?: string;
+  request_log_id_hash?: string;
+  selected_rows?: number;
+  source_record_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "mcp_developer_console_request_log_insert_select_delete";
+  tables?: ["core.mcp_developer_console_request_log"];
 }
 
 interface AgentRunStatePersistenceSmokeResult {
@@ -976,6 +1003,14 @@ const AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING = "AIPHABEE_AGENT_TOOL_EXECUTION_
 const EVIDENCE_LIVE_DB_SMOKE_ROUTE = "/evidence/records/live-db-smoke";
 const EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE = "evidence-lineage-live-db-v1";
 const EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING = "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN";
+const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE =
+  "/mcp/developer-console/log-store-smoke";
+const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_HEADER_VALUE =
+  "mcp-developer-console-log-store-v1";
+const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN";
+const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION =
+  "2026-06-22.phase2.mcp-developer-console-log-store-smoke.v0";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
@@ -5750,6 +5785,81 @@ app.post("/mcp/developer-console/plan", async (c) => {
       }
     );
   }
+});
+
+app.post(MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE}`,
+        status: "forbidden",
+        version: MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingMcpDeveloperConsoleLogStoreSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isMcpDeveloperConsoleLogStoreSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE}`,
+        status: "forbidden",
+        version: MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION
+      },
+      403
+    );
+  }
+
+  const result = await runMcpDeveloperConsoleLogStoreSmoke(c.env ?? {}, requestId);
+  const bodyWithoutHash = {
+    mcp_developer_console_log_store_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
 });
 
 app.post("/mcp/client-maturity/plan", async (c) => {
@@ -11375,6 +11485,174 @@ async function runEvidenceLiveDbWriteSmoke(
   }
 }
 
+async function runMcpDeveloperConsoleLogStoreSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<McpDeveloperConsoleLogStoreSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingMcpDeveloperConsoleLogStoreSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const safeRequestId = requestId.replace(/[^A-Za-z0-9_]/gu, "_").slice(0, 80);
+  const requestLogId = [
+    "mcp_developer_console_log_smoke",
+    safeRequestId,
+    crypto.randomUUID().replace(/-/gu, "_")
+  ].join("_");
+  const sourceRecordId = `source:${requestLogId}`;
+  const credentialReference = await hashRuntimeSmokeString(`credential:${requestLogId}`);
+  const queryLabel = "mcp-developer-console-log-store-smoke:v0:insert-select-delete";
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const insertResult = await client.query(
+      `insert into core.mcp_developer_console_request_log (
+        request_log_id,
+        request_id,
+        workspace_id,
+        client_name,
+        client_version,
+        credential_kind,
+        credential_reference,
+        scope,
+        tool_name,
+        tool_version,
+        status,
+        standard_error_code,
+        credits,
+        credits_remaining,
+        usage_event_id,
+        data_version,
+        methodology_version,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+      [
+        requestLogId,
+        requestId,
+        "workspace_mcp_developer_console_smoke",
+        "synthetic_console_client",
+        "0.0.0-smoke",
+        "api_key",
+        credentialReference,
+        "market.read",
+        "get_quote_snapshot",
+        "get_quote_snapshot@smoke",
+        "DATA_NOT_LICENSED",
+        "DATA_NOT_LICENSED",
+        0,
+        0,
+        null,
+        "mcp-developer-console-log-store-smoke-v0",
+        MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION,
+        sourceRecordId
+      ]
+    );
+    const selectResult = await client.query<{
+      credits: number | string;
+      credits_remaining: number | string;
+      developer_console_live: boolean;
+      live_api_key_generation_enabled: boolean;
+      live_console_log_store_enabled: boolean;
+      live_oauth_provider_enabled: boolean;
+      live_tool_execution_enabled: boolean;
+      live_usage_ledger_reads_enabled: boolean;
+      request_log_id: string;
+      standard_error_code: string;
+      status: string;
+    }>(
+      `select
+        request_log_id,
+        status,
+        standard_error_code,
+        credits,
+        credits_remaining,
+        developer_console_live,
+        live_api_key_generation_enabled,
+        live_console_log_store_enabled,
+        live_oauth_provider_enabled,
+        live_tool_execution_enabled,
+        live_usage_ledger_reads_enabled
+      from core.mcp_developer_console_request_log
+      where request_log_id = $1`,
+      [requestLogId]
+    );
+    const selectedRow = selectResult.rows[0];
+
+    if (
+      selectResult.rows.length !== 1 ||
+      selectedRow?.request_log_id !== requestLogId ||
+      selectedRow.status !== "DATA_NOT_LICENSED" ||
+      selectedRow.standard_error_code !== "DATA_NOT_LICENSED" ||
+      Number(selectedRow.credits) !== 0 ||
+      Number(selectedRow.credits_remaining) !== 0 ||
+      selectedRow.developer_console_live !== false ||
+      selectedRow.live_api_key_generation_enabled !== false ||
+      selectedRow.live_console_log_store_enabled !== false ||
+      selectedRow.live_oauth_provider_enabled !== false ||
+      selectedRow.live_tool_execution_enabled !== false ||
+      selectedRow.live_usage_ledger_reads_enabled !== false
+    ) {
+      throw new Error("MCP Developer Console log-store smoke readback mismatch");
+    }
+
+    const deleteResult = await client.query(
+      `delete from core.mcp_developer_console_request_log
+      where request_log_id = $1`,
+      [requestLogId]
+    );
+
+    await client.query("COMMIT");
+    committed = true;
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      cleanup_verified: (deleteResult.rowCount ?? 0) === (insertResult.rowCount ?? 0),
+      deleted_rows: deleteResult.rowCount ?? 0,
+      developer_console_live: false,
+      frontend_rendering: false,
+      inserted_rows: insertResult.rowCount ?? 0,
+      live_api_key_generation: false,
+      live_console_log_store: false,
+      live_console_log_store_smoke: true,
+      live_oauth_provider: false,
+      live_tool_execution: false,
+      live_usage_ledger_reads: false,
+      operation_count: 4,
+      production_console_log_store: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      request_log_id_hash: await hashRuntimeSmokeString(requestLogId),
+      selected_rows: selectResult.rows.length,
+      source_record_hash: await hashRuntimeSmokeString(sourceRecordId),
+      status: "passed",
+      surface: "mcp_developer_console_request_log_insert_select_delete",
+      tables: ["core.mcp_developer_console_request_log"]
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedMcpDeveloperConsoleLogStoreSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "mcp_developer_console_log_store_smoke_failed",
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 async function runAgentRunLiveWriteSmoke(
   env: WorkerBindings,
   requestId: string
@@ -12701,6 +12979,26 @@ function missingEvidenceLiveDbWriteSmokeResult(
   };
 }
 
+function missingMcpDeveloperConsoleLogStoreSmokeResult(
+  failureCode: string
+): McpDeveloperConsoleLogStoreSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    developer_console_live: false,
+    failure_code: failureCode,
+    frontend_rendering: false,
+    live_api_key_generation: false,
+    live_console_log_store: false,
+    live_console_log_store_smoke: true,
+    live_oauth_provider: false,
+    live_tool_execution: false,
+    live_usage_ledger_reads: false,
+    production_console_log_store: false,
+    status: "missing_binding",
+    surface: "mcp_developer_console_request_log_insert_select_delete"
+  };
+}
+
 function missingAgentRunLiveWriteSmokeResult(failureCode: string): AgentRunLiveWriteSmokeResult {
   return {
     binding_name: "AIPHABEE_HYPERDRIVE",
@@ -12854,6 +13152,16 @@ function getEvidenceLiveDbWriteSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingMcpDeveloperConsoleLogStoreSmokeEnv(env: WorkerBindings): string[] {
+  return getMcpDeveloperConsoleLogStoreSmokeToken(env).length >= 16
+    ? []
+    : [MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_TOKEN_BINDING];
+}
+
+function getMcpDeveloperConsoleLogStoreSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN?.trim() ?? "";
+}
+
 async function failedCloudflareQueueResult({
   detail,
   failureCode,
@@ -12979,6 +13287,34 @@ async function failedEvidenceLiveDbWriteSmokeResult({
     query_hash: await hashRuntimeSmokeString(queryLabel),
     status: "failed",
     surface: "evidence_record_source_ref_insert_select_delete"
+  };
+}
+
+async function failedMcpDeveloperConsoleLogStoreSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<McpDeveloperConsoleLogStoreSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    developer_console_live: false,
+    failure_code: failureCode,
+    frontend_rendering: false,
+    live_api_key_generation: false,
+    live_console_log_store: false,
+    live_console_log_store_smoke: true,
+    live_oauth_provider: false,
+    live_tool_execution: false,
+    live_usage_ledger_reads: false,
+    production_console_log_store: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "mcp_developer_console_request_log_insert_select_delete"
   };
 }
 
@@ -13733,6 +14069,18 @@ function isEvidenceLiveDbWriteSmokeAuthorized(
   c: Context<{ Bindings: WorkerBindings }>
 ): boolean {
   const token = getEvidenceLiveDbWriteSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isMcpDeveloperConsoleLogStoreSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getMcpDeveloperConsoleLogStoreSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;
