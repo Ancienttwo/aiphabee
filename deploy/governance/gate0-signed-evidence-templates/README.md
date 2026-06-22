@@ -8,10 +8,17 @@ Sprint 0.1 checkbox.
 Run the handoff and manifest gates before editing Sprint status:
 
 ```bash
+npm run check:gate0-signed-evidence-packets
+npm run check:gate0-signed-evidence-packet-fixtures
 npm run check:gate0-signed-evidence-handoff
 npm run check:gate0-signed-evidence-manifest
 npm run check:gate0-signed-evidence-manifest-fixtures
 ```
+
+Accepted packets should be copied into
+`deploy/governance/gate0-signed-evidence-packets/` as
+`<packet_id>.evidence.json`; the packet checker intentionally allows that
+directory to stay empty until external evidence arrives.
 
 Accepted evidence refs must use redacted source locators, hex `sha256` hashes,
 `YYYY-MM-DD` signed dates, an approver role/name, `approval_status=accepted`,

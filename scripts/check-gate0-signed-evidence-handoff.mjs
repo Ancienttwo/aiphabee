@@ -9,20 +9,27 @@ const intakePath = "deploy/governance/gate0-external-evidence-intake.contract.js
 const packageJsonPath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const readmePath = "deploy/governance/gate0-signed-evidence-templates/README.md";
+const packetReadmePath = "deploy/governance/gate0-signed-evidence-packets/README.md";
 
 const manifest = readJson(manifestPath);
 const intake = readJson(intakePath);
 const packageJson = readJson(packageJsonPath);
 const tracker = readText(trackerPath);
 const readme = readText(readmePath);
+const packetReadme = readText(packetReadmePath);
 const templateDirectory = manifest.template_directory;
 const templateDirectoryExists =
   typeof templateDirectory === "string" && existsSync(resolve(process.cwd(), templateDirectory));
 const templateFiles = templateDirectoryExists ? listTemplatePacketFiles(templateDirectory) : [];
+const packetDirectory = manifest.packet_directory;
+const packetDirectoryExists =
+  typeof packetDirectory === "string" && existsSync(resolve(process.cwd(), packetDirectory));
 const errors = validateHandoff({
   intake,
   manifest,
   packageJson,
+  packetDirectoryExists,
+  packetReadme,
   readme,
   templateDirectoryExists,
   templateFiles,
@@ -53,6 +60,8 @@ function validateHandoff({
   intake,
   manifest: value,
   packageJson,
+  packetDirectoryExists,
+  packetReadme,
   readme,
   templateDirectoryExists,
   templateFiles,
@@ -73,11 +82,34 @@ function validateHandoff({
   if (value.template_file_pattern !== "<packet_id>.evidence.json") {
     errors.push("manifest.template_file_pattern must be <packet_id>.evidence.json");
   }
+  if (value.packet_checker !== "scripts/check-gate0-signed-evidence-packets.mjs") {
+    errors.push("manifest.packet_checker must be scripts/check-gate0-signed-evidence-packets.mjs");
+  }
+  if (
+    value.packet_fixture_checker !==
+    "scripts/check-gate0-signed-evidence-packet-fixtures.mjs"
+  ) {
+    errors.push(
+      "manifest.packet_fixture_checker must be scripts/check-gate0-signed-evidence-packet-fixtures.mjs"
+    );
+  }
+  if (value.packet_directory !== "deploy/governance/gate0-signed-evidence-packets") {
+    errors.push("manifest.packet_directory must be deploy/governance/gate0-signed-evidence-packets");
+  }
+  if (value.packet_file_pattern !== "<packet_id>.evidence.json") {
+    errors.push("manifest.packet_file_pattern must be <packet_id>.evidence.json");
+  }
   if (!value.completion_policy?.operator_handoff_templates_validate_as_missing_packets) {
     errors.push("completion_policy must require templates to validate as missing packets");
   }
   if (!value.completion_policy?.operator_handoff_readme_lists_packet_order) {
     errors.push("completion_policy must require README packet order");
+  }
+  if (!value.completion_policy?.packet_checker_allows_empty_directory_until_external_evidence_arrives) {
+    errors.push("completion_policy must allow packet checker empty directory until external evidence arrives");
+  }
+  if (!value.completion_policy?.packet_fixture_checker_reuses_packet_validator) {
+    errors.push("completion_policy must require packet fixture checker to reuse packet validator");
   }
 
   const scripts = packageJson?.scripts ?? {};
@@ -87,10 +119,28 @@ function validateHandoff({
   if (!String(scripts.check ?? "").includes("npm run check:gate0-signed-evidence-handoff")) {
     errors.push("root check must include check:gate0-signed-evidence-handoff");
   }
+  if (scripts["check:gate0-signed-evidence-packets"] !== "node scripts/check-gate0-signed-evidence-packets.mjs") {
+    errors.push("package.json check:gate0-signed-evidence-packets script is missing");
+  }
+  if (
+    scripts["check:gate0-signed-evidence-packet-fixtures"] !==
+    "node scripts/check-gate0-signed-evidence-packet-fixtures.mjs"
+  ) {
+    errors.push("package.json check:gate0-signed-evidence-packet-fixtures script is missing");
+  }
+  if (!String(scripts.check ?? "").includes("npm run check:gate0-signed-evidence-packets")) {
+    errors.push("root check must include check:gate0-signed-evidence-packets");
+  }
+  if (!String(scripts.check ?? "").includes("npm run check:gate0-signed-evidence-packet-fixtures")) {
+    errors.push("root check must include check:gate0-signed-evidence-packet-fixtures");
+  }
 
   if (!templateDirectoryExists) {
     errors.push(`template directory missing ${value.template_directory}`);
     return errors;
+  }
+  if (!packetDirectoryExists) {
+    errors.push(`packet directory missing ${value.packet_directory}`);
   }
 
   const requiredPackets = value.required_packets ?? [];
@@ -177,16 +227,20 @@ function validateHandoff({
     }
   }
 
+  const handoffText = `${readme}\n${packetReadme}`;
   for (const text of [
     "npm run check:gate0-signed-evidence-handoff",
     "npm run check:gate0-signed-evidence-manifest",
     "npm run check:gate0-signed-evidence-manifest-fixtures",
+    "npm run check:gate0-signed-evidence-packets",
+    "npm run check:gate0-signed-evidence-packet-fixtures",
+    "deploy/governance/gate0-signed-evidence-packets",
     "DEFAULT_DENY",
     "DATA_NOT_LICENSED",
     "redacted_no_secrets",
     "sha256"
   ]) {
-    if (!readme.includes(text)) {
+    if (!handoffText.includes(text)) {
       errors.push(`handoff README must mention ${text}`);
     }
   }
