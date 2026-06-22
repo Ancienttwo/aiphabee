@@ -39,20 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "partner_rows_live_serving_usage_writes_missing": {
-      "owner_manifest_ids": ["sprint1_live_data_evidence"],
-      "owner_check_commands": [
-        "check:sprint1-live-data-transition-review",
-        "check:sprint1-live-data-activation"
-      ],
-      "closure_evidence_refs": [
-        "partner_serving_rows_loaded",
-        "serving_sql_execution_enabled",
-        "usage_event_live_write_passed",
-        "usage_ledger_entry_live_write_passed",
-        "billing_reconciliation_live_read_passed"
-      ]
-    },
     "partner_source_rows_data_platform_signoff_missing": {
       "owner_manifest_ids": ["sprint1_live_data_evidence"],
       "owner_check_commands": [
@@ -216,11 +202,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["sprint1_live_data_evidence"],
-      "manual_blocking_conditions": ["partner_rows_live_serving_usage_writes_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
-        "blocker_manifest:sprint1_live_data_evidence",
-        "partner_rows_live_serving_usage_writes_missing"
+        "blocker_manifest:sprint1_live_data_evidence"
       ]
     },
     {
@@ -467,7 +452,9 @@
     "Partner model output corpus blocker 已转为 release-gate manifest blocker",
     "| 2026-06-23 | 1.0hx | 完成 `partner-model-output-corpus-blocker-routing`",
     "Credentialed live smoke blocker 已转为 phase0 live-smoke manifest blocker",
-    "| 2026-06-23 | 1.0hy | 完成 `credentialed-live-smoke-blocker-routing`"
+    "| 2026-06-23 | 1.0hy | 完成 `credentialed-live-smoke-blocker-routing`",
+    "Partner live Serving/usage blocker 已转为 Sprint1 live-data manifest blocker",
+    "| 2026-06-23 | 1.0hz | 完成 `partner-live-serving-usage-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -478,7 +465,8 @@
     "Phase 3 security/load/DR release evidence handoff",
     "Sprint 0.x Gate0 manual blocker manifest routing",
     "Partner model output corpus blocker routing",
-    "Credentialed live smoke blocker routing"
+    "Credentialed live smoke blocker routing",
+    "Partner live Serving/usage blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
