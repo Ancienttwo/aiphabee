@@ -215,6 +215,91 @@ interface PublicDocsBody {
   };
 }
 
+interface PartnerRuntimeBody {
+  data: {
+    auth_required: boolean;
+    frontend: boolean;
+    live_api_execution: boolean;
+    live_embed_rendering: boolean;
+    persistent_writes: boolean;
+    route: string;
+    runtime_route: string;
+    sql_emitted: boolean;
+    status: string;
+    white_label_embeds: {
+      data_gateway_required: boolean;
+      embed_script_generated: boolean;
+      partner_rights_matrix_required: boolean;
+      route: string;
+      settlement_route: string;
+      status: string;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface PartnerWhiteLabelEmbedPlanBody {
+  data: {
+    brand_policy: {
+      brand_mode: string;
+      white_label_allowed: boolean;
+    };
+    capability: {
+      route: string;
+      status: string;
+    };
+    commercial_model: {
+      model: string;
+      revenue_share_bps: number;
+      settlement_route: string;
+      settlement_status: string;
+    };
+    data_governance: {
+      default_deny_until_signed: boolean;
+      external_redistribution_allowed: boolean;
+      field_authorization_required: boolean;
+      partner_rights_matrix_required: boolean;
+    };
+    embed: {
+      allowed_origins: string[];
+      csp_required: boolean;
+      public_indexing: boolean;
+      script_bundle_generated: boolean;
+      surfaces: string[];
+    };
+    frontend: boolean;
+    live_api_execution: boolean;
+    live_embed_rendering: boolean;
+    mcp_api: {
+      api_key_route: string;
+      live_execution: boolean;
+      mcp_route: string;
+      oauth_route: string;
+      usage_envelope_required: boolean;
+    };
+    partner: {
+      partner_id: string;
+      partner_type: string;
+      workspace_id: string;
+    };
+    persistent_writes: boolean;
+    request_id: string;
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      unsupported_surfaces: string[];
+      valid_allowed_origins: boolean;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface ComplianceOpsReleaseGatePlanBody {
   data: {
     audit_export_drill: {
@@ -8432,6 +8517,138 @@ describe("worker runtime", () => {
     });
     expect(body.data.subscription_lifecycle.supported_actions).toContain("enter_grace_period");
     expect(body.data.forbidden_payloads).toContain("password");
+  });
+
+  it("serves partner runtime capabilities without live embed or API execution", async () => {
+    const response = await app.request("/partner/runtime", {
+      headers: {
+        "x-request-id": "req-partner-runtime"
+      }
+    });
+    const body = (await response.json()) as PartnerRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      auth_required: true,
+      frontend: false,
+      live_api_execution: false,
+      live_embed_rendering: false,
+      persistent_writes: false,
+      route: "GET /partner/runtime",
+      runtime_route: "GET /partner/runtime",
+      sql_emitted: false,
+      status: "partner_runtime_scaffold"
+    });
+    expect(body.data.white_label_embeds).toMatchObject({
+      data_gateway_required: true,
+      embed_script_generated: false,
+      partner_rights_matrix_required: true,
+      route: "POST /partner/white-label-embeds/plan",
+      settlement_route: "POST /usage/partner-reconciliation/plan",
+      status: "white_label_embed_scaffold"
+    });
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans white-label embeds and MCP API without generating frontend assets", async () => {
+    const response = await app.request("/partner/white-label-embeds/plan", {
+      body: JSON.stringify({
+        allowed_origins: ["https://broker.example.com"],
+        brand_mode: "white_label",
+        commercial_model: "minimum_guarantee_overage",
+        data_scopes: ["research_outputs", "analytics_results"],
+        partner_id: "partner_broker_alpha",
+        partner_name: "Broker Alpha",
+        partner_type: "brokerage",
+        requested_surfaces: ["research_widget", "mcp_api"],
+        revenue_share_bps: 2500,
+        workspace_id: "ws_partner_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-partner-embed"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PartnerWhiteLabelEmbedPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_api_execution: false,
+      live_embed_rendering: false,
+      persistent_writes: false,
+      request_id: "req-partner-embed",
+      sql_emitted: false,
+      status: "planned_no_write"
+    });
+    expect(body.data.partner).toMatchObject({
+      partner_id: "partner_broker_alpha",
+      partner_type: "brokerage",
+      workspace_id: "ws_partner_alpha"
+    });
+    expect(body.data.embed).toMatchObject({
+      allowed_origins: ["https://broker.example.com"],
+      csp_required: true,
+      public_indexing: false,
+      script_bundle_generated: false,
+      surfaces: ["research_widget", "mcp_api"]
+    });
+    expect(body.data.mcp_api).toMatchObject({
+      api_key_route: "POST /mcp/api-keys/create/plan",
+      live_execution: false,
+      mcp_route: "POST /mcp",
+      oauth_route: "POST /mcp/oauth/authorize/plan",
+      usage_envelope_required: true
+    });
+    expect(body.data.commercial_model).toMatchObject({
+      model: "minimum_guarantee_overage",
+      revenue_share_bps: 2500,
+      settlement_route: "POST /usage/partner-reconciliation/plan",
+      settlement_status: "planned_no_write"
+    });
+    expect(body.data.data_governance).toMatchObject({
+      default_deny_until_signed: true,
+      external_redistribution_allowed: false,
+      field_authorization_required: true,
+      partner_rights_matrix_required: true
+    });
+    expect(body.data.capability).toMatchObject({
+      route: "POST /partner/white-label-embeds/plan",
+      status: "white_label_embed_scaffold"
+    });
+    expect(body.usage.rows).toBe(2);
+  });
+
+  it("blocks white-label embeds without an HTTPS origin allowlist", async () => {
+    const response = await app.request("/partner/white-label-embeds/plan", {
+      body: JSON.stringify({
+        allowed_origins: ["http://broker.example.com"],
+        commercial_model: "fixed_annual_license",
+        partner_id: "partner_broker_alpha",
+        partner_type: "brokerage",
+        requested_surfaces: ["research_widget"],
+        workspace_id: "ws_partner_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-partner-embed-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PartnerWhiteLabelEmbedPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_invalid_origin");
+    expect(body.data.embed.allowed_origins).toEqual([]);
+    expect(body.data.validation.valid_allowed_origins).toBe(false);
+    expect(body.data.persistent_writes).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("plans Team Enterprise controls without live providers or writes", async () => {

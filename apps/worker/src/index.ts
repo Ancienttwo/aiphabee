@@ -206,6 +206,11 @@ import {
   recordTelemetryEvents
 } from "@aiphabee/observability";
 import {
+  createWhiteLabelEmbedPlan,
+  getPartnerRuntimeCapabilities,
+  getWhiteLabelEmbedCapabilities
+} from "@aiphabee/partner-runtime";
+import {
   createComplianceOpsReleaseGatePlan,
   createPublicationEconomicsReleaseGatePlan,
   getPublicDocsManifest,
@@ -1581,6 +1586,86 @@ app.post("/sharing/release-gates/privacy-share/plan", async (c) => {
         rows: plan.release_checks.length
       }
     })
+  );
+});
+
+app.get("/partner/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getPartnerRuntimeCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "partner-runtime-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/partner/white-label-embeds/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createWhiteLabelEmbedPlan({
+    allowedOrigins: normalizeStringArray(
+      body.allowed_origins ?? body.allowedOrigins ?? body.origins
+    ),
+    brandMode: normalizeString(body.brand_mode ?? body.brandMode),
+    commercialModel: normalizeString(body.commercial_model ?? body.commercialModel),
+    dataScopes: normalizeStringArray(body.data_scopes ?? body.dataScopes),
+    partnerId: normalizeString(body.partner_id ?? body.partnerId),
+    partnerName: normalizeString(body.partner_name ?? body.partnerName),
+    partnerType: normalizeString(body.partner_type ?? body.partnerType),
+    requestedSurfaces: normalizeStringArray(
+      body.requested_surfaces ?? body.requestedSurfaces ?? body.surfaces
+    ),
+    requestId,
+    revenueShareBps: normalizeOptionalInteger(
+      body.revenue_share_bps ?? body.revenueShareBps
+    ),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getWhiteLabelEmbedCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "partner-runtime-contract",
+            source_record_id: "white-label-embed-plan"
+          }
+        ],
+        requestId,
+        usage: plan.usage
+      }
+    )
   );
 });
 

@@ -1,0 +1,101 @@
+{
+  "version": "2026-06-22.phase4.partner-white-label-embed-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/partner-runtime",
+  "runtime_route": "GET /partner/runtime",
+  "route": "POST /partner/white-label-embeds/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_embed_rendering": false,
+  "live_api_execution": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "embed_script_generated": false,
+  "public_indexing": false,
+  "covered_phase4_items": [
+    "B2B2C/白标",
+    "embedded_research_tools",
+    "MCP/API",
+    "partner_settlement"
+  ],
+  "partner_types": ["brokerage", "media", "wealth_platform", "data_company"],
+  "distribution_surfaces": [
+    "research_widget",
+    "report_viewer",
+    "watchlist_widget",
+    "mcp_api",
+    "data_api"
+  ],
+  "commercial_models": [
+    "fixed_annual_license",
+    "minimum_guarantee_overage",
+    "subscription_revenue_share",
+    "mcp_api_revenue_share",
+    "premium_data_package",
+    "sla_quality_credit"
+  ],
+  "brand_modes": ["co_branded", "white_label"],
+  "data_scopes": [
+    "research_outputs",
+    "market_data",
+    "announcement_summaries",
+    "analytics_results"
+  ],
+  "security_contract": {
+    "credential_material_stored": false,
+    "raw_personal_contact_included": false,
+    "raw_prompt_included": false,
+    "signed_contract_required": true,
+    "tenant_isolation_required": true,
+    "field_authorization_required": true,
+    "partner_rights_matrix_required": true,
+    "default_deny_until_signed": true,
+    "external_redistribution_allowed": false
+  },
+  "embed_contract": {
+    "https_origin_allowlist_required": true,
+    "csp_required": true,
+    "script_bundle_generated": false,
+    "public_indexing": false,
+    "live_rendering": false
+  },
+  "integration_routes": {
+    "runtime": "GET /partner/runtime",
+    "settlement": "POST /usage/partner-reconciliation/plan",
+    "data_gateway": "POST /gateway/exports/plan",
+    "mcp": "POST /mcp",
+    "mcp_key_create": "POST /mcp/api-keys/create/plan",
+    "mcp_oauth_authorize": "POST /mcp/oauth/authorize/plan"
+  },
+  "tables": [
+    "core.partner_program",
+    "core.partner_embed_surface",
+    "audit.partner_distribution_event",
+    "governance.partner_white_label_contract"
+  ],
+  "required_output_fields": [
+    "partner",
+    "brand_policy",
+    "embed",
+    "mcp_api",
+    "data_governance",
+    "commercial_model",
+    "security",
+    "validation"
+  ],
+  "blocked_statuses": [
+    "blocked_invalid_origin",
+    "blocked_missing_context",
+    "blocked_unsupported_commercial_model",
+    "blocked_unsupported_partner_type",
+    "blocked_unsupported_surface"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/sharing/private-share-link.contract.json",
+    "deploy/usage/partner-reconciliation-report.contract.json",
+    "deploy/gateway/restricted-exports.contract.json",
+    "deploy/mcp/api-key.contract.json",
+    "deploy/mcp/oauth-pkce.contract.json"
+  ]
+}

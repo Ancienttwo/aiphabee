@@ -603,6 +603,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql",
+      "purpose": "Create empty partner white-label and embedded component scaffolds for B2B2C distribution, MCP/API surfaces, data gateway rights, and settlement planning without enabling live API execution, embed rendering, persistent writes, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.partner_program",
+        "core.partner_embed_surface",
+        "audit.partner_distribution_event",
+        "governance.partner_white_label_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
