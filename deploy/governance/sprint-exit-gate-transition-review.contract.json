@@ -39,21 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "credentialed_live_smoke_captures_missing": {
-      "owner_manifest_ids": ["phase0_live_smoke_evidence"],
-      "owner_check_commands": [
-        "check:live-smoke-capture-transition-review",
-        "check:live-smoke-evidence-ledger"
-      ],
-      "closure_evidence_refs": [
-        "cloudflare_resource_inventory",
-        "cloudflare_bindings_functional",
-        "ai_gateway_model_execution",
-        "ai_gateway_observability",
-        "observability_otlp_eval_store",
-        "provider_secret_store_rotation"
-      ]
-    },
     "partner_rows_live_serving_usage_writes_missing": {
       "owner_manifest_ids": ["sprint1_live_data_evidence"],
       "owner_check_commands": [
@@ -218,11 +203,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["phase0_live_smoke_evidence"],
-      "manual_blocking_conditions": ["credentialed_live_smoke_captures_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
-        "blocker_manifest:phase0_live_smoke_evidence",
-        "credentialed_live_smoke_captures_missing"
+        "blocker_manifest:phase0_live_smoke_evidence"
       ]
     },
     {
@@ -481,7 +465,9 @@
     "Sprint 0.x Gate0 manual blockers 已转为 manifest blockers",
     "| 2026-06-23 | 1.0hw | 完成 `sprint0-gate0-manual-blocker-manifest-routing`",
     "Partner model output corpus blocker 已转为 release-gate manifest blocker",
-    "| 2026-06-23 | 1.0hx | 完成 `partner-model-output-corpus-blocker-routing`"
+    "| 2026-06-23 | 1.0hx | 完成 `partner-model-output-corpus-blocker-routing`",
+    "Credentialed live smoke blocker 已转为 phase0 live-smoke manifest blocker",
+    "| 2026-06-23 | 1.0hy | 完成 `credentialed-live-smoke-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -491,7 +477,8 @@
     "Sprint manual blocker owner map",
     "Phase 3 security/load/DR release evidence handoff",
     "Sprint 0.x Gate0 manual blocker manifest routing",
-    "Partner model output corpus blocker routing"
+    "Partner model output corpus blocker routing",
+    "Credentialed live smoke blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
