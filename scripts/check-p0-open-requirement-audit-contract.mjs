@@ -73,8 +73,20 @@ function validateContract(value) {
     "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
     "linked_evidence_handoffs.p0_open_requirement_evidence"
   );
+  expectIncludes(
+    errors,
+    value.linked_transition_reviews,
+    "deploy/governance/p0-open-requirement-transition-review.contract.json",
+    "linked_transition_reviews.p0_open_requirement_transition_review"
+  );
 
-  for (const path of [value.tracker, value.p0_ledger, value.todos, ...(value.linked_evidence_handoffs ?? [])]) {
+  for (const path of [
+    value.tracker,
+    value.p0_ledger,
+    value.todos,
+    ...(value.linked_evidence_handoffs ?? []),
+    ...(value.linked_transition_reviews ?? [])
+  ]) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
       errors.push(`linked path missing: ${path}`);
     }
@@ -112,6 +124,7 @@ function validateContract(value) {
     "agt_01_complete",
     "agt_07_complete",
     "mcp_09_complete",
+    "p0_transition_review_complete",
     "all_p0_requirements_complete",
     "all_sprints_complete"
   ]) {
@@ -224,6 +237,7 @@ function validateLinkedContracts() {
   const targetClientHandoff = readJson("deploy/mcp/target-client-live-e2e-handoff.contract.json");
   const targetClientsConsoleGate = readJson("deploy/mcp/target-clients-console-release-gate.contract.json");
   const p0EvidenceHandoff = readJson("deploy/governance/p0-open-requirement-evidence-handoff.contract.json");
+  const p0TransitionReview = readJson("deploy/governance/p0-open-requirement-transition-review.contract.json");
 
   expectEqual(errors, toolLoop.streaming_transport, "server_sent_events", "toolLoop.streaming_transport");
   expectEqual(errors, toolLoop.stream_model_calls, false, "toolLoop.stream_model_calls");
@@ -342,6 +356,22 @@ function validateLinkedContracts() {
     p0EvidenceHandoff.not_claimed,
     "accepted_requirement_evidence",
     "p0EvidenceHandoff.not_claimed.accepted_requirement_evidence"
+  );
+
+  expectEqual(errors, p0TransitionReview.status, "pending_transition_review", "p0TransitionReview.status");
+  expectEqual(errors, p0TransitionReview.release_transition_allowed, false, "p0TransitionReview.release_transition_allowed");
+  expectEqual(errors, p0TransitionReview.all_p0_requirements_complete, false, "p0TransitionReview.all_p0_requirements_complete");
+  expectEqual(
+    errors,
+    p0TransitionReview.accepted_packets_are_sufficient_alone,
+    false,
+    "p0TransitionReview.accepted_packets_are_sufficient_alone"
+  );
+  expectArray(
+    errors,
+    p0TransitionReview.required_requirement_codes,
+    ["AGT-01", "AGT-07", "MCP-09"],
+    "p0TransitionReview.required_requirement_codes"
   );
 
   return errors;

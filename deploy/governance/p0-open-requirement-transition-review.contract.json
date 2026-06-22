@@ -1,0 +1,94 @@
+{
+  "version": "2026-06-23.goal.p0-open-requirement-transition-review.v0",
+  "status": "pending_transition_review",
+  "checker": "scripts/check-p0-open-requirement-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-p0-open-requirement-transition-review-fixtures.mjs",
+  "open_requirement_audit_contract": "deploy/governance/p0-open-requirement-audit.contract.json",
+  "evidence_handoff_contract": "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_p0_requirements_complete": false,
+  "accepted_packets_are_sufficient_alone": false,
+  "required_requirement_codes": ["AGT-01", "AGT-07", "MCP-09"],
+  "transition_policy": {
+    "accepted_packet_required": true,
+    "linked_release_gate_required": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "accepted_packet_alone_never_completes_requirement": true,
+    "hash_only_packet_validator_remains_source_of_truth": true
+  },
+  "requirement_transition_reviews": [
+    {
+      "requirement_code": "AGT-01",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "completion_allowed": false,
+      "linked_release_gates": [
+        "deploy/agent/live-model-streaming-release-gate.contract.json",
+        "deploy/agent/user-tool-loop-execution-release-gate.contract.json"
+      ],
+      "blocking_conditions": [
+        "frontend_ask_progress_rendering",
+        "user_facing_live_model_token_streaming",
+        "arbitrary_user_tool_loop_execution",
+        "persistent_stream_state_or_production_cutover"
+      ]
+    },
+    {
+      "requirement_code": "AGT-07",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "completion_allowed": false,
+      "linked_release_gates": [
+        "deploy/agent/model-output-corpus-release-gate.contract.json",
+        "deploy/agent/generated-answer-evidence-smoke.contract.json",
+        "deploy/governance/post-generation-evidence-binding.contract.json"
+      ],
+      "blocking_conditions": [
+        "frontend_clickable_evidence_cards",
+        "live_evidence_writes",
+        "production_generated_answer_evidence_binding",
+        "live_model_output_corpus"
+      ]
+    },
+    {
+      "requirement_code": "MCP-09",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "completion_allowed": false,
+      "linked_release_gates": [
+        "deploy/mcp/target-client-live-e2e-handoff.contract.json",
+        "deploy/mcp/target-clients-console-release-gate.contract.json",
+        "deploy/mcp/developer-console.contract.json",
+        "deploy/mcp/developer-console-log-store-smoke.contract.json"
+      ],
+      "blocking_conditions": [
+        "frontend_console_ui",
+        "production_console_log_store_cutover",
+        "live_usage_ledger_reads",
+        "live_key_generation_or_oauth_provider",
+        "target_client_live_e2e_packets"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "P0 open requirement transition review 已建立",
+    "| 2026-06-23 | 1.0hh | 完成 `p0-open-requirement-transition-review`"
+  ],
+  "required_todos_fragments": [
+    "P0 open requirement transition review",
+    "npm run check:p0-open-requirement-transition-review",
+    "accepted packet alone"
+  ],
+  "not_claimed": [
+    "agt_01_complete",
+    "agt_07_complete",
+    "mcp_09_complete",
+    "accepted_packets_present",
+    "release_transition_allowed",
+    "all_p0_requirements_complete",
+    "all_sprints_complete"
+  ]
+}

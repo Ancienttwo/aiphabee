@@ -117,12 +117,17 @@
     "deploy/mcp/target-client-live-e2e-handoff.contract.json",
     "deploy/mcp/target-clients-console-release-gate.contract.json"
   ],
+  "linked_transition_reviews": [
+    "deploy/governance/p0-open-requirement-transition-review.contract.json"
+  ],
   "required_tracker_fragments": [
     "P0 open requirement evidence handoff 已建立",
+    "P0 open requirement transition review 已建立",
     "| 2026-06-23 | 1.0hg | 完成 `p0-open-requirement-evidence-handoff`"
   ],
   "required_todos_fragments": [
     "P0 open requirement evidence handoff",
+    "P0 open requirement transition review",
     "npm run check:p0-open-requirement-evidence-packets",
     "npm run check:p0-open-requirement-evidence-handoff"
   ],
@@ -134,6 +139,7 @@
     "frontend_release_surfaces_complete",
     "live_model_or_tool_loop_release",
     "developer_console_release",
+    "transition_review_complete",
     "all_p0_requirements_complete",
     "all_sprints_complete"
   ]
