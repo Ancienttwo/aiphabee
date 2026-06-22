@@ -32,6 +32,7 @@ References checked:
 | Store contract | `deploy/secrets/stores.contract.json` | Cloudflare Workers, GitHub Actions, Supabase planned stores |
 | Runbook | `deploy/runbooks/secret-rotation-emergency-revocation.md` | Operator path for normal rotation and emergency revocation |
 | Validator | `scripts/check-secret-stores-contract.mjs` | Ensures provider coverage, env-secret parity, cadence/SLA, and no secret-like values |
+| Live smoke readiness | `deploy/secrets/live-smoke-readiness.contract.json` / `scripts/smoke-provider-secret-stores-live.mjs` | Synthetic set/list/rotate/delete readiness for Cloudflare/GitHub/Supabase |
 | Worker route | `GET /secrets/runtime` | Reports store contract, provider names, cadence, SLA, and `secret_values_available=false` |
 | Live providers | Absent | No provider mutation, no secret value, no provider ID, no secret listing output |
 
@@ -64,6 +65,16 @@ Runtime capability trace:
    - `store_contract=deploy/secrets/stores.contract.json`.
 3. No provider API is called and no secret value is exposed.
 
+Live smoke readiness trace:
+
+1. `npm run check:provider-secret-stores-live-readiness` validates
+   `deploy/secrets/live-smoke-readiness.contract.json`, the explicit live smoke
+   script, package scripts, source-store parity, and no-secret output rules.
+2. `npm run smoke:provider-secret-stores-live -- --dry-run` reports required
+   names-only env and planned operations without network access.
+3. A future real run uses only a synthetic `AIPHABEE_SECRET_STORE_SMOKE...`
+   secret name, generated in-memory values, provider list commands, and cleanup.
+
 ## P3 Design Decision
 
 Selected a no-secret contract and runbook instead of live provider mutation.
@@ -83,12 +94,17 @@ Tradeoff:
 - This completes the Sprint 0.4 secret-store contract leaf.
 - It does not prove that Cloudflare, GitHub Actions, or Supabase stores are live
   or that rotation has been smoke-tested.
+- The new live smoke harness narrows the remaining live task to an explicit
+  synthetic provider mutation run, but this document still does not claim a live
+  pass.
 
 ## Verification
 
 Passed:
 
 - `npm run check:secrets`
+- `npm run check:provider-secret-stores-live-readiness`
+- `node scripts/smoke-provider-secret-stores-live.mjs --dry-run`
 - `npm run test`
 - `npm run check`
 - `npx wrangler dev --config wrangler.jsonc --port 8787`
@@ -114,7 +130,7 @@ Observed `/secrets/runtime` response fields:
 ## Residual Gaps
 
 - Real provider secret stores are not provisioned.
-- No `wrangler secret`, `gh secret`, or `supabase secrets` command was run
-  against a live account.
+- No `wrangler secret`, `gh secret`, or `supabase secrets` live mutation smoke
+  has passed against a real account.
 - OIDC replacement for long-lived deployment credentials remains unimplemented.
 - Production incident evidence storage is not implemented.
