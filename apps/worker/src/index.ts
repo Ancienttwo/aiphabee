@@ -40,6 +40,7 @@ import {
   createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentLiveModelStreamingReleaseGatePlan,
   createAgentModelOutputCorpusReleaseGatePlan,
+  createAgentTokenCostFallbackReleaseGatePlan,
   createAgentUserToolLoopExecutionReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
@@ -53,6 +54,7 @@ import {
   getAgentLiveModelStreamingReleaseGateCapabilities,
   getAgentModelOutputCorpusReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
+  getAgentTokenCostFallbackReleaseGateCapabilities,
   getAgentUserToolLoopExecutionReleaseGateCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -682,6 +684,8 @@ interface AgentRunRequestBody {
   answerText?: unknown;
   backend_progress_stream_accepted?: unknown;
   backendProgressStreamAccepted?: unknown;
+  billing_posted_ledger_accepted?: unknown;
+  billingPostedLedgerAccepted?: unknown;
   budget_stop_policy_accepted?: unknown;
   budgetStopPolicyAccepted?: unknown;
   channel?: unknown;
@@ -691,6 +695,8 @@ interface AgentRunRequestBody {
   capturePacketAccepted?: unknown;
   cost_cache_evidence_accepted?: unknown;
   costCacheEvidenceAccepted?: unknown;
+  cost_rate_limit_fallback_evidence_accepted?: unknown;
+  costRateLimitFallbackEvidenceAccepted?: unknown;
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
@@ -715,6 +721,8 @@ interface AgentRunRequestBody {
   max_wall_clock_ms?: unknown;
   methodology?: unknown;
   locale?: unknown;
+  live_cost_ledger_writer_accepted?: unknown;
+  liveCostLedgerWriterAccepted?: unknown;
   live_tool_loop_stream_text_accepted?: unknown;
   liveToolLoopStreamTextAccepted?: unknown;
   kill_switch_reason?: unknown;
@@ -726,6 +734,8 @@ interface AgentRunRequestBody {
   modelTier?: unknown;
   model_audit_stream_text_accepted?: unknown;
   modelAuditStreamTextAccepted?: unknown;
+  model_routing_audit_accepted?: unknown;
+  modelRoutingAuditAccepted?: unknown;
   plan?: unknown;
   pre_tool_call_resolution_accepted?: unknown;
   preToolCallResolutionAccepted?: unknown;
@@ -787,6 +797,8 @@ interface AgentRunRequestBody {
   retentionPolicyApproved?: unknown;
   request_log_evidence_accepted?: unknown;
   requestLogEvidenceAccepted?: unknown;
+  run_tool_audit_fields_accepted?: unknown;
+  runToolAuditFieldsAccepted?: unknown;
   source_run_id?: unknown;
   sourceRunId?: unknown;
   stream_auth_redaction_accepted?: unknown;
@@ -7085,6 +7097,70 @@ app.post("/agent/release-gates/model-output-corpus/plan", async (c) => {
             methodology_version: plan.version,
             source: "agent-runtime",
             source_record_id: "agent-model-output-corpus-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/agent/release-gates/token-cost-fallback/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentTokenCostFallbackReleaseGatePlan({
+    aiGatewayObservabilityGateAccepted: normalizeOptionalBoolean(
+      body.ai_gateway_observability_gate_accepted ?? body.aiGatewayObservabilityGateAccepted
+    ),
+    billingPostedLedgerAccepted: normalizeOptionalBoolean(
+      body.billing_posted_ledger_accepted ?? body.billingPostedLedgerAccepted
+    ),
+    costRateLimitFallbackEvidenceAccepted: normalizeOptionalBoolean(
+      body.cost_rate_limit_fallback_evidence_accepted ??
+        body.costRateLimitFallbackEvidenceAccepted
+    ),
+    liveCostLedgerWriterAccepted: normalizeOptionalBoolean(
+      body.live_cost_ledger_writer_accepted ?? body.liveCostLedgerWriterAccepted
+    ),
+    modelExecutionAuditAccepted: normalizeOptionalBoolean(
+      body.model_execution_audit_accepted ?? body.modelExecutionAuditAccepted
+    ),
+    modelRoutingAuditAccepted: normalizeOptionalBoolean(
+      body.model_routing_audit_accepted ?? body.modelRoutingAuditAccepted
+    ),
+    requestId,
+    runToolAuditFieldsAccepted: normalizeOptionalBoolean(
+      body.run_tool_audit_fields_accepted ?? body.runToolAuditFieldsAccepted
+    ),
+    userRunPersistenceGateAccepted: normalizeOptionalBoolean(
+      body.user_run_persistence_gate_accepted ?? body.userRunPersistenceGateAccepted
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentTokenCostFallbackReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-token-cost-fallback-release-gate-plan"
           }
         ],
         requestId,

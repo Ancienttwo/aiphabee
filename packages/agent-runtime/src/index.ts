@@ -70,6 +70,8 @@ export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0";
 export const AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-model-output-corpus-release-gate.v0";
+export const AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-token-cost-fallback-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -218,6 +220,19 @@ export const AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES = [
   "core.agent_model_output_corpus_release_gate",
   "governance.agent_model_output_corpus_release_gate_contract"
 ] as const;
+export const AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS = [
+  "model_execution_audit_smoke_linked",
+  "model_routing_audit_contract_linked",
+  "run_tool_audit_fields_contract_linked",
+  "ai_gateway_observability_gate_linked",
+  "billing_posted_ledger_smoke_linked",
+  "user_run_persistence_gate_linked",
+  "live_token_cost_fallback_writes_blocked"
+] as const;
+export const AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_TABLES = [
+  "core.agent_token_cost_fallback_release_gate",
+  "governance.agent_token_cost_fallback_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -248,6 +263,9 @@ export type AgentUserToolLoopExecutionReleaseGateStatus = "planned_no_write";
 export type AgentModelOutputCorpusReleaseGateCheck =
   (typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS)[number];
 export type AgentModelOutputCorpusReleaseGateStatus = "planned_no_write";
+export type AgentTokenCostFallbackReleaseGateCheck =
+  (typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS)[number];
+export type AgentTokenCostFallbackReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -363,6 +381,18 @@ export interface CreateAgentModelOutputCorpusReleaseGatePlanInput {
   persistentEvalWritesAccepted?: boolean;
   requestId: string;
   unsourcedNumericSamplingAccepted?: boolean;
+}
+
+export interface CreateAgentTokenCostFallbackReleaseGatePlanInput {
+  aiGatewayObservabilityGateAccepted?: boolean;
+  billingPostedLedgerAccepted?: boolean;
+  costRateLimitFallbackEvidenceAccepted?: boolean;
+  liveCostLedgerWriterAccepted?: boolean;
+  modelExecutionAuditAccepted?: boolean;
+  modelRoutingAuditAccepted?: boolean;
+  requestId: string;
+  runToolAuditFieldsAccepted?: boolean;
+  userRunPersistenceGateAccepted?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -555,6 +585,28 @@ export interface AgentModelOutputCorpusReleaseGateCapabilities {
   version: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION;
 }
 
+export interface AgentTokenCostFallbackReleaseGateCapabilities {
+  actual_tool_execution: false;
+  ai_gateway_observability_release_gate_route: "POST /agent/release-gates/ai-gateway-observability/plan";
+  billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke";
+  frontend_rendering: false;
+  live_token_cost_fallback_log_writes: false;
+  model_calls: false;
+  model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke";
+  model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json";
+  persistent_writes: false;
+  production_cost_ledger_enabled: false;
+  required_checks: typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/token-cost-fallback/plan";
+  run_tool_audit_fields_contract: "deploy/governance/run-tool-audit-fields.contract.json";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_token_cost_fallback_release_gate_scaffold";
+  tables: typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_TABLES;
+  user_run_persistence_release_gate_route: "POST /agent/release-gates/user-run-persistence/plan";
+  version: typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_VERSION;
+}
+
 export interface AgentRuntimeCapabilities {
   ai_sdk: {
     package_name: "ai";
@@ -709,6 +761,7 @@ export interface AgentRuntimeCapabilities {
   agent_live_model_streaming_release_gate: AgentLiveModelStreamingReleaseGateCapabilities;
   agent_user_tool_loop_execution_release_gate: AgentUserToolLoopExecutionReleaseGateCapabilities;
   agent_model_output_corpus_release_gate: AgentModelOutputCorpusReleaseGateCapabilities;
+  agent_token_cost_fallback_release_gate: AgentTokenCostFallbackReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -2340,6 +2393,87 @@ export interface AgentModelOutputCorpusReleaseGatePlan {
   version: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION;
 }
 
+export interface AgentTokenCostFallbackLinkedEvidence {
+  command: string;
+  contract: string;
+  covers: string[];
+  route?: string;
+  surface:
+    | "ai_gateway_observability_release_gate"
+    | "billing_posted_ledger_smoke"
+    | "model_execution_audit_smoke"
+    | "model_routing_audit_contract"
+    | "run_tool_audit_fields_contract"
+    | "user_run_persistence_release_gate";
+  status: "blocked_release_gate_required" | "guarded_smoke_required" | "local_contract_required";
+}
+
+export interface AgentTokenCostFallbackEvidenceRequirement {
+  evidence: string;
+  requirement:
+    | "ai_gateway_observability_gate"
+    | "billing_posted_ledger"
+    | "cost_rate_limit_fallback_evidence"
+    | "live_cost_ledger_writer"
+    | "model_execution_audit"
+    | "model_routing_audit"
+    | "run_tool_audit_fields"
+    | "user_run_persistence_gate";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentTokenCostFallbackReleaseGatePlan {
+  actual_tool_execution: false;
+  capability: AgentTokenCostFallbackReleaseGateCapabilities;
+  evidence_requirements: AgentTokenCostFallbackEvidenceRequirement[];
+  frontend_rendering: false;
+  linked_evidence: AgentTokenCostFallbackLinkedEvidence[];
+  live_token_cost_fallback_log_writes: false;
+  model_calls: false;
+  persistent_writes: false;
+  production_cost_ledger_enabled: false;
+  release_checks: Array<{
+    check: AgentTokenCostFallbackReleaseGateCheck;
+    evidence: string;
+    status: AgentTokenCostFallbackReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_live_token_cost_fallback_writes";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "observability", "finance", "platform"];
+  };
+  release_transition_allowed: false;
+  request_id: string;
+  route: "POST /agent/release-gates/token-cost-fallback/plan";
+  sql_emitted: false;
+  status: AgentTokenCostFallbackReleaseGateStatus;
+  tables: typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_TABLES;
+  validation: {
+    ai_gateway_observability_gate_accepted: boolean;
+    ai_gateway_observability_gate_linked: boolean;
+    billing_posted_ledger_accepted: boolean;
+    billing_posted_ledger_smoke_linked: boolean;
+    cost_rate_limit_fallback_evidence_accepted: boolean;
+    live_cost_ledger_writer_accepted: boolean;
+    live_token_cost_fallback_log_writes: false;
+    model_execution_audit_accepted: boolean;
+    model_execution_audit_smoke_linked: boolean;
+    model_routing_audit_accepted: boolean;
+    model_routing_audit_contract_linked: boolean;
+    no_frontend_rendering: true;
+    no_model_calls: true;
+    no_persistent_writes: true;
+    production_cost_ledger_enabled: false;
+    release_transition_allowed: false;
+    run_tool_audit_fields_accepted: boolean;
+    run_tool_audit_fields_contract_linked: boolean;
+    user_run_persistence_gate_accepted: boolean;
+    user_run_persistence_gate_linked: boolean;
+  };
+  version: typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2763,6 +2897,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       getAgentUserToolLoopExecutionReleaseGateCapabilities(),
     agent_model_output_corpus_release_gate:
       getAgentModelOutputCorpusReleaseGateCapabilities(),
+    agent_token_cost_fallback_release_gate:
+      getAgentTokenCostFallbackReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2967,6 +3103,32 @@ export function getAgentModelOutputCorpusReleaseGateCapabilities(): AgentModelOu
     unsourced_numeric_sampling_contract:
       "deploy/observability/unsourced-numeric-sampling.contract.json",
     version: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentTokenCostFallbackReleaseGateCapabilities(): AgentTokenCostFallbackReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    ai_gateway_observability_release_gate_route:
+      "POST /agent/release-gates/ai-gateway-observability/plan",
+    billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+    frontend_rendering: false,
+    live_token_cost_fallback_log_writes: false,
+    model_calls: false,
+    model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+    model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+    persistent_writes: false,
+    production_cost_ledger_enabled: false,
+    required_checks: AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/token-cost-fallback/plan",
+    run_tool_audit_fields_contract: "deploy/governance/run-tool-audit-fields.contract.json",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_token_cost_fallback_release_gate_scaffold",
+    tables: AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_TABLES,
+    user_run_persistence_release_gate_route:
+      "POST /agent/release-gates/user-run-persistence/plan",
+    version: AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_VERSION
   };
 }
 
@@ -4675,6 +4837,230 @@ export function createAgentModelOutputCorpusReleaseGatePlan(
     tables: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES,
     validation,
     version: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentTokenCostFallbackReleaseGatePlan(
+  input: CreateAgentTokenCostFallbackReleaseGatePlanInput
+): AgentTokenCostFallbackReleaseGatePlan {
+  const modelExecutionAuditAccepted = input.modelExecutionAuditAccepted === true;
+  const modelRoutingAuditAccepted = input.modelRoutingAuditAccepted === true;
+  const runToolAuditFieldsAccepted = input.runToolAuditFieldsAccepted === true;
+  const aiGatewayObservabilityGateAccepted =
+    input.aiGatewayObservabilityGateAccepted === true;
+  const billingPostedLedgerAccepted = input.billingPostedLedgerAccepted === true;
+  const userRunPersistenceGateAccepted = input.userRunPersistenceGateAccepted === true;
+  const costRateLimitFallbackEvidenceAccepted =
+    input.costRateLimitFallbackEvidenceAccepted === true;
+  const liveCostLedgerWriterAccepted = input.liveCostLedgerWriterAccepted === true;
+  const linkedEvidence: AgentTokenCostFallbackLinkedEvidence[] = [
+    {
+      command: "npm run check:agent-model-execution-audit-smoke",
+      contract: "deploy/agent/model-execution-audit-smoke.contract.json",
+      covers: [
+        "ai_gateway_generate_text_stream_text",
+        "token_counts",
+        "provider_model_prompt_output_hashes"
+      ],
+      route: "POST /agent/runs/model-execution-audit-smoke",
+      surface: "model_execution_audit_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:model-routing-audit",
+      contract: "deploy/agent/model-routing-audit.contract.json",
+      covers: [
+        "fallback_triggers",
+        "model_change_audit_fields",
+        "safe_reusable_cache_policy"
+      ],
+      route: "POST /agent/runs/plan",
+      surface: "model_routing_audit_contract",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:run-tool-audit-fields",
+      contract: "deploy/governance/run-tool-audit-fields.contract.json",
+      covers: [
+        "run_audit_token_cost_latency_fields",
+        "tool_call_audit_fields",
+        "request_id_trace"
+      ],
+      surface: "run_tool_audit_fields_contract",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:agent-ai-gateway-observability-release-gate",
+      contract: "deploy/agent/ai-gateway-observability-release-gate.contract.json",
+      covers: [
+        "ai_gateway_request_log_evidence_required",
+        "cost_cache_log_fields_required",
+        "rate_limit_fallback_evidence_required"
+      ],
+      route: "POST /agent/release-gates/ai-gateway-observability/plan",
+      surface: "ai_gateway_observability_release_gate",
+      status: "blocked_release_gate_required"
+    },
+    {
+      command: "npm run check:agent-billing-posted-ledger-smoke",
+      contract: "deploy/agent/billing-posted-ledger-smoke.contract.json",
+      covers: [
+        "usage_ledger_preview_to_posted",
+        "no_double_charge",
+        "hash_only_billing_smoke_response"
+      ],
+      route: "POST /agent/runs/billing-posted-ledger-smoke",
+      surface: "billing_posted_ledger_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-user-run-persistence-release-gate",
+      contract: "deploy/agent/user-run-persistence-release-gate.contract.json",
+      covers: [
+        "run_audit_evidence_usage_state_billing_smokes",
+        "production_persistence_cutover_blocked",
+        "hash_only_smoke_chain"
+      ],
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      surface: "user_run_persistence_release_gate",
+      status: "blocked_release_gate_required"
+    }
+  ];
+  const evidenceRequirements: AgentTokenCostFallbackEvidenceRequirement[] = [
+    {
+      evidence: modelExecutionAuditAccepted
+        ? "model execution audit smoke was marked accepted in request payload"
+        : "model execution audit smoke must be accepted before token/cost/fallback cutover",
+      requirement: "model_execution_audit",
+      status: modelExecutionAuditAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: modelRoutingAuditAccepted
+        ? "model routing audit contract was marked accepted in request payload"
+        : "model routing audit contract must be accepted before fallback cost logging cutover",
+      requirement: "model_routing_audit",
+      status: modelRoutingAuditAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: runToolAuditFieldsAccepted
+        ? "run/tool audit field contract was marked accepted in request payload"
+        : "run/tool audit field contract must be accepted before token/cost log writes",
+      requirement: "run_tool_audit_fields",
+      status: runToolAuditFieldsAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: aiGatewayObservabilityGateAccepted
+        ? "AI Gateway observability release gate was marked accepted in request payload"
+        : "AI Gateway observability gate must be accepted before cost/cache/rate-limit/fallback claims",
+      requirement: "ai_gateway_observability_gate",
+      status: aiGatewayObservabilityGateAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: billingPostedLedgerAccepted
+        ? "billing-posted ledger smoke was marked accepted in request payload"
+        : "billing-posted ledger smoke must be accepted before production cost ledger cutover",
+      requirement: "billing_posted_ledger",
+      status: billingPostedLedgerAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: userRunPersistenceGateAccepted
+        ? "user-run persistence release gate was marked accepted in request payload"
+        : "user-run persistence release gate must be accepted before live token/cost writes",
+      requirement: "user_run_persistence_gate",
+      status: userRunPersistenceGateAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: costRateLimitFallbackEvidenceAccepted
+        ? "AI Gateway cost/rate-limit/fallback evidence was marked accepted in request payload"
+        : "AI Gateway request logs, cost, cache, rate-limit, and fallback evidence must be accepted",
+      requirement: "cost_rate_limit_fallback_evidence",
+      status: costRateLimitFallbackEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: liveCostLedgerWriterAccepted
+        ? "live cost ledger writer evidence was marked accepted in request payload"
+        : "live token/cost/fallback writer must be accepted before release transition",
+      requirement: "live_cost_ledger_writer",
+      status: liveCostLedgerWriterAccepted ? "satisfied" : "blocked"
+    }
+  ];
+  const blockers = [
+    ...evidenceRequirements
+      .filter((requirement) => requirement.status === "blocked")
+      .map((requirement) => requirement.requirement),
+    "route_does_not_write_live_token_cost_fallback_logs"
+  ];
+  const linkedSurfaces = new Set(linkedEvidence.map((evidence) => evidence.surface));
+  const validation: AgentTokenCostFallbackReleaseGatePlan["validation"] = {
+    ai_gateway_observability_gate_accepted: aiGatewayObservabilityGateAccepted,
+    ai_gateway_observability_gate_linked: linkedSurfaces.has(
+      "ai_gateway_observability_release_gate"
+    ),
+    billing_posted_ledger_accepted: billingPostedLedgerAccepted,
+    billing_posted_ledger_smoke_linked: linkedSurfaces.has("billing_posted_ledger_smoke"),
+    cost_rate_limit_fallback_evidence_accepted: costRateLimitFallbackEvidenceAccepted,
+    live_cost_ledger_writer_accepted: liveCostLedgerWriterAccepted,
+    live_token_cost_fallback_log_writes: false,
+    model_execution_audit_accepted: modelExecutionAuditAccepted,
+    model_execution_audit_smoke_linked: linkedSurfaces.has("model_execution_audit_smoke"),
+    model_routing_audit_accepted: modelRoutingAuditAccepted,
+    model_routing_audit_contract_linked: linkedSurfaces.has("model_routing_audit_contract"),
+    no_frontend_rendering: true,
+    no_model_calls: true,
+    no_persistent_writes: true,
+    production_cost_ledger_enabled: false,
+    release_transition_allowed: false,
+    run_tool_audit_fields_accepted: runToolAuditFieldsAccepted,
+    run_tool_audit_fields_contract_linked: linkedSurfaces.has("run_tool_audit_fields_contract"),
+    user_run_persistence_gate_accepted: userRunPersistenceGateAccepted,
+    user_run_persistence_gate_linked: linkedSurfaces.has("user_run_persistence_release_gate")
+  };
+  const releaseChecks = AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS.map(
+    (check): AgentTokenCostFallbackReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "model_execution_audit_smoke_linked"
+          ? "deploy/agent/model-execution-audit-smoke.contract.json proves hash-only token counts and model audit preview"
+          : check === "model_routing_audit_contract_linked"
+            ? "deploy/agent/model-routing-audit.contract.json proves fallback triggers and model-change audit fields"
+            : check === "run_tool_audit_fields_contract_linked"
+              ? "deploy/governance/run-tool-audit-fields.contract.json proves token, cost, latency, and request_id audit field coverage"
+              : check === "ai_gateway_observability_gate_linked"
+                ? "deploy/agent/ai-gateway-observability-release-gate.contract.json keeps request log/cost/cache/rate-limit/fallback evidence blocked until accepted"
+                : check === "billing_posted_ledger_smoke_linked"
+                  ? "deploy/agent/billing-posted-ledger-smoke.contract.json proves preview-to-posted usage ledger idempotency"
+                  : check === "user_run_persistence_gate_linked"
+                    ? "deploy/agent/user-run-persistence-release-gate.contract.json keeps production user-run persistence cutover blocked"
+                    : "live token/cost/fallback writes remain blocked because this route does not write AI Gateway cost or fallback logs",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    capability: getAgentTokenCostFallbackReleaseGateCapabilities(),
+    evidence_requirements: evidenceRequirements,
+    frontend_rendering: false,
+    linked_evidence: linkedEvidence,
+    live_token_cost_fallback_log_writes: false,
+    model_calls: false,
+    persistent_writes: false,
+    production_cost_ledger_enabled: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_live_token_cost_fallback_writes",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "observability", "finance", "platform"]
+    },
+    release_transition_allowed: false,
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/token-cost-fallback/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_VERSION
   };
 }
 

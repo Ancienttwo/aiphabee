@@ -777,6 +777,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622023000_agent_token_cost_fallback_release_gate.sql",
+      "purpose": "Create no-write Agent token/cost/fallback release gate scaffolds that link model execution audit, model-routing fallback audit, run/tool audit fields, AI Gateway observability, billing posted ledger, and user-run persistence contracts without enabling live token-cost-fallback writes, production cost ledger writes, model calls, frontend rendering, or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_token_cost_fallback_release_gate",
+        "governance.agent_token_cost_fallback_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

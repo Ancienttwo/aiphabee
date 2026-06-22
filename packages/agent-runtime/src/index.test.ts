@@ -5,11 +5,12 @@ import {
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
-  createAgentAiGatewayObservabilityReleaseGatePlan,
-  createAgentLiveModelStreamingReleaseGatePlan,
-  createAgentModelOutputCorpusReleaseGatePlan,
-  createAgentUserToolLoopExecutionReleaseGatePlan,
-  createAgentUserRunPersistenceReleaseGatePlan,
+	  createAgentAiGatewayObservabilityReleaseGatePlan,
+	  createAgentLiveModelStreamingReleaseGatePlan,
+	  createAgentModelOutputCorpusReleaseGatePlan,
+	  createAgentTokenCostFallbackReleaseGatePlan,
+	  createAgentUserToolLoopExecutionReleaseGatePlan,
+	  createAgentUserRunPersistenceReleaseGatePlan,
   createAiSdkStopCondition,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -21,10 +22,11 @@ import {
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentAiGatewayObservabilityReleaseGateCapabilities,
-  getAgentLiveModelStreamingReleaseGateCapabilities,
-  getAgentModelOutputCorpusReleaseGateCapabilities,
-  getAgentRuntimeCapabilities,
-  getAgentUserToolLoopExecutionReleaseGateCapabilities,
+	  getAgentLiveModelStreamingReleaseGateCapabilities,
+	  getAgentModelOutputCorpusReleaseGateCapabilities,
+	  getAgentRuntimeCapabilities,
+	  getAgentTokenCostFallbackReleaseGateCapabilities,
+	  getAgentUserToolLoopExecutionReleaseGateCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getPromptInjectionToolDenialReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -412,6 +414,36 @@ describe("agent runtime scaffold", () => {
       "live_smoke_evidence_ledger_linked",
       "production_model_output_corpus_cutover_blocked"
     ]);
+    expect(capabilities.agent_token_cost_fallback_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      ai_gateway_observability_release_gate_route:
+        "POST /agent/release-gates/ai-gateway-observability/plan",
+      billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+      frontend_rendering: false,
+      live_token_cost_fallback_log_writes: false,
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+      persistent_writes: false,
+      production_cost_ledger_enabled: false,
+      route: "POST /agent/release-gates/token-cost-fallback/plan",
+      run_tool_audit_fields_contract: "deploy/governance/run-tool-audit-fields.contract.json",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_token_cost_fallback_release_gate_scaffold",
+      user_run_persistence_release_gate_route:
+        "POST /agent/release-gates/user-run-persistence/plan",
+      version: "2026-06-22.phase1.agent-token-cost-fallback-release-gate.v0"
+    });
+    expect(capabilities.agent_token_cost_fallback_release_gate.required_checks).toEqual([
+      "model_execution_audit_smoke_linked",
+      "model_routing_audit_contract_linked",
+      "run_tool_audit_fields_contract_linked",
+      "ai_gateway_observability_gate_linked",
+      "billing_posted_ledger_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "live_token_cost_fallback_writes_blocked"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -419,6 +451,41 @@ describe("agent runtime scaffold", () => {
         standardResponseEnvelope: true
       }
     });
+  });
+
+  it("exposes token/cost/fallback release gate capabilities without live writes", () => {
+    const capability = getAgentTokenCostFallbackReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      ai_gateway_observability_release_gate_route:
+        "POST /agent/release-gates/ai-gateway-observability/plan",
+      billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+      frontend_rendering: false,
+      live_token_cost_fallback_log_writes: false,
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+      persistent_writes: false,
+      production_cost_ledger_enabled: false,
+      route: "POST /agent/release-gates/token-cost-fallback/plan",
+      run_tool_audit_fields_contract: "deploy/governance/run-tool-audit-fields.contract.json",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_token_cost_fallback_release_gate_scaffold",
+      user_run_persistence_release_gate_route:
+        "POST /agent/release-gates/user-run-persistence/plan",
+      version: "2026-06-22.phase1.agent-token-cost-fallback-release-gate.v0"
+    });
+    expect(capability.required_checks).toEqual([
+      "model_execution_audit_smoke_linked",
+      "model_routing_audit_contract_linked",
+      "run_tool_audit_fields_contract_linked",
+      "ai_gateway_observability_gate_linked",
+      "billing_posted_ledger_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "live_token_cost_fallback_writes_blocked"
+    ]);
   });
 
   it("runs AI Gateway live smoke through generateText and streamText with sanitized proof", async () => {
@@ -1073,6 +1140,87 @@ describe("agent runtime scaffold", () => {
       release_transition_allowed: false,
       unsourced_numeric_sampling_accepted: true,
       unsourced_numeric_sampling_contract_linked: true
+    });
+  });
+
+  it("plans token/cost/fallback release gate without enabling live cost writes", () => {
+    const plan = createAgentTokenCostFallbackReleaseGatePlan({
+      aiGatewayObservabilityGateAccepted: true,
+      billingPostedLedgerAccepted: true,
+      costRateLimitFallbackEvidenceAccepted: true,
+      liveCostLedgerWriterAccepted: true,
+      modelExecutionAuditAccepted: true,
+      modelRoutingAuditAccepted: true,
+      requestId: "req-agent-token-cost-fallback-gate-1",
+      runToolAuditFieldsAccepted: true,
+      userRunPersistenceGateAccepted: true
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_token_cost_fallback_log_writes: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_cost_ledger_enabled: false,
+      release_transition_allowed: false,
+      request_id: "req-agent-token-cost-fallback-gate-1",
+      route: "POST /agent/release-gates/token-cost-fallback/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-22.phase1.agent-token-cost-fallback-release-gate.v0"
+    });
+    expect(plan.capability.required_checks).toEqual([
+      "model_execution_audit_smoke_linked",
+      "model_routing_audit_contract_linked",
+      "run_tool_audit_fields_contract_linked",
+      "ai_gateway_observability_gate_linked",
+      "billing_posted_ledger_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "live_token_cost_fallback_writes_blocked"
+    ]);
+    expect(plan.release_checks.map((check) => check.check)).toEqual(
+      plan.capability.required_checks
+    );
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(true);
+    expect(plan.linked_evidence.map((evidence) => evidence.surface)).toEqual([
+      "model_execution_audit_smoke",
+      "model_routing_audit_contract",
+      "run_tool_audit_fields_contract",
+      "ai_gateway_observability_release_gate",
+      "billing_posted_ledger_smoke",
+      "user_run_persistence_release_gate"
+    ]);
+    expect(plan.evidence_requirements.every((requirement) => requirement.status === "satisfied")).toBe(
+      true
+    );
+    expect(plan.release_gate).toMatchObject({
+      blockers: ["route_does_not_write_live_token_cost_fallback_logs"],
+      gate_status: "blocked_live_token_cost_fallback_writes",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "observability", "finance", "platform"]
+    });
+    expect(plan.validation).toEqual({
+      ai_gateway_observability_gate_accepted: true,
+      ai_gateway_observability_gate_linked: true,
+      billing_posted_ledger_accepted: true,
+      billing_posted_ledger_smoke_linked: true,
+      cost_rate_limit_fallback_evidence_accepted: true,
+      live_cost_ledger_writer_accepted: true,
+      live_token_cost_fallback_log_writes: false,
+      model_execution_audit_accepted: true,
+      model_execution_audit_smoke_linked: true,
+      model_routing_audit_accepted: true,
+      model_routing_audit_contract_linked: true,
+      no_frontend_rendering: true,
+      no_model_calls: true,
+      no_persistent_writes: true,
+      production_cost_ledger_enabled: false,
+      release_transition_allowed: false,
+      run_tool_audit_fields_accepted: true,
+      run_tool_audit_fields_contract_linked: true,
+      user_run_persistence_gate_accepted: true,
+      user_run_persistence_gate_linked: true
     });
   });
 

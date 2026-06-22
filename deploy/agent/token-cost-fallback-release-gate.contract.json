@@ -1,0 +1,96 @@
+{
+  "version": "2026-06-22.phase1.agent-token-cost-fallback-release-gate.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/token-cost-fallback/plan",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "checker": "scripts/check-agent-token-cost-fallback-release-gate-contract.mjs",
+  "test_files": [
+    "packages/agent-runtime/src/index.test.ts",
+    "apps/worker/src/index.test.ts"
+  ],
+  "migration": "supabase/migrations/20260622023000_agent_token_cost_fallback_release_gate.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "linked_contracts": [
+    "deploy/agent/model-execution-audit-smoke.contract.json",
+    "deploy/agent/model-routing-audit.contract.json",
+    "deploy/governance/run-tool-audit-fields.contract.json",
+    "deploy/agent/ai-gateway-observability-release-gate.contract.json",
+    "deploy/agent/billing-posted-ledger-smoke.contract.json",
+    "deploy/agent/user-run-persistence-release-gate.contract.json"
+  ],
+  "linked_checks": [
+    "npm run check:agent-model-execution-audit-smoke",
+    "npm run check:model-routing-audit",
+    "npm run check:run-tool-audit-fields",
+    "npm run check:agent-ai-gateway-observability-release-gate",
+    "npm run check:agent-billing-posted-ledger-smoke",
+    "npm run check:agent-user-run-persistence-release-gate"
+  ],
+  "standard_response_envelope": true,
+  "actual_tool_execution": false,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_token_cost_fallback_log_writes": false,
+  "production_cost_ledger_enabled": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "release_transition_allowed": false,
+  "required_checks": [
+    "model_execution_audit_smoke_linked",
+    "model_routing_audit_contract_linked",
+    "run_tool_audit_fields_contract_linked",
+    "ai_gateway_observability_gate_linked",
+    "billing_posted_ledger_smoke_linked",
+    "user_run_persistence_gate_linked",
+    "live_token_cost_fallback_writes_blocked"
+  ],
+  "required_output_fields": [
+    "linked_evidence",
+    "evidence_requirements",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_live_token_cost_fallback_writes",
+    "no_live_release_claim": true,
+    "required_signoffs": ["agent", "observability", "finance", "platform"],
+    "blockers": [
+      "model_execution_audit",
+      "model_routing_audit",
+      "run_tool_audit_fields",
+      "ai_gateway_observability_gate",
+      "billing_posted_ledger",
+      "user_run_persistence_gate",
+      "cost_rate_limit_fallback_evidence",
+      "live_cost_ledger_writer",
+      "route_does_not_write_live_token_cost_fallback_logs"
+    ]
+  },
+  "tables": [
+    "core.agent_token_cost_fallback_release_gate",
+    "governance.agent_token_cost_fallback_release_gate_contract"
+  ],
+  "not_claimed": [
+    "live_token_cost_fallback_log_writes",
+    "production_cost_ledger",
+    "ai_gateway_request_log_cost_cache_rate_limit_fallback_accepted_evidence",
+    "live_model_execution_cutover",
+    "frontend_ask_rendering",
+    "release_transition"
+  ],
+  "verification": {
+    "runtime_unit_test": "npm run test -- packages/agent-runtime/src/index.test.ts",
+    "worker_unit_test": "npm run test -- apps/worker/src/index.test.ts",
+    "contract_check": "npm run check:agent-token-cost-fallback-release-gate",
+    "model_execution_audit_check": "npm run check:agent-model-execution-audit-smoke",
+    "model_routing_audit_check": "npm run check:model-routing-audit",
+    "run_tool_audit_fields_check": "npm run check:run-tool-audit-fields",
+    "ai_gateway_observability_gate_check": "npm run check:agent-ai-gateway-observability-release-gate",
+    "billing_posted_ledger_check": "npm run check:agent-billing-posted-ledger-smoke",
+    "user_run_persistence_gate_check": "npm run check:agent-user-run-persistence-release-gate",
+    "database_check": "npm run check:database"
+  }
+}
