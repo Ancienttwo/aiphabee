@@ -10,7 +10,14 @@ Machine-readable check:
 
 ```bash
 npm run check:live-smoke-evidence-ledger
+npm run check:live-smoke-evidence-ledger-fixtures
 ```
+
+The fixture check exercises the state transition rules without running live
+smoke commands: partial evidence cannot set `release_transition_allowed=true`;
+all six surfaces must be `passed`, must carry evidence refs, and must clear
+their missing-evidence blockers before the ledger can move to
+`ready_for_sprint0_4_live_smoke_decision`.
 
 ## Covered Surfaces
 

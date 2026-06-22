@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ledgerPath = "deploy/governance/live-smoke-evidence-ledger.contract.json";
 const packagePath = "package.json";
@@ -51,38 +52,46 @@ const forbiddenTextPatterns = [
   /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
 ];
 
-const ledger = readJson(ledgerPath);
-const packageJson = readJson(packagePath);
-const tracker = readText(trackerPath);
-const todos = readText(todosPath);
-const contracts = {
-  cloudflare: readJson("deploy/cloudflare/resource-smoke-readiness.contract.json"),
-  modelProvider: readJson("deploy/model-providers/live-smoke-readiness.contract.json"),
-  observability: readJson("deploy/observability/live-smoke-readiness.contract.json"),
-  secrets: readJson("deploy/secrets/live-smoke-readiness.contract.json")
-};
-const errors = validateLedger({ contracts, ledger, packageJson, todos, tracker });
-
-if (errors.length > 0) {
-  emit(
-    {
-      errors,
-      path: ledgerPath,
-      status: "invalid_contract"
-    },
-    1
-  );
+if (isMainModule()) {
+  runCli();
 }
 
-emit(
-  {
-    live_smoke_commands: ledger.live_smoke_commands.length,
-    release_transition_allowed: ledger.release_transition_allowed,
-    status: "ok",
-    surfaces: ledger.surfaces.length
-  },
-  0
-);
+export { validateLedger };
+
+function runCli() {
+  const ledger = readJson(ledgerPath);
+  const packageJson = readJson(packagePath);
+  const tracker = readText(trackerPath);
+  const todos = readText(todosPath);
+  const contracts = {
+    cloudflare: readJson("deploy/cloudflare/resource-smoke-readiness.contract.json"),
+    modelProvider: readJson("deploy/model-providers/live-smoke-readiness.contract.json"),
+    observability: readJson("deploy/observability/live-smoke-readiness.contract.json"),
+    secrets: readJson("deploy/secrets/live-smoke-readiness.contract.json")
+  };
+  const errors = validateLedger({ contracts, ledger, packageJson, todos, tracker });
+
+  if (errors.length > 0) {
+    emit(
+      {
+        errors,
+        path: ledgerPath,
+        status: "invalid_contract"
+      },
+      1
+    );
+  }
+
+  emit(
+    {
+      live_smoke_commands: ledger.live_smoke_commands.length,
+      release_transition_allowed: ledger.release_transition_allowed,
+      status: "ok",
+      surfaces: ledger.surfaces.length
+    },
+    0
+  );
+}
 
 function validateLedger({ contracts, ledger: value, packageJson, todos, tracker }) {
   const errors = [];
@@ -95,8 +104,8 @@ function validateLedger({ contracts, ledger: value, packageJson, todos, tracker 
     errors.push(`version must be ${expectedVersion}`);
   }
 
-  if (value.status !== "pending_live_evidence") {
-    errors.push("status must remain pending_live_evidence until all live smoke evidence is present");
+  if (!["pending_live_evidence", "ready_for_sprint0_4_live_smoke_decision"].includes(value.status)) {
+    errors.push("status must be pending_live_evidence or ready_for_sprint0_4_live_smoke_decision");
   }
 
   if (value.checker !== "scripts/check-live-smoke-evidence-ledger-contract.mjs") {
@@ -181,6 +190,8 @@ function validateLiveSmokeCommands(value, contracts) {
     return ["live_smoke_commands must be an array"];
   }
 
+  const observabilityLiveStatus = deriveAggregateStatus(contracts.observability.synthetic_surfaces);
+  const providerSecretLiveStatus = deriveAggregateStatus(contracts.secrets.providers);
   const expected = {
     ai_gateway_model_execution: {
       command: contracts.modelProvider.live_smoke_command,
@@ -204,12 +215,12 @@ function validateLiveSmokeCommands(value, contracts) {
     },
     observability_otlp_eval_store: {
       command: "npm run smoke:observability-live",
-      current_status: "readiness_not_run",
+      current_status: observabilityLiveStatus,
       script: contracts.observability.script
     },
     provider_secret_store_rotation: {
       command: "npm run smoke:provider-secret-stores-live",
-      current_status: "readiness_not_run",
+      current_status: providerSecretLiveStatus,
       script: contracts.secrets.script
     }
   };
@@ -229,9 +240,10 @@ function validateSurfaces(value, contracts) {
     ai_gateway_observability: contracts.modelProvider.latest_observability_probe.status,
     cloudflare_bindings_functional: contracts.cloudflare.functional_smoke.status,
     cloudflare_resource_inventory: contracts.cloudflare.partial_provisioning.status,
-    observability_otlp_eval_store: "readiness_not_run",
-    provider_secret_store_rotation: "readiness_not_run"
+    observability_otlp_eval_store: deriveAggregateStatus(contracts.observability.synthetic_surfaces),
+    provider_secret_store_rotation: deriveAggregateStatus(contracts.secrets.providers)
   };
+  const allPassed = value.every((surface) => isRecord(surface) && surface.current_status === "passed");
   const allMissingEvidence = [];
 
   for (const [index, surface] of value.entries()) {
@@ -260,6 +272,12 @@ function validateSurfaces(value, contracts) {
 
     if (!Array.isArray(surface.evidence_refs)) {
       errors.push(`${surface.id}.evidence_refs must be an array`);
+    } else if (surface.current_status === "passed" && surface.evidence_refs.length === 0) {
+      errors.push(`${surface.id} passed surface must have evidence_refs`);
+    }
+
+    if (surface.current_status === "passed" && Array.isArray(surface.missing_evidence) && surface.missing_evidence.length !== 0) {
+      errors.push(`${surface.id} passed surface must not keep missing_evidence`);
     }
 
     if (surface.blocks_sprint0_4_checkbox !== true) {
@@ -273,9 +291,11 @@ function validateSurfaces(value, contracts) {
     }
   }
 
-  for (const missing of requiredMissingEvidence) {
-    if (!allMissingEvidence.includes(missing)) {
-      errors.push(`missing_evidence must include ${missing}`);
+  if (!allPassed) {
+    for (const missing of requiredMissingEvidence) {
+      if (!allMissingEvidence.includes(missing)) {
+        errors.push(`missing_evidence must include ${missing}`);
+      }
     }
   }
 
@@ -327,7 +347,7 @@ function validateExpectedEntries(value, requiredIds, expected, label) {
 
 function validateTransitionState(value) {
   const errors = [];
-  const allPassed = value.surfaces.every((surface) => surface.current_status === "passed");
+  const allPassed = Array.isArray(value.surfaces) && value.surfaces.every((surface) => isRecord(surface) && surface.current_status === "passed");
 
   if (value.all_live_smokes_passed !== allPassed) {
     errors.push("all_live_smokes_passed must equal whether all surfaces passed");
@@ -335,6 +355,14 @@ function validateTransitionState(value) {
 
   if (value.release_transition_allowed !== allPassed) {
     errors.push("release_transition_allowed must equal whether all surfaces passed");
+  }
+
+  if (allPassed && value.status !== "ready_for_sprint0_4_live_smoke_decision") {
+    errors.push("status must be ready_for_sprint0_4_live_smoke_decision when all surfaces passed");
+  }
+
+  if (!allPassed && value.status !== "pending_live_evidence") {
+    errors.push("status must remain pending_live_evidence until all live smoke evidence is present");
   }
 
   if (!Array.isArray(value.not_claimed) || !value.not_claimed.includes("sprint0_4_live_smoke_checkbox_complete")) {
@@ -351,6 +379,7 @@ function validatePackageScripts(value) {
     "check:cloudflare-resource-live-readiness": "node scripts/check-cloudflare-resource-live-readiness.mjs",
     "check:live-smoke-defaults": "node scripts/check-live-smoke-defaults.mjs",
     "check:live-smoke-evidence-ledger": "node scripts/check-live-smoke-evidence-ledger-contract.mjs",
+    "check:live-smoke-evidence-ledger-fixtures": "node scripts/check-live-smoke-evidence-ledger-fixtures.mjs",
     "check:model-provider-live-readiness": "node scripts/check-model-provider-live-readiness.mjs",
     "check:observability-live-readiness": "node scripts/check-observability-live-readiness.mjs",
     "check:provider-secret-stores-live-readiness": "node scripts/check-provider-secret-stores-live-readiness.mjs",
@@ -370,6 +399,10 @@ function validatePackageScripts(value) {
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-evidence-ledger")) {
     errors.push("root check must include check:live-smoke-evidence-ledger");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-evidence-ledger-fixtures")) {
+    errors.push("root check must include check:live-smoke-evidence-ledger-fixtures");
   }
 
   return errors;
@@ -418,6 +451,22 @@ function validateStringArray(value, requiredValues, name) {
   return errors;
 }
 
+function deriveAggregateStatus(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return "readiness_not_run";
+  }
+
+  if (items.every((item) => isRecord(item) && item.status === "passed")) {
+    return "passed";
+  }
+
+  if (items.every((item) => isRecord(item) && item.status === "readiness_not_run")) {
+    return "readiness_not_run";
+  }
+
+  return "partial_live_passed";
+}
+
 function validateNoSecrets(value) {
   const serialized = JSON.stringify(value);
 
@@ -458,6 +507,10 @@ function readText(path) {
 
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isMainModule() {
+  return Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 }
 
 function emit(payload, exitCode) {
