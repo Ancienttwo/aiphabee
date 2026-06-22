@@ -22,6 +22,7 @@ const baseContracts = {
   goldenManifest: readJson("tests/golden/tools/manifest.json"),
   mcpPaginationLimits: readJson("deploy/mcp/pagination-limits.contract.json"),
   mcpProtocolReleaseGate: readJson("deploy/mcp/protocol-release-gate.contract.json"),
+  mcpProtocolToolExecutionSmoke: readJson("deploy/mcp/protocol-tool-execution-smoke.contract.json"),
   mcpRuntimeSchemaSnapshot: readJson("deploy/mcp/runtime-schema-snapshot.contract.json"),
   mcpSchemaValidation: readJson("deploy/mcp/tool-schema-validation.contract.json"),
   mcpUsageEnvelope: readJson("deploy/mcp/usage-envelope.contract.json"),
@@ -44,6 +45,33 @@ const scenarios = [
     name: "early_release_transition",
     readiness: mutate(baseReadiness, (readiness) => {
       readiness.route_replay_policy.release_transition_allowed = true;
+    })
+  },
+  {
+    expectedError: "route_replay_policy.mcp_live_protocol_execution must be true",
+    expectValid: false,
+    name: "mcp_live_protocol_execution_regressed",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.route_replay_policy.mcp_live_protocol_execution = false;
+    })
+  },
+  {
+    expectedError: "mcp protocol tool execution smoke must prove execution and pre-execution auth",
+    expectValid: false,
+    name: "mcp_protocol_tool_execution_smoke_regressed",
+    contracts: mutate(baseContracts, (contracts) => {
+      contracts.mcpProtocolToolExecutionSmoke.actual_worker_route_execution = false;
+    }),
+    readiness: baseReadiness
+  },
+  {
+    expectedError: "validated_surfaces missing mcp_protocol_tool_execution_smoke",
+    expectValid: false,
+    name: "mcp_protocol_tool_execution_surface_missing",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.validated_surfaces = readiness.validated_surfaces.filter(
+        (surface) => surface.id !== "mcp_protocol_tool_execution_smoke"
+      );
     })
   },
   {

@@ -1,6 +1,6 @@
 {
-  "version": "2026-06-22.phase1.tool-route-replay-readiness.v1",
-  "status": "blocked_live_protocol_db_partner_sources",
+  "version": "2026-06-22.phase1.tool-route-replay-readiness.v2",
+  "status": "blocked_live_db_partner_sources",
   "prd_source": "docs/researches/AiphaBee_PRD_v1.0.md#9.2",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md#sprint-12--tool-registry--原子数据工具--证据血缘",
   "checker": "scripts/check-tool-route-replay-readiness-contract.mjs",
@@ -17,6 +17,7 @@
     "mcp_usage_envelope": "deploy/mcp/usage-envelope.contract.json",
     "mcp_pagination_limits": "deploy/mcp/pagination-limits.contract.json",
     "mcp_protocol_release_gate": "deploy/mcp/protocol-release-gate.contract.json",
+    "mcp_protocol_tool_execution_smoke": "deploy/mcp/protocol-tool-execution-smoke.contract.json",
     "tool_route_replay": "deploy/governance/sprint1-tool-route-replay.contract.json",
     "agent_tool_enforcement": "deploy/agent/tool-enforcement.contract.json",
     "evidence_lineage_tools": "deploy/tools/evidence-lineage.contract.json",
@@ -28,7 +29,7 @@
     "local_schema_contract_ready": true,
     "local_golden_fixture_ready": true,
     "no_live_posture_guarded": true,
-    "mcp_live_protocol_execution": false,
+    "mcp_live_protocol_execution": true,
     "runtime_schema_serving": true,
     "live_route_replay": true,
     "live_db_writes": false,
@@ -100,6 +101,13 @@
       "expected_count": 0
     },
     {
+      "id": "mcp_protocol_tool_execution_smoke",
+      "contract": "deploy/mcp/protocol-tool-execution-smoke.contract.json",
+      "command": "npm run check:mcp-protocol-tool-execution-smoke",
+      "expected_status": "local_contract",
+      "expected_count": 1
+    },
+    {
       "id": "tool_route_replay",
       "contract": "deploy/governance/sprint1-tool-route-replay.contract.json",
       "command": "npm run check:tool-route-replay",
@@ -137,14 +145,6 @@
   ],
   "blockers": [
     {
-      "id": "mcp_live_protocol_execution",
-      "source_contract": "deploy/mcp/protocol-release-gate.contract.json",
-      "source_field": "live_tool_execution",
-      "current_value": false,
-      "required_evidence": ["live_mcp_tools_call_smoke", "auth_enforced_before_tool_execution"],
-      "release_blocker": true
-    },
-    {
       "id": "live_db_writes",
       "source_contract": "deploy/evidence/service.contract.json",
       "source_field": "live_db_writes",
@@ -163,7 +163,6 @@
   ],
   "not_claimed": [
     "sprint1_2_exit_dod_complete",
-    "mcp_live_protocol_execution",
     "live_db_writes",
     "partner_source_rows"
   ]

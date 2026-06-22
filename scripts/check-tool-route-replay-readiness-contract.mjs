@@ -7,7 +7,7 @@ const contractPath = "deploy/governance/sprint1-tool-route-replay-readiness.cont
 const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
-const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v1";
+const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v2";
 const requiredTools = [
   "resolve_security",
   "get_security_profile",
@@ -33,6 +33,7 @@ const requiredLinkedContracts = {
   golden_tool_manifest: "tests/golden/tools/manifest.json",
   mcp_pagination_limits: "deploy/mcp/pagination-limits.contract.json",
   mcp_protocol_release_gate: "deploy/mcp/protocol-release-gate.contract.json",
+  mcp_protocol_tool_execution_smoke: "deploy/mcp/protocol-tool-execution-smoke.contract.json",
   mcp_runtime_schema_snapshot: "deploy/mcp/runtime-schema-snapshot.contract.json",
   mcp_schema_validation: "deploy/mcp/tool-schema-validation.contract.json",
   mcp_usage_envelope: "deploy/mcp/usage-envelope.contract.json",
@@ -52,17 +53,14 @@ const requiredSurfaceIds = [
   "mcp_usage_envelope",
   "mcp_pagination_limits",
   "mcp_protocol_release_gate",
+  "mcp_protocol_tool_execution_smoke",
   "agent_tool_enforcement",
   "evidence_lineage_tools",
   "evidence_lineage_service",
   "tool_route_replay",
   "golden_fixtures"
 ];
-const requiredBlockers = [
-  "mcp_live_protocol_execution",
-  "live_db_writes",
-  "partner_source_rows"
-];
+const requiredBlockers = ["live_db_writes", "partner_source_rows"];
 const requiredNotClaimed = ["sprint1_2_exit_dod_complete", ...requiredBlockers];
 const forbiddenTextPatterns = [
   /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,
@@ -119,8 +117,8 @@ function validateReadiness({ contracts, packageJson, readiness: value, todos, tr
     errors.push(`version must be ${expectedVersion}`);
   }
 
-  if (value.status !== "blocked_live_protocol_db_partner_sources") {
-    errors.push("status must be blocked_live_protocol_db_partner_sources");
+  if (value.status !== "blocked_live_db_partner_sources") {
+    errors.push("status must be blocked_live_db_partner_sources");
   }
 
   if (value.checker !== "scripts/check-tool-route-replay-readiness-contract.mjs") {
@@ -162,6 +160,10 @@ function readSourceContracts(value) {
     goldenManifest: readJson(linked.golden_tool_manifest ?? requiredLinkedContracts.golden_tool_manifest),
     mcpPaginationLimits: readJson(linked.mcp_pagination_limits ?? requiredLinkedContracts.mcp_pagination_limits),
     mcpProtocolReleaseGate: readJson(linked.mcp_protocol_release_gate ?? requiredLinkedContracts.mcp_protocol_release_gate),
+    mcpProtocolToolExecutionSmoke: readJson(
+      linked.mcp_protocol_tool_execution_smoke ??
+        requiredLinkedContracts.mcp_protocol_tool_execution_smoke
+    ),
     mcpRuntimeSchemaSnapshot: readJson(
       linked.mcp_runtime_schema_snapshot ??
         requiredLinkedContracts.mcp_runtime_schema_snapshot
@@ -204,6 +206,7 @@ function validateRouteReplayPolicy(value) {
     "local_golden_fixture_ready",
     "no_live_posture_guarded",
     "live_route_replay",
+    "mcp_live_protocol_execution",
     "runtime_schema_serving"
   ];
 
@@ -217,11 +220,7 @@ function validateRouteReplayPolicy(value) {
     errors.push("route_replay_policy.release_transition_allowed must be false until live blockers clear");
   }
 
-  for (const field of [
-    "mcp_live_protocol_execution",
-    "live_db_writes",
-    "partner_source_rows"
-  ]) {
+  for (const field of ["live_db_writes", "partner_source_rows"]) {
     if (value[field] !== false) {
       errors.push(`route_replay_policy.${field} must be false until remaining live blockers clear`);
     }
@@ -345,6 +344,7 @@ function validateSourceContracts(contracts) {
   errors.push(...validateMcpValidatedTools(contracts.mcpUsageEnvelope, "mcp_usage_envelope"));
   errors.push(...validateMcpValidatedTools(contracts.mcpPaginationLimits, "mcp_pagination_limits"));
   errors.push(...validateMcpProtocolReleaseGate(contracts.mcpProtocolReleaseGate));
+  errors.push(...validateMcpProtocolToolExecutionSmoke(contracts.mcpProtocolToolExecutionSmoke));
   errors.push(...validateMcpRuntimeSchemaSnapshot(contracts.mcpRuntimeSchemaSnapshot));
   errors.push(...validateToolRouteReplay(contracts.toolRouteReplay));
   errors.push(...validateAgentToolEnforcement(contracts.agentToolEnforcement));
@@ -518,6 +518,51 @@ function validateMcpProtocolReleaseGate(value) {
   return errors;
 }
 
+function validateMcpProtocolToolExecutionSmoke(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["mcp protocol tool execution smoke contract must be an object"];
+  }
+
+  if (value.status !== "local_contract") {
+    errors.push("mcp protocol tool execution smoke status must be local_contract");
+  }
+
+  if (value.protocol_route !== "POST /mcp") {
+    errors.push("mcp protocol tool execution smoke protocol_route must be POST /mcp");
+  }
+
+  if (value.sample_tool_name !== "get_quote_snapshot" || value.sample_scope !== "quotes:read") {
+    errors.push("mcp protocol tool execution smoke must cover get_quote_snapshot with quotes:read");
+  }
+
+  if (value.smoke_token_binding !== "AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN") {
+    errors.push("mcp protocol tool execution smoke must use smoke token binding");
+  }
+
+  if (
+    value.mcp_protocol_tool_execution_smoke !== true ||
+    value.auth_enforced_before_tool_execution !== true ||
+    value.public_default_deny_preserved !== true ||
+    value.revoked_credential_denied_before_execution !== true ||
+    value.scope_required_before_execution !== true ||
+    value.actual_worker_route_execution !== true
+  ) {
+    errors.push("mcp protocol tool execution smoke must prove execution and pre-execution auth");
+  }
+
+  if (
+    value.live_db_writes !== false ||
+    value.partner_source_rows !== false ||
+    value.frontend !== false
+  ) {
+    errors.push("mcp protocol tool execution smoke must keep DB writes, partner rows, and frontend false");
+  }
+
+  return errors;
+}
+
 function validateMcpRuntimeSchemaSnapshot(value) {
   const errors = [];
 
@@ -662,6 +707,7 @@ function validatePackageScripts(value) {
   const errors = [];
   const scripts = value?.scripts ?? {};
   const requiredScripts = {
+    "check:mcp-protocol-tool-execution-smoke": "node scripts/check-mcp-protocol-tool-execution-smoke-contract.mjs",
     "check:tool-route-replay": "node scripts/check-tool-route-replay-contract.mjs",
     "check:tool-route-replay-readiness": "node scripts/check-tool-route-replay-readiness-contract.mjs",
     "check:tool-route-replay-readiness-fixtures": "node scripts/check-tool-route-replay-readiness-fixtures.mjs"
@@ -686,9 +732,13 @@ function validateTrackerAndTodos(tracker, todos) {
 
   for (const text of [
     "tool route replay readiness",
+    "MCP protocol tool execution smoke",
+    "npm run check:mcp-protocol-tool-execution-smoke",
     "npm run check:tool-route-replay",
     "npm run check:tool-route-replay-readiness",
     "MCP live protocol execution",
+    "live DB writes",
+    "partner source rows",
     "runtime schema serving",
     "server-orchestrated route replay"
   ]) {

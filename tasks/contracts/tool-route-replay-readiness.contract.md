@@ -20,13 +20,12 @@ replay by making the remaining blockers explicit and machine-checkable.
   - P0 catalog, registry, schema, MCP, Agent, Evidence/Lineage, and golden
     manifest cross-checks;
   - MCP runtime schema snapshot serving cross-check;
-  - no-live posture validation;
+  - guarded MCP protocol tool execution smoke cross-check;
+  - no-live DB/partner posture validation;
   - fixture scenarios for early release, missing blockers, catalog drift, and
     checked DoD regressions;
   - tracker and deferred-ledger updates.
 - Out of scope:
-  - live MCP `tools/call` execution;
-  - server-orchestrated route replay;
   - partner source rows;
   - live Evidence/Lineage DB writes;
   - frontend.
@@ -36,8 +35,9 @@ replay by making the remaining blockers explicit and machine-checkable.
 ```yaml
 exit_criteria:
   content_checks:
-    - "Readiness contract records all 4 remaining live blockers"
+    - "Readiness contract records both remaining live blockers"
     - "Runtime schema serving is validated through mcp runtime schema snapshot"
+    - "MCP protocol tool execution smoke is validated through the guarded smoke contract"
     - "release_transition_allowed remains false"
     - "All 16 P0 tools remain aligned across catalog/schema/MCP/golden/agent surfaces"
     - "Sprint 1.2 exit DoD remains unchecked"
@@ -45,6 +45,7 @@ exit_criteria:
   commands_succeed:
     - npm run check:tool-route-replay-readiness
     - npm run check:tool-route-replay-readiness-fixtures
+    - npm run check:mcp-protocol-tool-execution-smoke
     - npm run check:p0-tool-catalog
     - npm run check:tool-schemas
     - npm run check:mcp-tool-schema-validation
@@ -60,7 +61,7 @@ exit_criteria:
 ## Acceptance Notes
 
 - Passing the readiness check means the blocked state is correctly represented.
-- It does not claim live route replay, live DB writes, or partner row readiness.
+- It does not claim live DB writes or partner row readiness.
 
 ## Rollback Point
 

@@ -361,6 +361,7 @@ interface WorkerBindings {
   AI_GATEWAY_NAME?: string;
   AI_GATEWAY_LIVE_SMOKE_TOKEN?: string;
   AI_GATEWAY_SMOKE_MODEL?: string;
+  AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
@@ -728,6 +729,24 @@ interface McpRevocationEnforcementRequestBody {
 }
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
+const MCP_TOOL_EXECUTION_ROUTE_MAP: Record<string, string> = {
+  calculate_returns_risk: "/analytics/returns-risk",
+  compare_securities: "/analytics/compare-securities",
+  get_announcement: "/documents/get-announcement",
+  get_corporate_actions: "/tools/get-corporate-actions",
+  get_data_lineage: "/tools/get-data-lineage",
+  get_entitlements: "/tools/get-entitlements",
+  get_event_timeline: "/tools/get-event-timeline",
+  get_financial_facts: "/tools/get-financial-facts",
+  get_financial_ratios: "/analytics/financial-ratios",
+  get_market_calendar: "/tools/get-market-calendar",
+  get_price_history: "/tools/get-price-history",
+  get_quote_snapshot: "/tools/get-quote-snapshot",
+  get_security_profile: "/tools/get-security-profile",
+  resolve_security: "/tools/resolve-security",
+  screen_securities: "/analytics/screen-securities",
+  search_announcements: "/documents/search-announcements"
+};
 const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
   "resolve_security",
   "get_security_profile",
@@ -5320,6 +5339,7 @@ app.post("/mcp", async (c) => {
 
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const params = isPlainRecord(body.params) ? body.params : {};
+  const smokeExecutionAuthorized = isMcpLiveExecutionSmokeAuthorized(c);
 
   try {
     const result = createMcpProtocolPlan({
@@ -5332,14 +5352,21 @@ app.post("/mcp", async (c) => {
       connectionId: normalizeString(params.connection_id ?? params.connectionId),
       credentialKind: normalizeString(params.credential_kind ?? params.credentialKind),
       credentialStatus: normalizeString(params.credential_status ?? params.credentialStatus),
-      grantedScopes: [],
+      grantedScopes: smokeExecutionAuthorized
+        ? normalizeStringArray(params.scopes ?? body.scopes) ?? []
+        : [],
       ipRiskLevel: normalizeString(
         params.ip_risk ?? params.ipRisk ?? c.req.header("x-aiphabee-ip-risk")
       ),
       keyId: normalizeString(params.key_id ?? params.keyId),
       membershipId: normalizeString(params.membership_id ?? params.membershipId),
       method: normalizeString(body.method),
-      mcpRedistributionRightsConfirmed: false,
+      mcpRedistributionRightsConfirmed:
+        smokeExecutionAuthorized &&
+        normalizeBoolean(
+          params.mcp_api_redistribution_rights_confirmed ??
+            params.mcpApiRedistributionRightsConfirmed
+        ),
       origin: c.req.header("origin") ?? undefined,
       pendingCredits: normalizeOptionalNumber(params.pending_credits ?? params.pendingCredits),
       requestId,
@@ -5354,13 +5381,36 @@ app.post("/mcp", async (c) => {
       usedCredits: normalizeOptionalNumber(params.used_credits ?? params.usedCredits),
       workspaceId: normalizeString(params.workspace_id ?? params.workspaceId)
     });
+    const executionResult =
+      smokeExecutionAuthorized && result.tool_call !== undefined
+        ? await executeMcpToolCallSmoke(params, requestId)
+        : undefined;
+    const responseData =
+      executionResult === undefined
+        ? {
+            ...result,
+            capability: getMcpRuntimeCapabilities()
+          }
+        : {
+            ...result,
+            live_tool_execution: true,
+            status: "executed_mcp_tool_call_smoke",
+            tool_call: {
+              ...result.tool_call,
+              live_execution: true,
+              structured_content_validation: "executed_synthetic_tool_route"
+            },
+            tool_result: executionResult,
+            capability: {
+              ...getMcpRuntimeCapabilities(),
+              live_tool_execution_smoke: true,
+              mcp_api_redistribution_rights_confirmed: true
+            }
+          };
 
     return c.json(
       createSuccessEnvelope(
-        {
-          ...result,
-          capability: getMcpRuntimeCapabilities()
-        },
+        responseData,
         {
           asOf: new Date().toISOString(),
           dataVersion: result.data_version,
@@ -10750,6 +10800,71 @@ function normalizeWatchlistPriceField(
 
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || value === "true";
+}
+
+function isMcpLiveExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const token = c.env?.AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN;
+
+  if (typeof token !== "string" || token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+async function executeMcpToolCallSmoke(
+  params: Record<string, unknown>,
+  requestId: string
+): Promise<Record<string, unknown>> {
+  const toolName = normalizeString(params.name ?? params.tool_name ?? params.toolName);
+
+  if (toolName === undefined) {
+    throw new McpRuntimeInputError(
+      "TOOL_NAME_REQUIRED",
+      "tools/call requires a registered tool name"
+    );
+  }
+
+  const route = MCP_TOOL_EXECUTION_ROUTE_MAP[toolName];
+
+  if (route === undefined) {
+    throw new McpRuntimeInputError("TOOL_NOT_REGISTERED", "tool is not registered", {
+      toolName
+    });
+  }
+
+  const response = await app.request(route, {
+    body: JSON.stringify(isPlainRecord(params.arguments) ? params.arguments : {}),
+    headers: {
+      "content-type": "application/json",
+      "x-request-id": `${requestId}:tool`
+    },
+    method: "POST"
+  });
+  const body = (await response.json()) as Record<string, unknown>;
+
+  return {
+    data: body.data,
+    data_version: body.data_version,
+    market_status: body.market_status,
+    methodology_version: body.methodology_version,
+    ok: body.ok === true,
+    provenance: Array.isArray(body.provenance) ? body.provenance : [],
+    request_id: body.request_id,
+    route,
+    status_code: response.status,
+    usage: isPlainRecord(body.usage)
+      ? body.usage
+      : {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+  };
 }
 
 function normalizePerformanceAvailabilityObservations(

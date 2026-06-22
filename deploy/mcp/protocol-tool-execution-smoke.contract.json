@@ -1,0 +1,33 @@
+{
+  "version": "2026-06-22.phase1.mcp-protocol-tool-execution-smoke.v0",
+  "status": "local_contract",
+  "protocol_route": "POST /mcp",
+  "checker": "scripts/check-mcp-protocol-tool-execution-smoke-contract.mjs",
+  "test_file": "apps/worker/src/mcp-protocol-tool-execution-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "smoke_token_binding": "AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN",
+  "sample_tool_name": "get_quote_snapshot",
+  "sample_scope": "quotes:read",
+  "sample_tool_route": "POST /tools/get-quote-snapshot",
+  "mcp_protocol_tool_execution_smoke": true,
+  "auth_enforced_before_tool_execution": true,
+  "public_default_deny_preserved": true,
+  "revoked_credential_denied_before_execution": true,
+  "scope_required_before_execution": true,
+  "actual_worker_route_execution": true,
+  "live_db_writes": false,
+  "partner_source_rows": false,
+  "frontend": false,
+  "not_claimed": [
+    "oauth_provider_live",
+    "sdk_inspector_smoke",
+    "target_client_e2e",
+    "partner_source_rows",
+    "live_db_writes"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/mcp-protocol-tool-execution-smoke.test.ts",
+    "contract_check": "npm run check:mcp-protocol-tool-execution-smoke",
+    "readiness_check": "npm run check:tool-route-replay-readiness"
+  }
+}
