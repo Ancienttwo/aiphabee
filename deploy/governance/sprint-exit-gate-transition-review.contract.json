@@ -39,27 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "external_rights_regulatory_signatures_missing": {
-      "owner_manifest_ids": ["gate0_signed_evidence"],
-      "owner_check_commands": ["check:gate0-signed-evidence-transition-review"],
-      "closure_evidence_refs": [
-        "field_rights_matrix",
-        "hkex_vendor_licensing_memo",
-        "type4_product_boundary_opinion",
-        "pcpd_privacy_path_assessment",
-        "commercial_settlement_schedule",
-        "gate0_signature_register"
-      ]
-    },
-    "partner_signed_data_contract_missing": {
-      "owner_manifest_ids": ["gate0_signed_evidence"],
-      "owner_check_commands": ["check:gate0-signed-evidence-transition-review"],
-      "closure_evidence_refs": [
-        "field_rights_matrix",
-        "hkex_vendor_licensing_memo",
-        "gate0_signature_register"
-      ]
-    },
     "partner_approved_production_corpus_missing": {
       "owner_manifest_ids": ["sprint1_live_data_evidence"],
       "owner_check_commands": [
@@ -70,17 +49,6 @@
         "signed_partner_data_contract",
         "partner_serving_rows_loaded",
         "quality_owner_cutover_approved"
-      ]
-    },
-    "commercial_cost_review_missing": {
-      "owner_manifest_ids": ["gate0_signed_evidence"],
-      "owner_check_commands": [
-        "check:gate0-signed-evidence-transition-review",
-        "check:publication-economics-release-gate"
-      ],
-      "closure_evidence_refs": [
-        "commercial_settlement_schedule",
-        "gate0_signature_register"
       ]
     },
     "credentialed_live_smoke_captures_missing": {
@@ -218,11 +186,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["gate0_signed_evidence"],
-      "manual_blocking_conditions": ["external_rights_regulatory_signatures_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
-        "blocker_manifest:gate0_signed_evidence",
-        "external_rights_regulatory_signatures_missing"
+        "blocker_manifest:gate0_signed_evidence"
       ]
     },
     {
@@ -231,11 +198,11 @@
       "backlog": "9 / 9",
       "backlog_complete": true,
       "completion_allowed": false,
-      "blocker_manifest_ids": ["gate0_signed_evidence"],
-      "manual_blocking_conditions": ["partner_signed_data_contract_missing"],
+      "blocker_manifest_ids": ["gate0_signed_evidence", "sprint1_live_data_evidence"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:gate0_signed_evidence",
-        "partner_signed_data_contract_missing"
+        "blocker_manifest:sprint1_live_data_evidence"
       ]
     },
     {
@@ -245,15 +212,11 @@
       "backlog_complete": true,
       "completion_allowed": false,
       "blocker_manifest_ids": ["gate0_signed_evidence", "sprint1_live_data_evidence"],
-      "manual_blocking_conditions": [
-        "partner_approved_production_corpus_missing",
-        "commercial_cost_review_missing"
-      ],
+      "manual_blocking_conditions": ["partner_approved_production_corpus_missing"],
       "blocking_conditions": [
         "blocker_manifest:gate0_signed_evidence",
         "blocker_manifest:sprint1_live_data_evidence",
-        "partner_approved_production_corpus_missing",
-        "commercial_cost_review_missing"
+        "partner_approved_production_corpus_missing"
       ]
     },
     {
@@ -522,7 +485,9 @@
     "Sprint manual blocker owner map 已建立",
     "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`",
     "Phase 3 security/load/DR release evidence handoff 已建立",
-    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`"
+    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`",
+    "Sprint 0.x Gate0 manual blockers 已转为 manifest blockers",
+    "| 2026-06-23 | 1.0hw | 完成 `sprint0-gate0-manual-blocker-manifest-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -530,7 +495,8 @@
     "backlog count alone",
     "Sprint 2.4 live operations evidence handoff",
     "Sprint manual blocker owner map",
-    "Phase 3 security/load/DR release evidence handoff"
+    "Phase 3 security/load/DR release evidence handoff",
+    "Sprint 0.x Gate0 manual blocker manifest routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",

@@ -74,7 +74,7 @@
           "fixture_checker": "scripts/check-sprint1-live-data-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 0.3", "Sprint 1.1", "Sprint 1.2", "Sprint 1.4", "Sprint 3.1", "Sprint 3.3", "Phase 1", "Phase 3"]
+      "blocks": ["Sprint 0.2", "Sprint 0.3", "Sprint 1.1", "Sprint 1.2", "Sprint 1.4", "Sprint 3.1", "Sprint 3.3", "Phase 1", "Phase 3"]
     },
     {
       "id": "mcp_target_client_live_e2e",
@@ -160,6 +160,8 @@
     "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`",
     "Phase 3 security/load/DR release evidence handoff 已建立",
     "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`",
+    "Sprint 0.x Gate0 manual blockers 已转为 manifest blockers",
+    "| 2026-06-23 | 1.0hw | 完成 `sprint0-gate0-manual-blocker-manifest-routing`",
     "Sprint blocker transition audit 已建立",
     "| 2026-06-23 | 1.0hq | 完成 `sprint-blocker-transition-audit`",
     "| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |",
@@ -175,6 +177,7 @@
     "Sprint blocker coverage audit",
     "Sprint manual blocker owner map",
     "Phase 3 security/load/DR release evidence handoff",
+    "Sprint 0.x Gate0 manual blocker manifest routing",
     "Sprint blocker transition audit",
     "External Gate 0 approvals after local MVP boundary-copy closure",
     "Engineering runtime remaining surfaces",
