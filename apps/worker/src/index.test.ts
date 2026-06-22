@@ -1684,6 +1684,12 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    consensus_or_estimates: {
+      redistribution_rights_required: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     market_breadth: {
       authorized_market_statistics_required: boolean;
       route: string;
@@ -1877,6 +1883,51 @@ interface BuybacksPlacementsBody {
   };
   ok: true;
   usage: {
+    rows: number;
+  };
+}
+
+interface ConsensusEstimatesBody {
+  data: {
+    capability: {
+      redistribution_rights_required: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    consensus: {
+      analyst_count: number;
+      target_price: {
+        median: number;
+      };
+    };
+    estimates: Array<{
+      fiscal_year: number;
+      mean: number;
+      metric_id: string;
+      source_record_ids: string[];
+    }>;
+    frontend_rendering: boolean;
+    investment_advice: boolean;
+    live_data_access: boolean;
+    raw_provider_payload: boolean;
+    rights: {
+      redistribution_rights_confirmed: boolean;
+      redistribution_rights_required: boolean;
+      rights_scope: string;
+    };
+    security: {
+      instrument_id?: string;
+      symbol?: string;
+    };
+    source_record_ids: string[];
+    sql_emitted: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
     rows: number;
   };
 }
@@ -9707,6 +9758,12 @@ describe("worker runtime", () => {
       status: "buybacks_placements_scaffold",
       tool_name: "get_buybacks_and_placements"
     });
+    expect(body.data.consensus_or_estimates).toMatchObject({
+      redistribution_rights_required: true,
+      route: "POST /analytics/consensus-estimates",
+      status: "consensus_estimates_scaffold",
+      tool_name: "get_consensus_or_estimates"
+    });
     expect(body.data.percentile_comparison).toMatchObject({
       benchmark_types: ["peer", "index", "history"],
       formula_version: "percentile-comparison-v0",
@@ -10038,6 +10095,94 @@ describe("worker runtime", () => {
       status: "buybacks_placements_scaffold",
       tool_name: "get_buybacks_and_placements"
     });
+  });
+
+  it("blocks consensus estimates route without redistribution rights", async () => {
+    const response = await app.request("/analytics/consensus-estimates", {
+      body: JSON.stringify({
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-consensus-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ConsensusEstimatesBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      investment_advice: false,
+      live_data_access: false,
+      raw_provider_payload: false,
+      sql_emitted: false,
+      status: "blocked_redistribution_rights",
+      toolName: "get_consensus_or_estimates"
+    });
+    expect(body.data.rights.redistribution_rights_confirmed).toBe(false);
+    expect(body.data.estimates).toEqual([]);
+    expect(body.data.source_record_ids).toEqual([]);
+    expect(body.usage.credits).toBe(0);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans consensus estimates route only with confirmed redistribution rights", async () => {
+    const response = await app.request("/analytics/consensus-estimates", {
+      body: JSON.stringify({
+        fiscal_years: [2027],
+        metrics: ["eps"],
+        redistribution_rights_confirmed: true,
+        security_query: "00700.HK"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-consensus-authorized"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ConsensusEstimatesBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      investment_advice: false,
+      live_data_access: false,
+      raw_provider_payload: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_consensus_or_estimates"
+    });
+    expect(body.data.rights).toMatchObject({
+      redistribution_rights_confirmed: true,
+      redistribution_rights_required: true,
+      rights_scope: "consensus_estimates_redistribution_confirmed_only"
+    });
+    expect(body.data.security).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(body.data.consensus.target_price.median).toBe(462);
+    expect(body.data.estimates).toEqual([
+      expect.objectContaining({
+        fiscal_year: 2027,
+        mean: 19.8,
+        metric_id: "eps",
+        source_record_ids: ["synthetic_consensus_eps_00700_2027"]
+      })
+    ]);
+    expect(body.data.capability).toMatchObject({
+      redistribution_rights_required: true,
+      route: "POST /analytics/consensus-estimates",
+      status: "consensus_estimates_scaffold",
+      tool_name: "get_consensus_or_estimates"
+    });
+    expect(body.data.source_record_ids).toContain("synthetic_consensus_rating_00700_20260107");
+    expect(body.data.source_record_ids).toContain("synthetic_consensus_eps_00700_2027");
+    expect(body.usage.rows).toBe(1);
   });
 
   it("requires confirmation before queueing high-cost screen plans", async () => {

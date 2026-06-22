@@ -37,6 +37,8 @@ export const PORTFOLIO_ANALYTICS_VERSION =
   "2026-06-22.phase4.portfolio-analytics-scaffold.v0";
 export const MARKET_STATISTICS_VERSION =
   "2026-06-22.phase4.market-statistics-scaffold.v0";
+export const CONSENSUS_ESTIMATES_VERSION =
+  "2026-06-22.phase4.consensus-estimates-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -791,6 +793,84 @@ export interface BuybacksPlacementsResult {
   };
 }
 
+export type ConsensusEstimatesStatus =
+  | "blocked_redistribution_rights"
+  | "blocked_resolution"
+  | "planned";
+
+export type ConsensusEstimateMetricId = "revenue" | "eps" | "ebitda";
+
+export interface ConsensusEstimatesInput {
+  asOf?: string;
+  fiscalYears?: number[];
+  instrumentId?: string;
+  metrics?: ConsensusEstimateMetricId[];
+  redistributionRightsConfirmed?: boolean;
+  requestId: string;
+  securityQuery?: string;
+}
+
+export interface ConsensusEstimatesRights {
+  allowed_surfaces: readonly ["web", "mcp", "export"];
+  redistribution_rights_confirmed: boolean;
+  redistribution_rights_required: true;
+  rights_scope: "consensus_estimates_redistribution_confirmed_only";
+}
+
+export interface ConsensusEstimateMetric {
+  analyst_count: number;
+  currency?: string;
+  fiscal_year: number;
+  high: number;
+  low: number;
+  mean: number;
+  metric_id: ConsensusEstimateMetricId;
+  source_record_ids: string[];
+  unit: "HKD million" | "HKD per share";
+}
+
+export interface ConsensusEstimatesResult {
+  as_of: string;
+  consensus: {
+    analyst_count: number;
+    consensus_rating: "outperform";
+    rating_distribution: {
+      buy: number;
+      hold: number;
+      sell: number;
+    };
+    target_price: {
+      currency: "HKD";
+      high: number;
+      low: number;
+      mean: number;
+      median: number;
+    };
+  };
+  data_version: typeof CONSENSUS_ESTIMATES_VERSION;
+  estimates: ConsensusEstimateMetric[];
+  frontend_rendering: false;
+  investment_advice: false;
+  live_data_access: false;
+  methodology_version: typeof CONSENSUS_ESTIMATES_VERSION;
+  raw_provider_payload: false;
+  rights: ConsensusEstimatesRights;
+  security: {
+    input: string;
+    instrument_id?: string;
+    symbol?: string;
+  };
+  source_record_ids: string[];
+  sql_emitted: false;
+  status: ConsensusEstimatesStatus;
+  toolName: "get_consensus_or_estimates";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
 interface ResolvedComparisonSurface {
   facts: GetFinancialFactsResult;
   profile: GetSecurityProfileResult;
@@ -805,6 +885,9 @@ const DEFAULT_RETURNS_RISK_FROM = "2026-01-05";
 const DEFAULT_RETURNS_RISK_TO = "2026-01-07";
 const DEFAULT_MARKET_STATISTICS_AS_OF = "2026-01-07T16:15:00+08:00";
 const DEFAULT_MARKET_STATISTICS_MARKET = "HK";
+const DEFAULT_CONSENSUS_ESTIMATES_AS_OF = "2026-01-07T16:15:00+08:00";
+const DEFAULT_CONSENSUS_FISCAL_YEARS = [2026, 2027];
+const DEFAULT_CONSENSUS_METRICS: ConsensusEstimateMetricId[] = ["revenue", "eps", "ebitda"];
 const RETURNS_RISK_ANNUALIZATION_FACTOR = 252;
 const RETURNS_RISK_FORMULA_VERSION = "returns-risk-v0";
 const RETURNS_RISK_LIMIT = 3;
@@ -897,6 +980,74 @@ const SYNTHETIC_CAPITAL_EVENTS: BuybacksPlacementsResult["capital_events"] = [
     shares: 12000000,
     source_record_id: "synthetic_rights_issue_00700_20260107",
     status: "announced"
+  }
+];
+const SYNTHETIC_CONSENSUS_ESTIMATES: ConsensusEstimateMetric[] = [
+  {
+    analyst_count: 18,
+    currency: "HKD",
+    fiscal_year: 2026,
+    high: 720000,
+    low: 650000,
+    mean: 684000,
+    metric_id: "revenue",
+    source_record_ids: ["synthetic_consensus_revenue_00700_2026"],
+    unit: "HKD million"
+  },
+  {
+    analyst_count: 18,
+    currency: "HKD",
+    fiscal_year: 2027,
+    high: 786000,
+    low: 710000,
+    mean: 748000,
+    metric_id: "revenue",
+    source_record_ids: ["synthetic_consensus_revenue_00700_2027"],
+    unit: "HKD million"
+  },
+  {
+    analyst_count: 17,
+    currency: "HKD",
+    fiscal_year: 2026,
+    high: 18.8,
+    low: 15.9,
+    mean: 17.2,
+    metric_id: "eps",
+    source_record_ids: ["synthetic_consensus_eps_00700_2026"],
+    unit: "HKD per share"
+  },
+  {
+    analyst_count: 17,
+    currency: "HKD",
+    fiscal_year: 2027,
+    high: 21.4,
+    low: 18.1,
+    mean: 19.8,
+    metric_id: "eps",
+    source_record_ids: ["synthetic_consensus_eps_00700_2027"],
+    unit: "HKD per share"
+  },
+  {
+    analyst_count: 16,
+    currency: "HKD",
+    fiscal_year: 2026,
+    high: 238000,
+    low: 205000,
+    mean: 219000,
+    metric_id: "ebitda",
+    source_record_ids: ["synthetic_consensus_ebitda_00700_2026"],
+    unit: "HKD million"
+  },
+  {
+    analyst_count: 16,
+    currency: "HKD",
+    fiscal_year: 2027,
+    high: 266000,
+    low: 228000,
+    mean: 245000,
+    metric_id: "ebitda",
+    source_record_ids: ["synthetic_consensus_ebitda_00700_2027"],
+    unit: "HKD million"
   }
 ];
 const HIGH_COST_ANALYTICS_TOOL_WEIGHTS: Record<
@@ -1303,6 +1454,25 @@ export function getBuybacksAndPlacementsCapabilities() {
   };
 }
 
+export function getConsensusOrEstimatesCapabilities() {
+  return {
+    analytics_sections: ["consensus_rating", "target_price", "financial_estimates"] as const,
+    frontend_rendering: false,
+    investment_advice: false,
+    live_data_access: false,
+    package: "@aiphabee/analytics-tools" as const,
+    raw_provider_payload: false,
+    redistribution_rights_required: true,
+    route: "POST /analytics/consensus-estimates" as const,
+    source_required: true,
+    sql_emitted: false,
+    status: "consensus_estimates_scaffold" as const,
+    supported_metrics: DEFAULT_CONSENSUS_METRICS,
+    tool_name: "get_consensus_or_estimates" as const,
+    version: CONSENSUS_ESTIMATES_VERSION
+  };
+}
+
 export function getHighCostAnalyticsQueueCapabilities() {
   return {
     durable_queue_writes: false,
@@ -1510,6 +1680,48 @@ export function getBuybacksAndPlacements(input: MarketStatisticsInput): Buybacks
   return createBuybacksPlacementsResult({
     asOf,
     authorization,
+    security,
+    status: "planned"
+  });
+}
+
+export function getConsensusOrEstimates(
+  input: ConsensusEstimatesInput
+): ConsensusEstimatesResult {
+  const asOf = input.asOf ?? DEFAULT_CONSENSUS_ESTIMATES_AS_OF;
+  const rights = createConsensusEstimatesRights(input.redistributionRightsConfirmed === true);
+  const security = resolveConsensusEstimatesSecurity(input, asOf);
+
+  if (!rights.redistribution_rights_confirmed) {
+    return createConsensusEstimatesResult({
+      asOf,
+      estimates: [],
+      rights,
+      security,
+      status: "blocked_redistribution_rights"
+    });
+  }
+
+  if (security.instrument_id === undefined) {
+    return createConsensusEstimatesResult({
+      asOf,
+      estimates: [],
+      rights,
+      security,
+      status: "blocked_resolution"
+    });
+  }
+
+  const fiscalYears = normalizeConsensusFiscalYears(input.fiscalYears);
+  const metrics = normalizeConsensusMetrics(input.metrics);
+  const estimates = SYNTHETIC_CONSENSUS_ESTIMATES.filter(
+    (estimate) => fiscalYears.includes(estimate.fiscal_year) && metrics.includes(estimate.metric_id)
+  );
+
+  return createConsensusEstimatesResult({
+    asOf,
+    estimates,
+    rights,
     security,
     status: "planned"
   });
@@ -3379,6 +3591,124 @@ function createBuybacksPlacementsResult(input: {
       rows: events.length
     }
   };
+}
+
+function createConsensusEstimatesRights(confirmed: boolean): ConsensusEstimatesRights {
+  return {
+    allowed_surfaces: ["web", "mcp", "export"],
+    redistribution_rights_confirmed: confirmed,
+    redistribution_rights_required: true,
+    rights_scope: "consensus_estimates_redistribution_confirmed_only"
+  };
+}
+
+function resolveConsensusEstimatesSecurity(
+  input: ConsensusEstimatesInput,
+  asOf: string
+): ConsensusEstimatesResult["security"] {
+  const instrumentId = normalizePortfolioString(input.instrumentId);
+  const query = normalizePortfolioString(input.securityQuery);
+  const resolution =
+    instrumentId === undefined && query !== undefined
+      ? resolveSecurity({
+          asOf,
+          query
+        })
+      : undefined;
+  const selectedInstrumentId = instrumentId ?? resolution?.selectedInstrumentId;
+
+  return {
+    input: query ?? selectedInstrumentId ?? "security_unresolved",
+    instrument_id: selectedInstrumentId,
+    symbol: resolution?.candidates[0]?.symbol ?? query
+  };
+}
+
+function createConsensusEstimatesResult(input: {
+  asOf: string;
+  estimates: ConsensusEstimateMetric[];
+  rights: ConsensusEstimatesRights;
+  security: ConsensusEstimatesResult["security"];
+  status: ConsensusEstimatesStatus;
+}): ConsensusEstimatesResult {
+  const planned = input.status === "planned";
+  const sourceRecordIds = input.estimates.flatMap((estimate) => estimate.source_record_ids);
+
+  return {
+    as_of: input.asOf,
+    consensus: planned
+      ? {
+          analyst_count: 18,
+          consensus_rating: "outperform",
+          rating_distribution: {
+            buy: 12,
+            hold: 5,
+            sell: 1
+          },
+          target_price: {
+            currency: "HKD",
+            high: 520,
+            low: 390,
+            mean: 456.2,
+            median: 462
+          }
+        }
+      : createEmptyConsensusSummary(),
+    data_version: CONSENSUS_ESTIMATES_VERSION,
+    estimates: input.estimates,
+    frontend_rendering: false,
+    investment_advice: false,
+    live_data_access: false,
+    methodology_version: CONSENSUS_ESTIMATES_VERSION,
+    raw_provider_payload: false,
+    rights: input.rights,
+    security: input.security,
+    source_record_ids: planned
+      ? ["synthetic_consensus_rating_00700_20260107", ...sourceRecordIds]
+      : [],
+    sql_emitted: false,
+    status: input.status,
+    toolName: "get_consensus_or_estimates",
+    usage: {
+      cached: false,
+      credits: planned ? 3 : 0,
+      rows: input.estimates.length
+    }
+  };
+}
+
+function createEmptyConsensusSummary(): ConsensusEstimatesResult["consensus"] {
+  return {
+    analyst_count: 0,
+    consensus_rating: "outperform",
+    rating_distribution: {
+      buy: 0,
+      hold: 0,
+      sell: 0
+    },
+    target_price: {
+      currency: "HKD",
+      high: 0,
+      low: 0,
+      mean: 0,
+      median: 0
+    }
+  };
+}
+
+function normalizeConsensusFiscalYears(years: number[] | undefined): number[] {
+  const normalized = years?.filter((year) => Number.isInteger(year) && year >= 2000 && year <= 2100) ?? [];
+  return normalized.length > 0 ? [...new Set(normalized)].sort((left, right) => left - right) : DEFAULT_CONSENSUS_FISCAL_YEARS;
+}
+
+function normalizeConsensusMetrics(
+  metrics: ConsensusEstimateMetricId[] | undefined
+): ConsensusEstimateMetricId[] {
+  const normalized =
+    metrics?.filter((metric): metric is ConsensusEstimateMetricId =>
+      DEFAULT_CONSENSUS_METRICS.includes(metric)
+    ) ?? [];
+  return normalized.length > 0 ? [...new Set(normalized)] : DEFAULT_CONSENSUS_METRICS;
 }
 
 function normalizePortfolioPositions(

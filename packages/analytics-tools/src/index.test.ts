@@ -5,6 +5,8 @@ import {
   comparePercentiles,
   getBuybacksAndPlacements,
   getBuybacksAndPlacementsCapabilities,
+  getConsensusOrEstimates,
+  getConsensusOrEstimatesCapabilities,
   getCompareSecuritiesCapabilities,
   getEventStudyCapabilities,
   getFinancialRatios,
@@ -1025,5 +1027,87 @@ describe("compare securities scaffold", () => {
       status: "completed"
     });
     expect(result.source_record_ids).toContain("synthetic_placement_00700_20260106");
+  });
+
+  it("reports consensus estimates capabilities with redistribution rights gate", () => {
+    expect(getConsensusOrEstimatesCapabilities()).toMatchObject({
+      analytics_sections: ["consensus_rating", "target_price", "financial_estimates"],
+      frontend_rendering: false,
+      investment_advice: false,
+      live_data_access: false,
+      raw_provider_payload: false,
+      redistribution_rights_required: true,
+      route: "POST /analytics/consensus-estimates",
+      source_required: true,
+      sql_emitted: false,
+      status: "consensus_estimates_scaffold",
+      supported_metrics: ["revenue", "eps", "ebitda"],
+      tool_name: "get_consensus_or_estimates"
+    });
+  });
+
+  it("blocks consensus estimates without redistribution rights", () => {
+    const result = getConsensusOrEstimates({
+      requestId: "req_consensus_blocked",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      investment_advice: false,
+      live_data_access: false,
+      raw_provider_payload: false,
+      sql_emitted: false,
+      status: "blocked_redistribution_rights",
+      toolName: "get_consensus_or_estimates"
+    });
+    expect(result.rights.redistribution_rights_confirmed).toBe(false);
+    expect(result.estimates).toEqual([]);
+    expect(result.source_record_ids).toEqual([]);
+    expect(result.usage.credits).toBe(0);
+  });
+
+  it("plans consensus estimates only after redistribution rights are confirmed", () => {
+    const result = getConsensusOrEstimates({
+      fiscalYears: [2027],
+      metrics: ["eps"],
+      redistributionRightsConfirmed: true,
+      requestId: "req_consensus_authorized",
+      securityQuery: "00700.HK"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      investment_advice: false,
+      live_data_access: false,
+      raw_provider_payload: false,
+      sql_emitted: false,
+      status: "planned",
+      toolName: "get_consensus_or_estimates"
+    });
+    expect(result.rights).toEqual({
+      allowed_surfaces: ["web", "mcp", "export"],
+      redistribution_rights_confirmed: true,
+      redistribution_rights_required: true,
+      rights_scope: "consensus_estimates_redistribution_confirmed_only"
+    });
+    expect(result.security).toMatchObject({
+      instrument_id: "eq_hk_00700",
+      symbol: "00700.HK"
+    });
+    expect(result.consensus.target_price).toMatchObject({
+      currency: "HKD",
+      median: 462
+    });
+    expect(result.estimates).toEqual([
+      expect.objectContaining({
+        fiscal_year: 2027,
+        mean: 19.8,
+        metric_id: "eps",
+        source_record_ids: ["synthetic_consensus_eps_00700_2027"]
+      })
+    ]);
+    expect(result.source_record_ids).toContain("synthetic_consensus_rating_00700_20260107");
+    expect(result.source_record_ids).toContain("synthetic_consensus_eps_00700_2027");
   });
 });

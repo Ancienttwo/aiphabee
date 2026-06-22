@@ -55,6 +55,8 @@ import {
   compareSecurities,
   getBuybacksAndPlacements,
   getBuybacksAndPlacementsCapabilities,
+  getConsensusOrEstimates,
+  getConsensusOrEstimatesCapabilities,
   getCompareSecuritiesCapabilities,
   getEventStudyCapabilities,
   getFinancialRatios,
@@ -72,6 +74,7 @@ import {
   runEventStudy,
   screenSecurities,
   planHighCostAnalyticsQueue,
+  type ConsensusEstimateMetricId,
   type PercentileBenchmarkType,
   type PercentileMetricId,
   type PortfolioAnalyticsPositionInput,
@@ -2680,6 +2683,7 @@ app.get("/analytics/runtime", (c) => {
   const marketBreadthCapability = getMarketBreadthCapabilities();
   const ownershipShortSellingCapability = getOwnershipAndShortSellingCapabilities();
   const buybacksPlacementsCapability = getBuybacksAndPlacementsCapabilities();
+  const consensusEstimatesCapability = getConsensusOrEstimatesCapabilities();
   const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
 
   return c.json(
@@ -2692,6 +2696,7 @@ app.get("/analytics/runtime", (c) => {
         high_cost_analytics_queue: highCostAnalyticsQueueCapability,
         market_breadth: marketBreadthCapability,
         ownership_and_short_selling: ownershipShortSellingCapability,
+        consensus_or_estimates: consensusEstimatesCapability,
         percentile_comparison: percentileComparisonCapability,
         portfolio_analytics: portfolioAnalyticsCapability,
         buybacks_and_placements: buybacksPlacementsCapability,
@@ -2711,6 +2716,7 @@ app.get("/analytics/runtime", (c) => {
           marketBreadthCapability.route,
           ownershipShortSellingCapability.route,
           buybacksPlacementsCapability.route,
+          consensusEstimatesCapability.route,
           highCostAnalyticsQueueCapability.route
         ],
         status: "analytics_tools_scaffold"
@@ -2956,6 +2962,49 @@ app.post("/analytics/buybacks-placements", async (c) => {
         ],
         requestId,
         usage: buybacksPlacements.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/consensus-estimates", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const consensusEstimates = getConsensusOrEstimates({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    fiscalYears: normalizeIntegerArray(body.fiscal_years ?? body.fiscalYears),
+    instrumentId: normalizeString(body.instrument_id ?? body.instrumentId),
+    metrics: normalizeConsensusEstimateMetrics(body.metrics),
+    redistributionRightsConfirmed: normalizeOptionalBoolean(
+      body.redistribution_rights_confirmed ?? body.redistributionRightsConfirmed
+    ),
+    requestId,
+    securityQuery: normalizeString(body.security_query ?? body.securityQuery)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...consensusEstimates,
+        capability: getConsensusOrEstimatesCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: consensusEstimates.data_version,
+        methodologyVersion: consensusEstimates.methodology_version,
+        provenance: [
+          {
+            data_version: consensusEstimates.data_version,
+            methodology_version: consensusEstimates.methodology_version,
+            source: "analytics-consensus-estimates",
+            source_record_id: "consensus-estimates"
+          }
+        ],
+        requestId,
+        usage: consensusEstimates.usage
       }
     )
   );
@@ -9872,6 +9921,15 @@ function normalizeOptionalInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) ? value : undefined;
 }
 
+function normalizeIntegerArray(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const values = value.filter((item): item is number => Number.isInteger(item));
+  return values.length > 0 ? [...new Set(values)] : undefined;
+}
+
 function normalizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
@@ -9906,6 +9964,21 @@ function normalizeHighCostUsageExecutionStatus(
   value: unknown
 ): HighCostUsageExecutionStatus | undefined {
   return value === "failed" || value === "planned" || value === "succeeded" ? value : undefined;
+}
+
+function normalizeConsensusEstimateMetrics(
+  value: unknown
+): ConsensusEstimateMetricId[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const metrics = value.filter(
+    (metric): metric is ConsensusEstimateMetricId =>
+      metric === "revenue" || metric === "eps" || metric === "ebitda"
+  );
+
+  return metrics.length > 0 ? [...new Set(metrics)] : undefined;
 }
 
 function normalizeWatchlistAlertKinds(value: unknown): WatchlistAlertKind[] | undefined {
