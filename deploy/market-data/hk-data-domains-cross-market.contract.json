@@ -1,0 +1,96 @@
+{
+  "version": "2026-06-22.phase4.hk-data-domains-cross-market-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/market-domain-runtime",
+  "runtime_route": "GET /market-data/domains/runtime",
+  "route": "POST /market-data/domains/cross-market/plan",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "external_redistribution_allowed": false,
+  "mcp_redistribution_allowed": false,
+  "export_allowed": false,
+  "covered_phase4_items": [
+    "更多港股数据域",
+    "跨市场对照",
+    "point_in_time_methodology",
+    "rights_matrix_default_deny"
+  ],
+  "hk_data_domains": [
+    "ipo_pipeline",
+    "index_constituents",
+    "stock_connect_flow",
+    "short_selling",
+    "ownership_disclosure",
+    "warrants_cbbc",
+    "sector_industry_classification",
+    "corporate_calendar",
+    "dividend_calendar"
+  ],
+  "comparison_markets": ["HK", "CN_A", "US", "SG"],
+  "mapping_types": [
+    "dual_listing",
+    "adr_equivalence",
+    "stock_connect_eligibility",
+    "industry_classification",
+    "currency_normalization",
+    "trading_calendar_alignment",
+    "corporate_action_alignment"
+  ],
+  "methodology_fields_required": [
+    "published_at",
+    "effective_at",
+    "ingested_at",
+    "data_version",
+    "methodology_version"
+  ],
+  "security_contract": {
+    "rights_matrix_required": true,
+    "field_authorization_required": true,
+    "default_deny_until_authorized": true,
+    "point_in_time_required": true,
+    "live_partner_data_loaded": false,
+    "raw_partner_payload_included": false,
+    "external_redistribution_allowed": false,
+    "mcp_redistribution_allowed": false,
+    "export_allowed": false
+  },
+  "integration_routes": {
+    "runtime": "GET /market-data/domains/runtime",
+    "plan": "POST /market-data/domains/cross-market/plan",
+    "data_gateway": "POST /gateway/exports/plan",
+    "security_resolution": "POST /tools/resolve-security",
+    "market_calendar": "POST /tools/get-market-calendar",
+    "analytics_compare": "POST /analytics/compare-securities"
+  },
+  "tables": [
+    "core.hk_data_domain_coverage",
+    "core.cross_market_security_mapping",
+    "audit.market_domain_coverage_event",
+    "governance.hk_data_domain_cross_market_contract"
+  ],
+  "required_output_fields": [
+    "coverage_contract",
+    "data_domains",
+    "cross_market",
+    "rights",
+    "validation"
+  ],
+  "blocked_statuses": [
+    "blocked_missing_context",
+    "blocked_rights_matrix_required",
+    "blocked_unsupported_domain",
+    "blocked_unsupported_mapping",
+    "blocked_unsupported_market"
+  ],
+  "linked_contracts": [
+    "deploy/database/migrations.contract.json",
+    "deploy/gateway/access.contract.json",
+    "deploy/gateway/restricted-exports.contract.json",
+    "deploy/tools/get-market-calendar.contract.json",
+    "deploy/tools/resolve-security.contract.json",
+    "deploy/analytics/compare-securities.contract.json"
+  ]
+}

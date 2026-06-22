@@ -158,6 +158,11 @@ import {
   type QuoteSnapshotMode
 } from "@aiphabee/market-data";
 import {
+  createHkDataDomainsCrossMarketPlan,
+  getHkDataDomainsCrossMarketCapabilities,
+  getMarketDomainRuntimeCapabilities
+} from "@aiphabee/market-domain-runtime";
+import {
   McpRuntimeInputError,
   createMcpAuthLimitsReleaseGatePlan,
   createMcpCompatibilityStatusPlan,
@@ -2167,6 +2172,85 @@ app.get("/data/runtime", (c) => {
           credits: 0,
           rows: 0
         }
+      }
+    )
+  );
+});
+
+app.get("/market-data/domains/runtime", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const capability = getMarketDomainRuntimeCapabilities();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(capability, {
+      asOf: new Date().toISOString(),
+      dataVersion: capability.version,
+      methodologyVersion: capability.version,
+      provenance: [
+        {
+          data_version: capability.version,
+          methodology_version: capability.version,
+          source: "market-domain-runtime-contract",
+          source_record_id: "runtime-capabilities"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    })
+  );
+});
+
+app.post("/market-data/domains/cross-market/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createHkDataDomainsCrossMarketPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    baseMarket: normalizeString(body.base_market ?? body.baseMarket),
+    comparisonMarkets: normalizeStringArray(
+      body.comparison_markets ?? body.comparisonMarkets ?? body.markets
+    ),
+    mappingTypes: normalizeStringArray(
+      body.mapping_types ?? body.mappingTypes ?? body.mappings
+    ),
+    requestId,
+    requestedDomains: normalizeStringArray(
+      body.requested_domains ?? body.requestedDomains ?? body.domains
+    ),
+    rightsMatrixVersion: normalizeString(
+      body.rights_matrix_version ?? body.rightsMatrixVersion
+    ),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getHkDataDomainsCrossMarketCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "market-domain-runtime-contract",
+            source_record_id: "hk-data-domains-cross-market-plan"
+          }
+        ],
+        requestId,
+        usage: plan.usage
       }
     )
   );

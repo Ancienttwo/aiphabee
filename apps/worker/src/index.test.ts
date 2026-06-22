@@ -300,6 +300,101 @@ interface PartnerWhiteLabelEmbedPlanBody {
   };
 }
 
+interface MarketDomainRuntimeBody {
+  data: {
+    auth_required: boolean;
+    cross_market_plan: {
+      allowed_domains: string[];
+      allowed_mapping_types: string[];
+      allowed_markets: string[];
+      data_gateway_required: boolean;
+      point_in_time_required: boolean;
+      rights_matrix_required: boolean;
+      route: string;
+      status: string;
+    };
+    default_rights_status: string;
+    frontend: boolean;
+    live_data_access: boolean;
+    persistent_writes: boolean;
+    route: string;
+    runtime_route: string;
+    sql_emitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface HkDataDomainsCrossMarketPlanBody {
+  data: {
+    capability: {
+      route: string;
+      status: string;
+    };
+    coverage_contract: {
+      default_deny_until_authorized: boolean;
+      methodology_fields_required: string[];
+      phase4_source: string;
+      point_in_time_required: boolean;
+      prd_data_domain_source: string;
+    };
+    cross_market: {
+      analytics_comparison_route: string;
+      base_market: string;
+      calendar_alignment_route: string;
+      comparison_markets: string[];
+      mapping_items: Array<{
+        comparison_market: string;
+        fx_rate_required: boolean;
+        live_mapping_enabled: boolean;
+        mapping_type: string;
+        rights_state: string;
+        status: string;
+      }>;
+      mapping_types: string[];
+      security_resolution_route: string;
+    };
+    data_domains: Array<{
+      domain: string;
+      live_data_loaded: boolean;
+      market: string;
+      point_in_time_required: boolean;
+      rights_state: string;
+      status: string;
+      table: string;
+    }>;
+    frontend: boolean;
+    live_data_access: boolean;
+    persistent_writes: boolean;
+    request_id: string;
+    rights: {
+      default_deny_until_authorized: boolean;
+      external_redistribution_allowed: boolean;
+      export_allowed: boolean;
+      field_authorization_required: boolean;
+      mcp_redistribution_allowed: boolean;
+      rights_matrix_required: boolean;
+      rights_matrix_version?: string;
+    };
+    sql_emitted: boolean;
+    status: string;
+    validation: {
+      rights_matrix_present: boolean;
+      unsupported_domains: string[];
+      unsupported_mapping_types: string[];
+      unsupported_markets: string[];
+    };
+    workspace_id: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface ComplianceOpsReleaseGatePlanBody {
   data: {
     audit_export_drill: {
@@ -17077,6 +17172,171 @@ describe("worker runtime", () => {
     });
     expect(body.data.source_batches.rights_default_state).toBe("default_deny");
     expect(body.data.data_version_batches.live_batches).toBe(false);
+  });
+
+  it("serves market domain runtime capabilities without live data access", async () => {
+    const response = await app.request("/market-data/domains/runtime", {
+      headers: {
+        "x-request-id": "req-market-domain-runtime"
+      }
+    });
+    const body = (await response.json()) as MarketDomainRuntimeBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      auth_required: true,
+      default_rights_status: "default_deny",
+      frontend: false,
+      live_data_access: false,
+      persistent_writes: false,
+      route: "GET /market-data/domains/runtime",
+      runtime_route: "GET /market-data/domains/runtime",
+      sql_emitted: false,
+      status: "hk_data_domains_cross_market_scaffold"
+    });
+    expect(body.data.cross_market_plan).toMatchObject({
+      data_gateway_required: true,
+      point_in_time_required: true,
+      rights_matrix_required: true,
+      route: "POST /market-data/domains/cross-market/plan",
+      status: "hk_data_domains_cross_market_scaffold"
+    });
+    expect(body.data.cross_market_plan.allowed_domains).toContain("ipo_pipeline");
+    expect(body.data.cross_market_plan.allowed_markets).toEqual(["HK", "CN_A", "US", "SG"]);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans HK data domain coverage and cross-market mappings without writes", async () => {
+    const response = await app.request("/market-data/domains/cross-market/plan", {
+      body: JSON.stringify({
+        as_of: "2026-06-22",
+        comparison_markets: ["CN_A", "US"],
+        mapping_types: ["dual_listing", "currency_normalization", "trading_calendar_alignment"],
+        requested_domains: ["ipo_pipeline", "stock_connect_flow", "warrants_cbbc"],
+        rights_matrix_version: "rights-matrix-2026-06-22",
+        workspace_id: "ws_market_domain_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-domain-plan"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HkDataDomainsCrossMarketPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend: false,
+      live_data_access: false,
+      persistent_writes: false,
+      request_id: "req-market-domain-plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      workspace_id: "ws_market_domain_alpha"
+    });
+    expect(body.data.coverage_contract).toMatchObject({
+      default_deny_until_authorized: true,
+      phase4_source: "docs/researches/AiphaBee_PRD_v1.0.md#18.5",
+      point_in_time_required: true,
+      prd_data_domain_source: "docs/researches/AiphaBee_PRD_v1.0.md#10.2"
+    });
+    expect(body.data.coverage_contract.methodology_fields_required).toEqual([
+      "published_at",
+      "effective_at",
+      "ingested_at",
+      "data_version",
+      "methodology_version"
+    ]);
+    expect(body.data.data_domains).toHaveLength(3);
+    expect(body.data.data_domains[0]).toMatchObject({
+      domain: "ipo_pipeline",
+      live_data_loaded: false,
+      market: "HK",
+      point_in_time_required: true,
+      rights_state: "default_deny",
+      status: "planned_no_write",
+      table: "core.hk_ipo_pipeline_event"
+    });
+    expect(body.data.cross_market).toMatchObject({
+      analytics_comparison_route: "POST /analytics/compare-securities",
+      base_market: "HK",
+      calendar_alignment_route: "POST /tools/get-market-calendar",
+      comparison_markets: ["CN_A", "US"],
+      mapping_types: ["dual_listing", "currency_normalization", "trading_calendar_alignment"],
+      security_resolution_route: "POST /tools/resolve-security"
+    });
+    expect(body.data.cross_market.mapping_items).toContainEqual(
+      expect.objectContaining({
+        comparison_market: "US",
+        fx_rate_required: true,
+        live_mapping_enabled: false,
+        mapping_type: "currency_normalization",
+        rights_state: "default_deny",
+        status: "planned_no_write"
+      })
+    );
+    expect(body.data.rights).toMatchObject({
+      default_deny_until_authorized: true,
+      external_redistribution_allowed: false,
+      export_allowed: false,
+      field_authorization_required: true,
+      mcp_redistribution_allowed: false,
+      rights_matrix_required: true,
+      rights_matrix_version: "rights-matrix-2026-06-22"
+    });
+    expect(body.data.capability.status).toBe("hk_data_domains_cross_market_scaffold");
+    expect(body.usage.rows).toBe(9);
+  });
+
+  it("blocks HK data domain planning without a rights matrix", async () => {
+    const response = await app.request("/market-data/domains/cross-market/plan", {
+      body: JSON.stringify({
+        comparison_markets: ["CN_A"],
+        requested_domains: ["ipo_pipeline"],
+        workspace_id: "ws_market_domain_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-domain-missing-rights"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HkDataDomainsCrossMarketPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_rights_matrix_required");
+    expect(body.data.validation.rights_matrix_present).toBe(false);
+    expect(body.data.data_domains[0]?.status).toBe("not_requested");
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("blocks unsupported HK data domains before planning cross-market coverage", async () => {
+    const response = await app.request("/market-data/domains/cross-market/plan", {
+      body: JSON.stringify({
+        comparison_markets: ["CN_A"],
+        requested_domains: ["ipo_pipeline", "crypto_order_book"],
+        rights_matrix_version: "rights-matrix-2026-06-22",
+        workspace_id: "ws_market_domain_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-market-domain-unsupported"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as HkDataDomainsCrossMarketPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_unsupported_domain");
+    expect(body.data.validation.unsupported_domains).toEqual(["crypto_order_book"]);
+    expect(body.data.persistent_writes).toBe(false);
+    expect(body.usage.rows).toBe(0);
   });
 
   it("denies gateway access checks by default", async () => {

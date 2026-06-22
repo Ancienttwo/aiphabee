@@ -616,6 +616,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql",
+      "purpose": "Create empty HK data domain coverage and cross-market mapping scaffolds for expanded Hong Kong datasets, point-in-time methodology, and HK-to-CN/US/SG comparison planning without enabling live data access, external redistribution, persistent writes, SQL execution, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.hk_data_domain_coverage",
+        "core.cross_market_security_mapping",
+        "audit.market_domain_coverage_event",
+        "governance.hk_data_domain_cross_market_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

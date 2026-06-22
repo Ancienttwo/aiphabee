@@ -25,6 +25,7 @@
     "@aiphabee/financial-facts": "file:../../packages/financial-facts",
     "@aiphabee/market-calendar": "file:../../packages/market-calendar",
     "@aiphabee/market-data": "file:../../packages/market-data",
+    "@aiphabee/market-domain-runtime": "file:../../packages/market-domain-runtime",
     "@aiphabee/mcp-runtime": "file:../../packages/mcp-runtime",
     "@aiphabee/observability": "file:../../packages/observability",
     "@aiphabee/partner-runtime": "file:../../packages/partner-runtime",
