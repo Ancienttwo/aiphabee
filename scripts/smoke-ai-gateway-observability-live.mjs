@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
 const requiredEnv = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "AI_GATEWAY_NAME"];
@@ -35,7 +39,7 @@ if (dryRun) {
   );
 }
 
-const missingEnv = requiredEnv.filter((name) => !hasValue(process.env[name]));
+const missingEnv = getMissingLiveSmokeEnv(requiredEnv);
 
 if (missingEnv.length > 0) {
   emit(
@@ -48,9 +52,9 @@ if (missingEnv.length > 0) {
   );
 }
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
-const apiToken = process.env.CLOUDFLARE_API_TOKEN.trim();
-const gatewayName = process.env.AI_GATEWAY_NAME.trim();
+const accountId = getLiveSmokeEnvValue("CLOUDFLARE_ACCOUNT_ID");
+const apiToken = getLiveSmokeEnvValue("CLOUDFLARE_API_TOKEN");
+const gatewayName = getLiveSmokeEnvValue("AI_GATEWAY_NAME");
 const start = new Date(Date.now() - lookbackMinutes * 60 * 1000).toISOString();
 const end = new Date().toISOString();
 

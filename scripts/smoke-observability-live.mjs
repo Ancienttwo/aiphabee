@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
 const commandTimeoutMs = parsePositiveInteger(process.env.OBSERVABILITY_LIVE_SMOKE_TIMEOUT_MS, 120_000);
@@ -38,7 +42,7 @@ if (dryRun) {
   );
 }
 
-const missingEnv = requiredEnv.filter((name) => !hasValue(process.env[name]));
+const missingEnv = getMissingLiveSmokeEnv(requiredEnv);
 
 if (missingEnv.length > 0) {
   emit(
@@ -52,7 +56,7 @@ if (missingEnv.length > 0) {
 
 const endpoint = requiredEnvValue("OTLP_EXPORTER_OTLP_ENDPOINT");
 const headers = parseOtlpHeaders(requiredEnvValue("OTLP_EXPORTER_OTLP_HEADERS"));
-const databaseName = requiredEnvValue("CLOUDFLARE_D1_DATABASE_NAME");
+const databaseName = getLiveSmokeEnvValue("CLOUDFLARE_D1_DATABASE_NAME");
 const results = [await smokeOtlp(endpoint, headers), await smokeEvalStore(databaseName)];
 const failedResults = results.filter((result) => result.status !== "passed");
 

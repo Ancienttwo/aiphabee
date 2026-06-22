@@ -2,6 +2,10 @@
 import { createHash } from "node:crypto";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, streamText } from "ai";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const requiredEnv = [
   "CLOUDFLARE_ACCOUNT_ID",
@@ -38,7 +42,7 @@ if (dryRun) {
   );
 }
 
-const missingEnv = requiredEnv.filter((name) => !hasValue(process.env[name]));
+const missingEnv = getMissingLiveSmokeEnv(requiredEnv);
 
 if (missingEnv.length > 0) {
   emit(
@@ -51,10 +55,10 @@ if (missingEnv.length > 0) {
   );
 }
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
-const apiToken = process.env.CLOUDFLARE_API_TOKEN.trim();
-const gatewayId = process.env.AI_GATEWAY_NAME.trim();
-const model = process.env.AI_GATEWAY_SMOKE_MODEL.trim();
+const accountId = getLiveSmokeEnvValue("CLOUDFLARE_ACCOUNT_ID");
+const apiToken = getLiveSmokeEnvValue("CLOUDFLARE_API_TOKEN");
+const gatewayId = getLiveSmokeEnvValue("AI_GATEWAY_NAME");
+const model = getLiveSmokeEnvValue("AI_GATEWAY_SMOKE_MODEL");
 const httpStatuses = [];
 const instrumentedFetch = async (resource, options) => {
   const response = await fetch(resource, options);

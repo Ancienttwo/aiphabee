@@ -4,6 +4,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
 const commandTimeoutMs = parsePositiveInteger(process.env.PROVIDER_SECRET_SMOKE_TIMEOUT_MS, 120_000);
@@ -59,12 +63,10 @@ if (dryRun) {
 }
 
 const missingEnv = Object.entries(requiredEnv).flatMap(([provider, names]) =>
-  names
-    .filter((name) => !hasValue(process.env[name]))
-    .map((name) => ({
-      name,
-      provider
-    }))
+  getMissingLiveSmokeEnv(names).map((name) => ({
+    name,
+    provider
+  }))
 );
 
 if (missingEnv.length > 0) {
@@ -123,7 +125,7 @@ async function smokeProvider(provider, secretName) {
 }
 
 async function smokeCloudflareWorkers(secretName, firstValue, rotatedValue) {
-  const workerName = requiredEnvValue("CLOUDFLARE_WORKER_NAME");
+  const workerName = getLiveSmokeEnvValue("CLOUDFLARE_WORKER_NAME");
   let operationCount = 0;
 
   try {

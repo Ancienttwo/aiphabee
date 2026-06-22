@@ -6,6 +6,10 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const contractPath = "deploy/cloudflare/resource-smoke-readiness.contract.json";
 const contract = readJson(contractPath);
@@ -85,7 +89,7 @@ if (dryRun) {
   );
 }
 
-const missingEnv = requiredEnv.filter((name) => !hasValue(process.env[name]));
+const missingEnv = getMissingLiveSmokeEnv(requiredEnv);
 const missingResourceNames = requiredResourceNames.filter((name) => !hasValue(resourceNames[name]));
 
 if (missingEnv.length > 0 || missingResourceNames.length > 0) {
@@ -476,7 +480,7 @@ async function smokeWorkerRuntimeBindings() {
           bindingName: "AIPHABEE_AI_GATEWAY",
           detail: "worker runtime URL missing before AI Gateway smoke",
           failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
-          key: process.env.AI_GATEWAY_NAME ?? "",
+          key: getLiveSmokeEnvValue("AI_GATEWAY_NAME"),
           surface: "ai_gateway_model_request_smoke"
         })
       ];
@@ -533,7 +537,7 @@ async function smokeWorkerRuntimeBindings() {
           bindingName: "AIPHABEE_AI_GATEWAY",
           detail: "worker runtime binding smoke failed before AI Gateway smoke",
           failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
-          key: process.env.AI_GATEWAY_NAME ?? "",
+          key: getLiveSmokeEnvValue("AI_GATEWAY_NAME"),
           surface: "ai_gateway_model_request_smoke"
         })
       ];
@@ -604,7 +608,7 @@ async function smokeWorkerRuntimeBindings() {
         bindingName: "AIPHABEE_AI_GATEWAY",
         detail: error instanceof Error ? error.message : String(error),
         failureCode: "ai_gateway_worker_runtime_command_failed",
-        key: process.env.AI_GATEWAY_NAME ?? "",
+        key: getLiveSmokeEnvValue("AI_GATEWAY_NAME"),
         surface: "ai_gateway_model_request_smoke"
       })
     ];
@@ -996,7 +1000,7 @@ async function smokeAiGatewayModelRequest(workerUrl) {
         stream_text_exact_output_match: modelProviderResult?.stream_text?.exact_output_match
       }),
       failureCode: "ai_gateway_model_request_route_failed",
-      key: process.env.AI_GATEWAY_NAME ?? "",
+      key: getLiveSmokeEnvValue("AI_GATEWAY_NAME"),
       surface: "ai_gateway_model_request_smoke"
     });
   }
@@ -1051,14 +1055,14 @@ async function resolveD1DatabaseId(databaseName) {
 }
 
 async function resolveHyperdriveConfigId(configName) {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
+  const accountId = getLiveSmokeEnvValue("CLOUDFLARE_ACCOUNT_ID");
   const url = new URL(
     `${contract.api_base_url}/accounts/${encodeURIComponent(accountId)}/hyperdrive/configs`
   );
   url.searchParams.set("per_page", "100");
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN.trim()}`,
+      Authorization: `Bearer ${getLiveSmokeEnvValue("CLOUDFLARE_API_TOKEN")}`,
       "Content-Type": "application/json"
     },
     method: "GET"
@@ -1098,11 +1102,11 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, hyperdriveConfigId,
       }
     },
     vars: {
-      AI_GATEWAY_NAME: process.env.AI_GATEWAY_NAME.trim(),
-      AI_GATEWAY_SMOKE_MODEL: process.env.AI_GATEWAY_SMOKE_MODEL.trim(),
+      AI_GATEWAY_NAME: getLiveSmokeEnvValue("AI_GATEWAY_NAME"),
+      AI_GATEWAY_SMOKE_MODEL: getLiveSmokeEnvValue("AI_GATEWAY_SMOKE_MODEL"),
       APP_ENV: "smoke",
       APP_VERSION: "runtime-binding-smoke",
-      CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID.trim()
+      CLOUDFLARE_ACCOUNT_ID: getLiveSmokeEnvValue("CLOUDFLARE_ACCOUNT_ID")
     },
     durable_objects: {
       bindings: [
@@ -1188,7 +1192,7 @@ async function writeAiGatewayLiveSmokeSecretsFile() {
   await writeFile(
     secretFilePath,
     `${JSON.stringify({
-      AI_GATEWAY_LIVE_SMOKE_TOKEN: process.env.CLOUDFLARE_API_TOKEN.trim()
+      AI_GATEWAY_LIVE_SMOKE_TOKEN: getLiveSmokeEnvValue("CLOUDFLARE_API_TOKEN")
     })}\n`
   );
 

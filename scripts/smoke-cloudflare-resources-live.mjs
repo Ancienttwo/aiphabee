@@ -2,6 +2,10 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  getLiveSmokeEnvValue,
+  getMissingLiveSmokeEnv
+} from "./lib/live-smoke-defaults.mjs";
 
 const contractPath = "deploy/cloudflare/resource-smoke-readiness.contract.json";
 const contract = readJson(contractPath);
@@ -44,7 +48,7 @@ if (dryRun) {
   );
 }
 
-const missingEnv = requiredEnv.filter((name) => !hasValue(process.env[name]));
+const missingEnv = getMissingLiveSmokeEnv(requiredEnv);
 
 if (missingEnv.length > 0) {
   emit(
@@ -57,8 +61,8 @@ if (missingEnv.length > 0) {
   );
 }
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
-const apiToken = process.env.CLOUDFLARE_API_TOKEN.trim();
+const accountId = getLiveSmokeEnvValue("CLOUDFLARE_ACCOUNT_ID");
+const apiToken = getLiveSmokeEnvValue("CLOUDFLARE_API_TOKEN");
 const resourceResults = [];
 
 await checkListResource({
@@ -109,7 +113,7 @@ await checkListResource({
   bindingName: "AIPHABEE_CONFIG",
   endpoint: `/accounts/${encodeURIComponent(accountId)}/storage/kv/namespaces`,
   envName: "KV_NAMESPACE_ID",
-  fields: ["id"],
+  fields: ["id", "title"],
   type: "kv"
 });
 
@@ -158,7 +162,7 @@ const output = {
 emit(output, output.status === "ok" ? 0 : 1);
 
 async function checkListResource({ bindingName, endpoint, envName, fields, type }) {
-  const expected = process.env[envName].trim();
+  const expected = getLiveSmokeEnvValue(envName);
   const response = await cloudflareGet(endpoint, { per_page: "100" });
 
   if (!response.ok) {
@@ -181,7 +185,7 @@ async function checkListResource({ bindingName, endpoint, envName, fields, type 
 }
 
 async function checkWorkflow({ bindingName, envName, type }) {
-  const workflowName = process.env[envName].trim();
+  const workflowName = getLiveSmokeEnvValue(envName);
   const response = await cloudflareGet(
     `/accounts/${encodeURIComponent(accountId)}/workflows/${encodeURIComponent(workflowName)}`
   );
@@ -211,7 +215,7 @@ async function checkWorkflow({ bindingName, envName, type }) {
 }
 
 async function checkCron({ bindingName, envName, type }) {
-  const scriptName = process.env[envName].trim();
+  const scriptName = getLiveSmokeEnvValue(envName);
   const response = await cloudflareGet(
     `/accounts/${encodeURIComponent(accountId)}/workers/scripts/${encodeURIComponent(
       scriptName
