@@ -68,6 +68,8 @@ export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0";
 export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0";
+export const AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-model-output-corpus-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -203,6 +205,19 @@ export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES = [
   "core.agent_user_tool_loop_execution_release_gate",
   "governance.agent_user_tool_loop_execution_release_gate_contract"
 ] as const;
+export const AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS = [
+  "unsourced_numeric_sampling_contract_linked",
+  "generated_answer_evidence_smoke_linked",
+  "model_execution_audit_smoke_linked",
+  "live_model_streaming_gate_linked",
+  "eval_v1_contract_linked",
+  "live_smoke_evidence_ledger_linked",
+  "production_model_output_corpus_cutover_blocked"
+] as const;
+export const AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES = [
+  "core.agent_model_output_corpus_release_gate",
+  "governance.agent_model_output_corpus_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -230,6 +245,9 @@ export type AgentLiveModelStreamingReleaseGateStatus = "planned_no_write";
 export type AgentUserToolLoopExecutionReleaseGateCheck =
   (typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS)[number];
 export type AgentUserToolLoopExecutionReleaseGateStatus = "planned_no_write";
+export type AgentModelOutputCorpusReleaseGateCheck =
+  (typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS)[number];
+export type AgentModelOutputCorpusReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -332,6 +350,19 @@ export interface CreateAgentUserToolLoopExecutionReleaseGatePlanInput {
   toolLoopPlannerAccepted?: boolean;
   userAuthEntitlementAccepted?: boolean;
   userRunPersistenceGateAccepted?: boolean;
+}
+
+export interface CreateAgentModelOutputCorpusReleaseGatePlanInput {
+  evalV1Accepted?: boolean;
+  frontendEvidenceCardsAccepted?: boolean;
+  generatedAnswerEvidenceAccepted?: boolean;
+  liveModelStreamingGateAccepted?: boolean;
+  liveSmokeEvidenceLedgerAccepted?: boolean;
+  modelExecutionAuditAccepted?: boolean;
+  partnerApprovedCorpusAccepted?: boolean;
+  persistentEvalWritesAccepted?: boolean;
+  requestId: string;
+  unsourcedNumericSamplingAccepted?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -501,6 +532,29 @@ export interface AgentUserToolLoopExecutionReleaseGateCapabilities {
   version: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION;
 }
 
+export interface AgentModelOutputCorpusReleaseGateCapabilities {
+  actual_tool_execution: false;
+  eval_v1_contract: "deploy/observability/eval-v1.contract.json";
+  frontend_rendering: false;
+  generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke";
+  live_model_output_corpus_enabled: false;
+  live_model_streaming_release_gate_route: "POST /agent/release-gates/live-model-streaming/plan";
+  live_smoke_evidence_ledger_contract: "deploy/governance/live-smoke-evidence-ledger.contract.json";
+  model_calls: false;
+  model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke";
+  persistent_eval_writes: false;
+  persistent_writes: false;
+  production_sampling_enabled: false;
+  required_checks: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/model-output-corpus/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_model_output_corpus_release_gate_scaffold";
+  tables: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES;
+  unsourced_numeric_sampling_contract: "deploy/observability/unsourced-numeric-sampling.contract.json";
+  version: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION;
+}
+
 export interface AgentRuntimeCapabilities {
   ai_sdk: {
     package_name: "ai";
@@ -654,6 +708,7 @@ export interface AgentRuntimeCapabilities {
   agent_ai_gateway_observability_release_gate: AgentAiGatewayObservabilityReleaseGateCapabilities;
   agent_live_model_streaming_release_gate: AgentLiveModelStreamingReleaseGateCapabilities;
   agent_user_tool_loop_execution_release_gate: AgentUserToolLoopExecutionReleaseGateCapabilities;
+  agent_model_output_corpus_release_gate: AgentModelOutputCorpusReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -2200,6 +2255,91 @@ export interface AgentUserToolLoopExecutionReleaseGatePlan {
   version: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION;
 }
 
+export interface AgentModelOutputCorpusLinkedEvidence {
+  command: string;
+  contract: string;
+  covers: string[];
+  route?: string;
+  surface:
+    | "eval_v1_contract"
+    | "generated_answer_evidence_smoke"
+    | "live_model_streaming_release_gate"
+    | "live_smoke_evidence_ledger"
+    | "model_execution_audit_smoke"
+    | "unsourced_numeric_sampling";
+  status: "blocked_release_gate_required" | "guarded_smoke_required" | "local_contract_required";
+}
+
+export interface AgentModelOutputCorpusEvidenceRequirement {
+  evidence: string;
+  requirement:
+    | "eval_v1_contract"
+    | "frontend_evidence_cards"
+    | "generated_answer_evidence_binding"
+    | "live_model_streaming_gate"
+    | "live_smoke_evidence_ledger"
+    | "model_execution_audit"
+    | "partner_approved_model_output_corpus"
+    | "persistent_eval_writes"
+    | "unsourced_numeric_sampling";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentModelOutputCorpusReleaseGatePlan {
+  actual_tool_execution: false;
+  capability: AgentModelOutputCorpusReleaseGateCapabilities;
+  evidence_requirements: AgentModelOutputCorpusEvidenceRequirement[];
+  frontend_rendering: false;
+  linked_evidence: AgentModelOutputCorpusLinkedEvidence[];
+  live_model_output_corpus_enabled: false;
+  model_calls: false;
+  persistent_eval_writes: false;
+  persistent_writes: false;
+  production_sampling_enabled: false;
+  release_checks: Array<{
+    check: AgentModelOutputCorpusReleaseGateCheck;
+    evidence: string;
+    status: AgentModelOutputCorpusReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_model_output_corpus_evidence";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "observability", "data", "product"];
+  };
+  release_transition_allowed: false;
+  request_id: string;
+  route: "POST /agent/release-gates/model-output-corpus/plan";
+  sql_emitted: false;
+  status: AgentModelOutputCorpusReleaseGateStatus;
+  tables: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES;
+  validation: {
+    eval_v1_accepted: boolean;
+    eval_v1_contract_linked: boolean;
+    frontend_evidence_cards_accepted: boolean;
+    generated_answer_evidence_accepted: boolean;
+    generated_answer_evidence_smoke_linked: boolean;
+    live_model_output_corpus_enabled: false;
+    live_model_streaming_gate_accepted: boolean;
+    live_model_streaming_gate_linked: boolean;
+    live_smoke_evidence_ledger_accepted: boolean;
+    live_smoke_evidence_ledger_linked: boolean;
+    model_execution_audit_accepted: boolean;
+    model_execution_audit_smoke_linked: boolean;
+    no_frontend_rendering: true;
+    no_model_calls: true;
+    no_persistent_eval_writes: true;
+    no_persistent_writes: true;
+    partner_approved_model_output_corpus_accepted: boolean;
+    persistent_eval_writes_accepted: boolean;
+    production_sampling_enabled: false;
+    release_transition_allowed: false;
+    unsourced_numeric_sampling_accepted: boolean;
+    unsourced_numeric_sampling_contract_linked: boolean;
+  };
+  version: typeof AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2621,6 +2761,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       getAgentLiveModelStreamingReleaseGateCapabilities(),
     agent_user_tool_loop_execution_release_gate:
       getAgentUserToolLoopExecutionReleaseGateCapabilities(),
+    agent_model_output_corpus_release_gate:
+      getAgentModelOutputCorpusReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2797,6 +2939,34 @@ export function getAgentUserToolLoopExecutionReleaseGateCapabilities(): AgentUse
     user_run_persistence_release_gate_route:
       "POST /agent/release-gates/user-run-persistence/plan",
     version: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentModelOutputCorpusReleaseGateCapabilities(): AgentModelOutputCorpusReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    eval_v1_contract: "deploy/observability/eval-v1.contract.json",
+    frontend_rendering: false,
+    generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke",
+    live_model_output_corpus_enabled: false,
+    live_model_streaming_release_gate_route:
+      "POST /agent/release-gates/live-model-streaming/plan",
+    live_smoke_evidence_ledger_contract:
+      "deploy/governance/live-smoke-evidence-ledger.contract.json",
+    model_calls: false,
+    model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+    persistent_eval_writes: false,
+    persistent_writes: false,
+    production_sampling_enabled: false,
+    required_checks: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/model-output-corpus/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_model_output_corpus_release_gate_scaffold",
+    tables: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES,
+    unsourced_numeric_sampling_contract:
+      "deploy/observability/unsourced-numeric-sampling.contract.json",
+    version: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION
   };
 }
 
@@ -4275,6 +4445,236 @@ export function createAgentUserToolLoopExecutionReleaseGatePlan(
     tables: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES,
     validation,
     version: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentModelOutputCorpusReleaseGatePlan(
+  input: CreateAgentModelOutputCorpusReleaseGatePlanInput
+): AgentModelOutputCorpusReleaseGatePlan {
+  const unsourcedNumericSamplingAccepted = input.unsourcedNumericSamplingAccepted === true;
+  const generatedAnswerEvidenceAccepted = input.generatedAnswerEvidenceAccepted === true;
+  const modelExecutionAuditAccepted = input.modelExecutionAuditAccepted === true;
+  const liveModelStreamingGateAccepted = input.liveModelStreamingGateAccepted === true;
+  const evalV1Accepted = input.evalV1Accepted === true;
+  const liveSmokeEvidenceLedgerAccepted = input.liveSmokeEvidenceLedgerAccepted === true;
+  const partnerApprovedCorpusAccepted = input.partnerApprovedCorpusAccepted === true;
+  const persistentEvalWritesAccepted = input.persistentEvalWritesAccepted === true;
+  const frontendEvidenceCardsAccepted = input.frontendEvidenceCardsAccepted === true;
+  const linkedEvidence: AgentModelOutputCorpusLinkedEvidence[] = [
+    {
+      command: "npm run check:unsourced-numeric-sampling",
+      contract: "deploy/observability/unsourced-numeric-sampling.contract.json",
+      covers: [
+        "local_deterministic_sampling",
+        "1000_accepted_samples",
+        "3_blocked_unsourced_numeric_probes",
+        "observed_rate_below_0_001"
+      ],
+      route: "POST /agent/runs/validate-answer",
+      surface: "unsourced_numeric_sampling",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:agent-generated-answer-evidence-smoke",
+      contract: "deploy/agent/generated-answer-evidence-smoke.contract.json",
+      covers: [
+        "generated_answer_evidence_card_binding",
+        "unsourced_generated_answer_blocked",
+        "hash_only_answer_validation"
+      ],
+      route: "POST /agent/runs/generated-answer-evidence-smoke",
+      surface: "generated_answer_evidence_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-model-execution-audit-smoke",
+      contract: "deploy/agent/model-execution-audit-smoke.contract.json",
+      covers: [
+        "ai_sdk_generate_text_and_stream_text",
+        "hash_only_model_audit_preview",
+        "provider_model_prompt_output_hashes"
+      ],
+      route: "POST /agent/runs/model-execution-audit-smoke",
+      surface: "model_execution_audit_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-live-model-streaming-release-gate",
+      contract: "deploy/agent/live-model-streaming-release-gate.contract.json",
+      covers: [
+        "backend_sse_progress_stream",
+        "guarded_stream_text_smokes",
+        "user_facing_stream_cutover_blocked"
+      ],
+      route: "POST /agent/release-gates/live-model-streaming/plan",
+      surface: "live_model_streaming_release_gate",
+      status: "blocked_release_gate_required"
+    },
+    {
+      command: "npm run check:eval-v1",
+      contract: "deploy/observability/eval-v1.contract.json",
+      covers: ["eval_v1_wvro_schema", "plan_route", "metric_contract"],
+      route: "POST /observability/eval-v1/plan",
+      surface: "eval_v1_contract",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:live-smoke-evidence-ledger",
+      contract: "deploy/governance/live-smoke-evidence-ledger.contract.json",
+      covers: [
+        "credentialed_live_smoke_evidence_ledger",
+        "hash_only_evidence_refs",
+        "release_transition_allowed_false"
+      ],
+      surface: "live_smoke_evidence_ledger",
+      status: "blocked_release_gate_required"
+    }
+  ];
+  const evidenceRequirements: AgentModelOutputCorpusEvidenceRequirement[] = [
+    {
+      evidence: unsourcedNumericSamplingAccepted
+        ? "unsourced numeric sampling local gate was marked accepted in request payload"
+        : "local deterministic unsourced numeric sampling gate must be accepted before corpus cutover",
+      requirement: "unsourced_numeric_sampling",
+      status: unsourcedNumericSamplingAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: generatedAnswerEvidenceAccepted
+        ? "generated-answer evidence smoke was marked accepted in request payload"
+        : "generated answers must be evidence-bound before live model output corpus sampling",
+      requirement: "generated_answer_evidence_binding",
+      status: generatedAnswerEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: modelExecutionAuditAccepted
+        ? "model execution audit smoke was marked accepted in request payload"
+        : "model execution audit smoke must be accepted before live model output corpus sampling",
+      requirement: "model_execution_audit",
+      status: modelExecutionAuditAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: liveModelStreamingGateAccepted
+        ? "live model streaming release gate was marked accepted in request payload"
+        : "live model streaming release gate must be accepted before live model output corpus cutover",
+      requirement: "live_model_streaming_gate",
+      status: liveModelStreamingGateAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: evalV1Accepted
+        ? "eval v1 contract was marked accepted in request payload"
+        : "eval v1 contract must be accepted before persistent model output corpus evaluation",
+      requirement: "eval_v1_contract",
+      status: evalV1Accepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: liveSmokeEvidenceLedgerAccepted
+        ? "live smoke evidence ledger was marked accepted in request payload"
+        : "live smoke evidence ledger must be accepted before production/live sampling claims",
+      requirement: "live_smoke_evidence_ledger",
+      status: liveSmokeEvidenceLedgerAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: partnerApprovedCorpusAccepted
+        ? "partner-approved model output corpus evidence was marked accepted in request payload"
+        : "partner-approved production model output corpus is required before release cutover",
+      requirement: "partner_approved_model_output_corpus",
+      status: partnerApprovedCorpusAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: persistentEvalWritesAccepted
+        ? "persistent eval write evidence was marked accepted in request payload"
+        : "persistent eval write evidence is required before production/live corpus sampling",
+      requirement: "persistent_eval_writes",
+      status: persistentEvalWritesAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: frontendEvidenceCardsAccepted
+        ? "frontend evidence-card rendering evidence was marked accepted in request payload"
+        : "frontend evidence-card rendering is delegated and must be accepted before user-facing corpus claims",
+      requirement: "frontend_evidence_cards",
+      status: frontendEvidenceCardsAccepted ? "satisfied" : "blocked"
+    }
+  ];
+  const blockers = [
+    ...evidenceRequirements
+      .filter((requirement) => requirement.status === "blocked")
+      .map((requirement) => requirement.requirement),
+    "route_does_not_ingest_live_model_output_corpus"
+  ];
+  const linkedSurfaces = new Set(linkedEvidence.map((evidence) => evidence.surface));
+  const validation: AgentModelOutputCorpusReleaseGatePlan["validation"] = {
+    eval_v1_accepted: evalV1Accepted,
+    eval_v1_contract_linked: linkedSurfaces.has("eval_v1_contract"),
+    frontend_evidence_cards_accepted: frontendEvidenceCardsAccepted,
+    generated_answer_evidence_accepted: generatedAnswerEvidenceAccepted,
+    generated_answer_evidence_smoke_linked: linkedSurfaces.has(
+      "generated_answer_evidence_smoke"
+    ),
+    live_model_output_corpus_enabled: false,
+    live_model_streaming_gate_accepted: liveModelStreamingGateAccepted,
+    live_model_streaming_gate_linked: linkedSurfaces.has("live_model_streaming_release_gate"),
+    live_smoke_evidence_ledger_accepted: liveSmokeEvidenceLedgerAccepted,
+    live_smoke_evidence_ledger_linked: linkedSurfaces.has("live_smoke_evidence_ledger"),
+    model_execution_audit_accepted: modelExecutionAuditAccepted,
+    model_execution_audit_smoke_linked: linkedSurfaces.has("model_execution_audit_smoke"),
+    no_frontend_rendering: true,
+    no_model_calls: true,
+    no_persistent_eval_writes: true,
+    no_persistent_writes: true,
+    partner_approved_model_output_corpus_accepted: partnerApprovedCorpusAccepted,
+    persistent_eval_writes_accepted: persistentEvalWritesAccepted,
+    production_sampling_enabled: false,
+    release_transition_allowed: false,
+    unsourced_numeric_sampling_accepted: unsourcedNumericSamplingAccepted,
+    unsourced_numeric_sampling_contract_linked: linkedSurfaces.has("unsourced_numeric_sampling")
+  };
+  const releaseChecks = AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_CHECKS.map(
+    (check): AgentModelOutputCorpusReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "unsourced_numeric_sampling_contract_linked"
+          ? "deploy/observability/unsourced-numeric-sampling.contract.json proves local deterministic sampling blocks unsourced numeric claims"
+          : check === "generated_answer_evidence_smoke_linked"
+            ? "deploy/agent/generated-answer-evidence-smoke.contract.json proves generated-answer evidence binding for a fixed route"
+            : check === "model_execution_audit_smoke_linked"
+              ? "deploy/agent/model-execution-audit-smoke.contract.json proves hash-only AI Gateway model audit preview"
+              : check === "live_model_streaming_gate_linked"
+                ? "deploy/agent/live-model-streaming-release-gate.contract.json keeps user-facing model streaming cutover blocked"
+                : check === "eval_v1_contract_linked"
+                  ? "deploy/observability/eval-v1.contract.json links WVRO eval schema before persistent corpus evaluation"
+                  : check === "live_smoke_evidence_ledger_linked"
+                    ? "deploy/governance/live-smoke-evidence-ledger.contract.json keeps credentialed live evidence tracked without release transition"
+                    : "production model output corpus cutover remains blocked because this route does not ingest live model outputs",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    capability: getAgentModelOutputCorpusReleaseGateCapabilities(),
+    evidence_requirements: evidenceRequirements,
+    frontend_rendering: false,
+    linked_evidence: linkedEvidence,
+    live_model_output_corpus_enabled: false,
+    model_calls: false,
+    persistent_eval_writes: false,
+    persistent_writes: false,
+    production_sampling_enabled: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_model_output_corpus_evidence",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "observability", "data", "product"]
+    },
+    release_transition_allowed: false,
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/model-output-corpus/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_MODEL_OUTPUT_CORPUS_RELEASE_GATE_VERSION
   };
 }
 

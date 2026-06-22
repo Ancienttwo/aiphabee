@@ -1,0 +1,100 @@
+{
+  "version": "2026-06-22.phase1.agent-model-output-corpus-release-gate.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/model-output-corpus/plan",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "checker": "scripts/check-agent-model-output-corpus-release-gate-contract.mjs",
+  "test_files": [
+    "packages/agent-runtime/src/index.test.ts",
+    "apps/worker/src/index.test.ts"
+  ],
+  "migration": "supabase/migrations/20260622022000_agent_model_output_corpus_release_gate.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "linked_contracts": [
+    "deploy/observability/unsourced-numeric-sampling.contract.json",
+    "deploy/agent/generated-answer-evidence-smoke.contract.json",
+    "deploy/agent/model-execution-audit-smoke.contract.json",
+    "deploy/agent/live-model-streaming-release-gate.contract.json",
+    "deploy/observability/eval-v1.contract.json",
+    "deploy/governance/live-smoke-evidence-ledger.contract.json"
+  ],
+  "linked_checks": [
+    "npm run check:unsourced-numeric-sampling",
+    "npm run check:agent-generated-answer-evidence-smoke",
+    "npm run check:agent-model-execution-audit-smoke",
+    "npm run check:agent-live-model-streaming-release-gate",
+    "npm run check:eval-v1",
+    "npm run check:live-smoke-evidence-ledger"
+  ],
+  "standard_response_envelope": true,
+  "actual_tool_execution": false,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "persistent_eval_writes": false,
+  "production_sampling_enabled": false,
+  "live_model_output_corpus_enabled": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "release_transition_allowed": false,
+  "required_checks": [
+    "unsourced_numeric_sampling_contract_linked",
+    "generated_answer_evidence_smoke_linked",
+    "model_execution_audit_smoke_linked",
+    "live_model_streaming_gate_linked",
+    "eval_v1_contract_linked",
+    "live_smoke_evidence_ledger_linked",
+    "production_model_output_corpus_cutover_blocked"
+  ],
+  "required_output_fields": [
+    "linked_evidence",
+    "evidence_requirements",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_model_output_corpus_evidence",
+    "no_live_release_claim": true,
+    "required_signoffs": ["agent", "observability", "data", "product"],
+    "blockers": [
+      "unsourced_numeric_sampling",
+      "generated_answer_evidence_binding",
+      "model_execution_audit",
+      "live_model_streaming_gate",
+      "eval_v1_contract",
+      "live_smoke_evidence_ledger",
+      "partner_approved_model_output_corpus",
+      "persistent_eval_writes",
+      "frontend_evidence_cards",
+      "route_does_not_ingest_live_model_output_corpus"
+    ]
+  },
+  "tables": [
+    "core.agent_model_output_corpus_release_gate",
+    "governance.agent_model_output_corpus_release_gate_contract"
+  ],
+  "not_claimed": [
+    "live_model_output_corpus",
+    "production_live_generated_answer_sampling",
+    "partner_approved_production_corpus",
+    "persistent_eval_writes",
+    "frontend_evidence_card_rendering",
+    "raw_model_output_storage",
+    "production_model_routing_cutover",
+    "release_transition"
+  ],
+  "verification": {
+    "runtime_unit_test": "npm run test -- packages/agent-runtime/src/index.test.ts",
+    "worker_unit_test": "npm run test -- apps/worker/src/index.test.ts",
+    "contract_check": "npm run check:agent-model-output-corpus-release-gate",
+    "unsourced_sampling_check": "npm run check:unsourced-numeric-sampling",
+    "generated_answer_check": "npm run check:agent-generated-answer-evidence-smoke",
+    "model_audit_check": "npm run check:agent-model-execution-audit-smoke",
+    "live_model_streaming_gate_check": "npm run check:agent-live-model-streaming-release-gate",
+    "eval_v1_check": "npm run check:eval-v1",
+    "live_smoke_ledger_check": "npm run check:live-smoke-evidence-ledger",
+    "database_check": "npm run check:database"
+  }
+}

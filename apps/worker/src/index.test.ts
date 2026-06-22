@@ -3603,6 +3603,27 @@ interface AgentRuntimeBody {
       user_run_persistence_release_gate_route: string;
       version: string;
     };
+    agent_model_output_corpus_release_gate: {
+      actual_tool_execution: boolean;
+      eval_v1_contract: string;
+      frontend_rendering: boolean;
+      generated_answer_evidence_smoke_route: string;
+      live_model_output_corpus_enabled: boolean;
+      live_model_streaming_release_gate_route: string;
+      live_smoke_evidence_ledger_contract: string;
+      model_calls: boolean;
+      model_execution_audit_smoke_route: string;
+      persistent_eval_writes: boolean;
+      persistent_writes: boolean;
+      production_sampling_enabled: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      unsourced_numeric_sampling_contract: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -4024,6 +4045,52 @@ interface AgentLiveModelStreamingReleaseGatePlanBody {
     live_model_streaming: boolean;
     model_calls: boolean;
     persistent_writes: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    release_transition_allowed: boolean;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AgentModelOutputCorpusReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    evidence_requirements: Array<{
+      requirement: string;
+      status: string;
+    }>;
+    frontend_rendering: boolean;
+    linked_evidence: Array<{
+      command: string;
+      contract: string;
+      covers: string[];
+      route?: string;
+      status: string;
+      surface: string;
+    }>;
+    live_model_output_corpus_enabled: boolean;
+    model_calls: boolean;
+    persistent_eval_writes: boolean;
+    persistent_writes: boolean;
+    production_sampling_enabled: boolean;
     release_checks: Array<{
       check: string;
       status: string;
@@ -13662,6 +13729,38 @@ describe("worker runtime", () => {
       "user_run_persistence_gate_linked",
       "arbitrary_user_tool_loop_cutover_blocked"
     ]);
+    expect(body.data.agent_model_output_corpus_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      eval_v1_contract: "deploy/observability/eval-v1.contract.json",
+      frontend_rendering: false,
+      generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke",
+      live_model_output_corpus_enabled: false,
+      live_model_streaming_release_gate_route:
+        "POST /agent/release-gates/live-model-streaming/plan",
+      live_smoke_evidence_ledger_contract:
+        "deploy/governance/live-smoke-evidence-ledger.contract.json",
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      persistent_eval_writes: false,
+      persistent_writes: false,
+      production_sampling_enabled: false,
+      route: "POST /agent/release-gates/model-output-corpus/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_model_output_corpus_release_gate_scaffold",
+      unsourced_numeric_sampling_contract:
+        "deploy/observability/unsourced-numeric-sampling.contract.json",
+      version: "2026-06-22.phase1.agent-model-output-corpus-release-gate.v0"
+    });
+    expect(body.data.agent_model_output_corpus_release_gate.required_checks).toEqual([
+      "unsourced_numeric_sampling_contract_linked",
+      "generated_answer_evidence_smoke_linked",
+      "model_execution_audit_smoke_linked",
+      "live_model_streaming_gate_linked",
+      "eval_v1_contract_linked",
+      "live_smoke_evidence_ledger_linked",
+      "production_model_output_corpus_cutover_blocked"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -13856,6 +13955,104 @@ describe("worker runtime", () => {
       stream_auth_redaction_accepted: true
     });
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans model output corpus release gate without production sampling", async () => {
+    const response = await app.request("/agent/release-gates/model-output-corpus/plan", {
+      body: JSON.stringify({
+        eval_v1_accepted: true,
+        frontend_evidence_cards_accepted: true,
+        generated_answer_evidence_accepted: true,
+        live_model_streaming_gate_accepted: true,
+        live_smoke_evidence_ledger_accepted: true,
+        model_execution_audit_accepted: true,
+        partner_approved_corpus_accepted: true,
+        persistent_eval_writes_accepted: true,
+        unsourced_numeric_sampling_accepted: true
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-model-output-corpus-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentModelOutputCorpusReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/model-output-corpus/plan",
+        status: "agent_model_output_corpus_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_model_output_corpus_enabled: false,
+      model_calls: false,
+      persistent_eval_writes: false,
+      persistent_writes: false,
+      production_sampling_enabled: false,
+      release_gate: {
+        blockers: ["route_does_not_ingest_live_model_output_corpus"],
+        gate_status: "blocked_model_output_corpus_evidence",
+        no_live_release_claim: true,
+        required_signoffs: ["agent", "observability", "data", "product"]
+      },
+      release_transition_allowed: false,
+      version: "2026-06-22.phase1.agent-model-output-corpus-release-gate.v0"
+    });
+    expect(body.data.capability.required_checks).toEqual([
+      "unsourced_numeric_sampling_contract_linked",
+      "generated_answer_evidence_smoke_linked",
+      "model_execution_audit_smoke_linked",
+      "live_model_streaming_gate_linked",
+      "eval_v1_contract_linked",
+      "live_smoke_evidence_ledger_linked",
+      "production_model_output_corpus_cutover_blocked"
+    ]);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual(
+      body.data.capability.required_checks
+    );
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.linked_evidence.map((evidence) => evidence.surface)).toEqual([
+      "unsourced_numeric_sampling",
+      "generated_answer_evidence_smoke",
+      "model_execution_audit_smoke",
+      "live_model_streaming_release_gate",
+      "eval_v1_contract",
+      "live_smoke_evidence_ledger"
+    ]);
+    expect(body.data.evidence_requirements.every((requirement) => requirement.status === "satisfied")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      eval_v1_accepted: true,
+      eval_v1_contract_linked: true,
+      frontend_evidence_cards_accepted: true,
+      generated_answer_evidence_accepted: true,
+      generated_answer_evidence_smoke_linked: true,
+      live_model_output_corpus_enabled: false,
+      live_model_streaming_gate_accepted: true,
+      live_model_streaming_gate_linked: true,
+      live_smoke_evidence_ledger_accepted: true,
+      live_smoke_evidence_ledger_linked: true,
+      model_execution_audit_accepted: true,
+      model_execution_audit_smoke_linked: true,
+      no_frontend_rendering: true,
+      no_model_calls: true,
+      no_persistent_eval_writes: true,
+      no_persistent_writes: true,
+      partner_approved_model_output_corpus_accepted: true,
+      persistent_eval_writes_accepted: true,
+      production_sampling_enabled: false,
+      release_transition_allowed: false,
+      unsourced_numeric_sampling_accepted: true,
+      unsourced_numeric_sampling_contract_linked: true
+    });
+    expect(body.usage.rows).toBe(7);
   });
 
   it("plans user ToolLoop execution release gate without arbitrary user execution", async () => {

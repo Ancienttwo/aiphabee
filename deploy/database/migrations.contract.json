@@ -766,6 +766,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622022000_agent_model_output_corpus_release_gate.sql",
+      "purpose": "Create no-write Agent model output corpus release gate scaffolds that link unsourced numeric sampling, generated-answer evidence, model audit, live model streaming, eval v1, and live-smoke evidence ledger contracts without enabling live corpus ingestion, production sampling, model calls, frontend rendering, or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_model_output_corpus_release_gate",
+        "governance.agent_model_output_corpus_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

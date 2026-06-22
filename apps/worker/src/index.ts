@@ -39,6 +39,7 @@ import {
   createAgentRunSkeleton,
   createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentLiveModelStreamingReleaseGatePlan,
+  createAgentModelOutputCorpusReleaseGatePlan,
   createAgentUserToolLoopExecutionReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
@@ -50,6 +51,7 @@ import {
   getAgentWorkflowTaskCapabilities,
   getAgentAiGatewayObservabilityReleaseGateCapabilities,
   getAgentLiveModelStreamingReleaseGateCapabilities,
+  getAgentModelOutputCorpusReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
   getAgentUserToolLoopExecutionReleaseGateCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
@@ -692,8 +694,12 @@ interface AgentRunRequestBody {
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
+  eval_v1_accepted?: unknown;
+  evalV1Accepted?: unknown;
   failure_recovery_policy_accepted?: unknown;
   failureRecoveryPolicyAccepted?: unknown;
+  frontend_evidence_cards_accepted?: unknown;
+  frontendEvidenceCardsAccepted?: unknown;
   frontend_streaming_ui_accepted?: unknown;
   frontendStreamingUiAccepted?: unknown;
   generated_answer_evidence_accepted?: unknown;
@@ -765,8 +771,12 @@ interface AgentRunRequestBody {
   numericPrompt?: unknown;
   operator_signoff?: unknown;
   operatorSignoff?: unknown;
+  partner_approved_corpus_accepted?: unknown;
+  partnerApprovedCorpusAccepted?: unknown;
   ai_gateway_read_permission_evidence?: unknown;
   aiGatewayReadPermissionEvidence?: unknown;
+  persistent_eval_writes_accepted?: unknown;
+  persistentEvalWritesAccepted?: unknown;
   prompt_version?: unknown;
   promptVersion?: unknown;
   production_cutover_requested?: unknown;
@@ -790,6 +800,14 @@ interface AgentRunRequestBody {
   userAuthEntitlementAccepted?: unknown;
   user_run_persistence_gate_accepted?: unknown;
   userRunPersistenceGateAccepted?: unknown;
+  live_model_streaming_gate_accepted?: unknown;
+  liveModelStreamingGateAccepted?: unknown;
+  live_smoke_evidence_ledger_accepted?: unknown;
+  liveSmokeEvidenceLedgerAccepted?: unknown;
+  model_execution_audit_accepted?: unknown;
+  modelExecutionAuditAccepted?: unknown;
+  unsourced_numeric_sampling_accepted?: unknown;
+  unsourcedNumericSamplingAccepted?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
   workspace_id?: unknown;
@@ -7003,6 +7021,70 @@ app.post("/agent/release-gates/live-model-streaming/plan", async (c) => {
             methodology_version: plan.version,
             source: "agent-runtime",
             source_record_id: "agent-live-model-streaming-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/agent/release-gates/model-output-corpus/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentModelOutputCorpusReleaseGatePlan({
+    evalV1Accepted: normalizeOptionalBoolean(body.eval_v1_accepted ?? body.evalV1Accepted),
+    frontendEvidenceCardsAccepted: normalizeOptionalBoolean(
+      body.frontend_evidence_cards_accepted ?? body.frontendEvidenceCardsAccepted
+    ),
+    generatedAnswerEvidenceAccepted: normalizeOptionalBoolean(
+      body.generated_answer_evidence_accepted ?? body.generatedAnswerEvidenceAccepted
+    ),
+    liveModelStreamingGateAccepted: normalizeOptionalBoolean(
+      body.live_model_streaming_gate_accepted ?? body.liveModelStreamingGateAccepted
+    ),
+    liveSmokeEvidenceLedgerAccepted: normalizeOptionalBoolean(
+      body.live_smoke_evidence_ledger_accepted ?? body.liveSmokeEvidenceLedgerAccepted
+    ),
+    modelExecutionAuditAccepted: normalizeOptionalBoolean(
+      body.model_execution_audit_accepted ?? body.modelExecutionAuditAccepted
+    ),
+    partnerApprovedCorpusAccepted: normalizeOptionalBoolean(
+      body.partner_approved_corpus_accepted ?? body.partnerApprovedCorpusAccepted
+    ),
+    persistentEvalWritesAccepted: normalizeOptionalBoolean(
+      body.persistent_eval_writes_accepted ?? body.persistentEvalWritesAccepted
+    ),
+    requestId,
+    unsourcedNumericSamplingAccepted: normalizeOptionalBoolean(
+      body.unsourced_numeric_sampling_accepted ?? body.unsourcedNumericSamplingAccepted
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentModelOutputCorpusReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-model-output-corpus-release-gate-plan"
           }
         ],
         requestId,
