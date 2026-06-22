@@ -16,6 +16,7 @@ const errors = [
   ...validateSprintRows(contract, tracker),
   ...validateFragments(contract, tracker, todos),
   ...validateManifestBlockers(contract, packageJson),
+  ...validateBlockerCoverage(contract),
   ...validateLinkedTransitionReviews(contract, packageJson),
   ...validateChangelog(tracker)
 ];
@@ -127,6 +128,62 @@ function validateLinkedTransitionReviews(value, packageJson) {
   }
 
   return errors;
+}
+
+function validateBlockerCoverage(value) {
+  const errors = [];
+  const sprintExitReview = value.linked_transition_reviews?.find(
+    (review) => review.path === "deploy/governance/sprint-exit-gate-transition-review.contract.json"
+  );
+
+  if (!sprintExitReview) {
+    errors.push("blocker coverage requires sprint exit gate transition review");
+    return errors;
+  }
+
+  const transition = readJson(sprintExitReview.path);
+  const expectedBlocksByManifest = deriveBlocksByManifest(transition);
+
+  for (const manifest of value.completion_blocker_manifests ?? []) {
+    const expectedBlocks = expectedBlocksByManifest.get(manifest.id) ?? [];
+    expectArray(errors, manifest.blocks ?? [], expectedBlocks, `${manifest.id}.blocks`);
+  }
+
+  for (const manifestId of expectedBlocksByManifest.keys()) {
+    if (!(value.completion_blocker_manifests ?? []).some((manifest) => manifest.id === manifestId)) {
+      errors.push(`sprint exit gate references unknown audit blocker manifest ${manifestId}`);
+    }
+  }
+
+  return errors;
+}
+
+function deriveBlocksByManifest(transition) {
+  const blocksByManifest = new Map();
+
+  for (const review of transition.sprint_exit_gate_reviews ?? []) {
+    for (const manifestId of review.blocker_manifest_ids ?? []) {
+      addBlock(blocksByManifest, manifestId, `Sprint ${review.sprint_id}`);
+    }
+  }
+
+  for (const review of transition.phase_exit_gate_reviews ?? []) {
+    for (const manifestId of review.blocker_manifest_ids ?? []) {
+      addBlock(blocksByManifest, manifestId, `Phase ${review.phase_id}`);
+    }
+  }
+
+  return blocksByManifest;
+}
+
+function addBlock(blocksByManifest, manifestId, block) {
+  const blocks = blocksByManifest.get(manifestId) ?? [];
+
+  if (!blocks.includes(block)) {
+    blocks.push(block);
+  }
+
+  blocksByManifest.set(manifestId, blocks);
 }
 
 function validatePackageScripts(value) {
@@ -432,6 +489,27 @@ function expectEqual(errors, actual, expected, path) {
 function expectIncludes(errors, values, expected, path) {
   if (!Array.isArray(values) || !values.includes(expected)) {
     errors.push(`${path} must include ${JSON.stringify(expected)}`);
+  }
+}
+
+function expectArray(errors, actual, expected, path) {
+  if (!Array.isArray(actual)) {
+    errors.push(`${path} must be an array`);
+    return;
+  }
+  if (!Array.isArray(expected)) {
+    errors.push(`${path} expected value must be an array`);
+    return;
+  }
+  if (actual.length !== expected.length) {
+    errors.push(`${path} expected ${JSON.stringify(expected)} but received ${JSON.stringify(actual)}`);
+    return;
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    if (actual[index] !== expected[index]) {
+      errors.push(`${path} expected ${JSON.stringify(expected)} but received ${JSON.stringify(actual)}`);
+      return;
+    }
   }
 }
 
