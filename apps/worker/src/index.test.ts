@@ -5884,6 +5884,22 @@ interface GatewayRuntimeBody {
         uses_quality_state: boolean;
         warn_quality_states: readonly string[];
       };
+      serving_quality_live_readiness: {
+        fixture_version: string;
+        frontend: boolean;
+        live_partner_rows_loaded: boolean;
+        live_serving_reads: boolean;
+        live_serving_sql_execution: boolean;
+        persistent_writes: boolean;
+        required_quality_states: string[];
+        route: string;
+        runtime_route: string;
+        sql_executed: boolean;
+        status: string;
+        validates_gateway_quality_hold: boolean;
+        validates_release_isolation: boolean;
+        validates_sql_execution_guard: boolean;
+      };
       query_planner: {
         blocks_unreleased_snapshots: boolean;
         live_reads: boolean;
@@ -5991,6 +6007,58 @@ interface FieldRightsLivePolicySourceReadinessBody {
       partner_matrix_rows: number;
       smoke_count: number;
       source_records: number;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface ServingQualityLiveReadinessBody {
+  data: {
+    activation: {
+      blockers: string[];
+      required_signoffs: string[];
+      status: string;
+    };
+    live_partner_rows_loaded: boolean;
+    live_serving_reads: boolean;
+    live_serving_sql_execution: boolean;
+    quality_release_checks: Array<{
+      expected_gateway_error_code?: string;
+      expected_release_state: string;
+      expected_serving_query_status: string;
+      expected_sql_text_status: string;
+      gateway_error_code?: string;
+      gateway_status: string;
+      quality_state: string;
+      release_state: string;
+      scenario_id: string;
+      serving_execution_status: string;
+      serving_query_status: string;
+      sql_executed: boolean;
+      sql_text_emitted: boolean;
+      sql_text_status: string;
+      status: string;
+    }>;
+    readiness: {
+      gateway_quality_hold_guard_passed: boolean;
+      no_blocked_quality_sql_execution: boolean;
+      no_live_reads_or_writes: boolean;
+      release_mapping_passed: boolean;
+      sql_execution_guard_passed: boolean;
+    };
+    release_fixture: Array<{
+      quality_state: string;
+      scenario_id: string;
+    }>;
+    sql_executed: boolean;
+    status: string;
+    validation: {
+      blocked_quality_states: number;
+      quality_state_count: number;
+      smoke_count: number;
     };
   };
   ok: true;
@@ -17642,6 +17710,7 @@ describe("worker runtime", () => {
     expect(body.data.guards).toContain("export_entitlement");
     expect(body.data.guards).toContain("quality_hold");
     expect(body.data.guards).toContain("serving_execution_adapter_scaffold");
+    expect(body.data.guards).toContain("serving_quality_live_readiness");
     expect(body.data.guards).toContain("serving_quality_release_isolation");
     expect(body.data.guards).toContain("serving_query_planner_scaffold");
     expect(body.data.guards).toContain("serving_read_default_deny");
@@ -17714,6 +17783,22 @@ describe("worker runtime", () => {
         status: "quality_release_isolation_scaffold",
         uses_quality_state: true,
         warn_quality_states: ["WARN"]
+      },
+      serving_quality_live_readiness: {
+        fixture_version: "serving-quality-live-readiness@quality-release-fixture-v0",
+        frontend: false,
+        live_partner_rows_loaded: false,
+        live_serving_reads: false,
+        live_serving_sql_execution: false,
+        persistent_writes: false,
+        required_quality_states: ["PASS", "WARN", "HOLD", "REJECT_RAW"],
+        route: "GET /gateway/serving-quality/live-readiness",
+        runtime_route: "GET /gateway/runtime",
+        sql_executed: false,
+        status: "serving_quality_live_readiness_scaffold",
+        validates_gateway_quality_hold: true,
+        validates_release_isolation: true,
+        validates_sql_execution_guard: true
       },
       query_planner: {
         blocks_unreleased_snapshots: true,
@@ -17848,6 +17933,93 @@ describe("worker runtime", () => {
       source_records: 8
     });
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("serves serving quality live readiness without executing SQL", async () => {
+    const response = await app.request("/gateway/serving-quality/live-readiness", {
+      headers: {
+        "x-request-id": "req-serving-quality-live-readiness"
+      }
+    });
+    const body = (await response.json()) as ServingQualityLiveReadinessBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("serving_quality_live_readiness_passed");
+    expect(body.data.live_partner_rows_loaded).toBe(false);
+    expect(body.data.live_serving_reads).toBe(false);
+    expect(body.data.live_serving_sql_execution).toBe(false);
+    expect(body.data.sql_executed).toBe(false);
+    expect(body.data.activation).toEqual({
+      blockers: [
+        "partner_serving_rows_absent",
+        "live_hyperdrive_execution_disabled",
+        "quality_owner_cutover_not_approved"
+      ],
+      required_signoffs: ["data_engineering", "data_partner", "quality_owner"],
+      status: "blocked_live_serving_activation"
+    });
+    expect(body.data.readiness).toEqual({
+      gateway_quality_hold_guard_passed: true,
+      no_blocked_quality_sql_execution: true,
+      no_live_reads_or_writes: true,
+      release_mapping_passed: true,
+      sql_execution_guard_passed: true
+    });
+    expect(body.data.release_fixture.map((fixture) => fixture.quality_state)).toEqual([
+      "PASS",
+      "WARN",
+      "HOLD",
+      "REJECT_RAW"
+    ]);
+    expect(body.data.quality_release_checks).toHaveLength(4);
+    expect(body.data.quality_release_checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          quality_state: "PASS",
+          release_state: "released",
+          scenario_id: "pass_snapshot_released_deferred_execution",
+          serving_execution_status: "execution_deferred",
+          serving_query_status: "query_planned",
+          sql_executed: false,
+          sql_text_emitted: true,
+          status: "pass"
+        }),
+        expect.objectContaining({
+          quality_state: "HOLD",
+          gateway_error_code: "DATA_QUALITY_HOLD",
+          gateway_status: "quality_hold",
+          release_state: "held",
+          scenario_id: "hold_snapshot_isolated_before_sql",
+          serving_execution_status: "execution_blocked",
+          serving_query_status: "query_blocked",
+          sql_executed: false,
+          sql_text_emitted: false,
+          sql_text_status: "sql_text_blocked",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          quality_state: "REJECT_RAW",
+          gateway_error_code: "DATA_QUALITY_HOLD",
+          gateway_status: "quality_hold",
+          release_state: "withdrawn",
+          scenario_id: "reject_raw_snapshot_withdrawn_before_sql",
+          serving_execution_status: "execution_blocked",
+          serving_query_status: "query_blocked",
+          sql_executed: false,
+          sql_text_emitted: false,
+          sql_text_status: "sql_text_blocked",
+          status: "pass"
+        })
+      ])
+    );
+    expect(body.data.validation).toEqual({
+      blocked_quality_states: 2,
+      quality_state_count: 4,
+      smoke_count: 4
+    });
+    expect(body.usage.rows).toBe(4);
   });
 
   it("serves P0 rights matrix coverage with default-deny release gate", async () => {

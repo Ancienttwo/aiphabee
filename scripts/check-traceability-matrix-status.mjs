@@ -56,6 +56,7 @@ const requiredChecked = [
   "DAT-03",
   "DAT-04",
   "DAT-05",
+  "DAT-06",
   "DAT-07",
   "DAT-08"
 ];
@@ -64,7 +65,6 @@ const requiredUnchecked = [
   "AGT-07",
   "STK-07",
   "MCP-09",
-  "DAT-06",
   "DAT-10"
 ];
 const evidencePaths = [
@@ -89,6 +89,7 @@ const evidencePaths = [
   "deploy/database/migrations.contract.json",
   "deploy/governance/corporate-action-benchmark-parity.contract.json",
   "deploy/governance/field-rights-live-policy-source.contract.json",
+  "deploy/governance/serving-quality-live-readiness.contract.json",
   "deploy/documents/announcement-diff-extraction.contract.json",
   "deploy/documents/document-sanitizer.contract.json",
   "deploy/documents/get-announcement.contract.json",
@@ -117,10 +118,13 @@ const evidencePaths = [
   "deploy/watchlist/briefings.contract.json",
   "docs/governance/corporate-action-benchmark-parity-scaffold.md",
   "docs/governance/field-rights-live-policy-source-readiness.md",
+  "docs/governance/serving-quality-live-readiness.md",
   "tasks/contracts/corporate-action-benchmark-parity-scaffold.contract.md",
   "tasks/contracts/field-rights-live-policy-source-readiness.contract.md",
+  "tasks/contracts/serving-quality-live-readiness.contract.md",
   "tasks/notes/corporate-action-benchmark-parity-scaffold.notes.md",
-  "tasks/notes/field-rights-live-policy-source-readiness.notes.md"
+  "tasks/notes/field-rights-live-policy-source-readiness.notes.md",
+  "tasks/notes/serving-quality-live-readiness.notes.md"
 ];
 
 const tracker = readText(trackerPath);

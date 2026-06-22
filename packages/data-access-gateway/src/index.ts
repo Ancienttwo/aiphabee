@@ -1,11 +1,13 @@
 import type { AiphaBeeErrorCode, ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 import {
+  createServingQualityReleasePlan,
   createServingExecutionAdapterPlan,
   createServingQueryPlan,
   createServingReadPlan,
   createServingSqlDescriptor,
   createServingSqlTextPlan,
   type ServingExecutionAdapterPlan,
+  type ServingQualityReleasePlan,
   type ServingQueryPlan,
   type ServingReadPlan,
   type ServingSqlDescriptor,
@@ -30,6 +32,10 @@ export const FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION =
   "2026-06-22.phase1.field-rights-live-policy-source-readiness.v0";
 export const FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION =
   "field-rights-live-policy-source@partner-db-fixture-v0";
+export const SERVING_QUALITY_LIVE_READINESS_VERSION =
+  "2026-06-22.phase1.serving-quality-live-readiness.v0";
+export const SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION =
+  "serving-quality-live-readiness@quality-release-fixture-v0";
 export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
 export const P0_RIGHTS_MATRIX_SURFACES = ["web", "mcp", "export", "enterprise"] as const;
 export const DATA_COVERAGE_FRESHNESS_TIERS = ["realtime", "delayed", "eod"] as const;
@@ -81,6 +87,10 @@ export type FieldRightsLivePolicySourceStatus =
   "live_policy_source_readiness_passed";
 export type FieldRightsLivePolicySourceActivationStatus =
   "blocked_external_activation";
+export type ServingQualityLiveReadinessStatus =
+  "serving_quality_live_readiness_passed";
+export type ServingQualityLiveActivationStatus =
+  "blocked_live_serving_activation";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -539,6 +549,90 @@ export interface FieldRightsLivePolicySourceReport {
   version: typeof FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION;
 }
 
+export interface ServingQualityLiveReadinessCapabilities {
+  fixture_version: typeof SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION;
+  frontend: false;
+  live_partner_rows_loaded: false;
+  live_serving_reads: false;
+  live_serving_sql_execution: false;
+  package: "@aiphabee/data-access-gateway";
+  persistent_writes: false;
+  required_quality_states: readonly ["PASS", "WARN", "HOLD", "REJECT_RAW"];
+  route: "GET /gateway/serving-quality/live-readiness";
+  runtime_route: "GET /gateway/runtime";
+  sql_executed: false;
+  status: "serving_quality_live_readiness_scaffold";
+  tables: readonly [
+    "core.serving_dataset",
+    "core.serving_field",
+    "core.serving_snapshot",
+    "core.serving_record"
+  ];
+  validates_gateway_quality_hold: true;
+  validates_release_isolation: true;
+  validates_sql_execution_guard: true;
+  version: typeof SERVING_QUALITY_LIVE_READINESS_VERSION;
+}
+
+export interface ServingQualityLiveReadinessReport {
+  as_of: string;
+  capability: ServingQualityLiveReadinessCapabilities;
+  activation: {
+    blockers: readonly [
+      "partner_serving_rows_absent",
+      "live_hyperdrive_execution_disabled",
+      "quality_owner_cutover_not_approved"
+    ];
+    required_signoffs: readonly ["data_engineering", "data_partner", "quality_owner"];
+    status: ServingQualityLiveActivationStatus;
+  };
+  fixture_version: typeof SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION;
+  frontend: false;
+  live_partner_rows_loaded: false;
+  live_serving_reads: false;
+  live_serving_sql_execution: false;
+  persistent_writes: false;
+  quality_release_checks: Array<{
+    expected_gateway_error_code?: AiphaBeeErrorCode;
+    expected_release_state: ServingQualityReleasePlan["releaseState"];
+    expected_serving_query_status: ServingQueryPlan["status"];
+    expected_sql_text_status: ServingSqlTextPlan["status"];
+    gateway_error_code?: AiphaBeeErrorCode;
+    gateway_status: DataAccessDecisionStatus;
+    quality_state: DataQualityState;
+    release_state: ServingQualityReleasePlan["releaseState"];
+    scenario_id: string;
+    serving_execution_status: ServingExecutionAdapterPlan["status"];
+    serving_query_status: ServingQueryPlan["status"];
+    sql_executed: false;
+    sql_text_emitted: boolean;
+    sql_text_status: ServingSqlTextPlan["status"];
+    status: "fail" | "pass";
+  }>;
+  readiness: {
+    gateway_quality_hold_guard_passed: boolean;
+    no_blocked_quality_sql_execution: boolean;
+    no_live_reads_or_writes: boolean;
+    release_mapping_passed: boolean;
+    sql_execution_guard_passed: boolean;
+  };
+  release_fixture: Array<{
+    expected_gateway_error_code?: AiphaBeeErrorCode;
+    expected_release_state: ServingQualityReleasePlan["releaseState"];
+    quality_state: DataQualityState;
+    scenario_id: string;
+    source_record_id: string;
+  }>;
+  sql_executed: false;
+  status: ServingQualityLiveReadinessStatus;
+  validation: {
+    blocked_quality_states: number;
+    quality_state_count: number;
+    smoke_count: number;
+  };
+  version: typeof SERVING_QUALITY_LIVE_READINESS_VERSION;
+}
+
 export interface DataAccessDecision {
   allowedFields: string[];
   cacheKey: string;
@@ -699,6 +793,22 @@ const FIELD_RIGHTS_EXTERNAL_ACTIVATION_BLOCKERS: FieldRightsLivePolicySourceRepo
     "live_db_read_path_not_enabled",
     "ops_cutover_not_approved"
   ];
+const SERVING_QUALITY_REQUIRED_STATES: ServingQualityLiveReadinessCapabilities["required_quality_states"] =
+  ["PASS", "WARN", "HOLD", "REJECT_RAW"];
+const SERVING_QUALITY_LIVE_READINESS_TABLES: ServingQualityLiveReadinessCapabilities["tables"] = [
+  "core.serving_dataset",
+  "core.serving_field",
+  "core.serving_snapshot",
+  "core.serving_record"
+];
+const SERVING_QUALITY_ACTIVATION_BLOCKERS: ServingQualityLiveReadinessReport["activation"]["blockers"] =
+  [
+    "partner_serving_rows_absent",
+    "live_hyperdrive_execution_disabled",
+    "quality_owner_cutover_not_approved"
+  ];
+const SERVING_QUALITY_REQUIRED_SIGNOFFS: ServingQualityLiveReadinessReport["activation"]["required_signoffs"] =
+  ["data_engineering", "data_partner", "quality_owner"];
 const P0_RIGHTS_MATRIX_REQUIRED_SIGNOFFS: P0RightsMatrixCoverageReport["release_gate"]["required_signoffs"] = [
   "data_partner",
   "commercial_owner",
@@ -1131,6 +1241,35 @@ const FIELD_RIGHTS_RUNTIME_SMOKE_SCENARIOS: ReadonlyArray<{
     scenarioId: "developer_mcp_quote_export_blocked"
   }
 ];
+const SERVING_QUALITY_LIVE_READINESS_FIXTURES: ServingQualityLiveReadinessReport["release_fixture"] =
+  [
+    {
+      expected_release_state: "released",
+      quality_state: "PASS",
+      scenario_id: "pass_snapshot_released_deferred_execution",
+      source_record_id: "serving_quality_fixture_pass_snapshot"
+    },
+    {
+      expected_release_state: "released",
+      quality_state: "WARN",
+      scenario_id: "warn_snapshot_released_with_warning",
+      source_record_id: "serving_quality_fixture_warn_snapshot"
+    },
+    {
+      expected_gateway_error_code: "DATA_QUALITY_HOLD",
+      expected_release_state: "held",
+      quality_state: "HOLD",
+      scenario_id: "hold_snapshot_isolated_before_sql",
+      source_record_id: "serving_quality_fixture_hold_snapshot"
+    },
+    {
+      expected_gateway_error_code: "DATA_QUALITY_HOLD",
+      expected_release_state: "withdrawn",
+      quality_state: "REJECT_RAW",
+      scenario_id: "reject_raw_snapshot_withdrawn_before_sql",
+      source_record_id: "serving_quality_fixture_reject_raw_snapshot"
+    }
+  ];
 
 export function evaluateDataAccessRequest(
   request: DataAccessRequest,
@@ -1939,6 +2078,158 @@ export function createFieldRightsLivePolicySourceReadinessReport(
       source_records: policySource.sourceRecords.length
     },
     version: FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION
+  };
+}
+
+export function getServingQualityLiveReadinessCapabilities(): ServingQualityLiveReadinessCapabilities {
+  return {
+    fixture_version: SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION,
+    frontend: false,
+    live_partner_rows_loaded: false,
+    live_serving_reads: false,
+    live_serving_sql_execution: false,
+    package: "@aiphabee/data-access-gateway",
+    persistent_writes: false,
+    required_quality_states: SERVING_QUALITY_REQUIRED_STATES,
+    route: "GET /gateway/serving-quality/live-readiness",
+    runtime_route: "GET /gateway/runtime",
+    sql_executed: false,
+    status: "serving_quality_live_readiness_scaffold",
+    tables: SERVING_QUALITY_LIVE_READINESS_TABLES,
+    validates_gateway_quality_hold: true,
+    validates_release_isolation: true,
+    validates_sql_execution_guard: true,
+    version: SERVING_QUALITY_LIVE_READINESS_VERSION
+  };
+}
+
+export function createServingQualityLiveReadinessReport(
+  input: { asOf?: string } = {}
+): ServingQualityLiveReadinessReport {
+  const qualityReleaseChecks = SERVING_QUALITY_LIVE_READINESS_FIXTURES.map((fixture) =>
+    createServingQualityLiveReadinessCheck(fixture)
+  );
+  const releaseMappingPassed = qualityReleaseChecks.every(
+    (check) => check.status === "pass" && check.release_state === check.expected_release_state
+  );
+  const gatewayQualityHoldGuardPassed = qualityReleaseChecks
+    .filter((check) => check.expected_gateway_error_code === "DATA_QUALITY_HOLD")
+    .every(
+      (check) =>
+        check.gateway_status === "quality_hold" &&
+        check.gateway_error_code === "DATA_QUALITY_HOLD" &&
+        check.serving_query_status === "query_blocked" &&
+        check.sql_text_status === "sql_text_blocked"
+    );
+  const sqlExecutionGuardPassed = qualityReleaseChecks.every(
+    (check) => check.sql_executed === false
+  );
+  const noBlockedQualitySqlExecution = qualityReleaseChecks
+    .filter((check) => check.expected_gateway_error_code === "DATA_QUALITY_HOLD")
+    .every(
+      (check) =>
+        check.sql_text_emitted === false &&
+        check.sql_text_status === "sql_text_blocked" &&
+        check.serving_execution_status === "execution_blocked"
+    );
+
+  return {
+    as_of: normalizeOptionalIdentifier(input.asOf, "as_of_unresolved"),
+    capability: getServingQualityLiveReadinessCapabilities(),
+    activation: {
+      blockers: SERVING_QUALITY_ACTIVATION_BLOCKERS,
+      required_signoffs: SERVING_QUALITY_REQUIRED_SIGNOFFS,
+      status: "blocked_live_serving_activation"
+    },
+    fixture_version: SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION,
+    frontend: false,
+    live_partner_rows_loaded: false,
+    live_serving_reads: false,
+    live_serving_sql_execution: false,
+    persistent_writes: false,
+    quality_release_checks: qualityReleaseChecks,
+    readiness: {
+      gateway_quality_hold_guard_passed: gatewayQualityHoldGuardPassed,
+      no_blocked_quality_sql_execution: noBlockedQualitySqlExecution,
+      no_live_reads_or_writes: true,
+      release_mapping_passed: releaseMappingPassed,
+      sql_execution_guard_passed: sqlExecutionGuardPassed
+    },
+    release_fixture: SERVING_QUALITY_LIVE_READINESS_FIXTURES,
+    sql_executed: false,
+    status: "serving_quality_live_readiness_passed",
+    validation: {
+      blocked_quality_states: qualityReleaseChecks.filter(
+        (check) => check.expected_gateway_error_code === "DATA_QUALITY_HOLD"
+      ).length,
+      quality_state_count: SERVING_QUALITY_REQUIRED_STATES.length,
+      smoke_count: qualityReleaseChecks.length
+    },
+    version: SERVING_QUALITY_LIVE_READINESS_VERSION
+  };
+}
+
+function createServingQualityLiveReadinessCheck(
+  fixture: ServingQualityLiveReadinessReport["release_fixture"][number]
+): ServingQualityLiveReadinessReport["quality_release_checks"][number] {
+  const policy = createSyntheticApprovedPolicy();
+  const qualityRelease = createServingQualityReleasePlan({
+    dataVersion: SERVING_QUALITY_LIVE_READINESS_FIXTURE_VERSION,
+    dataset: "synthetic_profile",
+    methodologyVersion: SERVING_QUALITY_LIVE_READINESS_VERSION,
+    rightsPolicyVersion: policy.rightsPolicyVersion,
+    rowCount: 3,
+    snapshotQualityState: fixture.quality_state,
+    sourceRecordId: fixture.source_record_id
+  });
+  const decision = evaluateDataAccessRequest(
+    {
+      channel: "web",
+      dataset: "synthetic_profile",
+      plan: "free",
+      qualityState: fixture.quality_state,
+      requestedFields: ["synthetic_profile.company_name"],
+      requestedRows: 3,
+      timeRange: {
+        from: "2026-06-01",
+        to: "2026-06-15"
+      }
+    },
+    policy
+  );
+  const expectedServingQueryStatus =
+    fixture.expected_gateway_error_code === "DATA_QUALITY_HOLD"
+      ? "query_blocked"
+      : "query_planned";
+  const expectedSqlTextStatus =
+    fixture.expected_gateway_error_code === "DATA_QUALITY_HOLD"
+      ? "sql_text_blocked"
+      : "sql_text_planned";
+  const passed =
+    qualityRelease.releaseState === fixture.expected_release_state &&
+    decision.error?.code === fixture.expected_gateway_error_code &&
+    decision.servingQuery.status === expectedServingQueryStatus &&
+    decision.servingSqlText.status === expectedSqlTextStatus &&
+    decision.servingExecution.sqlExecuted === false &&
+    decision.servingExecution.liveRead === false &&
+    decision.servingResult.rowCount === 0;
+
+  return {
+    expected_gateway_error_code: fixture.expected_gateway_error_code,
+    expected_release_state: fixture.expected_release_state,
+    expected_serving_query_status: expectedServingQueryStatus,
+    expected_sql_text_status: expectedSqlTextStatus,
+    gateway_error_code: decision.error?.code,
+    gateway_status: decision.status,
+    quality_state: fixture.quality_state,
+    release_state: qualityRelease.releaseState,
+    scenario_id: fixture.scenario_id,
+    serving_execution_status: decision.servingExecution.status,
+    serving_query_status: decision.servingQuery.status,
+    sql_executed: false,
+    sql_text_emitted: decision.servingSqlText.sqlTextEmitted,
+    sql_text_status: decision.servingSqlText.status,
+    status: passed ? "pass" : "fail"
   };
 }
 

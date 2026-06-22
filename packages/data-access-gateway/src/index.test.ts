@@ -6,6 +6,7 @@ import {
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
+  createServingQualityLiveReadinessReport,
   createPolicyFromEntitlementRows,
   createSyntheticApprovedPolicy,
   createSyntheticWorkspaceEntitlementPolicy,
@@ -16,6 +17,7 @@ import {
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
   getRestrictedExportCapabilities,
+  getServingQualityLiveReadinessCapabilities,
   getServingResultEnvelopeCapabilities
 } from "./index";
 
@@ -1027,6 +1029,139 @@ describe("data access gateway", () => {
       partner_matrix_rows: 4,
       smoke_count: 6,
       source_records: 8
+    });
+  });
+
+  it("reports serving quality live readiness capabilities without enabling live reads", () => {
+    expect(getServingQualityLiveReadinessCapabilities()).toMatchObject({
+      fixture_version: "serving-quality-live-readiness@quality-release-fixture-v0",
+      frontend: false,
+      live_partner_rows_loaded: false,
+      live_serving_reads: false,
+      live_serving_sql_execution: false,
+      package: "@aiphabee/data-access-gateway",
+      persistent_writes: false,
+      route: "GET /gateway/serving-quality/live-readiness",
+      runtime_route: "GET /gateway/runtime",
+      sql_executed: false,
+      status: "serving_quality_live_readiness_scaffold",
+      validates_gateway_quality_hold: true,
+      validates_release_isolation: true,
+      validates_sql_execution_guard: true
+    });
+    expect(getServingQualityLiveReadinessCapabilities().required_quality_states).toEqual([
+      "PASS",
+      "WARN",
+      "HOLD",
+      "REJECT_RAW"
+    ]);
+  });
+
+  it("validates serving quality isolation before live Serving activation", () => {
+    const report = createServingQualityLiveReadinessReport({
+      asOf: "2026-06-22T01:00:00.000Z"
+    });
+
+    expect(report).toMatchObject({
+      fixture_version: "serving-quality-live-readiness@quality-release-fixture-v0",
+      frontend: false,
+      live_partner_rows_loaded: false,
+      live_serving_reads: false,
+      live_serving_sql_execution: false,
+      persistent_writes: false,
+      sql_executed: false,
+      status: "serving_quality_live_readiness_passed"
+    });
+    expect(report.activation).toEqual({
+      blockers: [
+        "partner_serving_rows_absent",
+        "live_hyperdrive_execution_disabled",
+        "quality_owner_cutover_not_approved"
+      ],
+      required_signoffs: ["data_engineering", "data_partner", "quality_owner"],
+      status: "blocked_live_serving_activation"
+    });
+    expect(report.readiness).toEqual({
+      gateway_quality_hold_guard_passed: true,
+      no_blocked_quality_sql_execution: true,
+      no_live_reads_or_writes: true,
+      release_mapping_passed: true,
+      sql_execution_guard_passed: true
+    });
+    expect(report.release_fixture.map((fixture) => fixture.quality_state)).toEqual([
+      "PASS",
+      "WARN",
+      "HOLD",
+      "REJECT_RAW"
+    ]);
+    expect(report.quality_release_checks).toHaveLength(4);
+    expect(report.quality_release_checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          expected_release_state: "released",
+          expected_serving_query_status: "query_planned",
+          expected_sql_text_status: "sql_text_planned",
+          quality_state: "PASS",
+          release_state: "released",
+          scenario_id: "pass_snapshot_released_deferred_execution",
+          serving_execution_status: "execution_deferred",
+          serving_query_status: "query_planned",
+          sql_executed: false,
+          sql_text_emitted: true,
+          sql_text_status: "sql_text_planned",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          expected_release_state: "released",
+          expected_serving_query_status: "query_planned",
+          expected_sql_text_status: "sql_text_planned",
+          gateway_status: "allow",
+          quality_state: "WARN",
+          release_state: "released",
+          scenario_id: "warn_snapshot_released_with_warning",
+          serving_execution_status: "execution_deferred",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          expected_gateway_error_code: "DATA_QUALITY_HOLD",
+          expected_release_state: "held",
+          expected_serving_query_status: "query_blocked",
+          expected_sql_text_status: "sql_text_blocked",
+          gateway_error_code: "DATA_QUALITY_HOLD",
+          gateway_status: "quality_hold",
+          quality_state: "HOLD",
+          release_state: "held",
+          scenario_id: "hold_snapshot_isolated_before_sql",
+          serving_execution_status: "execution_blocked",
+          serving_query_status: "query_blocked",
+          sql_executed: false,
+          sql_text_emitted: false,
+          sql_text_status: "sql_text_blocked",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          expected_gateway_error_code: "DATA_QUALITY_HOLD",
+          expected_release_state: "withdrawn",
+          expected_serving_query_status: "query_blocked",
+          expected_sql_text_status: "sql_text_blocked",
+          gateway_error_code: "DATA_QUALITY_HOLD",
+          gateway_status: "quality_hold",
+          quality_state: "REJECT_RAW",
+          release_state: "withdrawn",
+          scenario_id: "reject_raw_snapshot_withdrawn_before_sql",
+          serving_execution_status: "execution_blocked",
+          serving_query_status: "query_blocked",
+          sql_executed: false,
+          sql_text_emitted: false,
+          sql_text_status: "sql_text_blocked",
+          status: "pass"
+        })
+      ])
+    );
+    expect(report.validation).toEqual({
+      blocked_quality_states: 2,
+      quality_state_count: 4,
+      smoke_count: 4
     });
   });
 

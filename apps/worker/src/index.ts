@@ -103,6 +103,7 @@ import {
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
+  createServingQualityLiveReadinessReport,
   getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
   getDataCoverageReleaseGateCapabilities,
@@ -111,6 +112,7 @@ import {
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
   getServingResultEnvelopeCapabilities,
+  getServingQualityLiveReadinessCapabilities,
   type DataAccessChannel,
   type DataAccessFieldStatus,
   type FieldAuthorizationApprovalStatus
@@ -2450,6 +2452,7 @@ app.get("/gateway/runtime", (c) => {
           "time_range_limit",
           "quality_hold",
           "serving_execution_adapter_scaffold",
+          "serving_quality_live_readiness",
           "serving_quality_release_isolation",
           "serving_query_planner_scaffold",
           "serving_read_default_deny",
@@ -2494,6 +2497,7 @@ app.get("/gateway/runtime", (c) => {
           execution_adapter: getServingStoreExecutionAdapterCapabilities(),
           live_reads: false,
           quality_release: getServingStoreQualityReleaseCapabilities(),
+          serving_quality_live_readiness: getServingQualityLiveReadinessCapabilities(),
           query_planner: getServingStoreQueryPlannerCapabilities(),
           release_state_default: "held",
           read_planner: getServingStoreReadCapabilities(),
@@ -2565,6 +2569,37 @@ app.get("/gateway/field-rights/live-policy-source/readiness", (c) => {
           methodology_version: report.version,
           source: "field-rights-live-policy-source-readiness",
           source_record_id: "partner-matrix-db-policy-source-fixture-v0"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: report.validation.smoke_count
+      }
+    })
+  );
+});
+
+app.get("/gateway/serving-quality/live-readiness", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = createServingQualityLiveReadinessReport({
+    asOf: new Date().toISOString()
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(report, {
+      asOf: report.as_of,
+      dataVersion: report.fixture_version,
+      methodologyVersion: report.version,
+      provenance: [
+        {
+          data_version: report.fixture_version,
+          methodology_version: report.version,
+          source: "serving-quality-live-readiness",
+          source_record_id: "quality-release-gateway-serving-fixture-v0"
         }
       ],
       requestId,

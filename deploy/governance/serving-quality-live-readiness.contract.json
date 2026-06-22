@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-22.phase1.serving-quality-live-readiness.v0",
+  "status": "local_contract",
+  "tracker_item": "DAT-06 serving quality live readiness",
+  "package": "@aiphabee/data-access-gateway",
+  "runtime_route": "GET /gateway/runtime",
+  "route": "GET /gateway/serving-quality/live-readiness",
+  "standard_response_envelope": true,
+  "fixture_version": "serving-quality-live-readiness@quality-release-fixture-v0",
+  "covered_prd_items": ["DAT-06"],
+  "frontend": false,
+  "live_partner_rows_loaded": false,
+  "live_serving_reads": false,
+  "live_serving_sql_execution": false,
+  "persistent_writes": false,
+  "sql_executed": false,
+  "required_quality_states": ["PASS", "WARN", "HOLD", "REJECT_RAW"],
+  "required_scenarios": [
+    "pass_snapshot_released_deferred_execution",
+    "warn_snapshot_released_with_warning",
+    "hold_snapshot_isolated_before_sql",
+    "reject_raw_snapshot_withdrawn_before_sql"
+  ],
+  "required_readiness_checks": [
+    "release_mapping_passed",
+    "gateway_quality_hold_guard_passed",
+    "sql_execution_guard_passed",
+    "no_blocked_quality_sql_execution",
+    "no_live_reads_or_writes"
+  ],
+  "activation": {
+    "status": "blocked_live_serving_activation",
+    "blockers": [
+      "partner_serving_rows_absent",
+      "live_hyperdrive_execution_disabled",
+      "quality_owner_cutover_not_approved"
+    ],
+    "required_signoffs": ["data_engineering", "data_partner", "quality_owner"]
+  },
+  "expected_row_counts": {
+    "quality_states": 4,
+    "blocked_quality_states": 2,
+    "smoke_scenarios": 4
+  },
+  "tables": [
+    "core.serving_dataset",
+    "core.serving_field",
+    "core.serving_snapshot",
+    "core.serving_record"
+  ],
+  "linked_contracts": [
+    "deploy/gateway/access.contract.json",
+    "deploy/database/migrations.contract.json",
+    "deploy/governance/field-rights-live-policy-source.contract.json"
+  ],
+  "notes": "Repo-local readiness gate only. It validates PASS/WARN release mapping and HOLD/REJECT_RAW isolation before SQL execution, while live Serving activation remains blocked until partner rows, Hyperdrive execution and quality-owner cutover are approved."
+}
