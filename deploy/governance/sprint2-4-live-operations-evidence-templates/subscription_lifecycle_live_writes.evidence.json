@@ -1,0 +1,13 @@
+{
+  "gate_id": "subscription_lifecycle_live_writes",
+  "status": "missing",
+  "blocks": ["live_billing_writes"],
+  "required_evidence": ["subscription_state_write", "audit_event_write", "workspace_subscription_update"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:subscription_lifecycle_live_writes:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

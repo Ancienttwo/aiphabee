@@ -1,0 +1,13 @@
+{
+  "gate_id": "saved_screening_live_execution",
+  "status": "missing",
+  "blocks": ["live_workflow_execution", "live_notification_fanout"],
+  "required_evidence": ["scheduled_screening_run", "screening_result_write", "notification_fanout_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:saved_screening_live_execution:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

@@ -74,9 +74,9 @@ function validateContract(value) {
 
   if (
     !Array.isArray(value.completion_blocker_manifests) ||
-    value.completion_blocker_manifests.length !== 5
+    value.completion_blocker_manifests.length !== 6
   ) {
-    errors.push("completion_blocker_manifests must contain 5 blocker manifests");
+    errors.push("completion_blocker_manifests must contain 6 blocker manifests");
   }
 
   for (const path of [
@@ -214,6 +214,8 @@ function validateManifestBlockers(value, packageJson) {
       validateTargetClientE2e(errors, manifest, data);
     } else if (manifest.id === "frontend_release_evidence") {
       validateFrontendReleaseEvidence(errors, manifest, data);
+    } else if (manifest.id === "sprint2_4_live_operations_evidence") {
+      validateSprint24LiveOperationsEvidence(errors, manifest, data);
     } else {
       errors.push(`unknown blocker manifest id ${manifest.id}`);
     }
@@ -356,6 +358,36 @@ function validateFrontendReleaseEvidence(errors, manifest, data) {
     }
     if (!Array.isArray(surface.required_evidence) || surface.required_evidence.length === 0) {
       errors.push(`${manifest.id}.${surface.surface_id} must list required_evidence`);
+    }
+  }
+}
+
+function validateSprint24LiveOperationsEvidence(errors, manifest, data) {
+  validatePacketSet(errors, manifest, data.required_gates, "accepted");
+  expectEqual(errors, data.all_live_operations_gates_accepted, false, `${manifest.id}.all_live_operations_gates_accepted`);
+
+  for (const flag of [
+    "frontend",
+    "live_billing_provider",
+    "live_billing_writes",
+    "live_flag_source",
+    "live_mcp_auth_store",
+    "live_notification_fanout",
+    "live_workflow_execution"
+  ]) {
+    expectEqual(errors, data[flag], false, `${manifest.id}.${flag}`);
+  }
+
+  for (const required of [
+    "packet_checker",
+    "packet_fixture_checker",
+    "handoff_checker",
+    "transition_review_contract",
+    "transition_review_checker",
+    "transition_review_fixture_checker"
+  ]) {
+    if (typeof data[required] !== "string" || !existsSync(resolve(process.cwd(), data[required]))) {
+      errors.push(`${manifest.id}.${required} linked path missing`);
     }
   }
 }

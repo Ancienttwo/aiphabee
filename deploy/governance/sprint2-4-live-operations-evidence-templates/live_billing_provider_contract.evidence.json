@@ -1,0 +1,13 @@
+{
+  "gate_id": "live_billing_provider_contract",
+  "status": "missing",
+  "blocks": ["live_billing_provider"],
+  "required_evidence": ["billing_provider_account", "plan_catalog_mapping", "provider_webhook_verification"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:live_billing_provider_contract:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

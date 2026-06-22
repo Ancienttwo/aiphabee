@@ -199,12 +199,10 @@
       "backlog": "10 / 10",
       "backlog_complete": true,
       "completion_allowed": false,
-      "blocker_manifest_ids": [],
-      "manual_blocking_conditions": [
-        "live_billing_provider_workflow_execution_mcp_auth_frontend_missing"
-      ],
+      "blocker_manifest_ids": ["sprint2_4_live_operations_evidence"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
-        "live_billing_provider_workflow_execution_mcp_auth_frontend_missing"
+        "blocker_manifest:sprint2_4_live_operations_evidence"
       ]
     },
     {
@@ -297,7 +295,11 @@
       "tracker_exit_gate": "☐",
       "child_sprint_ids": ["2.1", "2.2", "2.3", "2.4"],
       "completion_allowed": false,
-      "blocker_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
+      "blocker_manifest_ids": [
+        "mcp_target_client_live_e2e",
+        "frontend_release_evidence",
+        "sprint2_4_live_operations_evidence"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "child_sprint:2.1",
@@ -305,7 +307,8 @@
         "child_sprint:2.3",
         "child_sprint:2.4",
         "blocker_manifest:mcp_target_client_live_e2e",
-        "blocker_manifest:frontend_release_evidence"
+        "blocker_manifest:frontend_release_evidence",
+        "blocker_manifest:sprint2_4_live_operations_evidence"
       ]
     },
     {
@@ -335,12 +338,15 @@
   ],
   "required_tracker_fragments": [
     "Sprint exit gate transition review 已建立",
-    "| 2026-06-23 | 1.0hr | 完成 `sprint-exit-gate-transition-review`"
+    "| 2026-06-23 | 1.0hr | 完成 `sprint-exit-gate-transition-review`",
+    "Sprint 2.4 live operations evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hs | 完成 `sprint2-4-live-operations-evidence`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
     "npm run check:sprint-exit-gate-transition-review",
-    "backlog count alone"
+    "backlog count alone",
+    "Sprint 2.4 live operations evidence handoff"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",

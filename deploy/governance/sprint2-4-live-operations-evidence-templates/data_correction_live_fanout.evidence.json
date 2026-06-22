@@ -1,0 +1,13 @@
+{
+  "gate_id": "data_correction_live_fanout",
+  "status": "missing",
+  "blocks": ["live_notification_fanout"],
+  "required_evidence": ["correction_event_write", "saved_report_impact_marking", "queue_notification_fanout"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:data_correction_live_fanout:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

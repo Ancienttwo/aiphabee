@@ -1,0 +1,13 @@
+{
+  "gate_id": "invoice_proration_refund_preview_live",
+  "status": "missing",
+  "blocks": ["live_billing_provider", "live_billing_writes"],
+  "required_evidence": ["provider_invoice_preview", "proration_rule_probe", "refund_or_overage_rule_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:invoice_proration_refund_preview_live:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

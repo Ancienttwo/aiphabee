@@ -1,0 +1,198 @@
+{
+  "version": "2026-06-23.phase2.sprint2-4-live-operations-transition-review.v0",
+  "status": "pending_sprint2_4_live_operations_transition_review",
+  "checker": "scripts/check-sprint2-4-live-operations-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-sprint2-4-live-operations-transition-review-fixtures.mjs",
+  "evidence_manifest_contract": "deploy/governance/sprint2-4-live-operations-evidence-manifest.contract.json",
+  "evidence_packet_directory": "deploy/governance/sprint2-4-live-operations-evidence-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_live_operations_gates_complete": false,
+  "sprint2_4_exit_gate_complete": false,
+  "accepted_evidence_packets_are_sufficient_alone": false,
+  "required_gate_ids": [
+    "live_billing_provider_contract",
+    "subscription_lifecycle_live_writes",
+    "invoice_proration_refund_preview_live",
+    "usage_billing_reconciliation_live",
+    "high_cost_reservation_predebit_refund_live",
+    "workflow_task_live_execution_checkpoint",
+    "deep_report_workflow_live_execution",
+    "watchlist_alerts_live_fanout",
+    "saved_screening_live_execution",
+    "data_correction_live_fanout",
+    "mcp_live_auth_credential_store",
+    "kill_switch_live_flag_source",
+    "frontend_billing_workflow_notification_ui"
+  ],
+  "transition_policy": {
+    "accepted_evidence_packet_required": true,
+    "manifest_gate_accepted_required": true,
+    "manifest_block_flags_clear_required": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "accepted_evidence_packet_alone_never_completes_sprint2_4": true,
+    "hash_only_packet_validator_remains_source_of_truth": true
+  },
+  "live_operations_transition_reviews": [
+    {
+      "gate_id": "live_billing_provider_contract",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_billing_provider_contract",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_billing_provider_missing"]
+    },
+    {
+      "gate_id": "subscription_lifecycle_live_writes",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "subscription_lifecycle_live_writes",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_billing_writes_missing"]
+    },
+    {
+      "gate_id": "invoice_proration_refund_preview_live",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "invoice_proration_refund_preview_live",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_billing_provider_missing",
+        "live_billing_writes_missing"
+      ]
+    },
+    {
+      "gate_id": "usage_billing_reconciliation_live",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "usage_billing_reconciliation_live",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_billing_writes_missing"]
+    },
+    {
+      "gate_id": "high_cost_reservation_predebit_refund_live",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "high_cost_reservation_predebit_refund_live",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_billing_writes_missing"]
+    },
+    {
+      "gate_id": "workflow_task_live_execution_checkpoint",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "workflow_task_live_execution_checkpoint",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_workflow_execution_missing"]
+    },
+    {
+      "gate_id": "deep_report_workflow_live_execution",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "deep_report_workflow_live_execution",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_workflow_execution_missing"]
+    },
+    {
+      "gate_id": "watchlist_alerts_live_fanout",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "watchlist_alerts_live_fanout",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_notification_fanout_missing"]
+    },
+    {
+      "gate_id": "saved_screening_live_execution",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "saved_screening_live_execution",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_workflow_execution_missing",
+        "live_notification_fanout_missing"
+      ]
+    },
+    {
+      "gate_id": "data_correction_live_fanout",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "data_correction_live_fanout",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_notification_fanout_missing"]
+    },
+    {
+      "gate_id": "mcp_live_auth_credential_store",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "mcp_live_auth_credential_store",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_mcp_auth_store_missing"]
+    },
+    {
+      "gate_id": "kill_switch_live_flag_source",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "kill_switch_live_flag_source",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "live_flag_source_missing"]
+    },
+    {
+      "gate_id": "frontend_billing_workflow_notification_ui",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "frontend_billing_workflow_notification_ui",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": ["accepted_evidence_packet_missing", "manifest_gate_missing", "frontend_missing"]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Sprint 2.4 live operations transition review 已建立",
+    "| 2026-06-23 | 1.0hs | 完成 `sprint2-4-live-operations-evidence`"
+  ],
+  "required_todos_fragments": [
+    "Sprint 2.4 live operations evidence handoff",
+    "npm run check:sprint2-4-live-operations-transition-review",
+    "accepted evidence packet alone"
+  ],
+  "not_claimed": [
+    "paid_billing_live",
+    "workflow_execution_live",
+    "mcp_live_auth_store",
+    "frontend_billing_workflow_notification_ui",
+    "release_transition_allowed",
+    "sprint2_4_exit_gate_complete",
+    "all_sprints_complete"
+  ]
+}

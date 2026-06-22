@@ -1,0 +1,13 @@
+{
+  "gate_id": "deep_report_workflow_live_execution",
+  "status": "missing",
+  "blocks": ["live_workflow_execution"],
+  "required_evidence": ["live_deep_report_task_run", "evidence_index_write", "static_report_artifact_write"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:deep_report_workflow_live_execution:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

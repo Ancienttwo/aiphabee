@@ -1,0 +1,13 @@
+{
+  "gate_id": "high_cost_reservation_predebit_refund_live",
+  "status": "missing",
+  "blocks": ["live_billing_writes"],
+  "required_evidence": ["pre_debit_write", "failure_refund_write", "idempotency_no_double_charge_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:high_cost_reservation_predebit_refund_live:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

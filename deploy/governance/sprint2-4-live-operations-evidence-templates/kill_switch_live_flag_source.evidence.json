@@ -1,0 +1,13 @@
+{
+  "gate_id": "kill_switch_live_flag_source",
+  "status": "missing",
+  "blocks": ["live_flag_source"],
+  "required_evidence": ["live_flag_source_read", "tool_disable_probe", "safe_degradation_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:kill_switch_live_flag_source:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

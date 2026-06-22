@@ -1,0 +1,13 @@
+{
+  "gate_id": "frontend_billing_workflow_notification_ui",
+  "status": "missing",
+  "blocks": ["frontend"],
+  "required_evidence": ["billing_ui_rendered", "workflow_resume_ui_rendered", "watchlist_correction_notification_ui_rendered"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:frontend_billing_workflow_notification_ui:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

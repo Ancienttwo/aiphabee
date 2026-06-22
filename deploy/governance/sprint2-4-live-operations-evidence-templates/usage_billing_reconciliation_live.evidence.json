@@ -1,0 +1,13 @@
+{
+  "gate_id": "usage_billing_reconciliation_live",
+  "status": "missing",
+  "blocks": ["live_billing_writes"],
+  "required_evidence": ["usage_event_to_ledger_to_invoice_trace", "live_ledger_read", "freshness_under_5_minutes"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:usage_billing_reconciliation_live:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

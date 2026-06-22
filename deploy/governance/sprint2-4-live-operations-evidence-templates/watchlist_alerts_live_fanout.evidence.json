@@ -1,0 +1,13 @@
+{
+  "gate_id": "watchlist_alerts_live_fanout",
+  "status": "missing",
+  "blocks": ["live_notification_fanout"],
+  "required_evidence": ["alert_rule_write", "queue_fanout_probe", "dedupe_quiet_period_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:watchlist_alerts_live_fanout:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

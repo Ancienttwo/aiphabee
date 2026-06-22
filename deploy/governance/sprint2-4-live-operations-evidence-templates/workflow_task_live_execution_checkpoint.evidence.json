@@ -1,0 +1,13 @@
+{
+  "gate_id": "workflow_task_live_execution_checkpoint",
+  "status": "missing",
+  "blocks": ["live_workflow_execution"],
+  "required_evidence": ["cloudflare_workflow_instance", "checkpoint_write_read", "resume_handle_probe"],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "source_locator": "template:workflow_task_live_execution_checkpoint:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}
