@@ -75,9 +75,9 @@ function validateContract(value) {
 
   if (
     !Array.isArray(value.completion_blocker_manifests) ||
-    value.completion_blocker_manifests.length !== 6
+    value.completion_blocker_manifests.length !== 7
   ) {
-    errors.push("completion_blocker_manifests must contain 6 blocker manifests");
+    errors.push("completion_blocker_manifests must contain 7 blocker manifests");
   }
 
   for (const path of [
@@ -273,6 +273,8 @@ function validateManifestBlockers(value, packageJson) {
       validateFrontendReleaseEvidence(errors, manifest, data);
     } else if (manifest.id === "sprint2_4_live_operations_evidence") {
       validateSprint24LiveOperationsEvidence(errors, manifest, data);
+    } else if (manifest.id === "phase3_security_load_dr_release_evidence") {
+      validatePhase3SecurityLoadDrReleaseEvidence(errors, manifest, data);
     } else {
       errors.push(`unknown blocker manifest id ${manifest.id}`);
     }
@@ -445,6 +447,45 @@ function validateSprint24LiveOperationsEvidence(errors, manifest, data) {
   ]) {
     if (typeof data[required] !== "string" || !existsSync(resolve(process.cwd(), data[required]))) {
       errors.push(`${manifest.id}.${required} linked path missing`);
+    }
+  }
+}
+
+function validatePhase3SecurityLoadDrReleaseEvidence(errors, manifest, data) {
+  validatePacketSet(errors, manifest, data.required_gates, "accepted");
+  expectEqual(errors, data.all_security_load_dr_gates_accepted, false, `${manifest.id}.all_security_load_dr_gates_accepted`);
+
+  for (const flag of [
+    "external_compliance_legal_signoff",
+    "live_dr_restore_failover",
+    "live_incident_status_comms",
+    "live_kill_switch_incident_audit",
+    "live_load_test",
+    "live_performance_availability_slo",
+    "ops_sre_product_signoff"
+  ]) {
+    expectEqual(errors, data[flag], false, `${manifest.id}.${flag}`);
+  }
+
+  for (const required of [
+    "packet_checker",
+    "packet_fixture_checker",
+    "handoff_checker",
+    "transition_review_contract",
+    "transition_review_checker",
+    "transition_review_fixture_checker"
+  ]) {
+    if (typeof data[required] !== "string" || !existsSync(resolve(process.cwd(), data[required]))) {
+      errors.push(`${manifest.id}.${required} linked path missing`);
+    }
+  }
+
+  for (const releaseGate of data.linked_release_gate_contracts ?? []) {
+    if (typeof releaseGate.path !== "string" || !existsSync(resolve(process.cwd(), releaseGate.path))) {
+      errors.push(`${manifest.id}.${releaseGate.id}.path linked path missing`);
+    }
+    if (typeof releaseGate.checker !== "string" || !existsSync(resolve(process.cwd(), releaseGate.checker))) {
+      errors.push(`${manifest.id}.${releaseGate.id}.checker linked path missing`);
     }
   }
 }

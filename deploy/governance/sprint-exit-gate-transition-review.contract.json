@@ -208,29 +208,6 @@
         "check:public-ops"
       ],
       "closure_evidence_refs": ["wcag_2_1_aa_audit"]
-    },
-    "security_load_dr_release_signoffs_missing": {
-      "owner_manifest_ids": [
-        "gate0_signed_evidence",
-        "phase0_live_smoke_evidence",
-        "sprint1_live_data_evidence",
-        "mcp_target_client_live_e2e",
-        "frontend_release_evidence"
-      ],
-      "owner_check_commands": [
-        "check:compliance-ops-release-gate",
-        "check:performance-availability-release-gate",
-        "check:load-dr-incident-drill-release-gate",
-        "check:gate0-signed-evidence-transition-review",
-        "check:live-smoke-capture-transition-review"
-      ],
-      "closure_evidence_refs": [
-        "gate0_signature_register",
-        "provider_secret_store_rotation",
-        "billing_reconciliation_live_read_passed",
-        "chatgpt_connector",
-        "wcag_2_1_aa_audit"
-      ]
     }
   },
   "sprint_exit_gate_reviews": [
@@ -442,16 +419,17 @@
         "phase0_live_smoke_evidence",
         "sprint1_live_data_evidence",
         "mcp_target_client_live_e2e",
-        "frontend_release_evidence"
+        "frontend_release_evidence",
+        "phase3_security_load_dr_release_evidence"
       ],
-      "manual_blocking_conditions": ["security_load_dr_release_signoffs_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:gate0_signed_evidence",
         "blocker_manifest:phase0_live_smoke_evidence",
         "blocker_manifest:sprint1_live_data_evidence",
         "blocker_manifest:mcp_target_client_live_e2e",
         "blocker_manifest:frontend_release_evidence",
-        "security_load_dr_release_signoffs_missing"
+        "blocker_manifest:phase3_security_load_dr_release_evidence"
       ]
     }
   ],
@@ -519,7 +497,8 @@
         "phase0_live_smoke_evidence",
         "sprint1_live_data_evidence",
         "mcp_target_client_live_e2e",
-        "frontend_release_evidence"
+        "frontend_release_evidence",
+        "phase3_security_load_dr_release_evidence"
       ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
@@ -530,7 +509,8 @@
         "blocker_manifest:phase0_live_smoke_evidence",
         "blocker_manifest:sprint1_live_data_evidence",
         "blocker_manifest:mcp_target_client_live_e2e",
-        "blocker_manifest:frontend_release_evidence"
+        "blocker_manifest:frontend_release_evidence",
+        "blocker_manifest:phase3_security_load_dr_release_evidence"
       ]
     }
   ],
@@ -540,14 +520,17 @@
     "Sprint 2.4 live operations evidence handoff 已建立",
     "| 2026-06-23 | 1.0hs | 完成 `sprint2-4-live-operations-evidence`",
     "Sprint manual blocker owner map 已建立",
-    "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`"
+    "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`",
+    "Phase 3 security/load/DR release evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
     "npm run check:sprint-exit-gate-transition-review",
     "backlog count alone",
     "Sprint 2.4 live operations evidence handoff",
-    "Sprint manual blocker owner map"
+    "Sprint manual blocker owner map",
+    "Phase 3 security/load/DR release evidence handoff"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",

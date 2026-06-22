@@ -123,6 +123,22 @@
         }
       ],
       "blocks": ["Sprint 2.4", "Phase 2"]
+    },
+    {
+      "id": "phase3_security_load_dr_release_evidence",
+      "path": "deploy/governance/phase3-security-load-dr-release-evidence-manifest.contract.json",
+      "expected_status": "pending_external_evidence",
+      "expected_required_count": 7,
+      "expected_accepted_count": 0,
+      "transition_reviews": [
+        {
+          "path": "deploy/governance/phase3-security-load-dr-release-transition-review.contract.json",
+          "expected_status": "pending_phase3_security_load_dr_release_transition_review",
+          "checker": "scripts/check-phase3-security-load-dr-release-transition-review-contract.mjs",
+          "fixture_checker": "scripts/check-phase3-security-load-dr-release-transition-review-fixtures.mjs"
+        }
+      ],
+      "blocks": ["Sprint 3.3", "Phase 3"]
     }
   ],
   "linked_transition_reviews": [
@@ -142,6 +158,8 @@
     "| 2026-06-23 | 1.0ht | 完成 `sprint-blocker-coverage-audit`",
     "Sprint manual blocker owner map 已建立",
     "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`",
+    "Phase 3 security/load/DR release evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`",
     "Sprint blocker transition audit 已建立",
     "| 2026-06-23 | 1.0hq | 完成 `sprint-blocker-transition-audit`",
     "| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |",
@@ -156,6 +174,7 @@
     "Sprint 2.4 live operations evidence handoff",
     "Sprint blocker coverage audit",
     "Sprint manual blocker owner map",
+    "Phase 3 security/load/DR release evidence handoff",
     "Sprint blocker transition audit",
     "External Gate 0 approvals after local MVP boundary-copy closure",
     "Engineering runtime remaining surfaces",

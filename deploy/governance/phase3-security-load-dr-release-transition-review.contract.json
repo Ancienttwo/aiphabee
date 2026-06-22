@@ -1,0 +1,163 @@
+{
+  "version": "2026-06-23.phase3.security-load-dr-release-transition-review.v0",
+  "status": "pending_phase3_security_load_dr_release_transition_review",
+  "checker": "scripts/check-phase3-security-load-dr-release-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-phase3-security-load-dr-release-transition-review-fixtures.mjs",
+  "evidence_manifest_contract": "deploy/governance/phase3-security-load-dr-release-evidence-manifest.contract.json",
+  "evidence_packet_directory": "deploy/governance/phase3-security-load-dr-release-evidence-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_security_load_dr_gates_complete": false,
+  "sprint3_3_exit_gate_complete": false,
+  "accepted_evidence_packets_are_sufficient_alone": false,
+  "required_gate_ids": [
+    "compliance_legal_security_signoff",
+    "live_kill_switch_incident_audit_evidence",
+    "live_performance_availability_slo_evidence",
+    "live_load_test_artifact",
+    "live_dr_restore_failover_rollback_evidence",
+    "live_incident_status_comms_drill_evidence",
+    "ops_sre_product_release_signoff"
+  ],
+  "transition_policy": {
+    "accepted_evidence_packet_required": true,
+    "manifest_gate_accepted_required": true,
+    "manifest_block_flags_clear_required": true,
+    "linked_release_gate_contracts_remain_blocked_until_live_evidence": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "accepted_evidence_packet_alone_never_completes_sprint3_3": true,
+    "hash_only_packet_validator_remains_source_of_truth": true
+  },
+  "global_blockers": [
+    "external_compliance_legal_signoff_missing",
+    "live_kill_switch_incident_audit_missing",
+    "live_performance_availability_slo_missing",
+    "live_load_test_missing",
+    "live_dr_restore_failover_missing",
+    "live_incident_status_comms_missing",
+    "ops_sre_product_signoff_missing"
+  ],
+  "security_load_dr_transition_reviews": [
+    {
+      "gate_id": "compliance_legal_security_signoff",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "compliance_legal_security_signoff",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "external_compliance_legal_signoff_missing"
+      ]
+    },
+    {
+      "gate_id": "live_kill_switch_incident_audit_evidence",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_kill_switch_incident_audit_evidence",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_kill_switch_incident_audit_missing"
+      ]
+    },
+    {
+      "gate_id": "live_performance_availability_slo_evidence",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_performance_availability_slo_evidence",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_performance_availability_slo_missing"
+      ]
+    },
+    {
+      "gate_id": "live_load_test_artifact",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_load_test_artifact",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_load_test_missing",
+        "live_performance_availability_slo_missing"
+      ]
+    },
+    {
+      "gate_id": "live_dr_restore_failover_rollback_evidence",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_dr_restore_failover_rollback_evidence",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_dr_restore_failover_missing"
+      ]
+    },
+    {
+      "gate_id": "live_incident_status_comms_drill_evidence",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "live_incident_status_comms_drill_evidence",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "live_incident_status_comms_missing"
+      ]
+    },
+    {
+      "gate_id": "ops_sre_product_release_signoff",
+      "tracker_status": "☐",
+      "evidence_packet_required": true,
+      "linked_manifest_gate": "ops_sre_product_release_signoff",
+      "packet_status": "missing",
+      "manifest_gate_status": "missing",
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_evidence_packet_missing",
+        "manifest_gate_missing",
+        "ops_sre_product_signoff_missing"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Phase 3 security/load/DR release evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`"
+  ],
+  "required_todos_fragments": [
+    "Phase 3 security/load/DR release evidence handoff",
+    "npm run check:phase3-security-load-dr-release-transition-review",
+    "accepted evidence packet alone cannot complete Sprint 3.3"
+  ],
+  "not_claimed": [
+    "external_compliance_legal_signoff",
+    "live_security_or_ops_signoff",
+    "live_performance_availability_slo",
+    "live_load_test",
+    "live_dr_restore_failover",
+    "live_incident_status_comms",
+    "sprint3_3_exit_gate_complete",
+    "phase3_ga_complete",
+    "all_sprints_complete"
+  ]
+}

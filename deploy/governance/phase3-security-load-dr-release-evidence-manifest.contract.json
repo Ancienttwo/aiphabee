@@ -1,0 +1,230 @@
+{
+  "version": "2026-06-23.phase3.security-load-dr-release-evidence-manifest.v0",
+  "status": "pending_external_evidence",
+  "checker": "scripts/check-phase3-security-load-dr-release-evidence-manifest-contract.mjs",
+  "packet_checker": "scripts/check-phase3-security-load-dr-release-evidence-packets.mjs",
+  "packet_fixture_checker": "scripts/check-phase3-security-load-dr-release-evidence-packet-fixtures.mjs",
+  "handoff_checker": "scripts/check-phase3-security-load-dr-release-evidence-handoff.mjs",
+  "transition_review_contract": "deploy/governance/phase3-security-load-dr-release-transition-review.contract.json",
+  "transition_review_checker": "scripts/check-phase3-security-load-dr-release-transition-review-contract.mjs",
+  "transition_review_fixture_checker": "scripts/check-phase3-security-load-dr-release-transition-review-fixtures.mjs",
+  "packet_directory": "deploy/governance/phase3-security-load-dr-release-evidence-packets",
+  "packet_file_pattern": "<gate_id>.evidence.json",
+  "template_directory": "deploy/governance/phase3-security-load-dr-release-evidence-templates",
+  "template_file_pattern": "<gate_id>.evidence.json",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_security_load_dr_gates_accepted": false,
+  "external_compliance_legal_signoff": false,
+  "live_kill_switch_incident_audit": false,
+  "live_performance_availability_slo": false,
+  "live_load_test": false,
+  "live_dr_restore_failover": false,
+  "live_incident_status_comms": false,
+  "ops_sre_product_signoff": false,
+  "linked_release_gate_contracts": [
+    {
+      "id": "compliance_ops_release_gate",
+      "path": "deploy/public-ops/compliance-ops-release-gate.contract.json",
+      "checker": "scripts/check-compliance-ops-release-gate-contract.mjs",
+      "expected_gate_status": "blocked_live_compliance_ops_validation"
+    },
+    {
+      "id": "performance_availability_release_gate",
+      "path": "deploy/observability/performance-availability-release-gate.contract.json",
+      "checker": "scripts/check-performance-availability-release-gate-contract.mjs",
+      "expected_gate_status": "blocked_live_performance_availability_validation"
+    },
+    {
+      "id": "load_dr_incident_drill_release_gate",
+      "path": "deploy/observability/load-dr-incident-drill-release-gate.contract.json",
+      "checker": "scripts/check-load-dr-incident-drill-release-gate-contract.mjs",
+      "expected_gate_status": "blocked_live_load_dr_incident_validation"
+    }
+  ],
+  "required_gate_ids": [
+    "compliance_legal_security_signoff",
+    "live_kill_switch_incident_audit_evidence",
+    "live_performance_availability_slo_evidence",
+    "live_load_test_artifact",
+    "live_dr_restore_failover_rollback_evidence",
+    "live_incident_status_comms_drill_evidence",
+    "ops_sre_product_release_signoff"
+  ],
+  "evidence_policy": {
+    "all_gates_required_for_transition": true,
+    "accepted_evidence_packet_alone_never_completes_sprint3_3": true,
+    "hash_only_evidence_refs_required": true,
+    "redacted_no_secrets_required": true,
+    "packet_checker_allows_empty_directory_until_external_evidence_arrives": true,
+    "packet_fixture_checker_reuses_packet_validator": true,
+    "operator_handoff_templates_validate_as_missing_packets": true,
+    "operator_handoff_readme_lists_gate_order": true,
+    "raw_security_report_forbidden_in_repo": true,
+    "raw_apm_logs_forbidden_in_repo": true,
+    "raw_incident_transcript_forbidden_in_repo": true,
+    "raw_audit_export_forbidden_in_repo": true,
+    "raw_secret_or_credential_material_forbidden_in_repo": true,
+    "transition_review_cross_checks_release_gate_contracts": true
+  },
+  "evidence_packet_schema": {
+    "approver_role": "role_or_named_approver",
+    "blocks": ["manifest_boolean_gate_name"],
+    "evidence_refs": ["sha256:<redacted_artifact_hash>"],
+    "evidence_sha256": "sha256:<canonical_packet_or_artifact_hash>",
+    "gate_id": "one_required_gate_id",
+    "observed_at": "ISO-8601 timestamp",
+    "redaction_status": "redacted_no_secrets",
+    "required_evidence": ["evidence_name"],
+    "signed_at": "YYYY-MM-DD",
+    "source_locator": "redacted_file_or_external_record_id",
+    "status": "accepted|missing|needs_redaction|rejected"
+  },
+  "required_gates": [
+    {
+      "id": "compliance_legal_security_signoff",
+      "status": "missing",
+      "blocks": ["external_compliance_legal_signoff"],
+      "required_evidence": [
+        "external_compliance_legal_signoff_hash",
+        "security_review_signoff_hash",
+        "forbidden_advice_claim_review_hash"
+      ],
+      "required_approver_roles": ["Compliance / Counsel", "Security", "Ops"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "live_kill_switch_incident_audit_evidence",
+      "status": "missing",
+      "blocks": ["live_kill_switch_incident_audit"],
+      "required_evidence": [
+        "live_kill_switch_flag_source_hash",
+        "incident_request_id_trace_hash",
+        "audit_export_store_hash"
+      ],
+      "required_approver_roles": ["Security", "Ops"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "live_performance_availability_slo_evidence",
+      "status": "missing",
+      "blocks": ["live_performance_availability_slo"],
+      "required_evidence": [
+        "live_apm_provider_metric_hash",
+        "live_probe_scheduler_hash",
+        "slo_metric_store_hash"
+      ],
+      "required_approver_roles": ["SRE", "Ops"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "live_load_test_artifact",
+      "status": "missing",
+      "blocks": ["live_load_test", "live_performance_availability_slo"],
+      "required_evidence": [
+        "load_test_run_artifact_hash",
+        "peak_rps_error_rate_report_hash",
+        "frontend_first_token_measurement_hash"
+      ],
+      "required_approver_roles": ["SRE", "Ops", "Product"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "live_dr_restore_failover_rollback_evidence",
+      "status": "missing",
+      "blocks": ["live_dr_restore_failover"],
+      "required_evidence": [
+        "live_dr_restore_evidence_hash",
+        "live_failover_execution_hash",
+        "release_rollback_execution_hash"
+      ],
+      "required_approver_roles": ["SRE", "Ops"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "live_incident_status_comms_drill_evidence",
+      "status": "missing",
+      "blocks": ["live_incident_status_comms"],
+      "required_evidence": [
+        "live_incident_drill_hash",
+        "status_page_communication_drill_hash",
+        "postmortem_or_runbook_review_hash"
+      ],
+      "required_approver_roles": ["Ops", "Product"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    },
+    {
+      "id": "ops_sre_product_release_signoff",
+      "status": "missing",
+      "blocks": ["ops_sre_product_signoff"],
+      "required_evidence": [
+        "ops_signoff_hash",
+        "sre_signoff_hash",
+        "product_signoff_hash"
+      ],
+      "required_approver_roles": ["Ops", "SRE", "Product"],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing",
+      "evidence_refs": []
+    }
+  ],
+  "forbidden_fields": [
+    "raw_security_report",
+    "raw_apm_logs",
+    "raw_incident_transcript",
+    "raw_audit_export",
+    "oauth_access_token",
+    "session_secret",
+    "api_token",
+    "payment_identifier",
+    "direct_contact"
+  ],
+  "required_tracker_fragments": [
+    "Phase 3 security/load/DR release evidence handoff 已建立",
+    "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`"
+  ],
+  "required_todos_fragments": [
+    "Phase 3 security/load/DR release evidence handoff",
+    "npm run check:phase3-security-load-dr-release-transition-review",
+    "accepted evidence packet alone cannot complete Sprint 3.3"
+  ],
+  "not_claimed": [
+    "external_compliance_legal_signoff",
+    "live_kill_switch_incident_audit",
+    "live_performance_availability_slo",
+    "live_load_test",
+    "live_dr_restore_failover",
+    "live_incident_status_comms",
+    "ops_sre_product_signoff",
+    "sprint3_3_exit_gate_complete",
+    "phase3_ga_complete",
+    "all_sprints_complete"
+  ]
+}

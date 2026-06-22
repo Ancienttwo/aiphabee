@@ -1,0 +1,13 @@
+{
+  "approver_role": null,
+  "blocks": ["live_incident_status_comms"],
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "gate_id": "live_incident_status_comms_drill_evidence",
+  "observed_at": "1970-01-01T00:00:00.000Z",
+  "redaction_status": "missing",
+  "required_evidence": ["live_incident_drill_hash", "status_page_communication_drill_hash", "postmortem_or_runbook_review_hash"],
+  "signed_at": null,
+  "source_locator": "pending_external_evidence",
+  "status": "missing"
+}

@@ -1,0 +1,13 @@
+{
+  "approver_role": null,
+  "blocks": ["live_kill_switch_incident_audit"],
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "gate_id": "live_kill_switch_incident_audit_evidence",
+  "observed_at": "1970-01-01T00:00:00.000Z",
+  "redaction_status": "missing",
+  "required_evidence": ["live_kill_switch_flag_source_hash", "incident_request_id_trace_hash", "audit_export_store_hash"],
+  "signed_at": null,
+  "source_locator": "pending_external_evidence",
+  "status": "missing"
+}
