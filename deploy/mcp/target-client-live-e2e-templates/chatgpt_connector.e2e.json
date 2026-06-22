@@ -1,0 +1,22 @@
+{
+  "artifact_hashes": [],
+  "client_name": "chatgpt_connector",
+  "client_version": null,
+  "connection_guide_version": "docs/public/mcp.md",
+  "console_log_row_hash": null,
+  "credential_panel_hash": null,
+  "error_panel_hash": null,
+  "initialize_result_hash": null,
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "protocol_version": "2025-03-26",
+  "redaction_status": "missing",
+  "request_id": null,
+  "scope_panel_hash": null,
+  "source_locator": "template:chatgpt_connector:replace-after-e2e",
+  "status": "missing_external_e2e",
+  "tool_call_result_hash": null,
+  "tools_list_result_hash": null,
+  "transport": "streamable_http",
+  "usage_panel_hash": null
+}
