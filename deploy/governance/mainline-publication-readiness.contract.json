@@ -1,0 +1,51 @@
+{
+  "version": "2026-06-23.goal.mainline-publication-readiness.v0",
+  "status": "ready_for_publish_decision",
+  "checker": "scripts/check-mainline-publication-readiness-contract.mjs",
+  "source_branch": "origin/feat/web-frontend",
+  "fallback_source_branch": "feat/web-frontend",
+  "target_branch": "main",
+  "remote_main_branch": "origin/main",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "publish_performed": false,
+  "push_required_for_remote_ci": true,
+  "frontend_merge_required": false,
+  "expected_git_invariants": {
+    "frontend_source_is_ancestor_of_target": true,
+    "target_not_behind_remote_main": true,
+    "source_has_no_unmerged_commits": true
+  },
+  "observed_external_prs": [
+    {
+      "number": 1,
+      "title": "Add AiphaBee web frontend (apps/web) — TanStack Start IPO research UI",
+      "state": "MERGED",
+      "head_ref": "feat/web-frontend",
+      "merged_at": "2026-06-21T14:53:48Z"
+    },
+    {
+      "number": 2,
+      "title": "Integrate web frontend and backend scaffolds",
+      "state": "MERGED",
+      "head_ref": "codex/web-backend-integration",
+      "merged_at": "2026-06-21T14:53:47Z"
+    }
+  ],
+  "required_tracker_fragments": [
+    "Mainline publication readiness gate 已建立",
+    "| 2026-06-23 | 1.0he | 完成 `mainline-publication-readiness`"
+  ],
+  "required_todos_fragments": [
+    "Mainline publication of integrated backend/frontend work",
+    "frontend merge state is clean",
+    "npm run check:mainline-publication-readiness"
+  ],
+  "not_claimed": [
+    "origin_main_published",
+    "remote_ci_green_after_publication",
+    "new_claude_frontend_branch_detected",
+    "frontend_wcag_complete",
+    "live_frontend_backend_wiring_complete"
+  ]
+}
