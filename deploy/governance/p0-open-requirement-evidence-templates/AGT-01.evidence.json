@@ -1,0 +1,21 @@
+{
+  "artifact_hashes": [],
+  "evidence_summary_hash": null,
+  "frontend_handoff_hash": null,
+  "linked_check_output_hash": null,
+  "live_smoke_hash": null,
+  "missing_evidence": [
+    "frontend_ask_progress_rendering",
+    "user_facing_live_model_token_streaming",
+    "arbitrary_user_tool_loop_execution",
+    "persistent_stream_state_or_production_cutover",
+    "redaction_review"
+  ],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "redaction_status": "missing",
+  "release_gate_hash": null,
+  "requirement_code": "AGT-01",
+  "source_locator": "template:AGT-01:replace-after-evidence",
+  "status": "missing_external_evidence"
+}

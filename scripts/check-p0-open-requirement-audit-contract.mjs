@@ -67,8 +67,14 @@ function validateContract(value) {
   expectEqual(errors, summary.open_traceability_rows, 4, "summary.open_traceability_rows");
   expectEqual(errors, summary.guarded_open_p0_count, 3, "summary.guarded_open_p0_count");
   expectEqual(errors, summary.non_p0_open_backlog_count, 1, "summary.non_p0_open_backlog_count");
+  expectIncludes(
+    errors,
+    value.linked_evidence_handoffs,
+    "deploy/governance/p0-open-requirement-evidence-handoff.contract.json",
+    "linked_evidence_handoffs.p0_open_requirement_evidence"
+  );
 
-  for (const path of [value.tracker, value.p0_ledger, value.todos]) {
+  for (const path of [value.tracker, value.p0_ledger, value.todos, ...(value.linked_evidence_handoffs ?? [])]) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
       errors.push(`linked path missing: ${path}`);
     }
@@ -217,6 +223,7 @@ function validateLinkedContracts() {
   const consoleLogStore = readJson("deploy/mcp/developer-console-log-store-smoke.contract.json");
   const targetClientHandoff = readJson("deploy/mcp/target-client-live-e2e-handoff.contract.json");
   const targetClientsConsoleGate = readJson("deploy/mcp/target-clients-console-release-gate.contract.json");
+  const p0EvidenceHandoff = readJson("deploy/governance/p0-open-requirement-evidence-handoff.contract.json");
 
   expectEqual(errors, toolLoop.streaming_transport, "server_sent_events", "toolLoop.streaming_transport");
   expectEqual(errors, toolLoop.stream_model_calls, false, "toolLoop.stream_model_calls");
@@ -320,6 +327,23 @@ function validateLinkedContracts() {
     "targetClientsConsoleGate.release_gate.gate_status"
   );
 
+  expectEqual(errors, p0EvidenceHandoff.status, "pending_external_requirement_evidence", "p0EvidenceHandoff.status");
+  expectEqual(errors, p0EvidenceHandoff.release_transition_allowed, false, "p0EvidenceHandoff.release_transition_allowed");
+  expectEqual(errors, p0EvidenceHandoff.all_required_packets_accepted, false, "p0EvidenceHandoff.all_required_packets_accepted");
+  expectEqual(errors, p0EvidenceHandoff.all_p0_requirements_complete, false, "p0EvidenceHandoff.all_p0_requirements_complete");
+  expectArray(
+    errors,
+    p0EvidenceHandoff.required_requirement_codes,
+    ["AGT-01", "AGT-07", "MCP-09"],
+    "p0EvidenceHandoff.required_requirement_codes"
+  );
+  expectIncludes(
+    errors,
+    p0EvidenceHandoff.not_claimed,
+    "accepted_requirement_evidence",
+    "p0EvidenceHandoff.not_claimed.accepted_requirement_evidence"
+  );
+
   return errors;
 }
 
@@ -376,6 +400,24 @@ function expectIncludes(errors, values, expected, path) {
   if (!Array.isArray(values) || !values.includes(expected)) {
     errors.push(`${path} must include ${JSON.stringify(expected)}`);
   }
+}
+
+function expectArray(errors, actual, expected, path) {
+  if (!Array.isArray(actual)) {
+    errors.push(`${path} must be an array`);
+    return;
+  }
+
+  if (actual.length !== expected.length) {
+    errors.push(`${path} expected ${expected.length} items but received ${actual.length}`);
+    return;
+  }
+
+  expected.forEach((value, index) => {
+    if (actual[index] !== value) {
+      errors.push(`${path}[${index}] expected ${JSON.stringify(value)} but received ${JSON.stringify(actual[index])}`);
+    }
+  });
 }
 
 function readJson(path) {

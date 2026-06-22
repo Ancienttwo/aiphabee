@@ -1,0 +1,22 @@
+{
+  "artifact_hashes": [],
+  "evidence_summary_hash": null,
+  "frontend_handoff_hash": null,
+  "linked_check_output_hash": null,
+  "live_smoke_hash": null,
+  "missing_evidence": [
+    "frontend_console_ui",
+    "production_console_log_store_cutover",
+    "live_usage_ledger_reads",
+    "live_key_generation_or_oauth_provider",
+    "target_client_live_e2e_packets",
+    "redaction_review"
+  ],
+  "observed_at": "2026-06-23T00:00:00.000Z",
+  "operator": "template",
+  "redaction_status": "missing",
+  "release_gate_hash": null,
+  "requirement_code": "MCP-09",
+  "source_locator": "template:MCP-09:replace-after-evidence",
+  "status": "missing_external_evidence"
+}
