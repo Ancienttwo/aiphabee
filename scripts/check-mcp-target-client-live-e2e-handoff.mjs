@@ -44,6 +44,7 @@ const requiredBlockers = [
   "public_status_page_deploy_missing"
 ];
 const requiredLinkedContracts = [
+  "deploy/mcp/target-client-live-e2e-transition-review.contract.json",
   "deploy/mcp/target-clients-console-release-gate.contract.json",
   "deploy/mcp/developer-console.contract.json",
   "deploy/mcp/developer-console-log-store-smoke.contract.json",
@@ -130,6 +131,12 @@ function validateHandoff({
     "scripts/check-mcp-target-client-live-e2e-packet-fixtures.mjs",
     "packet_fixture_checker"
   );
+  expectEqual(
+    errors,
+    value.transition_review_checker,
+    "scripts/check-mcp-target-client-live-e2e-transition-review-contract.mjs",
+    "transition_review_checker"
+  );
   expectEqual(errors, value.route, "POST /mcp/release-gates/target-clients-console/plan", "route");
   expectEqual(errors, value.protocol_route, "POST /mcp", "protocol_route");
   expectEqual(errors, value.compatibility_status_route, "GET /mcp/compatibility/status", "compatibility_status_route");
@@ -213,6 +220,12 @@ function validateHandoff({
   if (!value.evidence_policy?.raw_response_body_forbidden) {
     errors.push("evidence policy must forbid raw response bodies");
   }
+  if (!value.evidence_policy?.accepted_packet_alone_never_completes_mcp09) {
+    errors.push("evidence policy must prove accepted packet alone never completes MCP-09");
+  }
+  if (!Array.isArray(value.not_claimed) || !value.not_claimed.includes("target_client_e2e_transition_review_complete")) {
+    errors.push("not_claimed must include target_client_e2e_transition_review_complete");
+  }
 
   validateLinkedNoLiveClaims(errors, value, targetGateContract, developerConsoleContract, logStoreSmokeContract);
   validatePackageScripts(errors, packageJson);
@@ -278,7 +291,11 @@ function validatePackageScripts(errors, packageJson) {
     "check:mcp-target-client-live-e2e-packet-fixtures":
       "node scripts/check-mcp-target-client-live-e2e-packet-fixtures.mjs",
     "check:mcp-target-client-live-e2e-packets":
-      "node scripts/check-mcp-target-client-live-e2e-packets.mjs"
+      "node scripts/check-mcp-target-client-live-e2e-packets.mjs",
+    "check:mcp-target-client-live-e2e-transition-review":
+      "node scripts/check-mcp-target-client-live-e2e-transition-review-contract.mjs",
+    "check:mcp-target-client-live-e2e-transition-review-fixtures":
+      "node scripts/check-mcp-target-client-live-e2e-transition-review-fixtures.mjs"
   };
 
   for (const [scriptName, command] of Object.entries(expectedScripts)) {

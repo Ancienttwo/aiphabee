@@ -1,0 +1,154 @@
+{
+  "version": "2026-06-23.phase2.mcp-target-client-live-e2e-transition-review.v0",
+  "status": "pending_target_client_transition_review",
+  "checker": "scripts/check-mcp-target-client-live-e2e-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-mcp-target-client-live-e2e-transition-review-fixtures.mjs",
+  "target_client_handoff_contract": "deploy/mcp/target-client-live-e2e-handoff.contract.json",
+  "target_clients_console_gate_contract": "deploy/mcp/target-clients-console-release-gate.contract.json",
+  "developer_console_contract": "deploy/mcp/developer-console.contract.json",
+  "developer_console_log_store_smoke_contract": "deploy/mcp/developer-console-log-store-smoke.contract.json",
+  "packet_directory": "deploy/mcp/target-client-live-e2e-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_target_client_packets_accepted": false,
+  "mcp_09_complete": false,
+  "accepted_packets_are_sufficient_alone": false,
+  "required_client_names": [
+    "mcp_inspector",
+    "typescript_sdk_client",
+    "claude_desktop",
+    "cursor",
+    "chatgpt_connector"
+  ],
+  "transition_policy": {
+    "accepted_target_client_packet_required": true,
+    "target_clients_console_gate_required": true,
+    "developer_console_live_required": true,
+    "developer_console_ui_required": true,
+    "production_console_log_store_required": true,
+    "live_usage_ledger_reads_required": true,
+    "live_api_key_generation_required": true,
+    "live_oauth_provider_required": true,
+    "public_status_page_deploy_required": true,
+    "accepted_packets_alone_never_complete_mcp09": true,
+    "frontend_delegate_not_bypassed": true
+  },
+  "global_blockers": [
+    "live_target_client_e2e_missing",
+    "developer_console_live_missing",
+    "developer_console_ui_missing",
+    "production_console_log_store_missing",
+    "live_usage_ledger_reads_missing",
+    "live_api_key_secret_generation_missing",
+    "live_oauth_provider_missing",
+    "public_status_page_deploy_missing"
+  ],
+  "target_client_transition_reviews": [
+    {
+      "client_name": "mcp_inspector",
+      "tracker_status": "☐",
+      "accepted_packet_required": true,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_e2e_packet_missing",
+        "live_target_client_e2e_missing",
+        "developer_console_live_missing",
+        "developer_console_ui_missing",
+        "production_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "public_status_page_deploy_missing"
+      ]
+    },
+    {
+      "client_name": "typescript_sdk_client",
+      "tracker_status": "☐",
+      "accepted_packet_required": true,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_e2e_packet_missing",
+        "live_target_client_e2e_missing",
+        "developer_console_live_missing",
+        "developer_console_ui_missing",
+        "production_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "public_status_page_deploy_missing"
+      ]
+    },
+    {
+      "client_name": "claude_desktop",
+      "tracker_status": "☐",
+      "accepted_packet_required": true,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_e2e_packet_missing",
+        "live_target_client_e2e_missing",
+        "developer_console_live_missing",
+        "developer_console_ui_missing",
+        "production_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "public_status_page_deploy_missing"
+      ]
+    },
+    {
+      "client_name": "cursor",
+      "tracker_status": "☐",
+      "accepted_packet_required": true,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_e2e_packet_missing",
+        "live_target_client_e2e_missing",
+        "developer_console_live_missing",
+        "developer_console_ui_missing",
+        "production_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "public_status_page_deploy_missing"
+      ]
+    },
+    {
+      "client_name": "chatgpt_connector",
+      "tracker_status": "☐",
+      "accepted_packet_required": true,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "accepted_e2e_packet_missing",
+        "live_target_client_e2e_missing",
+        "developer_console_live_missing",
+        "developer_console_ui_missing",
+        "production_console_log_store_missing",
+        "live_usage_ledger_reads_missing",
+        "live_api_key_secret_generation_missing",
+        "live_oauth_provider_missing",
+        "public_status_page_deploy_missing"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "MCP target-client live E2E transition review 已建立",
+    "| 2026-06-23 | 1.0hk | 完成 `mcp-target-client-live-e2e-transition-review`"
+  ],
+  "required_todos_fragments": [
+    "MCP target-client live E2E transition review",
+    "npm run check:mcp-target-client-live-e2e-transition-review",
+    "accepted target-client packet alone"
+  ],
+  "not_claimed": [
+    "developer_console_ui",
+    "production_console_log_store",
+    "live_usage_ledger_reads",
+    "live_api_key_secret_generation",
+    "live_oauth_provider",
+    "live_target_client_e2e",
+    "mcp_09_complete",
+    "sprint2_3_exit_gate_complete",
+    "all_sprints_complete"
+  ]
+}

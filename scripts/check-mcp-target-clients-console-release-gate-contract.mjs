@@ -91,6 +91,7 @@ const requiredCoveredItems = [
   "developer_console_reconciliation"
 ];
 const requiredLinkedContracts = [
+  "deploy/mcp/target-client-live-e2e-transition-review.contract.json",
   "deploy/mcp/compatibility.contract.json",
   "deploy/mcp/protocol-release-gate.contract.json",
   "deploy/mcp/auth-limits-release-gate.contract.json",

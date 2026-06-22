@@ -4,6 +4,7 @@
   "checker": "scripts/check-mcp-target-client-live-e2e-handoff.mjs",
   "packet_checker": "scripts/check-mcp-target-client-live-e2e-packets.mjs",
   "packet_fixture_checker": "scripts/check-mcp-target-client-live-e2e-packet-fixtures.mjs",
+  "transition_review_checker": "scripts/check-mcp-target-client-live-e2e-transition-review-contract.mjs",
   "target_clients_console_gate_contract": "deploy/mcp/target-clients-console-release-gate.contract.json",
   "developer_console_contract": "deploy/mcp/developer-console.contract.json",
   "developer_console_log_store_smoke_contract": "deploy/mcp/developer-console-log-store-smoke.contract.json",
@@ -49,7 +50,8 @@
     "raw_prompt_forbidden": true,
     "raw_response_body_forbidden": true,
     "raw_console_payload_forbidden": true,
-    "manifest_transition_still_owned_by_target_clients_console_gate": true
+    "manifest_transition_still_owned_by_target_clients_console_gate": true,
+    "accepted_packet_alone_never_completes_mcp09": true
   },
   "evidence_packet_schema": {
     "artifact_hashes": "sha256 refs for redacted screenshots/logs/config exports",
@@ -223,9 +225,11 @@
     "live_target_client_e2e",
     "live_tool_execution",
     "public_status_page_deploy",
+    "target_client_e2e_transition_review_complete",
     "mcp_09_complete"
   ],
   "linked_contracts": [
+    "deploy/mcp/target-client-live-e2e-transition-review.contract.json",
     "deploy/mcp/target-clients-console-release-gate.contract.json",
     "deploy/mcp/developer-console.contract.json",
     "deploy/mcp/developer-console-log-store-smoke.contract.json",
