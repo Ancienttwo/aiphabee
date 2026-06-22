@@ -20,6 +20,7 @@ writes, billing provider posting, or frontend behavior.
   - checker that links Data Gateway, Serving readiness, usage quota, billing
     reconciliation, database, and field-rights contracts;
   - explicit external activation gates;
+  - evidence-manifest linkage for accepted gate evidence;
   - package/full-check integration;
   - governance docs, sprint tracker, and deferred-ledger updates.
 - Out of scope:
@@ -32,8 +33,12 @@ writes, billing provider posting, or frontend behavior.
 ## Files
 
 - `deploy/governance/sprint1-live-data-activation.contract.json`
+- `deploy/governance/sprint1-live-data-evidence-manifest.contract.json`
 - `scripts/check-sprint1-live-data-activation-contract.mjs`
+- `scripts/check-sprint1-live-data-evidence-manifest-contract.mjs`
+- `scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs`
 - `docs/governance/sprint1-live-data-activation.md`
+- `docs/governance/sprint1-live-data-evidence-manifest.md`
 - `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 - `tasks/notes/sprint1-live-data-activation.notes.md`
 - `tasks/todos.md`
@@ -45,6 +50,8 @@ writes, billing provider posting, or frontend behavior.
 exit_criteria:
   commands_succeed:
     - npm run check:sprint1-live-data-activation
+    - npm run check:sprint1-live-data-evidence-manifest
+    - npm run check:sprint1-live-data-evidence-manifest-fixtures
     - npm run check:data-gateway
     - npm run check:serving-quality-live-readiness
     - npm run check:usage-quota-display
@@ -55,6 +62,7 @@ exit_criteria:
     - "Usage ledger live writes remains unchecked"
     - "Existing no-live contracts still report live reads/writes=false"
     - "Activation gates cover partner rows, Hyperdrive, field rights, quality owner cutover, usage writes, and billing reconciliation"
+    - "Evidence manifest requires sha256-only refs before release transition"
     - "No market rows, usage rows, billing rows, database URLs, account IDs, tokens, or provider secrets are committed"
 ```
 

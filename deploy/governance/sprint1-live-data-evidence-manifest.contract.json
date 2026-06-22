@@ -1,0 +1,143 @@
+{
+  "version": "2026-06-22.phase1.sprint1-live-data-evidence-manifest.v0",
+  "status": "pending_external_evidence",
+  "checker": "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs",
+  "fixture_checker": "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs",
+  "activation_contract": "deploy/governance/sprint1-live-data-activation.contract.json",
+  "activation_doc": "docs/governance/sprint1-live-data-activation.md",
+  "manifest_doc": "docs/governance/sprint1-live-data-evidence-manifest.md",
+  "release_transition_allowed": false,
+  "all_activation_gates_accepted": false,
+  "frontend": false,
+  "live_serving_reads": false,
+  "live_serving_sql_execution": false,
+  "live_usage_writes": false,
+  "billing_reconciliation_posting": false,
+  "evidence_policy": {
+    "activation_contract_remains_source_of_truth": true,
+    "all_gates_required_for_transition": true,
+    "hash_only_evidence_refs_required": true,
+    "redacted_no_secrets_required": true,
+    "raw_partner_rows_forbidden_in_repo": true,
+    "raw_database_values_forbidden_in_repo": true,
+    "raw_billing_payloads_forbidden_in_repo": true
+  },
+  "not_claimed": [
+    "partner_rows_loaded",
+    "live_serving_reads_complete",
+    "live_serving_sql_execution_complete",
+    "live_usage_writes_complete",
+    "billing_reconciliation_posted",
+    "sprint1_1_live_data_complete"
+  ],
+  "required_gates": [
+    {
+      "id": "signed_partner_data_contract",
+      "status": "missing",
+      "blocks": ["live_serving_reads", "live_usage_writes"],
+      "required_evidence": ["signed_dataset_scope", "field_rights_matrix", "usage_metering_terms"],
+      "required_approver_roles": ["data_partner_signatory", "commercial_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "partner_serving_rows_loaded",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows"],
+      "required_approver_roles": ["data_platform_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "field_rights_policy_source_live",
+      "status": "missing",
+      "blocks": ["live_serving_reads", "live_usage_writes"],
+      "required_evidence": ["live_entitlement_policy_rows", "policy_version", "workspace_plan_channel_matrix"],
+      "required_approver_roles": ["data_governance_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "hyperdrive_select_1_passed",
+      "status": "missing",
+      "blocks": ["live_serving_sql_execution"],
+      "required_evidence": ["hyperdrive_config", "read_only_select_1", "connection_redaction_proof"],
+      "required_approver_roles": ["platform_owner", "sre_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "serving_sql_execution_enabled",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["row_limit_enforced", "field_projection_enforced", "cache_key_material_verified"],
+      "required_approver_roles": ["data_gateway_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "quality_owner_cutover_approved",
+      "status": "missing",
+      "blocks": ["live_serving_reads"],
+      "required_evidence": ["PASS_WARN_release_policy", "HOLD_REJECT_RAW_isolation", "quality_owner_signoff"],
+      "required_approver_roles": ["data_quality_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "usage_event_live_write_passed",
+      "status": "missing",
+      "blocks": ["live_usage_writes"],
+      "required_evidence": ["core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"],
+      "required_approver_roles": ["usage_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "usage_ledger_entry_live_write_passed",
+      "status": "missing",
+      "blocks": ["live_usage_writes"],
+      "required_evidence": ["core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"],
+      "required_approver_roles": ["usage_owner", "billing_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    },
+    {
+      "id": "billing_reconciliation_live_read_passed",
+      "status": "missing",
+      "blocks": ["billing_reconciliation_posting"],
+      "required_evidence": ["invoice_line_trace", "usage_to_invoice_consistency", "freshness_under_5_minutes"],
+      "required_approver_roles": ["billing_owner", "finance_owner"],
+      "evidence_refs": [],
+      "evidence_sha256": null,
+      "signed_at": null,
+      "approver_role": null,
+      "redaction_status": "missing"
+    }
+  ]
+}

@@ -12,6 +12,8 @@ Machine-readable check:
 
 ```bash
 npm run check:sprint1-live-data-activation
+npm run check:sprint1-live-data-evidence-manifest
+npm run check:sprint1-live-data-evidence-manifest-fixtures
 ```
 
 The checker requires the existing no-live gates to remain true:
@@ -44,6 +46,17 @@ key material, quality isolation, Serving SQL descriptors/text, deferred
 execution envelopes, usage events, quota display, and billing traceability. It
 cannot claim real licensed rows, live SQL execution, persistent usage writes, or
 posted reconciliation until every activation gate above has accepted evidence.
+
+## Evidence Manifest
+
+Accepted evidence is tracked separately in
+`deploy/governance/sprint1-live-data-evidence-manifest.contract.json`. The
+manifest requires hash-only evidence refs, redacted/no-secret source material,
+and all nine gates accepted before `release_transition_allowed` can become true.
+The current manifest remains pending external evidence, so
+`partner_serving_rows_loaded`, `hyperdrive_select_1_passed`,
+`usage_event_live_write_passed`, and `billing_reconciliation_live_read_passed`
+still block Sprint 1.1 live activation.
 
 ## Sprint Impact
 

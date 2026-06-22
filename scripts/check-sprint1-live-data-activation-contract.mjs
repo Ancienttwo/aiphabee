@@ -7,6 +7,10 @@ const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
 const docsPath = "docs/governance/sprint1-live-data-activation.md";
+const evidenceManifestPath = "deploy/governance/sprint1-live-data-evidence-manifest.contract.json";
+const evidenceManifestCheckerPath = "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs";
+const evidenceManifestFixtureCheckerPath = "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs";
+const evidenceManifestDocPath = "docs/governance/sprint1-live-data-evidence-manifest.md";
 const gatewayContractPath = "deploy/gateway/access.contract.json";
 const servingReadinessPath = "deploy/governance/serving-quality-live-readiness.contract.json";
 const quotaContractPath = "deploy/usage/quota-display.contract.json";
@@ -132,6 +136,15 @@ function validateContract({
   expectEqual(errors, value.version, "2026-06-22.phase1.sprint1-live-data-activation.v0", "version");
   expectEqual(errors, value.status, "blocked_external_activation", "status");
   expectEqual(errors, value.checker, "scripts/check-sprint1-live-data-activation-contract.mjs", "checker");
+  expectEqual(errors, value.evidence_manifest, evidenceManifestPath, "evidence_manifest");
+  expectEqual(errors, value.evidence_manifest_checker, evidenceManifestCheckerPath, "evidence_manifest_checker");
+  expectEqual(
+    errors,
+    value.evidence_manifest_fixture_checker,
+    evidenceManifestFixtureCheckerPath,
+    "evidence_manifest_fixture_checker"
+  );
+  expectEqual(errors, value.evidence_manifest_doc, evidenceManifestDocPath, "evidence_manifest_doc");
   expectEqual(errors, value.release_transition_allowed, false, "release_transition_allowed");
 
   for (const field of [
@@ -149,6 +162,14 @@ function validateContract({
   expectArray(errors, value.required_checks, requiredChecks, "required_checks");
   expectArray(errors, value.not_claimed, requiredNotClaimed, "not_claimed");
   errors.push(...validateLinkedContracts(value.linked_contracts));
+  errors.push(
+    ...validateLinkedContracts([
+      value.evidence_manifest,
+      value.evidence_manifest_checker,
+      value.evidence_manifest_fixture_checker,
+      value.evidence_manifest_doc
+    ])
+  );
   errors.push(...validateActivationGates(value.activation_gates));
   errors.push(...validateExistingNoLiveContracts({ billingContract, gatewayContract, quotaContract, servingReadiness }));
   errors.push(...validatePackage(packageJson));
@@ -271,6 +292,28 @@ function validatePackage(value) {
     errors.push("root check must include check:sprint1-live-data-activation");
   }
 
+  if (
+    scripts["check:sprint1-live-data-evidence-manifest"] !==
+    "node scripts/check-sprint1-live-data-evidence-manifest-contract.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-evidence-manifest script is missing");
+  }
+
+  if (
+    scripts["check:sprint1-live-data-evidence-manifest-fixtures"] !==
+    "node scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs"
+  ) {
+    errors.push("package.json check:sprint1-live-data-evidence-manifest-fixtures script is missing");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-evidence-manifest")) {
+    errors.push("root check must include check:sprint1-live-data-evidence-manifest");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-evidence-manifest-fixtures")) {
+    errors.push("root check must include check:sprint1-live-data-evidence-manifest-fixtures");
+  }
+
   return errors;
 }
 
@@ -280,7 +323,10 @@ function validateDocs({ docs, todos, tracker }) {
 
   for (const text of [
     "sprint1-live-data-activation",
+    "sprint1-live-data-evidence-manifest",
     "npm run check:sprint1-live-data-activation",
+    "npm run check:sprint1-live-data-evidence-manifest",
+    "npm run check:sprint1-live-data-evidence-manifest-fixtures",
     "Data Access Gateway live Serving",
     "Usage ledger live writes",
     "partner_serving_rows_loaded",

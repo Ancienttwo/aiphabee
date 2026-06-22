@@ -2,6 +2,10 @@
   "version": "2026-06-22.phase1.sprint1-live-data-activation.v0",
   "status": "blocked_external_activation",
   "checker": "scripts/check-sprint1-live-data-activation-contract.mjs",
+  "evidence_manifest": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
+  "evidence_manifest_checker": "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs",
+  "evidence_manifest_fixture_checker": "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs",
+  "evidence_manifest_doc": "docs/governance/sprint1-live-data-evidence-manifest.md",
   "tracker_items": [
     "Sprint 1.1: Data Access Gateway live Serving",
     "Sprint 1.1: Usage ledger live writes + billing reconciliation"
