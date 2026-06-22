@@ -27,6 +27,160 @@
     "approval_status": "accepted|rejected|superseded",
     "redaction_status": "redacted_no_secrets"
   },
+  "intake_readiness": {
+    "status": "ready_for_external_packet_intake",
+    "packet_directory_ready": true,
+    "handoff_boundary": "External signed evidence intake only; submitted packets, accepted packets, manifest promotion, and transition review remain separate. Runtime stays DEFAULT_DENY and DATA_NOT_LICENSED until all required packets are accepted and promoted.",
+    "acceptance_commands": [
+      "npm run check:gate0-signed-evidence-packets",
+      "npm run check:gate0-signed-evidence-packet-fixtures",
+      "npm run check:gate0-signed-evidence-handoff",
+      "npm run check:gate0-signed-evidence-manifest",
+      "npm run check:gate0-signed-evidence-manifest-fixtures",
+      "npm run check:gate0-signed-evidence-transition-review",
+      "npm run check:gate0-signed-evidence-transition-review-fixtures",
+      "npm run check:sprint-completion-audit",
+      "npm run check:sprint-exit-gate-transition-review"
+    ],
+    "forbidden_payloads": [
+      "raw_legal_memo",
+      "raw_contract",
+      "raw_document",
+      "raw_vendor_document",
+      "raw_payload",
+      "raw_response",
+      "raw_output",
+      "raw_text",
+      "raw_content",
+      "authorization",
+      "api_key",
+      "token",
+      "secret",
+      "password",
+      "database_url",
+      "connection_string",
+      "account_id",
+      "workspace_id",
+      "env_value",
+      "unredacted_source_payload"
+    ],
+    "required_packets": [
+      {
+        "id": "field_rights_matrix",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "field_rights_matrix.evidence.json",
+        "template_file": "field_rights_matrix.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": ["Business / Partnerships", "Data Owner"],
+        "acceptance_checks": [
+          "covers_all_p0_dataset_groups",
+          "covers_all_prd_14_1_dimensions",
+          "mcp_api_rights_explicit",
+          "export_cache_derived_rights_explicit",
+          "default_deny_for_unconfirmed_fields"
+        ]
+      },
+      {
+        "id": "hkex_vendor_licensing_memo",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "hkex_vendor_licensing_memo.evidence.json",
+        "template_file": "hkex_vendor_licensing_memo.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": ["Business / Partnerships", "Compliance / Counsel"],
+        "acceptance_checks": [
+          "partner_vendor_status_explicit",
+          "aiphabee_role_explicit",
+          "mcp_api_non_display_fee_class_explicit",
+          "subscriber_reporting_explicit",
+          "termination_obligations_explicit"
+        ]
+      },
+      {
+        "id": "type4_product_boundary_opinion",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "type4_product_boundary_opinion.evidence.json",
+        "template_file": "type4_product_boundary_opinion.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": ["Compliance / Counsel"],
+        "acceptance_checks": [
+          "actual_ux_reviewed",
+          "prompts_and_marketing_reviewed",
+          "pricing_and_mcp_behavior_reviewed",
+          "allowed_disallowed_feature_list_present",
+          "fallback_or_licensed_route_explicit"
+        ]
+      },
+      {
+        "id": "pcpd_privacy_path_assessment",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "pcpd_privacy_path_assessment.evidence.json",
+        "template_file": "pcpd_privacy_path_assessment.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": ["Privacy Owner"],
+        "acceptance_checks": [
+          "data_inventory_present",
+          "retention_schedule_present",
+          "vendor_model_risk_review_present",
+          "user_access_export_delete_path_present",
+          "incident_response_present"
+        ]
+      },
+      {
+        "id": "commercial_settlement_schedule",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "commercial_settlement_schedule.evidence.json",
+        "template_file": "commercial_settlement_schedule.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": ["Business / Partnerships", "Finance"],
+        "acceptance_checks": [
+          "dataset_channel_client_type_geography_present",
+          "usage_metric_present",
+          "delay_and_derived_data_treatment_present",
+          "reporting_cadence_present",
+          "overage_and_termination_economics_present"
+        ]
+      },
+      {
+        "id": "gate0_signature_register",
+        "owner_kind": "external_signed_evidence",
+        "packet_file": "gate0_signature_register.evidence.json",
+        "template_file": "gate0_signature_register.evidence.json",
+        "expected_packet_status": "missing",
+        "evidence_ref_required_status": "accepted",
+        "evidence_ref_sha256_format": "hex_sha256",
+        "blocks_sprint0_1_checkbox": true,
+        "required_approver_roles": [
+          "CEO",
+          "Business / Partnerships",
+          "Data Owner",
+          "Compliance / Counsel",
+          "Privacy Owner",
+          "Engineering"
+        ],
+        "acceptance_checks": [
+          "all_required_roles_signed",
+          "decision_date_present",
+          "mcp_fallback_explicit",
+          "go_no_go_explicit"
+        ]
+      }
+    ]
+  },
   "required_packets": [
     {
       "id": "field_rights_matrix",

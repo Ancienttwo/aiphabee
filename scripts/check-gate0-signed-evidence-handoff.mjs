@@ -10,6 +10,39 @@ const packageJsonPath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const readmePath = "deploy/governance/gate0-signed-evidence-templates/README.md";
 const packetReadmePath = "deploy/governance/gate0-signed-evidence-packets/README.md";
+const requiredAcceptanceCommands = [
+  "npm run check:gate0-signed-evidence-packets",
+  "npm run check:gate0-signed-evidence-packet-fixtures",
+  "npm run check:gate0-signed-evidence-handoff",
+  "npm run check:gate0-signed-evidence-manifest",
+  "npm run check:gate0-signed-evidence-manifest-fixtures",
+  "npm run check:gate0-signed-evidence-transition-review",
+  "npm run check:gate0-signed-evidence-transition-review-fixtures",
+  "npm run check:sprint-completion-audit",
+  "npm run check:sprint-exit-gate-transition-review"
+];
+const requiredForbiddenPayloads = [
+  "raw_legal_memo",
+  "raw_contract",
+  "raw_document",
+  "raw_vendor_document",
+  "raw_payload",
+  "raw_response",
+  "raw_output",
+  "raw_text",
+  "raw_content",
+  "authorization",
+  "api_key",
+  "token",
+  "secret",
+  "password",
+  "database_url",
+  "connection_string",
+  "account_id",
+  "workspace_id",
+  "env_value",
+  "unredacted_source_payload"
+];
 
 const manifest = readJson(manifestPath);
 const intake = readJson(intakePath);
@@ -112,6 +145,8 @@ function validateHandoff({
     errors.push("completion_policy must require packet fixture checker to reuse packet validator");
   }
 
+  validateIntakeReadiness(errors, value);
+
   const scripts = packageJson?.scripts ?? {};
   if (scripts["check:gate0-signed-evidence-handoff"] !== "node scripts/check-gate0-signed-evidence-handoff.mjs") {
     errors.push("package.json check:gate0-signed-evidence-handoff script is missing");
@@ -133,6 +168,19 @@ function validateHandoff({
   }
   if (!String(scripts.check ?? "").includes("npm run check:gate0-signed-evidence-packet-fixtures")) {
     errors.push("root check must include check:gate0-signed-evidence-packet-fixtures");
+  }
+  for (const command of value.intake_readiness?.acceptance_commands ?? []) {
+    const scriptName = command.replace(/^npm run /u, "");
+
+    if (!requiredAcceptanceCommands.includes(command)) {
+      errors.push(`intake readiness command is not allowed: ${command}`);
+    }
+    if (!scripts[scriptName]) {
+      errors.push(`package.json ${scriptName} script is missing for gate0 signed evidence intake readiness`);
+    }
+    if (!String(scripts.check ?? "").includes(`npm run ${scriptName}`)) {
+      errors.push(`root check must include ${scriptName} for gate0 signed evidence intake readiness`);
+    }
   }
 
   if (!templateDirectoryExists) {
@@ -247,7 +295,121 @@ function validateHandoff({
     }
   }
 
+  validatePacketReadme(errors, packetReadme, requiredPackets);
+
   return errors;
+}
+
+function validateIntakeReadiness(errors, value) {
+  const readiness = value.intake_readiness;
+
+  if (!isRecord(readiness)) {
+    errors.push("intake_readiness must exist");
+    return;
+  }
+
+  expectEqual(errors, readiness.status, "ready_for_external_packet_intake", "intake_readiness.status");
+  expectEqual(errors, readiness.packet_directory_ready, true, "intake_readiness.packet_directory_ready");
+  expectArray(errors, readiness.acceptance_commands, requiredAcceptanceCommands, "intake_readiness.acceptance_commands");
+
+  if (
+    typeof readiness.handoff_boundary !== "string" ||
+    !readiness.handoff_boundary.includes("DEFAULT_DENY") ||
+    !readiness.handoff_boundary.includes("DATA_NOT_LICENSED")
+  ) {
+    errors.push("intake_readiness.handoff_boundary must mention DEFAULT_DENY and DATA_NOT_LICENSED");
+  }
+
+  for (const payload of requiredForbiddenPayloads) {
+    expectIncludes(errors, readiness.forbidden_payloads, payload, `intake_readiness.forbidden_payloads.${payload}`);
+  }
+
+  const requiredPackets = Array.isArray(value.required_packets) ? value.required_packets : [];
+  const requiredPacketMap = new Map(requiredPackets.map((packet) => [packet.id, packet]));
+
+  if (!Array.isArray(readiness.required_packets) || readiness.required_packets.length !== requiredPackets.length) {
+    errors.push("intake_readiness.required_packets must contain one packet contract per required Gate 0 packet");
+    return;
+  }
+
+  const packetMap = new Map();
+  for (const packet of readiness.required_packets) {
+    if (!isRecord(packet)) {
+      errors.push("intake_readiness.required_packets entries must be objects");
+      continue;
+    }
+    packetMap.set(packet.id, packet);
+  }
+
+  for (const requiredPacket of requiredPackets) {
+    const packet = packetMap.get(requiredPacket.id);
+
+    if (!packet) {
+      errors.push(`intake_readiness.required_packets missing ${requiredPacket.id}`);
+      continue;
+    }
+
+    expectEqual(errors, packet.owner_kind, "external_signed_evidence", `intake_readiness.${requiredPacket.id}.owner_kind`);
+    expectEqual(errors, packet.packet_file, `${requiredPacket.id}.evidence.json`, `intake_readiness.${requiredPacket.id}.packet_file`);
+    expectEqual(errors, packet.template_file, `${requiredPacket.id}.evidence.json`, `intake_readiness.${requiredPacket.id}.template_file`);
+    expectEqual(errors, packet.expected_packet_status, "missing", `intake_readiness.${requiredPacket.id}.expected_packet_status`);
+    expectEqual(errors, packet.evidence_ref_required_status, "accepted", `intake_readiness.${requiredPacket.id}.evidence_ref_required_status`);
+    expectEqual(errors, packet.evidence_ref_sha256_format, "hex_sha256", `intake_readiness.${requiredPacket.id}.evidence_ref_sha256_format`);
+    expectEqual(errors, packet.blocks_sprint0_1_checkbox, true, `intake_readiness.${requiredPacket.id}.blocks_sprint0_1_checkbox`);
+    expectArray(
+      errors,
+      packet.required_approver_roles,
+      requiredPacket.required_approver_roles,
+      `intake_readiness.${requiredPacket.id}.required_approver_roles`
+    );
+    expectArray(
+      errors,
+      packet.acceptance_checks,
+      requiredPacket.acceptance_checks,
+      `intake_readiness.${requiredPacket.id}.acceptance_checks`
+    );
+  }
+
+  for (const packetId of packetMap.keys()) {
+    if (!requiredPacketMap.has(packetId)) {
+      errors.push(`intake_readiness.required_packets has unexpected packet ${packetId}`);
+    }
+  }
+}
+
+function validatePacketReadme(errors, packetReadme, requiredPackets) {
+  for (const packet of requiredPackets) {
+    for (const fragment of [
+      packet.id,
+      `${packet.id}.evidence.json`,
+      ...(packet.required_approver_roles ?? []),
+      ...(packet.acceptance_checks ?? [])
+    ]) {
+      if (!packetReadme.includes(fragment)) {
+        errors.push(`packet README must mention ${fragment}`);
+      }
+    }
+  }
+
+  for (const fragment of [
+    "Gate 0 signed evidence packet intake readiness",
+    "status=accepted",
+    "approval_status=accepted",
+    "redaction_status=redacted_no_secrets",
+    "evidence_refs",
+    "hex sha256",
+    "signed_at",
+    "approver",
+    "accepted packet alone",
+    "DEFAULT_DENY",
+    "DATA_NOT_LICENSED",
+    ...requiredAcceptanceCommands,
+    ...requiredForbiddenPayloads
+  ]) {
+    if (!packetReadme.includes(fragment)) {
+      errors.push(`packet README missing intake readiness fragment: ${fragment}`);
+    }
+  }
 }
 
 function listTemplatePacketFiles(directory) {
@@ -276,6 +438,41 @@ function expectArrayEqual(actual, expected, label) {
   }
 
   return expected.flatMap((value, index) => (actual[index] === value ? [] : [`${label}[${index}] mismatch`]));
+}
+
+function expectIncludes(errors, values, expected, label) {
+  if (!Array.isArray(values) || !values.includes(expected)) {
+    errors.push(`${label} must include ${expected}`);
+  }
+}
+
+function expectArray(errors, actual, expected, label) {
+  if (!Array.isArray(actual)) {
+    errors.push(`${label} must be an array`);
+    return;
+  }
+
+  if (!Array.isArray(expected)) {
+    errors.push(`${label} expected reference must be an array`);
+    return;
+  }
+
+  if (actual.length !== expected.length) {
+    errors.push(`${label} expected ${expected.length} items but received ${actual.length}`);
+    return;
+  }
+
+  expected.forEach((value, index) => {
+    if (actual[index] !== value) {
+      errors.push(`${label}[${index}] expected ${value} but received ${actual[index]}`);
+    }
+  });
+}
+
+function expectEqual(errors, actual, expected, label) {
+  if (actual !== expected) {
+    errors.push(`${label} expected ${expected} but received ${actual}`);
+  }
 }
 
 function readJson(path) {
