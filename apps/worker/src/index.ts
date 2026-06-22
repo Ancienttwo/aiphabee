@@ -99,12 +99,14 @@ import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
   createDataCoverageReleaseGateReport,
+  createFieldRightsLivePolicySourceReadinessReport,
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
   getRestrictedExportCapabilities,
   evaluateDataAccessRequest,
   getDataCoverageReleaseGateCapabilities,
+  getFieldRightsLivePolicySourceCapabilities,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
@@ -2470,6 +2472,7 @@ app.get("/gateway/runtime", (c) => {
             "export"
           ],
           live_policy_source: false,
+          live_policy_source_readiness: getFieldRightsLivePolicySourceCapabilities(),
           operations_config: getFieldAuthorizationConfigCapabilities(),
           policy_source: getEntitlementPolicySourceCapabilities(),
           status: "scaffold",
@@ -2540,6 +2543,37 @@ app.get("/gateway/runtime", (c) => {
         }
       }
     )
+  );
+});
+
+app.get("/gateway/field-rights/live-policy-source/readiness", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = createFieldRightsLivePolicySourceReadinessReport({
+    asOf: new Date().toISOString()
+  });
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(report, {
+      asOf: report.as_of,
+      dataVersion: report.fixture_version,
+      methodologyVersion: report.version,
+      provenance: [
+        {
+          data_version: report.fixture_version,
+          methodology_version: report.version,
+          source: "field-rights-live-policy-source-readiness",
+          source_record_id: "partner-matrix-db-policy-source-fixture-v0"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: report.validation.smoke_count
+      }
+    })
   );
 });
 

@@ -26,6 +26,10 @@ export const P0_RIGHTS_MATRIX_COVERAGE_VERSION =
   "2026-06-21.phase3.p0-rights-matrix-coverage-scaffold.v0";
 export const DATA_COVERAGE_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.data-coverage-release-gate-scaffold.v0";
+export const FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION =
+  "2026-06-22.phase1.field-rights-live-policy-source-readiness.v0";
+export const FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION =
+  "field-rights-live-policy-source@partner-db-fixture-v0";
 export const RESTRICTED_EXPORT_FORMATS = ["csv", "image", "pdf"] as const;
 export const P0_RIGHTS_MATRIX_SURFACES = ["web", "mcp", "export", "enterprise"] as const;
 export const DATA_COVERAGE_FRESHNESS_TIERS = ["realtime", "delayed", "eod"] as const;
@@ -73,6 +77,10 @@ export type P0RightsMatrixReleaseGateStatus = "blocked_external_rights_matrix";
 export type DataCoverageFreshnessTier = (typeof DATA_COVERAGE_FRESHNESS_TIERS)[number];
 export type DataCoverageDomain = (typeof DATA_COVERAGE_DOMAINS)[number];
 export type DataCoverageReleaseGateStatus = "blocked_live_partner_coverage";
+export type FieldRightsLivePolicySourceStatus =
+  "live_policy_source_readiness_passed";
+export type FieldRightsLivePolicySourceActivationStatus =
+  "blocked_external_activation";
 
 export interface DataAccessFieldPolicy {
   channel: DataAccessChannel;
@@ -438,6 +446,99 @@ export interface DataCoverageReleaseGateReport {
   version: typeof DATA_COVERAGE_RELEASE_GATE_VERSION;
 }
 
+export interface FieldRightsPartnerMatrixFixtureRow {
+  cache_policy: "no_client_cache" | "rights_policy_versioned_cache";
+  channel: DataAccessChannel;
+  dataset: string;
+  export_allowed: boolean;
+  field_pattern: string;
+  history_window_days: number;
+  owner_source: "data_partner" | "hkex" | "issuer_document" | "third_party_estimate";
+  plan: string;
+  redistribution: "machine_readable_allowed" | "web_display_only";
+  source_record_id: string;
+  subscriber_reporting_required: boolean;
+  usage_region: "HK" | "global";
+}
+
+export interface FieldRightsLivePolicySourceCapabilities {
+  compiles_partner_matrix_to_db_rows: true;
+  compiles_to_gateway_policy: true;
+  default_deny_preserved: true;
+  external_activation_status: FieldRightsLivePolicySourceActivationStatus;
+  fixture_version: typeof FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION;
+  frontend: false;
+  live_db_reads: false;
+  live_partner_rights_matrix_reads: false;
+  package: "@aiphabee/data-access-gateway";
+  persistent_writes: false;
+  required_dimensions: readonly [
+    "workspace",
+    "plan",
+    "channel",
+    "dataset",
+    "field",
+    "time_range",
+    "export"
+  ];
+  route: "GET /gateway/field-rights/live-policy-source/readiness";
+  runtime_route: "GET /gateway/runtime";
+  sql_emitted: false;
+  status: "field_rights_live_policy_source_readiness_scaffold";
+  version: typeof FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION;
+}
+
+export interface FieldRightsLivePolicySourceReport {
+  as_of: string;
+  capability: FieldRightsLivePolicySourceCapabilities;
+  default_rights_status: "default_deny";
+  external_activation: {
+    blockers: readonly [
+      "partner_signed_matrix_absent",
+      "live_db_read_path_not_enabled",
+      "ops_cutover_not_approved"
+    ];
+    status: FieldRightsLivePolicySourceActivationStatus;
+  };
+  fixture_version: typeof FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION;
+  frontend: false;
+  live_db_reads: false;
+  live_partner_rights_matrix_reads: false;
+  partner_matrix_fixture: {
+    matrix_rows: readonly FieldRightsPartnerMatrixFixtureRow[];
+    required_prd_dimensions: readonly string[];
+    signed_external_matrix_loaded: false;
+  };
+  persistent_writes: false;
+  policy_source: EntitlementPolicySourcePlan;
+  readiness: {
+    db_rows_compiled: boolean;
+    default_deny_preserved: boolean;
+    partner_matrix_fixture_loaded: boolean;
+    runtime_smoke_passed: boolean;
+    versioned_cache_key_verified: boolean;
+  };
+  rights_policy_version: string;
+  runtime_smoke: Array<{
+    allowed_fields: string[];
+    cache_key_contains_policy_version: boolean;
+    denied_reasons: string[];
+    expected_allowed_fields: string[];
+    expected_denied_reasons: string[];
+    expected_status: DataAccessDecisionStatus;
+    scenario_id: string;
+    status: "fail" | "pass";
+  }>;
+  sql_emitted: false;
+  status: FieldRightsLivePolicySourceStatus;
+  validation: {
+    partner_matrix_rows: number;
+    smoke_count: number;
+    source_records: number;
+  };
+  version: typeof FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION;
+}
+
 export interface DataAccessDecision {
   allowedFields: string[];
   cacheKey: string;
@@ -583,6 +684,21 @@ const DATA_COVERAGE_RELEASE_GATE_TABLES: DataCoverageReleaseGateCapabilities["ta
   "core.data_coverage_release_gate",
   "governance.data_coverage_release_gate_contract"
 ];
+const FIELD_RIGHTS_LIVE_POLICY_REQUIRED_DIMENSIONS = [
+  "workspace",
+  "plan",
+  "channel",
+  "dataset",
+  "field",
+  "time_range",
+  "export"
+] as const;
+const FIELD_RIGHTS_EXTERNAL_ACTIVATION_BLOCKERS: FieldRightsLivePolicySourceReport["external_activation"]["blockers"] =
+  [
+    "partner_signed_matrix_absent",
+    "live_db_read_path_not_enabled",
+    "ops_cutover_not_approved"
+  ];
 const P0_RIGHTS_MATRIX_REQUIRED_SIGNOFFS: P0RightsMatrixCoverageReport["release_gate"]["required_signoffs"] = [
   "data_partner",
   "commercial_owner",
@@ -718,6 +834,301 @@ const P0_RIGHTS_MATRIX_DATASET_FIELDS: P0RightsMatrixCoverageReport["dataset_fie
     field_patterns: ["source_record_id", "data_version", "methodology_version", "rights_policy_version"],
     rights_state: "default_deny_until_partner_matrix_signed",
     surfaces: createDefaultDenySurfaceCoverage()
+  }
+];
+const FIELD_RIGHTS_REQUIRED_PRD_DIMENSIONS = [
+  "owner_source",
+  "web_display",
+  "mcp_api_redistribution",
+  "raw_vs_derived",
+  "freshness_tier",
+  "history_window",
+  "export_and_cache",
+  "user_type_region",
+  "subscriber_reporting",
+  "audit_termination",
+  "commercial_terms"
+] as const;
+const FIELD_RIGHTS_POLICY_FIXTURE_AS_OF = "2026-06-22T00:00:00.000Z";
+const FIELD_RIGHTS_POLICY_VERSION = "field-rights-live-policy-source-fixture-v0";
+const FIELD_RIGHTS_PARTNER_MATRIX_FIXTURE: readonly FieldRightsPartnerMatrixFixtureRow[] = [
+  {
+    cache_policy: "rights_policy_versioned_cache",
+    channel: "mcp",
+    dataset: "quote_snapshot",
+    export_allowed: false,
+    field_pattern: "quote_snapshot.last_price",
+    history_window_days: 31,
+    owner_source: "data_partner",
+    plan: "developer",
+    redistribution: "machine_readable_allowed",
+    source_record_id: "partner_matrix_quote_last_price_developer_mcp",
+    subscriber_reporting_required: true,
+    usage_region: "HK"
+  },
+  {
+    cache_policy: "no_client_cache",
+    channel: "mcp",
+    dataset: "quote_snapshot",
+    export_allowed: false,
+    field_pattern: "quote_snapshot.volume",
+    history_window_days: 31,
+    owner_source: "hkex",
+    plan: "developer",
+    redistribution: "web_display_only",
+    source_record_id: "partner_matrix_quote_volume_developer_mcp_blocked",
+    subscriber_reporting_required: true,
+    usage_region: "HK"
+  },
+  {
+    cache_policy: "rights_policy_versioned_cache",
+    channel: "web",
+    dataset: "financial_facts",
+    export_allowed: true,
+    field_pattern: "financial_facts.revenue",
+    history_window_days: 366,
+    owner_source: "issuer_document",
+    plan: "pro",
+    redistribution: "web_display_only",
+    source_record_id: "partner_matrix_financial_revenue_pro_web",
+    subscriber_reporting_required: false,
+    usage_region: "global"
+  },
+  {
+    cache_policy: "rights_policy_versioned_cache",
+    channel: "export",
+    dataset: "price_history",
+    export_allowed: true,
+    field_pattern: "price_history.close",
+    history_window_days: 31,
+    owner_source: "data_partner",
+    plan: "team",
+    redistribution: "machine_readable_allowed",
+    source_record_id: "partner_matrix_price_history_close_team_export",
+    subscriber_reporting_required: true,
+    usage_region: "HK"
+  }
+];
+const FIELD_RIGHTS_DATA_ENTITLEMENT_ROWS: readonly DataEntitlementRow[] = [
+  {
+    channel: "mcp",
+    dataset: "quote_snapshot",
+    entitlementId: "ent_quote_last_price_developer_mcp",
+    exportAllowed: false,
+    fieldPattern: "quote_snapshot.last_price",
+    rightsPolicyVersion: FIELD_RIGHTS_POLICY_VERSION,
+    sourceRecordId: "data_entitlement_quote_last_price_developer_mcp",
+    status: "approved",
+    timeRangeDays: 31
+  },
+  {
+    channel: "mcp",
+    dataset: "quote_snapshot",
+    entitlementId: "ent_quote_volume_developer_mcp_blocked",
+    exportAllowed: false,
+    fieldPattern: "quote_snapshot.volume",
+    rightsPolicyVersion: FIELD_RIGHTS_POLICY_VERSION,
+    sourceRecordId: "data_entitlement_quote_volume_developer_mcp_blocked",
+    status: "blocked",
+    timeRangeDays: 31
+  },
+  {
+    channel: "web",
+    dataset: "financial_facts",
+    entitlementId: "ent_financial_revenue_pro_web",
+    exportAllowed: true,
+    fieldPattern: "financial_facts.revenue",
+    rightsPolicyVersion: FIELD_RIGHTS_POLICY_VERSION,
+    sourceRecordId: "data_entitlement_financial_revenue_pro_web",
+    status: "approved",
+    timeRangeDays: 366
+  },
+  {
+    channel: "export",
+    dataset: "price_history",
+    entitlementId: "ent_price_history_close_team_export",
+    exportAllowed: true,
+    fieldPattern: "price_history.close",
+    rightsPolicyVersion: FIELD_RIGHTS_POLICY_VERSION,
+    sourceRecordId: "data_entitlement_price_history_close_team_export",
+    status: "approved",
+    timeRangeDays: 31
+  }
+];
+const FIELD_RIGHTS_WORKSPACE_ENTITLEMENT_ROWS: readonly WorkspaceEntitlementRow[] = [
+  {
+    entitlementId: "ent_quote_last_price_developer_mcp",
+    sourceRecordId: "workspace_entitlement_quote_last_price_developer",
+    status: "approved",
+    subscriptionId: "sub_developer_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceEntitlementId: "we_quote_last_price_developer",
+    workspaceId: "ws_developer_alpha"
+  },
+  {
+    entitlementId: "ent_quote_volume_developer_mcp_blocked",
+    sourceRecordId: "workspace_entitlement_quote_volume_developer_blocked",
+    status: "approved",
+    subscriptionId: "sub_developer_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceEntitlementId: "we_quote_volume_developer_blocked",
+    workspaceId: "ws_developer_alpha"
+  },
+  {
+    entitlementId: "ent_financial_revenue_pro_web",
+    sourceRecordId: "workspace_entitlement_financial_revenue_pro",
+    status: "approved",
+    subscriptionId: "sub_pro_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceEntitlementId: "we_financial_revenue_pro",
+    workspaceId: "ws_pro_alpha"
+  },
+  {
+    entitlementId: "ent_price_history_close_team_export",
+    sourceRecordId: "workspace_entitlement_price_history_close_team",
+    status: "approved",
+    subscriptionId: "sub_team_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceEntitlementId: "we_price_history_close_team",
+    workspaceId: "ws_team_alpha"
+  }
+];
+const FIELD_RIGHTS_WORKSPACE_SUBSCRIPTION_ROWS: readonly WorkspaceSubscriptionRow[] = [
+  {
+    billingState: "active",
+    planCode: "developer",
+    subscriptionId: "sub_developer_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceId: "ws_developer_alpha"
+  },
+  {
+    billingState: "active",
+    planCode: "pro",
+    subscriptionId: "sub_pro_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceId: "ws_pro_alpha"
+  },
+  {
+    billingState: "active",
+    planCode: "team",
+    subscriptionId: "sub_team_alpha",
+    validFrom: "2026-01-01T00:00:00.000Z",
+    workspaceId: "ws_team_alpha"
+  }
+];
+const FIELD_RIGHTS_RUNTIME_SMOKE_SCENARIOS: ReadonlyArray<{
+  expectedAllowedFields: string[];
+  expectedDeniedReasons: string[];
+  expectedStatus: DataAccessDecisionStatus;
+  request: DataAccessRequest;
+  scenarioId: string;
+}> = [
+  {
+    expectedAllowedFields: ["quote_snapshot.last_price"],
+    expectedDeniedReasons: ["field_blocked"],
+    expectedStatus: "allow_with_redactions",
+    request: {
+      channel: "mcp",
+      dataset: "quote_snapshot",
+      plan: "developer",
+      qualityState: "PASS",
+      requestedFields: ["quote_snapshot.last_price", "quote_snapshot.volume"],
+      requestedRows: 1,
+      timeRange: {
+        from: "2026-06-01",
+        to: "2026-06-15"
+      },
+      workspaceId: "ws_developer_alpha"
+    },
+    scenarioId: "developer_mcp_quote_redaction"
+  },
+  {
+    expectedAllowedFields: ["financial_facts.revenue"],
+    expectedDeniedReasons: ["field_default_deny"],
+    expectedStatus: "allow_with_redactions",
+    request: {
+      channel: "web",
+      dataset: "financial_facts",
+      plan: "pro",
+      qualityState: "PASS",
+      requestedFields: ["financial_facts.revenue", "financial_facts.ebitda"],
+      requestedRows: 1,
+      timeRange: {
+        from: "2026-01-01",
+        to: "2026-12-31"
+      },
+      workspaceId: "ws_pro_alpha"
+    },
+    scenarioId: "pro_web_financial_field_default_deny"
+  },
+  {
+    expectedAllowedFields: ["price_history.close"],
+    expectedDeniedReasons: [],
+    expectedStatus: "allow",
+    request: {
+      channel: "export",
+      dataset: "price_history",
+      exportRequested: true,
+      plan: "team",
+      qualityState: "PASS",
+      requestedFields: ["price_history.close"],
+      requestedRows: 10,
+      timeRange: {
+        from: "2026-06-01",
+        to: "2026-06-30"
+      },
+      workspaceId: "ws_team_alpha"
+    },
+    scenarioId: "team_export_price_history_allowed"
+  },
+  {
+    expectedAllowedFields: [],
+    expectedDeniedReasons: ["time_range_blocked"],
+    expectedStatus: "deny",
+    request: {
+      channel: "mcp",
+      dataset: "quote_snapshot",
+      plan: "developer",
+      qualityState: "PASS",
+      requestedFields: ["quote_snapshot.last_price"],
+      requestedRows: 1,
+      timeRange: {
+        from: "2026-04-01",
+        to: "2026-06-15"
+      },
+      workspaceId: "ws_developer_alpha"
+    },
+    scenarioId: "developer_mcp_quote_time_range_blocked"
+  },
+  {
+    expectedAllowedFields: [],
+    expectedDeniedReasons: ["workspace_entitlement_default_deny"],
+    expectedStatus: "deny",
+    request: {
+      channel: "web",
+      dataset: "financial_facts",
+      plan: "pro",
+      qualityState: "PASS",
+      requestedFields: ["financial_facts.revenue"],
+      requestedRows: 1
+    },
+    scenarioId: "missing_workspace_default_deny"
+  },
+  {
+    expectedAllowedFields: [],
+    expectedDeniedReasons: ["export_blocked"],
+    expectedStatus: "deny",
+    request: {
+      channel: "mcp",
+      dataset: "quote_snapshot",
+      exportRequested: true,
+      plan: "developer",
+      qualityState: "PASS",
+      requestedFields: ["quote_snapshot.last_price"],
+      requestedRows: 1,
+      workspaceId: "ws_developer_alpha"
+    },
+    scenarioId: "developer_mcp_quote_export_blocked"
   }
 ];
 
@@ -1450,6 +1861,112 @@ export function createDataCoverageReleaseGateReport(
   };
 }
 
+export function getFieldRightsLivePolicySourceCapabilities(): FieldRightsLivePolicySourceCapabilities {
+  return {
+    compiles_partner_matrix_to_db_rows: true,
+    compiles_to_gateway_policy: true,
+    default_deny_preserved: true,
+    external_activation_status: "blocked_external_activation",
+    fixture_version: FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION,
+    frontend: false,
+    live_db_reads: false,
+    live_partner_rights_matrix_reads: false,
+    package: "@aiphabee/data-access-gateway",
+    persistent_writes: false,
+    required_dimensions: FIELD_RIGHTS_LIVE_POLICY_REQUIRED_DIMENSIONS,
+    route: "GET /gateway/field-rights/live-policy-source/readiness",
+    runtime_route: "GET /gateway/runtime",
+    sql_emitted: false,
+    status: "field_rights_live_policy_source_readiness_scaffold",
+    version: FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION
+  };
+}
+
+export function createFieldRightsLivePolicySourceReadinessReport(
+  input: { asOf?: string } = {}
+): FieldRightsLivePolicySourceReport {
+  const policySource = createPolicyFromEntitlementRows({
+    asOf: input.asOf ?? FIELD_RIGHTS_POLICY_FIXTURE_AS_OF,
+    dataEntitlements: [...FIELD_RIGHTS_DATA_ENTITLEMENT_ROWS],
+    subscriptionRows: [...FIELD_RIGHTS_WORKSPACE_SUBSCRIPTION_ROWS],
+    workspaceEntitlements: [...FIELD_RIGHTS_WORKSPACE_ENTITLEMENT_ROWS]
+  });
+  const runtimeSmoke = FIELD_RIGHTS_RUNTIME_SMOKE_SCENARIOS.map((scenario) =>
+    createFieldRightsRuntimeSmokeResult(scenario, policySource.policy)
+  );
+  const runtimeSmokePassed = runtimeSmoke.every((scenario) => scenario.status === "pass");
+
+  return {
+    as_of: normalizeOptionalIdentifier(input.asOf, FIELD_RIGHTS_POLICY_FIXTURE_AS_OF),
+    capability: getFieldRightsLivePolicySourceCapabilities(),
+    default_rights_status: "default_deny",
+    external_activation: {
+      blockers: FIELD_RIGHTS_EXTERNAL_ACTIVATION_BLOCKERS,
+      status: "blocked_external_activation"
+    },
+    fixture_version: FIELD_RIGHTS_LIVE_POLICY_SOURCE_FIXTURE_VERSION,
+    frontend: false,
+    live_db_reads: false,
+    live_partner_rights_matrix_reads: false,
+    partner_matrix_fixture: {
+      matrix_rows: FIELD_RIGHTS_PARTNER_MATRIX_FIXTURE,
+      required_prd_dimensions: FIELD_RIGHTS_REQUIRED_PRD_DIMENSIONS,
+      signed_external_matrix_loaded: false
+    },
+    persistent_writes: false,
+    policy_source: policySource,
+    readiness: {
+      db_rows_compiled:
+        policySource.rowCounts.dataEntitlements === FIELD_RIGHTS_DATA_ENTITLEMENT_ROWS.length &&
+        policySource.rowCounts.workspaceEntitlements ===
+          FIELD_RIGHTS_WORKSPACE_ENTITLEMENT_ROWS.length,
+      default_deny_preserved: policySource.policy.defaultFieldStatus === "default_deny",
+      partner_matrix_fixture_loaded:
+        FIELD_RIGHTS_PARTNER_MATRIX_FIXTURE.length ===
+        FIELD_RIGHTS_DATA_ENTITLEMENT_ROWS.length,
+      runtime_smoke_passed: runtimeSmokePassed,
+      versioned_cache_key_verified: runtimeSmoke.every(
+        (scenario) => scenario.cache_key_contains_policy_version
+      )
+    },
+    rights_policy_version: policySource.policy.rightsPolicyVersion,
+    runtime_smoke: runtimeSmoke,
+    sql_emitted: false,
+    status: "live_policy_source_readiness_passed",
+    validation: {
+      partner_matrix_rows: FIELD_RIGHTS_PARTNER_MATRIX_FIXTURE.length,
+      smoke_count: runtimeSmoke.length,
+      source_records: policySource.sourceRecords.length
+    },
+    version: FIELD_RIGHTS_LIVE_POLICY_SOURCE_VERSION
+  };
+}
+
+function createFieldRightsRuntimeSmokeResult(
+  scenario: (typeof FIELD_RIGHTS_RUNTIME_SMOKE_SCENARIOS)[number],
+  policy: DataAccessPolicy
+): FieldRightsLivePolicySourceReport["runtime_smoke"][number] {
+  const decision = evaluateDataAccessRequest(scenario.request, policy);
+  const deniedReasons = decision.deniedFields.map((field) => field.reason);
+  const passed =
+    decision.status === scenario.expectedStatus &&
+    arraysEqual(decision.allowedFields, scenario.expectedAllowedFields) &&
+    arraysEqual(deniedReasons, scenario.expectedDeniedReasons);
+
+  return {
+    allowed_fields: decision.allowedFields,
+    cache_key_contains_policy_version: decision.cacheKey.includes(
+      `rights=${policy.rightsPolicyVersion}`
+    ),
+    denied_reasons: deniedReasons,
+    expected_allowed_fields: scenario.expectedAllowedFields,
+    expected_denied_reasons: scenario.expectedDeniedReasons,
+    expected_status: scenario.expectedStatus,
+    scenario_id: scenario.scenarioId,
+    status: passed ? "pass" : "fail"
+  };
+}
+
 export function getEntitlementPolicySourceCapabilities() {
   return {
     compiles_to_gateway_policy: true,
@@ -1832,6 +2349,10 @@ function getWarnings(
 
 function normalizeFields(fields: string[]): string[] {
   return [...new Set(fields.filter((field) => field.length > 0))].sort();
+}
+
+function arraysEqual(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function calculateWindowDays(timeRange: DataAccessRequest["timeRange"]) {

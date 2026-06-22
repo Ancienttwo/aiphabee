@@ -5764,6 +5764,20 @@ interface GatewayRuntimeBody {
     field_entitlement_enforcement: {
       dimensions: string[];
       live_policy_source: boolean;
+      live_policy_source_readiness: {
+        compiles_partner_matrix_to_db_rows: boolean;
+        compiles_to_gateway_policy: boolean;
+        default_deny_preserved: boolean;
+        external_activation_status: string;
+        frontend: boolean;
+        live_db_reads: boolean;
+        live_partner_rights_matrix_reads: boolean;
+        persistent_writes: boolean;
+        route: string;
+        runtime_route: string;
+        sql_emitted: boolean;
+        status: string;
+      };
       operations_config: {
         approval_required: boolean;
         default_deny_preserved: boolean;
@@ -5934,6 +5948,55 @@ interface GatewayRuntimeBody {
     };
   };
   ok: true;
+}
+
+interface FieldRightsLivePolicySourceReadinessBody {
+  data: {
+    external_activation: {
+      blockers: string[];
+      status: string;
+    };
+    live_db_reads: boolean;
+    live_partner_rights_matrix_reads: boolean;
+    partner_matrix_fixture: {
+      matrix_rows: Array<{
+        channel: string;
+        dataset: string;
+        field_pattern: string;
+      }>;
+      signed_external_matrix_loaded: boolean;
+    };
+    policy_source: {
+      rowCounts: {
+        dataEntitlements: number;
+        subscriptionRows: number;
+        workspaceEntitlements: number;
+      };
+      status: string;
+    };
+    readiness: {
+      db_rows_compiled: boolean;
+      default_deny_preserved: boolean;
+      partner_matrix_fixture_loaded: boolean;
+      runtime_smoke_passed: boolean;
+      versioned_cache_key_verified: boolean;
+    };
+    rights_policy_version: string;
+    runtime_smoke: Array<{
+      scenario_id: string;
+      status: string;
+    }>;
+    status: string;
+    validation: {
+      partner_matrix_rows: number;
+      smoke_count: number;
+      source_records: number;
+    };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface P0RightsMatrixCoverageBody {
@@ -17534,6 +17597,20 @@ describe("worker runtime", () => {
         "export"
       ],
       live_policy_source: false,
+      live_policy_source_readiness: {
+        compiles_partner_matrix_to_db_rows: true,
+        compiles_to_gateway_policy: true,
+        default_deny_preserved: true,
+        external_activation_status: "blocked_external_activation",
+        frontend: false,
+        live_db_reads: false,
+        live_partner_rights_matrix_reads: false,
+        persistent_writes: false,
+        route: "GET /gateway/field-rights/live-policy-source/readiness",
+        runtime_route: "GET /gateway/runtime",
+        sql_emitted: false,
+        status: "field_rights_live_policy_source_readiness_scaffold"
+      },
       operations_config: {
         approval_required: true,
         default_deny_preserved: true,
@@ -17710,6 +17787,67 @@ describe("worker runtime", () => {
       ],
       weighted_credits: true
     });
+  });
+
+  it("serves field rights live policy source readiness without live DB reads", async () => {
+    const response = await app.request("/gateway/field-rights/live-policy-source/readiness", {
+      headers: {
+        "x-request-id": "req-field-rights-live-policy-source"
+      }
+    });
+    const body = (await response.json()) as FieldRightsLivePolicySourceReadinessBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("live_policy_source_readiness_passed");
+    expect(body.data.live_db_reads).toBe(false);
+    expect(body.data.live_partner_rights_matrix_reads).toBe(false);
+    expect(body.data.rights_policy_version).toBe("field-rights-live-policy-source-fixture-v0");
+    expect(body.data.external_activation).toEqual({
+      blockers: [
+        "partner_signed_matrix_absent",
+        "live_db_read_path_not_enabled",
+        "ops_cutover_not_approved"
+      ],
+      status: "blocked_external_activation"
+    });
+    expect(body.data.partner_matrix_fixture.matrix_rows).toHaveLength(4);
+    expect(body.data.partner_matrix_fixture.signed_external_matrix_loaded).toBe(false);
+    expect(body.data.policy_source).toMatchObject({
+      rowCounts: {
+        dataEntitlements: 4,
+        subscriptionRows: 3,
+        workspaceEntitlements: 4
+      },
+      status: "policy_source_scaffold"
+    });
+    expect(body.data.readiness).toEqual({
+      db_rows_compiled: true,
+      default_deny_preserved: true,
+      partner_matrix_fixture_loaded: true,
+      runtime_smoke_passed: true,
+      versioned_cache_key_verified: true
+    });
+    expect(body.data.runtime_smoke).toHaveLength(6);
+    expect(body.data.runtime_smoke).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scenario_id: "developer_mcp_quote_redaction",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          scenario_id: "team_export_price_history_allowed",
+          status: "pass"
+        })
+      ])
+    );
+    expect(body.data.validation).toEqual({
+      partner_matrix_rows: 4,
+      smoke_count: 6,
+      source_records: 8
+    });
+    expect(body.usage.rows).toBe(6);
   });
 
   it("serves P0 rights matrix coverage with default-deny release gate", async () => {

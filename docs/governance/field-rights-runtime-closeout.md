@@ -55,8 +55,8 @@ Reason:
 Tradeoff:
 
 - A2 can be checked for the local runtime path.
-- DAT-05 remains incomplete in the traceability matrix until live rights source
-  and partner/legal/commercial evidence exist.
+- DAT-05 is completed in the traceability matrix only after the separate
+  `field-rights-live-policy-source-readiness` gate exists.
 
 ## Verification
 

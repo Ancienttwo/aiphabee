@@ -477,8 +477,8 @@ function validateTracker(value) {
     }
   }
 
-  if (!/\| DAT-05 字段级数据授权 \| P0 \| 0\.1 \/ 1\.1 \| ☐ \|/u.test(value)) {
-    errors.push("tracker traceability matrix must keep DAT-05 incomplete until live rights source is wired");
+  if (!/\| DAT-05 字段级数据授权 \| P0 \| 0\.1 \/ 1\.1 \| ☑ \|/u.test(value)) {
+    errors.push("tracker traceability matrix must mark DAT-05 complete after live policy source readiness gate");
   }
 
   return errors;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DATA_ACCESS_POLICY,
   createDataCoverageReleaseGateReport,
+  createFieldRightsLivePolicySourceReadinessReport,
   createFieldAuthorizationConfigChangePlan,
   createP0RightsMatrixCoverageReport,
   createRestrictedExportPlan,
@@ -10,6 +11,7 @@ import {
   createSyntheticWorkspaceEntitlementPolicy,
   evaluateDataAccessRequest,
   getDataCoverageReleaseGateCapabilities,
+  getFieldRightsLivePolicySourceCapabilities,
   getFieldAuthorizationConfigCapabilities,
   getEntitlementPolicySourceCapabilities,
   getP0RightsMatrixCoverageCapabilities,
@@ -896,6 +898,135 @@ describe("data access gateway", () => {
       all_required_freshness_tiers_present: true,
       coverage_domain_count: 4,
       freshness_tier_count: 3
+    });
+  });
+
+  it("reports field rights live policy source readiness without enabling live reads", () => {
+    expect(getFieldRightsLivePolicySourceCapabilities()).toMatchObject({
+      compiles_partner_matrix_to_db_rows: true,
+      compiles_to_gateway_policy: true,
+      default_deny_preserved: true,
+      external_activation_status: "blocked_external_activation",
+      fixture_version: "field-rights-live-policy-source@partner-db-fixture-v0",
+      frontend: false,
+      live_db_reads: false,
+      live_partner_rights_matrix_reads: false,
+      persistent_writes: false,
+      route: "GET /gateway/field-rights/live-policy-source/readiness",
+      runtime_route: "GET /gateway/runtime",
+      sql_emitted: false,
+      status: "field_rights_live_policy_source_readiness_scaffold"
+    });
+    expect(getFieldRightsLivePolicySourceCapabilities().required_dimensions).toEqual([
+      "workspace",
+      "plan",
+      "channel",
+      "dataset",
+      "field",
+      "time_range",
+      "export"
+    ]);
+  });
+
+  it("compiles partner matrix fixtures and DB rows into runtime field-rights smoke checks", () => {
+    const report = createFieldRightsLivePolicySourceReadinessReport({
+      asOf: "2026-06-22T00:00:00.000Z"
+    });
+
+    expect(report).toMatchObject({
+      default_rights_status: "default_deny",
+      fixture_version: "field-rights-live-policy-source@partner-db-fixture-v0",
+      frontend: false,
+      live_db_reads: false,
+      live_partner_rights_matrix_reads: false,
+      persistent_writes: false,
+      rights_policy_version: "field-rights-live-policy-source-fixture-v0",
+      sql_emitted: false,
+      status: "live_policy_source_readiness_passed"
+    });
+    expect(report.external_activation).toMatchObject({
+      blockers: [
+        "partner_signed_matrix_absent",
+        "live_db_read_path_not_enabled",
+        "ops_cutover_not_approved"
+      ],
+      status: "blocked_external_activation"
+    });
+    expect(report.partner_matrix_fixture.matrix_rows).toHaveLength(4);
+    expect(report.partner_matrix_fixture.required_prd_dimensions).toEqual([
+      "owner_source",
+      "web_display",
+      "mcp_api_redistribution",
+      "raw_vs_derived",
+      "freshness_tier",
+      "history_window",
+      "export_and_cache",
+      "user_type_region",
+      "subscriber_reporting",
+      "audit_termination",
+      "commercial_terms"
+    ]);
+    expect(report.policy_source).toMatchObject({
+      liveDbReads: false,
+      partnerRightsMatrixLoaded: false,
+      rowCounts: {
+        dataEntitlements: 4,
+        subscriptionRows: 3,
+        workspaceEntitlements: 4
+      },
+      sqlEmitted: false,
+      status: "policy_source_scaffold"
+    });
+    expect(report.readiness).toEqual({
+      db_rows_compiled: true,
+      default_deny_preserved: true,
+      partner_matrix_fixture_loaded: true,
+      runtime_smoke_passed: true,
+      versioned_cache_key_verified: true
+    });
+    expect(report.runtime_smoke).toHaveLength(6);
+    expect(report.runtime_smoke).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          allowed_fields: ["quote_snapshot.last_price"],
+          denied_reasons: ["field_blocked"],
+          scenario_id: "developer_mcp_quote_redaction",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          allowed_fields: ["price_history.close"],
+          denied_reasons: [],
+          expected_status: "allow",
+          scenario_id: "team_export_price_history_allowed",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          denied_reasons: ["workspace_entitlement_default_deny"],
+          expected_status: "deny",
+          scenario_id: "missing_workspace_default_deny",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          denied_reasons: ["field_default_deny"],
+          scenario_id: "pro_web_financial_field_default_deny",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          denied_reasons: ["time_range_blocked"],
+          scenario_id: "developer_mcp_quote_time_range_blocked",
+          status: "pass"
+        }),
+        expect.objectContaining({
+          denied_reasons: ["export_blocked"],
+          scenario_id: "developer_mcp_quote_export_blocked",
+          status: "pass"
+        })
+      ])
+    );
+    expect(report.validation).toEqual({
+      partner_matrix_rows: 4,
+      smoke_count: 6,
+      source_records: 8
     });
   });
 

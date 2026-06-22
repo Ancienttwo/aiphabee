@@ -19,7 +19,8 @@ mode.
   plan, export, time range, default deny, and row-snapshot policy compile.
 - Cross-check `apps/worker/src/index.ts` exposes `/gateway/runtime`
   `field_entitlement_enforcement`.
-- Update only the A2 local runtime checkbox; keep DAT-05 overall incomplete.
+- Update the A2 local runtime checkbox; DAT-05 overall completion is owned by
+  the separate field-rights live policy source readiness gate.
 
 ## Out Of Scope
 

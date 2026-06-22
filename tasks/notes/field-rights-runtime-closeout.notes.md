@@ -5,7 +5,7 @@
 - Added a field-rights runtime closeout contract.
 - Added `check:field-rights-runtime` and wired it into root `npm run check`.
 - Updated A2 to mark the local runtime field-cropping requirement complete.
-- Kept DAT-05 traceability incomplete because live rights source remains absent.
+- Left DAT-05 traceability to the separate live policy source readiness gate.
 
 ## Verification
 

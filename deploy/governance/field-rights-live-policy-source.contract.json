@@ -1,0 +1,82 @@
+{
+  "version": "2026-06-22.phase1.field-rights-live-policy-source-readiness.v0",
+  "status": "local_contract",
+  "tracker_item": "DAT-05 field rights live policy source readiness",
+  "package": "@aiphabee/data-access-gateway",
+  "runtime_route": "GET /gateway/runtime",
+  "route": "GET /gateway/field-rights/live-policy-source/readiness",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "live_db_reads": false,
+  "live_partner_rights_matrix_reads": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "fixture_version": "field-rights-live-policy-source@partner-db-fixture-v0",
+  "rights_policy_version": "field-rights-live-policy-source-fixture-v0",
+  "covered_prd_items": [
+    "DAT-05"
+  ],
+  "required_dimensions": [
+    "workspace",
+    "plan",
+    "channel",
+    "dataset",
+    "field",
+    "time_range",
+    "export"
+  ],
+  "required_prd_dimensions": [
+    "owner_source",
+    "web_display",
+    "mcp_api_redistribution",
+    "raw_vs_derived",
+    "freshness_tier",
+    "history_window",
+    "export_and_cache",
+    "user_type_region",
+    "subscriber_reporting",
+    "audit_termination",
+    "commercial_terms"
+  ],
+  "expected_row_counts": {
+    "partner_matrix_rows": 4,
+    "data_entitlements": 4,
+    "workspace_entitlements": 4,
+    "subscription_rows": 3,
+    "runtime_smoke_scenarios": 6,
+    "source_records": 8
+  },
+  "required_smoke_scenarios": [
+    "developer_mcp_quote_redaction",
+    "pro_web_financial_field_default_deny",
+    "team_export_price_history_allowed",
+    "developer_mcp_quote_time_range_blocked",
+    "missing_workspace_default_deny",
+    "developer_mcp_quote_export_blocked"
+  ],
+  "required_denial_reasons": [
+    "field_blocked",
+    "field_default_deny",
+    "time_range_blocked",
+    "workspace_entitlement_default_deny",
+    "export_blocked"
+  ],
+  "external_activation_blockers": [
+    "partner_signed_matrix_absent",
+    "live_db_read_path_not_enabled",
+    "ops_cutover_not_approved"
+  ],
+  "linked_contracts": [
+    "deploy/governance/field-rights-runtime.contract.json",
+    "deploy/gateway/field-authorization-config.contract.json",
+    "deploy/gateway/p0-rights-matrix-coverage.contract.json",
+    "deploy/gateway/access.contract.json"
+  ],
+  "tables": [
+    "core.data_entitlement",
+    "core.workspace_entitlement",
+    "core.workspace_subscription",
+    "core.p0_rights_matrix_entry"
+  ]
+}
