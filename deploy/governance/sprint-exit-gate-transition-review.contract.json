@@ -39,22 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "developer_console_live_e2e_missing": {
-      "owner_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
-      "owner_check_commands": [
-        "check:mcp-target-client-live-e2e-transition-review",
-        "check:frontend-release-evidence-handoff",
-        "check:frontend-release-evidence-packets"
-      ],
-      "closure_evidence_refs": [
-        "mcp_inspector",
-        "typescript_sdk_client",
-        "claude_desktop",
-        "cursor",
-        "chatgpt_connector",
-        "developer_console_ui"
-      ]
-    },
     "multilingual_event_research_live_outputs_missing": {
       "owner_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
       "owner_check_commands": [
@@ -219,12 +203,11 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
-      "manual_blocking_conditions": ["developer_console_live_e2e_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
         "blocker_manifest:mcp_target_client_live_e2e",
-        "blocker_manifest:frontend_release_evidence",
-        "developer_console_live_e2e_missing"
+        "blocker_manifest:frontend_release_evidence"
       ]
     },
     {
@@ -399,7 +382,9 @@
     "Comparison screening frontend blocker 已转为 frontend manifest blocker",
     "| 2026-06-23 | 1.0id | 完成 `comparison-screening-frontend-blocker-routing`",
     "Research library frontend blocker 已转为 frontend manifest blocker",
-    "| 2026-06-23 | 1.0ie | 完成 `research-library-frontend-blocker-routing`"
+    "| 2026-06-23 | 1.0ie | 完成 `research-library-frontend-blocker-routing`",
+    "Developer Console live E2E blocker 已转为 MCP/frontend manifest blocker",
+    "| 2026-06-23 | 1.0if | 完成 `developer-console-live-e2e-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -416,7 +401,8 @@
     "Production user run frontend blocker routing",
     "Internal account/eval frontend blocker routing",
     "Comparison screening frontend blocker routing",
-    "Research library frontend blocker routing"
+    "Research library frontend blocker routing",
+    "Developer Console live E2E blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
