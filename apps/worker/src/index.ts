@@ -121,6 +121,7 @@ import {
   getEvidenceServiceCapabilities
 } from "@aiphabee/evidence-lineage";
 import {
+  createUserPublicDataJoinPrivacyPlan,
   diffAnnouncements,
   getAnnouncement,
   getAnnouncementCapabilities,
@@ -128,6 +129,7 @@ import {
   getDocumentToolsCapabilities,
   getSearchAnnouncementsCapabilities,
   getSearchDocumentsCapabilities,
+  getUserPublicDataJoinPrivacyCapabilities,
   searchDocuments,
   searchAnnouncements
 } from "@aiphabee/document-tools";
@@ -3943,6 +3945,55 @@ app.post("/documents/diff-announcements", async (c) => {
         ],
         requestId,
         usage: result.usage
+      }
+    )
+  );
+});
+
+app.post("/documents/user-public-data-join/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createUserPublicDataJoinPrivacyPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    customLayoutId: normalizeString(body.custom_layout_id ?? body.customLayoutId),
+    fieldAuthorizationPolicyId: normalizeString(
+      body.field_authorization_policy_id ?? body.fieldAuthorizationPolicyId
+    ),
+    joinKeys: normalizeStringArray(body.join_keys ?? body.joinKeys),
+    privacyPolicyId: normalizeString(body.privacy_policy_id ?? body.privacyPolicyId),
+    publicDataScope: normalizeString(body.public_data_scope ?? body.publicDataScope),
+    requestId,
+    requestedFields: normalizeStringArray(body.requested_fields ?? body.requestedFields),
+    retentionPolicyId: normalizeString(body.retention_policy_id ?? body.retentionPolicyId),
+    userConsentId: normalizeString(body.user_consent_id ?? body.userConsentId),
+    userFileId: normalizeString(body.user_file_id ?? body.userFileId),
+    userFileSha256: normalizeString(body.user_file_sha256 ?? body.userFileSha256),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getUserPublicDataJoinPrivacyCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: [
+          {
+            data_version: plan.data_version,
+            methodology_version: plan.methodology_version,
+            source: "document-user-public-data-join-privacy",
+            source_record_id: "user-public-data-join-privacy-plan"
+          }
+        ],
+        requestId,
+        usage: plan.usage
       }
     )
   );

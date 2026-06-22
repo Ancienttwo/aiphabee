@@ -2714,6 +2714,19 @@ interface DocumentRuntimeBody {
       untrusted_document_policy: boolean;
       vector_search: boolean;
     };
+    user_public_data_join_privacy: {
+      custom_layout_metadata_only: boolean;
+      document_sanitizer_required: boolean;
+      field_authorization_required: boolean;
+      gateway_access_route: string;
+      join_execution_live: boolean;
+      live_upload_storage: boolean;
+      public_data_live_read: boolean;
+      raw_file_body_persisted: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
     status: string;
   };
   ok: true;
@@ -3003,6 +3016,75 @@ interface DiffAnnouncementsBody {
     status: string;
     toolName: string;
     vector_search: boolean;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface UserPublicDataJoinPrivacyBody {
+  data: {
+    blockers: string[];
+    boundaries: {
+      frontend_rendering: boolean;
+      join_execution_live: boolean;
+      live_upload_storage: boolean;
+      persistent_writes: boolean;
+      public_data_live_read: boolean;
+      raw_file_body_persisted: boolean;
+      sql_emitted: boolean;
+    };
+    capability: {
+      field_authorization_required: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    custom_layout: {
+      layout_id: string;
+      layout_metadata_only: boolean;
+      layout_scope: string;
+      references_public_data_scope_by_id_only: boolean;
+      references_user_file_by_id_only: boolean;
+      save_status: string;
+    };
+    join_plan: {
+      join_execution_live: boolean;
+      join_key_policy: string;
+      join_keys: string[];
+      public_output_contains_user_private_data: boolean;
+      row_level_workspace_filter: boolean;
+    };
+    privacy_contract: {
+      consent_required: boolean;
+      cross_workspace_join: boolean;
+      document_sanitizer_required: boolean;
+      field_authorization_required: boolean;
+      public_data_rights_expansion: boolean;
+    };
+    prd_items: string[];
+    public_data: {
+      field_authorization_policy_id?: string;
+      gateway_access_route: string;
+      gateway_export_route: string;
+      public_data_live_read: boolean;
+      requested_fields: string[];
+      scope?: string;
+    };
+    route: string;
+    runtime_route: string;
+    status: string;
+    toolName: string;
+    user_file: {
+      content_is_untrusted_data: boolean;
+      file_id?: string;
+      file_sha256?: string;
+      raw_file_body_persisted: boolean;
+      upload_storage_live: boolean;
+      user_file_scope: string;
+    };
   };
   ok: true;
   usage: {
@@ -11754,6 +11836,19 @@ describe("worker runtime", () => {
       untrusted_document_policy: true,
       vector_search: false
     });
+    expect(body.data.user_public_data_join_privacy).toMatchObject({
+      custom_layout_metadata_only: true,
+      document_sanitizer_required: true,
+      field_authorization_required: true,
+      gateway_access_route: "POST /gateway/access-check",
+      join_execution_live: false,
+      live_upload_storage: false,
+      public_data_live_read: false,
+      raw_file_body_persisted: false,
+      route: "POST /documents/user-public-data-join/plan",
+      status: "user_public_data_join_privacy_scaffold",
+      tool_name: "user_public_data_join_privacy_plan"
+    });
   });
 
   it("searches announcements by company, date, category, and keyword", async () => {
@@ -12043,6 +12138,134 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("not_found");
     expect(body.data.results).toEqual([]);
+    expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans user uploaded file and public data joins without leaking private inputs", async () => {
+    const response = await app.request("/documents/user-public-data-join/plan", {
+      body: JSON.stringify({
+        custom_layout_id: "layout_research_view_1",
+        field_authorization_policy_id: "field_policy_default_deny_v0",
+        join_keys: ["instrument_id", "period", "unknown_key"],
+        privacy_policy_id: "privacy_policy_v0",
+        public_data_scope: "hk_market_announcements_delayed",
+        requested_fields: [
+          "public_data.document_id",
+          "public_data.published_at",
+          "user_file.metric_label"
+        ],
+        retention_policy_id: "retention_policy_v0",
+        user_consent_id: "consent_doc05_1",
+        user_file_id: "user_file_upload_1",
+        user_file_sha256: "sha256:3b7c",
+        workspace_id: "ws_research_1"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-user-public-data-join"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UserPublicDataJoinPrivacyBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      route: "POST /documents/user-public-data-join/plan",
+      runtime_route: "GET /documents/runtime",
+      status: "planned_no_write",
+      toolName: "user_public_data_join_privacy_plan"
+    });
+    expect(body.data.capability).toMatchObject({
+      field_authorization_required: true,
+      route: "POST /documents/user-public-data-join/plan",
+      status: "user_public_data_join_privacy_scaffold",
+      tool_name: "user_public_data_join_privacy_plan"
+    });
+    expect(body.data.prd_items).toEqual(["DOC-05", "STK-08"]);
+    expect(body.data.boundaries).toMatchObject({
+      frontend_rendering: false,
+      join_execution_live: false,
+      live_upload_storage: false,
+      persistent_writes: false,
+      public_data_live_read: false,
+      raw_file_body_persisted: false,
+      sql_emitted: false
+    });
+    expect(body.data.user_file).toMatchObject({
+      content_is_untrusted_data: true,
+      file_id: "user_file_upload_1",
+      file_sha256: "sha256:3b7c",
+      raw_file_body_persisted: false,
+      upload_storage_live: false,
+      user_file_scope: "workspace_private"
+    });
+    expect(body.data.public_data).toMatchObject({
+      field_authorization_policy_id: "field_policy_default_deny_v0",
+      gateway_access_route: "POST /gateway/access-check",
+      gateway_export_route: "POST /gateway/exports/plan",
+      public_data_live_read: false,
+      requested_fields: [
+        "public_data.document_id",
+        "public_data.published_at",
+        "user_file.metric_label"
+      ],
+      scope: "hk_market_announcements_delayed"
+    });
+    expect(body.data.join_plan).toMatchObject({
+      join_execution_live: false,
+      join_key_policy: "explicit_allowlist",
+      join_keys: ["instrument_id", "period"],
+      public_output_contains_user_private_data: false,
+      row_level_workspace_filter: true
+    });
+    expect(body.data.custom_layout).toMatchObject({
+      layout_id: "layout_research_view_1",
+      layout_metadata_only: true,
+      layout_scope: "workspace_private",
+      references_public_data_scope_by_id_only: true,
+      references_user_file_by_id_only: true,
+      save_status: "planned_no_write"
+    });
+    expect(body.data.privacy_contract).toMatchObject({
+      consent_required: true,
+      cross_workspace_join: false,
+      document_sanitizer_required: true,
+      field_authorization_required: true,
+      public_data_rights_expansion: false
+    });
+    expect(body.data.blockers).toEqual([]);
+    expect(body.usage.rows).toBe(1);
+  });
+
+  it("blocks user file joins when consent is missing", async () => {
+    const response = await app.request("/documents/user-public-data-join/plan", {
+      body: JSON.stringify({
+        field_authorization_policy_id: "field_policy_default_deny_v0",
+        join_keys: ["instrument_id"],
+        privacy_policy_id: "privacy_policy_v0",
+        public_data_scope: "hk_market_announcements_delayed",
+        requested_fields: ["public_data.document_id"],
+        retention_policy_id: "retention_policy_v0",
+        user_file_id: "user_file_upload_1",
+        user_file_sha256: "sha256:3b7c",
+        workspace_id: "ws_research_1"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-user-public-data-join-missing-consent"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as UserPublicDataJoinPrivacyBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_missing_consent");
+    expect(body.data.blockers).toContain("user_consent_id_required");
+    expect(body.data.boundaries.join_execution_live).toBe(false);
+    expect(body.data.boundaries.persistent_writes).toBe(false);
     expect(body.usage.rows).toBe(0);
   });
 

@@ -15,6 +15,8 @@ export const DOCUMENT_SEMANTIC_SEARCH_VERSION =
   "2026-06-21.phase2.semantic-document-search-scaffold.v0";
 export const DOCUMENT_DIFF_EXTRACTION_VERSION =
   "2026-06-21.phase2.announcement-diff-extraction-scaffold.v0";
+export const USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION =
+  "2026-06-22.phase4.user-public-data-join-privacy-scaffold.v0";
 
 export type SearchAnnouncementCategory = "buyback" | "dividend" | "results";
 export type SearchAnnouncementLanguage = "en" | "zh-Hant";
@@ -30,6 +32,16 @@ export type SearchDocumentsStatus = "found" | "not_found";
 export type DiffAnnouncementsStatus = "found" | "not_found" | "schema_invalid";
 export type ExtractedNumericFieldId = "operating_profit" | "revenue";
 export type ExtractedNumericDocumentRole = "base" | "comparison";
+export type UserPublicDataJoinPrivacyStatus =
+  | "planned_no_write"
+  | "blocked_missing_workspace"
+  | "blocked_missing_user_file"
+  | "blocked_missing_consent"
+  | "blocked_missing_public_data_scope"
+  | "blocked_missing_field_authorization"
+  | "blocked_missing_join_keys"
+  | "blocked_missing_privacy_policy"
+  | "blocked_missing_retention_policy";
 
 export interface DocumentTrustPolicy {
   content_is_untrusted_data: true;
@@ -80,6 +92,22 @@ export interface DiffAnnouncementsInput {
   comparisonDocumentId?: string;
   requestId: string;
   sections?: string[];
+}
+
+export interface UserPublicDataJoinPrivacyPlanInput {
+  asOf?: string;
+  customLayoutId?: string;
+  fieldAuthorizationPolicyId?: string;
+  joinKeys?: string[];
+  privacyPolicyId?: string;
+  publicDataScope?: string;
+  requestId: string;
+  requestedFields?: string[];
+  retentionPolicyId?: string;
+  userConsentId?: string;
+  userFileId?: string;
+  userFileSha256?: string;
+  workspaceId?: string;
 }
 
 export interface AnnouncementEvidenceLocator {
@@ -400,6 +428,91 @@ export interface DiffAnnouncementsResult {
   vector_search: false;
 }
 
+export interface UserPublicDataJoinPrivacyPlan {
+  as_of: string;
+  blockers: string[];
+  boundaries: {
+    frontend_rendering: false;
+    join_execution_live: false;
+    live_upload_storage: false;
+    model_calls: false;
+    persistent_writes: false;
+    public_data_live_read: false;
+    r2_writes: false;
+    raw_file_body_persisted: false;
+    sql_emitted: false;
+  };
+  custom_layout: {
+    frontend_rendering: false;
+    layout_id: string;
+    layout_metadata_only: true;
+    layout_scope: "workspace_private";
+    references_public_data_scope_by_id_only: true;
+    references_user_file_by_id_only: true;
+    save_status: "planned_no_write";
+  };
+  data_version: typeof USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION;
+  document_trust_policy: DocumentTrustPolicy;
+  frontend_rendering: false;
+  join_plan: {
+    join_execution_live: false;
+    join_key_policy: "explicit_allowlist";
+    join_keys: string[];
+    public_output_contains_user_private_data: false;
+    row_level_workspace_filter: true;
+    synthetic_join_plan_only: true;
+  };
+  linked_contracts: readonly string[];
+  live_data_access: false;
+  methodology_version: typeof USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION;
+  package: "@aiphabee/document-tools";
+  privacy_contract: {
+    audit_event_metadata_only: true;
+    consent_id?: string;
+    consent_required: true;
+    cross_workspace_join: false;
+    deletion_policy_required: true;
+    document_sanitizer_required: true;
+    field_authorization_required: true;
+    privacy_policy_id?: string;
+    public_data_rights_expansion: false;
+    retention_policy_id?: string;
+    user_file_reused_for_model_training: false;
+  };
+  prd_items: readonly ["DOC-05", "STK-08"];
+  public_data: {
+    field_authorization_policy_id?: string;
+    field_minimization: true;
+    gateway_access_route: "POST /gateway/access-check";
+    gateway_export_route: "POST /gateway/exports/plan";
+    public_data_live_read: false;
+    requested_fields: string[];
+    redistribution_requires_gateway: true;
+    scope?: string;
+  };
+  route: "POST /documents/user-public-data-join/plan";
+  runtime_route: "GET /documents/runtime";
+  sanitization_policy: DocumentSanitizationPolicy;
+  sql_emitted: false;
+  status: UserPublicDataJoinPrivacyStatus;
+  toolName: "user_public_data_join_privacy_plan";
+  usage: {
+    cached: false;
+    credits: 0;
+    rows: number;
+  };
+  user_file: {
+    content_is_untrusted_data: true;
+    file_id?: string;
+    file_sha256?: string;
+    raw_file_body_persisted: false;
+    upload_storage_live: false;
+    user_file_scope: "workspace_private";
+  };
+  version: typeof USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION;
+  workspace_id?: string;
+}
+
 interface SyntheticAnnouncementRecord {
   announcement_id: string;
   category: SearchAnnouncementCategory;
@@ -446,6 +559,19 @@ const DEFAULT_EXCERPT_CHARS = 240;
 const MAX_EXCERPT_CHARS = 400;
 const DEFAULT_SEMANTIC_MIN_SCORE = 0.15;
 const ALL_CATEGORIES: SearchAnnouncementCategory[] = ["results", "dividend", "buyback"];
+const USER_PUBLIC_DATA_JOIN_SUPPORTED_KEYS = [
+  "instrument_id",
+  "document_id",
+  "period",
+  "source_record_id"
+] as const;
+const USER_PUBLIC_DATA_JOIN_LINKED_CONTRACTS = [
+  "deploy/documents/search-documents.contract.json",
+  "deploy/documents/document-sanitizer.contract.json",
+  "deploy/gateway/access.contract.json",
+  "deploy/gateway/restricted-exports.contract.json",
+  "deploy/gateway/field-authorization-config.contract.json"
+] as const;
 
 const SYNTHETIC_ANNOUNCEMENTS: readonly SyntheticAnnouncementRecord[] = [
   {
@@ -669,6 +795,44 @@ export function getDiffAnnouncementsCapabilities() {
   };
 }
 
+export function getUserPublicDataJoinPrivacyCapabilities() {
+  return {
+    custom_layout_metadata_only: true,
+    document_sanitizer_required: true,
+    field_authorization_required: true,
+    frontend_rendering: false,
+    gateway_access_route: "POST /gateway/access-check" as const,
+    gateway_export_route: "POST /gateway/exports/plan" as const,
+    join_execution_live: false,
+    live_data_access: false,
+    live_upload_storage: false,
+    package: "@aiphabee/document-tools" as const,
+    persistent_writes: false,
+    prd_items: ["DOC-05", "STK-08"] as const,
+    public_data_live_read: false,
+    raw_file_body_persisted: false,
+    route: "POST /documents/user-public-data-join/plan" as const,
+    runtime_route: "GET /documents/runtime" as const,
+    status: "user_public_data_join_privacy_scaffold" as const,
+    supported_inputs: [
+      "workspace_id",
+      "user_file_id",
+      "user_file_sha256",
+      "user_consent_id",
+      "public_data_scope",
+      "field_authorization_policy_id",
+      "join_keys",
+      "requested_fields",
+      "privacy_policy_id",
+      "retention_policy_id",
+      "custom_layout_id"
+    ] as const,
+    supported_join_keys: USER_PUBLIC_DATA_JOIN_SUPPORTED_KEYS,
+    tool_name: "user_public_data_join_privacy_plan" as const,
+    version: USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION
+  };
+}
+
 export function getDocumentToolsCapabilities() {
   return {
     diff_announcements: getDiffAnnouncementsCapabilities(),
@@ -682,13 +846,165 @@ export function getDocumentToolsCapabilities() {
       "POST /documents/search-announcements",
       "POST /documents/get-announcement",
       "POST /documents/search-documents",
-      "POST /documents/diff-announcements"
+      "POST /documents/diff-announcements",
+      "POST /documents/user-public-data-join/plan"
     ] as const,
     runtime_route: "GET /documents/runtime" as const,
     search_announcements: getSearchAnnouncementsCapabilities(),
     search_documents: getSearchDocumentsCapabilities(),
     status: "document_tools_scaffold" as const,
+    user_public_data_join_privacy: getUserPublicDataJoinPrivacyCapabilities(),
     version: DOCUMENT_TOOLS_RUNTIME_VERSION
+  };
+}
+
+export function createUserPublicDataJoinPrivacyPlan(
+  input: UserPublicDataJoinPrivacyPlanInput
+): UserPublicDataJoinPrivacyPlan {
+  const asOf = input.asOf ?? "2026-06-22T00:00:00+08:00";
+  const workspaceId = normalizePlanText(input.workspaceId);
+  const userFileId = normalizePlanText(input.userFileId);
+  const userFileSha256 = normalizePlanText(input.userFileSha256);
+  const userConsentId = normalizePlanText(input.userConsentId);
+  const publicDataScope = normalizePlanText(input.publicDataScope);
+  const fieldAuthorizationPolicyId = normalizePlanText(input.fieldAuthorizationPolicyId);
+  const privacyPolicyId = normalizePlanText(input.privacyPolicyId);
+  const retentionPolicyId = normalizePlanText(input.retentionPolicyId);
+  const joinKeys = normalizeUserPublicDataJoinKeys(input.joinKeys);
+  const requestedFields = normalizeUserPublicDataJoinFields(input.requestedFields);
+  const customLayoutId =
+    normalizePlanText(input.customLayoutId) ??
+    `${workspaceId ?? "workspace_pending"}:research-view-layout`;
+  const blockers: string[] = [];
+  let status: UserPublicDataJoinPrivacyStatus = "planned_no_write";
+  const addBlocker = (
+    condition: boolean,
+    nextStatus: UserPublicDataJoinPrivacyStatus,
+    blocker: string
+  ) => {
+    if (!condition) {
+      return;
+    }
+
+    if (status === "planned_no_write") {
+      status = nextStatus;
+    }
+
+    blockers.push(blocker);
+  };
+
+  addBlocker(workspaceId === undefined, "blocked_missing_workspace", "workspace_id_required");
+  addBlocker(
+    userFileId === undefined || userFileSha256 === undefined,
+    "blocked_missing_user_file",
+    "user_file_id_and_sha256_required"
+  );
+  addBlocker(userConsentId === undefined, "blocked_missing_consent", "user_consent_id_required");
+  addBlocker(
+    publicDataScope === undefined,
+    "blocked_missing_public_data_scope",
+    "public_data_scope_required"
+  );
+  addBlocker(
+    fieldAuthorizationPolicyId === undefined || requestedFields.length === 0,
+    "blocked_missing_field_authorization",
+    "field_authorization_policy_id_and_requested_fields_required"
+  );
+  addBlocker(joinKeys.length === 0, "blocked_missing_join_keys", "explicit_join_keys_required");
+  addBlocker(
+    privacyPolicyId === undefined,
+    "blocked_missing_privacy_policy",
+    "privacy_policy_id_required"
+  );
+  addBlocker(
+    retentionPolicyId === undefined,
+    "blocked_missing_retention_policy",
+    "retention_policy_id_required"
+  );
+
+  return {
+    as_of: asOf,
+    blockers,
+    boundaries: {
+      frontend_rendering: false,
+      join_execution_live: false,
+      live_upload_storage: false,
+      model_calls: false,
+      persistent_writes: false,
+      public_data_live_read: false,
+      r2_writes: false,
+      raw_file_body_persisted: false,
+      sql_emitted: false
+    },
+    custom_layout: {
+      frontend_rendering: false,
+      layout_id: customLayoutId,
+      layout_metadata_only: true,
+      layout_scope: "workspace_private",
+      references_public_data_scope_by_id_only: true,
+      references_user_file_by_id_only: true,
+      save_status: "planned_no_write"
+    },
+    data_version: USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION,
+    document_trust_policy: createDocumentTrustPolicy(),
+    frontend_rendering: false,
+    join_plan: {
+      join_execution_live: false,
+      join_key_policy: "explicit_allowlist",
+      join_keys: joinKeys,
+      public_output_contains_user_private_data: false,
+      row_level_workspace_filter: true,
+      synthetic_join_plan_only: true
+    },
+    linked_contracts: USER_PUBLIC_DATA_JOIN_LINKED_CONTRACTS,
+    live_data_access: false,
+    methodology_version: USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION,
+    package: "@aiphabee/document-tools",
+    privacy_contract: {
+      audit_event_metadata_only: true,
+      consent_id: userConsentId,
+      consent_required: true,
+      cross_workspace_join: false,
+      deletion_policy_required: true,
+      document_sanitizer_required: true,
+      field_authorization_required: true,
+      privacy_policy_id: privacyPolicyId,
+      public_data_rights_expansion: false,
+      retention_policy_id: retentionPolicyId,
+      user_file_reused_for_model_training: false
+    },
+    prd_items: ["DOC-05", "STK-08"],
+    public_data: {
+      field_authorization_policy_id: fieldAuthorizationPolicyId,
+      field_minimization: true,
+      gateway_access_route: "POST /gateway/access-check",
+      gateway_export_route: "POST /gateway/exports/plan",
+      public_data_live_read: false,
+      requested_fields: requestedFields,
+      redistribution_requires_gateway: true,
+      scope: publicDataScope
+    },
+    route: "POST /documents/user-public-data-join/plan",
+    runtime_route: "GET /documents/runtime",
+    sanitization_policy: createDocumentSanitizationPolicy(),
+    sql_emitted: false,
+    status,
+    toolName: "user_public_data_join_privacy_plan",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: status === "planned_no_write" ? 1 : 0
+    },
+    user_file: {
+      content_is_untrusted_data: true,
+      file_id: userFileId,
+      file_sha256: userFileSha256,
+      raw_file_body_persisted: false,
+      upload_storage_live: false,
+      user_file_scope: "workspace_private"
+    },
+    version: USER_PUBLIC_DATA_JOIN_PRIVACY_VERSION,
+    workspace_id: workspaceId
   };
 }
 
@@ -1693,6 +2009,37 @@ function normalizeDocumentIds(documentIds: string[] | undefined): string[] {
 function normalizeSingleDocumentId(documentId: string | undefined): string | undefined {
   const normalized = documentId?.trim();
   return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+}
+
+function normalizePlanText(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+}
+
+function normalizeUserPublicDataJoinKeys(keys: string[] | undefined): string[] {
+  if (keys === undefined) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      keys
+        .map((key) => key.trim())
+        .filter((key) =>
+          USER_PUBLIC_DATA_JOIN_SUPPORTED_KEYS.includes(
+            key as (typeof USER_PUBLIC_DATA_JOIN_SUPPORTED_KEYS)[number]
+          )
+        )
+    )
+  ];
+}
+
+function normalizeUserPublicDataJoinFields(fields: string[] | undefined): string[] {
+  if (fields === undefined) {
+    return [];
+  }
+
+  return [...new Set(fields.map((field) => field.trim()).filter((field) => field.length > 0))];
 }
 
 function findSyntheticDocument(

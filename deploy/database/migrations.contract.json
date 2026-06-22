@@ -653,6 +653,18 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql",
+      "purpose": "Create empty user uploaded file and public data join privacy scaffolds for DOC-05 and STK-08 custom layout metadata without enabling upload storage, public data live reads, join execution, persistent writes, SQL execution, or frontend rendering.",
+      "schemas": ["audit", "core", "governance"],
+      "tables": [
+        "core.user_public_data_join_plan",
+        "audit.user_public_data_join_event",
+        "governance.user_public_data_join_privacy_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
