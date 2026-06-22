@@ -733,6 +733,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql",
+      "purpose": "Create no-write Agent AI Gateway observability release gate scaffolds that link model audit, AI Gateway observability, capture-packet, and evidence-ledger contracts without enabling live AI Gateway reads, model execution, frontend rendering, or unguarded SQL execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_ai_gateway_observability_release_gate",
+        "governance.agent_ai_gateway_observability_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

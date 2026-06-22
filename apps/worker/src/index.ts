@@ -37,6 +37,7 @@ import {
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
+  createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -45,6 +46,7 @@ import {
   createWorkflowTaskPlan,
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
+  getAgentAiGatewayObservabilityReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -662,6 +664,8 @@ interface AgentBillingPostedLedgerSmokeResult {
 }
 
 interface AgentRunRequestBody {
+  account_analytics_read_permission_evidence?: unknown;
+  accountAnalyticsReadPermissionEvidence?: unknown;
   ambiguous_security_query?: unknown;
   ambiguousSecurityQuery?: unknown;
   as_of?: unknown;
@@ -671,6 +675,10 @@ interface AgentRunRequestBody {
   channel?: unknown;
   calculations?: unknown;
   claims?: unknown;
+  capture_packet_accepted?: unknown;
+  capturePacketAccepted?: unknown;
+  cost_cache_evidence_accepted?: unknown;
+  costCacheEvidenceAccepted?: unknown;
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
@@ -731,12 +739,18 @@ interface AgentRunRequestBody {
   numericPrompt?: unknown;
   operator_signoff?: unknown;
   operatorSignoff?: unknown;
+  ai_gateway_read_permission_evidence?: unknown;
+  aiGatewayReadPermissionEvidence?: unknown;
   prompt_version?: unknown;
   promptVersion?: unknown;
   production_cutover_requested?: unknown;
   productionCutoverRequested?: unknown;
+  rate_limit_fallback_evidence_accepted?: unknown;
+  rateLimitFallbackEvidenceAccepted?: unknown;
   retention_policy_approved?: unknown;
   retentionPolicyApproved?: unknown;
+  request_log_evidence_accepted?: unknown;
+  requestLogEvidenceAccepted?: unknown;
   source_run_id?: unknown;
   sourceRunId?: unknown;
   title?: unknown;
@@ -6844,6 +6858,64 @@ app.get("/agent/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.post("/agent/release-gates/ai-gateway-observability/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentAiGatewayObservabilityReleaseGatePlan({
+    accountAnalyticsReadPermissionEvidence: normalizeOptionalBoolean(
+      body.account_analytics_read_permission_evidence ??
+        body.accountAnalyticsReadPermissionEvidence
+    ),
+    aiGatewayReadPermissionEvidence: normalizeOptionalBoolean(
+      body.ai_gateway_read_permission_evidence ?? body.aiGatewayReadPermissionEvidence
+    ),
+    capturePacketAccepted: normalizeOptionalBoolean(
+      body.capture_packet_accepted ?? body.capturePacketAccepted
+    ),
+    costCacheEvidenceAccepted: normalizeOptionalBoolean(
+      body.cost_cache_evidence_accepted ?? body.costCacheEvidenceAccepted
+    ),
+    rateLimitFallbackEvidenceAccepted: normalizeOptionalBoolean(
+      body.rate_limit_fallback_evidence_accepted ?? body.rateLimitFallbackEvidenceAccepted
+    ),
+    requestId,
+    requestLogEvidenceAccepted: normalizeOptionalBoolean(
+      body.request_log_evidence_accepted ?? body.requestLogEvidenceAccepted
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentAiGatewayObservabilityReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-ai-gateway-observability-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
   );
 });
 

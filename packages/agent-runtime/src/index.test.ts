@@ -5,6 +5,7 @@ import {
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
+  createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createAiSdkStopCondition,
   createPreToolCallResolution,
@@ -16,6 +17,7 @@ import {
   createWorkflowTaskPlan,
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
+  getAgentAiGatewayObservabilityReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getPromptInjectionToolDenialReleaseGateCapabilities,
@@ -283,6 +285,33 @@ describe("agent runtime scaffold", () => {
       "production_cutover_signoff_required",
       "production_retention_policy_required"
     ]);
+    expect(capabilities.agent_ai_gateway_observability_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      ai_gateway_observability_smoke_command: "npm run smoke:ai-gateway-observability-live",
+      ai_gateway_observability_smoke_script: "scripts/smoke-ai-gateway-observability-live.mjs",
+      frontend_rendering: false,
+      live_ai_gateway_reads: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      model_provider_readiness_contract: "deploy/model-providers/live-smoke-readiness.contract.json",
+      model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+      persistent_writes: false,
+      route: "POST /agent/release-gates/ai-gateway-observability/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_ai_gateway_observability_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0"
+    });
+    expect(capabilities.agent_ai_gateway_observability_release_gate.required_checks).toEqual([
+      "model_execution_audit_smoke_contract_linked",
+      "ai_gateway_observability_smoke_script_linked",
+      "ai_gateway_read_permission_evidence_required",
+      "request_log_cost_cache_fields_required",
+      "rate_limit_fallback_evidence_required",
+      "hash_only_capture_packet_required"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -479,6 +508,42 @@ describe("agent runtime scaffold", () => {
     ]);
   });
 
+  it("exposes AI Gateway observability release gate capability without live reads", () => {
+    const capability = getAgentAiGatewayObservabilityReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      ai_gateway_observability_smoke_command: "npm run smoke:ai-gateway-observability-live",
+      ai_gateway_observability_smoke_script: "scripts/smoke-ai-gateway-observability-live.mjs",
+      frontend_rendering: false,
+      live_ai_gateway_reads: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      model_provider_readiness_contract: "deploy/model-providers/live-smoke-readiness.contract.json",
+      model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+      persistent_writes: false,
+      route: "POST /agent/release-gates/ai-gateway-observability/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_ai_gateway_observability_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0"
+    });
+    expect(capability.required_checks).toEqual([
+      "model_execution_audit_smoke_contract_linked",
+      "ai_gateway_observability_smoke_script_linked",
+      "ai_gateway_read_permission_evidence_required",
+      "request_log_cost_cache_fields_required",
+      "rate_limit_fallback_evidence_required",
+      "hash_only_capture_packet_required"
+    ]);
+    expect(capability.tables).toEqual([
+      "core.agent_ai_gateway_observability_release_gate",
+      "governance.agent_ai_gateway_observability_release_gate_contract"
+    ]);
+  });
+
   it("plans user-run persistence release gate from existing smoke proofs", () => {
     const plan = createAgentUserRunPersistenceReleaseGatePlan({
       operatorSignoff: true,
@@ -556,6 +621,77 @@ describe("agent runtime scaffold", () => {
       production_persistence_enabled: false,
       retention_policy_approved: true,
       smoke_chain_has_audit_evidence_usage_state_and_billing: true
+    });
+  });
+
+  it("plans AI Gateway observability release gate without route-local live verification", () => {
+    const plan = createAgentAiGatewayObservabilityReleaseGatePlan({
+      accountAnalyticsReadPermissionEvidence: true,
+      aiGatewayReadPermissionEvidence: true,
+      capturePacketAccepted: true,
+      costCacheEvidenceAccepted: true,
+      rateLimitFallbackEvidenceAccepted: true,
+      requestId: "req-agent-ai-gateway-observability-gate-1",
+      requestLogEvidenceAccepted: true
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_ai_gateway_reads: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      release_transition_allowed: false,
+      request_id: "req-agent-ai-gateway-observability-gate-1",
+      route: "POST /agent/release-gates/ai-gateway-observability/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0"
+    });
+    expect(plan.capability.required_checks).toEqual([
+      "model_execution_audit_smoke_contract_linked",
+      "ai_gateway_observability_smoke_script_linked",
+      "ai_gateway_read_permission_evidence_required",
+      "request_log_cost_cache_fields_required",
+      "rate_limit_fallback_evidence_required",
+      "hash_only_capture_packet_required"
+    ]);
+    expect(plan.release_checks.map((check) => check.check)).toEqual(
+      plan.capability.required_checks
+    );
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(true);
+    expect(plan.linked_evidence.map((evidence) => evidence.surface)).toEqual([
+      "model_execution_audit_smoke",
+      "model_provider_readiness",
+      "model_routing_audit_contract",
+      "ai_gateway_observability_live_smoke",
+      "live_smoke_capture_packet"
+    ]);
+    expect(plan.evidence_requirements.every((requirement) => requirement.status === "satisfied")).toBe(
+      true
+    );
+    expect(plan.release_gate).toMatchObject({
+      blockers: ["route_does_not_verify_live_capture_packet"],
+      gate_status: "blocked_ai_gateway_observability_evidence",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "observability", "platform"]
+    });
+    expect(plan.validation).toEqual({
+      account_analytics_read_permission_evidence_present: true,
+      ai_gateway_observability_smoke_script_linked: true,
+      ai_gateway_read_permission_evidence_present: true,
+      capture_packet_accepted: true,
+      cost_cache_evidence_present: true,
+      model_execution_audit_smoke_linked: true,
+      no_frontend_rendering: true,
+      no_live_ai_gateway_reads: true,
+      no_model_calls: true,
+      no_persistent_writes: true,
+      rate_limit_fallback_evidence_present: true,
+      release_transition_allowed: false,
+      request_log_evidence_present: true
     });
   });
 

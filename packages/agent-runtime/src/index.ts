@@ -62,6 +62,8 @@ export const PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0";
 export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0";
+export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -158,6 +160,18 @@ export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES = [
   "core.agent_user_run_persistence_release_gate",
   "governance.agent_user_run_persistence_release_gate_contract"
 ] as const;
+export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS = [
+  "model_execution_audit_smoke_contract_linked",
+  "ai_gateway_observability_smoke_script_linked",
+  "ai_gateway_read_permission_evidence_required",
+  "request_log_cost_cache_fields_required",
+  "rate_limit_fallback_evidence_required",
+  "hash_only_capture_packet_required"
+] as const;
+export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES = [
+  "core.agent_ai_gateway_observability_release_gate",
+  "governance.agent_ai_gateway_observability_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -176,6 +190,9 @@ export type PromptInjectionToolDenialReleaseGateStatus = "planned_no_write";
 export type AgentUserRunPersistenceReleaseGateCheck =
   (typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS)[number];
 export type AgentUserRunPersistenceReleaseGateStatus = "planned_no_write";
+export type AgentAiGatewayObservabilityReleaseGateCheck =
+  (typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS)[number];
+export type AgentAiGatewayObservabilityReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -244,6 +261,16 @@ export interface CreateAgentUserRunPersistenceReleaseGatePlanInput {
   productionCutoverRequested?: boolean;
   requestId: string;
   retentionPolicyApproved?: boolean;
+}
+
+export interface CreateAgentAiGatewayObservabilityReleaseGatePlanInput {
+  accountAnalyticsReadPermissionEvidence?: boolean;
+  aiGatewayReadPermissionEvidence?: boolean;
+  capturePacketAccepted?: boolean;
+  costCacheEvidenceAccepted?: boolean;
+  rateLimitFallbackEvidenceAccepted?: boolean;
+  requestId: string;
+  requestLogEvidenceAccepted?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -343,6 +370,28 @@ export interface AgentUserRunPersistenceReleaseGateCapabilities {
   status: "agent_user_run_persistence_release_gate_scaffold";
   tables: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES;
   version: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION;
+}
+
+export interface AgentAiGatewayObservabilityReleaseGateCapabilities {
+  actual_tool_execution: false;
+  ai_gateway_observability_smoke_command: "npm run smoke:ai-gateway-observability-live";
+  ai_gateway_observability_smoke_script: "scripts/smoke-ai-gateway-observability-live.mjs";
+  frontend_rendering: false;
+  live_ai_gateway_reads: false;
+  live_db_writes: false;
+  live_model_execution: false;
+  model_calls: false;
+  model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke";
+  model_provider_readiness_contract: "deploy/model-providers/live-smoke-readiness.contract.json";
+  model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json";
+  persistent_writes: false;
+  required_checks: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/ai-gateway-observability/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_ai_gateway_observability_release_gate_scaffold";
+  tables: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES;
+  version: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -495,6 +544,7 @@ export interface AgentRuntimeCapabilities {
   task_replay_mode_release_gate: TaskReplayModeReleaseGateCapabilities;
   prompt_injection_tool_denial_release_gate: PromptInjectionToolDenialReleaseGateCapabilities;
   agent_user_run_persistence_release_gate: AgentUserRunPersistenceReleaseGateCapabilities;
+  agent_ai_gateway_observability_release_gate: AgentAiGatewayObservabilityReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -1802,6 +1852,79 @@ export interface AgentUserRunPersistenceReleaseGatePlan {
   version: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION;
 }
 
+export interface AgentAiGatewayObservabilityLinkedEvidence {
+  command?: string;
+  contract?: string;
+  covers: string[];
+  route?: string;
+  script?: string;
+  surface:
+    | "ai_gateway_observability_live_smoke"
+    | "live_smoke_capture_packet"
+    | "model_execution_audit_smoke"
+    | "model_provider_readiness"
+    | "model_routing_audit_contract";
+  status: "external_env_required" | "local_contract_required" | "permission_denied_observed";
+}
+
+export interface AgentAiGatewayObservabilityEvidenceRequirement {
+  evidence: string;
+  requirement:
+    | "account_analytics_read_permission"
+    | "ai_gateway_read_permission"
+    | "cost_cache_log_fields"
+    | "hash_only_capture_packet"
+    | "rate_limit_fallback_evidence"
+    | "request_log_evidence";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentAiGatewayObservabilityReleaseGatePlan {
+  actual_tool_execution: false;
+  capability: AgentAiGatewayObservabilityReleaseGateCapabilities;
+  evidence_requirements: AgentAiGatewayObservabilityEvidenceRequirement[];
+  frontend_rendering: false;
+  linked_evidence: AgentAiGatewayObservabilityLinkedEvidence[];
+  live_ai_gateway_reads: false;
+  live_db_writes: false;
+  live_model_execution: false;
+  model_calls: false;
+  persistent_writes: false;
+  release_checks: Array<{
+    check: AgentAiGatewayObservabilityReleaseGateCheck;
+    evidence: string;
+    status: AgentAiGatewayObservabilityReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_ai_gateway_observability_evidence";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "observability", "platform"];
+  };
+  release_transition_allowed: false;
+  request_id: string;
+  route: "POST /agent/release-gates/ai-gateway-observability/plan";
+  sql_emitted: false;
+  status: AgentAiGatewayObservabilityReleaseGateStatus;
+  tables: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES;
+  validation: {
+    account_analytics_read_permission_evidence_present: boolean;
+    ai_gateway_observability_smoke_script_linked: boolean;
+    ai_gateway_read_permission_evidence_present: boolean;
+    capture_packet_accepted: boolean;
+    cost_cache_evidence_present: boolean;
+    model_execution_audit_smoke_linked: boolean;
+    no_frontend_rendering: true;
+    no_live_ai_gateway_reads: true;
+    no_model_calls: true;
+    no_persistent_writes: true;
+    rate_limit_fallback_evidence_present: boolean;
+    release_transition_allowed: false;
+    request_log_evidence_present: boolean;
+  };
+  version: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2217,6 +2340,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       getPromptInjectionToolDenialReleaseGateCapabilities(),
     agent_user_run_persistence_release_gate:
       getAgentUserRunPersistenceReleaseGateCapabilities(),
+    agent_ai_gateway_observability_release_gate:
+      getAgentAiGatewayObservabilityReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2317,6 +2442,30 @@ export function getAgentUserRunPersistenceReleaseGateCapabilities(): AgentUserRu
     status: "agent_user_run_persistence_release_gate_scaffold",
     tables: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES,
     version: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentAiGatewayObservabilityReleaseGateCapabilities(): AgentAiGatewayObservabilityReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    ai_gateway_observability_smoke_command: "npm run smoke:ai-gateway-observability-live",
+    ai_gateway_observability_smoke_script: "scripts/smoke-ai-gateway-observability-live.mjs",
+    frontend_rendering: false,
+    live_ai_gateway_reads: false,
+    live_db_writes: false,
+    live_model_execution: false,
+    model_calls: false,
+    model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+    model_provider_readiness_contract: "deploy/model-providers/live-smoke-readiness.contract.json",
+    model_routing_audit_contract: "deploy/agent/model-routing-audit.contract.json",
+    persistent_writes: false,
+    required_checks: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/ai-gateway-observability/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_ai_gateway_observability_release_gate_scaffold",
+    tables: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES,
+    version: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION
   };
 }
 
@@ -3132,6 +3281,195 @@ export function createAgentUserRunPersistenceReleaseGatePlan(
     tables: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES,
     validation,
     version: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentAiGatewayObservabilityReleaseGatePlan(
+  input: CreateAgentAiGatewayObservabilityReleaseGatePlanInput
+): AgentAiGatewayObservabilityReleaseGatePlan {
+  const aiGatewayReadPermissionEvidence = input.aiGatewayReadPermissionEvidence === true;
+  const accountAnalyticsReadPermissionEvidence =
+    input.accountAnalyticsReadPermissionEvidence === true;
+  const requestLogEvidenceAccepted = input.requestLogEvidenceAccepted === true;
+  const costCacheEvidenceAccepted = input.costCacheEvidenceAccepted === true;
+  const rateLimitFallbackEvidenceAccepted = input.rateLimitFallbackEvidenceAccepted === true;
+  const capturePacketAccepted = input.capturePacketAccepted === true;
+  const linkedEvidence: AgentAiGatewayObservabilityLinkedEvidence[] = [
+    {
+      command: "npm run check:agent-model-execution-audit-smoke",
+      contract: "deploy/agent/model-execution-audit-smoke.contract.json",
+      covers: [
+        "ai_sdk_generate_text",
+        "ai_sdk_stream_text",
+        "hash_only_run_audit_preview",
+        "gateway_log_evidence_blocked_external_permission"
+      ],
+      route: "POST /agent/runs/model-execution-audit-smoke",
+      surface: "model_execution_audit_smoke",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:model-provider-live-readiness",
+      contract: "deploy/model-providers/live-smoke-readiness.contract.json",
+      covers: [
+        "latest_cli_live_smoke",
+        "latest_deployed_worker_live_smoke",
+        "latest_observability_probe_permission_denied"
+      ],
+      surface: "model_provider_readiness",
+      status: "permission_denied_observed"
+    },
+    {
+      command: "npm run check:model-routing-audit",
+      contract: "deploy/agent/model-routing-audit.contract.json",
+      covers: [
+        "cache_hit_audit_field",
+        "estimated_cost_audit_field",
+        "fallback_from_model_audit_field",
+        "fallback_to_model_audit_field",
+        "rate_limited_fallback_trigger"
+      ],
+      surface: "model_routing_audit_contract",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run smoke:ai-gateway-observability-live",
+      covers: [
+        "ai_gateway_logs_list",
+        "graphql_ai_gateway_requests_adaptive_groups",
+        "cost_token_cache_fields",
+        "permission_denied_hash_only_output"
+      ],
+      script: "scripts/smoke-ai-gateway-observability-live.mjs",
+      surface: "ai_gateway_observability_live_smoke",
+      status: "external_env_required"
+    },
+    {
+      command: "npm run check:live-smoke-capture-packets",
+      contract: "deploy/governance/live-smoke-capture-artifacts.contract.json",
+      covers: [
+        "ai_gateway_observability_capture_packet",
+        "sha256_output_hash",
+        "redacted_no_secrets",
+        "raw_provider_outputs_forbidden"
+      ],
+      surface: "live_smoke_capture_packet",
+      status: "external_env_required"
+    }
+  ];
+  const evidenceRequirements: AgentAiGatewayObservabilityEvidenceRequirement[] = [
+    {
+      evidence: aiGatewayReadPermissionEvidence
+        ? "AI Gateway Read evidence was marked present in request payload"
+        : "AI Gateway Read permission evidence is required before logs can be verified",
+      requirement: "ai_gateway_read_permission",
+      status: aiGatewayReadPermissionEvidence ? "satisfied" : "blocked"
+    },
+    {
+      evidence: accountAnalyticsReadPermissionEvidence
+        ? "Account Analytics Read evidence was marked present in request payload"
+        : "Account Analytics Read permission evidence is required before analytics groups can be verified",
+      requirement: "account_analytics_read_permission",
+      status: accountAnalyticsReadPermissionEvidence ? "satisfied" : "blocked"
+    },
+    {
+      evidence: requestLogEvidenceAccepted
+        ? "request log capture evidence was marked accepted in request payload"
+        : "AI Gateway request log capture packet is required",
+      requirement: "request_log_evidence",
+      status: requestLogEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: costCacheEvidenceAccepted
+        ? "cost/cache log-field evidence was marked accepted in request payload"
+        : "cost, token, and cache fields must be present in hash-only AI Gateway logs evidence",
+      requirement: "cost_cache_log_fields",
+      status: costCacheEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: rateLimitFallbackEvidenceAccepted
+        ? "rate-limit/fallback evidence was marked accepted in request payload"
+        : "rate-limit and fallback evidence must be captured before model-routing cutover",
+      requirement: "rate_limit_fallback_evidence",
+      status: rateLimitFallbackEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: capturePacketAccepted
+        ? "hash-only live-smoke capture packet was marked accepted in request payload"
+        : "live-smoke capture packet checker must accept a redacted hash-only AI Gateway observability packet",
+      requirement: "hash_only_capture_packet",
+      status: capturePacketAccepted ? "satisfied" : "blocked"
+    }
+  ];
+  const blockers = [
+    ...evidenceRequirements
+      .filter((requirement) => requirement.status === "blocked")
+      .map((requirement) => requirement.requirement),
+    "route_does_not_verify_live_capture_packet"
+  ];
+  const linkedSurfaces = new Set(linkedEvidence.map((evidence) => evidence.surface));
+  const validation: AgentAiGatewayObservabilityReleaseGatePlan["validation"] = {
+    account_analytics_read_permission_evidence_present: accountAnalyticsReadPermissionEvidence,
+    ai_gateway_observability_smoke_script_linked: linkedSurfaces.has(
+      "ai_gateway_observability_live_smoke"
+    ),
+    ai_gateway_read_permission_evidence_present: aiGatewayReadPermissionEvidence,
+    capture_packet_accepted: capturePacketAccepted,
+    cost_cache_evidence_present: costCacheEvidenceAccepted,
+    model_execution_audit_smoke_linked: linkedSurfaces.has("model_execution_audit_smoke"),
+    no_frontend_rendering: true,
+    no_live_ai_gateway_reads: true,
+    no_model_calls: true,
+    no_persistent_writes: true,
+    rate_limit_fallback_evidence_present: rateLimitFallbackEvidenceAccepted,
+    release_transition_allowed: false,
+    request_log_evidence_present: requestLogEvidenceAccepted
+  };
+  const releaseChecks = AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS.map(
+    (check): AgentAiGatewayObservabilityReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "model_execution_audit_smoke_contract_linked"
+          ? "deploy/agent/model-execution-audit-smoke.contract.json links AI SDK generateText/streamText hash-only audit preview"
+          : check === "ai_gateway_observability_smoke_script_linked"
+            ? "scripts/smoke-ai-gateway-observability-live.mjs covers AI Gateway logs API and GraphQL analytics probes"
+            : check === "ai_gateway_read_permission_evidence_required"
+              ? "AI Gateway Read and Account Analytics Read evidence are required and currently route-scoped only"
+              : check === "request_log_cost_cache_fields_required"
+                ? "request logs must include cost/token/cache fields in a redacted hash-only capture packet"
+                : check === "rate_limit_fallback_evidence_required"
+                  ? "rate-limit and fallback events must be captured before model-routing cutover"
+                  : "live-smoke capture packets require sha256 output hash and forbid raw provider outputs or secrets",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    capability: getAgentAiGatewayObservabilityReleaseGateCapabilities(),
+    evidence_requirements: evidenceRequirements,
+    frontend_rendering: false,
+    linked_evidence: linkedEvidence,
+    live_ai_gateway_reads: false,
+    live_db_writes: false,
+    live_model_execution: false,
+    model_calls: false,
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_ai_gateway_observability_evidence",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "observability", "platform"]
+    },
+    release_transition_allowed: false,
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/ai-gateway-observability/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION
   };
 }
 
