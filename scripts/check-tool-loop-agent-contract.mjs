@@ -104,6 +104,10 @@ function validateContract(value) {
     errors.push("route must be POST /agent/runs/plan");
   }
 
+  if (value.stream_route !== "POST /agent/runs/stream") {
+    errors.push("stream_route must be POST /agent/runs/stream");
+  }
+
   if (value.runtime_route !== "GET /agent/runtime") {
     errors.push("runtime_route must be GET /agent/runtime");
   }
@@ -119,8 +123,18 @@ function validateContract(value) {
     }
   }
 
-  if (value.streaming_transport !== "planned") {
-    errors.push("streaming_transport must be planned");
+  if (value.streaming_transport !== "server_sent_events") {
+    errors.push("streaming_transport must be server_sent_events");
+  }
+
+  if (value.stream_content_type !== "text/event-stream") {
+    errors.push("stream_content_type must be text/event-stream");
+  }
+
+  for (const field of ["stream_model_calls", "stream_actual_tool_execution"]) {
+    if (value[field] !== false) {
+      errors.push(`${field} must be false`);
+    }
   }
 
   if (value.max_steps !== 6) {

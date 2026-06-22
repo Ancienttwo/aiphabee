@@ -13000,7 +13000,7 @@ describe("worker runtime", () => {
         status: "tool_enforcement_scaffold",
         versioned_tools: true
       },
-      streaming_transport: "planned"
+      streaming_transport: "server_sent_events"
     });
     expect(body.data.workflow_tasks).toMatchObject({
       actual_workflow_execution: false,
@@ -19438,23 +19438,33 @@ describe("worker runtime", () => {
     expect(body.usage.rows).toBe(8);
   });
 
-  it("guards streaming execution until a model provider exists", async () => {
+  it("streams no-model public agent progress events without exposing chain-of-thought", async () => {
     const response = await app.request("/agent/runs/stream", {
       body: JSON.stringify({
-        prompt: "Explain 00700.HK trend"
+        prompt: "Explain 00700.HK trend",
+        tools: ["resolve_security", "get_financial_facts"]
       }),
       headers: {
         "content-type": "application/json",
-        "x-request-id": "req-stream-guard"
+        "x-request-id": "req-stream-progress"
       },
       method: "POST"
     });
-    const body = (await response.json()) as ErrorBody;
+    const body = await response.text();
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(body.ok).toBe(false);
-    expect(body.error.code).toBe("MODEL_PROVIDER_NOT_CONFIGURED");
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    expect(response.headers.get("x-aiphabee-run-id")).toBe("dry_req-stream-progress");
+    expect(Number(response.headers.get("x-aiphabee-progress-event-count"))).toBeGreaterThan(3);
+    expect(body).toContain("event: run.started");
+    expect(body).toContain("event: tool.step.planned");
+    expect(body).toContain("event: tool.call.started");
+    expect(body).toContain("event: tool.call.completed");
+    expect(body).toContain("event: run.completed");
+    expect(body).toContain("\"execution\":\"streaming_no_model\"");
+    expect(body).toContain("\"execution\":\"planned_no_call\"");
+    expect(body).not.toContain("Explain 00700.HK trend");
   });
 
   it("creates an agent dry-run skeleton", async () => {
@@ -20138,7 +20148,7 @@ describe("worker runtime", () => {
     expect(body.data.progress_stream).toMatchObject({
       exposes_chain_of_thought: false,
       tool_progress_public: true,
-      transport: "planned"
+      transport: "server_sent_events"
     });
     expect(body.data.stop_conditions).toContain("two_consecutive_same_error");
     expect(body.data.retry_policy).toMatchObject({

@@ -20,11 +20,12 @@ parallelism limits, and stop/retry policy.
 - In scope:
   - `createToolLoopAgentPlan()` in `@aiphabee/agent-runtime`;
   - `POST /agent/runs/plan`;
+  - `POST /agent/runs/stream`;
   - phased plan for security resolution, entitlement gate, data fetch, evidence
     binding, and answer contract;
   - max 3 parallel read-only tool calls per step;
   - requested max-step enforcement;
-  - public tool progress event names;
+  - public tool progress event names and backend SSE serialization;
   - no chain-of-thought exposure;
   - stop conditions for max steps, budget exhaustion, two consecutive same
     error, scope denial, and completion;
@@ -34,7 +35,7 @@ parallelism limits, and stop/retry policy.
 - Out of scope:
   - actual tool execution;
   - live `streamText` / `generateText`;
-  - SSE or live streaming transport;
+  - live model token streaming;
   - chain-of-thought streaming;
   - live entitlement reads;
   - usage ledger writes;
@@ -64,6 +65,7 @@ exit_criteria:
   content_checks:
     - "GET /agent/runtime reports tool_loop_agent.planner_ready=true"
     - "POST /agent/runs/plan returns status=planned_no_model"
+    - "POST /agent/runs/stream returns text/event-stream public progress events"
     - "Planner output keeps model_calls=false and actual_tool_execution=false"
     - "Planner output keeps chain_of_thought_exposed=false"
     - "Planner phases include security_resolution, entitlement_gate, data_fetch, evidence_binding, and answer_contract"
@@ -72,7 +74,7 @@ exit_criteria:
     - "Progress events are public tool/run events, not hidden reasoning"
     - "Stop conditions include two_consecutive_same_error"
     - "Retry policy keeps retries non-billable"
-    - "No live model calls, actual tool execution, SSE stream, chain-of-thought, live entitlement reads, or frontend changes are claimed"
+    - "No live model calls, actual tool execution, model token stream, chain-of-thought, live entitlement reads, or frontend changes are claimed"
   commands_succeed:
     - npm run test -- packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts
     - npm run check:tool-loop-agent
@@ -84,13 +86,14 @@ exit_criteria:
   smoke_tests:
     - "GET /agent/runtime returns tool_loop_agent.status=tool_loop_agent_planner_scaffold"
     - "POST /agent/runs/plan returns planned phases, <=3 tool calls per step, public progress events, and no model/tool execution"
+    - "POST /agent/runs/stream returns run/tool progress SSE events with no prompt text"
 ```
 
 ## Acceptance Notes
 
 - This task completes the no-model planner scaffold for the Sprint 1.3
   ToolLoopAgent item.
-- Live streaming transport, actual tool execution, real model calls, and
+- Live model token streaming, actual tool execution, real model calls, and
   frontend progress rendering remain separate follow-up work.
 
 ## Rollback Point

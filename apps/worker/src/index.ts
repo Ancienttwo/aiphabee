@@ -35,6 +35,7 @@ import {
   AGENT_WORKFLOW_NOTIFICATION_CHANNELS,
   AGENT_WORKFLOW_TASK_KINDS,
   createAgentKillSwitchPlan,
+  createAgentProgressStreamReport,
   createAgentRunSkeleton,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -6844,36 +6845,23 @@ app.post("/agent/kill-switch/plan", async (c) => {
   );
 });
 
-app.post("/agent/runs/stream", (c) => {
+app.post("/agent/runs/stream", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
   c.header("Cache-Control", "no-store");
+  c.header("Content-Type", "text/event-stream; charset=utf-8");
+  c.header("X-Accel-Buffering", "no");
 
-  return c.json(
-    createErrorEnvelope(
-      "MODEL_PROVIDER_NOT_CONFIGURED",
-      "model provider and AI Gateway are not configured for streaming execution",
-      {
-        asOf: new Date().toISOString(),
-        methodologyVersion: "model-provider-scaffold-v0",
-        provenance: [
-          {
-            data_version: "model-provider-scaffold-v0",
-            methodology_version: "model-provider-scaffold-v0",
-            source: "model-provider-contract",
-            source_record_id: "stream-guard"
-          }
-        ],
-        requestId,
-        usage: {
-          cached: false,
-          credits: 0,
-          rows: 0
-        }
-      }
-    ),
-    503
-  );
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const report = createAgentProgressStreamReport(createAgentRunInput(body, requestId));
+  const streamBody = report.stream_events
+    .map((event) => `event: ${event.event}\ndata: ${JSON.stringify(event)}\n`)
+    .join("\n");
+
+  c.header("x-aiphabee-progress-event-count", String(report.stream_events.length));
+  c.header("x-aiphabee-run-id", report.run_id);
+
+  return c.body(`${streamBody}\n`);
 });
 
 app.post("/agent/runs/dry-run", async (c) => {

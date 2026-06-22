@@ -65,7 +65,7 @@ DoD.
 
 | requirement | issue_ref | owner | sprint | test_gate | release_gate | implementation_state |
 |---|---|---|---|---|---|---|
-| AGT-01 流式 + 工具进度 | AIP-P0-AGT-01 | Agent Runtime Engineering | 1.3 | Streaming response and progress event tests | Sprint 1.3 exit: user-visible progress without chain-of-thought | Not started |
+| AGT-01 流式 + 工具进度 | AIP-P0-AGT-01 | Agent Runtime Engineering | 1.3 | Streaming response and progress event tests | Sprint 1.3 exit: user-visible progress without chain-of-thought | Backend no-model SSE progress stream now returns public run/tool events without prompt or chain-of-thought; frontend Ask progress rendering and live model token streaming pending |
 | AGT-02 调用前口径解析 | AIP-P0-AGT-02 | Agent Runtime Engineering / Product | 1.3 | Pre-tool disambiguation tests | Sprint 1.3 exit: securities/time/currency/methodology resolved before tools | Not started |
 | AGT-03 单 run 预算上限 | AIP-P0-AGT-03 | Agent Runtime Engineering / Billing | 1.3 | Run budget exhaustion tests | Sprint 1.3 exit: budget limit stops gracefully with partial evidence | Not started |
 | AGT-04 仅注册工具 | AIP-P0-AGT-04 | Platform Engineering / Security | 1.2 / 1.3 | Tool registry allowlist denial tests | Sprint 1.3 exit: unregistered tool and arbitrary SQL are rejected | Shared Tool Registry scaffold complete with four no-live tool handlers; MCP/API protocol handlers pending |

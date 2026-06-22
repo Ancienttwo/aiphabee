@@ -24,6 +24,8 @@ export const AGENT_RUN_CONTEXT_VERSION =
   "2026-06-21.phase1.agent-run-context-scaffold.v0";
 export const TOOL_LOOP_AGENT_PLANNER_VERSION =
   "2026-06-21.phase1.tool-loop-agent-planner-scaffold.v0";
+export const AGENT_PROGRESS_STREAM_VERSION =
+  "2026-06-22.phase1.agent-progress-stream-readiness.v0";
 export const PRE_TOOL_CALL_RESOLUTION_VERSION =
   "2026-06-21.phase1.pre-tool-call-resolution-scaffold.v0";
 export const BUDGET_STOP_POLICY_VERSION =
@@ -419,7 +421,7 @@ export interface AgentRuntimeCapabilities {
       "tool_scope_denied",
       "all_planned_tools_completed"
     ];
-    streaming_transport: "planned";
+    streaming_transport: AgentProgressStreamTransport;
   };
   workflow_tasks: {
     actual_workflow_execution: false;
@@ -1173,6 +1175,7 @@ export type AgentToolLoopStatus =
   | "degraded_kill_switch"
   | "planned_no_model"
   | "stopped_budget";
+export type AgentProgressStreamTransport = "server_sent_events";
 
 export type PreToolCallResolutionStatus =
   | "needs_clarification"
@@ -1344,7 +1347,7 @@ export interface AgentToolLoopPlan {
     events: AgentToolLoopProgressEvent[];
     exposes_chain_of_thought: false;
     tool_progress_public: true;
-    transport: "planned";
+    transport: AgentProgressStreamTransport;
   };
   request_id: string;
   pre_tool_call_resolution: PreToolCallResolution;
@@ -1362,6 +1365,37 @@ export interface AgentToolLoopPlan {
   >;
   tool_enforcement: AgentToolEnforcement;
   version: typeof TOOL_LOOP_AGENT_PLANNER_VERSION;
+}
+
+export interface AgentProgressStreamEvent {
+  event: AgentToolLoopProgressEvent;
+  event_index: number;
+  payload: {
+    execution: "planned_no_call" | "streaming_no_model";
+    public_label?: string;
+    request_id: string;
+    run_id: string;
+    status: "completed" | "planned" | "started" | "stopped";
+    step_id?: string;
+    tool_name?: RegisteredAgentToolName;
+  };
+}
+
+export interface AgentProgressStreamReport {
+  actual_tool_execution: false;
+  chain_of_thought_exposed: false;
+  content_type: "text/event-stream";
+  frontend: false;
+  model_calls: false;
+  plan: AgentToolLoopPlan;
+  request_id: string;
+  route: "POST /agent/runs/stream";
+  run_id: string;
+  status: "progress_stream_ready";
+  stream_events: AgentProgressStreamEvent[];
+  stream_transport: AgentProgressStreamTransport;
+  tool_progress_public: true;
+  version: typeof AGENT_PROGRESS_STREAM_VERSION;
 }
 
 export interface AgentRunSkeleton {
@@ -2014,7 +2048,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         "tool_scope_denied",
         "all_planned_tools_completed"
       ],
-      streaming_transport: "planned"
+      streaming_transport: "server_sent_events"
     },
     workflow_tasks: getAgentWorkflowTaskCapabilities(),
     product_agent_release_gate: getProductAgentReleaseGateCapabilities(),
@@ -2408,7 +2442,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
       ],
       exposes_chain_of_thought: false,
       tool_progress_public: true,
-      transport: "planned"
+      transport: "server_sent_events"
     },
     request_id: skeleton.request_id,
     pre_tool_call_resolution: preToolCallResolution,
@@ -2431,6 +2465,78 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
     ],
     tool_enforcement: toolEnforcement,
     version: TOOL_LOOP_AGENT_PLANNER_VERSION
+  };
+}
+
+export function createAgentProgressStreamReport(
+  input: AgentRunSkeletonInput
+): AgentProgressStreamReport {
+  const plan = createToolLoopAgentPlan(input);
+  const streamEvents: AgentProgressStreamEvent[] = [];
+  const pushEvent = (
+    event: AgentToolLoopProgressEvent,
+    payload: Omit<AgentProgressStreamEvent["payload"], "request_id" | "run_id">
+  ) => {
+    streamEvents.push({
+      event,
+      event_index: streamEvents.length + 1,
+      payload: {
+        request_id: plan.request_id,
+        run_id: plan.run_id,
+        ...payload
+      }
+    });
+  };
+
+  pushEvent("run.started", {
+    execution: "streaming_no_model",
+    status: "started"
+  });
+
+  for (const step of plan.steps) {
+    pushEvent("tool.step.planned", {
+      execution: "streaming_no_model",
+      public_label: step.public_label,
+      status: "planned",
+      step_id: step.step_id
+    });
+
+    for (const toolCall of step.tool_calls) {
+      pushEvent("tool.call.started", {
+        execution: toolCall.execution,
+        status: "started",
+        step_id: step.step_id,
+        tool_name: toolCall.name
+      });
+      pushEvent("tool.call.completed", {
+        execution: toolCall.execution,
+        status: "completed",
+        step_id: step.step_id,
+        tool_name: toolCall.name
+      });
+    }
+  }
+
+  pushEvent(plan.status === "stopped_budget" ? "run.stopped" : "run.completed", {
+    execution: "streaming_no_model",
+    status: plan.status === "stopped_budget" ? "stopped" : "completed"
+  });
+
+  return {
+    actual_tool_execution: false,
+    chain_of_thought_exposed: false,
+    content_type: "text/event-stream",
+    frontend: false,
+    model_calls: false,
+    plan,
+    request_id: plan.request_id,
+    route: "POST /agent/runs/stream",
+    run_id: plan.run_id,
+    status: "progress_stream_ready",
+    stream_events: streamEvents,
+    stream_transport: "server_sent_events",
+    tool_progress_public: true,
+    version: AGENT_PROGRESS_STREAM_VERSION
   };
 }
 

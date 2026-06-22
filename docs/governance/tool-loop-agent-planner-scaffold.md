@@ -8,9 +8,10 @@
 > **Task Contract**:
 > `tasks/contracts/tool-loop-agent-planner-scaffold.contract.md`
 
-This slice adds a no-model ToolLoopAgent planner. It plans phased tool steps,
-public progress events, parallel read-only limits, and stop/retry rules. It
-does not execute tools, call a model, open a live stream, expose chain of
+This slice adds a no-model ToolLoopAgent planner and a backend public progress
+stream. It plans phased tool steps, public progress events, parallel read-only
+limits, stop/retry rules, and emits those events over Server-Sent Events. It
+does not execute tools, call a model, stream model tokens, expose chain of
 thought, read live entitlements, write usage ledger rows, or touch frontend.
 
 ## P1 Architecture Map
@@ -21,6 +22,7 @@ thought, read live entitlements, write usage ledger rows, or touch frontend.
 | Shared Tool Registry | `packages/tool-registry` | Source of tool names, versions, schemas, scopes, and live-data flags |
 | Worker capabilities | `GET /agent/runtime` | Reports planner readiness and no-model/no-execution posture |
 | Worker planner | `POST /agent/runs/plan` | Returns standard envelope with planned steps and progress event contract |
+| Worker progress stream | `POST /agent/runs/stream` | Returns `text/event-stream` public progress events derived from the no-model plan |
 | Planner contract | `deploy/agent/tool-loop-planner.contract.json` | Requires no-model flags, max parallelism, phases, events, stop conditions, and retry policy |
 | Frontend | Out of scope | No `apps/web` files changed |
 
@@ -39,6 +41,9 @@ thought, read live entitlements, write usage ledger rows, or touch frontend.
    - answer contract.
 5. The planner returns `status=planned_no_model`, public progress event names,
    stop conditions, retry policy, and no execution side effects.
+6. `POST /agent/runs/stream` derives a stream report from the same plan and
+   serializes only public event names, step labels, tool names, request/run IDs,
+   and no-call execution status as Server-Sent Events.
 
 ## P3 Design Decision
 
@@ -56,13 +61,13 @@ Reason:
 Tradeoff:
 
 - The Agent runtime can now produce a deterministic multi-step plan.
-- It still cannot run tools, stream live progress, or generate a final answer.
+- It still cannot run tools, stream model tokens, or generate a final answer.
 
 What fails first at 10x scale:
 
-- Planned public progress events must become a real streaming transport with
-  backpressure and persistent run state before concurrent live Agent runs can be
-  resumed or audited.
+- Public progress events now have a backend streaming transport, but persistent
+  run state and frontend rendering must land before concurrent live Agent runs
+  can be resumed or audited.
 
 ## Verification
 
@@ -83,6 +88,7 @@ Passed:
 - `npx wrangler dev --config apps/worker/wrangler.jsonc --port 8787`
 - `GET /agent/runtime` -> `200 OK`
 - `POST /agent/runs/plan` -> `200 OK`
+- `POST /agent/runs/stream` -> `200 OK text/event-stream`
 - `git diff --check`
 - Secret-like pattern scan across `apps`, `deploy`, `docs`, `plans`,
   `scripts`, `supabase`, `tasks`, `packages`, and `tests`
@@ -119,7 +125,8 @@ Observed route fields:
 
 ## Residual Gaps
 
-- Live streaming transport is absent.
+- Frontend Ask/progress rendering is absent.
+- Live model token streaming remains absent.
 - Actual tool execution is absent.
 - Real model calls remain guarded.
 - Live entitlement reads and usage ledger writes are absent.

@@ -11,7 +11,8 @@
   verified run context and Tool Registry metadata.
 - Added `POST /agent/runs/plan` instead of changing the dry-run route shape
   again; dry-run remains the context preview, plan is the ToolLoopAgent plan.
-- Kept progress as a public event contract, not a live SSE stream.
+- Added backend SSE serialization for public progress events while keeping model
+  token streaming and frontend rendering out of scope.
 - Kept model calls, actual tool execution, chain-of-thought exposure, live
   entitlement reads, usage ledger writes, and frontend out of scope.
 
@@ -35,6 +36,8 @@
 - `POST /agent/runs/plan` -> `200 OK`, `status=planned_no_model`,
   `planned_step_count=6`, `max_parallel_tools=3`, `chain_of_thought_exposed=false`,
   `actual_tool_execution=false`, `model_calls=false`
+- `POST /agent/runs/stream` -> `200 OK text/event-stream`, public run/tool
+  progress events, no prompt text, `actual_tool_execution=false`, `model_calls=false`
 - `git diff --check`
 - Secret-like pattern scan across `apps`, `deploy`, `docs`, `plans`,
   `scripts`, `supabase`, `tasks`, `packages`, and `tests`
@@ -45,7 +48,7 @@
 
 ## Residual Blockers
 
-- Live streaming transport is absent.
+- Live model token streaming is absent.
 - Actual tool execution is absent.
 - Real model calls remain guarded.
 - Live entitlement reads and usage ledger writes are absent.

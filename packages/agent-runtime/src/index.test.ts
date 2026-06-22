@@ -3,6 +3,7 @@ import {
   AGENT_KILL_SWITCH_VERSION,
   AgentRuntimeInputError,
   createAgentKillSwitchPlan,
+  createAgentProgressStreamReport,
   createAgentRunSkeleton,
   createAiSdkStopCondition,
   createPreToolCallResolution,
@@ -137,7 +138,7 @@ describe("agent runtime scaffold", () => {
         status: "tool_enforcement_scaffold",
         versioned_tools: true
       },
-      streaming_transport: "planned"
+      streaming_transport: "server_sent_events"
     });
     expect(capabilities.workflow_tasks).toMatchObject({
       actual_workflow_execution: false,
@@ -994,7 +995,7 @@ describe("agent runtime scaffold", () => {
     expect(plan.progress_stream).toMatchObject({
       exposes_chain_of_thought: false,
       tool_progress_public: true,
-      transport: "planned"
+      transport: "server_sent_events"
     });
     expect(plan.stop_conditions).toContain("two_consecutive_same_error");
     expect(plan.pre_tool_call_resolution).toMatchObject({
@@ -1551,6 +1552,49 @@ describe("agent runtime scaffold", () => {
             tool.version.length > 0
         )
     ).toBe(true);
+  });
+
+  it("creates a no-model progress stream report from the ToolLoopAgent plan", () => {
+    const report = createAgentProgressStreamReport({
+      maxSteps: 6,
+      prompt: "Explain 00700.HK trend",
+      requestedTools: ["resolve_security", "get_financial_facts"],
+      requestId: "req-agent-stream",
+      workspaceId: "workspace_research"
+    });
+
+    expect(report).toMatchObject({
+      actual_tool_execution: false,
+      chain_of_thought_exposed: false,
+      content_type: "text/event-stream",
+      frontend: false,
+      model_calls: false,
+      request_id: "req-agent-stream",
+      route: "POST /agent/runs/stream",
+      status: "progress_stream_ready",
+      stream_transport: "server_sent_events",
+      tool_progress_public: true,
+      version: "2026-06-22.phase1.agent-progress-stream-readiness.v0"
+    });
+    expect(report.plan.progress_stream).toMatchObject({
+      exposes_chain_of_thought: false,
+      tool_progress_public: true,
+      transport: "server_sent_events"
+    });
+    expect(report.stream_events[0]).toMatchObject({
+      event: "run.started",
+      event_index: 1,
+      payload: {
+        execution: "streaming_no_model",
+        request_id: "req-agent-stream",
+        status: "started"
+      }
+    });
+    expect(report.stream_events.some((event) => event.event === "tool.step.planned")).toBe(true);
+    expect(report.stream_events.some((event) => event.event === "tool.call.started")).toBe(true);
+    expect(report.stream_events.some((event) => event.event === "tool.call.completed")).toBe(true);
+    expect(report.stream_events.at(-1)?.event).toBe("run.completed");
+    expect(JSON.stringify(report.stream_events).includes("Explain 00700.HK trend")).toBe(false);
   });
 
   it("plans long-running Workflow tasks with resumable task IDs and notification plans", () => {
