@@ -6,6 +6,7 @@
 > **Sprint Task**: `gate0-rights-regulatory-decision-pack`
 > **Runtime Default**: `DEFAULT_DENY` for any unconfirmed field, channel, user type, geography, export, cache, or derived-data use
 > **Intake Check**: `npm run check:gate0-external-evidence-intake`
+> **Signed Evidence Check**: `npm run check:gate0-signed-evidence-manifest`
 
 This packet records the Gate 0 decision surface for AiphaBee. It is not legal
 advice and does not grant product launch approval. Its purpose is to make the
@@ -15,6 +16,10 @@ large-scale Web Agent, Data Gateway, or MCP implementation begins.
 The executable intake contract is
 `deploy/governance/gate0-external-evidence-intake.contract.json`. It keeps all
 external approval flags false until signed evidence references are supplied.
+The signed evidence manifest is
+`deploy/governance/gate0-signed-evidence-manifest.contract.json`; it records
+only redacted locators, SHA-256 hashes, approver metadata, signed dates, and
+acceptance status, and currently keeps all six required packets `missing`.
 
 ## Decision State
 

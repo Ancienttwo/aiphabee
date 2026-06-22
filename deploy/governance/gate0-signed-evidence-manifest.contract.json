@@ -1,0 +1,128 @@
+{
+  "version": "2026-06-22.gate0-signed-evidence-manifest.v0",
+  "status": "pending_external_evidence",
+  "tracker_item": "Sprint 0.1: signed Gate 0 evidence manifest",
+  "intake_contract": "deploy/governance/gate0-external-evidence-intake.contract.json",
+  "decision_pack": "docs/governance/gate0-rights-regulatory-decision-pack.md",
+  "manifest_doc": "docs/governance/gate0-signed-evidence-manifest.md",
+  "external_approvals_complete": false,
+  "release_transition_allowed": false,
+  "runtime_default": "DEFAULT_DENY",
+  "unconfirmed_runtime_error": "DATA_NOT_LICENSED",
+  "evidence_ref_schema": {
+    "source_locator": "redacted_file_or_external_record_id",
+    "sha256": "hex_sha256_of_redacted_or_canonical_artifact",
+    "signed_at": "YYYY-MM-DD",
+    "approver": "role_or_named_approver",
+    "approval_status": "accepted|rejected|superseded",
+    "redaction_status": "redacted_no_secrets"
+  },
+  "required_packets": [
+    {
+      "id": "field_rights_matrix",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": ["Business / Partnerships", "Data Owner"],
+      "acceptance_checks": [
+        "covers_all_p0_dataset_groups",
+        "covers_all_prd_14_1_dimensions",
+        "mcp_api_rights_explicit",
+        "export_cache_derived_rights_explicit",
+        "default_deny_for_unconfirmed_fields"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    },
+    {
+      "id": "hkex_vendor_licensing_memo",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": ["Business / Partnerships", "Compliance / Counsel"],
+      "acceptance_checks": [
+        "partner_vendor_status_explicit",
+        "aiphabee_role_explicit",
+        "mcp_api_non_display_fee_class_explicit",
+        "subscriber_reporting_explicit",
+        "termination_obligations_explicit"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    },
+    {
+      "id": "type4_product_boundary_opinion",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": ["Compliance / Counsel"],
+      "acceptance_checks": [
+        "actual_ux_reviewed",
+        "prompts_and_marketing_reviewed",
+        "pricing_and_mcp_behavior_reviewed",
+        "allowed_disallowed_feature_list_present",
+        "fallback_or_licensed_route_explicit"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    },
+    {
+      "id": "pcpd_privacy_path_assessment",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": ["Privacy Owner"],
+      "acceptance_checks": [
+        "data_inventory_present",
+        "retention_schedule_present",
+        "vendor_model_risk_review_present",
+        "user_access_export_delete_path_present",
+        "incident_response_present"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    },
+    {
+      "id": "commercial_settlement_schedule",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": ["Business / Partnerships", "Finance"],
+      "acceptance_checks": [
+        "dataset_channel_client_type_geography_present",
+        "usage_metric_present",
+        "delay_and_derived_data_treatment_present",
+        "reporting_cadence_present",
+        "overage_and_termination_economics_present"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    },
+    {
+      "id": "gate0_signature_register",
+      "status": "missing",
+      "evidence_refs": [],
+      "required_approver_roles": [
+        "CEO",
+        "Business / Partnerships",
+        "Data Owner",
+        "Compliance / Counsel",
+        "Privacy Owner",
+        "Engineering"
+      ],
+      "acceptance_checks": [
+        "all_required_roles_signed",
+        "decision_date_present",
+        "mcp_fallback_explicit",
+        "go_no_go_explicit"
+      ],
+      "blocks_sprint0_1_checkbox": true
+    }
+  ],
+  "completion_policy": {
+    "all_packets_status": "accepted",
+    "all_packets_have_evidence_refs": true,
+    "all_refs_have_sha256": true,
+    "no_ref_contains_secret_material": true,
+    "release_transition_sets_default_deny_exceptions_only_from_accepted_matrix": true,
+    "sprint0_1_checkbox_may_be_checked_only_when_external_approvals_complete": true
+  },
+  "forbidden_claims": [
+    "external_approval_complete_without_all_packets_accepted",
+    "evidence_ref_without_sha256",
+    "raw_legal_memo_or_contract_contents",
+    "secret_or_credential_material",
+    "web_rights_imply_mcp_rights",
+    "unconfirmed_field_allowed"
+  ]
+}

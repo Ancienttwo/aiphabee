@@ -7,6 +7,10 @@ local default-deny governance to external Gate 0 approval. It is not legal
 advice and does not approve launch. The machine-readable contract is
 `deploy/governance/gate0-external-evidence-intake.contract.json`; the checker is
 `npm run check:gate0-external-evidence-intake`.
+Signed evidence references and transition rules are tracked separately in
+`deploy/governance/gate0-signed-evidence-manifest.contract.json`; run
+`npm run check:gate0-signed-evidence-manifest` before any Sprint 0.1 external
+approval checkbox is marked complete.
 
 ## Evidence Packets
 
@@ -39,6 +43,9 @@ The check proves that the repo has a complete intake contract and that all
 external approvals remain marked pending. It intentionally fails future edits
 that mark external approvals complete without replacing the pending contract
 state with signed evidence references and an updated release decision.
+The signed-evidence manifest check adds the redacted locator, SHA-256,
+approver, signed date, and redaction-status requirements for that later
+transition.
 
 ## Sprint Impact
 
