@@ -1,0 +1,187 @@
+{
+  "version": "2026-06-22.gate0-external-evidence-intake.v0",
+  "status": "external_evidence_intake_ready",
+  "tracker_item": "Sprint 0.1: external Gate 0 evidence intake",
+  "review_source": "docs/researches/AiphaBee_PRD_v1.0.md#14.1-14.2",
+  "decision_pack": "docs/governance/gate0-rights-regulatory-decision-pack.md",
+  "intake_doc": "docs/governance/gate0-external-evidence-intake.md",
+  "external_approvals_complete": false,
+  "partner_signed_matrix_loaded": false,
+  "legal_opinion_received": false,
+  "pcpd_path_approved": false,
+  "commercial_terms_signed": false,
+  "gate0_signature_complete": false,
+  "runtime_default": "DEFAULT_DENY",
+  "unconfirmed_runtime_error": "DATA_NOT_LICENSED",
+  "linked_contracts": [
+    "deploy/governance/p0-field-distribution-status.contract.json",
+    "deploy/public-ops/mvp-product-boundary-copy.contract.json",
+    "deploy/gateway/p0-rights-matrix-coverage.contract.json",
+    "deploy/gateway/field-authorization-config.contract.json"
+  ],
+  "required_prd_14_1_dimensions": [
+    "data_owner_source",
+    "web_display",
+    "mcp_api_redistribution",
+    "raw_vs_derived",
+    "realtime_delayed_eod",
+    "history_range",
+    "export_cache",
+    "user_type_geography",
+    "device_subscriber_reporting",
+    "audit_termination",
+    "commercial_terms"
+  ],
+  "required_evidence_packets": [
+    {
+      "id": "field_rights_matrix",
+      "owner": "Business / Partnerships + Data Owner",
+      "status": "pending_external",
+      "required_scope": "Every P0 dataset field group and all PRD 14.1 dimensions",
+      "must_include": [
+        "data_owner_source",
+        "field_or_field_group",
+        "web_display",
+        "mcp_api_redistribution",
+        "export",
+        "derived_data",
+        "delay_tier",
+        "history_range",
+        "cache_retention",
+        "user_type_geography",
+        "subscriber_reporting",
+        "audit_termination",
+        "commercial_basis",
+        "effective_date",
+        "approver"
+      ]
+    },
+    {
+      "id": "hkex_vendor_licensing_memo",
+      "owner": "Business / Partnerships + Compliance",
+      "status": "pending_external",
+      "required_scope": "End-user vs Market Data Vendor Licence and non-display treatment",
+      "must_include": [
+        "partner_vendor_status",
+        "aiphabee_role",
+        "redistribution_to_end_users",
+        "redistribution_to_mcp_clients",
+        "non_display_usage",
+        "subscriber_reporting",
+        "fee_treatment",
+        "termination_obligations"
+      ]
+    },
+    {
+      "id": "type4_product_boundary_opinion",
+      "owner": "Compliance / Counsel",
+      "status": "pending_external",
+      "required_scope": "Actual UX, prompts, marketing copy, pricing, MCP/API behavior, and fallback route",
+      "must_include": [
+        "allowed_feature_list",
+        "disallowed_feature_list",
+        "buy_sell_hold_refusal_rule",
+        "ranking_and_scoring_classification",
+        "natural_language_screener_classification",
+        "watchlist_alert_classification",
+        "licensed_route_required",
+        "reviewed_surface_versions"
+      ]
+    },
+    {
+      "id": "pcpd_privacy_path_assessment",
+      "owner": "Privacy Owner",
+      "status": "pending_external",
+      "required_scope": "PDPO/PCPD privacy-by-design path for account, prompt, run, tool, billing, and support data",
+      "must_include": [
+        "data_inventory",
+        "purpose_limitation",
+        "retention_schedule",
+        "vendor_model_risk_review",
+        "user_access_export_delete",
+        "pii_minimization",
+        "incident_response"
+      ]
+    },
+    {
+      "id": "commercial_settlement_schedule",
+      "owner": "Business / Partnerships + Finance",
+      "status": "pending_external",
+      "required_scope": "Dataset x channel x client type x geography x usage metric",
+      "must_include": [
+        "dataset",
+        "channel",
+        "client_type",
+        "geography",
+        "usage_metric",
+        "delay_level",
+        "derived_data_treatment",
+        "reporting_cadence",
+        "minimum_or_overage",
+        "termination_economics"
+      ]
+    },
+    {
+      "id": "gate0_signature_register",
+      "owner": "CEO + Business + Data + Compliance + Privacy + Engineering",
+      "status": "pending_external",
+      "required_scope": "Final Gate 0 go/no-go, MCP fallback, and launch boundary",
+      "must_include": [
+        "ceo_signature",
+        "business_signature",
+        "data_owner_signature",
+        "compliance_counsel_signature",
+        "privacy_owner_signature",
+        "engineering_signature",
+        "decision_date",
+        "fallback_if_mcp_rights_fail"
+      ]
+    }
+  ],
+  "required_hkex_questions": [
+    "partner_market_data_vendor_status",
+    "partner_license_permits_aiphabee_redistribution",
+    "aiphabee_vendor_subvendor_application_provider_or_end_user_role",
+    "data_class_delay_and_source",
+    "mcp_api_redistribution_non_display_or_derived_fee_class",
+    "reportable_subscriber_identifiers",
+    "termination_deletion_cache_purge_audit_obligations"
+  ],
+  "type4_feature_review": [
+    "buy_sell_hold_prompts",
+    "ranking_score_top_pick_outputs",
+    "natural_language_screener",
+    "evidence_grounded_company_research",
+    "deterministic_historical_calculations",
+    "watchlist_alerts"
+  ],
+  "pcpd_minimum_controls": [
+    "data_inventory",
+    "purpose_limitation",
+    "retention_schedule",
+    "vendor_model_risk_review",
+    "user_access_export_delete",
+    "pii_minimization",
+    "incident_response"
+  ],
+  "signature_roles": [
+    "CEO",
+    "Business / Partnerships",
+    "Data Owner",
+    "Compliance / Counsel",
+    "Privacy Owner",
+    "Engineering"
+  ],
+  "fallbacks": {
+    "mcp_redistribution_not_allowed": "pause_remote_mcp_or_return_default_deny_tools_list_empty",
+    "type4_opinion_requires_license": "disable_personalized_or_recommendation_like_features_until_licensed_route",
+    "rights_matrix_incomplete": "keep_all_unconfirmed_fields_default_deny"
+  },
+  "forbidden_claims": [
+    "external_approval_complete_without_evidence",
+    "web_rights_imply_mcp_rights",
+    "unconfirmed_field_allowed",
+    "legal_advice_from_repo_contract",
+    "secret_or_credential_material"
+  ]
+}

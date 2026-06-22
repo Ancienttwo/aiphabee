@@ -114,14 +114,14 @@ owner: "Planner / PM"
 ### Sprint 0.1 — 法务·授权·监管 Gate　🟦
 **目标：** 拿到可上线的「字段级权利矩阵 + 监管分类书面意见」，确定哪些字段/渠道/用途可分发。
 
-- [ ] 与数据合作方完成**字段级权利矩阵**：所有者/来源、Web 展示、MCP/API 再分发、原始 vs 派生、实时/延迟/EOD、历史范围、导出与缓存、用户类型与地区、订阅者报送、审计与终止、商业条款（PRD §14.1 全 11 维）
+- [ ] 与数据合作方完成**字段级权利矩阵**：所有者/来源、Web 展示、MCP/API 再分发、原始 vs 派生、实时/延迟/EOD、历史范围、导出与缓存、用户类型与地区、订阅者报送、审计与终止、商业条款（PRD §14.1 全 11 维）；外部证据 intake gate 已新增 `deploy/governance/gate0-external-evidence-intake.contract.json` / `npm run check:gate0-external-evidence-intake`，但未收到签署矩阵，保持未勾选
 - [x] 逐字段标注分发状态：`Web 可 / MCP 可 / 导出可 / 派生可`，未确认者标 **默认拒绝**：`deploy/governance/p0-field-distribution-status.contract.json` + `npm run check:p0-field-distribution-status` 覆盖 9 个 P0 dataset field groups 与 16 个 rights-aware P0 tools，所有 Web/MCP/API 再分发/导出/派生状态均为 `default_deny_pending_partner_matrix`；不声明 partner 签署或 live rights reads
-- [ ] HKEX 市场数据授权确认：End-user vs Market Data Vendor Licence、非展示使用费（§14.1、脚注 HKEX）
-- [ ] 取得香港律师/合规对**具体功能**的 Type 4 / 研究工具分类书面意见（§14.2、PRD §0.4）
+- [ ] HKEX 市场数据授权确认：End-user vs Market Data Vendor Licence、非展示使用费（§14.1、脚注 HKEX）；intake gate 已固化 partner vendor status / AiphaBee role / MCP redistribution / non-display / subscriber reporting / fee / termination 证据字段，外部书面确认未到位
+- [ ] 取得香港律师/合规对**具体功能**的 Type 4 / 研究工具分类书面意见（§14.2、PRD §0.4）；intake gate 已固化 actual UX/prompts/marketing/pricing/MCP behavior 审查字段，法律/合规书面意见未到位
 - [x] 确认 MVP 产品边界文案：新增 `deploy/public-ops/mvp-product-boundary-copy.contract.json`、`scripts/check-mvp-product-boundary-copy-contract.mjs`、`docs/governance/mvp-product-boundary-copy.md` 与 `npm run check:mvp-product-boundary-copy`，扫描 `docs/public/*.md` 与当前 `apps/web` 用户可见 copy，证明使用「研究/分析/数据解释」边界、不承诺荐股/投顾、不输出个性化买入/卖出/持有建议、不收集风险承受度生成适合性结论；Type 4 书面意见、外部合规签字和 Gate 0 决议书仍未到位（§14.2）
-- [ ] 确认 PCPD 个人资料保障合规路径（privacy-by-design、PDPO 原则，§13.3）
-- [ ] 数据合作方商业结算维度落定（按数据集 × 渠道 × 客户类型，§15.4）
-- [ ] 产出《Gate 0 决议书》并由 CEO/商务/数据/合规签字
+- [ ] 确认 PCPD 个人资料保障合规路径（privacy-by-design、PDPO 原则，§13.3）；intake gate 已固化 data inventory / purpose limitation / retention / vendor-model risk / access-export-delete / PII minimization / incident response 证据字段，隐私签字未到位
+- [ ] 数据合作方商业结算维度落定（按数据集 × 渠道 × 客户类型，§15.4）；intake gate 已固化 dataset/channel/client/geography/usage/delay/derived/reporting/overage/termination 结算字段，商业条款未签署
+- [ ] 产出《Gate 0 决议书》并由 CEO/商务/数据/合规签字；intake gate 已固化 CEO/Business/Data/Compliance/Privacy/Engineering 6 角色 signature register 与 MCP rights fallback，签字未到位
 
 **退出门槛 DoD：** ☐ P0 字段权利矩阵 100% 有状态　☐ Type 4 书面意见到位　☐ MCP 再分发权结论明确（成立/否决，否决则触发 §0 退化路径）　☐ 决议书签字
 
@@ -654,6 +654,7 @@ owner: "Planner / PM"
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-22 | 1.0fu | 完成 `gate0-external-evidence-intake`：新增 `deploy/governance/gate0-external-evidence-intake.contract.json`、`scripts/check-gate0-external-evidence-intake-contract.mjs`、`docs/governance/gate0-external-evidence-intake.md`、task contract/notes 与 `npm run check:gate0-external-evidence-intake`，并接入 full `npm run check`；intake contract 覆盖 PRD §14.1 全 11 个权利维度、6 类外部证据包（字段权利矩阵、HKEX/vendor memo、Type 4 意见、PCPD 隐私路径、商业结算、Gate 0 签字），保持所有 external approval flags=false、`DEFAULT_DENY` / `DATA_NOT_LICENSED` 不变；Sprint 0.1 外部审批 checkbox 仍保持未勾选 |
 | 2026-06-22 | 1.0ft | 完成 `live-smoke-defaults`：新增 `scripts/lib/live-smoke-defaults.mjs`、`scripts/check-live-smoke-defaults.mjs`、`tasks/notes/live-smoke-defaults.notes.md` 与 `npm run check:live-smoke-defaults`，并接入 full `npm run check`；Cloudflare resource / bindings / AI Gateway / observability / provider-secret live smoke 现在可从 `deploy/cloudflare/resource-smoke-readiness.contract.json` 的 `partial_provisioning.resource_names` 推导非 secret 资源名（worker/workflow/queue/DO/R2/KV/D1/AI Gateway/Hyperdrive/Worker），同时保持 account/token/model/OTLP/GitHub/Supabase 等不可推导输入显式缺失；当前 shell 复跑 smoke 只剩真实凭据与外部项目 env missing，Sprint 0.4 live smoke checkbox 保持未完成 |
 | 2026-06-22 | 1.0fs | 完成 `mcp-developer-console-backend-scaffold`：扩展 `@aiphabee/mcp-runtime`，新增 `MCP_DEVELOPER_CONSOLE_VERSION`、`getMcpDeveloperConsoleCapabilities()`、`createMcpDeveloperConsolePlan()`、`POST /mcp/developer-console/plan`、`GET /mcp/runtime` `mcp_developer_console_*` metadata、`deploy/mcp/developer-console.contract.json`、`supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql`、`scripts/check-mcp-developer-console-contract.mjs`、governance/task notes 与 `npm run check:mcp-developer-console`；backend payload 覆盖 connection guide、API key/OAuth route metadata、PRD §9.7 scope catalog、quota/request_id fields、request log schema、initialize/tools-list/tools-call examples，并与 target-client Console release gate / compatibility status 串联；frontend Console UI / live Console log store / live usage ledger reads / live key generation / live OAuth provider / live target-client e2e 未启用，MCP-09 和 Sprint 2.3 仍保持未勾选 |
 | 2026-06-22 | 1.0fr | 完成 `agent-progress-stream-readiness`：扩展 `@aiphabee/agent-runtime`，新增 `AGENT_PROGRESS_STREAM_VERSION`、`createAgentProgressStreamReport()` 与 `AgentProgressStreamReport`，将 ToolLoopAgent public progress events 从 planned contract 提升为 backend `server_sent_events` transport；`POST /agent/runs/stream` 由 503 guard 改为返回 `text/event-stream`，输出 `run.started` / `tool.step.planned` / `tool.call.started` / `tool.call.completed` / `run.completed|run.stopped`，仅包含 public step label、tool name、request/run IDs 和 no-call execution status，不包含 prompt、chain-of-thought 或工具结果；`deploy/agent/tool-loop-planner.contract.json` 与 `scripts/check-tool-loop-agent-contract.mjs` 同步守住 no-model/no-tool-execution/no-frontend 边界。§M AGT-01 仍未勾选，原因是前端 Ask progress rendering 和 live model token streaming 未完成 |

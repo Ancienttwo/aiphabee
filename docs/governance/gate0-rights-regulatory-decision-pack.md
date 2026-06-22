@@ -1,15 +1,20 @@
 # Gate 0 Rights & Regulatory Decision Pack
 
 > **Status**: Evidence collection ready; external approvals pending
-> **Last Updated**: 2026-06-20
+> **Last Updated**: 2026-06-22
 > **Source PRD**: `docs/researches/AiphaBee_PRD_v1.0.md`
 > **Sprint Task**: `gate0-rights-regulatory-decision-pack`
 > **Runtime Default**: `DEFAULT_DENY` for any unconfirmed field, channel, user type, geography, export, cache, or derived-data use
+> **Intake Check**: `npm run check:gate0-external-evidence-intake`
 
 This packet records the Gate 0 decision surface for AiphaBee. It is not legal
 advice and does not grant product launch approval. Its purpose is to make the
 rights, regulatory, privacy, commercial, and signature gaps explicit before any
 large-scale Web Agent, Data Gateway, or MCP implementation begins.
+
+The executable intake contract is
+`deploy/governance/gate0-external-evidence-intake.contract.json`. It keeps all
+external approval flags false until signed evidence references are supplied.
 
 ## Decision State
 
