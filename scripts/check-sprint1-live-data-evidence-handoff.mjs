@@ -6,13 +6,49 @@ import { validateSprint1LiveDataEvidencePackets } from "./check-sprint1-live-dat
 
 const manifestPath = "deploy/governance/sprint1-live-data-evidence-manifest.contract.json";
 const packagePath = "package.json";
-const readmePath = "deploy/governance/sprint1-live-data-evidence-templates/README.md";
+const templateReadmePath = "deploy/governance/sprint1-live-data-evidence-templates/README.md";
+const packetReadmePath = "deploy/governance/sprint1-live-data-evidence-packets/README.md";
 const transitionReviewCheckerPath = "scripts/check-sprint1-live-data-transition-review-contract.mjs";
 const transitionReviewFixtureCheckerPath = "scripts/check-sprint1-live-data-transition-review-fixtures.mjs";
+const requiredAcceptanceCommands = [
+  "npm run check:sprint1-live-data-evidence-packets",
+  "npm run check:sprint1-live-data-evidence-packet-fixtures",
+  "npm run check:sprint1-live-data-evidence-handoff",
+  "npm run check:sprint1-live-data-activation",
+  "npm run check:sprint1-live-data-evidence-manifest",
+  "npm run check:sprint1-live-data-evidence-manifest-fixtures",
+  "npm run check:sprint1-live-data-transition-review",
+  "npm run check:sprint1-live-data-transition-review-fixtures",
+  "npm run check:sprint-completion-audit",
+  "npm run check:sprint-exit-gate-transition-review"
+];
+const requiredForbiddenPayloads = [
+  "raw_partner_rows",
+  "raw_database_values",
+  "raw_billing_payloads",
+  "raw_rows",
+  "raw_row",
+  "raw_record",
+  "raw_response",
+  "raw_output",
+  "database_url",
+  "connection_string",
+  "authorization",
+  "api_key",
+  "token",
+  "secret",
+  "password",
+  "account_id",
+  "workspace_id",
+  "invoice_id",
+  "customer_id",
+  "env_value"
+];
 
 const manifest = readJson(manifestPath);
 const packageJson = readJson(packagePath);
-const readme = readText(readmePath);
+const templateReadme = readText(templateReadmePath);
+const packetReadme = readText(packetReadmePath);
 const templateDirectory = manifest.template_directory;
 const templateDirectoryExists =
   typeof templateDirectory === "string" && existsSync(resolve(process.cwd(), templateDirectory));
@@ -20,7 +56,8 @@ const templateFiles = templateDirectoryExists ? listTemplatePacketFiles(template
 const errors = validateHandoff({
   manifest,
   packageJson,
-  readme,
+  packetReadme,
+  templateReadme,
   templateDirectoryExists,
   templateFiles
 });
@@ -45,7 +82,14 @@ emit(
   0
 );
 
-function validateHandoff({ manifest: value, packageJson, readme, templateDirectoryExists, templateFiles }) {
+function validateHandoff({
+  manifest: value,
+  packageJson,
+  packetReadme,
+  templateReadme,
+  templateDirectoryExists,
+  templateFiles
+}) {
   const errors = [];
 
   if (!isRecord(value)) {
@@ -88,6 +132,8 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
     errors.push("evidence policy must require transition review to cross-check activation gates");
   }
 
+  validateIntakeReadiness(errors, value);
+
   const scripts = packageJson?.scripts ?? {};
   if (
     scripts["check:sprint1-live-data-evidence-handoff"] !==
@@ -115,6 +161,19 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
   }
   if (!String(scripts.check ?? "").includes("npm run check:sprint1-live-data-transition-review-fixtures")) {
     errors.push("root check must include check:sprint1-live-data-transition-review-fixtures");
+  }
+  for (const command of value.intake_readiness?.acceptance_commands ?? []) {
+    const scriptName = command.replace(/^npm run /u, "");
+
+    if (!requiredAcceptanceCommands.includes(command)) {
+      errors.push(`intake readiness command is not allowed: ${command}`);
+    }
+    if (!scripts[scriptName]) {
+      errors.push(`package.json ${scriptName} script is missing for sprint1 live data intake readiness`);
+    }
+    if (!String(scripts.check ?? "").includes(`npm run ${scriptName}`)) {
+      errors.push(`root check must include ${scriptName} for sprint1 live data intake readiness`);
+    }
   }
 
   if (!templateDirectoryExists) {
@@ -179,11 +238,11 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
   }
 
   for (const gate of requiredGates) {
-    if (!readme.includes(gate.id)) {
+    if (!templateReadme.includes(gate.id)) {
       errors.push(`handoff README must mention ${gate.id}`);
     }
     for (const evidenceName of gate.required_evidence ?? []) {
-      if (!readme.includes(evidenceName)) {
+      if (!templateReadme.includes(evidenceName)) {
         errors.push(`handoff README must mention ${evidenceName}`);
       }
     }
@@ -197,12 +256,158 @@ function validateHandoff({ manifest: value, packageJson, readme, templateDirecto
     "deploy/governance/sprint1-live-data-evidence-packets",
     "sha256:"
   ]) {
-    if (!readme.includes(text)) {
+    if (!templateReadme.includes(text)) {
       errors.push(`handoff README must mention ${text}`);
     }
   }
 
+  validatePacketReadme(errors, packetReadme, requiredGates);
+
   return errors;
+}
+
+function validateIntakeReadiness(errors, value) {
+  const readiness = value.intake_readiness;
+
+  if (!isRecord(readiness)) {
+    errors.push("intake_readiness must exist");
+    return;
+  }
+
+  expectEqual(errors, readiness.status, "ready_for_operator_packet_intake", "intake_readiness.status");
+  expectEqual(errors, readiness.packet_directory_ready, true, "intake_readiness.packet_directory_ready");
+  expectArray(errors, readiness.acceptance_commands, requiredAcceptanceCommands, "intake_readiness.acceptance_commands");
+
+  for (const payload of requiredForbiddenPayloads) {
+    expectIncludes(errors, readiness.forbidden_payloads, payload, `intake_readiness.forbidden_payloads.${payload}`);
+  }
+  for (const field of [
+    "raw_rows",
+    "raw_row",
+    "raw_record",
+    "raw_response",
+    "raw_output",
+    "database_url",
+    "connection_string",
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "password",
+    "account_id",
+    "workspace_id",
+    "invoice_id",
+    "customer_id",
+    "env_value"
+  ]) {
+    expectIncludes(errors, value.forbidden_fields, field, `forbidden_fields.${field}`);
+  }
+
+  const requiredGates = Array.isArray(value.required_gates) ? value.required_gates : [];
+  const gateMap = new Map(requiredGates.map((gate) => [gate.id, gate]));
+
+  if (!Array.isArray(readiness.required_packets) || readiness.required_packets.length !== requiredGates.length) {
+    errors.push("intake_readiness.required_packets must contain one packet contract per required gate");
+    return;
+  }
+
+  const packetMap = new Map(readiness.required_packets.map((packet) => [packet.gate_id, packet]));
+
+  for (const gate of requiredGates) {
+    const packet = packetMap.get(gate.id);
+
+    if (!packet) {
+      errors.push(`intake_readiness.required_packets missing ${gate.id}`);
+      continue;
+    }
+
+    expectEqual(errors, packet.owner_kind, "external_operator", `intake_readiness.${gate.id}.owner_kind`);
+    expectEqual(errors, packet.packet_file, `${gate.id}.evidence.json`, `intake_readiness.${gate.id}.packet_file`);
+    expectEqual(errors, packet.template_file, `${gate.id}.evidence.json`, `intake_readiness.${gate.id}.template_file`);
+    expectEqual(errors, packet.expected_packet_status, "missing", `intake_readiness.${gate.id}.expected_packet_status`);
+    expectArray(errors, packet.blocks, gate.blocks, `intake_readiness.${gate.id}.blocks`);
+    expectArray(errors, packet.required_evidence, gate.required_evidence, `intake_readiness.${gate.id}.required_evidence`);
+    expectArray(
+      errors,
+      packet.required_approver_roles,
+      gate.required_approver_roles,
+      `intake_readiness.${gate.id}.required_approver_roles`
+    );
+  }
+
+  for (const gateId of packetMap.keys()) {
+    if (!gateMap.has(gateId)) {
+      errors.push(`intake_readiness.required_packets has unexpected gate ${gateId}`);
+    }
+  }
+}
+
+function validatePacketReadme(errors, packetReadme, requiredGates) {
+  for (const gate of requiredGates) {
+    for (const fragment of [
+      gate.id,
+      `${gate.id}.evidence.json`,
+      ...(gate.blocks ?? []),
+      ...(gate.required_evidence ?? []),
+      ...(gate.required_approver_roles ?? [])
+    ]) {
+      if (!packetReadme.includes(fragment)) {
+        errors.push(`packet README must mention ${fragment}`);
+      }
+    }
+  }
+
+  for (const fragment of [
+    "Sprint 1 live data evidence intake readiness",
+    "status=accepted",
+    "redacted_no_secrets",
+    "evidence_refs",
+    "evidence_sha256",
+    "signed_at",
+    "approver_role",
+    "accepted evidence packet alone",
+    ...requiredAcceptanceCommands,
+    ...requiredForbiddenPayloads
+  ]) {
+    if (!packetReadme.includes(fragment)) {
+      errors.push(`packet README missing intake readiness fragment: ${fragment}`);
+    }
+  }
+}
+
+function expectIncludes(errors, values, expected, label) {
+  if (!Array.isArray(values) || !values.includes(expected)) {
+    errors.push(`${label} must include ${expected}`);
+  }
+}
+
+function expectArray(errors, actual, expected, label) {
+  if (!Array.isArray(actual)) {
+    errors.push(`${label} must be an array`);
+    return;
+  }
+
+  if (!Array.isArray(expected)) {
+    errors.push(`${label} expected reference must be an array`);
+    return;
+  }
+
+  if (actual.length !== expected.length) {
+    errors.push(`${label} expected ${expected.length} items but received ${actual.length}`);
+    return;
+  }
+
+  expected.forEach((value, index) => {
+    if (actual[index] !== value) {
+      errors.push(`${label}[${index}] expected ${value} but received ${actual[index]}`);
+    }
+  });
+}
+
+function expectEqual(errors, actual, expected, label) {
+  if (actual !== expected) {
+    errors.push(`${label} expected ${expected} but received ${actual}`);
+  }
 }
 
 function listTemplatePacketFiles(directory) {

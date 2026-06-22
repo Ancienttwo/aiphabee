@@ -52,6 +52,137 @@
     "source_locator": "redacted_file_or_external_record_id",
     "status": "missing|accepted|rejected|needs_redaction"
   },
+  "intake_readiness": {
+    "status": "ready_for_operator_packet_intake",
+    "packet_directory_ready": true,
+    "handoff_boundary": "External/operator evidence intake only; live Serving reads, SQL execution, usage writes, billing posting, manifest acceptance, and activation gates remain false until redacted hash-only packets plus activation evidence are accepted.",
+    "acceptance_commands": [
+      "npm run check:sprint1-live-data-evidence-packets",
+      "npm run check:sprint1-live-data-evidence-packet-fixtures",
+      "npm run check:sprint1-live-data-evidence-handoff",
+      "npm run check:sprint1-live-data-activation",
+      "npm run check:sprint1-live-data-evidence-manifest",
+      "npm run check:sprint1-live-data-evidence-manifest-fixtures",
+      "npm run check:sprint1-live-data-transition-review",
+      "npm run check:sprint1-live-data-transition-review-fixtures",
+      "npm run check:sprint-completion-audit",
+      "npm run check:sprint-exit-gate-transition-review"
+    ],
+    "forbidden_payloads": [
+      "raw_partner_rows",
+      "raw_database_values",
+      "raw_billing_payloads",
+      "raw_rows",
+      "raw_row",
+      "raw_record",
+      "raw_response",
+      "raw_output",
+      "database_url",
+      "connection_string",
+      "authorization",
+      "api_key",
+      "token",
+      "secret",
+      "password",
+      "account_id",
+      "workspace_id",
+      "invoice_id",
+      "customer_id",
+      "env_value"
+    ],
+    "required_packets": [
+      {
+        "gate_id": "signed_partner_data_contract",
+        "owner_kind": "external_operator",
+        "packet_file": "signed_partner_data_contract.evidence.json",
+        "template_file": "signed_partner_data_contract.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_reads", "live_usage_writes"],
+        "required_evidence": ["signed_dataset_scope", "field_rights_matrix", "usage_metering_terms"],
+        "required_approver_roles": ["data_partner_signatory", "commercial_owner"]
+      },
+      {
+        "gate_id": "partner_serving_rows_loaded",
+        "owner_kind": "external_operator",
+        "packet_file": "partner_serving_rows_loaded.evidence.json",
+        "template_file": "partner_serving_rows_loaded.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_reads"],
+        "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows"],
+        "required_approver_roles": ["data_platform_owner"]
+      },
+      {
+        "gate_id": "field_rights_policy_source_live",
+        "owner_kind": "external_operator",
+        "packet_file": "field_rights_policy_source_live.evidence.json",
+        "template_file": "field_rights_policy_source_live.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_reads", "live_usage_writes"],
+        "required_evidence": ["live_entitlement_policy_rows", "policy_version", "workspace_plan_channel_matrix"],
+        "required_approver_roles": ["data_governance_owner"]
+      },
+      {
+        "gate_id": "hyperdrive_select_1_passed",
+        "owner_kind": "external_operator",
+        "packet_file": "hyperdrive_select_1_passed.evidence.json",
+        "template_file": "hyperdrive_select_1_passed.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_sql_execution"],
+        "required_evidence": ["hyperdrive_config", "read_only_select_1", "connection_redaction_proof"],
+        "required_approver_roles": ["platform_owner", "sre_owner"]
+      },
+      {
+        "gate_id": "serving_sql_execution_enabled",
+        "owner_kind": "external_operator",
+        "packet_file": "serving_sql_execution_enabled.evidence.json",
+        "template_file": "serving_sql_execution_enabled.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_reads"],
+        "required_evidence": ["row_limit_enforced", "field_projection_enforced", "cache_key_material_verified"],
+        "required_approver_roles": ["data_gateway_owner"]
+      },
+      {
+        "gate_id": "quality_owner_cutover_approved",
+        "owner_kind": "external_operator",
+        "packet_file": "quality_owner_cutover_approved.evidence.json",
+        "template_file": "quality_owner_cutover_approved.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_serving_reads"],
+        "required_evidence": ["PASS_WARN_release_policy", "HOLD_REJECT_RAW_isolation", "quality_owner_signoff"],
+        "required_approver_roles": ["data_quality_owner"]
+      },
+      {
+        "gate_id": "usage_event_live_write_passed",
+        "owner_kind": "external_operator",
+        "packet_file": "usage_event_live_write_passed.evidence.json",
+        "template_file": "usage_event_live_write_passed.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_usage_writes"],
+        "required_evidence": ["core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"],
+        "required_approver_roles": ["usage_owner"]
+      },
+      {
+        "gate_id": "usage_ledger_entry_live_write_passed",
+        "owner_kind": "external_operator",
+        "packet_file": "usage_ledger_entry_live_write_passed.evidence.json",
+        "template_file": "usage_ledger_entry_live_write_passed.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["live_usage_writes"],
+        "required_evidence": ["core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"],
+        "required_approver_roles": ["usage_owner", "billing_owner"]
+      },
+      {
+        "gate_id": "billing_reconciliation_live_read_passed",
+        "owner_kind": "external_operator",
+        "packet_file": "billing_reconciliation_live_read_passed.evidence.json",
+        "template_file": "billing_reconciliation_live_read_passed.evidence.json",
+        "expected_packet_status": "missing",
+        "blocks": ["billing_reconciliation_posting"],
+        "required_evidence": ["invoice_line_trace", "usage_to_invoice_consistency", "freshness_under_5_minutes"],
+        "required_approver_roles": ["billing_owner", "finance_owner"]
+      }
+    ]
+  },
   "forbidden_fields": [
     "authorization",
     "api_key",
