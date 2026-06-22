@@ -37,7 +37,8 @@ const requiredTruePolicies = [
   "manual_blocking_conditions_must_be_empty",
   "phase_exit_gate_requires_child_sprints_complete",
   "tracker_exit_gate_change_requires_review",
-  "backlog_count_alone_never_completes_sprint"
+  "backlog_count_alone_never_completes_sprint",
+  "manual_blocking_conditions_require_owner_map"
 ];
 
 if (isMainModule()) {
@@ -215,6 +216,7 @@ function validateSprintExitGateTransitionReview({
     ...validatePackageScripts(packageJson),
     ...validateSprintCompletionAudit(contract, sprintCompletionAudit),
     ...validateLinkedBlockers(contract, blockerManifestStates),
+    ...validateManualBlockerOwnerMap(contract, packageJson, blockerManifestStates),
     ...validateTrackerRows(contract, sprintRows, phaseRows, transitionReview),
     ...validateTrackerAndTodos(contract, tracker, todos),
     ...validatePendingState(contract, transitionReview)
@@ -241,6 +243,7 @@ function validateContract(value) {
   expectEqual(errors, value.all_sprint_exit_gates_complete, false, "all_sprint_exit_gates_complete");
   expectEqual(errors, value.all_phase_exit_gates_complete, false, "all_phase_exit_gates_complete");
   expectEqual(errors, value.backlog_count_alone_never_completes_sprint, true, "backlog_count_alone_never_completes_sprint");
+  expectEqual(errors, value.manual_blocker_owner_map_complete, true, "manual_blocker_owner_map_complete");
   expectArray(errors, value.required_sprint_ids, requiredSprintIds, "required_sprint_ids");
   expectArray(errors, value.required_phase_ids, requiredPhaseIds, "required_phase_ids");
 
@@ -315,6 +318,129 @@ function validateContract(value) {
   }
 
   return errors;
+}
+
+function validateManualBlockerOwnerMap(contract, packageJson, blockerManifestStates) {
+  const errors = [];
+  const ownerMap = contract.manual_blocker_owner_map;
+  const knownManifestIds = new Set(Object.keys(blockerManifestStates));
+  const usedConditions = new Set();
+
+  if (!isRecord(ownerMap)) {
+    errors.push("manual_blocker_owner_map must be an object");
+    return errors;
+  }
+
+  for (const review of [
+    ...(contract.sprint_exit_gate_reviews ?? []),
+    ...(contract.phase_exit_gate_reviews ?? [])
+  ]) {
+    for (const condition of review.manual_blocking_conditions ?? []) {
+      usedConditions.add(condition);
+      const entry = ownerMap[condition];
+      const path = `manual_blocker_owner_map.${condition}`;
+
+      if (!isRecord(entry)) {
+        errors.push(`${path} must describe the manual blocker owner`);
+        continue;
+      }
+
+      validateOwnerManifestIds({
+        condition,
+        entry,
+        errors,
+        knownManifestIds,
+        path,
+        review
+      });
+      validateOwnerCheckCommands({
+        entry,
+        errors,
+        packageJson,
+        path
+      });
+      validateClosureEvidenceRefs({
+        entry,
+        errors,
+        path
+      });
+    }
+  }
+
+  for (const condition of Object.keys(ownerMap)) {
+    if (!usedConditions.has(condition)) {
+      errors.push(`manual_blocker_owner_map.${condition} is not referenced by any manual blocking condition`);
+    }
+  }
+
+  return errors;
+}
+
+function validateOwnerManifestIds({
+  condition,
+  entry,
+  errors,
+  knownManifestIds,
+  path,
+  review
+}) {
+  if (!Array.isArray(entry.owner_manifest_ids) || entry.owner_manifest_ids.length === 0) {
+    errors.push(`${path}.owner_manifest_ids must not be empty`);
+    return;
+  }
+
+  const reviewManifestIds = new Set(review.blocker_manifest_ids ?? []);
+
+  for (const manifestId of entry.owner_manifest_ids) {
+    if (!knownManifestIds.has(manifestId)) {
+      errors.push(`${path}.owner_manifest_ids references unknown blocker manifest ${manifestId}`);
+    }
+    if (!reviewManifestIds.has(manifestId)) {
+      const reviewId = review.sprint_id ? `Sprint ${review.sprint_id}` : `Phase ${review.phase_id}`;
+      errors.push(`${path}.owner_manifest_ids.${manifestId} must be listed on ${reviewId} blocker_manifest_ids for ${condition}`);
+    }
+  }
+}
+
+function validateOwnerCheckCommands({
+  entry,
+  errors,
+  packageJson,
+  path
+}) {
+  const scripts = packageJson?.scripts ?? {};
+
+  if (!Array.isArray(entry.owner_check_commands) || entry.owner_check_commands.length === 0) {
+    errors.push(`${path}.owner_check_commands must not be empty`);
+    return;
+  }
+
+  for (const scriptName of entry.owner_check_commands) {
+    if (typeof scriptName !== "string" || scripts[scriptName] === undefined) {
+      errors.push(`${path}.owner_check_commands references missing package script ${scriptName}`);
+      continue;
+    }
+    if (!String(scripts.check ?? "").includes(`npm run ${scriptName}`)) {
+      errors.push(`${path}.owner_check_commands.${scriptName} must be included in root check`);
+    }
+  }
+}
+
+function validateClosureEvidenceRefs({
+  entry,
+  errors,
+  path
+}) {
+  if (!Array.isArray(entry.closure_evidence_refs) || entry.closure_evidence_refs.length === 0) {
+    errors.push(`${path}.closure_evidence_refs must not be empty`);
+    return;
+  }
+
+  for (const ref of entry.closure_evidence_refs) {
+    if (typeof ref !== "string" || ref.trim().length === 0) {
+      errors.push(`${path}.closure_evidence_refs must contain non-empty strings`);
+    }
+  }
 }
 
 function validatePackageScripts(value) {

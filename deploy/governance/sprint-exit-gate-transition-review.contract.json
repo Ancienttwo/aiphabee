@@ -34,7 +34,204 @@
     "manual_blocking_conditions_must_be_empty": true,
     "phase_exit_gate_requires_child_sprints_complete": true,
     "tracker_exit_gate_change_requires_review": true,
-    "backlog_count_alone_never_completes_sprint": true
+    "backlog_count_alone_never_completes_sprint": true,
+    "manual_blocking_conditions_require_owner_map": true
+  },
+  "manual_blocker_owner_map_complete": true,
+  "manual_blocker_owner_map": {
+    "external_rights_regulatory_signatures_missing": {
+      "owner_manifest_ids": ["gate0_signed_evidence"],
+      "owner_check_commands": ["check:gate0-signed-evidence-transition-review"],
+      "closure_evidence_refs": [
+        "field_rights_matrix",
+        "hkex_vendor_licensing_memo",
+        "type4_product_boundary_opinion",
+        "pcpd_privacy_path_assessment",
+        "commercial_settlement_schedule",
+        "gate0_signature_register"
+      ]
+    },
+    "partner_signed_data_contract_missing": {
+      "owner_manifest_ids": ["gate0_signed_evidence"],
+      "owner_check_commands": ["check:gate0-signed-evidence-transition-review"],
+      "closure_evidence_refs": [
+        "field_rights_matrix",
+        "hkex_vendor_licensing_memo",
+        "gate0_signature_register"
+      ]
+    },
+    "partner_approved_production_corpus_missing": {
+      "owner_manifest_ids": ["sprint1_live_data_evidence"],
+      "owner_check_commands": [
+        "check:sprint1-live-data-transition-review",
+        "check:agent-model-output-corpus-release-gate"
+      ],
+      "closure_evidence_refs": [
+        "signed_partner_data_contract",
+        "partner_serving_rows_loaded",
+        "quality_owner_cutover_approved"
+      ]
+    },
+    "commercial_cost_review_missing": {
+      "owner_manifest_ids": ["gate0_signed_evidence"],
+      "owner_check_commands": [
+        "check:gate0-signed-evidence-transition-review",
+        "check:publication-economics-release-gate"
+      ],
+      "closure_evidence_refs": [
+        "commercial_settlement_schedule",
+        "gate0_signature_register"
+      ]
+    },
+    "credentialed_live_smoke_captures_missing": {
+      "owner_manifest_ids": ["phase0_live_smoke_evidence"],
+      "owner_check_commands": [
+        "check:live-smoke-capture-transition-review",
+        "check:live-smoke-evidence-ledger"
+      ],
+      "closure_evidence_refs": [
+        "cloudflare_resource_inventory",
+        "cloudflare_bindings_functional",
+        "ai_gateway_model_execution",
+        "ai_gateway_observability",
+        "observability_otlp_eval_store",
+        "provider_secret_store_rotation"
+      ]
+    },
+    "partner_rows_live_serving_usage_writes_missing": {
+      "owner_manifest_ids": ["sprint1_live_data_evidence"],
+      "owner_check_commands": [
+        "check:sprint1-live-data-transition-review",
+        "check:sprint1-live-data-activation"
+      ],
+      "closure_evidence_refs": [
+        "partner_serving_rows_loaded",
+        "serving_sql_execution_enabled",
+        "usage_event_live_write_passed",
+        "usage_ledger_entry_live_write_passed",
+        "billing_reconciliation_live_read_passed"
+      ]
+    },
+    "partner_source_rows_data_platform_signoff_missing": {
+      "owner_manifest_ids": ["sprint1_live_data_evidence"],
+      "owner_check_commands": [
+        "check:sprint1-live-data-transition-review",
+        "check:sprint1-live-data-evidence-handoff"
+      ],
+      "closure_evidence_refs": [
+        "signed_partner_data_contract",
+        "partner_serving_rows_loaded",
+        "quality_owner_cutover_approved"
+      ]
+    },
+    "production_user_run_streaming_persistence_frontend_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:p0-open-requirement-transition-review",
+        "check:agent-live-model-streaming-release-gate",
+        "check:agent-user-run-persistence-release-gate"
+      ],
+      "closure_evidence_refs": [
+        "agent_ask_progress_ui",
+        "agent_evidence_card_ui",
+        "ai_gateway_model_execution",
+        "ai_gateway_observability",
+        "observability_otlp_eval_store"
+      ]
+    },
+    "internal_account_eval_frontend_live_wiring_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:authorized-session-memory",
+        "check:eval-v1",
+        "check:sprint1-live-data-transition-review"
+      ],
+      "closure_evidence_refs": [
+        "agent_ask_progress_ui",
+        "wcag_2_1_aa_audit",
+        "billing_reconciliation_live_read_passed"
+      ]
+    },
+    "comparison_screening_frontend_evidence_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:frontend-release-evidence-packets"
+      ],
+      "closure_evidence_refs": ["comparison_screening_ui"]
+    },
+    "research_library_frontend_evidence_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:frontend-release-evidence-packets"
+      ],
+      "closure_evidence_refs": ["research_library_ui"]
+    },
+    "developer_console_live_e2e_missing": {
+      "owner_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
+      "owner_check_commands": [
+        "check:mcp-target-client-live-e2e-transition-review",
+        "check:frontend-release-evidence-handoff",
+        "check:frontend-release-evidence-packets"
+      ],
+      "closure_evidence_refs": [
+        "mcp_inspector",
+        "typescript_sdk_client",
+        "claude_desktop",
+        "cursor",
+        "chatgpt_connector",
+        "developer_console_ui"
+      ]
+    },
+    "multilingual_event_research_live_outputs_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:localized-response",
+        "check:research-run-save",
+        "check:sprint1-live-data-transition-review"
+      ],
+      "closure_evidence_refs": [
+        "research_library_ui",
+        "partner_serving_rows_loaded",
+        "serving_sql_execution_enabled"
+      ]
+    },
+    "wcag_frontend_public_ops_evidence_missing": {
+      "owner_manifest_ids": ["frontend_release_evidence"],
+      "owner_check_commands": [
+        "check:frontend-release-evidence-handoff",
+        "check:frontend-release-evidence-packets",
+        "check:public-ops"
+      ],
+      "closure_evidence_refs": ["wcag_2_1_aa_audit"]
+    },
+    "security_load_dr_release_signoffs_missing": {
+      "owner_manifest_ids": [
+        "gate0_signed_evidence",
+        "phase0_live_smoke_evidence",
+        "sprint1_live_data_evidence",
+        "mcp_target_client_live_e2e",
+        "frontend_release_evidence"
+      ],
+      "owner_check_commands": [
+        "check:compliance-ops-release-gate",
+        "check:performance-availability-release-gate",
+        "check:load-dr-incident-drill-release-gate",
+        "check:gate0-signed-evidence-transition-review",
+        "check:live-smoke-capture-transition-review"
+      ],
+      "closure_evidence_refs": [
+        "gate0_signature_register",
+        "provider_secret_store_rotation",
+        "billing_reconciliation_live_read_passed",
+        "chatgpt_connector",
+        "wcag_2_1_aa_audit"
+      ]
+    }
   },
   "sprint_exit_gate_reviews": [
     {
@@ -143,10 +340,11 @@
       "backlog": "9 / 9",
       "backlog_complete": true,
       "completion_allowed": false,
-      "blocker_manifest_ids": ["sprint1_live_data_evidence"],
+      "blocker_manifest_ids": ["sprint1_live_data_evidence", "frontend_release_evidence"],
       "manual_blocking_conditions": ["internal_account_eval_frontend_live_wiring_missing"],
       "blocking_conditions": [
         "blocker_manifest:sprint1_live_data_evidence",
+        "blocker_manifest:frontend_release_evidence",
         "internal_account_eval_frontend_live_wiring_missing"
       ]
     },
@@ -340,19 +538,23 @@
     "Sprint exit gate transition review 已建立",
     "| 2026-06-23 | 1.0hr | 完成 `sprint-exit-gate-transition-review`",
     "Sprint 2.4 live operations evidence handoff 已建立",
-    "| 2026-06-23 | 1.0hs | 完成 `sprint2-4-live-operations-evidence`"
+    "| 2026-06-23 | 1.0hs | 完成 `sprint2-4-live-operations-evidence`",
+    "Sprint manual blocker owner map 已建立",
+    "| 2026-06-23 | 1.0hu | 完成 `sprint-manual-blocker-owner-map`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
     "npm run check:sprint-exit-gate-transition-review",
     "backlog count alone",
-    "Sprint 2.4 live operations evidence handoff"
+    "Sprint 2.4 live operations evidence handoff",
+    "Sprint manual blocker owner map"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
     "all_phase_exit_gates_complete",
     "release_transition_allowed",
     "all_sprints_complete",
-    "goal_complete"
+    "goal_complete",
+    "manual_blocking_conditions_resolved"
   ]
 }
