@@ -4,6 +4,9 @@
   "ledger_contract": "deploy/governance/live-smoke-evidence-ledger.contract.json",
   "preflight_checker": "scripts/check-live-smoke-external-env-preflight.mjs",
   "checker": "scripts/check-live-smoke-capture-artifacts-contract.mjs",
+  "packet_checker": "scripts/check-live-smoke-capture-packets.mjs",
+  "artifact_directory": "deploy/governance/live-smoke-capture-packets",
+  "packet_file_pattern": "<capture_id>.capture.json",
   "capture_packet_schema": {
     "capture_id": "ledger.live_smoke_commands.id",
     "command": "ledger.live_smoke_commands.command",
@@ -24,6 +27,7 @@
     "hash_only_refs_required": true,
     "missing_env_capture_does_not_unlock": true,
     "passed_capture_requires_output_sha256": true,
+    "packet_checker_allows_empty_directory_until_external_env_arrives": true,
     "secret_store_capture_requires_cleanup": true,
     "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true
   },
