@@ -39,18 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "partner_source_rows_data_platform_signoff_missing": {
-      "owner_manifest_ids": ["sprint1_live_data_evidence"],
-      "owner_check_commands": [
-        "check:sprint1-live-data-transition-review",
-        "check:sprint1-live-data-evidence-handoff"
-      ],
-      "closure_evidence_refs": [
-        "signed_partner_data_contract",
-        "partner_serving_rows_loaded",
-        "quality_owner_cutover_approved"
-      ]
-    },
     "production_user_run_streaming_persistence_frontend_missing": {
       "owner_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
       "owner_check_commands": [
@@ -215,11 +203,8 @@
       "backlog_complete": true,
       "completion_allowed": false,
       "blocker_manifest_ids": ["sprint1_live_data_evidence"],
-      "manual_blocking_conditions": ["partner_source_rows_data_platform_signoff_missing"],
-      "blocking_conditions": [
-        "blocker_manifest:sprint1_live_data_evidence",
-        "partner_source_rows_data_platform_signoff_missing"
-      ]
+      "manual_blocking_conditions": [],
+      "blocking_conditions": ["blocker_manifest:sprint1_live_data_evidence"]
     },
     {
       "sprint_id": "1.3",
@@ -454,7 +439,9 @@
     "Credentialed live smoke blocker 已转为 phase0 live-smoke manifest blocker",
     "| 2026-06-23 | 1.0hy | 完成 `credentialed-live-smoke-blocker-routing`",
     "Partner live Serving/usage blocker 已转为 Sprint1 live-data manifest blocker",
-    "| 2026-06-23 | 1.0hz | 完成 `partner-live-serving-usage-blocker-routing`"
+    "| 2026-06-23 | 1.0hz | 完成 `partner-live-serving-usage-blocker-routing`",
+    "Partner source rows/data-platform signoff blocker 已转为 Sprint1 live-data manifest blocker",
+    "| 2026-06-23 | 1.0ia | 完成 `partner-source-rows-signoff-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -466,7 +453,8 @@
     "Sprint 0.x Gate0 manual blocker manifest routing",
     "Partner model output corpus blocker routing",
     "Credentialed live smoke blocker routing",
-    "Partner live Serving/usage blocker routing"
+    "Partner live Serving/usage blocker routing",
+    "Partner source rows signoff blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
