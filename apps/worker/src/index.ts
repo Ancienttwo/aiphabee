@@ -353,6 +353,7 @@ interface WorkerBindings {
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
   AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -807,6 +808,12 @@ const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE = "/agent/runs/model-execution-aud
 const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_HEADER_VALUE = "agent-model-execution-audit-v1";
 const AGENT_MODEL_EXECUTION_AUDIT_SMOKE_TOKEN_BINDING =
   "AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN";
+const AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE = "/agent/runs/live-tool-loop-smoke";
+const AGENT_LIVE_TOOL_LOOP_SMOKE_HEADER_VALUE = "agent-live-tool-loop-v1";
+const AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN";
+const AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION =
+  "2026-06-22.phase1.agent-live-tool-loop-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1382,6 +1389,100 @@ app.post(AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE, async (c) => {
       route: `POST ${AGENT_MODEL_EXECUTION_AUDIT_SMOKE_ROUTE}`,
       status: "failed",
       version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
+app.post(AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== AGENT_LIVE_TOOL_LOOP_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentLiveToolLoopSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentLiveToolLoopSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  try {
+    const result = await executeAgentLiveToolLoopSmoke(c.env ?? {}, requestId);
+    const bodyWithoutHash = {
+      agent_live_tool_loop_result: result,
+      request_id: requestId,
+      route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
+      status: result.status === "passed" ? "ok" : "failed",
+      version: AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      result.status === "passed" ? 200 : 502
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code:
+        error instanceof AgentRuntimeInputError || error instanceof McpRuntimeInputError
+          ? error.code
+          : "AGENT_LIVE_TOOL_LOOP_SMOKE_FAILED",
+      request_id: requestId,
+      route: `POST ${AGENT_LIVE_TOOL_LOOP_SMOKE_ROUTE}`,
+      status: "failed",
+      version: AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION
     };
     const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
 
@@ -10542,6 +10643,20 @@ function getAgentModelExecutionAuditSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingAgentLiveToolLoopSmokeEnv(env: WorkerBindings): string[] {
+  const missingEnv = missingAiGatewayLiveSmokeEnv(env);
+
+  if (getAgentLiveToolLoopSmokeToken(env).length < 16) {
+    return [AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN_BINDING, ...missingEnv];
+  }
+
+  return missingEnv;
+}
+
+function getAgentLiveToolLoopSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?.trim() ?? "";
+}
+
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
   return getAgentToolExecutionSmokeToken(env).length >= 16
     ? []
@@ -11397,6 +11512,16 @@ function isAgentModelExecutionAuditSmokeAuthorized(
   return c.req.header("authorization") === `Bearer ${token}`;
 }
 
+function isAgentLiveToolLoopSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const token = getAgentLiveToolLoopSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
 function isAgentToolExecutionSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = getAgentToolExecutionSmokeToken(c.env ?? {});
 
@@ -11508,6 +11633,117 @@ async function createAgentModelExecutionAuditSmokeResult(
       total_tokens: totalTokens
     },
     version: modelProviderResult.version
+  };
+}
+
+async function executeAgentLiveToolLoopSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<Record<string, unknown>> {
+  const plan = createToolLoopAgentPlan({
+    asOf: "2026-06-22T00:00:00.000Z",
+    currency: "HKD",
+    methodology: "split_adjusted",
+    prompt: "Summarize Tencent 00700.HK quote with evidence.",
+    requestedTools: ["get_quote_snapshot"],
+    requestId,
+    securities: ["00700.HK"],
+    securityQuery: "00700.HK Tencent"
+  });
+  const plannedToolNames = plan.steps.flatMap((step) =>
+    step.tool_calls.map((toolCall) => toolCall.name)
+  );
+  const planBoundToTool =
+    plan.status === "planned_no_model" &&
+    plannedToolNames.includes("get_quote_snapshot") &&
+    plan.run_context.entitlements.allowed_tools.includes("get_quote_snapshot");
+  const toolExecutionResult = await executeAgentToolExecutionEvidenceSmoke(requestId);
+  const modelProviderResult = await runAiGatewayLiveSmoke({
+    accountId: env.CLOUDFLARE_ACCOUNT_ID ?? "",
+    apiToken: getAiGatewayLiveSmokeToken(env),
+    gatewayId: env.AI_GATEWAY_NAME ?? "",
+    model: env.AI_GATEWAY_SMOKE_MODEL ?? ""
+  });
+  const modelAuditResult = await createAgentModelExecutionAuditSmokeResult(
+    modelProviderResult,
+    requestId
+  );
+  const evidenceValidation = isPlainRecord(toolExecutionResult.evidence_binding_validation)
+    ? toolExecutionResult.evidence_binding_validation
+    : {};
+  const unsourcedProbe = isPlainRecord(toolExecutionResult.unsourced_numeric_probe)
+    ? toolExecutionResult.unsourced_numeric_probe
+    : {};
+  const gatewayLogEvidence = isPlainRecord(modelAuditResult.gateway_log_evidence)
+    ? modelAuditResult.gateway_log_evidence
+    : {};
+  const tokenUsage = isPlainRecord(modelAuditResult.token_usage) ? modelAuditResult.token_usage : {};
+  const toolExecutionPassed = toolExecutionResult.status === "passed";
+  const modelExecutionPassed = modelAuditResult.status === "passed";
+  const sourcedNumericAllowed = evidenceValidation.output_allowed === true;
+  const unsourcedNumericBlocked =
+    unsourcedProbe.output_allowed === false &&
+    unsourcedProbe.failure_code === "UNSOURCED_NUMERIC_CLAIM";
+  const status =
+    planBoundToTool && toolExecutionPassed && modelExecutionPassed && unsourcedNumericBlocked
+      ? "passed"
+      : "failed";
+
+  return {
+    actual_model_execution: modelExecutionPassed,
+    actual_tool_execution: toolExecutionPassed,
+    frontend: false,
+    general_user_tool_loop_execution: false,
+    hash_only_response: true,
+    live_evidence_writes: false,
+    live_tool_loop_execution: status === "passed",
+    live_usage_ledger_writes: false,
+    model_calls: modelExecutionPassed,
+    model_execution_audit: {
+      gateway_log_evidence: gatewayLogEvidence,
+      operation_count: modelAuditResult.operation_count,
+      status: modelAuditResult.status,
+      token_usage: tokenUsage
+    },
+    not_claimed: [
+      "arbitrary_tool_execution",
+      "user_facing_live_model_streaming",
+      "generated_answer_evidence_binding",
+      "ai_gateway_logs_read",
+      "live_evidence_writes",
+      "live_usage_ledger_writes",
+      "frontend_ask_rendering"
+    ],
+    persistent_writes: false,
+    plan_summary: {
+      planned_step_count: plan.planned_step_count,
+      plan_status: plan.status,
+      plan_version: plan.version,
+      requested_tool_count: plannedToolNames.length,
+      run_id_hash: await hashRuntimeSmokeString(plan.run_id),
+      tool_loop_plan_bound: planBoundToTool
+    },
+    raw_model_output_returned: false,
+    raw_tool_output_returned: false,
+    status,
+    tool_execution: {
+      evidence_binding_validation: evidenceValidation,
+      sample_tool: toolExecutionResult.sample_tool,
+      source_record_hash: toolExecutionResult.source_record_hash,
+      status: toolExecutionResult.status,
+      tool_result: toolExecutionResult.tool_result,
+      tool_result_hash: toolExecutionResult.tool_result_hash,
+      unsourced_numeric_probe: unsourcedProbe
+    },
+    validation: {
+      ai_gateway_log_evidence_status: gatewayLogEvidence.status ?? "not_checked",
+      model_execution_audit_passed: modelExecutionPassed,
+      plan_bound_to_registered_tool: planBoundToTool,
+      sourced_numeric_claim_allowed: sourcedNumericAllowed,
+      tool_execution_passed: toolExecutionPassed,
+      unsourced_numeric_probe_blocked: unsourcedNumericBlocked
+    },
+    version: AGENT_LIVE_TOOL_LOOP_SMOKE_VERSION
   };
 }
 

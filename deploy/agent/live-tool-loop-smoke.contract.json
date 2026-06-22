@@ -1,0 +1,65 @@
+{
+  "version": "2026-06-22.phase1.agent-live-tool-loop-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /agent/runs/live-tool-loop-smoke",
+  "checker": "scripts/check-agent-live-tool-loop-smoke-contract.mjs",
+  "test_file": "apps/worker/src/agent-live-tool-loop-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "tool_loop_planner_contract": "deploy/agent/tool-loop-planner.contract.json",
+  "tool_execution_smoke_contract": "deploy/agent/tool-execution-evidence-smoke.contract.json",
+  "model_execution_audit_smoke_contract": "deploy/agent/model-execution-audit-smoke.contract.json",
+  "smoke_token_binding": "AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "agent-live-tool-loop-v1"
+  },
+  "sample_tool_name": "get_quote_snapshot",
+  "sample_tool_route": "POST /tools/get-quote-snapshot",
+  "sample_instrument_id": "eq_hk_00700",
+  "required_ai_gateway_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN",
+    "AI_GATEWAY_NAME",
+    "AI_GATEWAY_SMOKE_MODEL"
+  ],
+  "live_tool_loop_execution": true,
+  "actual_tool_execution": true,
+  "actual_model_execution": true,
+  "tool_loop_plan_bound": true,
+  "evidence_card_binding_probe": true,
+  "unsourced_numeric_probe": true,
+  "audit_event_preview": true,
+  "auth_enforced_before_execution": true,
+  "hash_only_response": true,
+  "general_user_tool_loop_execution": false,
+  "arbitrary_tool_execution": false,
+  "raw_model_output_returned": false,
+  "raw_tool_output_returned": false,
+  "persistent_writes": false,
+  "live_evidence_writes": false,
+  "live_usage_ledger_writes": false,
+  "frontend": false,
+  "gateway_log_evidence": {
+    "ai_gateway_logs_read": false,
+    "cost_log_verified": false,
+    "cache_log_verified": false,
+    "rate_limit_log_verified": false,
+    "fallback_log_verified": false,
+    "status": "blocked_external_permission",
+    "required_permissions": ["AI Gateway Read", "Account Analytics Read"]
+  },
+  "not_claimed": [
+    "arbitrary_tool_execution",
+    "user_facing_live_model_streaming",
+    "generated_answer_evidence_binding",
+    "ai_gateway_logs_read",
+    "live_evidence_writes",
+    "live_usage_ledger_writes",
+    "frontend_ask_rendering"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/agent-live-tool-loop-smoke.test.ts",
+    "contract_check": "npm run check:agent-live-tool-loop-smoke",
+    "worker_typecheck": "npm run typecheck --workspace @aiphabee/worker"
+  }
+}
