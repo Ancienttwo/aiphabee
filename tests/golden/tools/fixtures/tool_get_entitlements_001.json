@@ -12,23 +12,7 @@
     ]
   },
   "expected_response": {
-    "ok": true,
-    "request_id": "golden-tool-entitlements",
     "as_of": "2026-01-07T16:15:00+08:00",
-    "market_status": "not_applicable",
-    "provenance": [
-      {
-        "source": "synthetic_tool_fixture",
-        "source_record_id": "data-entitlement:ent_financial_facts_web_revenue",
-        "data_version": "entitlements-synthetic-v0",
-        "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
-      }
-    ],
-    "usage": {
-      "cached": false,
-      "credits": 2,
-      "rows": 1
-    },
     "data": {
       "toolName": "get_entitlements",
       "status": "found",
@@ -38,6 +22,22 @@
       "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
     },
     "data_version": "entitlements-synthetic-v0",
-    "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
+    "market_status": "not_applicable",
+    "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+    "ok": true,
+    "provenance": [
+      {
+        "data_version": "entitlements-synthetic-v0",
+        "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+        "source": "entitlement-policy-source",
+        "source_record_id": "data-entitlement:ent_corporate_actions_web_all|data-entitlement:ent_entitlements_web_all|data-entitlement:ent_financial_facts_web_assets|data-entitlement:ent_financial_facts_web_capital_expenditure|data-entitlement:ent_financial_facts_web_equity|data-entitlement:ent_financial_facts_web_net_income|data-entitlement:ent_financial_facts_web_revenue|data-entitlement:ent_lineage_web_all|data-entitlement:ent_market_calendar_web_all|data-entitlement:ent_price_history_web_all|data-entitlement:ent_quote_snapshot_api_all|data-entitlement:ent_quote_snapshot_web_all|data-entitlement:ent_security_master_web_all|data-entitlement:ent_security_profile_web_all|workspace-entitlement:ws_demo_free:ent_entitlements_web_all|workspace-entitlement:ws_demo_free:ent_lineage_web_all|workspace-entitlement:ws_demo_free:ent_market_calendar_web_all|workspace-entitlement:ws_demo_free:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_free:ent_security_master_web_all|workspace-entitlement:ws_demo_free:ent_security_profile_web_all|workspace-entitlement:ws_demo_pro:ent_corporate_actions_web_all|workspace-entitlement:ws_demo_pro:ent_entitlements_web_all|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_assets|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_capital_expenditure|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_equity|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_net_income|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_revenue|workspace-entitlement:ws_demo_pro:ent_lineage_web_all|workspace-entitlement:ws_demo_pro:ent_market_calendar_web_all|workspace-entitlement:ws_demo_pro:ent_price_history_web_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_api_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_pro:ent_security_master_web_all|workspace-entitlement:ws_demo_pro:ent_security_profile_web_all"
+      }
+    ],
+    "request_id": "golden-tool-entitlements",
+    "usage": {
+      "cached": false,
+      "credits": 2,
+      "rows": 1
+    }
   }
 }

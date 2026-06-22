@@ -7,7 +7,7 @@ const contractPath = "deploy/governance/sprint1-tool-route-replay-readiness.cont
 const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
-const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v0";
+const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v1";
 const requiredTools = [
   "resolve_security",
   "get_security_profile",
@@ -38,6 +38,7 @@ const requiredLinkedContracts = {
   mcp_usage_envelope: "deploy/mcp/usage-envelope.contract.json",
   mcp_versioning: "deploy/mcp/tool-versioning.contract.json",
   p0_tool_catalog: "deploy/tools/p0-tool-catalog.contract.json",
+  tool_route_replay: "deploy/governance/sprint1-tool-route-replay.contract.json",
   tool_registry: "deploy/tools/registry.contract.json",
   tool_schemas: "deploy/tools/tool-schemas.contract.json"
 };
@@ -54,11 +55,11 @@ const requiredSurfaceIds = [
   "agent_tool_enforcement",
   "evidence_lineage_tools",
   "evidence_lineage_service",
+  "tool_route_replay",
   "golden_fixtures"
 ];
 const requiredBlockers = [
   "mcp_live_protocol_execution",
-  "live_route_replay",
   "live_db_writes",
   "partner_source_rows"
 ];
@@ -118,8 +119,8 @@ function validateReadiness({ contracts, packageJson, readiness: value, todos, tr
     errors.push(`version must be ${expectedVersion}`);
   }
 
-  if (value.status !== "blocked_live_route_replay") {
-    errors.push("status must be blocked_live_route_replay");
+  if (value.status !== "blocked_live_protocol_db_partner_sources") {
+    errors.push("status must be blocked_live_protocol_db_partner_sources");
   }
 
   if (value.checker !== "scripts/check-tool-route-replay-readiness-contract.mjs") {
@@ -169,6 +170,7 @@ function readSourceContracts(value) {
     mcpUsageEnvelope: readJson(linked.mcp_usage_envelope ?? requiredLinkedContracts.mcp_usage_envelope),
     mcpVersioning: readJson(linked.mcp_versioning ?? requiredLinkedContracts.mcp_versioning),
     p0ToolCatalog: readJson(linked.p0_tool_catalog ?? requiredLinkedContracts.p0_tool_catalog),
+    toolRouteReplay: readJson(linked.tool_route_replay ?? requiredLinkedContracts.tool_route_replay),
     toolRegistry: readJson(linked.tool_registry ?? requiredLinkedContracts.tool_registry),
     toolSchemas: readJson(linked.tool_schemas ?? requiredLinkedContracts.tool_schemas)
   };
@@ -201,6 +203,7 @@ function validateRouteReplayPolicy(value) {
     "local_schema_contract_ready",
     "local_golden_fixture_ready",
     "no_live_posture_guarded",
+    "live_route_replay",
     "runtime_schema_serving"
   ];
 
@@ -208,10 +211,6 @@ function validateRouteReplayPolicy(value) {
     if (value[field] !== true) {
       errors.push(`route_replay_policy.${field} must be true`);
     }
-  }
-
-  if (value.live_route_replay !== false) {
-    errors.push("route_replay_policy.live_route_replay must be false until server orchestration exists");
   }
 
   if (value.release_transition_allowed !== false) {
@@ -224,7 +223,7 @@ function validateRouteReplayPolicy(value) {
     "partner_source_rows"
   ]) {
     if (value[field] !== false) {
-      errors.push(`route_replay_policy.${field} must be false until live route replay blockers clear`);
+      errors.push(`route_replay_policy.${field} must be false until remaining live blockers clear`);
     }
   }
 
@@ -347,10 +346,48 @@ function validateSourceContracts(contracts) {
   errors.push(...validateMcpValidatedTools(contracts.mcpPaginationLimits, "mcp_pagination_limits"));
   errors.push(...validateMcpProtocolReleaseGate(contracts.mcpProtocolReleaseGate));
   errors.push(...validateMcpRuntimeSchemaSnapshot(contracts.mcpRuntimeSchemaSnapshot));
+  errors.push(...validateToolRouteReplay(contracts.toolRouteReplay));
   errors.push(...validateAgentToolEnforcement(contracts.agentToolEnforcement));
   errors.push(...validateEvidenceLineageTools(contracts.evidenceLineageTools));
   errors.push(...validateEvidenceLineageService(contracts.evidenceLineageService));
   errors.push(...validateGoldenManifest(contracts.goldenManifest));
+
+  return errors;
+}
+
+function validateToolRouteReplay(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["tool route replay contract must be an object"];
+  }
+
+  if (value.status !== "local_contract") {
+    errors.push("tool route replay status must be local_contract");
+  }
+
+  if (
+    value.server_orchestrated_route_replay !== true ||
+    value.golden_vs_route_response_diff !== true ||
+    value.canonical_projection_replay !== true
+  ) {
+    errors.push("tool route replay must prove server route replay and golden diff");
+  }
+
+  if (
+    value.mcp_live_protocol_execution !== false ||
+    value.live_db_writes !== false ||
+    value.partner_source_rows !== false ||
+    value.frontend !== false
+  ) {
+    errors.push("tool route replay must keep MCP live protocol, DB writes, partner rows, and frontend false");
+  }
+
+  if (value.route_count !== requiredTools.length || value.golden_fixture_count !== requiredTools.length) {
+    errors.push(`tool route replay route_count and golden_fixture_count must be ${requiredTools.length}`);
+  }
+
+  errors.push(...validateStringArray(value.validated_tools, requiredTools, "tool_route_replay.validated_tools"));
 
   return errors;
 }
@@ -625,6 +662,7 @@ function validatePackageScripts(value) {
   const errors = [];
   const scripts = value?.scripts ?? {};
   const requiredScripts = {
+    "check:tool-route-replay": "node scripts/check-tool-route-replay-contract.mjs",
     "check:tool-route-replay-readiness": "node scripts/check-tool-route-replay-readiness-contract.mjs",
     "check:tool-route-replay-readiness-fixtures": "node scripts/check-tool-route-replay-readiness-fixtures.mjs"
   };
@@ -648,10 +686,11 @@ function validateTrackerAndTodos(tracker, todos) {
 
   for (const text of [
     "tool route replay readiness",
+    "npm run check:tool-route-replay",
     "npm run check:tool-route-replay-readiness",
     "MCP live protocol execution",
     "runtime schema serving",
-    "live route replay"
+    "server-orchestrated route replay"
   ]) {
     if (!combined.includes(text)) {
       errors.push(`tracker/todos must mention ${text}`);

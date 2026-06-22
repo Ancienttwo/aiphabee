@@ -10,10 +10,10 @@
       "expected_status": "resolved",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "security:resolver:00700",
           "data_version": "security-tools-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.resolve-security-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.resolve-security-tool-scaffold.v0",
+          "source": "synthetic-security-master",
+          "source_record_id": "resolve-security-fixture-v0"
         }
       ]
     },
@@ -26,10 +26,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "security-profile:eq_hk_00700",
           "data_version": "security-profile-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-security-profile-tool-scaffold.v0",
+          "source": "synthetic-security-profile",
+          "source_record_id": "get-security-profile-fixture-v0"
         }
       ]
     },
@@ -42,10 +42,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "market-calendar:HK:2026-01-05:2026-01-07",
           "data_version": "market-calendar-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-market-calendar-tool-scaffold.v0",
+          "source": "synthetic-market-calendar",
+          "source_record_id": "get-market-calendar-fixture-v0"
         }
       ]
     },
@@ -58,10 +58,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "quote-snapshot:eq_hk_00700:2026-01-07:delayed",
           "data_version": "quote-snapshot-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0",
+          "source": "synthetic-quote-snapshot",
+          "source_record_id": "get-quote-snapshot-fixture-v0"
         }
       ]
     },
@@ -74,10 +74,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "price-history:eq_hk_00700:2026-01-05:2026-01-07:raw",
           "data_version": "price-history-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-price-history-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-price-history-tool-scaffold.v0",
+          "source": "synthetic-price-history",
+          "source_record_id": "get-price-history-fixture-v0"
         }
       ]
     },
@@ -90,10 +90,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "corporate-actions:eq_hk_00700:2026-01-03:2026-01-07",
           "data_version": "corporate-actions-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0",
+          "source": "synthetic-corporate-actions",
+          "source_record_id": "get-corporate-actions-fixture-v0"
         }
       ]
     },
@@ -106,10 +106,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
           "data_version": "financial-facts-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+          "source": "synthetic-financial-facts",
+          "source_record_id": "get-financial-facts-fixture-v0"
         }
       ]
     },
@@ -119,13 +119,13 @@
       "fixture_path": "tests/golden/tools/fixtures/tool_get_financial_ratios_001.json",
       "input_schema_id": "tool.get_financial_ratios.input.v0",
       "output_schema_id": "tool.get_financial_ratios.output.v0",
-      "expected_status": "found",
+      "expected_status": "computed",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "financial-ratios:eq_hk_00700:2023-12-31",
-          "data_version": "financial-ratios-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.financial-ratios-scaffold.v0"
+          "data_version": "2026-06-21.phase2.financial-ratios-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.financial-ratios-scaffold.v0",
+          "source": "analytics-financial-ratios",
+          "source_record_id": "financial-ratios"
         }
       ]
     },
@@ -138,10 +138,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "announcements:eq_hk_00700:2026-01-03:annual-results",
-          "data_version": "announcements-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.search-announcements-scaffold.v0"
+          "data_version": "2026-06-21.phase2.search-announcements-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.search-announcements-scaffold.v0",
+          "source": "document-search-announcements",
+          "source_record_id": "search-announcements"
         }
       ]
     },
@@ -151,13 +151,13 @@
       "fixture_path": "tests/golden/tools/fixtures/tool_get_announcement_001.json",
       "input_schema_id": "tool.get_announcement.input.v0",
       "output_schema_id": "tool.get_announcement.output.v0",
-      "expected_status": "found",
+      "expected_status": "not_found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "announcement:ann_00700_2026_annual_results",
-          "data_version": "announcements-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.get-announcement-scaffold.v0"
+          "data_version": "2026-06-21.phase2.get-announcement-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.get-announcement-scaffold.v0",
+          "source": "document-get-announcement",
+          "source_record_id": "get-announcement"
         }
       ]
     },
@@ -167,13 +167,13 @@
       "fixture_path": "tests/golden/tools/fixtures/tool_screen_securities_001.json",
       "input_schema_id": "tool.screen_securities.input.v0",
       "output_schema_id": "tool.screen_securities.output.v0",
-      "expected_status": "found",
+      "expected_status": "unsupported_query",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "screen-securities:synthetic-hk:2026-01-07",
-          "data_version": "screen-securities-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.screen-securities-scaffold.v0"
+          "data_version": "2026-06-21.phase2.screen-securities-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.screen-securities-scaffold.v0",
+          "source": "analytics-screen-securities",
+          "source_record_id": "screen-securities"
         }
       ]
     },
@@ -183,13 +183,13 @@
       "fixture_path": "tests/golden/tools/fixtures/tool_compare_securities_001.json",
       "input_schema_id": "tool.compare_securities.input.v0",
       "output_schema_id": "tool.compare_securities.output.v0",
-      "expected_status": "found",
+      "expected_status": "partial",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "compare-securities:eq_hk_00700:eq_hk_00001:2026-01-07",
-          "data_version": "compare-securities-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.compare-securities-scaffold.v0"
+          "data_version": "2026-06-21.phase2.compare-securities-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.compare-securities-scaffold.v0",
+          "source": "analytics-compare-securities",
+          "source_record_id": "compare-securities"
         }
       ]
     },
@@ -199,13 +199,13 @@
       "fixture_path": "tests/golden/tools/fixtures/tool_calculate_returns_risk_001.json",
       "input_schema_id": "tool.calculate_returns_risk.input.v0",
       "output_schema_id": "tool.calculate_returns_risk.output.v0",
-      "expected_status": "found",
+      "expected_status": "partial",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "returns-risk:eq_hk_00700:2026-01-05:2026-01-07",
-          "data_version": "returns-risk-synthetic-v0",
-          "methodology_version": "2026-06-21.phase2.returns-risk-scaffold.v0"
+          "data_version": "2026-06-21.phase2.returns-risk-scaffold.v0",
+          "methodology_version": "2026-06-21.phase2.returns-risk-scaffold.v0",
+          "source": "analytics-returns-risk",
+          "source_record_id": "returns-risk"
         }
       ]
     },
@@ -218,10 +218,28 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "event-timeline:eq_hk_00700:2026-01-03:2026-01-07",
           "data_version": "event-timeline-synthetic-v0",
-          "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0"
+          "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+          "source": "event-timeline",
+          "source_record_id": "announcement:eq_hk_00700:2026-01-03:annual-results"
+        },
+        {
+          "data_version": "event-timeline-synthetic-v0",
+          "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+          "source": "event-timeline",
+          "source_record_id": "market-calendar:HK:2026-01-05"
+        },
+        {
+          "data_version": "event-timeline-synthetic-v0",
+          "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+          "source": "event-timeline",
+          "source_record_id": "financial-facts:eq_hk_00700:2025-12-31:revenue"
+        },
+        {
+          "data_version": "event-timeline-synthetic-v0",
+          "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+          "source": "event-timeline",
+          "source_record_id": "corporate-actions:eq_hk_00700:2026-01-07:dividend"
         }
       ]
     },
@@ -234,10 +252,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
           "data_version": "data-lineage-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+          "source": "evidence-lineage",
+          "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1"
         }
       ]
     },
@@ -250,10 +268,10 @@
       "expected_status": "found",
       "source_records": [
         {
-          "source": "synthetic_tool_fixture",
-          "source_record_id": "data-entitlement:ent_financial_facts_web_revenue",
           "data_version": "entitlements-synthetic-v0",
-          "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0"
+          "methodology_version": "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+          "source": "entitlement-policy-source",
+          "source_record_id": "data-entitlement:ent_corporate_actions_web_all|data-entitlement:ent_entitlements_web_all|data-entitlement:ent_financial_facts_web_assets|data-entitlement:ent_financial_facts_web_capital_expenditure|data-entitlement:ent_financial_facts_web_equity|data-entitlement:ent_financial_facts_web_net_income|data-entitlement:ent_financial_facts_web_revenue|data-entitlement:ent_lineage_web_all|data-entitlement:ent_market_calendar_web_all|data-entitlement:ent_price_history_web_all|data-entitlement:ent_quote_snapshot_api_all|data-entitlement:ent_quote_snapshot_web_all|data-entitlement:ent_security_master_web_all|data-entitlement:ent_security_profile_web_all|workspace-entitlement:ws_demo_free:ent_entitlements_web_all|workspace-entitlement:ws_demo_free:ent_lineage_web_all|workspace-entitlement:ws_demo_free:ent_market_calendar_web_all|workspace-entitlement:ws_demo_free:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_free:ent_security_master_web_all|workspace-entitlement:ws_demo_free:ent_security_profile_web_all|workspace-entitlement:ws_demo_pro:ent_corporate_actions_web_all|workspace-entitlement:ws_demo_pro:ent_entitlements_web_all|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_assets|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_capital_expenditure|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_equity|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_net_income|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_revenue|workspace-entitlement:ws_demo_pro:ent_lineage_web_all|workspace-entitlement:ws_demo_pro:ent_market_calendar_web_all|workspace-entitlement:ws_demo_pro:ent_price_history_web_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_api_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_pro:ent_security_master_web_all|workspace-entitlement:ws_demo_pro:ent_security_profile_web_all"
         }
       ]
     }

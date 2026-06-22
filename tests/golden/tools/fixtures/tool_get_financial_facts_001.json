@@ -13,23 +13,7 @@
     ]
   },
   "expected_response": {
-    "ok": true,
-    "request_id": "golden-tool-financial-facts",
     "as_of": "2024-04-01T00:00:00Z",
-    "market_status": "not_applicable",
-    "provenance": [
-      {
-        "source": "synthetic_tool_fixture",
-        "source_record_id": "financial-facts:eq_hk_00700:2023-12-31:v1",
-        "data_version": "financial-facts-synthetic-v0",
-        "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
-      }
-    ],
-    "usage": {
-      "cached": false,
-      "credits": 4,
-      "rows": 2
-    },
     "data": {
       "toolName": "get_financial_facts",
       "status": "found",
@@ -39,6 +23,22 @@
       "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
     },
     "data_version": "financial-facts-synthetic-v0",
-    "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0"
+    "market_status": "not_applicable",
+    "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+    "ok": true,
+    "provenance": [
+      {
+        "data_version": "financial-facts-synthetic-v0",
+        "methodology_version": "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
+        "source": "synthetic-financial-facts",
+        "source_record_id": "get-financial-facts-fixture-v0"
+      }
+    ],
+    "request_id": "golden-tool-financial-facts",
+    "usage": {
+      "cached": false,
+      "credits": 4,
+      "rows": 2
+    }
   }
 }

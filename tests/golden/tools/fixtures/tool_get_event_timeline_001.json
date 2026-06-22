@@ -15,23 +15,7 @@
     ]
   },
   "expected_response": {
-    "ok": true,
-    "request_id": "golden-tool-event-timeline",
     "as_of": "2026-01-07T00:00:00Z",
-    "market_status": "not_applicable",
-    "provenance": [
-      {
-        "source": "synthetic_tool_fixture",
-        "source_record_id": "event-timeline:eq_hk_00700:2026-01-03:2026-01-07",
-        "data_version": "event-timeline-synthetic-v0",
-        "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0"
-      }
-    ],
-    "usage": {
-      "cached": false,
-      "credits": 12,
-      "rows": 4
-    },
     "data": {
       "toolName": "get_event_timeline",
       "status": "found",
@@ -41,6 +25,40 @@
       "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0"
     },
     "data_version": "event-timeline-synthetic-v0",
-    "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0"
+    "market_status": "not_applicable",
+    "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+    "ok": true,
+    "provenance": [
+      {
+        "data_version": "event-timeline-synthetic-v0",
+        "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+        "source": "event-timeline",
+        "source_record_id": "announcement:eq_hk_00700:2026-01-03:annual-results"
+      },
+      {
+        "data_version": "event-timeline-synthetic-v0",
+        "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+        "source": "event-timeline",
+        "source_record_id": "market-calendar:HK:2026-01-05"
+      },
+      {
+        "data_version": "event-timeline-synthetic-v0",
+        "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+        "source": "event-timeline",
+        "source_record_id": "financial-facts:eq_hk_00700:2025-12-31:revenue"
+      },
+      {
+        "data_version": "event-timeline-synthetic-v0",
+        "methodology_version": "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
+        "source": "event-timeline",
+        "source_record_id": "corporate-actions:eq_hk_00700:2026-01-07:dividend"
+      }
+    ],
+    "request_id": "golden-tool-event-timeline",
+    "usage": {
+      "cached": false,
+      "credits": 12,
+      "rows": 4
+    }
   }
 }

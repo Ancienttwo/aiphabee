@@ -27,6 +27,7 @@ const baseContracts = {
   mcpUsageEnvelope: readJson("deploy/mcp/usage-envelope.contract.json"),
   mcpVersioning: readJson("deploy/mcp/tool-versioning.contract.json"),
   p0ToolCatalog: readJson("deploy/tools/p0-tool-catalog.contract.json"),
+  toolRouteReplay: readJson("deploy/governance/sprint1-tool-route-replay.contract.json"),
   toolRegistry: readJson("deploy/tools/registry.contract.json"),
   toolSchemas: readJson("deploy/tools/tool-schemas.contract.json")
 };
@@ -46,11 +47,30 @@ const scenarios = [
     })
   },
   {
-    expectedError: "route_replay_policy.live_route_replay must be false until server orchestration exists",
+    expectedError: "route_replay_policy.live_route_replay must be true",
     expectValid: false,
-    name: "live_route_replay_claimed",
+    name: "live_route_replay_regressed",
     readiness: mutate(baseReadiness, (readiness) => {
-      readiness.route_replay_policy.live_route_replay = true;
+      readiness.route_replay_policy.live_route_replay = false;
+    })
+  },
+  {
+    expectedError: "tool route replay must prove server route replay and golden diff",
+    expectValid: false,
+    name: "tool_route_replay_contract_regressed",
+    contracts: mutate(baseContracts, (contracts) => {
+      contracts.toolRouteReplay.server_orchestrated_route_replay = false;
+    }),
+    readiness: baseReadiness
+  },
+  {
+    expectedError: "validated_surfaces missing tool_route_replay",
+    expectValid: false,
+    name: "tool_route_replay_surface_missing",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.validated_surfaces = readiness.validated_surfaces.filter(
+        (surface) => surface.id !== "tool_route_replay"
+      );
     })
   },
   {
