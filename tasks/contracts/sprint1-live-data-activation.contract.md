@@ -37,6 +37,9 @@ writes, billing provider posting, or frontend behavior.
 - `scripts/check-sprint1-live-data-activation-contract.mjs`
 - `scripts/check-sprint1-live-data-evidence-manifest-contract.mjs`
 - `scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs`
+- `scripts/check-sprint1-live-data-evidence-packets.mjs`
+- `scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs`
+- `scripts/check-sprint1-live-data-evidence-handoff.mjs`
 - `docs/governance/sprint1-live-data-activation.md`
 - `docs/governance/sprint1-live-data-evidence-manifest.md`
 - `docs/AiphaBee_Sprint_Tracker_v1.0.md`
@@ -52,6 +55,9 @@ exit_criteria:
     - npm run check:sprint1-live-data-activation
     - npm run check:sprint1-live-data-evidence-manifest
     - npm run check:sprint1-live-data-evidence-manifest-fixtures
+    - npm run check:sprint1-live-data-evidence-packets
+    - npm run check:sprint1-live-data-evidence-packet-fixtures
+    - npm run check:sprint1-live-data-evidence-handoff
     - npm run check:data-gateway
     - npm run check:serving-quality-live-readiness
     - npm run check:usage-quota-display

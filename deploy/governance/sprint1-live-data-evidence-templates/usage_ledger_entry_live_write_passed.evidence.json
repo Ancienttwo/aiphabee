@@ -1,0 +1,13 @@
+{
+  "gate_id": "usage_ledger_entry_live_write_passed",
+  "status": "missing",
+  "blocks": ["live_usage_writes"],
+  "required_evidence": ["core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:usage_ledger_entry_live_write_passed:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

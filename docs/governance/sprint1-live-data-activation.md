@@ -14,6 +14,9 @@ Machine-readable check:
 npm run check:sprint1-live-data-activation
 npm run check:sprint1-live-data-evidence-manifest
 npm run check:sprint1-live-data-evidence-manifest-fixtures
+npm run check:sprint1-live-data-evidence-packets
+npm run check:sprint1-live-data-evidence-packet-fixtures
+npm run check:sprint1-live-data-evidence-handoff
 ```
 
 The checker requires the existing no-live gates to remain true:
@@ -53,6 +56,10 @@ Accepted evidence is tracked separately in
 `deploy/governance/sprint1-live-data-evidence-manifest.contract.json`. The
 manifest requires hash-only evidence refs, redacted/no-secret source material,
 and all nine gates accepted before `release_transition_allowed` can become true.
+The packet verifier and operator handoff templates live under
+`deploy/governance/sprint1-live-data-evidence-packets/` and
+`deploy/governance/sprint1-live-data-evidence-templates/`; they keep evidence
+capture schema-bound before the manifest can be updated.
 The current manifest remains pending external evidence, so
 `partner_serving_rows_loaded`, `hyperdrive_select_1_passed`,
 `usage_event_live_write_passed`, and `billing_reconciliation_live_read_passed`

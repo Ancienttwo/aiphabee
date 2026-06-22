@@ -11,6 +11,11 @@ const todosPath = "tasks/todos.md";
 const docsPath = "docs/governance/sprint1-live-data-evidence-manifest.md";
 const activationDocsPath = "docs/governance/sprint1-live-data-activation.md";
 const expectedVersion = "2026-06-22.phase1.sprint1-live-data-evidence-manifest.v0";
+const packetCheckerPath = "scripts/check-sprint1-live-data-evidence-packets.mjs";
+const packetFixtureCheckerPath = "scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs";
+const handoffCheckerPath = "scripts/check-sprint1-live-data-evidence-handoff.mjs";
+const packetDirectoryPath = "deploy/governance/sprint1-live-data-evidence-packets";
+const templateDirectoryPath = "deploy/governance/sprint1-live-data-evidence-templates";
 const requiredGateIds = [
   "signed_partner_data_contract",
   "partner_serving_rows_loaded",
@@ -29,6 +34,38 @@ const requiredNotClaimed = [
   "live_usage_writes_complete",
   "billing_reconciliation_posted",
   "sprint1_1_live_data_complete"
+];
+const requiredPacketSchema = {
+  approver_role: "required_gates.required_approver_roles member or null when missing",
+  blocks: "required_gates.blocks",
+  evidence_refs: "hash_only_refs_for_accepted_packets",
+  evidence_sha256: "sha256:hex_sha256_of_redacted_packet_or_null",
+  gate_id: "required_gates.id",
+  observed_at: "ISO-8601",
+  redaction_status: "missing|redacted_no_secrets",
+  required_evidence: "required_gates.required_evidence",
+  signed_at: "YYYY-MM-DD or null",
+  source_locator: "redacted_file_or_external_record_id",
+  status: "missing|accepted|rejected|needs_redaction"
+};
+const requiredForbiddenFields = [
+  "authorization",
+  "api_key",
+  "token",
+  "secret",
+  "password",
+  "raw_rows",
+  "raw_row",
+  "raw_record",
+  "raw_response",
+  "raw_output",
+  "database_url",
+  "connection_string",
+  "account_id",
+  "workspace_id",
+  "invoice_id",
+  "customer_id",
+  "env_value"
 ];
 const allowedStatuses = ["missing", "accepted", "rejected"];
 const sha256RefPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -106,9 +143,16 @@ function validateSprint1LiveDataEvidenceManifest({
   expectEqual(errors, value.status, deriveStatus(value), "status");
   expectEqual(errors, value.checker, "scripts/check-sprint1-live-data-evidence-manifest-contract.mjs", "checker");
   expectEqual(errors, value.fixture_checker, "scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs", "fixture_checker");
+  expectEqual(errors, value.packet_checker, packetCheckerPath, "packet_checker");
+  expectEqual(errors, value.packet_fixture_checker, packetFixtureCheckerPath, "packet_fixture_checker");
+  expectEqual(errors, value.handoff_checker, handoffCheckerPath, "handoff_checker");
   expectEqual(errors, value.activation_contract, activationPath, "activation_contract");
   expectEqual(errors, value.activation_doc, activationDocsPath, "activation_doc");
   expectEqual(errors, value.manifest_doc, docsPath, "manifest_doc");
+  expectEqual(errors, value.packet_directory, packetDirectoryPath, "packet_directory");
+  expectEqual(errors, value.packet_file_pattern, "<gate_id>.evidence.json", "packet_file_pattern");
+  expectEqual(errors, value.template_directory, templateDirectoryPath, "template_directory");
+  expectEqual(errors, value.template_file_pattern, "<gate_id>.evidence.json", "template_file_pattern");
 
   for (const field of [
     "billing_reconciliation_posting",
@@ -122,10 +166,23 @@ function validateSprint1LiveDataEvidenceManifest({
 
   expectArray(errors, value.not_claimed, requiredNotClaimed, "not_claimed");
   errors.push(...validateEvidencePolicy(value.evidence_policy));
+  errors.push(...validatePacketSchema(value.evidence_packet_schema));
+  errors.push(...validateForbiddenFields(value.forbidden_fields));
   errors.push(...validateActivationAlignment(activation, value));
   errors.push(...validateRequiredGates(value.required_gates, activation));
   errors.push(...validateTransitionState(value));
-  errors.push(...validateLinkedFiles([value.activation_contract, value.activation_doc, value.manifest_doc]));
+  errors.push(
+    ...validateLinkedFiles([
+      value.activation_contract,
+      value.activation_doc,
+      value.manifest_doc,
+      value.packet_checker,
+      value.packet_fixture_checker,
+      value.handoff_checker,
+      value.packet_directory,
+      value.template_directory
+    ])
+  );
   errors.push(...validatePackage(packageJson));
   errors.push(...validateDocs({ activationDocs, docs, todos, tracker }));
   errors.push(...validateNoSecrets(value));
@@ -143,15 +200,52 @@ function validateEvidencePolicy(value) {
     "activation_contract_remains_source_of_truth",
     "all_gates_required_for_transition",
     "hash_only_evidence_refs_required",
+    "packet_checker_allows_empty_directory_until_external_evidence_arrives",
+    "packet_fixture_checker_reuses_packet_validator",
     "redacted_no_secrets_required",
+    "operator_handoff_templates_validate_as_missing_packets",
+    "operator_handoff_readme_lists_gate_order",
     "raw_partner_rows_forbidden_in_repo",
     "raw_database_values_forbidden_in_repo",
-    "raw_billing_payloads_forbidden_in_repo"
+    "raw_billing_payloads_forbidden_in_repo",
+    "manifest_transition_still_owned_by_evidence_manifest"
   ];
 
   for (const key of requiredTrue) {
     if (value[key] !== true) {
       errors.push(`evidence_policy.${key} must be true`);
+    }
+  }
+
+  return errors;
+}
+
+function validatePacketSchema(value) {
+  if (!isRecord(value)) {
+    return ["evidence_packet_schema must be an object"];
+  }
+
+  const errors = [];
+
+  for (const [key, expected] of Object.entries(requiredPacketSchema)) {
+    if (value[key] !== expected) {
+      errors.push(`evidence_packet_schema.${key} must be ${expected}`);
+    }
+  }
+
+  return errors;
+}
+
+function validateForbiddenFields(value) {
+  if (!Array.isArray(value) || value.some((field) => typeof field !== "string")) {
+    return ["forbidden_fields must be a string array"];
+  }
+
+  const errors = [];
+
+  for (const field of requiredForbiddenFields) {
+    if (!value.includes(field)) {
+      errors.push(`forbidden_fields must include ${field}`);
     }
   }
 
@@ -334,7 +428,10 @@ function validatePackage(value) {
   const scripts = value?.scripts ?? {};
   const requiredScripts = {
     "check:sprint1-live-data-evidence-manifest": "node scripts/check-sprint1-live-data-evidence-manifest-contract.mjs",
-    "check:sprint1-live-data-evidence-manifest-fixtures": "node scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs"
+    "check:sprint1-live-data-evidence-manifest-fixtures": "node scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs",
+    "check:sprint1-live-data-evidence-packets": "node scripts/check-sprint1-live-data-evidence-packets.mjs",
+    "check:sprint1-live-data-evidence-packet-fixtures": "node scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs",
+    "check:sprint1-live-data-evidence-handoff": "node scripts/check-sprint1-live-data-evidence-handoff.mjs"
   };
 
   for (const [script, command] of Object.entries(requiredScripts)) {
@@ -360,6 +457,11 @@ function validateDocs({ activationDocs, docs, todos, tracker }) {
     "sprint1-live-data-evidence-manifest",
     "npm run check:sprint1-live-data-evidence-manifest",
     "npm run check:sprint1-live-data-evidence-manifest-fixtures",
+    "npm run check:sprint1-live-data-evidence-packets",
+    "npm run check:sprint1-live-data-evidence-packet-fixtures",
+    "npm run check:sprint1-live-data-evidence-handoff",
+    "deploy/governance/sprint1-live-data-evidence-packets",
+    "operator handoff templates",
     "hash-only evidence",
     "partner_serving_rows_loaded",
     "hyperdrive_select_1_passed",

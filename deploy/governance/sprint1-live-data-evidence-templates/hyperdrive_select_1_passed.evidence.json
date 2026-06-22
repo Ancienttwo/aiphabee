@@ -1,0 +1,13 @@
+{
+  "gate_id": "hyperdrive_select_1_passed",
+  "status": "missing",
+  "blocks": ["live_serving_sql_execution"],
+  "required_evidence": ["hyperdrive_config", "read_only_select_1", "connection_redaction_proof"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:hyperdrive_select_1_passed:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

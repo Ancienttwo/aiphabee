@@ -1,0 +1,13 @@
+{
+  "gate_id": "field_rights_policy_source_live",
+  "status": "missing",
+  "blocks": ["live_serving_reads", "live_usage_writes"],
+  "required_evidence": ["live_entitlement_policy_rows", "policy_version", "workspace_plan_channel_matrix"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:field_rights_policy_source_live:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

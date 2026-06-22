@@ -18,6 +18,7 @@ live Serving/usage surfaces to a future activation decision.
 - In scope:
   - Sprint 1.1 live data evidence manifest;
   - contract checker and transition fixtures;
+  - evidence packet verifier, packet fixtures, and operator handoff templates;
   - alignment with the Sprint 1.1 activation ledger gate ids, blocked surfaces,
     and required evidence names;
   - package/full-check integration;
@@ -34,7 +35,12 @@ live Serving/usage surfaces to a future activation decision.
 - `deploy/governance/sprint1-live-data-evidence-manifest.contract.json`
 - `scripts/check-sprint1-live-data-evidence-manifest-contract.mjs`
 - `scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs`
+- `scripts/check-sprint1-live-data-evidence-packets.mjs`
+- `scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs`
+- `scripts/check-sprint1-live-data-evidence-handoff.mjs`
 - `docs/governance/sprint1-live-data-evidence-manifest.md`
+- `deploy/governance/sprint1-live-data-evidence-packets/`
+- `deploy/governance/sprint1-live-data-evidence-templates/`
 - `docs/governance/sprint1-live-data-activation.md`
 - `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 - `tasks/notes/sprint1-live-data-evidence-manifest.notes.md`
@@ -48,12 +54,17 @@ exit_criteria:
   commands_succeed:
     - npm run check:sprint1-live-data-evidence-manifest
     - npm run check:sprint1-live-data-evidence-manifest-fixtures
+    - npm run check:sprint1-live-data-evidence-packets
+    - npm run check:sprint1-live-data-evidence-packet-fixtures
+    - npm run check:sprint1-live-data-evidence-handoff
     - npm run check:sprint1-live-data-activation
     - npm run check:traceability-matrix
   content_checks:
     - "Data Access Gateway live Serving remains unchecked"
     - "Usage ledger live writes remains unchecked"
     - "Production manifest keeps all activation gates missing"
+    - "Packet directory may be empty until external evidence arrives"
+    - "Handoff templates validate as missing packets"
     - "Complete fixture requires all gates accepted with sha256 evidence refs"
     - "No raw partner rows, DB values, billing payloads, URLs, tokens, or secrets are committed"
 ```

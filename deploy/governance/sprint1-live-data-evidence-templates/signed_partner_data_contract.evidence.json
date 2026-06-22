@@ -1,0 +1,13 @@
+{
+  "gate_id": "signed_partner_data_contract",
+  "status": "missing",
+  "blocks": ["live_serving_reads", "live_usage_writes"],
+  "required_evidence": ["signed_dataset_scope", "field_rights_matrix", "usage_metering_terms"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:signed_partner_data_contract:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

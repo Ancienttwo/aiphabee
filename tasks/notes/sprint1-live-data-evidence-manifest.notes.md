@@ -7,7 +7,12 @@ Date: 2026-06-22
 - Added `deploy/governance/sprint1-live-data-evidence-manifest.contract.json`.
 - Added `scripts/check-sprint1-live-data-evidence-manifest-contract.mjs`.
 - Added `scripts/check-sprint1-live-data-evidence-manifest-fixtures.mjs`.
+- Added `scripts/check-sprint1-live-data-evidence-packets.mjs`.
+- Added `scripts/check-sprint1-live-data-evidence-packet-fixtures.mjs`.
+- Added `scripts/check-sprint1-live-data-evidence-handoff.mjs`.
 - Added `docs/governance/sprint1-live-data-evidence-manifest.md`.
+- Added `deploy/governance/sprint1-live-data-evidence-packets/` and
+  `deploy/governance/sprint1-live-data-evidence-templates/`.
 - Linked the Sprint 1.1 activation contract back to the evidence manifest.
 - Added both evidence manifest checks to `package.json` and full `npm run check`.
 - Updated `docs/AiphaBee_Sprint_Tracker_v1.0.md` and `tasks/todos.md`.
@@ -21,10 +26,13 @@ billing payloads, tokens, and secret-like material.
 
 ## Fixture Coverage
 
-The fixture checker covers current pending state, complete accepted state,
-partial transition flags, accepted gate without evidence refs, non-hash refs,
-missing gate retaining refs, unredacted evidence, activation gate block mismatch,
-and accepted flag mismatch.
+The manifest fixture checker covers current pending state, complete accepted
+state, partial transition flags, accepted gate without evidence refs, non-hash
+refs, missing gate retaining refs, unredacted evidence, activation gate block
+mismatch, and accepted flag mismatch. The packet fixture checker covers empty
+packet directory, complete accepted packet set, missing packet, non-hash refs,
+raw row field rejection, required-evidence mismatch, duplicate gate id,
+unexpected gate id, secret-like locator, and missing packet directory.
 
 ## Current State
 

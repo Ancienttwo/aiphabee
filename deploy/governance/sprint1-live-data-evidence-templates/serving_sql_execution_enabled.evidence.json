@@ -1,0 +1,13 @@
+{
+  "gate_id": "serving_sql_execution_enabled",
+  "status": "missing",
+  "blocks": ["live_serving_reads"],
+  "required_evidence": ["row_limit_enforced", "field_projection_enforced", "cache_key_material_verified"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:serving_sql_execution_enabled:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

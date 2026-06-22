@@ -1,0 +1,13 @@
+{
+  "gate_id": "partner_serving_rows_loaded",
+  "status": "missing",
+  "blocks": ["live_serving_reads"],
+  "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows"],
+  "observed_at": "2026-06-22T00:00:00.000Z",
+  "source_locator": "template:partner_serving_rows_loaded:replace-after-evidence",
+  "evidence_refs": [],
+  "evidence_sha256": null,
+  "signed_at": null,
+  "approver_role": null,
+  "redaction_status": "missing"
+}

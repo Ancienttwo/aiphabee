@@ -13,6 +13,9 @@ Machine-readable checks:
 ```bash
 npm run check:sprint1-live-data-evidence-manifest
 npm run check:sprint1-live-data-evidence-manifest-fixtures
+npm run check:sprint1-live-data-evidence-packets
+npm run check:sprint1-live-data-evidence-packet-fixtures
+npm run check:sprint1-live-data-evidence-handoff
 ```
 
 ## Evidence Policy
@@ -38,6 +41,20 @@ npm run check:sprint1-live-data-evidence-manifest-fixtures
 | `usage_event_live_write_passed` | missing | `core.usage_event` insert, request id idempotency, no-double-charge probe |
 | `usage_ledger_entry_live_write_passed` | missing | `core.usage_ledger_entry` insert, weighted credits, workspace subscription context |
 | `billing_reconciliation_live_read_passed` | missing | invoice line trace, usage-to-invoice consistency, freshness under 5 minutes |
+
+## Evidence Packets
+
+External evidence should be captured as redacted packet metadata under
+`deploy/governance/sprint1-live-data-evidence-packets/`. The packet checker
+allows an empty directory while evidence is unavailable, then validates every
+`<gate_id>.evidence.json` file against the manifest gate ids, blocked surfaces,
+required evidence names, required approver roles, hash-only evidence refs, and
+forbidden raw fields.
+
+The operator handoff templates live under
+`deploy/governance/sprint1-live-data-evidence-templates/`. They validate as
+`missing` packets and must be copied into the packet directory only after the
+operator replaces the template fields with redacted evidence metadata.
 
 ## Transition Boundary
 

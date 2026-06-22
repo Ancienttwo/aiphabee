@@ -8,7 +8,7 @@ Date: 2026-06-22
 - Added `scripts/check-sprint1-live-data-activation-contract.mjs`.
 - Added `docs/governance/sprint1-live-data-activation.md`.
 - Linked the activation contract to the Sprint 1.1 evidence manifest and
-  required manifest/fixture checks.
+  required manifest/fixture/packet/handoff checks.
 - Added `npm run check:sprint1-live-data-activation` and wired it into full
   `npm run check`.
 - Updated `docs/AiphaBee_Sprint_Tracker_v1.0.md` and `tasks/todos.md`.
