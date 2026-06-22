@@ -1,0 +1,124 @@
+{
+  "version": "2026-06-23.goal.p0-open-requirement-audit.v0",
+  "status": "active_guarded_open_requirements",
+  "checker": "scripts/check-p0-open-requirement-audit-contract.mjs",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "p0_ledger": "docs/governance/p0-traceability-ledger.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_p0_requirements_complete": false,
+  "frontend_delegated": true,
+  "external_evidence_required": true,
+  "summary": {
+    "open_traceability_rows": 4,
+    "guarded_open_p0_count": 3,
+    "non_p0_open_backlog_count": 1
+  },
+  "guarded_open_requirements": [
+    {
+      "code": "AGT-01",
+      "priority": "P0",
+      "sprint": "1.3",
+      "status": "☐",
+      "title": "流式 + 工具进度",
+      "existing_evidence": [
+        "deploy/agent/tool-loop-planner.contract.json",
+        "deploy/agent/live-model-streaming-release-gate.contract.json",
+        "deploy/agent/user-tool-loop-execution-release-gate.contract.json"
+      ],
+      "missing_evidence": [
+        "user_facing_live_model_token_streaming",
+        "arbitrary_user_tool_loop_execution",
+        "frontend_ask_progress_rendering",
+        "persistent_stream_state_or_production_cutover"
+      ]
+    },
+    {
+      "code": "AGT-07",
+      "priority": "P0",
+      "sprint": "1.3",
+      "status": "☐",
+      "title": "来源引用证据卡片",
+      "existing_evidence": [
+        "deploy/agent/answer-evidence-contract.contract.json",
+        "deploy/agent/tool-execution-evidence-smoke.contract.json",
+        "deploy/agent/generated-answer-evidence-smoke.contract.json",
+        "deploy/governance/post-generation-evidence-binding.contract.json",
+        "deploy/agent/model-output-corpus-release-gate.contract.json"
+      ],
+      "missing_evidence": [
+        "frontend_clickable_evidence_cards",
+        "live_evidence_writes",
+        "production_generated_answer_evidence_binding",
+        "live_model_output_corpus"
+      ]
+    },
+    {
+      "code": "MCP-09",
+      "priority": "P0",
+      "sprint": "2.3",
+      "status": "☐",
+      "title": "Developer Console",
+      "existing_evidence": [
+        "deploy/mcp/developer-console.contract.json",
+        "deploy/mcp/developer-console-log-store-smoke.contract.json",
+        "deploy/mcp/target-client-live-e2e-handoff.contract.json",
+        "deploy/mcp/target-clients-console-release-gate.contract.json"
+      ],
+      "missing_evidence": [
+        "frontend_console_ui",
+        "production_console_log_store_cutover",
+        "live_usage_ledger_reads",
+        "live_key_generation_or_oauth_provider",
+        "target_client_live_e2e_packets"
+      ]
+    }
+  ],
+  "non_p0_open_backlog": [
+    {
+      "code": "STK-07",
+      "priority": "P1",
+      "sprint": "3.x",
+      "status": "☐",
+      "title": "图表转研究上下文",
+      "reason": "not_p0_release_blocker",
+      "missing_evidence": [
+        "frontend_chart_context_ui",
+        "chart_text_summary_keyboard_high_contrast",
+        "research_context_handoff"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "P0 open requirement blocker audit 已建立",
+    "| AGT-01 流式 + 工具进度 | P0 | 1.3 | ☐ |",
+    "| AGT-07 来源引用证据卡片 | P0 | 1.3 | ☐ |",
+    "| STK-07 图表转研究上下文 | P1 | 3.x | ☐ |",
+    "| MCP-09 Developer Console | P0 | 2.3 | ☐ |",
+    "| 2026-06-23 | 1.0hf | 完成 `p0-open-requirement-audit`"
+  ],
+  "required_ledger_fragments": [
+    "AGT-01 流式 + 工具进度",
+    "Backend no-model SSE progress stream now returns public run/tool events",
+    "AGT-07 来源引用证据卡片",
+    "Answer/evidence contract, guarded tool execution evidence smoke, generated-answer evidence-binding smoke, and post-generation validator are scaffolded",
+    "MCP-09 Developer Console",
+    "Backend Developer Console plan scaffold, guarded log-store smoke, and target-client E2E packet handoff are complete"
+  ],
+  "required_todos_fragments": [
+    "P0 open requirement blocker audit",
+    "AGT-01 / AGT-07 / MCP-09",
+    "npm run check:p0-open-requirement-audit"
+  ],
+  "not_claimed": [
+    "agt_01_complete",
+    "agt_07_complete",
+    "mcp_09_complete",
+    "frontend_ask_progress_complete",
+    "frontend_evidence_cards_complete",
+    "developer_console_ui_complete",
+    "live_target_client_e2e_complete",
+    "all_p0_requirements_complete",
+    "all_sprints_complete"
+  ]
+}

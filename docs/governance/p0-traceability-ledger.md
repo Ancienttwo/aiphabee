@@ -1,7 +1,7 @@
 # P0 Requirement Traceability Ledger
 
 > **Status**: Verified baseline
-> **Last Updated**: 2026-06-20 14:32 +08
+> **Last Updated**: 2026-06-23 20:00 +08
 > **Source PRD**: `docs/researches/AiphaBee_PRD_v1.0.md`
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md` §M
 > **Plan**: `plans/plan-p0-traceability-ledger.md`
@@ -71,7 +71,7 @@ DoD.
 | AGT-04 仅注册工具 | AIP-P0-AGT-04 | Platform Engineering / Security | 1.2 / 1.3 | Tool registry allowlist denial tests | Sprint 1.3 exit: unregistered tool and arbitrary SQL are rejected | Shared Tool Registry scaffold complete with four no-live tool handlers; MCP/API protocol handlers pending |
 | AGT-05 数字来自工具/计算 | AIP-P0-AGT-05 | Agent Runtime Engineering / Quality | 1.3 | Evidence-binding eval tests | Sprint 1.3 exit: sourced financial numbers only | Not started |
 | AGT-06 事实/计算/推断/未知 | AIP-P0-AGT-06 | Agent Runtime Engineering / Product | 1.3 | Answer classification snapshot tests | Sprint 1.3 exit: response layers are visible and consistent | Not started |
-| AGT-07 来源引用证据卡片 | AIP-P0-AGT-07 | Product Engineering / Data | 1.3 | Evidence card click-through tests | Sprint 1.3 exit: every cited number opens source/as-of/version | Not started |
+| AGT-07 来源引用证据卡片 | AIP-P0-AGT-07 | Product Engineering / Data | 1.3 | Evidence card click-through tests | Sprint 1.3 exit: every cited number opens source/as-of/version | Answer/evidence contract, guarded tool execution evidence smoke, generated-answer evidence-binding smoke, and post-generation validator are scaffolded; frontend clickable card rendering, live evidence writes, live model output corpus, and production evidence-card UX remain pending |
 | AGT-08 失败恢复/局部重试 | AIP-P0-AGT-08 | Agent Runtime Engineering | 1.3 | Partial failure retry and billing tests | Sprint 1.3 exit: single tool failure does not lose the run | Not started |
 | AGT-09 长任务转 Workflow | AIP-P0-AGT-09 | Agent Runtime Engineering / Platform | 2.4 | Workflow handoff/resume tests | Sprint 2.4 exit: long tasks return resumable `task_id` | Not started |
 
@@ -119,7 +119,7 @@ DoD.
 | MCP-06 分页/行数/范围限制 | AIP-P0-MCP-06 | Platform Engineering / Data | 2.3 | Pagination and entitlement bypass tests | Sprint 2.3 exit: limits cannot bypass plans or rights | Backend MCP bounded retrieval scaffold complete; live auth middleware, persistent cursor store, usage ledger reconciliation, and external client smoke pending |
 | MCP-07 usage/剩余/request_id | AIP-P0-MCP-07 | Platform Engineering / Billing | 2.3 | Usage envelope reconciliation tests | Sprint 2.3 exit: calls expose usage and request IDs | Backend MCP usage envelope scaffold complete; live auth workspace context, live ledger read/write, billing reconciliation, and external client smoke pending |
 | MCP-08 标准错误码 | AIP-P0-MCP-08 | Platform Engineering | 1.2 / 2.3 | Error envelope contract tests | Sprint 2.3 exit: clients distinguish auth/right/limit/data/system errors | Backend MCP standard error code scaffold complete; live limiter errors, Developer Console display, and external client smoke pending |
-| MCP-09 Developer Console | AIP-P0-MCP-09 | Product Engineering / Platform | 2.3 | Console first-call smoke tests | Sprint 2.3 exit: target client first call median below 10 minutes | Backend Developer Console plan scaffold complete; frontend UI, live Console log store, live usage ledger reads, live key/OAuth surfaces, and target-client first-call smoke pending |
+| MCP-09 Developer Console | AIP-P0-MCP-09 | Product Engineering / Platform | 2.3 | Console first-call smoke tests | Sprint 2.3 exit: target client first call median below 10 minutes | Backend Developer Console plan scaffold, guarded log-store smoke, and target-client E2E packet handoff are complete; frontend UI, production Console log store cutover, live usage ledger reads, live key/OAuth surfaces, and accepted target-client first-call smoke packets remain pending |
 | MCP-11 工具级速率/并发/预算 | AIP-P0-MCP-11 | Platform Engineering / Billing | 2.3 | Rate/concurrency/budget limiter tests | Sprint 2.3 exit: high-cost tools cannot starve normal queries | Analytics high-cost pool planner scaffold complete for `screen_securities` / `compare_securities`; live MCP limiter, queue writes, and ledger debits pending |
 | MCP-12 兼容性测试/状态页 | AIP-P0-MCP-12 | Platform Engineering / Developer Relations | 2.3 / 3.2 | MCP Inspector and status page smoke tests | Sprint 3.2 exit: protocol compatibility and status are public | Not started |
 
