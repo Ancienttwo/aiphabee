@@ -10,8 +10,14 @@ Machine-readable check:
 
 ```bash
 npm run check:live-smoke-evidence-ledger
+npm run check:live-smoke-external-env-preflight
 npm run check:live-smoke-evidence-ledger-fixtures
 ```
+
+The external-env preflight is non-networked. It reads the live smoke contracts,
+the ledger, package scripts, and non-secret contract defaults, then reports only
+environment variable names and their source category (`env`,
+`contract_partial_provisioning`, or `missing`).
 
 The fixture check exercises the state transition rules without running live
 smoke commands: partial evidence cannot set `release_transition_allowed=true`;
