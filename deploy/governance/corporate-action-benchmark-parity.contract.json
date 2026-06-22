@@ -1,0 +1,75 @@
+{
+  "version": "2026-06-22.phase1.corporate-action-benchmark-parity-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/corporate-actions",
+  "runtime_route": "GET /data/runtime",
+  "route": "GET /data/corporate-actions/benchmark-parity",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "live_partner_data": false,
+  "live_serving_reads": false,
+  "persistent_writes": false,
+  "sql_emitted": false,
+  "benchmark_fixture_version": "corporate-action-benchmark-parity@partner-public-v0",
+  "covered_prd_items": [
+    "DAT-04"
+  ],
+  "linked_contracts": [
+    "deploy/tools/get-corporate-actions.contract.json",
+    "deploy/database/migrations.contract.json"
+  ],
+  "supported_sources": [
+    "partner_reference",
+    "public_exchange_reference"
+  ],
+  "minimum_complex_cases": 20,
+  "expected_source_counts": {
+    "partner_reference": 10,
+    "public_exchange_reference": 10
+  },
+  "required_output_fields": [
+    "benchmarkFixtureVersion",
+    "caseResults",
+    "engineVersion",
+    "failures",
+    "livePartnerData",
+    "liveServingReads",
+    "methodologyVersion",
+    "passed",
+    "passedCount",
+    "sampleCount",
+    "sourceCounts",
+    "sqlEmitted",
+    "status",
+    "version"
+  ],
+  "required_case_fields": [
+    "caseId",
+    "instrumentId",
+    "source",
+    "sourceRecordId",
+    "benchmarkRecordId",
+    "actionTypes",
+    "expected",
+    "actual",
+    "delta",
+    "tolerance",
+    "status"
+  ],
+  "required_adjustment_outputs": [
+    "splitAdjustedClose",
+    "totalReturnAdjustedClose"
+  ],
+  "required_action_types": [
+    "split",
+    "consolidation",
+    "dividend"
+  ],
+  "tables": [
+    "core.corporate_action",
+    "core.adjustment_methodology",
+    "core.price_adjustment_factor",
+    "governance.corporate_action_adjustment_contract"
+  ]
+}

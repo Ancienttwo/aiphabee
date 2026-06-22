@@ -5,7 +5,9 @@ import {
   adjustPriceSeries,
   getCorporateActions,
   getCorporateActionAdjustmentCapabilities,
+  getCorporateActionBenchmarkParityCapabilities,
   getCorporateActionsCapabilities,
+  runCorporateActionBenchmarkParityGate,
   runSyntheticCorporateActionGolden
 } from "./index";
 
@@ -128,6 +130,43 @@ describe("corporate action adjustment engine", () => {
         "split_adjusted",
         "total_return_adjusted"
       ]
+    });
+  });
+
+  it("passes partner/public benchmark parity cases for the adjustment engine", () => {
+    const report = runCorporateActionBenchmarkParityGate();
+    const capability = getCorporateActionBenchmarkParityCapabilities();
+
+    expect(report.status).toBe("passed");
+    expect(report.passed).toBe(true);
+    expect(report.sampleCount).toBe(20);
+    expect(report.passedCount).toBe(20);
+    expect(report.failures).toEqual([]);
+    expect(report.sourceCounts).toEqual({
+      partner_reference: 10,
+      public_exchange_reference: 10
+    });
+    expect(report.caseResults[14]).toMatchObject({
+      actual: {
+        date: "2020-01-31",
+        splitAdjustedClose: 30,
+        totalReturnAdjustedClose: 29.008333
+      },
+      caseId: "split_two_dividends_partner",
+      status: "pass"
+    });
+    expect(report.livePartnerData).toBe(false);
+    expect(report.liveServingReads).toBe(false);
+    expect(report.sqlEmitted).toBe(false);
+    expect(capability).toMatchObject({
+      benchmark_fixture_version: "corporate-action-benchmark-parity@partner-public-v0",
+      live_partner_data: false,
+      live_serving_reads: false,
+      minimum_complex_cases: 20,
+      partner_reference_cases: 10,
+      public_reference_cases: 10,
+      sample_count: 20,
+      status: "benchmark_parity_scaffold"
     });
   });
 

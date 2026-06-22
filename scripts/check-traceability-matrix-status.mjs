@@ -54,6 +54,7 @@ const requiredChecked = [
   "DAT-01",
   "DAT-02",
   "DAT-03",
+  "DAT-04",
   "DAT-07",
   "DAT-08"
 ];
@@ -62,7 +63,6 @@ const requiredUnchecked = [
   "AGT-07",
   "STK-07",
   "MCP-09",
-  "DAT-04",
   "DAT-05",
   "DAT-06",
   "DAT-10"
@@ -87,6 +87,7 @@ const evidencePaths = [
   "deploy/analytics/saved-screening-schedule.contract.json",
   "deploy/analytics/screen-securities.contract.json",
   "deploy/database/migrations.contract.json",
+  "deploy/governance/corporate-action-benchmark-parity.contract.json",
   "deploy/documents/announcement-diff-extraction.contract.json",
   "deploy/documents/document-sanitizer.contract.json",
   "deploy/documents/get-announcement.contract.json",
@@ -112,7 +113,10 @@ const evidencePaths = [
   "deploy/tools/resolve-security.contract.json",
   "deploy/usage/quota-display.contract.json",
   "deploy/watchlist/alerts.contract.json",
-  "deploy/watchlist/briefings.contract.json"
+  "deploy/watchlist/briefings.contract.json",
+  "docs/governance/corporate-action-benchmark-parity-scaffold.md",
+  "tasks/contracts/corporate-action-benchmark-parity-scaffold.contract.md",
+  "tasks/notes/corporate-action-benchmark-parity-scaffold.notes.md"
 ];
 
 const tracker = readText(trackerPath);

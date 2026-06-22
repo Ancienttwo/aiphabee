@@ -16,16 +16,14 @@ This sync closes a tracker drift in `docs/AiphaBee_Sprint_Tracker_v1.0.md` §M. 
 - AGT rows covered by no-model agent planning, preflight resolution, budget stop policy, tool enforcement, numeric/source guard, answer contract, failure recovery, and workflow task scaffolds.
 - STK/ANA/DOC/RES rows covered by workbench, analytics, document, research, private sharing, watchlist, and static/deep report contracts.
 - MCP rows covered by endpoint/auth/key/schema/versioning/pagination/usage/error-code contracts plus enterprise controls.
-- DAT rows covered by immutable raw snapshot, security master, financial facts/restatement, methodology, and data correction notification evidence.
+- DAT rows covered by immutable raw snapshot, security master, financial facts/restatement, corporate action adjustment/parity, methodology, and data correction notification evidence.
 
 ## Still Unchecked
 
 - `AGT-01`: live streaming transport and frontend progress rendering are not complete.
 - `AGT-07`: evidence payload exists, but frontend evidence-card rendering is not complete.
 - `STK-07`: chart-to-research context has no complete repo-local acceptance evidence.
-- `ANA-05`: saved screening and periodic run behavior remains deferred.
 - `MCP-09`: Developer Console is not complete.
-- `DAT-04`: synthetic adjustment engine exists, but partner benchmark/live adjustment acceptance remains incomplete.
 - `DAT-05`: field-level rights matrix and live policy source remain incomplete.
 - `DAT-06`: quality isolation scaffolds exist, but live data quality isolation is not fully accepted.
 - `DAT-10`: partner SLA/reconciliation live evidence remains incomplete.

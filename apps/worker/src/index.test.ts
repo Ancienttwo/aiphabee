@@ -4100,6 +4100,36 @@ interface CorporateActionsBody {
   };
 }
 
+interface CorporateActionBenchmarkParityBody {
+  data: {
+    capability: {
+      live_partner_data: boolean;
+      live_serving_reads: boolean;
+      minimum_complex_cases: number;
+      partner_reference_cases: number;
+      public_reference_cases: number;
+      sample_count: number;
+      status: string;
+    };
+    failures: unknown[];
+    livePartnerData: boolean;
+    liveServingReads: boolean;
+    passed: boolean;
+    passedCount: number;
+    sampleCount: number;
+    sourceCounts: {
+      partner_reference: number;
+      public_exchange_reference: number;
+    };
+    sqlEmitted: boolean;
+    status: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
 interface EventTimelineBody {
   data: {
     capability: {
@@ -6118,6 +6148,15 @@ interface DataRuntimeBody {
     };
     corporate_actions: {
       adjustment_types: string[];
+      benchmark_parity: {
+        live_partner_data: boolean;
+        live_serving_reads: boolean;
+        minimum_complex_cases: number;
+        partner_reference_cases: number;
+        public_reference_cases: number;
+        sample_count: number;
+        status: string;
+      };
       closed_open_intervals: boolean;
       engine: {
         direction: string;
@@ -14239,6 +14278,41 @@ describe("worker runtime", () => {
     expect(body.usage.credits).toBe(4);
   });
 
+  it("serves corporate action partner/public benchmark parity report", async () => {
+    const response = await app.request("/data/corporate-actions/benchmark-parity", {
+      headers: {
+        "x-request-id": "req-corporate-action-benchmark-parity"
+      }
+    });
+    const body = (await response.json()) as CorporateActionBenchmarkParityBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("passed");
+    expect(body.data.passed).toBe(true);
+    expect(body.data.sampleCount).toBe(20);
+    expect(body.data.passedCount).toBe(20);
+    expect(body.data.failures).toEqual([]);
+    expect(body.data.sourceCounts).toEqual({
+      partner_reference: 10,
+      public_exchange_reference: 10
+    });
+    expect(body.data.livePartnerData).toBe(false);
+    expect(body.data.liveServingReads).toBe(false);
+    expect(body.data.sqlEmitted).toBe(false);
+    expect(body.data.capability).toMatchObject({
+      live_partner_data: false,
+      live_serving_reads: false,
+      minimum_complex_cases: 20,
+      partner_reference_cases: 10,
+      public_reference_cases: 10,
+      sample_count: 20,
+      status: "benchmark_parity_scaffold"
+    });
+    expect(body.usage.rows).toBe(20);
+  });
+
   it("returns standard errors for corporate action licensing, quality, range, row, and input failures", async () => {
     const unlicensed = await app.request("/tools/get-corporate-actions", {
       body: JSON.stringify({
@@ -17887,6 +17961,15 @@ describe("worker runtime", () => {
     });
     expect(body.data.corporate_actions).toMatchObject({
       adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
+      benchmark_parity: {
+        live_partner_data: false,
+        live_serving_reads: false,
+        minimum_complex_cases: 20,
+        partner_reference_cases: 10,
+        public_reference_cases: 10,
+        sample_count: 20,
+        status: "benchmark_parity_scaffold"
+      },
       closed_open_intervals: true,
       engine: {
         direction: "backward_adjusted",

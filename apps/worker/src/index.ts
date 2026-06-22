@@ -91,7 +91,9 @@ import {
   CorporateActionsInputError,
   getCorporateActions,
   getCorporateActionAdjustmentCapabilities,
-  getCorporateActionsCapabilities
+  getCorporateActionBenchmarkParityCapabilities,
+  getCorporateActionsCapabilities,
+  runCorporateActionBenchmarkParityGate
 } from "@aiphabee/corporate-actions";
 import {
   DATA_ACCESS_GATEWAY_VERSION,
@@ -2157,6 +2159,7 @@ app.get("/data/runtime", (c) => {
         },
         corporate_actions: {
           adjustment_types: ["raw", "split_adjusted", "total_return_adjusted"],
+          benchmark_parity: getCorporateActionBenchmarkParityCapabilities(),
           closed_open_intervals: true,
           engine: getCorporateActionAdjustmentCapabilities(),
           live_actions: false,
@@ -2268,6 +2271,41 @@ app.get("/data/runtime", (c) => {
           cached: false,
           credits: 0,
           rows: 0
+        }
+      }
+    )
+  );
+});
+
+app.get("/data/corporate-actions/benchmark-parity", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const report = runCorporateActionBenchmarkParityGate();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...report,
+        capability: getCorporateActionBenchmarkParityCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: report.benchmarkFixtureVersion,
+        methodologyVersion: report.version,
+        provenance: [
+          {
+            data_version: report.benchmarkFixtureVersion,
+            methodology_version: report.version,
+            source: "corporate-action-benchmark-fixture",
+            source_record_id: "partner-public-benchmark-parity-v0"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: report.sampleCount
         }
       }
     )
