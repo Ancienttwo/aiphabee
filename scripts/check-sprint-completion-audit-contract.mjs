@@ -75,9 +75,9 @@ function validateContract(value) {
 
   if (
     !Array.isArray(value.completion_blocker_manifests) ||
-    value.completion_blocker_manifests.length !== 7
+    value.completion_blocker_manifests.length !== 8
   ) {
-    errors.push("completion_blocker_manifests must contain 7 blocker manifests");
+    errors.push("completion_blocker_manifests must contain 8 blocker manifests");
   }
 
   for (const path of [
@@ -267,6 +267,8 @@ function validateManifestBlockers(value, packageJson) {
     } else if (manifest.id === "sprint1_live_data_evidence") {
       validatePacketSet(errors, manifest, data.required_gates, "accepted");
       expectEqual(errors, data.all_activation_gates_accepted, false, `${manifest.id}.all_activation_gates_accepted`);
+    } else if (manifest.id === "agent_model_output_corpus_release_gate") {
+      validateAgentModelOutputCorpusReleaseGate(errors, manifest, data, packageJson);
     } else if (manifest.id === "mcp_target_client_live_e2e") {
       validateTargetClientE2e(errors, manifest, data);
     } else if (manifest.id === "frontend_release_evidence") {
@@ -287,6 +289,11 @@ function validateTransitionReviews(manifest, data, packageJson) {
   const errors = [];
 
   if (!Array.isArray(manifest.transition_reviews) || manifest.transition_reviews.length === 0) {
+    if (manifest.release_gate_checker !== undefined) {
+      validatePackageCommandForScript(errors, packageJson, manifest.release_gate_checker, `${manifest.id}.release_gate_checker`);
+      return errors;
+    }
+
     errors.push(`${manifest.id}.transition_reviews must list at least one transition review`);
     return errors;
   }
@@ -417,6 +424,59 @@ function validateFrontendReleaseEvidence(errors, manifest, data) {
     }
     if (!Array.isArray(surface.required_evidence) || surface.required_evidence.length === 0) {
       errors.push(`${manifest.id}.${surface.surface_id} must list required_evidence`);
+    }
+  }
+}
+
+function validateAgentModelOutputCorpusReleaseGate(errors, manifest, data, packageJson) {
+  const blockers = data.release_gate?.blockers ?? [];
+  const linkedChecks = data.linked_checks ?? [];
+
+  expectEqual(errors, data.release_gate?.gate_status, "blocked_model_output_corpus_evidence", `${manifest.id}.release_gate.gate_status`);
+  expectEqual(errors, data.release_gate?.no_live_release_claim, true, `${manifest.id}.release_gate.no_live_release_claim`);
+  expectEqual(errors, data.production_sampling_enabled, false, `${manifest.id}.production_sampling_enabled`);
+  expectEqual(errors, data.live_model_output_corpus_enabled, false, `${manifest.id}.live_model_output_corpus_enabled`);
+  expectEqual(errors, data.persistent_eval_writes, false, `${manifest.id}.persistent_eval_writes`);
+  expectEqual(errors, data.frontend_rendering, false, `${manifest.id}.frontend_rendering`);
+  expectEqual(errors, blockers.length, manifest.expected_required_count, `${manifest.id}.required_count`);
+  expectEqual(errors, data.release_transition_allowed === true ? blockers.length : 0, manifest.expected_accepted_count, `${manifest.id}.accepted_count`);
+
+  for (const blocker of [
+    "partner_approved_model_output_corpus",
+    "persistent_eval_writes",
+    "frontend_evidence_cards",
+    "route_does_not_ingest_live_model_output_corpus"
+  ]) {
+    expectIncludes(errors, blockers, blocker, `${manifest.id}.release_gate.blockers.${blocker}`);
+  }
+
+  for (const claim of [
+    "partner_approved_production_corpus",
+    "live_model_output_corpus",
+    "production_live_generated_answer_sampling",
+    "persistent_eval_writes",
+    "release_transition"
+  ]) {
+    expectIncludes(errors, data.not_claimed, claim, `${manifest.id}.not_claimed.${claim}`);
+  }
+
+  for (const contractPath of data.linked_contracts ?? []) {
+    if (typeof contractPath !== "string" || !existsSync(resolve(process.cwd(), contractPath))) {
+      errors.push(`${manifest.id}.linked_contracts path missing: ${contractPath}`);
+    }
+  }
+
+  for (const checkCommand of linkedChecks) {
+    if (typeof checkCommand !== "string" || !checkCommand.startsWith("npm run ")) {
+      errors.push(`${manifest.id}.linked_checks must contain npm run commands`);
+      continue;
+    }
+    const scriptName = checkCommand.replace(/^npm run /u, "");
+    if (packageJson?.scripts?.[scriptName] === undefined) {
+      errors.push(`${manifest.id}.linked_checks references missing package script ${scriptName}`);
+    }
+    if (!String(packageJson?.scripts?.check ?? "").includes(`npm run ${scriptName}`)) {
+      errors.push(`${manifest.id}.linked_checks.${scriptName} must be included in root check`);
     }
   }
 }

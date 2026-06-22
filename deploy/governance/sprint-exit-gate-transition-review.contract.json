@@ -39,18 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "partner_approved_production_corpus_missing": {
-      "owner_manifest_ids": ["sprint1_live_data_evidence"],
-      "owner_check_commands": [
-        "check:sprint1-live-data-transition-review",
-        "check:agent-model-output-corpus-release-gate"
-      ],
-      "closure_evidence_refs": [
-        "signed_partner_data_contract",
-        "partner_serving_rows_loaded",
-        "quality_owner_cutover_approved"
-      ]
-    },
     "credentialed_live_smoke_captures_missing": {
       "owner_manifest_ids": ["phase0_live_smoke_evidence"],
       "owner_check_commands": [
@@ -211,12 +199,16 @@
       "backlog": "9 / 9",
       "backlog_complete": true,
       "completion_allowed": false,
-      "blocker_manifest_ids": ["gate0_signed_evidence", "sprint1_live_data_evidence"],
-      "manual_blocking_conditions": ["partner_approved_production_corpus_missing"],
+      "blocker_manifest_ids": [
+        "gate0_signed_evidence",
+        "sprint1_live_data_evidence",
+        "agent_model_output_corpus_release_gate"
+      ],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:gate0_signed_evidence",
         "blocker_manifest:sprint1_live_data_evidence",
-        "partner_approved_production_corpus_missing"
+        "blocker_manifest:agent_model_output_corpus_release_gate"
       ]
     },
     {
@@ -487,7 +479,9 @@
     "Phase 3 security/load/DR release evidence handoff 已建立",
     "| 2026-06-23 | 1.0hv | 完成 `phase3-security-load-dr-release-evidence`",
     "Sprint 0.x Gate0 manual blockers 已转为 manifest blockers",
-    "| 2026-06-23 | 1.0hw | 完成 `sprint0-gate0-manual-blocker-manifest-routing`"
+    "| 2026-06-23 | 1.0hw | 完成 `sprint0-gate0-manual-blocker-manifest-routing`",
+    "Partner model output corpus blocker 已转为 release-gate manifest blocker",
+    "| 2026-06-23 | 1.0hx | 完成 `partner-model-output-corpus-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -496,7 +490,8 @@
     "Sprint 2.4 live operations evidence handoff",
     "Sprint manual blocker owner map",
     "Phase 3 security/load/DR release evidence handoff",
-    "Sprint 0.x Gate0 manual blocker manifest routing"
+    "Sprint 0.x Gate0 manual blocker manifest routing",
+    "Partner model output corpus blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
