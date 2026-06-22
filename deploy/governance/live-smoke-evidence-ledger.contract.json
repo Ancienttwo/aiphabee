@@ -1,0 +1,217 @@
+{
+  "version": "2026-06-22.phase0.live-smoke-evidence-ledger.v0",
+  "status": "pending_live_evidence",
+  "tracker_item": "Sprint 0.4: live smoke evidence ledger",
+  "checker": "scripts/check-live-smoke-evidence-ledger-contract.mjs",
+  "all_live_smokes_passed": false,
+  "release_transition_allowed": false,
+  "evidence_policy": {
+    "live_smoke_commands_not_run_by_checker": true,
+    "raw_secrets_forbidden_in_repo": true,
+    "raw_provider_outputs_forbidden_in_repo": true,
+    "hash_only_evidence_required": true,
+    "destructive_secret_smoke_requires_cleanup_evidence": true,
+    "external_env_values_must_not_be_defaulted_from_contracts": true
+  },
+  "readiness_checks": [
+    {
+      "id": "cloudflare_resource_live_readiness",
+      "contract": "deploy/cloudflare/resource-smoke-readiness.contract.json",
+      "command": "npm run check:cloudflare-resource-live-readiness",
+      "current_status": "ready_missing_env"
+    },
+    {
+      "id": "model_provider_live_readiness",
+      "contract": "deploy/model-providers/live-smoke-readiness.contract.json",
+      "command": "npm run check:model-provider-live-readiness",
+      "current_status": "partial_live_passed"
+    },
+    {
+      "id": "observability_live_readiness",
+      "contract": "deploy/observability/live-smoke-readiness.contract.json",
+      "command": "npm run check:observability-live-readiness",
+      "current_status": "readiness_no_secret"
+    },
+    {
+      "id": "provider_secret_stores_live_readiness",
+      "contract": "deploy/secrets/live-smoke-readiness.contract.json",
+      "command": "npm run check:provider-secret-stores-live-readiness",
+      "current_status": "readiness_no_secret"
+    },
+    {
+      "id": "live_smoke_defaults",
+      "contract": "scripts/lib/live-smoke-defaults.mjs",
+      "command": "npm run check:live-smoke-defaults",
+      "current_status": "ok"
+    }
+  ],
+  "live_smoke_commands": [
+    {
+      "id": "cloudflare_resource_inventory",
+      "command": "npm run smoke:cloudflare-resources-live",
+      "script": "scripts/smoke-cloudflare-resources-live.mjs",
+      "current_status": "partial_external_provisioned"
+    },
+    {
+      "id": "cloudflare_bindings_functional",
+      "command": "npm run smoke:cloudflare-bindings-wrangler-live",
+      "script": "scripts/smoke-cloudflare-bindings-wrangler-live.mjs",
+      "current_status": "partial_live_passed"
+    },
+    {
+      "id": "ai_gateway_model_execution",
+      "command": "npm run smoke:ai-gateway-live",
+      "script": "scripts/smoke-ai-gateway-live.mjs",
+      "current_status": "partial_live_passed"
+    },
+    {
+      "id": "ai_gateway_observability",
+      "command": "npm run smoke:ai-gateway-observability-live",
+      "script": "scripts/smoke-ai-gateway-observability-live.mjs",
+      "current_status": "permission_denied"
+    },
+    {
+      "id": "observability_otlp_eval_store",
+      "command": "npm run smoke:observability-live",
+      "script": "scripts/smoke-observability-live.mjs",
+      "current_status": "readiness_not_run"
+    },
+    {
+      "id": "provider_secret_store_rotation",
+      "command": "npm run smoke:provider-secret-stores-live",
+      "script": "scripts/smoke-provider-secret-stores-live.mjs",
+      "current_status": "readiness_not_run"
+    }
+  ],
+  "non_secret_contract_default_env": [
+    "AI_GATEWAY_NAME",
+    "CLOUDFLARE_D1_DATABASE_NAME",
+    "CLOUDFLARE_DURABLE_OBJECT_NAMESPACE_NAME",
+    "CLOUDFLARE_HYPERDRIVE_CONFIG_NAME",
+    "CLOUDFLARE_WORKER_NAME",
+    "CLOUDFLARE_WORKFLOW_NAME",
+    "KV_NAMESPACE_ID",
+    "QUEUE_NAME",
+    "R2_BUCKET_NAME"
+  ],
+  "non_inferable_env": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "AI_GATEWAY_SMOKE_MODEL",
+    "OTLP_EXPORTER_OTLP_ENDPOINT",
+    "OTLP_EXPORTER_OTLP_HEADERS",
+    "GITHUB_REPOSITORY",
+    "GITHUB_ENVIRONMENT",
+    "SUPABASE_PROJECT_REF"
+  ],
+  "surfaces": [
+    {
+      "id": "cloudflare_resource_inventory",
+      "source_contract": "deploy/cloudflare/resource-smoke-readiness.contract.json",
+      "current_status": "partial_external_provisioned",
+      "evidence_refs": [
+        "worker_health",
+        "queue_list",
+        "durable_object_state_smoke",
+        "workflow_instance_execution",
+        "cron_handler_smoke",
+        "r2_bucket_list",
+        "kv_namespace_list",
+        "d1_database_list",
+        "ai_gateway_model_request_smoke"
+      ],
+      "missing_evidence": [
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "cloudflare_bindings_functional",
+      "source_contract": "deploy/cloudflare/resource-smoke-readiness.contract.json",
+      "current_status": "partial_live_passed",
+      "evidence_refs": [
+        "worker_runtime_binding_smoke",
+        "queue_publish_consume_smoke",
+        "durable_object_state_smoke",
+        "workflow_instance_execution",
+        "cron_handler_smoke",
+        "ai_gateway_model_request_smoke",
+        "kv_put_get_delete",
+        "r2_put_get_delete",
+        "d1_eval_write_read_delete"
+      ],
+      "missing_evidence": [
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "ai_gateway_model_execution",
+      "source_contract": "deploy/model-providers/live-smoke-readiness.contract.json",
+      "current_status": "partial_live_passed",
+      "evidence_refs": [
+        "latest_cli_live_smoke",
+        "latest_deployed_worker_live_smoke"
+      ],
+      "missing_evidence": [
+        "ai_gateway_logs_api_read_verified",
+        "ai_gateway_cost_log_verified",
+        "ai_gateway_rate_limit_cache_fallback_log_verified",
+        "fallback_log_verified",
+        "persistent_cost_log_verified"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "ai_gateway_observability",
+      "source_contract": "deploy/model-providers/live-smoke-readiness.contract.json",
+      "current_status": "permission_denied",
+      "evidence_refs": [
+        "latest_observability_probe_http_403"
+      ],
+      "missing_evidence": [
+        "AI Gateway Read",
+        "Account Analytics Read",
+        "request_logs",
+        "cost_logs",
+        "rate_limit_cache_fallback_logs"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "observability_otlp_eval_store",
+      "source_contract": "deploy/observability/live-smoke-readiness.contract.json",
+      "current_status": "readiness_not_run",
+      "evidence_refs": [],
+      "missing_evidence": [
+        "otlp_http_log_export",
+        "eval_store_record_write_read_delete",
+        "production_otlp_retention",
+        "eval_store_dashboard_evidence"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "provider_secret_store_rotation",
+      "source_contract": "deploy/secrets/live-smoke-readiness.contract.json",
+      "current_status": "readiness_not_run",
+      "evidence_refs": [],
+      "missing_evidence": [
+        "cloudflare_workers_secret_set_rotate_delete",
+        "github_actions_secret_set_rotate_delete",
+        "supabase_secret_set_rotate_delete"
+      ],
+      "blocks_sprint0_4_checkbox": true
+    }
+  ],
+  "not_claimed": [
+    "all_live_smokes_passed",
+    "staging_deployability",
+    "live_data_access",
+    "production_observability_complete",
+    "provider_secret_rotation_complete",
+    "sprint0_4_live_smoke_checkbox_complete"
+  ]
+}
