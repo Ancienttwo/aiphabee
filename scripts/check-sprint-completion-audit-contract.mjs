@@ -15,7 +15,7 @@ const errors = [
   ...validatePackageScripts(packageJson),
   ...validateSprintRows(contract, tracker),
   ...validateFragments(contract, tracker, todos),
-  ...validateManifestBlockers(contract),
+  ...validateManifestBlockers(contract, packageJson),
   ...validateChangelog(tracker)
 ];
 
@@ -81,7 +81,14 @@ function validateContract(value) {
   for (const path of [
     value.tracker,
     value.todos,
-    ...(value.completion_blocker_manifests ?? []).map((manifest) => manifest.path)
+    ...(value.completion_blocker_manifests ?? []).flatMap((manifest) => [
+      manifest.path,
+      ...(manifest.transition_reviews ?? []).flatMap((transitionReview) => [
+        transitionReview.path,
+        transitionReview.checker,
+        transitionReview.fixture_checker
+      ])
+    ])
   ]) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
       errors.push(`linked path missing: ${path}`);
@@ -154,7 +161,7 @@ function validateFragments(value, trackerText, todosText) {
   return errors;
 }
 
-function validateManifestBlockers(value) {
+function validateManifestBlockers(value, packageJson) {
   const errors = [];
 
   for (const manifest of value.completion_blocker_manifests ?? []) {
@@ -162,6 +169,7 @@ function validateManifestBlockers(value) {
 
     expectEqual(errors, data.status, manifest.expected_status, `${manifest.id}.status`);
     expectEqual(errors, data.release_transition_allowed, false, `${manifest.id}.release_transition_allowed`);
+    errors.push(...validateTransitionReviews(manifest, data, packageJson));
 
     if (manifest.id === "gate0_signed_evidence") {
       validatePacketSet(errors, manifest, data.required_packets, "accepted");
@@ -181,6 +189,71 @@ function validateManifestBlockers(value) {
   }
 
   return errors;
+}
+
+function validateTransitionReviews(manifest, data, packageJson) {
+  const errors = [];
+
+  if (!Array.isArray(manifest.transition_reviews) || manifest.transition_reviews.length === 0) {
+    errors.push(`${manifest.id}.transition_reviews must list at least one transition review`);
+    return errors;
+  }
+
+  for (const transitionReview of manifest.transition_reviews) {
+    const transition = readJson(transitionReview.path);
+    const transitionPath = `${manifest.id}.transition_reviews.${transitionReview.path}`;
+
+    expectEqual(errors, transition.status, transitionReview.expected_status, `${transitionPath}.status`);
+    expectEqual(errors, transition.release_transition_allowed, false, `${transitionPath}.release_transition_allowed`);
+    expectEqual(errors, transition.checker, transitionReview.checker, `${transitionPath}.checker`);
+    expectEqual(errors, transition.fixture_checker, transitionReview.fixture_checker, `${transitionPath}.fixture_checker`);
+    expectIncludes(errors, transition.not_claimed, "all_sprints_complete", `${transitionPath}.not_claimed.all_sprints_complete`);
+    validatePackageCommandForScript(errors, packageJson, transitionReview.checker, transitionPath);
+    validatePackageCommandForScript(errors, packageJson, transitionReview.fixture_checker, transitionPath);
+
+    if (!transitionReferencesManifest(transition, transitionReview.path, manifest.path, data)) {
+      errors.push(`${transitionPath} must reference blocker manifest ${manifest.path}`);
+    }
+  }
+
+  return errors;
+}
+
+function transitionReferencesManifest(transition, transitionReviewPath, manifestPath, manifestData) {
+  const directReferences = [
+    transition.signed_evidence_manifest_contract,
+    transition.ledger_contract,
+    transition.evidence_manifest_contract,
+    transition.target_client_handoff_contract,
+    transition.frontend_evidence_handoff_contract
+  ];
+
+  if (directReferences.includes(manifestPath)) {
+    return true;
+  }
+
+  const linkedReviews = [
+    ...(manifestData.linked_capture_transition_reviews ?? []),
+    ...(manifestData.linked_transition_reviews ?? []),
+    manifestData.transition_review_contract
+  ].filter(Boolean);
+
+  return linkedReviews.includes(transitionReviewPath) || Object.values(transition).includes(manifestPath);
+}
+
+function validatePackageCommandForScript(errors, packageJson, scriptPath, path) {
+  const scripts = packageJson?.scripts ?? {};
+  const command = `node ${scriptPath}`;
+  const scriptName = Object.entries(scripts).find(([, value]) => value === command)?.[0];
+
+  if (scriptName === undefined) {
+    errors.push(`${path} package.json script for ${scriptPath} is missing`);
+    return;
+  }
+
+  if (!String(scripts.check ?? "").includes(`npm run ${scriptName}`)) {
+    errors.push(`${path} root check must include ${scriptName}`);
+  }
 }
 
 function validatePacketSet(errors, manifest, packets, acceptedStatus) {
@@ -290,6 +363,12 @@ function parseSprintRows(text) {
 function expectEqual(errors, actual, expected, path) {
   if (actual !== expected) {
     errors.push(`${path} expected ${JSON.stringify(expected)} but received ${JSON.stringify(actual)}`);
+  }
+}
+
+function expectIncludes(errors, values, expected, path) {
+  if (!Array.isArray(values) || !values.includes(expected)) {
+    errors.push(`${path} must include ${JSON.stringify(expected)}`);
   }
 }
 
