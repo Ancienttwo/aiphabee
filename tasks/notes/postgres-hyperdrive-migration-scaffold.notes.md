@@ -1,6 +1,6 @@
 # Notes: postgres-hyperdrive-migration-scaffold
 
-> **Last Updated**: 2026-06-20 15:10 +08
+> **Last Updated**: 2026-06-22 08:05 +08
 > **Plan**: `plans/plan-postgres-hyperdrive-migration-scaffold.md`
 > **Runtime Evidence**: `docs/governance/postgres-hyperdrive-migration-scaffold.md`
 
@@ -14,6 +14,9 @@
   a real Hyperdrive `id`, and no resource ID should be committed.
 - Added the documented Hyperdrive local connection env var as a names-only
   secret variable.
+- A later Cloudflare resource smoke slice added guarded
+  `POST /cloudflare/hyperdrive/smoke` plus `pg`/`nodejs_compat` readiness, but
+  product `/database/runtime` still keeps `live_queries=false`.
 
 ## Verification
 
@@ -28,7 +31,7 @@
 
 - No Supabase project or Hyperdrive resource is provisioned.
 - No remote migration dry-run or apply has been executed.
-- No read-only `SELECT 1` through Hyperdrive has been executed.
+- No read-only `SELECT 1` through Hyperdrive has passed live execution.
 - Security master, raw snapshot, financial fact/restatement,
   corporate-action/adjustment, account/workspace entitlement, and usage-ledger
   schemas now exist, but ingestion, live data gateway reads, field entitlement

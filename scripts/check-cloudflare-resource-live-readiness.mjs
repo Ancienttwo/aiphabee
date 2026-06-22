@@ -602,6 +602,7 @@ function validateFunctionalSmokeScript(value) {
     "/cloudflare/durable-objects/smoke",
     "/cloudflare/workflows/smoke",
     "/cloudflare/cron/smoke",
+    "/cloudflare/hyperdrive/smoke",
     "/agent/model-provider/live-smoke",
     "cloudflare-bindings-runtime-v1",
     "model-provider-live-v1",
@@ -610,12 +611,15 @@ function validateFunctionalSmokeScript(value) {
     "durable_object_state_smoke",
     "workflow_instance_execution",
     "cron_handler_smoke",
+    "hyperdrive_select_1_smoke",
     "ai_gateway_model_request_smoke",
     "AI_GATEWAY_LIVE_SMOKE_TOKEN",
     "--secrets-file",
+    "nodejs_compat",
     "kv_namespaces",
     "r2_buckets",
     "d1_databases",
+    "hyperdrive",
     "durable_objects",
     "migrations",
     "new_classes",
@@ -663,6 +667,10 @@ function validateTrackerSync(value) {
 
   if (!/^- \[ \] Cloudflare resources provisioned \+ binding smoke tests/mu.test(value)) {
     errors.push("tracker Cloudflare resources live item must remain unchecked");
+  }
+
+  if (!/^- \[ \] Hyperdrive-backed Postgres\/Supabase live connection smoke/mu.test(value)) {
+    errors.push("tracker Hyperdrive live smoke item must remain unchecked");
   }
 
   return errors;

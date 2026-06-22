@@ -3,6 +3,7 @@
   "name": "aiphabee-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-20",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
     "traces": {

@@ -39,7 +39,8 @@ const requiredResourceNames = [
   "queue",
   "kv_namespace_title",
   "r2_bucket",
-  "d1_database"
+  "d1_database",
+  "hyperdrive_config"
 ];
 const runtimeSmokeHeaderValue = "cloudflare-bindings-runtime-v1";
 
@@ -68,6 +69,7 @@ if (dryRun) {
         "durable_object_state_smoke",
         "workflow_instance_execution",
         "cron_handler_smoke",
+        "hyperdrive_select_1_smoke",
         "ai_gateway_model_request_smoke"
       ],
       required_env: requiredEnv,
@@ -326,14 +328,29 @@ async function smokeD1() {
 async function smokeWorkerRuntimeBindings() {
   const workerName = resourceNames.worker;
   let configPath;
+  let hyperdriveLookupFailure;
   let secretFilePath;
   let secretDir;
 
   try {
     const kvNamespaceId = await resolveKvNamespaceId(resourceNames.kv_namespace_title);
     const d1DatabaseId = await resolveD1DatabaseId(resourceNames.d1_database);
+    const hyperdriveConfigId = await resolveHyperdriveConfigId(
+      resourceNames.hyperdrive_config
+    ).catch((error) => {
+      hyperdriveLookupFailure = failedResult({
+        bindingName: "AIPHABEE_HYPERDRIVE",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "hyperdrive_config_lookup_failed",
+        key: resourceNames.hyperdrive_config ?? "AIPHABEE_HYPERDRIVE",
+        surface: "hyperdrive_select_1_smoke"
+      });
+
+      return "";
+    });
     configPath = await writeWorkerRuntimeSmokeConfig({
       d1DatabaseId,
+      hyperdriveConfigId,
       kvNamespaceId
     });
     ({ secretDir, secretFilePath } = await writeAiGatewayLiveSmokeSecretsFile());
@@ -384,6 +401,13 @@ async function smokeWorkerRuntimeBindings() {
           surface: "cron_handler_smoke"
         }),
         failedResult({
+          bindingName: "AIPHABEE_HYPERDRIVE",
+          detail: "worker runtime URL missing before Hyperdrive smoke",
+          failureCode: "hyperdrive_worker_runtime_prerequisite_failed",
+          key: resourceNames.hyperdrive_config ?? "AIPHABEE_HYPERDRIVE",
+          surface: "hyperdrive_select_1_smoke"
+        }),
+        failedResult({
           bindingName: "AIPHABEE_AI_GATEWAY",
           detail: "worker runtime URL missing before AI Gateway smoke",
           failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
@@ -427,6 +451,13 @@ async function smokeWorkerRuntimeBindings() {
           surface: "cron_handler_smoke"
         }),
         failedResult({
+          bindingName: "AIPHABEE_HYPERDRIVE",
+          detail: "worker runtime binding smoke failed before Hyperdrive smoke",
+          failureCode: "hyperdrive_worker_runtime_prerequisite_failed",
+          key: resourceNames.hyperdrive_config ?? "AIPHABEE_HYPERDRIVE",
+          surface: "hyperdrive_select_1_smoke"
+        }),
+        failedResult({
           bindingName: "AIPHABEE_AI_GATEWAY",
           detail: "worker runtime binding smoke failed before AI Gateway smoke",
           failureCode: "ai_gateway_worker_runtime_prerequisite_failed",
@@ -442,6 +473,7 @@ async function smokeWorkerRuntimeBindings() {
       await smokeDurableObjectState(workerUrl),
       await smokeWorkflowInstanceExecution(workerUrl),
       await smokeCronHandler(workerUrl),
+      hyperdriveLookupFailure ?? (await smokeHyperdriveSelectOne(workerUrl)),
       await smokeAiGatewayModelRequest(workerUrl)
     ];
   } catch (error) {
@@ -480,6 +512,13 @@ async function smokeWorkerRuntimeBindings() {
         failureCode: "cron_worker_runtime_command_failed",
         key: maintenanceCron,
         surface: "cron_handler_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_HYPERDRIVE",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "hyperdrive_worker_runtime_command_failed",
+        key: resourceNames.hyperdrive_config ?? "AIPHABEE_HYPERDRIVE",
+        surface: "hyperdrive_select_1_smoke"
       }),
       failedResult({
         bindingName: "AIPHABEE_AI_GATEWAY",
@@ -742,6 +781,51 @@ async function smokeCronHandler(workerUrl) {
   };
 }
 
+async function smokeHyperdriveSelectOne(workerUrl) {
+  const response = await fetch(`${workerUrl}/cloudflare/hyperdrive/smoke`, {
+    headers: {
+      "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+      "x-request-id": `req-${smokeId}`
+    },
+    method: "POST"
+  });
+  const body = await response.json();
+
+  if (response.status !== 200 || body?.status !== "ok") {
+    return failedResult({
+      bindingName: "AIPHABEE_HYPERDRIVE",
+      detail: JSON.stringify({
+        http_status: response.status,
+        hyperdrive_result: body?.hyperdrive_result
+          ? {
+              failure_code: body.hyperdrive_result.failure_code,
+              status: body.hyperdrive_result.status,
+              surface: body.hyperdrive_result.surface
+            }
+          : undefined,
+        missing_bindings: Array.isArray(body?.missing_bindings) ? body.missing_bindings : [],
+        status: body?.status
+      }),
+      failureCode: "hyperdrive_select_1_route_failed",
+      key: resourceNames.hyperdrive_config ?? "AIPHABEE_HYPERDRIVE",
+      surface: "hyperdrive_select_1_smoke"
+    });
+  }
+
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    operation_count:
+      typeof body.hyperdrive_result?.operation_count === "number"
+        ? body.hyperdrive_result.operation_count
+        : 2,
+    response_hash: hasValue(body.response_hash)
+      ? body.response_hash
+      : hashString(JSON.stringify(body.hyperdrive_result ?? {})),
+    status: "passed",
+    surface: "hyperdrive_select_1_smoke"
+  };
+}
+
 async function smokeAiGatewayModelRequest(workerUrl) {
   const response = await fetch(`${workerUrl}/agent/model-provider/live-smoke`, {
     headers: {
@@ -825,12 +909,47 @@ async function resolveD1DatabaseId(databaseName) {
   return databaseId.trim();
 }
 
-async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
+async function resolveHyperdriveConfigId(configName) {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID.trim();
+  const url = new URL(
+    `${contract.api_base_url}/accounts/${encodeURIComponent(accountId)}/hyperdrive/configs`
+  );
+  url.searchParams.set("per_page", "100");
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN.trim()}`,
+      "Content-Type": "application/json"
+    },
+    method: "GET"
+  });
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok || body?.success === false) {
+    throw new Error(
+      JSON.stringify({
+        error_hash: hashString(JSON.stringify(body?.errors ?? [])),
+        http_status: response.status
+      })
+    );
+  }
+
+  const configs = normalizeCloudflareItems(body?.result);
+  const config = configs.find((item) => item?.name === configName);
+
+  if (!config || !hasValue(config.id)) {
+    throw new Error("hyperdrive config name was not found");
+  }
+
+  return config.id.trim();
+}
+
+async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, hyperdriveConfigId, kvNamespaceId }) {
   const configPath = join(process.cwd(), "apps/worker", `.wrangler-smoke-${smokeId}.json`);
   const config = {
     name: resourceNames.worker,
     main: "src/index.ts",
     compatibility_date: "2026-06-20",
+    compatibility_flags: ["nodejs_compat"],
     observability: {
       enabled: true,
       traces: {
@@ -888,6 +1007,16 @@ async function writeWorkerRuntimeSmokeConfig({ d1DatabaseId, kvNamespaceId }) {
         database_id: d1DatabaseId
       }
     ],
+    ...(hasValue(hyperdriveConfigId)
+      ? {
+          hyperdrive: [
+            {
+              binding: "AIPHABEE_HYPERDRIVE",
+              id: hyperdriveConfigId.trim()
+            }
+          ]
+        }
+      : {}),
     queues: {
       consumers: [
         {
@@ -929,6 +1058,26 @@ function extractWorkersDevUrl(value) {
   const match = String(value).match(/https:\/\/[^\s]+\.workers\.dev/iu);
 
   return match?.[0];
+}
+
+function normalizeCloudflareItems(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.items)) {
+    return value.items;
+  }
+
+  if (Array.isArray(value?.results)) {
+    return value.results;
+  }
+
+  if (Array.isArray(value?.result)) {
+    return value.result;
+  }
+
+  return [];
 }
 
 async function runWrangler(args, options = {}) {

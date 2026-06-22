@@ -1,7 +1,7 @@
 # Postgres Hyperdrive Migration Scaffold
 
 > **Status**: Verified repo-local migration scaffold
-> **Last Updated**: 2026-06-20 16:45 +08
+> **Last Updated**: 2026-06-22 08:05 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-postgres-hyperdrive-migration-scaffold.md`
 > **Task Contract**: `tasks/contracts/postgres-hyperdrive-migration-scaffold.contract.md`
@@ -45,7 +45,8 @@ References checked:
 | Validator | `scripts/check-database-migrations-contract.mjs` | Checks manifest shape, migration file coverage, no destructive SQL, and no committed URLs/secrets |
 | Env names | `deploy/env/env.schema.json` | Adds Hyperdrive local connection env name with blank values in every template |
 | Worker route | `GET /database/runtime` | Reports `supabase_postgres`, `cloudflare_hyperdrive`, planned binding, and `live_queries=false` |
-| Live database | Absent | No Supabase project, Hyperdrive ID, DB URL, or remote migration is committed or executed |
+| Hyperdrive smoke route | `POST /cloudflare/hyperdrive/smoke` | Guarded by smoke header; uses `pg` + Hyperdrive binding for future read-only `SELECT 1` only |
+| Live database | Absent | No Supabase project, Hyperdrive ID, DB URL, remote migration, or live `SELECT 1` pass is committed or executed |
 
 ## P2 Concrete Trace
 
@@ -75,7 +76,8 @@ Runtime capability trace:
    - `live_queries=false`;
    - `market_data_surfaces=false`;
    - `migration_directory=supabase/migrations`.
-3. No database driver is imported and no query is executed.
+3. No database query is executed by this product runtime route; the `pg` driver
+   is only wired behind guarded `POST /cloudflare/hyperdrive/smoke`.
 
 ## P3 Design Decision
 
@@ -95,7 +97,7 @@ Tradeoff:
 - This completes the Sprint 0.4 migration-toolchain scaffold leaf and now
   supports the Sprint 1.1 schema scaffold inventory.
 - It does not complete live Hyperdrive provisioning, remote migration dry-run,
-  `SELECT 1` smoke, partner data loading, ingestion, or Serving Gateway
+  live `SELECT 1` pass, partner data loading, ingestion, or Serving Gateway
   behavior.
 
 ## Verification
@@ -130,9 +132,12 @@ Observed `/database/runtime` response fields:
 ## Residual Gaps
 
 - Real Supabase project and Cloudflare Hyperdrive resource are not provisioned.
-- Wrangler `hyperdrive` binding is not attached because no real `id` exists.
+- Product Wrangler `hyperdrive` binding is not attached because no real `id`
+  exists; the live smoke harness can attach a temporary binding once a config is
+  present.
 - Remote `supabase db push --dry-run` and apply were not executed.
-- Hyperdrive `SELECT 1` smoke remains pending.
+- Hyperdrive guarded route/harness exists, but `SELECT 1` live pass remains
+  pending.
 - Partner data loading, Serving Gateway live reads, field entitlement live DB
   policy source, and live usage writes remain future Sprint 1.1 work; data,
   account/workspace entitlement, usage-ledger, and Serving Store schemas are

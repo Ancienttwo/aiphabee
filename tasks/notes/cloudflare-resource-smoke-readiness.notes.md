@@ -28,6 +28,9 @@
   `AI_GATEWAY_LIVE_SMOKE_TOKEN` Worker secret through `--secrets-file`, call
   `POST /agent/model-provider/live-smoke`, and delete the dedicated secret
   after the smoke.
+- Added guarded `POST /cloudflare/hyperdrive/smoke`, `pg`, `nodejs_compat`, and
+  temporary Wrangler Hyperdrive binding support for future read-only
+  `SELECT 1` through `AIPHABEE_HYPERDRIVE`.
 
 ## External Evidence
 
@@ -58,14 +61,16 @@
   only.
 - Dedicated `AI_GATEWAY_LIVE_SMOKE_TOKEN` cleanup was verified by secret list
   boolean check.
+- Hyperdrive route/harness is implemented, but no real Hyperdrive config/origin
+  has passed live `SELECT 1`.
 - Hyperdrive remains blocked by Postgres origin prerequisites. Natural Cron
   trigger evidence remains unclaimed.
 
 ## What Was Not Claimed
 
-- No Hyperdrive resource was created.
+- No Hyperdrive resource was created or live-bound.
 - No natural Cron trigger event was observed or claimed.
-- No Hyperdrive `SELECT 1` was executed.
+- No Hyperdrive `SELECT 1` pass was observed or claimed.
 - No AI Gateway request/cost/cache/rate-limit/fallback log evidence was
   verified.
 - No OTLP export, product eval-store write/read, or provider secret rotation

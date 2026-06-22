@@ -112,6 +112,26 @@ interface CloudflareCronSmokeBody {
   synthetic_prefix: string;
 }
 
+interface CloudflareHyperdriveSmokeBody {
+  hyperdrive_result: {
+    binding_name: string;
+    detail_hash?: string;
+    failure_code?: string;
+    operation_count?: number;
+    query_hash?: string;
+    row_count?: number;
+    selected_value_hash?: string;
+    status: string;
+    surface: string;
+  };
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
 interface PublicRuntimeBody {
   data: {
     auth_required: boolean;
@@ -7036,6 +7056,46 @@ describe("worker runtime", () => {
       failure_code: "missing_kv_binding",
       status: "missing_binding",
       surface: "cron_handler_smoke"
+    });
+  });
+
+  it("rejects the Hyperdrive smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/smoke", {
+      headers: {
+        "x-request-id": "req-cloudflare-hyperdrive-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-hyperdrive-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/hyperdrive/smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing Hyperdrive binding for the Hyperdrive smoke route", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-hyperdrive-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareHyperdriveSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_HYPERDRIVE"]);
+    expect(body.hyperdrive_result).toMatchObject({
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      failure_code: "missing_hyperdrive_binding",
+      status: "missing_binding",
+      surface: "hyperdrive_select_1_smoke"
     });
   });
 

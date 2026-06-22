@@ -37,10 +37,12 @@
     "@aiphabee/usage-ledger": "file:../../packages/usage-ledger",
     "@aiphabee/watchlist-runtime": "file:../../packages/watchlist-runtime",
     "@aiphabee/workbench": "file:../../packages/workbench",
-    "hono": "^4.12.26"
+    "hono": "^4.12.26",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260620.1",
+    "@types/pg": "^8.20.0",
     "wrangler": "^4.103.0"
   }
 }

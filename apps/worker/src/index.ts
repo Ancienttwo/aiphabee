@@ -1,5 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { Hono, type Context } from "hono";
+import { Client } from "pg";
 import {
   ACCOUNT_LOGIN_METHODS,
   ACCOUNT_PLAN_CODES,
@@ -297,7 +298,7 @@ interface WorkerBindings {
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
-  AIPHABEE_HYPERDRIVE?: unknown;
+  AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
   AIPHABEE_RUN_COORDINATOR?: RuntimeDurableObjectNamespace;
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
   APP_ENV?: string;
@@ -335,6 +336,10 @@ interface RuntimeD1Database {
 
 interface RuntimeQueue {
   send(body: unknown): Promise<void>;
+}
+
+interface RuntimeHyperdrive {
+  connectionString?: string;
 }
 
 interface RuntimeQueueBatch {
@@ -472,6 +477,18 @@ interface CloudflareCronSmokeResult {
   status: CloudflareBindingSmokeStatus;
   surface: "cron_handler_smoke";
   value_hash?: string;
+}
+
+interface CloudflareHyperdriveSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  detail_hash?: string;
+  failure_code?: string;
+  operation_count?: number;
+  query_hash?: string;
+  row_count?: number;
+  selected_value_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "hyperdrive_select_1_smoke";
 }
 
 interface AgentRunRequestBody {
@@ -675,6 +692,7 @@ const CLOUDFLARE_WORKFLOW_SMOKE_KIND = "aiphabee.workflow.smoke.v1";
 const CLOUDFLARE_CRON_SMOKE_ROUTE = "/cloudflare/cron/smoke";
 const CLOUDFLARE_CRON_SMOKE_KIND = "aiphabee.cron.smoke.v1";
 const CLOUDFLARE_MAINTENANCE_CRON = "*/30 * * * *";
+const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
@@ -922,6 +940,44 @@ app.post(CLOUDFLARE_CRON_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     cronResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const hyperdriveResult = await runCloudflareHyperdriveSmoke(c.env ?? {});
+  const bodyWithoutHash = {
+    hyperdrive_result: hyperdriveResult,
+    missing_bindings:
+      hyperdriveResult.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE}`,
+    status: hyperdriveResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    hyperdriveResult.status === "passed" ? 200 : 424
   );
 });
 
@@ -8598,6 +8654,56 @@ async function runCloudflareCronSmoke(
   }
 }
 
+async function runCloudflareHyperdriveSmoke(
+  env: WorkerBindings
+): Promise<CloudflareHyperdriveSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+  const query = "SELECT 1 AS hyperdrive_smoke_result";
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingCloudflareHyperdriveResult("missing_hyperdrive_binding");
+  }
+
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+
+  try {
+    await client.connect();
+    const result = await client.query<{ hyperdrive_smoke_result: number | string }>(query);
+    const selectedValue = result.rows[0]?.hyperdrive_smoke_result;
+
+    if (Number(selectedValue) !== 1) {
+      return failedCloudflareHyperdriveResult({
+        detail: JSON.stringify({
+          row_count: result.rowCount,
+          selected_value_type: typeof selectedValue
+        }),
+        failureCode: "hyperdrive_select_1_mismatch",
+        query
+      });
+    }
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      operation_count: 2,
+      query_hash: await hashRuntimeSmokeString(query),
+      row_count: result.rowCount ?? result.rows.length,
+      selected_value_hash: await hashRuntimeSmokeString(String(selectedValue)),
+      status: "passed",
+      surface: "hyperdrive_select_1_smoke"
+    };
+  } catch (error) {
+    return failedCloudflareHyperdriveResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "hyperdrive_select_1_failed",
+      query
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 function handleCloudflareScheduled(
   controller: RuntimeScheduledController,
   env: WorkerBindings,
@@ -8671,6 +8777,17 @@ function missingCloudflareCronResult(failureCode: string): CloudflareCronSmokeRe
     failure_code: failureCode,
     status: "missing_binding",
     surface: "cron_handler_smoke"
+  };
+}
+
+function missingCloudflareHyperdriveResult(
+  failureCode: string
+): CloudflareHyperdriveSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "hyperdrive_select_1_smoke"
   };
 }
 
@@ -8789,6 +8906,25 @@ async function failedCloudflareCronResult({
   };
 }
 
+async function failedCloudflareHyperdriveResult({
+  detail,
+  failureCode,
+  query
+}: {
+  detail: string;
+  failureCode: string;
+  query: string;
+}): Promise<CloudflareHyperdriveSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    query_hash: await hashRuntimeSmokeString(query),
+    status: "failed",
+    surface: "hyperdrive_select_1_smoke"
+  };
+}
+
 async function readQueueSmokeEvidence(
   config: RuntimeKvNamespace,
   evidenceKey: string
@@ -8882,6 +9018,10 @@ function isRuntimeD1Database(value: unknown): value is RuntimeD1Database {
 
 function isRuntimeQueue(value: unknown): value is RuntimeQueue {
   return isPlainRecord(value) && typeof value.send === "function";
+}
+
+function isRuntimeHyperdrive(value: unknown): value is RuntimeHyperdrive {
+  return isPlainRecord(value) && typeof value.connectionString === "string";
 }
 
 function isRuntimeWorkflow<T = unknown>(value: unknown): value is RuntimeWorkflow<T> {

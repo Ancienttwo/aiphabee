@@ -137,7 +137,8 @@
       "r2_bucket": "aiphabee-artifacts",
       "kv_namespace_title": "AIPHABEE_CONFIG",
       "d1_database": "AIPHABEE_EVAL_STORE",
-      "ai_gateway": "default"
+      "ai_gateway": "default",
+      "hyperdrive_config": "aiphabee-hyperdrive"
     },
     "live_smoke_results": [
       {
@@ -252,7 +253,7 @@
       {
         "binding_name": "AIPHABEE_HYPERDRIVE",
         "surface": "hyperdrive_select_1_smoke",
-        "reason": "hyperdrive_requires_postgres_origin"
+        "reason": "guarded Worker route and temporary Wrangler binding support exist, but Hyperdrive config/origin and SELECT 1 live evidence are not yet present"
       }
     ]
   },
