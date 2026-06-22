@@ -3523,6 +3523,24 @@ interface AgentRuntimeBody {
       tool_loop_route: string;
       version: string;
     };
+    agent_user_run_persistence_release_gate: {
+      actual_tool_execution: boolean;
+      agent_billing_posted_ledger_smoke_route: string;
+      agent_run_live_write_smoke_route: string;
+      agent_run_state_persistence_smoke_route: string;
+      frontend_rendering: boolean;
+      live_db_writes: boolean;
+      live_tool_execution: boolean;
+      model_calls: boolean;
+      persistent_writes: boolean;
+      production_persistence_enabled: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -3818,6 +3836,53 @@ interface TaskReplayModeReleaseGatePlanBody {
         start_status: string;
       };
     };
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AgentUserRunPersistenceReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    frontend_rendering: boolean;
+    live_db_writes: boolean;
+    live_tool_execution: boolean;
+    model_calls: boolean;
+    persistent_writes: boolean;
+    production_cutover_allowed: boolean;
+    production_cutover_requested: boolean;
+    production_persistence_enabled: boolean;
+    production_prerequisites: Array<{
+      requirement: string;
+      status: string;
+    }>;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    smoke_gates: Array<{
+      check_script: string;
+      contract: string;
+      hash_only_response: boolean;
+      route: string;
+      smoke_gate: string;
+      status: string;
+    }>;
+    validation: Record<string, boolean>;
+    version: string;
   };
   ok: true;
   usage: {
@@ -13282,6 +13347,31 @@ describe("worker runtime", () => {
       "unregistered_tool_denied_pre_execution",
       "registered_tools_remain_schema_bound_read_only"
     ]);
+    expect(body.data.agent_user_run_persistence_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      agent_billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+      agent_run_live_write_smoke_route: "POST /agent/runs/live-write-smoke",
+      agent_run_state_persistence_smoke_route: "POST /agent/runs/state-persistence-smoke",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_persistence_enabled: false,
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_user_run_persistence_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0"
+    });
+    expect(body.data.agent_user_run_persistence_release_gate.required_checks).toEqual([
+      "agent_run_live_write_smoke_contract_linked",
+      "agent_run_state_persistence_smoke_contract_linked",
+      "agent_billing_posted_ledger_smoke_contract_linked",
+      "hash_only_smoke_responses_enforced",
+      "production_cutover_signoff_required",
+      "production_retention_policy_required"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -13304,6 +13394,103 @@ describe("worker runtime", () => {
     expect(body.data.surfaces.model_calls).toBe(false);
     expect(body.data.surfaces.market_data).toBe(false);
     expect(body.data.surfaces.mcp_redistribution).toBe(false);
+  });
+
+  it("plans user-run persistence release gate without enabling production writes", async () => {
+    const response = await app.request("/agent/release-gates/user-run-persistence/plan", {
+      body: JSON.stringify({
+        operator_signoff: true,
+        production_cutover_requested: true,
+        retention_policy_approved: true
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-user-run-persistence-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentUserRunPersistenceReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/user-run-persistence/plan",
+        status: "agent_user_run_persistence_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_cutover_allowed: false,
+      production_cutover_requested: true,
+      production_persistence_enabled: false,
+      release_gate: {
+        blockers: ["production_write_path", "frontend_resume_rendering"],
+        gate_status: "blocked_production_user_run_persistence",
+        no_live_release_claim: true,
+        required_signoffs: ["agent", "data", "billing", "operations"]
+      },
+      version: "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0"
+    });
+    expect(body.data.capability.required_checks).toEqual([
+      "agent_run_live_write_smoke_contract_linked",
+      "agent_run_state_persistence_smoke_contract_linked",
+      "agent_billing_posted_ledger_smoke_contract_linked",
+      "hash_only_smoke_responses_enforced",
+      "production_cutover_signoff_required",
+      "production_retention_policy_required"
+    ]);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual(
+      body.data.capability.required_checks
+    );
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.smoke_gates.map((gate) => gate.route)).toEqual([
+      "POST /agent/runs/live-write-smoke",
+      "POST /agent/runs/state-persistence-smoke",
+      "POST /agent/runs/billing-posted-ledger-smoke"
+    ]);
+    expect(body.data.smoke_gates.every((gate) => gate.hash_only_response)).toBe(true);
+    expect(body.data.production_prerequisites).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requirement: "operator_cutover_signoff",
+          status: "satisfied"
+        }),
+        expect.objectContaining({
+          requirement: "production_retention_policy",
+          status: "satisfied"
+        }),
+        expect.objectContaining({
+          requirement: "production_write_path",
+          status: "blocked"
+        }),
+        expect.objectContaining({
+          requirement: "frontend_resume_rendering",
+          status: "blocked"
+        })
+      ])
+    );
+    expect(body.data.validation).toMatchObject({
+      agent_billing_posted_ledger_smoke_linked: true,
+      agent_run_live_write_smoke_linked: true,
+      agent_run_state_persistence_smoke_linked: true,
+      hash_only_smoke_responses_required: true,
+      no_frontend_rendering: true,
+      no_live_db_writes: true,
+      no_model_calls: true,
+      operator_signoff_present: true,
+      production_cutover_allowed: false,
+      production_persistence_enabled: false,
+      retention_policy_approved: true,
+      smoke_chain_has_audit_evidence_usage_state_and_billing: true
+    });
+    expect(body.usage.rows).toBe(6);
   });
 
   it("plans product Agent release gate without silent security selection or unsourced numbers", async () => {

@@ -37,6 +37,7 @@ import {
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
+  createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
@@ -45,6 +46,7 @@ import {
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
+  getAgentUserRunPersistenceReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
@@ -727,8 +729,14 @@ interface AgentRunRequestBody {
   modelVersion?: unknown;
   numeric_prompt?: unknown;
   numericPrompt?: unknown;
+  operator_signoff?: unknown;
+  operatorSignoff?: unknown;
   prompt_version?: unknown;
   promptVersion?: unknown;
+  production_cutover_requested?: unknown;
+  productionCutoverRequested?: unknown;
+  retention_policy_approved?: unknown;
+  retentionPolicyApproved?: unknown;
   source_run_id?: unknown;
   sourceRunId?: unknown;
   title?: unknown;
@@ -6836,6 +6844,52 @@ app.get("/agent/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.post("/agent/release-gates/user-run-persistence/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentUserRunPersistenceReleaseGatePlan({
+    operatorSignoff: normalizeOptionalBoolean(body.operator_signoff ?? body.operatorSignoff),
+    productionCutoverRequested: normalizeOptionalBoolean(
+      body.production_cutover_requested ?? body.productionCutoverRequested
+    ),
+    requestId,
+    retentionPolicyApproved: normalizeOptionalBoolean(
+      body.retention_policy_approved ?? body.retentionPolicyApproved
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentUserRunPersistenceReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-user-run-persistence-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
   );
 });
 

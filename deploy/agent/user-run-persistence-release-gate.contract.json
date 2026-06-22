@@ -1,0 +1,85 @@
+{
+  "version": "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/user-run-persistence/plan",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "checker": "scripts/check-agent-user-run-persistence-release-gate-contract.mjs",
+  "test_files": [
+    "packages/agent-runtime/src/index.test.ts",
+    "apps/worker/src/index.test.ts"
+  ],
+  "migration": "supabase/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "linked_smoke_contracts": [
+    "deploy/agent/run-live-write-smoke.contract.json",
+    "deploy/agent/state-persistence-smoke.contract.json",
+    "deploy/agent/billing-posted-ledger-smoke.contract.json"
+  ],
+  "linked_smoke_checks": [
+    "npm run check:agent-run-live-write-smoke",
+    "npm run check:agent-run-state-persistence-smoke",
+    "npm run check:agent-billing-posted-ledger-smoke"
+  ],
+  "standard_response_envelope": true,
+  "actual_tool_execution": false,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_db_writes": false,
+  "live_tool_execution": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "production_persistence_enabled": false,
+  "production_cutover_allowed": false,
+  "hash_only_smoke_responses_required": true,
+  "required_checks": [
+    "agent_run_live_write_smoke_contract_linked",
+    "agent_run_state_persistence_smoke_contract_linked",
+    "agent_billing_posted_ledger_smoke_contract_linked",
+    "hash_only_smoke_responses_enforced",
+    "production_cutover_signoff_required",
+    "production_retention_policy_required"
+  ],
+  "required_output_fields": [
+    "smoke_gates",
+    "production_prerequisites",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "smoke_routes": [
+    "POST /agent/runs/live-write-smoke",
+    "POST /agent/runs/state-persistence-smoke",
+    "POST /agent/runs/billing-posted-ledger-smoke"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_production_user_run_persistence",
+    "no_live_release_claim": true,
+    "required_signoffs": ["agent", "data", "billing", "operations"],
+    "blockers": [
+      "production_write_path",
+      "frontend_resume_rendering"
+    ]
+  },
+  "tables": [
+    "core.agent_user_run_persistence_release_gate",
+    "governance.agent_user_run_persistence_release_gate_contract"
+  ],
+  "not_claimed": [
+    "production_agent_run_persistence",
+    "production_user_run_state_persistence",
+    "production_billing_posting",
+    "invoice_writes",
+    "user_facing_live_model_streaming",
+    "frontend_ask_rendering",
+    "frontend_resume_rendering",
+    "ai_gateway_logs_read"
+  ],
+  "verification": {
+    "runtime_unit_test": "npm run test -- packages/agent-runtime/src/index.test.ts",
+    "worker_unit_test": "npm run test -- apps/worker/src/index.test.ts",
+    "contract_check": "npm run check:agent-user-run-persistence-release-gate",
+    "database_check": "npm run check:database"
+  }
+}

@@ -60,6 +60,8 @@ export const TASK_REPLAY_MODE_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0";
 export const PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION =
   "2026-06-21.phase3.prompt-injection-tool-denial-release-gate-scaffold.v0";
+export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -144,6 +146,18 @@ export const PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_TABLES = [
   "core.prompt_injection_tool_denial_release_gate",
   "governance.prompt_injection_tool_denial_release_gate_contract"
 ] as const;
+export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS = [
+  "agent_run_live_write_smoke_contract_linked",
+  "agent_run_state_persistence_smoke_contract_linked",
+  "agent_billing_posted_ledger_smoke_contract_linked",
+  "hash_only_smoke_responses_enforced",
+  "production_cutover_signoff_required",
+  "production_retention_policy_required"
+] as const;
+export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES = [
+  "core.agent_user_run_persistence_release_gate",
+  "governance.agent_user_run_persistence_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -159,6 +173,9 @@ export type TaskReplayModeReleaseGateCheck =
 export type PromptInjectionToolDenialReleaseGateCheck =
   (typeof PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_CHECKS)[number];
 export type PromptInjectionToolDenialReleaseGateStatus = "planned_no_write";
+export type AgentUserRunPersistenceReleaseGateCheck =
+  (typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS)[number];
+export type AgentUserRunPersistenceReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -220,6 +237,13 @@ export interface CreatePromptInjectionToolDenialReleaseGatePlanInput {
   responseDepth?: string;
   userId?: string;
   workspaceId?: string;
+}
+
+export interface CreateAgentUserRunPersistenceReleaseGatePlanInput {
+  operatorSignoff?: boolean;
+  productionCutoverRequested?: boolean;
+  requestId: string;
+  retentionPolicyApproved?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -299,6 +323,26 @@ export interface PromptInjectionToolDenialReleaseGateCapabilities {
   tables: typeof PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_TABLES;
   tool_loop_route: "POST /agent/runs/plan";
   version: typeof PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION;
+}
+
+export interface AgentUserRunPersistenceReleaseGateCapabilities {
+  actual_tool_execution: false;
+  agent_billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke";
+  agent_run_live_write_smoke_route: "POST /agent/runs/live-write-smoke";
+  agent_run_state_persistence_smoke_route: "POST /agent/runs/state-persistence-smoke";
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  model_calls: false;
+  persistent_writes: false;
+  production_persistence_enabled: false;
+  required_checks: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/user-run-persistence/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_user_run_persistence_release_gate_scaffold";
+  tables: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES;
+  version: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -450,6 +494,7 @@ export interface AgentRuntimeCapabilities {
   agent_label_budget_release_gate: AgentLabelBudgetReleaseGateCapabilities;
   task_replay_mode_release_gate: TaskReplayModeReleaseGateCapabilities;
   prompt_injection_tool_denial_release_gate: PromptInjectionToolDenialReleaseGateCapabilities;
+  agent_user_run_persistence_release_gate: AgentUserRunPersistenceReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -1691,6 +1736,72 @@ export interface PromptInjectionToolDenialReleaseGatePlan {
   version: typeof PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION;
 }
 
+export interface AgentUserRunPersistenceSmokeGateProof {
+  check_script: string;
+  contract: string;
+  evidence_surfaces: string[];
+  hash_only_response: true;
+  route: string;
+  smoke_gate: string;
+  status: "local_contract_required";
+}
+
+export interface AgentUserRunPersistenceProductionPrerequisite {
+  evidence: string;
+  requirement:
+    | "operator_cutover_signoff"
+    | "production_retention_policy"
+    | "production_write_path"
+    | "frontend_resume_rendering";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentUserRunPersistenceReleaseGatePlan {
+  actual_tool_execution: false;
+  capability: AgentUserRunPersistenceReleaseGateCapabilities;
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_tool_execution: false;
+  model_calls: false;
+  persistent_writes: false;
+  production_cutover_allowed: false;
+  production_cutover_requested: boolean;
+  production_persistence_enabled: false;
+  production_prerequisites: AgentUserRunPersistenceProductionPrerequisite[];
+  release_checks: Array<{
+    check: AgentUserRunPersistenceReleaseGateCheck;
+    evidence: string;
+    status: AgentUserRunPersistenceReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_production_user_run_persistence";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "data", "billing", "operations"];
+  };
+  request_id: string;
+  route: "POST /agent/release-gates/user-run-persistence/plan";
+  smoke_gates: AgentUserRunPersistenceSmokeGateProof[];
+  sql_emitted: false;
+  status: AgentUserRunPersistenceReleaseGateStatus;
+  tables: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES;
+  validation: {
+    agent_billing_posted_ledger_smoke_linked: boolean;
+    agent_run_live_write_smoke_linked: boolean;
+    agent_run_state_persistence_smoke_linked: boolean;
+    hash_only_smoke_responses_required: true;
+    no_frontend_rendering: true;
+    no_live_db_writes: true;
+    no_model_calls: true;
+    operator_signoff_present: boolean;
+    production_cutover_allowed: false;
+    production_persistence_enabled: false;
+    retention_policy_approved: boolean;
+    smoke_chain_has_audit_evidence_usage_state_and_billing: boolean;
+  };
+  version: typeof AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2104,6 +2215,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
     task_replay_mode_release_gate: getTaskReplayModeReleaseGateCapabilities(),
     prompt_injection_tool_denial_release_gate:
       getPromptInjectionToolDenialReleaseGateCapabilities(),
+    agent_user_run_persistence_release_gate:
+      getAgentUserRunPersistenceReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2182,6 +2295,28 @@ export function getPromptInjectionToolDenialReleaseGateCapabilities(): PromptInj
     tables: PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_TABLES,
     tool_loop_route: "POST /agent/runs/plan",
     version: PROMPT_INJECTION_TOOL_DENIAL_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentUserRunPersistenceReleaseGateCapabilities(): AgentUserRunPersistenceReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    agent_billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+    agent_run_live_write_smoke_route: "POST /agent/runs/live-write-smoke",
+    agent_run_state_persistence_smoke_route: "POST /agent/runs/state-persistence-smoke",
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    model_calls: false,
+    persistent_writes: false,
+    production_persistence_enabled: false,
+    required_checks: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/user-run-persistence/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_user_run_persistence_release_gate_scaffold",
+    tables: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES,
+    version: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION
   };
 }
 
@@ -2848,6 +2983,155 @@ export function createProductAgentReleaseGatePlan(
       tool_planning_blocked_until_clarified: toolPlanningBlockedUntilClarified
     },
     version: PRODUCT_AGENT_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentUserRunPersistenceReleaseGatePlan(
+  input: CreateAgentUserRunPersistenceReleaseGatePlanInput
+): AgentUserRunPersistenceReleaseGatePlan {
+  const operatorSignoff = input.operatorSignoff === true;
+  const retentionPolicyApproved = input.retentionPolicyApproved === true;
+  const productionCutoverRequested = input.productionCutoverRequested === true;
+  const smokeGates: AgentUserRunPersistenceSmokeGateProof[] = [
+    {
+      check_script: "npm run check:agent-run-live-write-smoke",
+      contract: "deploy/agent/run-live-write-smoke.contract.json",
+      evidence_surfaces: [
+        "audit.agent_run_audit_event",
+        "core.evidence_record",
+        "core.evidence_source_ref",
+        "core.usage_event",
+        "core.usage_ledger_entry"
+      ],
+      hash_only_response: true,
+      route: "POST /agent/runs/live-write-smoke",
+      smoke_gate: "agent_run_live_write_smoke",
+      status: "local_contract_required"
+    },
+    {
+      check_script: "npm run check:agent-run-state-persistence-smoke",
+      contract: "deploy/agent/state-persistence-smoke.contract.json",
+      evidence_surfaces: ["core.agent_run_state", "core.agent_run_checkpoint"],
+      hash_only_response: true,
+      route: "POST /agent/runs/state-persistence-smoke",
+      smoke_gate: "agent_run_state_persistence_smoke",
+      status: "local_contract_required"
+    },
+    {
+      check_script: "npm run check:agent-billing-posted-ledger-smoke",
+      contract: "deploy/agent/billing-posted-ledger-smoke.contract.json",
+      evidence_surfaces: [
+        "core.account",
+        "core.workspace",
+        "core.usage_meter_rule",
+        "core.usage_event",
+        "core.usage_ledger_entry"
+      ],
+      hash_only_response: true,
+      route: "POST /agent/runs/billing-posted-ledger-smoke",
+      smoke_gate: "agent_billing_posted_ledger_smoke",
+      status: "local_contract_required"
+    }
+  ];
+  const productionPrerequisites: AgentUserRunPersistenceProductionPrerequisite[] = [
+    {
+      evidence: operatorSignoff
+        ? "operator_signoff=true in request payload"
+        : "operator_signoff must be true before production user-run persistence cutover",
+      requirement: "operator_cutover_signoff",
+      status: operatorSignoff ? "satisfied" : "blocked"
+    },
+    {
+      evidence: retentionPolicyApproved
+        ? "retention_policy_approved=true in request payload"
+        : "retention policy approval must be recorded before production user-run persistence cutover",
+      requirement: "production_retention_policy",
+      status: retentionPolicyApproved ? "satisfied" : "blocked"
+    },
+    {
+      evidence:
+        "production writer remains disabled; this route is a no-write release gate, not the cutover path",
+      requirement: "production_write_path",
+      status: "blocked"
+    },
+    {
+      evidence:
+        "frontend Ask/resume/evidence-card rendering is delegated and not enabled by this backend gate",
+      requirement: "frontend_resume_rendering",
+      status: "blocked"
+    }
+  ];
+  const blockers = productionPrerequisites
+    .filter((prerequisite) => prerequisite.status === "blocked")
+    .map((prerequisite) => prerequisite.requirement);
+  const smokeRoutes = new Set(smokeGates.map((gate) => gate.route));
+  const validation: AgentUserRunPersistenceReleaseGatePlan["validation"] = {
+    agent_billing_posted_ledger_smoke_linked: smokeRoutes.has(
+      "POST /agent/runs/billing-posted-ledger-smoke"
+    ),
+    agent_run_live_write_smoke_linked: smokeRoutes.has("POST /agent/runs/live-write-smoke"),
+    agent_run_state_persistence_smoke_linked: smokeRoutes.has(
+      "POST /agent/runs/state-persistence-smoke"
+    ),
+    hash_only_smoke_responses_required: true,
+    no_frontend_rendering: true,
+    no_live_db_writes: true,
+    no_model_calls: true,
+    operator_signoff_present: operatorSignoff,
+    production_cutover_allowed: false,
+    production_persistence_enabled: false,
+    retention_policy_approved: retentionPolicyApproved,
+    smoke_chain_has_audit_evidence_usage_state_and_billing:
+      smokeRoutes.has("POST /agent/runs/live-write-smoke") &&
+      smokeRoutes.has("POST /agent/runs/state-persistence-smoke") &&
+      smokeRoutes.has("POST /agent/runs/billing-posted-ledger-smoke")
+  };
+  const releaseChecks = AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_CHECKS.map(
+    (check): AgentUserRunPersistenceReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "agent_run_live_write_smoke_contract_linked"
+          ? "deploy/agent/run-live-write-smoke.contract.json and npm run check:agent-run-live-write-smoke cover audit/evidence/usage insert-read-delete"
+          : check === "agent_run_state_persistence_smoke_contract_linked"
+            ? "deploy/agent/state-persistence-smoke.contract.json and npm run check:agent-run-state-persistence-smoke cover run-state/checkpoint insert-read-update-delete"
+            : check === "agent_billing_posted_ledger_smoke_contract_linked"
+              ? "deploy/agent/billing-posted-ledger-smoke.contract.json and npm run check:agent-billing-posted-ledger-smoke cover preview-to-posted idempotency"
+              : check === "hash_only_smoke_responses_enforced"
+                ? "all linked smoke gates require hash-only response fields and forbid raw prompts, tokens, SQL URLs, or ledger payloads"
+                : check === "production_cutover_signoff_required"
+                  ? "production persistence remains blocked until operator_signoff=true and a write path is separately enabled"
+                  : "production persistence remains blocked until retention_policy_approved=true and data retention policy is accepted",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    capability: getAgentUserRunPersistenceReleaseGateCapabilities(),
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_tool_execution: false,
+    model_calls: false,
+    persistent_writes: false,
+    production_cutover_allowed: false,
+    production_cutover_requested: productionCutoverRequested,
+    production_persistence_enabled: false,
+    production_prerequisites: productionPrerequisites,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_production_user_run_persistence",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "data", "billing", "operations"]
+    },
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/user-run-persistence/plan",
+    smoke_gates: smokeGates,
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION
   };
 }
 

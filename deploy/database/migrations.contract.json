@@ -722,6 +722,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
+      "purpose": "Create no-write Agent user-run persistence release gate scaffolds that link the live-write, state-persistence, and billing-posted smoke contracts without enabling production user-run persistence, frontend rendering, or unguarded SQL execution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_user_run_persistence_release_gate",
+        "governance.agent_user_run_persistence_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

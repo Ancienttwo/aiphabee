@@ -5,6 +5,7 @@ import {
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
+  createAgentUserRunPersistenceReleaseGatePlan,
   createAiSdkStopCondition,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -16,6 +17,7 @@ import {
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentRuntimeCapabilities,
+  getAgentUserRunPersistenceReleaseGateCapabilities,
   getPromptInjectionToolDenialReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
@@ -256,6 +258,31 @@ describe("agent runtime scaffold", () => {
       "unregistered_tool_denied_pre_execution",
       "registered_tools_remain_schema_bound_read_only"
     ]);
+    expect(capabilities.agent_user_run_persistence_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      agent_billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+      agent_run_live_write_smoke_route: "POST /agent/runs/live-write-smoke",
+      agent_run_state_persistence_smoke_route: "POST /agent/runs/state-persistence-smoke",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_persistence_enabled: false,
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_user_run_persistence_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0"
+    });
+    expect(capabilities.agent_user_run_persistence_release_gate.required_checks).toEqual([
+      "agent_run_live_write_smoke_contract_linked",
+      "agent_run_state_persistence_smoke_contract_linked",
+      "agent_billing_posted_ledger_smoke_contract_linked",
+      "hash_only_smoke_responses_enforced",
+      "production_cutover_signoff_required",
+      "production_retention_policy_required"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -416,6 +443,120 @@ describe("agent runtime scaffold", () => {
       "core.product_agent_release_gate",
       "governance.product_agent_release_gate_contract"
     ]);
+  });
+
+  it("exposes user-run persistence release gate capability without production writes", () => {
+    const capability = getAgentUserRunPersistenceReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      agent_billing_posted_ledger_smoke_route: "POST /agent/runs/billing-posted-ledger-smoke",
+      agent_run_live_write_smoke_route: "POST /agent/runs/live-write-smoke",
+      agent_run_state_persistence_smoke_route: "POST /agent/runs/state-persistence-smoke",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_persistence_enabled: false,
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_user_run_persistence_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0"
+    });
+    expect(capability.required_checks).toEqual([
+      "agent_run_live_write_smoke_contract_linked",
+      "agent_run_state_persistence_smoke_contract_linked",
+      "agent_billing_posted_ledger_smoke_contract_linked",
+      "hash_only_smoke_responses_enforced",
+      "production_cutover_signoff_required",
+      "production_retention_policy_required"
+    ]);
+    expect(capability.tables).toEqual([
+      "core.agent_user_run_persistence_release_gate",
+      "governance.agent_user_run_persistence_release_gate_contract"
+    ]);
+  });
+
+  it("plans user-run persistence release gate from existing smoke proofs", () => {
+    const plan = createAgentUserRunPersistenceReleaseGatePlan({
+      operatorSignoff: true,
+      productionCutoverRequested: true,
+      requestId: "req-agent-user-run-persistence-gate-1",
+      retentionPolicyApproved: true
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      production_cutover_allowed: false,
+      production_cutover_requested: true,
+      production_persistence_enabled: false,
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0"
+    });
+    expect(plan.smoke_gates.map((gate) => gate.route)).toEqual([
+      "POST /agent/runs/live-write-smoke",
+      "POST /agent/runs/state-persistence-smoke",
+      "POST /agent/runs/billing-posted-ledger-smoke"
+    ]);
+    expect(plan.smoke_gates.every((gate) => gate.hash_only_response)).toBe(true);
+    expect(plan.release_checks.map((check) => check.check)).toEqual([
+      "agent_run_live_write_smoke_contract_linked",
+      "agent_run_state_persistence_smoke_contract_linked",
+      "agent_billing_posted_ledger_smoke_contract_linked",
+      "hash_only_smoke_responses_enforced",
+      "production_cutover_signoff_required",
+      "production_retention_policy_required"
+    ]);
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(true);
+    expect(plan.production_prerequisites).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requirement: "operator_cutover_signoff",
+          status: "satisfied"
+        }),
+        expect.objectContaining({
+          requirement: "production_retention_policy",
+          status: "satisfied"
+        }),
+        expect.objectContaining({
+          requirement: "production_write_path",
+          status: "blocked"
+        }),
+        expect.objectContaining({
+          requirement: "frontend_resume_rendering",
+          status: "blocked"
+        })
+      ])
+    );
+    expect(plan.release_gate).toMatchObject({
+      blockers: ["production_write_path", "frontend_resume_rendering"],
+      gate_status: "blocked_production_user_run_persistence",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "data", "billing", "operations"]
+    });
+    expect(plan.validation).toEqual({
+      agent_billing_posted_ledger_smoke_linked: true,
+      agent_run_live_write_smoke_linked: true,
+      agent_run_state_persistence_smoke_linked: true,
+      hash_only_smoke_responses_required: true,
+      no_frontend_rendering: true,
+      no_live_db_writes: true,
+      no_model_calls: true,
+      operator_signoff_present: true,
+      production_cutover_allowed: false,
+      production_persistence_enabled: false,
+      retention_policy_approved: true,
+      smoke_chain_has_audit_evidence_usage_state_and_billing: true
+    });
   });
 
   it("plans product Agent release gate checks for ambiguity and numeric evidence", () => {
