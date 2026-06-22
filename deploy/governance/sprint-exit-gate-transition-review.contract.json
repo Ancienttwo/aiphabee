@@ -39,22 +39,6 @@
   },
   "manual_blocker_owner_map_complete": true,
   "manual_blocker_owner_map": {
-    "production_user_run_streaming_persistence_frontend_missing": {
-      "owner_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
-      "owner_check_commands": [
-        "check:frontend-release-evidence-handoff",
-        "check:p0-open-requirement-transition-review",
-        "check:agent-live-model-streaming-release-gate",
-        "check:agent-user-run-persistence-release-gate"
-      ],
-      "closure_evidence_refs": [
-        "agent_ask_progress_ui",
-        "agent_evidence_card_ui",
-        "ai_gateway_model_execution",
-        "ai_gateway_observability",
-        "observability_otlp_eval_store"
-      ]
-    },
     "internal_account_eval_frontend_live_wiring_missing": {
       "owner_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
       "owner_check_commands": [
@@ -213,11 +197,10 @@
       "backlog_complete": true,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
-      "manual_blocking_conditions": ["production_user_run_streaming_persistence_frontend_missing"],
+      "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:frontend_release_evidence",
-        "blocker_manifest:phase0_live_smoke_evidence",
-        "production_user_run_streaming_persistence_frontend_missing"
+        "blocker_manifest:phase0_live_smoke_evidence"
       ]
     },
     {
@@ -441,7 +424,9 @@
     "Partner live Serving/usage blocker 已转为 Sprint1 live-data manifest blocker",
     "| 2026-06-23 | 1.0hz | 完成 `partner-live-serving-usage-blocker-routing`",
     "Partner source rows/data-platform signoff blocker 已转为 Sprint1 live-data manifest blocker",
-    "| 2026-06-23 | 1.0ia | 完成 `partner-source-rows-signoff-blocker-routing`"
+    "| 2026-06-23 | 1.0ia | 完成 `partner-source-rows-signoff-blocker-routing`",
+    "Production user run frontend persistence blocker 已转为 frontend/live-smoke manifest blocker",
+    "| 2026-06-23 | 1.0ib | 完成 `production-user-run-frontend-blocker-routing`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",
@@ -454,7 +439,8 @@
     "Partner model output corpus blocker routing",
     "Credentialed live smoke blocker routing",
     "Partner live Serving/usage blocker routing",
-    "Partner source rows signoff blocker routing"
+    "Partner source rows signoff blocker routing",
+    "Production user run frontend blocker routing"
   ],
   "not_claimed": [
     "all_sprint_exit_gates_complete",
