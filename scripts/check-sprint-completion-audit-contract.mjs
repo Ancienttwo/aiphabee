@@ -16,6 +16,7 @@ const errors = [
   ...validateSprintRows(contract, tracker),
   ...validateFragments(contract, tracker, todos),
   ...validateManifestBlockers(contract, packageJson),
+  ...validateLinkedTransitionReviews(contract, packageJson),
   ...validateChangelog(tracker)
 ];
 
@@ -81,6 +82,11 @@ function validateContract(value) {
   for (const path of [
     value.tracker,
     value.todos,
+    ...(value.linked_transition_reviews ?? []).flatMap((transitionReview) => [
+      transitionReview.path,
+      transitionReview.checker,
+      transitionReview.fixture_checker
+    ]),
     ...(value.completion_blocker_manifests ?? []).flatMap((manifest) => [
       manifest.path,
       ...(manifest.transition_reviews ?? []).flatMap((transitionReview) => [
@@ -93,6 +99,31 @@ function validateContract(value) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
       errors.push(`linked path missing: ${path}`);
     }
+  }
+
+  return errors;
+}
+
+function validateLinkedTransitionReviews(value, packageJson) {
+  const errors = [];
+
+  if (!Array.isArray(value.linked_transition_reviews) || value.linked_transition_reviews.length !== 1) {
+    errors.push("linked_transition_reviews must contain sprint exit gate transition review");
+    return errors;
+  }
+
+  for (const transitionReview of value.linked_transition_reviews) {
+    const transition = readJson(transitionReview.path);
+    const transitionPath = `linked_transition_reviews.${transitionReview.path}`;
+
+    expectEqual(errors, transition.status, transitionReview.expected_status, `${transitionPath}.status`);
+    expectEqual(errors, transition.release_transition_allowed, false, `${transitionPath}.release_transition_allowed`);
+    expectEqual(errors, transition.checker, transitionReview.checker, `${transitionPath}.checker`);
+    expectEqual(errors, transition.fixture_checker, transitionReview.fixture_checker, `${transitionPath}.fixture_checker`);
+    expectEqual(errors, transition.sprint_completion_audit_contract, contractPath, `${transitionPath}.sprint_completion_audit_contract`);
+    expectIncludes(errors, transition.not_claimed, "all_sprints_complete", `${transitionPath}.not_claimed.all_sprints_complete`);
+    validatePackageCommandForScript(errors, packageJson, transitionReview.checker, transitionPath);
+    validatePackageCommandForScript(errors, packageJson, transitionReview.fixture_checker, transitionPath);
   }
 
   return errors;

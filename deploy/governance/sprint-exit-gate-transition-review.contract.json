@@ -1,0 +1,352 @@
+{
+  "version": "2026-06-23.goal.sprint-exit-gate-transition-review.v0",
+  "status": "pending_sprint_exit_gate_transition_review",
+  "checker": "scripts/check-sprint-exit-gate-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-sprint-exit-gate-transition-review-fixtures.mjs",
+  "sprint_completion_audit_contract": "deploy/governance/sprint-completion-audit.contract.json",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_sprint_exit_gates_complete": false,
+  "all_phase_exit_gates_complete": false,
+  "backlog_count_alone_never_completes_sprint": true,
+  "required_sprint_ids": [
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "3.1",
+    "3.2",
+    "3.3"
+  ],
+  "required_phase_ids": ["0", "1", "2", "3"],
+  "transition_policy": {
+    "backlog_row_complete_required": true,
+    "completion_blocker_manifest_clear_required": true,
+    "manual_blocking_conditions_must_be_empty": true,
+    "phase_exit_gate_requires_child_sprints_complete": true,
+    "tracker_exit_gate_change_requires_review": true,
+    "backlog_count_alone_never_completes_sprint": true
+  },
+  "sprint_exit_gate_reviews": [
+    {
+      "sprint_id": "0.1",
+      "tracker_exit_gate": "☐",
+      "backlog": "2 / 8",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["gate0_signed_evidence"],
+      "manual_blocking_conditions": ["external_rights_regulatory_signatures_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:gate0_signed_evidence",
+        "external_rights_regulatory_signatures_missing"
+      ]
+    },
+    {
+      "sprint_id": "0.2",
+      "tracker_exit_gate": "☐",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["gate0_signed_evidence"],
+      "manual_blocking_conditions": ["partner_signed_data_contract_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:gate0_signed_evidence",
+        "partner_signed_data_contract_missing"
+      ]
+    },
+    {
+      "sprint_id": "0.3",
+      "tracker_exit_gate": "☐",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["gate0_signed_evidence", "sprint1_live_data_evidence"],
+      "manual_blocking_conditions": [
+        "partner_approved_production_corpus_missing",
+        "commercial_cost_review_missing"
+      ],
+      "blocking_conditions": [
+        "blocker_manifest:gate0_signed_evidence",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "partner_approved_production_corpus_missing",
+        "commercial_cost_review_missing"
+      ]
+    },
+    {
+      "sprint_id": "0.4",
+      "tracker_exit_gate": "☐",
+      "backlog": "19 / 23",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["phase0_live_smoke_evidence"],
+      "manual_blocking_conditions": ["credentialed_live_smoke_captures_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:phase0_live_smoke_evidence",
+        "credentialed_live_smoke_captures_missing"
+      ]
+    },
+    {
+      "sprint_id": "1.1",
+      "tracker_exit_gate": "☐",
+      "backlog": "22 / 26",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["sprint1_live_data_evidence"],
+      "manual_blocking_conditions": ["partner_rows_live_serving_usage_writes_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "partner_rows_live_serving_usage_writes_missing"
+      ]
+    },
+    {
+      "sprint_id": "1.2",
+      "tracker_exit_gate": "☐",
+      "backlog": "13 / 13",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["sprint1_live_data_evidence"],
+      "manual_blocking_conditions": ["partner_source_rows_data_platform_signoff_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:sprint1_live_data_evidence",
+        "partner_source_rows_data_platform_signoff_missing"
+      ]
+    },
+    {
+      "sprint_id": "1.3",
+      "tracker_exit_gate": "☐",
+      "backlog": "10 / 10",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
+      "manual_blocking_conditions": ["production_user_run_streaming_persistence_frontend_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:frontend_release_evidence",
+        "blocker_manifest:phase0_live_smoke_evidence",
+        "production_user_run_streaming_persistence_frontend_missing"
+      ]
+    },
+    {
+      "sprint_id": "1.4",
+      "tracker_exit_gate": "☐",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["sprint1_live_data_evidence"],
+      "manual_blocking_conditions": ["internal_account_eval_frontend_live_wiring_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:sprint1_live_data_evidence",
+        "internal_account_eval_frontend_live_wiring_missing"
+      ]
+    },
+    {
+      "sprint_id": "2.1",
+      "tracker_exit_gate": "☐",
+      "backlog": "8 / 9",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["frontend_release_evidence"],
+      "manual_blocking_conditions": ["comparison_screening_frontend_evidence_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:frontend_release_evidence",
+        "comparison_screening_frontend_evidence_missing"
+      ]
+    },
+    {
+      "sprint_id": "2.2",
+      "tracker_exit_gate": "☐",
+      "backlog": "8 / 9",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["frontend_release_evidence"],
+      "manual_blocking_conditions": ["research_library_frontend_evidence_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:frontend_release_evidence",
+        "research_library_frontend_evidence_missing"
+      ]
+    },
+    {
+      "sprint_id": "2.3",
+      "tracker_exit_gate": "☐",
+      "backlog": "10 / 11",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
+      "manual_blocking_conditions": ["developer_console_live_e2e_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:mcp_target_client_live_e2e",
+        "blocker_manifest:frontend_release_evidence",
+        "developer_console_live_e2e_missing"
+      ]
+    },
+    {
+      "sprint_id": "2.4",
+      "tracker_exit_gate": "☐",
+      "backlog": "10 / 10",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": [],
+      "manual_blocking_conditions": [
+        "live_billing_provider_workflow_execution_mcp_auth_frontend_missing"
+      ],
+      "blocking_conditions": [
+        "live_billing_provider_workflow_execution_mcp_auth_frontend_missing"
+      ]
+    },
+    {
+      "sprint_id": "3.1",
+      "tracker_exit_gate": "☐",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["frontend_release_evidence", "sprint1_live_data_evidence"],
+      "manual_blocking_conditions": ["multilingual_event_research_live_outputs_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:frontend_release_evidence",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "multilingual_event_research_live_outputs_missing"
+      ]
+    },
+    {
+      "sprint_id": "3.2",
+      "tracker_exit_gate": "☐",
+      "backlog": "8 / 9",
+      "backlog_complete": false,
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["frontend_release_evidence"],
+      "manual_blocking_conditions": ["wcag_frontend_public_ops_evidence_missing"],
+      "blocking_conditions": [
+        "backlog_items_remaining",
+        "blocker_manifest:frontend_release_evidence",
+        "wcag_frontend_public_ops_evidence_missing"
+      ]
+    },
+    {
+      "sprint_id": "3.3",
+      "tracker_exit_gate": "☐",
+      "backlog": "17 / 17",
+      "backlog_complete": true,
+      "completion_allowed": false,
+      "blocker_manifest_ids": [
+        "gate0_signed_evidence",
+        "phase0_live_smoke_evidence",
+        "sprint1_live_data_evidence",
+        "mcp_target_client_live_e2e",
+        "frontend_release_evidence"
+      ],
+      "manual_blocking_conditions": ["security_load_dr_release_signoffs_missing"],
+      "blocking_conditions": [
+        "blocker_manifest:gate0_signed_evidence",
+        "blocker_manifest:phase0_live_smoke_evidence",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "blocker_manifest:mcp_target_client_live_e2e",
+        "blocker_manifest:frontend_release_evidence",
+        "security_load_dr_release_signoffs_missing"
+      ]
+    }
+  ],
+  "phase_exit_gate_reviews": [
+    {
+      "phase_id": "0",
+      "tracker_exit_gate": "☐",
+      "child_sprint_ids": ["0.1", "0.2", "0.3", "0.4"],
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["gate0_signed_evidence", "phase0_live_smoke_evidence"],
+      "manual_blocking_conditions": [],
+      "blocking_conditions": [
+        "child_sprint:0.1",
+        "child_sprint:0.2",
+        "child_sprint:0.3",
+        "child_sprint:0.4",
+        "blocker_manifest:gate0_signed_evidence",
+        "blocker_manifest:phase0_live_smoke_evidence"
+      ]
+    },
+    {
+      "phase_id": "1",
+      "tracker_exit_gate": "☐",
+      "child_sprint_ids": ["1.1", "1.2", "1.3", "1.4"],
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["sprint1_live_data_evidence", "frontend_release_evidence"],
+      "manual_blocking_conditions": [],
+      "blocking_conditions": [
+        "child_sprint:1.1",
+        "child_sprint:1.2",
+        "child_sprint:1.3",
+        "child_sprint:1.4",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "blocker_manifest:frontend_release_evidence"
+      ]
+    },
+    {
+      "phase_id": "2",
+      "tracker_exit_gate": "☐",
+      "child_sprint_ids": ["2.1", "2.2", "2.3", "2.4"],
+      "completion_allowed": false,
+      "blocker_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
+      "manual_blocking_conditions": [],
+      "blocking_conditions": [
+        "child_sprint:2.1",
+        "child_sprint:2.2",
+        "child_sprint:2.3",
+        "child_sprint:2.4",
+        "blocker_manifest:mcp_target_client_live_e2e",
+        "blocker_manifest:frontend_release_evidence"
+      ]
+    },
+    {
+      "phase_id": "3",
+      "tracker_exit_gate": "☐",
+      "child_sprint_ids": ["3.1", "3.2", "3.3"],
+      "completion_allowed": false,
+      "blocker_manifest_ids": [
+        "gate0_signed_evidence",
+        "phase0_live_smoke_evidence",
+        "sprint1_live_data_evidence",
+        "mcp_target_client_live_e2e",
+        "frontend_release_evidence"
+      ],
+      "manual_blocking_conditions": [],
+      "blocking_conditions": [
+        "child_sprint:3.1",
+        "child_sprint:3.2",
+        "child_sprint:3.3",
+        "blocker_manifest:gate0_signed_evidence",
+        "blocker_manifest:phase0_live_smoke_evidence",
+        "blocker_manifest:sprint1_live_data_evidence",
+        "blocker_manifest:mcp_target_client_live_e2e",
+        "blocker_manifest:frontend_release_evidence"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Sprint exit gate transition review 已建立",
+    "| 2026-06-23 | 1.0hr | 完成 `sprint-exit-gate-transition-review`"
+  ],
+  "required_todos_fragments": [
+    "Sprint exit gate transition review",
+    "npm run check:sprint-exit-gate-transition-review",
+    "backlog count alone"
+  ],
+  "not_claimed": [
+    "all_sprint_exit_gates_complete",
+    "all_phase_exit_gates_complete",
+    "release_transition_allowed",
+    "all_sprints_complete",
+    "goal_complete"
+  ]
+}
