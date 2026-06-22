@@ -1,0 +1,81 @@
+{
+  "version": "2026-06-22.phase2.saved-screening-schedule-scaffold.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/analytics-tools",
+  "runtime_route": "GET /analytics/runtime",
+  "route": "POST /analytics/saved-screenings/plan",
+  "tool_name": "plan_saved_screening",
+  "standard_response_envelope": true,
+  "frontend": false,
+  "live_data_access": false,
+  "live_execution": false,
+  "live_db_writes": false,
+  "persistent_writes": false,
+  "workflow_execution": false,
+  "queue_writes": false,
+  "sql_emitted": false,
+  "covered_prd_items": [
+    "ANA-05",
+    "US-W05",
+    "US-W10"
+  ],
+  "source_tools": [
+    "screen_securities",
+    "plan_high_cost_analytics"
+  ],
+  "linked_contracts": [
+    "deploy/analytics/screen-securities.contract.json",
+    "deploy/analytics/high-cost-analytics-queue.contract.json",
+    "deploy/agent/workflow-task.contract.json",
+    "deploy/database/migrations.contract.json"
+  ],
+  "supported_cadences": [
+    "manual",
+    "daily",
+    "weekly"
+  ],
+  "expected_statuses": [
+    "planned_no_write",
+    "blocked_missing_workspace",
+    "blocked_missing_owner",
+    "blocked_empty_screen",
+    "blocked_missing_schedule",
+    "blocked_future_data"
+  ],
+  "required_inputs": [
+    "workspace_id",
+    "owner_user_id",
+    "request_id",
+    "natural_language_or_conditions",
+    "cadence",
+    "next_run_at_for_periodic"
+  ],
+  "required_output_fields": [
+    "saved_screening",
+    "schedule",
+    "periodic_run_policy",
+    "source_screen",
+    "persistence_plan",
+    "validation"
+  ],
+  "saved_screening_contract": {
+    "source_tool": "screen_securities",
+    "screen_route": "POST /analytics/screen-securities",
+    "parsed_conditions_required": true,
+    "point_in_time_re_evaluation": true,
+    "requires_workspace": true,
+    "requires_owner_user": true,
+    "schedule_enablement_explicit": true,
+    "high_cost_queue_route": "POST /analytics/high-cost/plan",
+    "workflow_binding": "AIPHABEE_RESEARCH_WORKFLOW",
+    "event_queue": "AIPHABEE_EVENTS_QUEUE",
+    "idempotency_key_required": true,
+    "default_timezone": "Asia/Hong_Kong"
+  },
+  "tables": [
+    "core.saved_screening",
+    "core.saved_screening_run_schedule",
+    "core.saved_screening_run",
+    "governance.saved_screening_schedule_contract"
+  ]
+}

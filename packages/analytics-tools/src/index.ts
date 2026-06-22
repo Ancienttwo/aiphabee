@@ -39,6 +39,8 @@ export const MARKET_STATISTICS_VERSION =
   "2026-06-22.phase4.market-statistics-scaffold.v0";
 export const CONSENSUS_ESTIMATES_VERSION =
   "2026-06-22.phase4.consensus-estimates-scaffold.v0";
+export const SAVED_SCREENING_VERSION =
+  "2026-06-22.phase2.saved-screening-schedule-scaffold.v0";
 
 export type CompareSecuritiesStatus = "compared" | "invalid_input" | "partial";
 export type CompareSecuritiesRowStatus =
@@ -174,6 +176,85 @@ export interface ScreenSecuritiesResult {
     cached: false;
     credits: number;
     rows: number;
+  };
+}
+
+export type SavedScreeningCadence = "daily" | "manual" | "weekly";
+export type SavedScreeningStatus =
+  | "blocked_empty_screen"
+  | "blocked_future_data"
+  | "blocked_missing_owner"
+  | "blocked_missing_schedule"
+  | "blocked_missing_workspace"
+  | "planned_no_write";
+
+export interface SavedScreeningInput extends ScreenSecuritiesInput {
+  cadence?: SavedScreeningCadence;
+  idempotencyKey?: string;
+  name?: string;
+  nextRunAt?: string;
+  notificationChannels?: string[];
+  ownerUserId?: string;
+  savedScreeningId?: string;
+  scheduleEnabled?: boolean;
+  timezone?: string;
+  workspaceId?: string;
+}
+
+export interface SavedScreeningResult {
+  as_of: string;
+  data_version: typeof SAVED_SCREENING_VERSION;
+  frontend_rendering: false;
+  live_data_access: false;
+  live_execution: false;
+  methodology_version: typeof SAVED_SCREENING_VERSION;
+  persistence_plan: {
+    live_db_writes: false;
+    sql_emitted: false;
+    tables: string[];
+    write_status: "planned_no_write";
+  };
+  periodic_run_policy: {
+    high_cost_queue_route: typeof HIGH_COST_ANALYTICS_QUEUE_ROUTE;
+    idempotency_key: string;
+    point_in_time_re_evaluation: true;
+    queue_writes: false;
+    requires_explicit_enablement: true;
+    source_tool: "screen_securities";
+    workflow_execution: false;
+  };
+  saved_screening: {
+    name: string;
+    owner_user_id?: string;
+    parsed_conditions: ScreenSecuritiesCondition[];
+    query_hash: string;
+    saved_screening_id: string;
+    screen_route: "POST /analytics/screen-securities";
+    screen_status: ScreenSecuritiesStatus;
+    status: "blocked" | "would_save";
+    universe: string[];
+    workspace_id?: string;
+  };
+  schedule: {
+    cadence: SavedScreeningCadence;
+    enabled: boolean;
+    next_run_at?: string;
+    notification_channels: string[];
+    timezone: string;
+  };
+  source_screen: ScreenSecuritiesResult;
+  status: SavedScreeningStatus;
+  toolName: "plan_saved_screening";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+  validation: {
+    owner_required: true;
+    schedule_required: boolean;
+    screen_conditions_present: boolean;
+    workspace_required: true;
   };
 }
 
@@ -1316,6 +1397,34 @@ export function getScreenSecuritiesCapabilities() {
   };
 }
 
+export function getSavedScreeningCapabilities() {
+  return {
+    frontend_rendering: false,
+    high_cost_queue_route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
+    live_data_access: false,
+    live_db_writes: false,
+    live_execution: false,
+    package: "@aiphabee/analytics-tools" as const,
+    periodic_run_planning: true,
+    point_in_time_re_evaluation: true,
+    queue_writes: false,
+    route: "POST /analytics/saved-screenings/plan" as const,
+    runtime_route: "GET /analytics/runtime" as const,
+    source_tool: "screen_securities" as const,
+    sql_emitted: false,
+    status: "saved_screening_schedule_scaffold" as const,
+    supported_cadences: ["manual", "daily", "weekly"] as const,
+    tables: [
+      "core.saved_screening",
+      "core.saved_screening_run_schedule",
+      "core.saved_screening_run"
+    ] as const,
+    tool_name: "plan_saved_screening" as const,
+    version: SAVED_SCREENING_VERSION,
+    workflow_execution: false
+  };
+}
+
 export function getFinancialRatiosCapabilities() {
   return {
     formula_version: FINANCIAL_RATIO_FORMULA_VERSION,
@@ -2003,6 +2112,86 @@ export function screenSecurities(input: ScreenSecuritiesInput): ScreenSecurities
       cached: false,
       credits: comparison.usage.credits + 1,
       rows: comparison.usage.rows + comparison.rows.length
+    }
+  };
+}
+
+export function createSavedScreeningPlan(input: SavedScreeningInput): SavedScreeningResult {
+  const sourceScreen = screenSecurities(input);
+  const cadence = input.cadence ?? "manual";
+  const scheduleEnabled = input.scheduleEnabled ?? cadence !== "manual";
+  const timezone = input.timezone ?? "Asia/Hong_Kong";
+  const notificationChannels = input.notificationChannels ?? [];
+  const scheduleRequired = scheduleEnabled && cadence !== "manual";
+  const status = determineSavedScreeningStatus(input, sourceScreen, scheduleRequired);
+  const savedScreeningId =
+    input.savedScreeningId ?? `planned_saved_screening_${sanitizeIdentifier(input.requestId)}`;
+  const name = input.name?.trim() || input.naturalLanguage?.trim() || "Untitled saved screen";
+  const queryHash = createSavedScreeningQueryHash({
+    conditions: sourceScreen.parsed_conditions,
+    naturalLanguage: sourceScreen.natural_language,
+    universe: input.universe ?? DEFAULT_SCREEN_UNIVERSE
+  });
+
+  return {
+    as_of: sourceScreen.as_of,
+    data_version: SAVED_SCREENING_VERSION,
+    frontend_rendering: false,
+    live_data_access: false,
+    live_execution: false,
+    methodology_version: SAVED_SCREENING_VERSION,
+    periodic_run_policy: {
+      high_cost_queue_route: HIGH_COST_ANALYTICS_QUEUE_ROUTE,
+      idempotency_key:
+        input.idempotencyKey ?? `${savedScreeningId}:${cadence}:${sourceScreen.point_in_time_guard.requested_as_of}`,
+      point_in_time_re_evaluation: true,
+      queue_writes: false,
+      requires_explicit_enablement: true,
+      source_tool: "screen_securities",
+      workflow_execution: false
+    },
+    persistence_plan: {
+      live_db_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.saved_screening",
+        "core.saved_screening_run_schedule",
+        "core.saved_screening_run"
+      ],
+      write_status: "planned_no_write"
+    },
+    saved_screening: {
+      name,
+      owner_user_id: input.ownerUserId,
+      parsed_conditions: sourceScreen.parsed_conditions,
+      query_hash: queryHash,
+      saved_screening_id: savedScreeningId,
+      screen_route: "POST /analytics/screen-securities",
+      screen_status: sourceScreen.status,
+      status: status === "planned_no_write" ? "would_save" : "blocked",
+      universe: input.universe ?? DEFAULT_SCREEN_UNIVERSE,
+      workspace_id: input.workspaceId
+    },
+    schedule: {
+      cadence,
+      enabled: scheduleEnabled,
+      next_run_at: input.nextRunAt,
+      notification_channels: notificationChannels,
+      timezone
+    },
+    source_screen: sourceScreen,
+    status,
+    toolName: "plan_saved_screening",
+    usage: {
+      cached: false,
+      credits: sourceScreen.usage.credits,
+      rows: sourceScreen.usage.rows + sourceScreen.parsed_conditions.length + (scheduleEnabled ? 1 : 0)
+    },
+    validation: {
+      owner_required: true,
+      schedule_required: scheduleRequired,
+      screen_conditions_present: sourceScreen.parsed_conditions.length > 0,
+      workspace_required: true
     }
   };
 }
@@ -4061,6 +4250,61 @@ function createAnalyticsQueueIdempotencyKey(
   toolName: string | undefined
 ): string {
   return `${requestId}:${toolName ?? "unsupported"}`.replaceAll(/[^A-Za-z0-9:_-]/gu, "_");
+}
+
+function determineSavedScreeningStatus(
+  input: SavedScreeningInput,
+  sourceScreen: ScreenSecuritiesResult,
+  scheduleRequired: boolean
+): SavedScreeningStatus {
+  if (input.workspaceId === undefined || input.workspaceId.trim().length === 0) {
+    return "blocked_missing_workspace";
+  }
+
+  if (input.ownerUserId === undefined || input.ownerUserId.trim().length === 0) {
+    return "blocked_missing_owner";
+  }
+
+  if (sourceScreen.status === "blocked_future_data") {
+    return "blocked_future_data";
+  }
+
+  if (sourceScreen.parsed_conditions.length === 0 || sourceScreen.status === "unsupported_query") {
+    return "blocked_empty_screen";
+  }
+
+  if (scheduleRequired && (input.nextRunAt === undefined || input.nextRunAt.trim().length === 0)) {
+    return "blocked_missing_schedule";
+  }
+
+  return "planned_no_write";
+}
+
+function createSavedScreeningQueryHash(input: {
+  conditions: ScreenSecuritiesCondition[];
+  naturalLanguage: string | undefined;
+  universe: string[];
+}): string {
+  const serialized = JSON.stringify({
+    conditions: input.conditions.map((condition) => ({
+      field: condition.field,
+      operator: condition.operator,
+      value: condition.value
+    })),
+    natural_language: input.naturalLanguage ?? "",
+    universe: input.universe
+  });
+
+  let hash = 0;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash = (hash * 31 + serialized.charCodeAt(index)) >>> 0;
+  }
+
+  return `screen_${hash.toString(16).padStart(8, "0")}`;
+}
+
+function sanitizeIdentifier(value: string): string {
+  return value.replaceAll(/[^A-Za-z0-9_-]/gu, "_");
 }
 
 function clampPositiveInteger(value: number | undefined, fallback: number): number {

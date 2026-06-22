@@ -2078,6 +2078,14 @@ interface AnalyticsRuntimeBody {
       status: string;
       tool_name: string;
     };
+    saved_screening: {
+      live_db_writes: boolean;
+      periodic_run_planning: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+      workflow_execution: boolean;
+    };
     screen_securities: {
       editable_conditions: boolean;
       preview_execution: boolean;
@@ -2580,6 +2588,61 @@ interface ScreenSecuritiesBody {
       uses_latest_classification: boolean;
     };
     requires_confirmation_before_live_execution: boolean;
+    status: string;
+    toolName: string;
+  };
+  ok: true;
+  usage: {
+    credits: number;
+    rows: number;
+  };
+}
+
+interface SavedScreeningPlanBody {
+  data: {
+    capability: {
+      periodic_run_planning: boolean;
+      route: string;
+      status: string;
+      tool_name: string;
+    };
+    frontend_rendering: boolean;
+    live_data_access: boolean;
+    live_execution: boolean;
+    periodic_run_policy: {
+      high_cost_queue_route: string;
+      point_in_time_re_evaluation: boolean;
+      queue_writes: boolean;
+      source_tool: string;
+      workflow_execution: boolean;
+    };
+    persistence_plan: {
+      live_db_writes: boolean;
+      sql_emitted: boolean;
+      tables: string[];
+      write_status: string;
+    };
+    saved_screening: {
+      parsed_conditions: Array<{
+        field: string;
+        operator: string;
+        value: number;
+      }>;
+      query_hash: string;
+      screen_status: string;
+      status: string;
+      workspace_id?: string;
+    };
+    schedule: {
+      cadence: string;
+      enabled: boolean;
+      next_run_at?: string;
+      notification_channels: string[];
+      timezone: string;
+    };
+    source_screen: {
+      status: string;
+    };
     status: string;
     toolName: string;
   };
@@ -10691,6 +10754,14 @@ describe("worker runtime", () => {
       status: "returns_risk_scaffold",
       tool_name: "calculate_returns_risk"
     });
+    expect(body.data.saved_screening).toMatchObject({
+      live_db_writes: false,
+      periodic_run_planning: true,
+      route: "POST /analytics/saved-screenings/plan",
+      status: "saved_screening_schedule_scaffold",
+      tool_name: "plan_saved_screening",
+      workflow_execution: false
+    });
     expect(body.data.screen_securities).toMatchObject({
       editable_conditions: true,
       preview_execution: true,
@@ -11548,6 +11619,93 @@ describe("worker runtime", () => {
       uses_latest_classification: false
     });
     expect(body.usage.rows).toBe(0);
+  });
+
+  it("plans saved screening and periodic run without writes", async () => {
+    const response = await app.request("/analytics/saved-screenings/plan", {
+      body: JSON.stringify({
+        cadence: "daily",
+        name: "Revenue and profitability screen",
+        natural_language: "revenue above 100000 and profitable",
+        next_run_at: "2026-01-08T09:00:00+08:00",
+        notification_channels: ["in_app"],
+        owner_user_id: "usr_internal_001",
+        workspace_id: "ws_internal_alpha"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-saved-screening"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SavedScreeningPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      live_execution: false,
+      status: "planned_no_write",
+      toolName: "plan_saved_screening"
+    });
+    expect(body.data.saved_screening).toMatchObject({
+      screen_status: "planned_with_preview",
+      status: "would_save",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(body.data.saved_screening.parsed_conditions).toHaveLength(2);
+    expect(body.data.saved_screening.query_hash).toMatch(/^screen_[0-9a-f]{8}$/u);
+    expect(body.data.schedule).toEqual({
+      cadence: "daily",
+      enabled: true,
+      next_run_at: "2026-01-08T09:00:00+08:00",
+      notification_channels: ["in_app"],
+      timezone: "Asia/Hong_Kong"
+    });
+    expect(body.data.periodic_run_policy).toMatchObject({
+      high_cost_queue_route: "POST /analytics/high-cost/plan",
+      point_in_time_re_evaluation: true,
+      queue_writes: false,
+      source_tool: "screen_securities",
+      workflow_execution: false
+    });
+    expect(body.data.persistence_plan).toEqual({
+      live_db_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.saved_screening",
+        "core.saved_screening_run_schedule",
+        "core.saved_screening_run"
+      ],
+      write_status: "planned_no_write"
+    });
+    expect(body.data.capability).toMatchObject({
+      periodic_run_planning: true,
+      route: "POST /analytics/saved-screenings/plan"
+    });
+    expect(body.usage.rows).toBeGreaterThan(0);
+  });
+
+  it("blocks saved screening plans without workspace context", async () => {
+    const response = await app.request("/analytics/saved-screenings/plan", {
+      body: JSON.stringify({
+        natural_language: "revenue above 100000",
+        owner_user_id: "usr_internal_001"
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-saved-screening-blocked"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as SavedScreeningPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe("blocked_missing_workspace");
+    expect(body.data.saved_screening.status).toBe("blocked");
+    expect(body.data.persistence_plan.live_db_writes).toBe(false);
   });
 
   it("compares securities and explains incomplete rows", async () => {

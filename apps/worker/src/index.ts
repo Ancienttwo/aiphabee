@@ -75,13 +75,16 @@ import {
   getPortfolioAnalyticsCapabilities,
   getReturnsRiskCapabilities,
   getScreenSecuritiesCapabilities,
+  getSavedScreeningCapabilities,
   runEventStudy,
   screenSecurities,
+  createSavedScreeningPlan,
   planHighCostAnalyticsQueue,
   type ConsensusEstimateMetricId,
   type PercentileBenchmarkType,
   type PercentileMetricId,
   type PortfolioAnalyticsPositionInput,
+  type SavedScreeningCadence,
   type ScreenSecuritiesCondition
 } from "@aiphabee/analytics-tools";
 import {
@@ -3007,6 +3010,7 @@ app.get("/analytics/runtime", (c) => {
   const buybacksPlacementsCapability = getBuybacksAndPlacementsCapabilities();
   const consensusEstimatesCapability = getConsensusOrEstimatesCapabilities();
   const highCostAnalyticsQueueCapability = getHighCostAnalyticsQueueCapabilities();
+  const savedScreeningCapability = getSavedScreeningCapabilities();
 
   return c.json(
     createSuccessEnvelope(
@@ -3023,6 +3027,7 @@ app.get("/analytics/runtime", (c) => {
         portfolio_analytics: portfolioAnalyticsCapability,
         buybacks_and_placements: buybacksPlacementsCapability,
         returns_risk: returnsRiskCapability,
+        saved_screening: savedScreeningCapability,
         screen_securities: screenCapability,
         frontend_rendering: false,
         live_data_access: false,
@@ -3039,6 +3044,7 @@ app.get("/analytics/runtime", (c) => {
           ownershipShortSellingCapability.route,
           buybacksPlacementsCapability.route,
           consensusEstimatesCapability.route,
+          savedScreeningCapability.route,
           highCostAnalyticsQueueCapability.route
         ],
         status: "analytics_tools_scaffold"
@@ -3556,6 +3562,62 @@ app.post("/analytics/screen-securities", async (c) => {
         ],
         requestId,
         usage: screen.usage
+      }
+    )
+  );
+});
+
+app.post("/analytics/saved-screenings/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const plan = createSavedScreeningPlan({
+    asOf: normalizeString(body.as_of ?? body.asOf),
+    cadence: normalizeSavedScreeningCadence(body.cadence),
+    classificationAsOf: normalizeString(body.classification_as_of ?? body.classificationAsOf),
+    conditions: normalizeScreenConditionInputs(body.conditions),
+    financialFrom: normalizeString(body.financial_from ?? body.financialFrom),
+    financialTo: normalizeString(body.financial_to ?? body.financialTo),
+    idempotencyKey: normalizeString(body.idempotency_key ?? body.idempotencyKey),
+    name: normalizeString(body.name),
+    naturalLanguage: normalizeString(
+      body.natural_language ?? body.naturalLanguage ?? body.query
+    ),
+    nextRunAt: normalizeString(body.next_run_at ?? body.nextRunAt),
+    notificationChannels: normalizeStringArray(
+      body.notification_channels ?? body.notificationChannels
+    ),
+    ownerUserId: normalizeString(body.owner_user_id ?? body.ownerUserId),
+    requestId,
+    savedScreeningId: normalizeString(body.saved_screening_id ?? body.savedScreeningId),
+    scheduleEnabled: normalizeOptionalBoolean(body.schedule_enabled ?? body.scheduleEnabled),
+    timezone: normalizeString(body.timezone),
+    universe: normalizeStringArray(body.universe),
+    workspaceId: normalizeString(body.workspace_id ?? body.workspaceId)
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getSavedScreeningCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.data_version,
+        methodologyVersion: plan.methodology_version,
+        provenance: [
+          {
+            data_version: plan.data_version,
+            methodology_version: plan.methodology_version,
+            source: "analytics-saved-screening",
+            source_record_id: "saved-screening-schedule-plan"
+          }
+        ],
+        requestId,
+        usage: plan.usage
       }
     )
   );
@@ -11070,6 +11132,10 @@ function normalizePercentileBenchmarkTypes(
   );
 
   return values === undefined || values.length === 0 ? undefined : values;
+}
+
+function normalizeSavedScreeningCadence(value: unknown): SavedScreeningCadence | undefined {
+  return value === "daily" || value === "manual" || value === "weekly" ? value : undefined;
 }
 
 function normalizeScreenConditionInputs(

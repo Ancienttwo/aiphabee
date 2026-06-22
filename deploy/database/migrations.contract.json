@@ -665,6 +665,19 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622013000_saved_screening_schedule_scaffold.sql",
+      "purpose": "Create empty saved screening and periodic run schedule scaffolds for ANA-05 without enabling live execution, workflow execution, queue writes, persistent writes, SQL execution, or frontend rendering.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.saved_screening",
+        "core.saved_screening_run_schedule",
+        "core.saved_screening_run",
+        "governance.saved_screening_schedule_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

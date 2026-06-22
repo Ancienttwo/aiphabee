@@ -20,8 +20,10 @@ import {
   getPortfolioAnalytics,
   getPortfolioAnalyticsCapabilities,
   getReturnsRiskCapabilities,
+  getSavedScreeningCapabilities,
   getScreenSecuritiesCapabilities,
   planHighCostAnalyticsQueue,
+  createSavedScreeningPlan,
   runEventStudy,
   screenSecurities
 } from "./index";
@@ -263,6 +265,89 @@ describe("compare securities scaffold", () => {
     expect(result.status).toBe("unsupported_query");
     expect(result.parsed_conditions).toEqual([]);
     expect(result.execution_preview.hit_count).toBe(0);
+  });
+
+  it("reports saved screening and periodic run capabilities", () => {
+    expect(getSavedScreeningCapabilities()).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      live_db_writes: false,
+      live_execution: false,
+      periodic_run_planning: true,
+      point_in_time_re_evaluation: true,
+      queue_writes: false,
+      route: "POST /analytics/saved-screenings/plan",
+      runtime_route: "GET /analytics/runtime",
+      source_tool: "screen_securities",
+      status: "saved_screening_schedule_scaffold",
+      supported_cadences: ["manual", "daily", "weekly"],
+      tool_name: "plan_saved_screening",
+      workflow_execution: false
+    });
+  });
+
+  it("plans saved screening with a weekly schedule without writes", () => {
+    const result = createSavedScreeningPlan({
+      cadence: "weekly",
+      name: "High quality revenue screen",
+      naturalLanguage: "revenue above 100000 and profitable",
+      nextRunAt: "2026-01-12T09:00:00+08:00",
+      notificationChannels: ["in_app", "email"],
+      ownerUserId: "usr_internal_001",
+      requestId: "req_saved_screening_weekly",
+      workspaceId: "ws_internal_alpha"
+    });
+
+    expect(result).toMatchObject({
+      frontend_rendering: false,
+      live_data_access: false,
+      live_execution: false,
+      status: "planned_no_write",
+      toolName: "plan_saved_screening"
+    });
+    expect(result.saved_screening).toMatchObject({
+      name: "High quality revenue screen",
+      screen_route: "POST /analytics/screen-securities",
+      screen_status: "planned_with_preview",
+      status: "would_save",
+      workspace_id: "ws_internal_alpha"
+    });
+    expect(result.saved_screening.parsed_conditions).toHaveLength(2);
+    expect(result.schedule).toEqual({
+      cadence: "weekly",
+      enabled: true,
+      next_run_at: "2026-01-12T09:00:00+08:00",
+      notification_channels: ["in_app", "email"],
+      timezone: "Asia/Hong_Kong"
+    });
+    expect(result.periodic_run_policy).toMatchObject({
+      high_cost_queue_route: "POST /analytics/high-cost/plan",
+      point_in_time_re_evaluation: true,
+      queue_writes: false,
+      source_tool: "screen_securities",
+      workflow_execution: false
+    });
+    expect(result.persistence_plan).toEqual({
+      live_db_writes: false,
+      sql_emitted: false,
+      tables: [
+        "core.saved_screening",
+        "core.saved_screening_run_schedule",
+        "core.saved_screening_run"
+      ],
+      write_status: "planned_no_write"
+    });
+  });
+
+  it("blocks saved screening plans without workspace and owner context", () => {
+    const result = createSavedScreeningPlan({
+      naturalLanguage: "revenue above 100000",
+      requestId: "req_saved_screening_missing_workspace"
+    });
+
+    expect(result.status).toBe("blocked_missing_workspace");
+    expect(result.saved_screening.status).toBe("blocked");
+    expect(result.persistence_plan.live_db_writes).toBe(false);
   });
 
   it("reports high-cost analytics queue capabilities", () => {
