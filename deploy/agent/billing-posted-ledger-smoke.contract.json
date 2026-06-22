@@ -1,0 +1,57 @@
+{
+  "version": "2026-06-22.phase1.agent-billing-posted-ledger-smoke.v0",
+  "status": "local_contract",
+  "route": "POST /agent/runs/billing-posted-ledger-smoke",
+  "checker": "scripts/check-agent-billing-posted-ledger-smoke-contract.mjs",
+  "test_file": "apps/worker/src/agent-billing-posted-ledger-smoke.test.ts",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "migration": "supabase/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "agent_live_write_contract": "deploy/agent/run-live-write-smoke.contract.json",
+  "usage_ledger_contract": "deploy/usage/quota-display.contract.json",
+  "billing_reconciliation_contract": "deploy/usage/billing-reconciliation.contract.json",
+  "smoke_token_binding": "AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "agent-billing-posted-ledger-v1"
+  },
+  "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+  "actual_hyperdrive_execution": true,
+  "transactional_preview_to_posted": true,
+  "preview_state_verified": true,
+  "posted_state_verified": true,
+  "idempotency_no_double_charge": true,
+  "synthetic_posted_transition": true,
+  "cleanup_verified": true,
+  "auth_enforced_before_db": true,
+  "hash_only_response": true,
+  "billing_provider_calls": false,
+  "invoice_writes": false,
+  "production_billing_posted": false,
+  "frontend": false,
+  "user_facing_streaming": false,
+  "tables": [
+    "core.account",
+    "core.workspace",
+    "core.usage_meter_rule",
+    "core.usage_event",
+    "core.usage_ledger_entry"
+  ],
+  "not_claimed": [
+    "production_billing_posting",
+    "billing_provider_calls",
+    "invoice_writes",
+    "live_billing_reconciliation",
+    "production_agent_run_persistence",
+    "production_user_run_state_persistence",
+    "user_facing_live_model_streaming",
+    "frontend_ask_rendering",
+    "ai_gateway_logs_read"
+  ],
+  "verification": {
+    "unit_test": "npm run test -- apps/worker/src/agent-billing-posted-ledger-smoke.test.ts",
+    "contract_check": "npm run check:agent-billing-posted-ledger-smoke",
+    "worker_typecheck": "npm run typecheck --workspace @aiphabee/worker",
+    "database_check": "npm run check:database"
+  }
+}

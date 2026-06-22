@@ -712,6 +712,16 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
+      "purpose": "Create guarded Agent billing posted ledger smoke contract for Sprint 1.3 preview-to-posted idempotency validation without enabling provider billing, invoice writes, frontend rendering, or production billing posting.",
+      "schemas": ["governance"],
+      "tables": [
+        "governance.agent_billing_posted_ledger_smoke_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

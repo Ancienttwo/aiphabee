@@ -358,6 +358,7 @@ interface WorkerBindings {
   AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
+  AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -625,6 +626,39 @@ interface AgentRunStatePersistenceSmokeResult {
   user_facing_resume_enabled?: false;
 }
 
+interface AgentBillingPostedLedgerSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  billing_provider_calls?: false;
+  cleanup_verified?: boolean;
+  deleted_rows?: number;
+  detail_hash?: string;
+  failure_code?: string;
+  idempotency_key_hash?: string;
+  idempotent_skipped_rows?: number;
+  inserted_rows?: number;
+  ledger_entry_id_hash?: string;
+  no_double_charge_verified?: boolean;
+  operation_count?: number;
+  posted_credit_delta?: number;
+  posted_ledger_entry_hash?: string;
+  posted_rows?: number;
+  production_billing_posted?: false;
+  query_hash?: string;
+  selected_rows?: number;
+  status: CloudflareBindingSmokeStatus;
+  surface: "agent_billing_posted_ledger_preview_to_posted_idempotency";
+  synthetic_posted_transition?: true;
+  tables?: [
+    "core.account",
+    "core.workspace",
+    "core.usage_meter_rule",
+    "core.usage_event",
+    "core.usage_ledger_entry"
+  ];
+  updated_rows?: number;
+  usage_event_id_hash?: string;
+}
+
 interface AgentRunRequestBody {
   ambiguous_security_query?: unknown;
   ambiguousSecurityQuery?: unknown;
@@ -890,6 +924,14 @@ const AGENT_RUN_STATE_PERSISTENCE_SMOKE_TOKEN_BINDING =
   "AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN";
 const AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION =
   "2026-06-22.phase1.agent-run-state-persistence-smoke.v0";
+const AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE =
+  "/agent/runs/billing-posted-ledger-smoke";
+const AGENT_BILLING_POSTED_LEDGER_SMOKE_HEADER_VALUE =
+  "agent-billing-posted-ledger-v1";
+const AGENT_BILLING_POSTED_LEDGER_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN";
+const AGENT_BILLING_POSTED_LEDGER_SMOKE_VERSION =
+  "2026-06-22.phase1.agent-billing-posted-ledger-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
 
@@ -1800,6 +1842,79 @@ app.post(AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE, async (c) => {
     route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
     status: result.status === "passed" ? "ok" : "failed",
     version: AGENT_RUN_STATE_PERSISTENCE_SMOKE_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
+});
+
+app.post(AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    AGENT_BILLING_POSTED_LEDGER_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingAgentBillingPostedLedgerSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: AGENT_BILLING_POSTED_LEDGER_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isAgentBillingPostedLedgerSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${AGENT_BILLING_POSTED_LEDGER_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const result = await runAgentBillingPostedLedgerSmoke(c.env ?? {}, requestId);
+  const bodyWithoutHash = {
+    agent_billing_posted_ledger_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${AGENT_BILLING_POSTED_LEDGER_SMOKE_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: AGENT_BILLING_POSTED_LEDGER_SMOKE_VERSION
   };
   const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
 
@@ -11622,6 +11737,418 @@ async function runAgentRunStatePersistenceSmoke(
   }
 }
 
+async function runAgentBillingPostedLedgerSmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<AgentBillingPostedLedgerSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingAgentBillingPostedLedgerSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const safeRequestId = requestId.replace(/[^A-Za-z0-9_]/gu, "_").slice(0, 80);
+  const runId = `agent_billing_posted_ledger_smoke_${safeRequestId}`;
+  const accountId = `account_${runId}`;
+  const workspaceId = `workspace_${runId}`;
+  const sourceRecordId = `source:${runId}`;
+  const idempotencyKey = `idempotency_${runId}_billing_posted`;
+  const smokeVersion = AGENT_BILLING_POSTED_LEDGER_SMOKE_VERSION;
+  const postedAt = "2026-06-22T00:05:00.000Z";
+  const usagePlan = createUsageLedgerEventPlan({
+    accountId,
+    cached: false,
+    channel: "web",
+    credits: 2,
+    dataVersion: "agent-billing-posted-ledger-smoke-usage-v0",
+    dataset: "agent_billing_smoke",
+    gatewayStatus: "ok",
+    inputUnits: 8,
+    meteredFields: 1,
+    meteredRows: 1,
+    methodologyVersion: smokeVersion,
+    occurredAt: "2026-06-22T00:00:00.000Z",
+    operation: "agent_run",
+    outputUnits: 12,
+    qualityState: "PASS",
+    requestId,
+    rightsPolicyVersion: "default_deny",
+    runId,
+    sourceRecordId,
+    toolName: "get_quote_snapshot",
+    workspaceId
+  });
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  const queryLabel = "agent-billing-posted-ledger-smoke:v0:preview-posted-idempotency";
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    if (usagePlan.ledgerEntry.billableState !== "preview") {
+      throw new Error("agent billing posted ledger smoke must start from preview");
+    }
+
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const accountInsert = await client.query(
+      `insert into core.account (
+        account_id,
+        email_hash,
+        display_name,
+        status,
+        region,
+        default_timezone,
+        data_retention_state,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8)
+      on conflict (account_id) do update set
+        email_hash = excluded.email_hash,
+        display_name = excluded.display_name,
+        status = excluded.status,
+        region = excluded.region,
+        default_timezone = excluded.default_timezone,
+        data_retention_state = excluded.data_retention_state,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        accountId,
+        await hashRuntimeSmokeString(accountId),
+        "Agent billing posted ledger smoke",
+        "active",
+        "HK",
+        "Asia/Hong_Kong",
+        "standard",
+        sourceRecordId
+      ]
+    );
+    const workspaceInsert = await client.query(
+      `insert into core.workspace (
+        workspace_id,
+        owner_account_id,
+        display_name,
+        billing_region,
+        data_region,
+        status,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7)
+      on conflict (workspace_id) do update set
+        owner_account_id = excluded.owner_account_id,
+        display_name = excluded.display_name,
+        billing_region = excluded.billing_region,
+        data_region = excluded.data_region,
+        status = excluded.status,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        workspaceId,
+        accountId,
+        "Agent billing posted ledger smoke",
+        "HK",
+        "HK",
+        "active",
+        sourceRecordId
+      ]
+    );
+    const meterRuleInsert = await client.query(
+      `insert into core.usage_meter_rule (
+        meter_rule_id,
+        meter_name,
+        channel,
+        dataset,
+        operation,
+        unit_name,
+        credit_weight,
+        rights_policy_version,
+        methodology_version,
+        effective_from,
+        status,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      on conflict (meter_rule_id) do update set
+        meter_name = excluded.meter_name,
+        channel = excluded.channel,
+        dataset = excluded.dataset,
+        operation = excluded.operation,
+        unit_name = excluded.unit_name,
+        credit_weight = excluded.credit_weight,
+        rights_policy_version = excluded.rights_policy_version,
+        methodology_version = excluded.methodology_version,
+        effective_from = excluded.effective_from,
+        status = excluded.status,
+        source_record_id = excluded.source_record_id,
+        updated_at = now()`,
+      [
+        usagePlan.ledgerEntry.meterRuleId,
+        "Agent billing posted ledger smoke credit",
+        usagePlan.event.channel,
+        usagePlan.event.dataset,
+        usagePlan.event.operation,
+        "credit",
+        usagePlan.ledgerEntry.creditDelta,
+        usagePlan.event.rightsPolicyVersion,
+        usagePlan.event.methodologyVersion,
+        usagePlan.event.occurredAt,
+        "planned",
+        sourceRecordId
+      ]
+    );
+    const usageEventInsert = await client.query(
+      `insert into core.usage_event (
+        usage_event_id,
+        request_id,
+        run_id,
+        workspace_id,
+        account_id,
+        channel,
+        dataset,
+        tool_name,
+        operation,
+        occurred_at,
+        metered_rows,
+        metered_fields,
+        input_units,
+        output_units,
+        cache_state,
+        quality_state,
+        data_version,
+        methodology_version,
+        rights_policy_version,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      on conflict (usage_event_id) do update set
+        request_id = excluded.request_id,
+        run_id = excluded.run_id,
+        workspace_id = excluded.workspace_id,
+        account_id = excluded.account_id,
+        channel = excluded.channel,
+        dataset = excluded.dataset,
+        tool_name = excluded.tool_name,
+        operation = excluded.operation,
+        occurred_at = excluded.occurred_at,
+        metered_rows = excluded.metered_rows,
+        metered_fields = excluded.metered_fields,
+        input_units = excluded.input_units,
+        output_units = excluded.output_units,
+        cache_state = excluded.cache_state,
+        quality_state = excluded.quality_state,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version,
+        rights_policy_version = excluded.rights_policy_version,
+        source_record_id = excluded.source_record_id`,
+      [
+        usagePlan.event.usageEventId,
+        usagePlan.event.requestId,
+        usagePlan.event.runId ?? null,
+        usagePlan.event.workspaceId,
+        usagePlan.event.accountId ?? null,
+        usagePlan.event.channel,
+        usagePlan.event.dataset,
+        usagePlan.event.toolName ?? null,
+        usagePlan.event.operation,
+        usagePlan.event.occurredAt,
+        usagePlan.event.meteredRows,
+        usagePlan.event.meteredFields,
+        usagePlan.event.inputUnits,
+        usagePlan.event.outputUnits,
+        usagePlan.event.cacheState,
+        usagePlan.event.qualityState,
+        usagePlan.event.dataVersion,
+        usagePlan.event.methodologyVersion,
+        usagePlan.event.rightsPolicyVersion,
+        usagePlan.event.sourceRecordId
+      ]
+    );
+    const ledgerEntryInsert = await client.query(
+      `insert into core.usage_ledger_entry (
+        ledger_entry_id,
+        usage_event_id,
+        workspace_id,
+        account_id,
+        subscription_id,
+        meter_rule_id,
+        credit_delta,
+        billable_state,
+        source_record_id
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      on conflict (ledger_entry_id) do update set
+        usage_event_id = excluded.usage_event_id,
+        workspace_id = excluded.workspace_id,
+        account_id = excluded.account_id,
+        subscription_id = excluded.subscription_id,
+        meter_rule_id = excluded.meter_rule_id,
+        credit_delta = excluded.credit_delta,
+        billable_state = excluded.billable_state,
+        source_record_id = excluded.source_record_id,
+        posted_at = null,
+        updated_at = now()`,
+      [
+        usagePlan.ledgerEntry.ledgerEntryId,
+        usagePlan.ledgerEntry.usageEventId,
+        usagePlan.ledgerEntry.workspaceId,
+        usagePlan.ledgerEntry.accountId ?? null,
+        usagePlan.ledgerEntry.subscriptionId ?? null,
+        usagePlan.ledgerEntry.meterRuleId,
+        usagePlan.ledgerEntry.creditDelta,
+        usagePlan.ledgerEntry.billableState,
+        usagePlan.ledgerEntry.sourceRecordId
+      ]
+    );
+    const previewSelect = await client.query<{ row_count: number | string }>(
+      `select count(*)::int as row_count
+      from core.usage_ledger_entry
+      where ledger_entry_id = $1 and billable_state = 'preview' and posted_at is null`,
+      [usagePlan.ledgerEntry.ledgerEntryId]
+    );
+    const postedUpdate = await client.query(
+      `update core.usage_ledger_entry
+      set billable_state = 'posted',
+        posted_at = $2::timestamptz,
+        updated_at = now()
+      where ledger_entry_id = $1 and billable_state = 'preview'`,
+      [usagePlan.ledgerEntry.ledgerEntryId, postedAt]
+    );
+    const idempotentPostedUpdate = await client.query(
+      `update core.usage_ledger_entry
+      set billable_state = 'posted',
+        posted_at = $2::timestamptz,
+        updated_at = now()
+      where ledger_entry_id = $1 and billable_state = 'preview'`,
+      [usagePlan.ledgerEntry.ledgerEntryId, postedAt]
+    );
+    const postedSelect = await client.query<{
+      credit_delta: number | string;
+      row_count: number | string;
+    }>(
+      `select count(*)::int as row_count,
+        coalesce(sum(credit_delta), 0)::numeric as credit_delta
+      from core.usage_ledger_entry
+      where ledger_entry_id = $1 and billable_state = 'posted' and posted_at = $2::timestamptz`,
+      [usagePlan.ledgerEntry.ledgerEntryId, postedAt]
+    );
+    const previewRows = Number(previewSelect.rows[0]?.row_count ?? 0);
+    const postedRows = Number(postedSelect.rows[0]?.row_count ?? 0);
+    const postedCreditDelta = Number(postedSelect.rows[0]?.credit_delta ?? 0);
+    const updatedRows = postedUpdate.rowCount ?? 0;
+    const idempotentSkippedRows = idempotentPostedUpdate.rowCount ?? 0;
+    const selectedRows = previewRows + postedRows;
+
+    if (
+      previewRows !== 1 ||
+      postedRows !== 1 ||
+      postedCreditDelta !== usagePlan.ledgerEntry.creditDelta ||
+      updatedRows !== 1 ||
+      idempotentSkippedRows !== 0
+    ) {
+      throw new Error("agent billing posted ledger smoke no-double-charge mismatch");
+    }
+
+    const ledgerDelete = await client.query(
+      `delete from core.usage_ledger_entry
+      where ledger_entry_id = $1`,
+      [usagePlan.ledgerEntry.ledgerEntryId]
+    );
+    const usageEventDelete = await client.query(
+      `delete from core.usage_event
+      where usage_event_id = $1`,
+      [usagePlan.event.usageEventId]
+    );
+    const meterRuleDelete = await client.query(
+      `delete from core.usage_meter_rule
+      where meter_rule_id = $1`,
+      [usagePlan.ledgerEntry.meterRuleId]
+    );
+    const workspaceDelete = await client.query(
+      `delete from core.workspace
+      where workspace_id = $1`,
+      [workspaceId]
+    );
+    const accountDelete = await client.query(
+      `delete from core.account
+      where account_id = $1`,
+      [accountId]
+    );
+
+    await client.query("COMMIT");
+    committed = true;
+
+    const insertedRows =
+      (accountInsert.rowCount ?? 0) +
+      (workspaceInsert.rowCount ?? 0) +
+      (meterRuleInsert.rowCount ?? 0) +
+      (usageEventInsert.rowCount ?? 0) +
+      (ledgerEntryInsert.rowCount ?? 0);
+    const deletedRows =
+      (ledgerDelete.rowCount ?? 0) +
+      (usageEventDelete.rowCount ?? 0) +
+      (meterRuleDelete.rowCount ?? 0) +
+      (workspaceDelete.rowCount ?? 0) +
+      (accountDelete.rowCount ?? 0);
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      billing_provider_calls: false,
+      cleanup_verified: deletedRows === insertedRows,
+      deleted_rows: deletedRows,
+      idempotency_key_hash: await hashRuntimeSmokeString(idempotencyKey),
+      idempotent_skipped_rows: idempotentSkippedRows,
+      inserted_rows: insertedRows,
+      ledger_entry_id_hash: await hashRuntimeSmokeString(usagePlan.ledgerEntry.ledgerEntryId),
+      no_double_charge_verified:
+        updatedRows === 1 &&
+        idempotentSkippedRows === 0 &&
+        postedRows === 1 &&
+        postedCreditDelta === usagePlan.ledgerEntry.creditDelta,
+      operation_count: 16,
+      posted_credit_delta: postedCreditDelta,
+      posted_ledger_entry_hash: await hashRuntimeSmokeString(
+        JSON.stringify({
+          billable_state: "posted",
+          credit_delta: postedCreditDelta,
+          ledger_entry_id: usagePlan.ledgerEntry.ledgerEntryId,
+          posted_at: postedAt
+        })
+      ),
+      posted_rows: postedRows,
+      production_billing_posted: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      selected_rows: selectedRows,
+      status: "passed",
+      surface: "agent_billing_posted_ledger_preview_to_posted_idempotency",
+      synthetic_posted_transition: true,
+      tables: [
+        "core.account",
+        "core.workspace",
+        "core.usage_meter_rule",
+        "core.usage_event",
+        "core.usage_ledger_entry"
+      ],
+      updated_rows: updatedRows,
+      usage_event_id_hash: await hashRuntimeSmokeString(usagePlan.event.usageEventId)
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedAgentBillingPostedLedgerSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "agent_billing_posted_ledger_failed",
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 function handleCloudflareScheduled(
   controller: RuntimeScheduledController,
   env: WorkerBindings,
@@ -11751,6 +12278,20 @@ function missingAgentRunStatePersistenceSmokeResult(
   };
 }
 
+function missingAgentBillingPostedLedgerSmokeResult(
+  failureCode: string
+): AgentBillingPostedLedgerSmokeResult {
+  return {
+    billing_provider_calls: false,
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    production_billing_posted: false,
+    status: "missing_binding",
+    surface: "agent_billing_posted_ledger_preview_to_posted_idempotency",
+    synthetic_posted_transition: true
+  };
+}
+
 function missingAiGatewayLiveSmokeEnv(env: WorkerBindings): string[] {
   const requiredEnv: Array<readonly [string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
@@ -11834,6 +12375,16 @@ function missingAgentRunStatePersistenceSmokeEnv(env: WorkerBindings): string[] 
 
 function getAgentRunStatePersistenceSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function missingAgentBillingPostedLedgerSmokeEnv(env: WorkerBindings): string[] {
+  return getAgentBillingPostedLedgerSmokeToken(env).length >= 16
+    ? []
+    : [AGENT_BILLING_POSTED_LEDGER_SMOKE_TOKEN_BINDING];
+}
+
+function getAgentBillingPostedLedgerSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?.trim() ?? "";
 }
 
 function missingAgentToolExecutionSmokeEnv(env: WorkerBindings): string[] {
@@ -12023,6 +12574,28 @@ async function failedAgentRunStatePersistenceSmokeResult({
     status: "failed",
     surface: "agent_run_state_checkpoint_insert_select_update_delete",
     user_facing_resume_enabled: false
+  };
+}
+
+async function failedAgentBillingPostedLedgerSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<AgentBillingPostedLedgerSmokeResult> {
+  return {
+    billing_provider_calls: false,
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    production_billing_posted: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "agent_billing_posted_ledger_preview_to_posted_idempotency",
+    synthetic_posted_transition: true
   };
 }
 
@@ -12769,6 +13342,18 @@ function isAgentRunStatePersistenceSmokeAuthorized(
   c: Context<{ Bindings: WorkerBindings }>
 ): boolean {
   const token = getAgentRunStatePersistenceSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isAgentBillingPostedLedgerSmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getAgentBillingPostedLedgerSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;
