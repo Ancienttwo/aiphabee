@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const contractPath = "deploy/governance/live-smoke-capture-artifacts.contract.json";
 const ledgerPath = "deploy/governance/live-smoke-evidence-ledger.contract.json";
@@ -24,40 +25,48 @@ const forbiddenTextPatterns = [
   /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
 ];
 
-const contract = readJson(contractPath);
-const ledger = readJson(ledgerPath);
-const packageJson = readJson(packagePath);
-const errors = validatePacketSurface({ contract, ledger, packageJson });
+export { deriveStatus as deriveCapturePacketStatus };
 
-if (errors.length > 0) {
-  emit(
-    {
-      errors,
-      path: contract.artifact_directory,
-      status: "invalid_capture_packets"
-    },
-    1
-  );
+export function validateCapturePackets({
+  artifactDirectoryExists = true,
+  contract,
+  ledger,
+  packageJson,
+  packetFiles = []
+}) {
+  const errors = validatePacketSurface({
+    artifactDirectoryExists,
+    contract,
+    ledger,
+    packageJson,
+    packetFiles
+  });
+  const packets = packetFiles.map((file) => file.packet);
+  const packetStatuses = packets.map((packet) => (isRecord(packet) ? packet.status : undefined));
+  const allRequiredPassed =
+    errors.length === 0 &&
+    requiredCaptureIds.every((id) =>
+      packets.some((packet) => isRecord(packet) && packet.capture_id === id && packet.status === "passed")
+    ) &&
+    packets.length === requiredCaptureIds.length;
+
+  return {
+    all_required_passed: allRequiredPassed,
+    errors,
+    packet_files: packetFiles.length,
+    packet_statuses: Object.fromEntries(
+      packets
+        .filter((packet) => isRecord(packet) && typeof packet.capture_id === "string")
+        .map((packet) => [packet.capture_id, packet.status])
+    ),
+    status:
+      errors.length > 0
+        ? "invalid_capture_packets"
+        : deriveStatus(packetFiles.length, packetStatuses, allRequiredPassed)
+  };
 }
 
-const packetFiles = listPacketFiles(contract.artifact_directory);
-const packets = packetFiles.map((file) => readJson(file.path));
-const packetStatuses = packets.map((packet) => packet.status);
-const allRequiredPassed =
-  requiredCaptureIds.every((id) => packets.some((packet) => packet.capture_id === id && packet.status === "passed")) &&
-  packets.length === requiredCaptureIds.length;
-
-emit(
-  {
-    all_required_passed: allRequiredPassed,
-    packet_files: packetFiles.length,
-    packet_statuses: Object.fromEntries(packets.map((packet) => [packet.capture_id, packet.status])),
-    status: deriveStatus(packetFiles.length, packetStatuses, allRequiredPassed)
-  },
-  0
-);
-
-function validatePacketSurface({ contract, ledger, packageJson }) {
+function validatePacketSurface({ artifactDirectoryExists, contract, ledger, packageJson, packetFiles }) {
   const errors = [];
 
   if (!isRecord(contract)) {
@@ -88,13 +97,11 @@ function validatePacketSurface({ contract, ledger, packageJson }) {
     errors.push("root check must include check:live-smoke-capture-packets");
   }
 
-  const artifactDirectory = resolve(process.cwd(), contract.artifact_directory ?? "");
-  if (!existsSync(artifactDirectory)) {
+  if (!artifactDirectoryExists) {
     errors.push(`artifact directory missing ${contract.artifact_directory}`);
     return errors;
   }
 
-  const packetFiles = listPacketFiles(contract.artifact_directory);
   const ledgerCommands = new Map((ledger.live_smoke_commands ?? []).map((entry) => [entry.id, entry]));
   const requiredCaptures = new Map((contract.required_captures ?? []).map((entry) => [entry.id, entry]));
   const seen = new Set();
@@ -109,8 +116,17 @@ function validatePacketSurface({ contract, ledger, packageJson }) {
   }
 
   for (const file of packetFiles) {
-    const packet = readJson(file.path);
-    errors.push(...validatePacket({ file, forbiddenFields: contract.forbidden_fields, ledgerCommands, packet, requiredCaptures }));
+    const packet = file.packet;
+    errors.push(
+      ...validatePacket({
+        contract,
+        file,
+        forbiddenFields: contract.forbidden_fields,
+        ledgerCommands,
+        packet,
+        requiredCaptures
+      })
+    );
 
     if (isRecord(packet) && typeof packet.capture_id === "string") {
       if (seen.has(packet.capture_id)) {
@@ -123,7 +139,7 @@ function validatePacketSurface({ contract, ledger, packageJson }) {
   return errors;
 }
 
-function validatePacket({ file, forbiddenFields, ledgerCommands, packet, requiredCaptures }) {
+function validatePacket({ contract, file, forbiddenFields, ledgerCommands, packet, requiredCaptures }) {
   if (!isRecord(packet)) {
     return [`${file.relative}: packet must be an object`];
   }
@@ -289,6 +305,48 @@ function listPacketFiles(directory) {
     .sort((a, b) => a.relative.localeCompare(b.relative));
 }
 
+function runCli() {
+  const contract = readJson(contractPath);
+  const ledger = readJson(ledgerPath);
+  const packageJson = readJson(packagePath);
+  const artifactDirectory = resolve(process.cwd(), contract.artifact_directory ?? "");
+  const artifactDirectoryExists = existsSync(artifactDirectory);
+  const packetFiles = artifactDirectoryExists
+    ? listPacketFiles(contract.artifact_directory).map((file) => ({
+        ...file,
+        packet: readJson(file.path)
+      }))
+    : [];
+  const result = validateCapturePackets({
+    artifactDirectoryExists,
+    contract,
+    ledger,
+    packageJson,
+    packetFiles
+  });
+
+  if (result.errors.length > 0) {
+    emit(
+      {
+        errors: result.errors,
+        path: contract.artifact_directory,
+        status: result.status
+      },
+      1
+    );
+  }
+
+  emit(
+    {
+      all_required_passed: result.all_required_passed,
+      packet_files: result.packet_files,
+      packet_statuses: result.packet_statuses,
+      status: result.status
+    },
+    0
+  );
+}
+
 function deriveStatus(packetFileCount, packetStatuses, allRequiredPassed) {
   if (packetFileCount === 0) {
     return "awaiting_external_env_capture";
@@ -346,4 +404,8 @@ function emit(value, code) {
 
   output(JSON.stringify(value, null, 2));
   process.exit(code);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  runCli();
 }

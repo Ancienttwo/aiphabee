@@ -13,6 +13,7 @@ npm run check:live-smoke-evidence-ledger
 npm run check:live-smoke-external-env-preflight
 npm run check:live-smoke-capture-artifacts
 npm run check:live-smoke-capture-packets
+npm run check:live-smoke-capture-packet-fixtures
 npm run check:live-smoke-evidence-ledger-fixtures
 ```
 
@@ -32,6 +33,13 @@ redacted packet files. An empty directory remains valid while external env is
 missing; any packet that exists must use `<capture_id>.capture.json`, align with
 the ledger command/script, contain hash-only evidence refs, and avoid raw
 outputs or secret-like fields.
+
+The capture packet fixtures reuse the production packet validator and cover the
+packet format regressions before any external env arrives: empty directory,
+complete passed packet set, missing-env packet set, missing `sha256:` output
+hash, missing-env output hash, non-hash evidence refs, provider-secret cleanup,
+non-destructive cleanup, raw output field, command mismatch, duplicate capture
+ID, unexpected capture ID, secret-like locator, and missing artifact directory.
 
 The fixture check exercises the state transition rules without running live
 smoke commands: partial evidence cannot set `release_transition_allowed=true`;

@@ -5,6 +5,7 @@
   "preflight_checker": "scripts/check-live-smoke-external-env-preflight.mjs",
   "checker": "scripts/check-live-smoke-capture-artifacts-contract.mjs",
   "packet_checker": "scripts/check-live-smoke-capture-packets.mjs",
+  "packet_fixture_checker": "scripts/check-live-smoke-capture-packet-fixtures.mjs",
   "artifact_directory": "deploy/governance/live-smoke-capture-packets",
   "packet_file_pattern": "<capture_id>.capture.json",
   "capture_packet_schema": {
@@ -29,6 +30,8 @@
     "passed_capture_requires_output_sha256": true,
     "packet_checker_allows_empty_directory_until_external_env_arrives": true,
     "secret_store_capture_requires_cleanup": true,
+    "packet_fixture_checker_reuses_packet_validator": true,
+    "packet_fixture_checker_covers_invalid_packets": true,
     "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true
   },
   "required_captures": [

@@ -39,6 +39,8 @@ const requiredTruePolicies = [
   "passed_capture_requires_output_sha256",
   "packet_checker_allows_empty_directory_until_external_env_arrives",
   "secret_store_capture_requires_cleanup",
+  "packet_fixture_checker_reuses_packet_validator",
+  "packet_fixture_checker_covers_invalid_packets",
   "ledger_transition_still_owned_by_live_smoke_evidence_ledger"
 ];
 const requiredForbiddenFields = [
@@ -121,6 +123,10 @@ function validateContract({ contract: value, ledger, packageJson, todos, tracker
 
   if (value.packet_checker !== "scripts/check-live-smoke-capture-packets.mjs") {
     errors.push("packet_checker must be scripts/check-live-smoke-capture-packets.mjs");
+  }
+
+  if (value.packet_fixture_checker !== "scripts/check-live-smoke-capture-packet-fixtures.mjs") {
+    errors.push("packet_fixture_checker must be scripts/check-live-smoke-capture-packet-fixtures.mjs");
   }
 
   if (value.artifact_directory !== "deploy/governance/live-smoke-capture-packets") {
@@ -281,7 +287,13 @@ function validateNotClaimed(value) {
 function validateLinkedFiles(value) {
   const errors = [];
 
-  for (const path of [value.ledger_contract, value.preflight_checker, value.packet_checker, value.artifact_directory]) {
+  for (const path of [
+    value.ledger_contract,
+    value.preflight_checker,
+    value.packet_checker,
+    value.packet_fixture_checker,
+    value.artifact_directory
+  ]) {
     if (typeof path !== "string" || !existsSync(resolve(process.cwd(), path))) {
       errors.push(`linked file missing ${path}`);
     }
@@ -302,12 +314,23 @@ function validatePackageScripts(value) {
     errors.push("package.json check:live-smoke-capture-packets script is missing");
   }
 
+  if (
+    scripts["check:live-smoke-capture-packet-fixtures"] !==
+    "node scripts/check-live-smoke-capture-packet-fixtures.mjs"
+  ) {
+    errors.push("package.json check:live-smoke-capture-packet-fixtures script is missing");
+  }
+
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-artifacts")) {
     errors.push("root check must include check:live-smoke-capture-artifacts");
   }
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-packets")) {
     errors.push("root check must include check:live-smoke-capture-packets");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-packet-fixtures")) {
+    errors.push("root check must include check:live-smoke-capture-packet-fixtures");
   }
 
   return errors;
@@ -320,7 +343,9 @@ function validateTrackerAndTodos(tracker, todos) {
     "live smoke capture artifacts",
     "npm run check:live-smoke-capture-artifacts",
     "npm run check:live-smoke-capture-packets",
+    "npm run check:live-smoke-capture-packet-fixtures",
     "capture packet verifier",
+    "capture packet fixtures",
     "hash-only",
     "cleanup proof"
   ]) {

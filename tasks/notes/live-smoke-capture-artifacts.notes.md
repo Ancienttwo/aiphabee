@@ -8,10 +8,13 @@ Date: 2026-06-22
 - Added `scripts/check-live-smoke-capture-artifacts-contract.mjs`.
 - Added `deploy/governance/live-smoke-capture-packets/README.md`.
 - Added `scripts/check-live-smoke-capture-packets.mjs`.
+- Added `scripts/check-live-smoke-capture-packet-fixtures.mjs`.
 - Added `npm run check:live-smoke-capture-artifacts` and wired it into full
   `npm run check`.
 - Added `npm run check:live-smoke-capture-packets` and wired it into full
   `npm run check`.
+- Added `npm run check:live-smoke-capture-packet-fixtures` and wired it into
+  full `npm run check`.
 - Updated `docs/governance/live-smoke-evidence-ledger.md`,
   `docs/AiphaBee_Sprint_Tracker_v1.0.md`, and `tasks/todos.md`.
 
@@ -28,6 +31,13 @@ is unavailable. Once a JSON packet exists, it must use the ledger-backed
 `<capture_id>.capture.json` file name, match the expected command/script, carry
 only strict schema fields, use `sha256:` evidence refs, and avoid raw outputs or
 secret-like payloads.
+
+The capture packet fixtures reuse the exported packet validator and cover
+empty-directory, complete-passed, missing-env, missing output hash, missing-env
+with output hash, non-hash evidence refs, provider-secret cleanup, non-
+destructive cleanup, raw-output fields, command mismatches, duplicate capture
+IDs, unexpected capture IDs, secret-like locators, and missing artifact
+directory regressions.
 
 ## Current State
 
