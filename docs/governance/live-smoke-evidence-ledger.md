@@ -11,6 +11,7 @@ Machine-readable check:
 ```bash
 npm run check:live-smoke-evidence-ledger
 npm run check:live-smoke-external-env-preflight
+npm run check:live-smoke-capture-artifacts
 npm run check:live-smoke-evidence-ledger-fixtures
 ```
 
@@ -18,6 +19,11 @@ The external-env preflight is non-networked. It reads the live smoke contracts,
 the ledger, package scripts, and non-secret contract defaults, then reports only
 environment variable names and their source category (`env`,
 `contract_partial_provisioning`, or `missing`).
+
+The capture-artifacts check is also non-networked. It defines the future
+redacted evidence packet schema for the six live smoke commands: passed captures
+must carry `sha256:` output hashes, missing-env captures cannot unlock release
+transition, and destructive provider-secret captures must include cleanup proof.
 
 The fixture check exercises the state transition rules without running live
 smoke commands: partial evidence cannot set `release_transition_allowed=true`;

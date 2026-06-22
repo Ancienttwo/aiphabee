@@ -1,0 +1,101 @@
+{
+  "version": "2026-06-22.phase0.live-smoke-capture-artifacts.v0",
+  "status": "ready_for_external_env_capture",
+  "ledger_contract": "deploy/governance/live-smoke-evidence-ledger.contract.json",
+  "preflight_checker": "scripts/check-live-smoke-external-env-preflight.mjs",
+  "checker": "scripts/check-live-smoke-capture-artifacts-contract.mjs",
+  "capture_packet_schema": {
+    "capture_id": "ledger.live_smoke_commands.id",
+    "command": "ledger.live_smoke_commands.command",
+    "script": "ledger.live_smoke_commands.script",
+    "observed_at": "ISO-8601",
+    "runner": "redacted_runner_label",
+    "exit_code": "integer",
+    "status": "passed|missing_env|permission_denied|failed",
+    "output_sha256": "sha256:hex_sha256_of_redacted_json_output",
+    "redaction_status": "redacted_no_secrets",
+    "source_locator": "redacted_file_or_external_record_id",
+    "evidence_refs": "hash_only_refs_for_passed_captures",
+    "cleanup_verified": "required_for_destructive_provider_secret_store_captures"
+  },
+  "artifact_policy": {
+    "checker_does_not_run_live_smoke": true,
+    "raw_outputs_forbidden_in_repo": true,
+    "hash_only_refs_required": true,
+    "missing_env_capture_does_not_unlock": true,
+    "passed_capture_requires_output_sha256": true,
+    "secret_store_capture_requires_cleanup": true,
+    "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true
+  },
+  "required_captures": [
+    {
+      "id": "cloudflare_resource_inventory",
+      "command": "npm run smoke:cloudflare-resources-live",
+      "script": "scripts/smoke-cloudflare-resources-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": false,
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "cloudflare_bindings_functional",
+      "command": "npm run smoke:cloudflare-bindings-wrangler-live",
+      "script": "scripts/smoke-cloudflare-bindings-wrangler-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": false,
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "ai_gateway_model_execution",
+      "command": "npm run smoke:ai-gateway-live",
+      "script": "scripts/smoke-ai-gateway-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": false,
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "ai_gateway_observability",
+      "command": "npm run smoke:ai-gateway-observability-live",
+      "script": "scripts/smoke-ai-gateway-observability-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": false,
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "observability_otlp_eval_store",
+      "command": "npm run smoke:observability-live",
+      "script": "scripts/smoke-observability-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": false,
+      "blocks_sprint0_4_checkbox": true
+    },
+    {
+      "id": "provider_secret_store_rotation",
+      "command": "npm run smoke:provider-secret-stores-live",
+      "script": "scripts/smoke-provider-secret-stores-live.mjs",
+      "expected_success_status": "passed",
+      "cleanup_evidence_required": true,
+      "blocks_sprint0_4_checkbox": true
+    }
+  ],
+  "forbidden_fields": [
+    "authorization",
+    "api_key",
+    "token",
+    "secret",
+    "password",
+    "raw_response",
+    "raw_output",
+    "raw_prompt",
+    "raw_model_output",
+    "otlp_headers",
+    "env_file_contents",
+    "account_id",
+    "resource_id",
+    "env_value"
+  ],
+  "not_claimed": [
+    "live_smoke_outputs_captured",
+    "all_live_smokes_passed",
+    "sprint0_4_live_smoke_checkbox_complete"
+  ]
+}

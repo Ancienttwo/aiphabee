@@ -379,6 +379,7 @@ function validatePackageScripts(value) {
     "check:cloudflare-resource-live-readiness": "node scripts/check-cloudflare-resource-live-readiness.mjs",
     "check:live-smoke-defaults": "node scripts/check-live-smoke-defaults.mjs",
     "check:live-smoke-external-env-preflight": "node scripts/check-live-smoke-external-env-preflight.mjs",
+    "check:live-smoke-capture-artifacts": "node scripts/check-live-smoke-capture-artifacts-contract.mjs",
     "check:live-smoke-evidence-ledger": "node scripts/check-live-smoke-evidence-ledger-contract.mjs",
     "check:live-smoke-evidence-ledger-fixtures": "node scripts/check-live-smoke-evidence-ledger-fixtures.mjs",
     "check:model-provider-live-readiness": "node scripts/check-model-provider-live-readiness.mjs",
@@ -404,6 +405,10 @@ function validatePackageScripts(value) {
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-external-env-preflight")) {
     errors.push("root check must include check:live-smoke-external-env-preflight");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-artifacts")) {
+    errors.push("root check must include check:live-smoke-capture-artifacts");
   }
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-evidence-ledger-fixtures")) {
