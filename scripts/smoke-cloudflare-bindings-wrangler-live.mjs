@@ -72,6 +72,7 @@ if (dryRun) {
         "durable_object_state_smoke",
         "workflow_instance_execution",
         "cron_handler_smoke",
+        "cron_natural_trigger_evidence",
         "hyperdrive_select_1_smoke",
         "ai_gateway_model_request_smoke"
       ],
@@ -410,6 +411,7 @@ async function smokeWorkerRuntimeBindings() {
       kvNamespaceId
     });
     ({ secretDir, secretFilePath } = await writeAiGatewayLiveSmokeSecretsFile());
+    const naturalCronAfterIssuedAt = new Date().toISOString();
     const deployResult = await runWrangler([
       "deploy",
       "--config",
@@ -455,6 +457,13 @@ async function smokeWorkerRuntimeBindings() {
           failureCode: "cron_worker_runtime_prerequisite_failed",
           key: maintenanceCron,
           surface: "cron_handler_smoke"
+        }),
+        failedResult({
+          bindingName: "AIPHABEE_MAINTENANCE_CRON",
+          detail: "worker runtime URL missing before natural cron evidence smoke",
+          failureCode: "cron_natural_worker_runtime_prerequisite_failed",
+          key: maintenanceCron,
+          surface: "cron_natural_trigger_evidence"
         }),
         failedResult({
           bindingName: "AIPHABEE_HYPERDRIVE",
@@ -507,6 +516,13 @@ async function smokeWorkerRuntimeBindings() {
           surface: "cron_handler_smoke"
         }),
         failedResult({
+          bindingName: "AIPHABEE_MAINTENANCE_CRON",
+          detail: "worker runtime binding smoke failed before natural cron evidence smoke",
+          failureCode: "cron_natural_worker_runtime_prerequisite_failed",
+          key: maintenanceCron,
+          surface: "cron_natural_trigger_evidence"
+        }),
+        failedResult({
           bindingName: "AIPHABEE_HYPERDRIVE",
           detail: "worker runtime binding smoke failed before Hyperdrive smoke",
           failureCode: "hyperdrive_worker_runtime_prerequisite_failed",
@@ -529,6 +545,7 @@ async function smokeWorkerRuntimeBindings() {
       await smokeDurableObjectState(workerUrl),
       await smokeWorkflowInstanceExecution(workerUrl),
       await smokeCronHandler(workerUrl),
+      await smokeCronNaturalTriggerEvidence(workerUrl, naturalCronAfterIssuedAt),
       hyperdriveLookupFailure ?? (await smokeHyperdriveSelectOne(workerUrl)),
       await smokeAiGatewayModelRequest(workerUrl)
     ];
@@ -568,6 +585,13 @@ async function smokeWorkerRuntimeBindings() {
         failureCode: "cron_worker_runtime_command_failed",
         key: maintenanceCron,
         surface: "cron_handler_smoke"
+      }),
+      failedResult({
+        bindingName: "AIPHABEE_MAINTENANCE_CRON",
+        detail: error instanceof Error ? error.message : String(error),
+        failureCode: "cron_natural_worker_runtime_command_failed",
+        key: maintenanceCron,
+        surface: "cron_natural_trigger_evidence"
       }),
       failedResult({
         bindingName: "AIPHABEE_HYPERDRIVE",
@@ -835,6 +859,67 @@ async function smokeCronHandler(workerUrl) {
     status: "passed",
     surface: "cron_handler_smoke"
   };
+}
+
+async function smokeCronNaturalTriggerEvidence(workerUrl, afterIssuedAt) {
+  const maxAttempts = parsePositiveInteger(process.env.CRON_NATURAL_SMOKE_MAX_ATTEMPTS, 3);
+  const intervalMs = parsePositiveInteger(process.env.CRON_NATURAL_SMOKE_INTERVAL_MS, 10_000);
+  let lastBody;
+  let lastStatus = 0;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetch(`${workerUrl}/cloudflare/cron/natural-evidence`, {
+      body: JSON.stringify({
+        after_issued_at: afterIssuedAt
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-aiphabee-smoke": runtimeSmokeHeaderValue,
+        "x-request-id": `req-${smokeId}`
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+    lastBody = body;
+    lastStatus = response.status;
+
+    if (response.status === 200 && body?.status === "ok") {
+      return {
+        binding_name: "AIPHABEE_MAINTENANCE_CRON",
+        operation_count:
+          typeof body.cron_result?.operation_count === "number" ? body.cron_result.operation_count : 1,
+        response_hash: hasValue(body.response_hash)
+          ? body.response_hash
+          : hashString(JSON.stringify(body.cron_result ?? {})),
+        status: "passed",
+        surface: "cron_natural_trigger_evidence"
+      };
+    }
+
+    if (attempt < maxAttempts) {
+      await sleep(intervalMs);
+    }
+  }
+
+  return failedResult({
+    bindingName: "AIPHABEE_MAINTENANCE_CRON",
+    detail: JSON.stringify({
+      attempt_count: maxAttempts,
+      cron_result: lastBody?.cron_result
+        ? {
+            failure_code: lastBody.cron_result.failure_code,
+            status: lastBody.cron_result.status,
+            surface: lastBody.cron_result.surface
+          }
+        : undefined,
+      http_status: lastStatus,
+      missing_bindings: Array.isArray(lastBody?.missing_bindings) ? lastBody.missing_bindings : [],
+      status: lastBody?.status
+    }),
+    failureCode: "cron_natural_trigger_evidence_missing",
+    key: maintenanceCron,
+    surface: "cron_natural_trigger_evidence"
+  });
 }
 
 async function smokeHyperdriveSelectOne(workerUrl) {
@@ -1305,6 +1390,16 @@ function hashString(value) {
 
 function hasValue(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
 }
 
 function emit(payload, exitCode) {

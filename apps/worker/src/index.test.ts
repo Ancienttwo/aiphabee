@@ -7082,6 +7082,78 @@ describe("worker runtime", () => {
     });
   });
 
+  it("rejects the natural Cron evidence route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/cron/natural-evidence", {
+      headers: {
+        "x-request-id": "req-cloudflare-cron-natural-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-cron-natural-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/cron/natural-evidence",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing KV for the natural Cron evidence route", async () => {
+    const response = await app.request("/cloudflare/cron/natural-evidence", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-cron-natural-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareCronSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_CONFIG"]);
+    expect(body.cron_result).toMatchObject({
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      failure_code: "missing_kv_binding",
+      status: "missing_binding",
+      surface: "cron_natural_trigger_evidence"
+    });
+  });
+
+  it("reports missing retained evidence for the natural Cron evidence route", async () => {
+    const { env, kvStore } = createCronSmokeEnv();
+    const response = await app.request(
+      "/cloudflare/cron/natural-evidence",
+      {
+        body: "null",
+        headers: {
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-cron-natural-marker-missing"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareCronSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual([]);
+    expect(body.cron_result).toMatchObject({
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      failure_code: "cron_natural_evidence_missing",
+      status: "failed",
+      surface: "cron_natural_trigger_evidence"
+    });
+    expect(kvStore.size).toBe(0);
+    expect(serialized).not.toContain("/runtime/cron-natural/latest");
+    expect(serialized).not.toContain("*/30 * * * *");
+  });
+
   it("rejects the Hyperdrive smoke route without the smoke header", async () => {
     const response = await app.request("/cloudflare/hyperdrive/smoke", {
       headers: {
@@ -7184,8 +7256,68 @@ describe("worker runtime", () => {
     expect(waitUntil).toHaveBeenCalledTimes(1);
     expect(kv.put).toHaveBeenCalledTimes(1);
     expect(kv.get).toHaveBeenCalledTimes(1);
-    expect(kv.delete).toHaveBeenCalledTimes(1);
-    expect(kvStore.size).toBe(0);
+    expect(kv.delete).not.toHaveBeenCalled();
+    expect(kvStore.size).toBe(1);
+    expect([...kvStore.keys()][0]).toContain("/runtime/cron-natural/latest");
+  });
+
+  it("reads retained natural Cron trigger evidence without exposing the raw key", async () => {
+    const { env, kvStore } = createCronSmokeEnv();
+    const tasks: Promise<unknown>[] = [];
+
+    app.scheduled(
+      {
+        cron: "*/30 * * * *",
+        scheduledTime: Date.parse("2026-06-22T00:00:00.000Z"),
+        type: "scheduled"
+      },
+      env,
+      {
+        waitUntil(task: Promise<unknown>) {
+          tasks.push(task);
+        }
+      }
+    );
+
+    await Promise.all(tasks);
+
+    const response = await app.request(
+      "/cloudflare/cron/natural-evidence",
+      {
+        body: JSON.stringify({
+          after_issued_at: "2020-01-01T00:00:00.000Z"
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+          "x-request-id": "req-cloudflare-cron-natural-ok"
+        },
+        method: "POST"
+      },
+      env
+    );
+    const body = (await response.json()) as CloudflareCronSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      missing_bindings: [],
+      request_id: "req-cloudflare-cron-natural-ok",
+      route: "POST /cloudflare/cron/natural-evidence",
+      status: "ok",
+      synthetic_prefix: "aiphabee-smoke"
+    });
+    expect(body.cron_result).toMatchObject({
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      operation_count: 1,
+      status: "passed",
+      surface: "cron_natural_trigger_evidence"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(kvStore.size).toBe(1);
+    expect(serialized).not.toContain("/runtime/cron-natural/latest");
+    expect(serialized).not.toContain("*/30 * * * *");
   });
 
   it("keeps the root route inside the scaffold-only boundary", async () => {

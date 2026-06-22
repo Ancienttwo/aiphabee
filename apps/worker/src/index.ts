@@ -477,7 +477,7 @@ interface CloudflareCronSmokeResult {
   operation_count?: number;
   scheduled_time_hash?: string;
   status: CloudflareBindingSmokeStatus;
-  surface: "cron_handler_smoke";
+  surface: "cron_handler_smoke" | "cron_natural_trigger_evidence";
   value_hash?: string;
 }
 
@@ -687,17 +687,19 @@ const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
 const CLOUDFLARE_BINDING_SMOKE_HEADER = "x-aiphabee-smoke";
 const CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE = "cloudflare-bindings-runtime-v1";
 const CLOUDFLARE_BINDING_SMOKE_ROUTE = "/cloudflare/bindings/smoke";
+const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
 const CLOUDFLARE_DURABLE_OBJECT_SMOKE_ROUTE = "/cloudflare/durable-objects/smoke";
 const CLOUDFLARE_DURABLE_OBJECT_SMOKE_KIND = "aiphabee.durable-object.smoke.v1";
 const CLOUDFLARE_WORKFLOW_SMOKE_ROUTE = "/cloudflare/workflows/smoke";
 const CLOUDFLARE_WORKFLOW_SMOKE_KIND = "aiphabee.workflow.smoke.v1";
 const CLOUDFLARE_CRON_SMOKE_ROUTE = "/cloudflare/cron/smoke";
+const CLOUDFLARE_CRON_NATURAL_EVIDENCE_ROUTE = "/cloudflare/cron/natural-evidence";
 const CLOUDFLARE_CRON_SMOKE_KIND = "aiphabee.cron.smoke.v1";
 const CLOUDFLARE_MAINTENANCE_CRON = "*/30 * * * *";
+const CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron-natural/latest`;
 const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
-const CLOUDFLARE_BINDING_SMOKE_PREFIX = "aiphabee-smoke";
 const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_QUEUE_SMOKE_POLL_MS = 500;
 const CLOUDFLARE_WORKFLOW_SMOKE_MAX_ATTEMPTS = 20;
@@ -931,6 +933,51 @@ app.post(CLOUDFLARE_CRON_SMOKE_ROUTE, async (c) => {
     missing_bindings: cronResult.status === "missing_binding" ? ["AIPHABEE_CONFIG"] : [],
     request_id: requestId,
     route: `POST ${CLOUDFLARE_CRON_SMOKE_ROUTE}`,
+    status: cronResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    cronResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_CRON_NATURAL_EVIDENCE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_CRON_NATURAL_EVIDENCE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const parsedBody = (await c.req.json().catch(() => ({}))) as unknown;
+  const body = isPlainRecord(parsedBody) ? parsedBody : {};
+  const afterIssuedAt =
+    typeof body.after_issued_at === "string"
+      ? body.after_issued_at
+      : typeof body.afterIssuedAt === "string"
+        ? body.afterIssuedAt
+        : undefined;
+  const cronResult = await readCloudflareCronNaturalEvidence(c.env ?? {}, afterIssuedAt);
+  const bodyWithoutHash = {
+    cron_result: cronResult,
+    missing_bindings: cronResult.status === "missing_binding" ? ["AIPHABEE_CONFIG"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_CRON_NATURAL_EVIDENCE_ROUTE}`,
     status: cronResult.status === "passed" ? "ok" : "failed",
     synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
   };
@@ -8649,16 +8696,24 @@ async function runCloudflareWorkflowSmoke(env: WorkerBindings): Promise<Cloudfla
 
 async function runCloudflareCronSmoke(
   env: WorkerBindings,
-  controller: RuntimeScheduledController
+  controller: RuntimeScheduledController,
+  options: {
+    evidenceKey?: string;
+    retainEvidence?: boolean;
+    surface?: CloudflareCronSmokeResult["surface"];
+  } = {}
 ): Promise<CloudflareCronSmokeResult> {
   const config = env.AIPHABEE_CONFIG;
+  const surface = options.surface ?? "cron_handler_smoke";
 
   if (!isRuntimeKvNamespace(config)) {
-    return missingCloudflareCronResult("missing_kv_binding");
+    return missingCloudflareCronResult("missing_kv_binding", surface);
   }
 
   const smokeId = crypto.randomUUID();
-  const evidenceKey = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron/${smokeId}`;
+  const evidenceKey =
+    options.evidenceKey ?? `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron/${smokeId}`;
+  const issuedAt = new Date().toISOString();
   const valueHash = await hashRuntimeSmokeString(
     `${CLOUDFLARE_CRON_SMOKE_KIND}:${controller.cron}:${controller.scheduledTime}`
   );
@@ -8668,7 +8723,9 @@ async function runCloudflareCronSmoke(
       evidenceKey,
       JSON.stringify({
         cron_hash: await hashRuntimeSmokeString(controller.cron),
+        issued_at: issuedAt,
         kind: CLOUDFLARE_CRON_SMOKE_KIND,
+        scheduled_time_ms: controller.scheduledTime,
         scheduled_time_hash: await hashRuntimeSmokeString(String(controller.scheduledTime)),
         status: "executed",
         type: controller.type ?? "scheduled",
@@ -8683,31 +8740,114 @@ async function runCloudflareCronSmoke(
         detail: "cron smoke evidence was not readable after write",
         evidenceKey,
         failureCode: "cron_evidence_read_mismatch",
-        scheduledTime: controller.scheduledTime
+        scheduledTime: controller.scheduledTime,
+        surface
       });
     }
 
-    await config.delete(evidenceKey);
+    if (options.retainEvidence !== true) {
+      await config.delete(evidenceKey);
+    }
 
     return {
       binding_name: "AIPHABEE_MAINTENANCE_CRON",
       cron_hash: await hashRuntimeSmokeString(controller.cron),
       evidence_key_hash: await hashRuntimeSmokeString(evidenceKey),
-      operation_count: 3,
+      operation_count: options.retainEvidence === true ? 2 : 3,
       scheduled_time_hash: await hashRuntimeSmokeString(String(controller.scheduledTime)),
       status: "passed",
-      surface: "cron_handler_smoke",
+      surface,
       value_hash: valueHash
     };
   } catch (error) {
-    await config.delete(evidenceKey).catch(() => undefined);
+    if (options.retainEvidence !== true) {
+      await config.delete(evidenceKey).catch(() => undefined);
+    }
 
     return failedCloudflareCronResult({
       cron: controller.cron,
       detail: error instanceof Error ? error.message : String(error),
       evidenceKey,
       failureCode: "cron_handler_failed",
-      scheduledTime: controller.scheduledTime
+      scheduledTime: controller.scheduledTime,
+      surface
+    });
+  }
+}
+
+async function readCloudflareCronNaturalEvidence(
+  env: WorkerBindings,
+  afterIssuedAt?: string
+): Promise<CloudflareCronSmokeResult> {
+  const config = env.AIPHABEE_CONFIG;
+  const surface = "cron_natural_trigger_evidence";
+  const evidenceKey = CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY;
+
+  if (!isRuntimeKvNamespace(config)) {
+    return missingCloudflareCronResult("missing_kv_binding", surface);
+  }
+
+  try {
+    const evidence = await config.get(evidenceKey);
+
+    if (evidence === null) {
+      return failedCloudflareCronResult({
+        cron: CLOUDFLARE_MAINTENANCE_CRON,
+        detail: "cron natural trigger evidence marker was not found",
+        evidenceKey,
+        failureCode: "cron_natural_evidence_missing",
+        scheduledTime: 0,
+        surface
+      });
+    }
+
+    const parsed = JSON.parse(evidence) as unknown;
+
+    if (!isCloudflareCronEvidenceRecord(parsed)) {
+      return failedCloudflareCronResult({
+        cron: CLOUDFLARE_MAINTENANCE_CRON,
+        detail: "cron natural trigger evidence marker had invalid shape",
+        evidenceKey,
+        failureCode: "cron_natural_evidence_invalid",
+        scheduledTime: 0,
+        surface
+      });
+    }
+
+    if (typeof afterIssuedAt === "string" && afterIssuedAt.length > 0) {
+      const issuedAtMs = Date.parse(parsed.issued_at);
+      const thresholdMs = Date.parse(afterIssuedAt);
+
+      if (!Number.isFinite(issuedAtMs) || !Number.isFinite(thresholdMs) || issuedAtMs < thresholdMs) {
+        return failedCloudflareCronResult({
+          cron: CLOUDFLARE_MAINTENANCE_CRON,
+          detail: "cron natural trigger evidence predates requested threshold",
+          evidenceKey,
+          failureCode: "cron_natural_evidence_stale",
+          scheduledTime: parsed.scheduled_time_ms,
+          surface
+        });
+      }
+    }
+
+    return {
+      binding_name: "AIPHABEE_MAINTENANCE_CRON",
+      cron_hash: parsed.cron_hash,
+      evidence_key_hash: await hashRuntimeSmokeString(evidenceKey),
+      operation_count: 1,
+      scheduled_time_hash: parsed.scheduled_time_hash,
+      status: "passed",
+      surface,
+      value_hash: parsed.value_hash
+    };
+  } catch (error) {
+    return failedCloudflareCronResult({
+      cron: CLOUDFLARE_MAINTENANCE_CRON,
+      detail: error instanceof Error ? error.message : String(error),
+      evidenceKey,
+      failureCode: "cron_natural_evidence_read_failed",
+      scheduledTime: 0,
+      surface
     });
   }
 }
@@ -8767,7 +8907,11 @@ function handleCloudflareScheduled(
   env: WorkerBindings,
   ctx: RuntimeExecutionContext
 ): void {
-  const task = runCloudflareCronSmoke(env, controller).then((result) => {
+  const task = runCloudflareCronSmoke(env, controller, {
+    evidenceKey: CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY,
+    retainEvidence: true,
+    surface: "cron_natural_trigger_evidence"
+  }).then((result) => {
     if (result.status !== "passed") {
       throw new Error(`Cloudflare cron smoke failed: ${result.failure_code ?? "unknown"}`);
     }
@@ -8829,12 +8973,15 @@ function missingWorkflowSmokeBindings(result: CloudflareWorkflowSmokeResult): st
   return ["AIPHABEE_RESEARCH_WORKFLOW"];
 }
 
-function missingCloudflareCronResult(failureCode: string): CloudflareCronSmokeResult {
+function missingCloudflareCronResult(
+  failureCode: string,
+  surface: CloudflareCronSmokeResult["surface"] = "cron_handler_smoke"
+): CloudflareCronSmokeResult {
   return {
     binding_name: "AIPHABEE_MAINTENANCE_CRON",
     failure_code: failureCode,
     status: "missing_binding",
-    surface: "cron_handler_smoke"
+    surface
   };
 }
 
@@ -8944,13 +9091,15 @@ async function failedCloudflareCronResult({
   detail,
   evidenceKey,
   failureCode,
-  scheduledTime
+  scheduledTime,
+  surface = "cron_handler_smoke"
 }: {
   cron: string;
   detail: string;
   evidenceKey: string;
   failureCode: string;
   scheduledTime: number;
+  surface?: CloudflareCronSmokeResult["surface"];
 }): Promise<CloudflareCronSmokeResult> {
   return {
     binding_name: "AIPHABEE_MAINTENANCE_CRON",
@@ -8960,7 +9109,7 @@ async function failedCloudflareCronResult({
     failure_code: failureCode,
     scheduled_time_hash: await hashRuntimeSmokeString(String(scheduledTime)),
     status: "failed",
-    surface: "cron_handler_smoke"
+    surface
   };
 }
 
@@ -9130,6 +9279,33 @@ function isCloudflareWorkflowSmokePayload(value: unknown): value is CloudflareWo
     value.evidence_key.startsWith(`${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/workflow/`) &&
     typeof value.issued_at === "string" &&
     typeof value.smoke_id === "string" &&
+    typeof value.value_hash === "string" &&
+    value.value_hash.startsWith("sha256:")
+  );
+}
+
+function isCloudflareCronEvidenceRecord(value: unknown): value is {
+  cron_hash: string;
+  issued_at: string;
+  kind: typeof CLOUDFLARE_CRON_SMOKE_KIND;
+  scheduled_time_hash: string;
+  scheduled_time_ms: number;
+  status: "executed";
+  type: string;
+  value_hash: string;
+} {
+  return (
+    isPlainRecord(value) &&
+    value.kind === CLOUDFLARE_CRON_SMOKE_KIND &&
+    typeof value.cron_hash === "string" &&
+    value.cron_hash.startsWith("sha256:") &&
+    typeof value.issued_at === "string" &&
+    typeof value.scheduled_time_hash === "string" &&
+    value.scheduled_time_hash.startsWith("sha256:") &&
+    typeof value.scheduled_time_ms === "number" &&
+    Number.isFinite(value.scheduled_time_ms) &&
+    value.status === "executed" &&
+    typeof value.type === "string" &&
     typeof value.value_hash === "string" &&
     value.value_hash.startsWith("sha256:")
   );

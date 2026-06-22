@@ -8,9 +8,9 @@ This slice records partial Sprint 0.4 Cloudflare external provisioning and
 partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
 smoke, schema-bound eval-store record smoke readiness, Queue publish/consume
 smoke, Durable Object state smoke, Workflow instance execution smoke, Cron
-handler smoke, Hyperdrive `SELECT 1` readiness route/harness, and deployed
-Worker AI Gateway model request smoke without claiming complete Cloudflare
-binding smoke.
+handler smoke, Cron natural evidence collector/readiness, Hyperdrive readiness
+route/harness for `SELECT 1`, and deployed Worker AI Gateway model request
+smoke without claiming complete Cloudflare binding smoke.
 
 ## P1 Architecture Map
 
@@ -29,9 +29,10 @@ binding smoke.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: Hyperdrive resource completion, natural Cron trigger evidence,
-  passing Hyperdrive `SELECT 1`, AI Gateway cost/cache/rate-limit/fallback log
-  verification, OTLP export, or rotating provider secrets.
+- Out of scope: Hyperdrive resource completion, natural Cron trigger live
+  observation, passing Hyperdrive `SELECT 1`, AI Gateway
+  cost/cache/rate-limit/fallback log verification, OTLP export, or rotating
+  provider secrets.
 
 ## P2 Concrete Trace
 
@@ -86,18 +87,23 @@ binding smoke.
     exercises the shared `scheduled` handler logic with KV evidence cleanup.
     This proves handler/config smoke, not that a natural scheduled event has
     already fired.
-17. The temporary config injects `AI_GATEWAY_NAME`, `AI_GATEWAY_SMOKE_MODEL`,
+17. Natural scheduled handler execution writes a stable KV marker at the
+    Cron natural evidence key. Guarded `POST
+    /cloudflare/cron/natural-evidence` reads that marker, verifies
+    `issued_at >= after_issued_at`, and returns only hashes/status/counts.
+    The Wrangler smoke polls this route with configurable attempts/interval.
+18. The temporary config injects `AI_GATEWAY_NAME`, `AI_GATEWAY_SMOKE_MODEL`,
     and `CLOUDFLARE_ACCOUNT_ID` as non-secret vars and uploads
     `AI_GATEWAY_LIVE_SMOKE_TOKEN` through Wrangler `--secrets-file`. `POST
     /agent/model-provider/live-smoke` runs Cloudflare AI Gateway
     OpenAI-compatible `generateText` and `streamText`, requires exact synthetic
     output, and returns only hashes/status/counts. The smoke script deletes the
     dedicated temporary Worker secret after the route call.
-18. The Worker also exposes guarded `POST /cloudflare/hyperdrive/smoke`. When a
+19. The Worker also exposes guarded `POST /cloudflare/hyperdrive/smoke`. When a
     real Hyperdrive config exists, the Wrangler smoke resolves the config ID by
     names-only `aiphabee-hyperdrive`, writes it only into the temporary deleted
     Wrangler config, and binds it as `AIPHABEE_HYPERDRIVE`.
-19. The Hyperdrive route uses `pg` with `env.AIPHABEE_HYPERDRIVE.connectionString`
+20. The Hyperdrive route uses `pg` with `env.AIPHABEE_HYPERDRIVE.connectionString`
     and runs read-only `SELECT 1 AS hyperdrive_smoke_result`; output is reduced
     to hashes, row count, operation count, and status.
 
@@ -108,11 +114,12 @@ coherent update is to record the resources that now exist and prove
 resource-level KV/R2/D1 write-read-delete through Wrangler, upgrade D1 smoke to
 write/read a prompt-free eval-store record, prove Worker runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
 consumer, prove Durable Object state put/get/delete, prove Workflow
-`create()`/KV evidence, prove Cron handler/config execution, add a guarded
-Hyperdrive `SELECT 1` route plus temporary binding harness, and prove the
-deployed Worker AI Gateway model request path while keeping the overall
-resource smoke item unchecked until Hyperdrive live evidence and natural Cron
-evidence are complete.
+`create()`/KV evidence, prove Cron handler/config execution, add the natural
+Cron evidence collector/route/polling harness, add a guarded Hyperdrive
+`SELECT 1` route plus temporary binding harness, and prove the deployed Worker
+AI Gateway model request path while keeping the overall resource smoke item
+unchecked until Hyperdrive live evidence and natural Cron live event evidence
+are complete.
 
 At 10x scale this fails first on partial provisioning and token scope drift:
 some resources may exist while D1/Durable Object list permissions are missing.
@@ -135,6 +142,8 @@ return before the instance has reached a terminal state.
 - `node scripts/smoke-cloudflare-resources-live.mjs` with real env
 - `node scripts/smoke-cloudflare-bindings-wrangler-live.mjs --dry-run`
 - `CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... AI_GATEWAY_NAME=... AI_GATEWAY_SMOKE_MODEL=... npm run smoke:cloudflare-bindings-wrangler-live`
+- Optional natural Cron wait tuning:
+  `CRON_NATURAL_SMOKE_MAX_ATTEMPTS=... CRON_NATURAL_SMOKE_INTERVAL_MS=...`
 - `npm run check:bindings`
 - `npm run check:env`
 
@@ -175,6 +184,11 @@ completed the following names-only provisioning and verification:
 - Cron passed deployed `triggers.crons` config plus scheduled handler KV
   evidence through `POST /cloudflare/cron/smoke`; output contained only hashes,
   status fields, and operation counts.
+- Natural Cron evidence readiness now exists: the real `scheduled` handler
+  retains a stable KV marker, `POST /cloudflare/cron/natural-evidence` checks
+  it against `after_issued_at`, and the Wrangler functional smoke polls that
+  route with hash-only output. No deploy-after natural scheduled event has been
+  observed or claimed.
 - Hyperdrive guarded route and harness are implemented: `POST
   /cloudflare/hyperdrive/smoke` runs `SELECT 1 AS hyperdrive_smoke_result`
   through `pg` when `AIPHABEE_HYPERDRIVE` is bound; the temporary Wrangler smoke
@@ -183,16 +197,17 @@ completed the following names-only provisioning and verification:
 
 Hyperdrive remains unprovisioned because it requires a Postgres origin decision
 before safe creation; the new route/harness does not claim a live `SELECT 1`
-pass. Natural Cron trigger evidence and AI Gateway cost/cache/rate-limit/fallback
-log verification are not claimed by this slice.
+pass. Natural Cron trigger live event evidence and AI Gateway
+cost/cache/rate-limit/fallback log verification are not claimed by this slice.
 
 ## Residual Gaps
 
 - Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
   required resource classes are provisioned.
-- Functional binding smoke remains unchecked: Hyperdrive route/harness exists,
-  but Hyperdrive config/origin, live `SELECT 1`, and natural Cron trigger
-  evidence are not claimed.
+- Functional binding smoke remains unchecked: Cron natural evidence
+  collector/route/polling exists, but no deploy-after natural event has been
+  observed; Hyperdrive route/harness exists, but Hyperdrive config/origin and
+  live `SELECT 1` are not claimed.
 - AI Gateway model request smoke passed, but request/cost/cache/rate-limit and
   fallback log evidence is still owned by the model-provider/A5 slice.
 - Eval-store record write/read smoke is implemented in the guarded route and

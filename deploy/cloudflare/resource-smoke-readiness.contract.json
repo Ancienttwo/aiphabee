@@ -248,7 +248,7 @@
       {
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "surface": "cron_natural_trigger_evidence",
-        "reason": "cron handler and deploy config smoke passed, but natural scheduled event evidence is not claimed"
+        "reason": "guarded natural-evidence route and KV marker collector exist, but no natural scheduled event has been observed after deployment"
       },
       {
         "binding_name": "AIPHABEE_HYPERDRIVE",
