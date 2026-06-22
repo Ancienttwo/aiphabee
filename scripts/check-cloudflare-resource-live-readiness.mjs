@@ -611,6 +611,8 @@ function validateFunctionalSmokeScript(value) {
     "durable_object_state_smoke",
     "workflow_instance_execution",
     "cron_handler_smoke",
+    "aiphabee_eval_store_smoke",
+    "record_json",
     "hyperdrive_select_1_smoke",
     "ai_gateway_model_request_smoke",
     "AI_GATEWAY_LIVE_SMOKE_TOKEN",

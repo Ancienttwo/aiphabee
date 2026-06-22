@@ -6,10 +6,11 @@ Date: 2026-06-22
 
 This slice records partial Sprint 0.4 Cloudflare external provisioning and
 partial resource-level functional smoke plus Worker runtime KV/R2/D1 binding
-smoke, Queue publish/consume smoke, Durable Object state smoke, Workflow
-instance execution smoke, Cron handler smoke, Hyperdrive `SELECT 1` readiness
-route/harness, and deployed Worker AI Gateway model request smoke without claiming complete
-Cloudflare binding smoke.
+smoke, schema-bound eval-store record smoke readiness, Queue publish/consume
+smoke, Durable Object state smoke, Workflow instance execution smoke, Cron
+handler smoke, Hyperdrive `SELECT 1` readiness route/harness, and deployed
+Worker AI Gateway model request smoke without claiming complete Cloudflare
+binding smoke.
 
 ## P1 Architecture Map
 
@@ -55,7 +56,7 @@ Cloudflare binding smoke.
    authenticated CLI session for live-only synthetic operations:
    - KV namespace title lookup, then key put/get/delete;
    - R2 object put/get/delete;
-   - D1 synthetic table create/insert/select/delete/drop.
+   - D1 synthetic eval-store record table create/insert/select/delete/drop.
 10. Functional smoke output contains hashes and status fields only; it does not
     emit account ids, namespace ids, object keys, raw values, or raw command
     output.
@@ -64,8 +65,9 @@ Cloudflare binding smoke.
     `aiphabee-worker` with KV/R2/D1 bindings, and calls
     `POST /cloudflare/bindings/smoke`.
 12. The Worker route requires `x-aiphabee-smoke`, performs synthetic KV
-    put/get/delete, R2 put/get/delete, and D1 create/insert/select/delete/drop,
-    then returns only status, operation counts, missing bindings, and hashes.
+    put/get/delete, R2 put/get/delete, and D1 eval-store record
+    create/insert/select/delete/drop, then returns only status, operation
+    counts, missing bindings, and hashes.
 13. The temporary Worker config also attaches `AIPHABEE_EVENTS_QUEUE` as a
     producer and one-message Worker consumer. `POST /cloudflare/queues/smoke`
     sends a synthetic message, the queue handler writes a KV evidence marker,
@@ -103,8 +105,8 @@ Cloudflare binding smoke.
 
 The existing binding contract is intentionally names-only. The smallest
 coherent update is to record the resources that now exist and prove
-resource-level KV/R2/D1 write-read-delete through Wrangler, prove Worker
-runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
+resource-level KV/R2/D1 write-read-delete through Wrangler, upgrade D1 smoke to
+write/read a prompt-free eval-store record, prove Worker runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
 consumer, prove Durable Object state put/get/delete, prove Workflow
 `create()`/KV evidence, prove Cron handler/config execution, add a guarded
 Hyperdrive `SELECT 1` route plus temporary binding harness, and prove the
@@ -121,9 +123,10 @@ contracts do not become secret or environment ledgers.
 
 Wrangler functional smoke also fails first on eventual consistency and cleanup
 gaps. The KV check therefore retries reads briefly, and all mutating operations
-use synthetic `aiphabee-smoke` keys/objects/rows with cleanup. Workflow
-execution also uses KV evidence because `create()` may return before the
-instance has reached a terminal state.
+use synthetic `aiphabee-smoke` keys/objects/rows with cleanup. The D1 eval-store
+record smoke writes a synthetic `record_json` only and drops the smoke table
+after readback. Workflow execution also uses KV evidence because `create()` may
+return before the instance has reached a terminal state.
 
 ## Verification Surface
 
@@ -152,9 +155,11 @@ completed the following names-only provisioning and verification:
 - R2 `aiphabee-artifacts` passed synthetic object put/get/delete through
   Wrangler.
 - D1 `AIPHABEE_EVAL_STORE` passed synthetic create/insert/select/delete/drop
-  through Wrangler.
+  through Wrangler; the current script now writes the same surface as a
+  prompt-free eval-store record and awaits a post-upgrade live rerun.
 - Worker `POST /cloudflare/bindings/smoke` passed runtime KV/R2/D1 binding
-  smoke through a temporary no-id Wrangler config; output contained only hashes,
+  smoke through a temporary no-id Wrangler config; the current D1 route writes
+  and reads a schema-bound eval-store smoke record and returns only hashes,
   status fields, and operation counts.
 - Worker `POST /cloudflare/queues/smoke` passed Queue publish/consume smoke
   through a temporary no-id Wrangler config with `AIPHABEE_EVENTS_QUEUE` as
@@ -190,4 +195,7 @@ log verification are not claimed by this slice.
   evidence are not claimed.
 - AI Gateway model request smoke passed, but request/cost/cache/rate-limit and
   fallback log evidence is still owned by the model-provider/A5 slice.
+- Eval-store record write/read smoke is implemented in the guarded route and
+  Wrangler functional script, but the post-upgrade live rerun, OTLP export,
+  retention, and dashboard evidence are not claimed.
 - Provider secret rotation/revocation remains unchecked.

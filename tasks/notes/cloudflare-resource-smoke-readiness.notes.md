@@ -15,6 +15,9 @@
 - Added a live-only Wrangler functional smoke for KV, R2, and D1.
 - Added a guarded Worker runtime binding smoke route and extended the Wrangler
   smoke to deploy `aiphabee-worker` with temporary KV/R2/D1 bindings.
+- Upgraded the D1 smoke implementation to write/read/delete a prompt-free
+  `run.eval` eval-store record in `aiphabee_eval_store_smoke` instead of a
+  generic value-only row.
 - Added a guarded Queue publish/consume smoke route and module Worker queue
   handler, with temporary producer/consumer config and KV evidence cleanup.
 - Added `AiphaBeeRunCoordinator` Durable Object plus a guarded state smoke route
@@ -45,6 +48,8 @@
   create/insert/select/delete/drop.
 - Worker `POST /cloudflare/bindings/smoke` passed runtime KV/R2/D1 binding
   smoke with sanitized hashes/status/operation counts only.
+- The current D1 smoke path is schema-bound to eval-store record fields and
+  awaits a post-upgrade live rerun with Cloudflare env/account selection.
 - Worker `POST /cloudflare/queues/smoke` passed Queue publish/consume through
   a temporary Worker consumer and sanitized hashes/status/operation counts only.
 - Durable Object `AiphaBeeRunCoordinator` passed migration and
@@ -73,8 +78,8 @@
 - No Hyperdrive `SELECT 1` pass was observed or claimed.
 - No AI Gateway request/cost/cache/rate-limit/fallback log evidence was
   verified.
-- No OTLP export, product eval-store write/read, or provider secret rotation
-  smoke was executed.
+- No OTLP export, product eval-store continuous write path, retention/dashboard
+  evidence, or provider secret rotation smoke was executed.
 
 ## Verification
 

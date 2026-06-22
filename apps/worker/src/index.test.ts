@@ -6327,7 +6327,20 @@ interface FakeD1Statement {
 function createRuntimeBindingSmokeEnv() {
   const kvStore = new Map<string, string>();
   const r2Store = new Map<string, string>();
-  const d1Store = new Map<string, string>();
+  const d1Store = new Map<
+    string,
+    {
+      event_version: string;
+      failed_check_count: number;
+      record_json: string;
+      request_id: string;
+      result: string;
+      route: string;
+      run_id: string;
+      schema_version: string;
+      wvro_eligible: number;
+    }
+  >();
   const kv = {
     delete: vi.fn(async (key: string) => {
       kvStore.delete(key);
@@ -6365,14 +6378,24 @@ function createRuntimeBindingSmokeEnv() {
         },
         first: async <T = Record<string, unknown>>() => {
           if (sql.startsWith("SELECT")) {
-            return { value: d1Store.get(String(bindings[0])) } as T;
+            return (d1Store.get(String(bindings[0])) ?? null) as T | null;
           }
 
           return null;
         },
         run: vi.fn(async () => {
           if (sql.startsWith("INSERT")) {
-            d1Store.set(String(bindings[0]), String(bindings[1]));
+            d1Store.set(String(bindings[0]), {
+              schema_version: String(bindings[1]),
+              event_version: String(bindings[2]),
+              request_id: String(bindings[3]),
+              run_id: String(bindings[4]),
+              route: String(bindings[5]),
+              result: String(bindings[6]),
+              failed_check_count: Number(bindings[7]),
+              wvro_eligible: Number(bindings[8]),
+              record_json: String(bindings[9])
+            });
           }
 
           if (sql.startsWith("DELETE")) {
@@ -6656,7 +6679,7 @@ describe("worker runtime", () => {
     expect(body.runtime_results.map((result) => `${result.binding_name}:${result.surface}`)).toEqual([
       "AIPHABEE_CONFIG:kv_runtime_put_get_delete",
       "AIPHABEE_ARTIFACTS:r2_runtime_put_get_delete",
-      "AIPHABEE_EVAL_STORE:d1_runtime_write_read_delete"
+      "AIPHABEE_EVAL_STORE:d1_eval_store_record_write_read_delete"
     ]);
     expect(body.runtime_results.map((result) => result.operation_count)).toEqual([3, 3, 5]);
     expect(kv.put).toHaveBeenCalledTimes(1);
@@ -6666,11 +6689,11 @@ describe("worker runtime", () => {
     expect(r2.get).toHaveBeenCalledTimes(1);
     expect(r2.delete).toHaveBeenCalledTimes(1);
     expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("CREATE TABLE"));
-    expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("SELECT value"));
+    expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("record_json"));
     expect(d1.prepare).toHaveBeenCalledWith(expect.stringContaining("DROP TABLE"));
     expect(serialized).not.toContain("/runtime/kv/");
     expect(serialized).not.toContain("/runtime/r2/");
-    expect(serialized).not.toContain("aiphabee_smoke_runtime");
+    expect(serialized).not.toContain("aiphabee_eval_store_smoke");
   });
 
   it("rejects the Cloudflare queue smoke route without the smoke header", async () => {

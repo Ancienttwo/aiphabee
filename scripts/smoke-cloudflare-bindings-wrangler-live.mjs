@@ -43,6 +43,9 @@ const requiredResourceNames = [
   "hyperdrive_config"
 ];
 const runtimeSmokeHeaderValue = "cloudflare-bindings-runtime-v1";
+const observabilityEventVersion = "2026-06-20.phase0.observability.v0";
+const evalStoreSchemaVersion = "2026-06-20.phase0.eval-store.v0";
+const evalV1Version = "2026-06-21.phase1.eval-v1-wvro-scaffold.v0";
 
 for (const field of requiredForbiddenOutputFields) {
   if (!forbiddenOutputFields.includes(field)) {
@@ -63,7 +66,7 @@ if (dryRun) {
       operations: [
         "kv_put_get_delete",
         "r2_put_get_delete",
-        "d1_create_insert_select_delete_drop",
+        "d1_eval_write_read_delete",
         "worker_runtime_binding_smoke",
         "queue_publish_consume_smoke",
         "durable_object_state_smoke",
@@ -260,13 +263,55 @@ async function smokeR2() {
 }
 
 async function smokeD1() {
-  const table = "aiphabee_smoke_live";
-  const value = `d1-${smokeId}`;
+  const table = "aiphabee_eval_store_smoke";
+  const record = createEvalStoreSmokeRecord(smokeId);
+  const recordJson = JSON.stringify(record);
   const sql = [
-    `CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, value TEXT, created_at TEXT)`,
-    `INSERT OR REPLACE INTO ${table} (id, value, created_at) VALUES ('${smokeId}', '${value}', datetime('now'))`,
-    `SELECT value FROM ${table} WHERE id = '${smokeId}'`,
-    `DELETE FROM ${table} WHERE id = '${smokeId}'`,
+    `CREATE TABLE IF NOT EXISTS ${table} (` +
+      [
+        "event_id TEXT PRIMARY KEY",
+        "schema_version TEXT NOT NULL",
+        "event_version TEXT NOT NULL",
+        "request_id TEXT NOT NULL",
+        "run_id TEXT NOT NULL",
+        "route TEXT NOT NULL",
+        "result TEXT NOT NULL",
+        "failed_check_count INTEGER NOT NULL",
+        "wvro_eligible INTEGER NOT NULL",
+        "record_json TEXT NOT NULL",
+        "created_at TEXT NOT NULL"
+      ].join(", ") +
+      ")",
+    `INSERT OR REPLACE INTO ${table} (` +
+      [
+        "event_id",
+        "schema_version",
+        "event_version",
+        "request_id",
+        "run_id",
+        "route",
+        "result",
+        "failed_check_count",
+        "wvro_eligible",
+        "record_json",
+        "created_at"
+      ].join(", ") +
+      `) VALUES (${[
+        record.event_id,
+        record.schema_version,
+        record.event_version,
+        record.request_id,
+        record.run_id,
+        record.route,
+        record.result,
+        String(record.failed_check_count),
+        record.wvro_eligible ? "1" : "0",
+        recordJson
+      ]
+        .map(sqlLiteral)
+        .join(", ")}, datetime('now'))`,
+    `SELECT schema_version, result, record_json FROM ${table} WHERE event_id = ${sqlLiteral(record.event_id)}`,
+    `DELETE FROM ${table} WHERE event_id = ${sqlLiteral(record.event_id)}`,
     `DROP TABLE IF EXISTS ${table}`
   ].join("; ");
 
@@ -282,13 +327,24 @@ async function smokeD1() {
     ]);
     const parsed = JSON.parse(result.stdout);
     const rows = Array.isArray(parsed) ? parsed.flatMap((item) => item.results ?? []) : [];
-    const selected = rows.some((row) => row?.value === value);
+    const selected = rows.some((row) => {
+      const parsedRecord =
+        typeof row?.record_json === "string" ? safeParseJson(row.record_json) : undefined;
+
+      return (
+        row?.schema_version === record.schema_version &&
+        row?.result === record.result &&
+        isRecord(parsedRecord) &&
+        parsedRecord.event_id === record.event_id &&
+        parsedRecord.schema_version === record.schema_version
+      );
+    });
 
     if (!selected) {
       return failedResult({
         bindingName: "AIPHABEE_EVAL_STORE",
-        detail: "d1 select did not return written value",
-        failureCode: "d1_select_mismatch",
+        detail: "d1 select did not return written eval-store record",
+        failureCode: "d1_eval_store_select_mismatch",
         key: table,
         surface: "d1_eval_write_read_delete"
       });
@@ -300,7 +356,7 @@ async function smokeD1() {
       status: "passed",
       surface: "d1_eval_write_read_delete",
       table_hash: hashString(table),
-      value_hash: hashString(value)
+      value_hash: hashString(recordJson)
     };
   } catch (error) {
     await runWrangler(
@@ -1078,6 +1134,76 @@ function normalizeCloudflareItems(value) {
   }
 
   return [];
+}
+
+function createEvalStoreSmokeRecord(id) {
+  const requestId = `req-${id}`;
+  const runId = `run-${id}`;
+  const eventId = `${requestId}:run.eval`;
+
+  return {
+    check_count: 3,
+    checks: [
+      {
+        name: "registered_tool_allowlist",
+        status: "pass"
+      },
+      {
+        name: "model_call_blocked",
+        status: "pass"
+      },
+      {
+        name: "evidence_binding",
+        status: "not_applicable"
+      }
+    ],
+    emitted_at: new Date().toISOString(),
+    environment: "cloudflare_smoke",
+    event_id: eventId,
+    event_version: observabilityEventVersion,
+    evidence_binding: "not_applicable",
+    eval_v1_version: evalV1Version,
+    failed_check_count: 0,
+    high_intent_actions: [],
+    outcome: "success",
+    quality_metrics: [
+      "fact_accuracy",
+      "calculation_accuracy",
+      "citation_accuracy",
+      "correct_refusal_rate"
+    ].map((metricId) => ({
+      metric_id: metricId,
+      passed: 0,
+      rate: null,
+      source: "eval_set_v1",
+      status: "planned",
+      total: 0
+    })),
+    request_id: requestId,
+    result: "pass",
+    route: "/cloudflare/bindings/smoke",
+    run_id: runId,
+    schema_version: evalStoreSchemaVersion,
+    service: "aiphabee-worker",
+    wvro_eligible: false,
+    wvro_week_start: "runtime_as_of_unresolved"
+  };
+}
+
+function sqlLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function safeParseJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function runWrangler(args, options = {}) {

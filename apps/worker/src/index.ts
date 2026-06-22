@@ -174,6 +174,7 @@ import {
   WVRO_HIGH_INTENT_ACTIONS,
   createAgentDryRunTelemetry,
   createConsoleTelemetrySink,
+  createEvalStoreRecord,
   createEvalV1RunRecord,
   createLoadDrIncidentDrillReleaseGatePlan,
   createPerformanceAvailabilityReleaseGatePlan,
@@ -181,6 +182,7 @@ import {
   getLoadDrIncidentDrillReleaseGateCapabilities,
   getPerformanceAvailabilityReleaseGateCapabilities,
   type AgentDryRunTelemetryInput,
+  type EvalStoreRecord,
   type EvalV1MetricInput,
   type LoadDrIncidentDrillEvidenceInput,
   type PerformanceAvailabilityObservationInput,
@@ -399,7 +401,7 @@ interface CloudflareBindingSmokeResult {
   operation_count?: number;
   status: CloudflareBindingSmokeStatus;
   surface:
-    | "d1_runtime_write_read_delete"
+    | "d1_eval_store_record_write_read_delete"
     | "kv_runtime_put_get_delete"
     | "r2_runtime_put_get_delete";
   table_hash?: string;
@@ -8456,48 +8458,90 @@ async function smokeRuntimeR2(value: unknown): Promise<CloudflareBindingSmokeRes
 
 async function smokeRuntimeD1(value: unknown): Promise<CloudflareBindingSmokeResult> {
   const bindingName = "AIPHABEE_EVAL_STORE";
-  const surface = "d1_runtime_write_read_delete";
+  const surface = "d1_eval_store_record_write_read_delete";
 
   if (!isRuntimeD1Database(value)) {
     return missingCloudflareBindingResult(bindingName, surface);
   }
 
-  const table = "aiphabee_smoke_runtime";
+  const table = "aiphabee_eval_store_smoke";
   const rowKey = crypto.randomUUID();
-  const storedValue = JSON.stringify({
-    route: CLOUDFLARE_BINDING_SMOKE_ROUTE,
-    surface,
-    version: 1
-  });
+  const record = createRuntimeEvalStoreSmokeRecord(rowKey);
+  const storedValue = JSON.stringify(record);
 
   try {
     await value
       .prepare(
         `CREATE TABLE IF NOT EXISTS ${table} (` +
-          "id TEXT PRIMARY KEY, value TEXT NOT NULL, created_at TEXT NOT NULL" +
+          [
+            "event_id TEXT PRIMARY KEY",
+            "schema_version TEXT NOT NULL",
+            "event_version TEXT NOT NULL",
+            "request_id TEXT NOT NULL",
+            "run_id TEXT NOT NULL",
+            "route TEXT NOT NULL",
+            "result TEXT NOT NULL",
+            "failed_check_count INTEGER NOT NULL",
+            "wvro_eligible INTEGER NOT NULL",
+            "record_json TEXT NOT NULL",
+            "created_at TEXT NOT NULL"
+          ].join(", ") +
           ")"
       )
       .run();
     await value
-      .prepare(`INSERT OR REPLACE INTO ${table} (id, value, created_at) VALUES (?, ?, datetime('now'))`)
-      .bind(rowKey, storedValue)
+      .prepare(
+        `INSERT OR REPLACE INTO ${table} (` +
+          [
+            "event_id",
+            "schema_version",
+            "event_version",
+            "request_id",
+            "run_id",
+            "route",
+            "result",
+            "failed_check_count",
+            "wvro_eligible",
+            "record_json",
+            "created_at"
+          ].join(", ") +
+          ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))"
+      )
+      .bind(
+        record.event_id,
+        record.schema_version,
+        record.event_version,
+        record.request_id,
+        record.run_id,
+        record.route,
+        record.result,
+        record.failed_check_count,
+        record.wvro_eligible ? 1 : 0,
+        storedValue
+      )
       .run();
     const selected = await value
-      .prepare(`SELECT value FROM ${table} WHERE id = ?`)
-      .bind(rowKey)
-      .first<{ value?: string }>();
+      .prepare(
+        `SELECT schema_version, result, record_json FROM ${table} WHERE event_id = ?`
+      )
+      .bind(record.event_id)
+      .first<{ record_json?: string; result?: string; schema_version?: string }>();
 
-    if (selected?.value !== storedValue) {
+    if (
+      selected?.record_json !== storedValue ||
+      selected.result !== record.result ||
+      selected.schema_version !== EVAL_STORE_SCHEMA_VERSION
+    ) {
       return failedCloudflareBindingResult({
         bindingName,
-        detail: "d1 select did not return written value",
-        failureCode: "d1_runtime_select_mismatch",
+        detail: "d1 select did not return written eval-store record",
+        failureCode: "d1_eval_store_select_mismatch",
         key: table,
         surface
       });
     }
 
-    await value.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(rowKey).run();
+    await value.prepare(`DELETE FROM ${table} WHERE event_id = ?`).bind(record.event_id).run();
     await value.prepare(`DROP TABLE IF EXISTS ${table}`).run();
 
     return {
@@ -8519,6 +8563,20 @@ async function smokeRuntimeD1(value: unknown): Promise<CloudflareBindingSmokeRes
       surface
     });
   }
+}
+
+function createRuntimeEvalStoreSmokeRecord(smokeId: string): EvalStoreRecord {
+  const [, evalEvent] = createAgentDryRunTelemetry({
+    environment: "cloudflare_smoke",
+    maxSteps: 1,
+    outcome: "success",
+    requestId: `req-${smokeId}`,
+    requestedTools: ["resolve_security"],
+    route: CLOUDFLARE_BINDING_SMOKE_ROUTE,
+    runId: `run-${smokeId}`
+  });
+
+  return createEvalStoreRecord(evalEvent);
 }
 
 async function runCloudflareWorkflowSmoke(env: WorkerBindings): Promise<CloudflareWorkflowSmokeResult> {

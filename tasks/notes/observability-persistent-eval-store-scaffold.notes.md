@@ -1,6 +1,6 @@
 # Notes: observability-persistent-eval-store-scaffold
 
-> **Last Updated**: 2026-06-20 16:00 +08
+> **Last Updated**: 2026-06-22 08:35 +08
 > **Plan**: `plans/plan-observability-persistent-eval-store-scaffold.md`
 > **Runtime Evidence**:
 > `docs/governance/observability-persistent-eval-store-scaffold.md`
@@ -15,6 +15,9 @@
 - Split tracker wording so live destination/write smoke remains unchecked.
 - Recorded that the D1 resource exists by name while Worker binding writes stay
   disabled.
+- Later Cloudflare smoke readiness upgraded the guarded D1 path to write/read a
+  prompt-free `run.eval` eval-store record in `aiphabee_eval_store_smoke`, then
+  delete/drop the synthetic smoke table. Product runtime writes remain disabled.
 
 ## Verification
 
@@ -24,13 +27,15 @@
 - Passed: `npm run test`
 - Passed: `npm run typecheck`
 - Passed: `npm run check`
+- Passed: `node scripts/smoke-cloudflare-bindings-wrangler-live.mjs --dry-run`
 - Passed: Wrangler smoke for `GET /observability/runtime`
 - Passed: `scripts/check-task-workflow.sh --strict`
 
 ## Residual Blockers
 
 - No real OTLP endpoint/header is configured.
-- No Worker D1 binding write/read path is configured.
-- No product eval-store write/read smoke or dashboard exists; D1 resource-level
-  synthetic write/read has passed in the Cloudflare resource smoke slice.
+- No product eval-store write path or dashboard exists; D1 resource-level
+  synthetic write/read has passed in the Cloudflare resource smoke slice, and
+  the eval-record-specific smoke path is implemented but awaits a live rerun
+  with Cloudflare env/account selection.
 - Real token/cost/latency metrics remain blocked until model calls exist.
