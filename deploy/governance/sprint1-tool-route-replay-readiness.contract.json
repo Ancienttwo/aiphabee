@@ -1,0 +1,172 @@
+{
+  "version": "2026-06-22.phase1.tool-route-replay-readiness.v0",
+  "status": "blocked_live_route_replay",
+  "prd_source": "docs/researches/AiphaBee_PRD_v1.0.md#9.2",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md#sprint-12--tool-registry--原子数据工具--证据血缘",
+  "checker": "scripts/check-tool-route-replay-readiness-contract.mjs",
+  "fixture_checker": "scripts/check-tool-route-replay-readiness-fixtures.mjs",
+  "p0_tool_count": 16,
+  "golden_fixture_count": 16,
+  "linked_contracts": {
+    "p0_tool_catalog": "deploy/tools/p0-tool-catalog.contract.json",
+    "tool_registry": "deploy/tools/registry.contract.json",
+    "tool_schemas": "deploy/tools/tool-schemas.contract.json",
+    "mcp_schema_validation": "deploy/mcp/tool-schema-validation.contract.json",
+    "mcp_versioning": "deploy/mcp/tool-versioning.contract.json",
+    "mcp_usage_envelope": "deploy/mcp/usage-envelope.contract.json",
+    "mcp_pagination_limits": "deploy/mcp/pagination-limits.contract.json",
+    "mcp_protocol_release_gate": "deploy/mcp/protocol-release-gate.contract.json",
+    "agent_tool_enforcement": "deploy/agent/tool-enforcement.contract.json",
+    "evidence_lineage_tools": "deploy/tools/evidence-lineage.contract.json",
+    "evidence_lineage_service": "deploy/evidence/service.contract.json",
+    "golden_tool_manifest": "tests/golden/tools/manifest.json"
+  },
+  "route_replay_policy": {
+    "local_catalog_consistency_ready": true,
+    "local_schema_contract_ready": true,
+    "local_golden_fixture_ready": true,
+    "no_live_posture_guarded": true,
+    "mcp_live_protocol_execution": false,
+    "runtime_schema_serving": false,
+    "live_route_replay": false,
+    "live_db_writes": false,
+    "partner_source_rows": false,
+    "release_transition_allowed": false
+  },
+  "validated_surfaces": [
+    {
+      "id": "p0_catalog",
+      "contract": "deploy/tools/p0-tool-catalog.contract.json",
+      "command": "npm run check:p0-tool-catalog",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "tool_registry",
+      "contract": "deploy/tools/registry.contract.json",
+      "command": "npm run check:tool-registry",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "tool_schemas",
+      "contract": "deploy/tools/tool-schemas.contract.json",
+      "command": "npm run check:tool-schemas",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_schema_validation",
+      "contract": "deploy/mcp/tool-schema-validation.contract.json",
+      "command": "npm run check:mcp-tool-schema-validation",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_versioning",
+      "contract": "deploy/mcp/tool-versioning.contract.json",
+      "command": "npm run check:mcp-tool-versioning",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_usage_envelope",
+      "contract": "deploy/mcp/usage-envelope.contract.json",
+      "command": "npm run check:mcp-usage-envelope",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_pagination_limits",
+      "contract": "deploy/mcp/pagination-limits.contract.json",
+      "command": "npm run check:mcp-pagination-limits",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_protocol_release_gate",
+      "contract": "deploy/mcp/protocol-release-gate.contract.json",
+      "command": "npm run check:mcp-protocol-release-gate",
+      "expected_status": "local_contract",
+      "expected_count": 0
+    },
+    {
+      "id": "agent_tool_enforcement",
+      "contract": "deploy/agent/tool-enforcement.contract.json",
+      "command": "npm run check:tool-enforcement",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "evidence_lineage_tools",
+      "contract": "deploy/tools/evidence-lineage.contract.json",
+      "command": "npm run check:evidence-lineage",
+      "expected_status": "local_contract",
+      "expected_count": 2
+    },
+    {
+      "id": "evidence_lineage_service",
+      "contract": "deploy/evidence/service.contract.json",
+      "command": "npm run check:evidence-service",
+      "expected_status": "local_contract",
+      "expected_count": 0
+    },
+    {
+      "id": "golden_fixtures",
+      "contract": "tests/golden/tools/manifest.json",
+      "command": "npm run test:golden",
+      "expected_status": "tool-golden-fixtures-version=2026-06-21.phase1.v0",
+      "expected_count": 16
+    }
+  ],
+  "blockers": [
+    {
+      "id": "mcp_live_protocol_execution",
+      "source_contract": "deploy/mcp/protocol-release-gate.contract.json",
+      "source_field": "live_tool_execution",
+      "current_value": false,
+      "required_evidence": ["live_mcp_tools_call_smoke", "auth_enforced_before_tool_execution"],
+      "release_blocker": true
+    },
+    {
+      "id": "runtime_schema_serving",
+      "source_contract": "deploy/tools/tool-schemas.contract.json",
+      "source_field": "runtime_schema_serving",
+      "current_value": false,
+      "required_evidence": ["runtime_schema_endpoint_smoke", "mcp_tools_list_schema_snapshot"],
+      "release_blocker": true
+    },
+    {
+      "id": "live_route_replay",
+      "source_contract": "tests/golden/tools/manifest.json",
+      "source_field": "live_route_replay",
+      "current_value": false,
+      "required_evidence": ["server_orchestrated_route_replay", "golden_vs_route_response_diff"],
+      "release_blocker": true
+    },
+    {
+      "id": "live_db_writes",
+      "source_contract": "deploy/evidence/service.contract.json",
+      "source_field": "live_db_writes",
+      "current_value": false,
+      "required_evidence": ["evidence_record_insert_smoke", "source_ref_insert_smoke"],
+      "release_blocker": true
+    },
+    {
+      "id": "partner_source_rows",
+      "source_contract": "deploy/evidence/service.contract.json",
+      "source_field": "partner_source_records_loaded",
+      "current_value": false,
+      "required_evidence": ["partner_source_record_sample_manifest", "data_owner_source_row_signoff"],
+      "release_blocker": true
+    }
+  ],
+  "not_claimed": [
+    "sprint1_2_exit_dod_complete",
+    "mcp_live_protocol_execution",
+    "runtime_schema_serving",
+    "live_route_replay",
+    "live_db_writes",
+    "partner_source_rows"
+  ]
+}
