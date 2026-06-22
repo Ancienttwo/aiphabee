@@ -26,6 +26,35 @@ const requiredHashFields = [
   "build_output_hash",
   "review_summary_hash"
 ];
+const requiredAcceptanceCommands = [
+  "npm run check:frontend-release-evidence-packets",
+  "npm run check:frontend-release-evidence-packet-fixtures",
+  "npm run check:frontend-release-evidence-handoff",
+  "npm run check:p0-open-requirement-transition-review",
+  "npm run check:sprint-completion-audit",
+  "npm run check:sprint-exit-gate-transition-review",
+  "npm run check:mainline-publication-readiness"
+];
+const requiredForbiddenPayloads = [
+  "raw_screenshot",
+  "base64_screenshot",
+  "raw_dom",
+  "raw_html",
+  "raw_prompt",
+  "raw_generated_answer",
+  "raw_response",
+  "raw_api_key",
+  "oauth_access_token",
+  "oauth_refresh_token",
+  "raw_console_payload",
+  "connection_string",
+  "hyperdrive_connection_string",
+  "account_id",
+  "workspace_id",
+  "payment_identifier",
+  "personal_contact",
+  "env_value"
+];
 const requiredLinkedContracts = [
   "deploy/governance/mainline-publication-readiness.contract.json",
   "deploy/governance/p0-open-requirement-audit.contract.json",
@@ -45,7 +74,7 @@ const templateDirectoryExists =
 const templateFiles = templateDirectoryExists ? listTemplatePacketFiles(templateDirectory) : [];
 const errors = [
   ...validateContract(contract),
-  ...validatePackageScripts(packageJson),
+  ...validatePackageScripts(packageJson, contract),
   ...validateDocs(contract, tracker, todos, templateReadme, packetReadme),
   ...validateLinkedContracts(contract),
   ...validateTemplates(contract, packageJson, templateDirectoryExists, templateFiles)
@@ -96,6 +125,7 @@ function validateContract(value) {
   expectArray(errors, value.required_surface_ids, requiredSurfaceIds, "required_surface_ids");
   expectArray(errors, value.required_hash_fields, requiredHashFields, "required_hash_fields");
   expectArray(errors, value.linked_contracts, requiredLinkedContracts, "linked_contracts");
+  validateIntakeReadiness(errors, value);
 
   if (!Array.isArray(value.required_surfaces) || value.required_surfaces.length !== requiredSurfaceIds.length) {
     errors.push("required_surfaces must contain 6 frontend surfaces");
@@ -127,7 +157,57 @@ function validateContract(value) {
   return errors;
 }
 
-function validatePackageScripts(value) {
+function validateIntakeReadiness(errors, value) {
+  const readiness = value.intake_readiness;
+
+  if (!readiness || typeof readiness !== "object") {
+    errors.push("intake_readiness must exist");
+    return;
+  }
+
+  expectEqual(errors, readiness.status, "ready_for_claude_packet_intake", "intake_readiness.status");
+  expectEqual(errors, readiness.packet_directory_ready, true, "intake_readiness.packet_directory_ready");
+  expectArray(errors, readiness.acceptance_commands, requiredAcceptanceCommands, "intake_readiness.acceptance_commands");
+
+  for (const payload of requiredForbiddenPayloads) {
+    expectIncludes(errors, readiness.forbidden_payloads, payload, `intake_readiness.forbidden_payloads.${payload}`);
+    expectIncludes(errors, value.forbidden_fields, payload, `forbidden_fields.${payload}`);
+  }
+
+  if (!Array.isArray(readiness.required_packets) || readiness.required_packets.length !== requiredSurfaceIds.length) {
+    errors.push("intake_readiness.required_packets must contain 6 frontend packet contracts");
+    return;
+  }
+
+  const surfaceMap = new Map((value.required_surfaces ?? []).map((surface) => [surface.surface_id, surface]));
+  const packetMap = new Map(readiness.required_packets.map((packet) => [packet.surface_id, packet]));
+
+  for (const surfaceId of requiredSurfaceIds) {
+    const surface = surfaceMap.get(surfaceId);
+    const packet = packetMap.get(surfaceId);
+
+    if (!surface) {
+      errors.push(`intake_readiness cannot validate ${surfaceId}; required surface is missing`);
+      continue;
+    }
+
+    if (!packet) {
+      errors.push(`intake_readiness.required_packets missing ${surfaceId}`);
+      continue;
+    }
+
+    expectEqual(errors, packet.owner_kind, "claude_frontend", `intake_readiness.${surfaceId}.owner_kind`);
+    expectEqual(errors, packet.packet_file, `${surfaceId}.evidence.json`, `intake_readiness.${surfaceId}.packet_file`);
+    expectEqual(errors, packet.template_file, `${surfaceId}.evidence.json`, `intake_readiness.${surfaceId}.template_file`);
+    expectEqual(errors, packet.expected_packet_status, "missing_frontend_evidence", `intake_readiness.${surfaceId}.expected_packet_status`);
+    expectIncludes(errors, packet.blocking_manifest_ids, "frontend_release_evidence", `intake_readiness.${surfaceId}.blocking_manifest_ids`);
+    expectArray(errors, packet.sprints, surface.sprints, `intake_readiness.${surfaceId}.sprints`);
+    expectArray(errors, packet.requirement_codes, surface.requirement_codes, `intake_readiness.${surfaceId}.requirement_codes`);
+    expectArray(errors, packet.required_evidence, surface.required_evidence, `intake_readiness.${surfaceId}.required_evidence`);
+  }
+}
+
+function validatePackageScripts(value, contract) {
   const errors = [];
   const scripts = value?.scripts ?? {};
   const expected = {
@@ -142,6 +222,20 @@ function validatePackageScripts(value) {
     }
     if (!String(scripts.check ?? "").includes(`npm run ${name}`)) {
       errors.push(`root check must include ${name}`);
+    }
+  }
+
+  for (const command of contract.intake_readiness?.acceptance_commands ?? []) {
+    const scriptName = command.replace(/^npm run /, "");
+
+    if (!requiredAcceptanceCommands.includes(command)) {
+      errors.push(`intake readiness command is not allowed: ${command}`);
+    }
+    if (!scripts[scriptName]) {
+      errors.push(`package.json ${scriptName} script is missing for frontend evidence intake readiness`);
+    }
+    if (!String(scripts.check ?? "").includes(`npm run ${scriptName}`)) {
+      errors.push(`root check must include ${scriptName} for frontend evidence intake readiness`);
     }
   }
 
@@ -175,6 +269,20 @@ function validateDocs(value, trackerText, todosText, templateReadme, packetReadm
   for (const forbidden of ["raw screenshots", "raw API keys", "OAuth tokens", "Console payloads", "connection strings"]) {
     if (!packetReadme.includes(forbidden)) {
       errors.push(`packet README must warn against ${forbidden}`);
+    }
+  }
+
+  for (const fragment of [
+    "Frontend release evidence intake readiness",
+    "redacted_no_secrets",
+    "missing_evidence",
+    "artifact_hashes",
+    ...requiredHashFields,
+    ...requiredAcceptanceCommands,
+    ...requiredForbiddenPayloads
+  ]) {
+    if (!packetReadme.includes(fragment)) {
+      errors.push(`packet README missing intake readiness fragment: ${fragment}`);
     }
   }
 

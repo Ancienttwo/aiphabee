@@ -50,6 +50,144 @@
     "status": "missing_frontend_evidence|accepted|needs_redaction|rejected",
     "surface_id": "required frontend release surface id"
   },
+  "intake_readiness": {
+    "status": "ready_for_claude_packet_intake",
+    "packet_directory_ready": true,
+    "handoff_boundary": "Codex-owned governance only; frontend source implementation and visual review remain Claude-owned until redacted hash-only packets are copied into the packet directory.",
+    "acceptance_commands": [
+      "npm run check:frontend-release-evidence-packets",
+      "npm run check:frontend-release-evidence-packet-fixtures",
+      "npm run check:frontend-release-evidence-handoff",
+      "npm run check:p0-open-requirement-transition-review",
+      "npm run check:sprint-completion-audit",
+      "npm run check:sprint-exit-gate-transition-review",
+      "npm run check:mainline-publication-readiness"
+    ],
+    "forbidden_payloads": [
+      "raw_screenshot",
+      "base64_screenshot",
+      "raw_dom",
+      "raw_html",
+      "raw_prompt",
+      "raw_generated_answer",
+      "raw_response",
+      "raw_api_key",
+      "oauth_access_token",
+      "oauth_refresh_token",
+      "raw_console_payload",
+      "connection_string",
+      "hyperdrive_connection_string",
+      "account_id",
+      "workspace_id",
+      "payment_identifier",
+      "personal_contact",
+      "env_value"
+    ],
+    "required_packets": [
+      {
+        "surface_id": "agent_ask_progress_ui",
+        "owner_kind": "claude_frontend",
+        "packet_file": "agent_ask_progress_ui.evidence.json",
+        "template_file": "agent_ask_progress_ui.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["1.3"],
+        "requirement_codes": ["AGT-01"],
+        "required_evidence": [
+          "ask_route_rendered",
+          "public_progress_events_visible",
+          "live_or_guarded_stream_hash",
+          "keyboard_loading_error_states",
+          "redaction_review"
+        ]
+      },
+      {
+        "surface_id": "agent_evidence_card_ui",
+        "owner_kind": "claude_frontend",
+        "packet_file": "agent_evidence_card_ui.evidence.json",
+        "template_file": "agent_evidence_card_ui.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["1.3"],
+        "requirement_codes": ["AGT-07"],
+        "required_evidence": [
+          "clickable_evidence_cards_rendered",
+          "source_metadata_visible",
+          "missing_source_blocking_state",
+          "evidence_card_route_or_component_test",
+          "redaction_review"
+        ]
+      },
+      {
+        "surface_id": "comparison_screening_ui",
+        "owner_kind": "claude_frontend",
+        "packet_file": "comparison_screening_ui.evidence.json",
+        "template_file": "comparison_screening_ui.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["2.1"],
+        "requirement_codes": ["ANA-01", "ANA-03", "ANA-04"],
+        "required_evidence": [
+          "compare_two_to_five_securities_flow",
+          "screening_condition_editor_flow",
+          "why_and_rejected_reason_rendering",
+          "responsive_route_or_component_test",
+          "redaction_review"
+        ]
+      },
+      {
+        "surface_id": "research_library_ui",
+        "owner_kind": "claude_frontend",
+        "packet_file": "research_library_ui.evidence.json",
+        "template_file": "research_library_ui.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["2.2"],
+        "requirement_codes": ["RES-01", "RES-02"],
+        "required_evidence": [
+          "saved_research_library_rendered",
+          "run_snapshot_detail_rendered",
+          "replay_diff_state_rendered",
+          "private_share_entrypoints_guarded",
+          "redaction_review"
+        ]
+      },
+      {
+        "surface_id": "developer_console_ui",
+        "owner_kind": "claude_frontend",
+        "packet_file": "developer_console_ui.evidence.json",
+        "template_file": "developer_console_ui.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["2.3"],
+        "requirement_codes": ["MCP-09"],
+        "required_evidence": [
+          "connection_wizard_rendered",
+          "api_key_oauth_scope_quota_logs_rendered",
+          "request_id_and_usage_fields_visible",
+          "target_client_example_flow_rendered",
+          "redaction_review"
+        ]
+      },
+      {
+        "surface_id": "wcag_2_1_aa_audit",
+        "owner_kind": "claude_frontend",
+        "packet_file": "wcag_2_1_aa_audit.evidence.json",
+        "template_file": "wcag_2_1_aa_audit.evidence.json",
+        "expected_packet_status": "missing_frontend_evidence",
+        "blocking_manifest_ids": ["frontend_release_evidence"],
+        "sprints": ["3.2"],
+        "requirement_codes": ["WCAG-2.1-AA"],
+        "required_evidence": [
+          "keyboard_navigation_passed",
+          "high_contrast_or_contrast_audit_passed",
+          "chart_text_summary_passed",
+          "focus_and_form_state_audit_passed",
+          "redaction_review"
+        ]
+      }
+    ]
+  },
   "required_surfaces": [
     {
       "surface_id": "agent_ask_progress_ui",
@@ -168,6 +306,8 @@
   ],
   "required_tracker_fragments": [
     "Frontend release evidence handoff 已建立",
+    "Frontend release evidence packet intake readiness 已建立",
+    "| 2026-06-23 | 1.0ii | 完成 `frontend-release-evidence-packet-intake-readiness`",
     "比较器与筛选器 Web UI",
     "研究库 Web UI",
     "Developer Console：连接向导",
@@ -175,6 +315,7 @@
   ],
   "required_todos_fragments": [
     "Frontend release evidence handoff",
+    "Frontend release evidence packet intake readiness",
     "npm run check:frontend-release-evidence-packets",
     "Claude-owned frontend evidence"
   ],
