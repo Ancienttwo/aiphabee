@@ -1,0 +1,14 @@
+{
+  "id": "hkex_vendor_licensing_memo",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": ["Business / Partnerships", "Compliance / Counsel"],
+  "acceptance_checks": [
+    "partner_vendor_status_explicit",
+    "aiphabee_role_explicit",
+    "mcp_api_non_display_fee_class_explicit",
+    "subscriber_reporting_explicit",
+    "termination_obligations_explicit"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}

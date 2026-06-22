@@ -1,0 +1,20 @@
+{
+  "id": "gate0_signature_register",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": [
+    "CEO",
+    "Business / Partnerships",
+    "Data Owner",
+    "Compliance / Counsel",
+    "Privacy Owner",
+    "Engineering"
+  ],
+  "acceptance_checks": [
+    "all_required_roles_signed",
+    "decision_date_present",
+    "mcp_fallback_explicit",
+    "go_no_go_explicit"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}

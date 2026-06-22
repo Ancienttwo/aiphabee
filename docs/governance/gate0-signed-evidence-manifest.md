@@ -12,6 +12,7 @@ Machine-readable contract:
 ```bash
 npm run check:gate0-signed-evidence-manifest
 npm run check:gate0-signed-evidence-manifest-fixtures
+npm run check:gate0-signed-evidence-handoff
 ```
 
 ## Current State
@@ -47,6 +48,11 @@ The fixture checker validates both the current pending manifest and a complete
 accepted manifest, then asserts that partial release flags, accepted packets
 without refs, invalid SHA-256 refs, mismatched approval statuses, unredacted
 refs, and missing packets retaining active refs are rejected.
+
+Operator templates live in
+`deploy/governance/gate0-signed-evidence-templates/`. They validate as
+`missing` packets and list the exact packet order plus acceptance checks for
+later redacted external evidence intake.
 
 ## Runtime Transition Rule
 

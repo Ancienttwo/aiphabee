@@ -1,0 +1,14 @@
+{
+  "id": "pcpd_privacy_path_assessment",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": ["Privacy Owner"],
+  "acceptance_checks": [
+    "data_inventory_present",
+    "retention_schedule_present",
+    "vendor_model_risk_review_present",
+    "user_access_export_delete_path_present",
+    "incident_response_present"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}

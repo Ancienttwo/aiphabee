@@ -5,6 +5,9 @@
   "intake_contract": "deploy/governance/gate0-external-evidence-intake.contract.json",
   "decision_pack": "docs/governance/gate0-rights-regulatory-decision-pack.md",
   "manifest_doc": "docs/governance/gate0-signed-evidence-manifest.md",
+  "handoff_checker": "scripts/check-gate0-signed-evidence-handoff.mjs",
+  "template_directory": "deploy/governance/gate0-signed-evidence-templates",
+  "template_file_pattern": "<packet_id>.evidence.json",
   "external_approvals_complete": false,
   "release_transition_allowed": false,
   "runtime_default": "DEFAULT_DENY",
@@ -114,6 +117,8 @@
     "all_packets_have_evidence_refs": true,
     "all_refs_have_sha256": true,
     "no_ref_contains_secret_material": true,
+    "operator_handoff_templates_validate_as_missing_packets": true,
+    "operator_handoff_readme_lists_packet_order": true,
     "release_transition_sets_default_deny_exceptions_only_from_accepted_matrix": true,
     "sprint0_1_checkbox_may_be_checked_only_when_external_approvals_complete": true
   },

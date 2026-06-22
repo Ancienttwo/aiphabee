@@ -1,0 +1,14 @@
+{
+  "id": "field_rights_matrix",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": ["Business / Partnerships", "Data Owner"],
+  "acceptance_checks": [
+    "covers_all_p0_dataset_groups",
+    "covers_all_prd_14_1_dimensions",
+    "mcp_api_rights_explicit",
+    "export_cache_derived_rights_explicit",
+    "default_deny_for_unconfirmed_fields"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}

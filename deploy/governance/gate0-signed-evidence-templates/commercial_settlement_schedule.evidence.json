@@ -1,0 +1,14 @@
+{
+  "id": "commercial_settlement_schedule",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": ["Business / Partnerships", "Finance"],
+  "acceptance_checks": [
+    "dataset_channel_client_type_geography_present",
+    "usage_metric_present",
+    "delay_and_derived_data_treatment_present",
+    "reporting_cadence_present",
+    "overage_and_termination_economics_present"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}

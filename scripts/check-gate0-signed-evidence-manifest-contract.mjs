@@ -93,6 +93,18 @@ function validateManifest({ intake, manifest: value, packageJson, tracker }) {
     errors.push("manifest_doc must be docs/governance/gate0-signed-evidence-manifest.md");
   }
 
+  if (value.handoff_checker !== "scripts/check-gate0-signed-evidence-handoff.mjs") {
+    errors.push("handoff_checker must be scripts/check-gate0-signed-evidence-handoff.mjs");
+  }
+
+  if (value.template_directory !== "deploy/governance/gate0-signed-evidence-templates") {
+    errors.push("template_directory must be deploy/governance/gate0-signed-evidence-templates");
+  }
+
+  if (value.template_file_pattern !== "<packet_id>.evidence.json") {
+    errors.push("template_file_pattern must be <packet_id>.evidence.json");
+  }
+
   if (value.runtime_default !== "DEFAULT_DENY") {
     errors.push("runtime_default must be DEFAULT_DENY");
   }
@@ -107,7 +119,15 @@ function validateManifest({ intake, manifest: value, packageJson, tracker }) {
   errors.push(...validateCompletionPolicy(value.completion_policy));
   errors.push(...validateForbiddenClaims(value.forbidden_claims));
   errors.push(...validateTransitionState(value));
-  errors.push(...validateLinkedFiles([value.intake_contract, value.decision_pack, value.manifest_doc]));
+  errors.push(
+    ...validateLinkedFiles([
+      value.intake_contract,
+      value.decision_pack,
+      value.manifest_doc,
+      value.handoff_checker,
+      value.template_directory
+    ])
+  );
   errors.push(...validatePackageScript(packageJson));
   errors.push(...validateTracker(tracker));
   errors.push(...validateNoSecrets(value));
@@ -276,6 +296,8 @@ function validateCompletionPolicy(value) {
     all_packets_status: "accepted",
     all_refs_have_sha256: true,
     no_ref_contains_secret_material: true,
+    operator_handoff_readme_lists_packet_order: true,
+    operator_handoff_templates_validate_as_missing_packets: true,
     release_transition_sets_default_deny_exceptions_only_from_accepted_matrix: true,
     sprint0_1_checkbox_may_be_checked_only_when_external_approvals_complete: true
   };
@@ -337,11 +359,18 @@ function validatePackageScript(packageJson) {
     return ["package.json must expose check:gate0-signed-evidence-manifest-fixtures"];
   }
 
+  const handoffScript = packageJson?.scripts?.["check:gate0-signed-evidence-handoff"];
+
+  if (handoffScript !== "node scripts/check-gate0-signed-evidence-handoff.mjs") {
+    return ["package.json must expose check:gate0-signed-evidence-handoff"];
+  }
+
   const checkScript = String(packageJson?.scripts?.check ?? "");
 
   for (const requiredScript of [
     "npm run check:gate0-signed-evidence-manifest",
-    "npm run check:gate0-signed-evidence-manifest-fixtures"
+    "npm run check:gate0-signed-evidence-manifest-fixtures",
+    "npm run check:gate0-signed-evidence-handoff"
   ]) {
     if (!checkScript.includes(requiredScript)) {
       return [`package.json check script must include ${requiredScript}`];

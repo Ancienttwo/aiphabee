@@ -1,0 +1,14 @@
+{
+  "id": "type4_product_boundary_opinion",
+  "status": "missing",
+  "evidence_refs": [],
+  "required_approver_roles": ["Compliance / Counsel"],
+  "acceptance_checks": [
+    "actual_ux_reviewed",
+    "prompts_and_marketing_reviewed",
+    "pricing_and_mcp_behavior_reviewed",
+    "allowed_disallowed_feature_list_present",
+    "fallback_or_licensed_route_explicit"
+  ],
+  "blocks_sprint0_1_checkbox": true
+}
