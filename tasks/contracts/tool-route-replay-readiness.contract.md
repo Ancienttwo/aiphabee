@@ -22,7 +22,8 @@ replay by making the remaining blocker explicit and machine-checkable.
   - MCP runtime schema snapshot serving cross-check;
   - guarded MCP protocol tool execution smoke cross-check;
   - guarded Evidence live DB write smoke cross-check;
-  - partner-source posture validation;
+  - partner source row evidence packet gate cross-check;
+  - partner-source posture validation through hash-only/redacted packet policy;
   - fixture scenarios for early release, missing blockers, catalog drift, and
     checked DoD regressions;
   - tracker and deferred-ledger updates.
@@ -40,6 +41,7 @@ exit_criteria:
     - "Runtime schema serving is validated through mcp runtime schema snapshot"
     - "MCP protocol tool execution smoke is validated through the guarded smoke contract"
     - "Evidence live DB write smoke is validated through the guarded smoke contract"
+    - "Partner source row blocker points to partner_serving_rows_loaded evidence packet gate"
     - "release_transition_allowed remains false"
     - "All 16 P0 tools remain aligned across catalog/schema/MCP/golden/agent surfaces"
     - "Sprint 1.2 exit DoD remains unchecked"
@@ -49,6 +51,8 @@ exit_criteria:
     - npm run check:tool-route-replay-readiness-fixtures
     - npm run check:evidence-live-db-write-smoke
     - npm run check:mcp-protocol-tool-execution-smoke
+    - npm run check:sprint1-live-data-evidence-manifest
+    - npm run check:sprint1-live-data-evidence-packets
     - npm run check:p0-tool-catalog
     - npm run check:tool-schemas
     - npm run check:mcp-tool-schema-validation
@@ -66,6 +70,8 @@ exit_criteria:
 - Passing the readiness check means the blocked state is correctly represented.
 - It claims only guarded smoke DB writes, not partner row readiness or production
   Evidence persistence.
+- Partner rows remain blocked until an accepted `partner_serving_rows_loaded`
+  packet and data-platform signoff exist.
 
 ## Rollback Point
 

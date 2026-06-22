@@ -29,6 +29,7 @@ const baseContracts = {
   mcpUsageEnvelope: readJson("deploy/mcp/usage-envelope.contract.json"),
   mcpVersioning: readJson("deploy/mcp/tool-versioning.contract.json"),
   p0ToolCatalog: readJson("deploy/tools/p0-tool-catalog.contract.json"),
+  sprint1LiveDataEvidenceManifest: readJson("deploy/governance/sprint1-live-data-evidence-manifest.contract.json"),
   toolRouteReplay: readJson("deploy/governance/sprint1-tool-route-replay.contract.json"),
   toolRegistry: readJson("deploy/tools/registry.contract.json"),
   toolSchemas: readJson("deploy/tools/tool-schemas.contract.json")
@@ -82,6 +83,42 @@ const scenarios = [
         (surface) => surface.id !== "evidence_live_db_write_smoke"
       );
     })
+  },
+  {
+    expectedError: "validated_surfaces missing partner_source_rows_evidence_packet_gate",
+    expectValid: false,
+    name: "partner_source_rows_evidence_surface_missing",
+    readiness: mutate(baseReadiness, (readiness) => {
+      readiness.validated_surfaces = readiness.validated_surfaces.filter(
+        (surface) => surface.id !== "partner_source_rows_evidence_packet_gate"
+      );
+    })
+  },
+  {
+    expectedError: "partner source row evidence gate must remain missing until accepted evidence packet is reviewed",
+    expectValid: false,
+    name: "partner_source_rows_gate_claimed_without_readiness_update",
+    contracts: mutate(baseContracts, (contracts) => {
+      const gate = contracts.sprint1LiveDataEvidenceManifest.required_gates.find(
+        (candidate) => candidate.id === "partner_serving_rows_loaded"
+      );
+      gate.status = "accepted";
+    }),
+    readiness: baseReadiness
+  },
+  {
+    expectedError: "partner_serving_rows_loaded.required_evidence must include serving_dataset_rows",
+    expectValid: false,
+    name: "partner_source_rows_gate_evidence_drift",
+    contracts: mutate(baseContracts, (contracts) => {
+      const gate = contracts.sprint1LiveDataEvidenceManifest.required_gates.find(
+        (candidate) => candidate.id === "partner_serving_rows_loaded"
+      );
+      gate.required_evidence = gate.required_evidence.filter(
+        (item) => item !== "serving_dataset_rows"
+      );
+    }),
+    readiness: baseReadiness
   },
   {
     expectedError: "mcp protocol tool execution smoke must prove execution and pre-execution auth",

@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.phase1.tool-route-replay-readiness.v3",
+  "version": "2026-06-22.phase1.tool-route-replay-readiness.v4",
   "status": "blocked_partner_sources",
   "prd_source": "docs/researches/AiphaBee_PRD_v1.0.md#9.2",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md#sprint-12--tool-registry--原子数据工具--证据血缘",
@@ -23,6 +23,7 @@
     "evidence_lineage_tools": "deploy/tools/evidence-lineage.contract.json",
     "evidence_lineage_service": "deploy/evidence/service.contract.json",
     "evidence_live_db_write_smoke": "deploy/evidence/live-db-write-smoke.contract.json",
+    "sprint1_live_data_evidence_manifest": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
     "golden_tool_manifest": "tests/golden/tools/manifest.json"
   },
   "route_replay_policy": {
@@ -144,6 +145,13 @@
       "expected_count": 1
     },
     {
+      "id": "partner_source_rows_evidence_packet_gate",
+      "contract": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
+      "command": "npm run check:sprint1-live-data-evidence-manifest",
+      "expected_status": "pending_external_evidence",
+      "expected_count": 1
+    },
+    {
       "id": "golden_fixtures",
       "contract": "tests/golden/tools/manifest.json",
       "command": "npm run test:golden",
@@ -154,10 +162,10 @@
   "blockers": [
     {
       "id": "partner_source_rows",
-      "source_contract": "deploy/evidence/service.contract.json",
-      "source_field": "partner_source_records_loaded",
-      "current_value": false,
-      "required_evidence": ["partner_source_record_sample_manifest", "data_owner_source_row_signoff"],
+      "source_contract": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
+      "source_field": "required_gates.partner_serving_rows_loaded.status",
+      "current_value": "missing",
+      "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows", "data_platform_owner_signoff"],
       "release_blocker": true
     }
   ],

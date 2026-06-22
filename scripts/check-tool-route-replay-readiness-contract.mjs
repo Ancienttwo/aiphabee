@@ -7,7 +7,7 @@ const contractPath = "deploy/governance/sprint1-tool-route-replay-readiness.cont
 const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
-const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v3";
+const expectedVersion = "2026-06-22.phase1.tool-route-replay-readiness.v4";
 const requiredTools = [
   "resolve_security",
   "get_security_profile",
@@ -40,6 +40,7 @@ const requiredLinkedContracts = {
   mcp_usage_envelope: "deploy/mcp/usage-envelope.contract.json",
   mcp_versioning: "deploy/mcp/tool-versioning.contract.json",
   p0_tool_catalog: "deploy/tools/p0-tool-catalog.contract.json",
+  sprint1_live_data_evidence_manifest: "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
   tool_route_replay: "deploy/governance/sprint1-tool-route-replay.contract.json",
   tool_registry: "deploy/tools/registry.contract.json",
   tool_schemas: "deploy/tools/tool-schemas.contract.json"
@@ -59,6 +60,7 @@ const requiredSurfaceIds = [
   "evidence_lineage_tools",
   "evidence_lineage_service",
   "evidence_live_db_write_smoke",
+  "partner_source_rows_evidence_packet_gate",
   "tool_route_replay",
   "golden_fixtures"
 ];
@@ -178,6 +180,10 @@ function readSourceContracts(value) {
     mcpUsageEnvelope: readJson(linked.mcp_usage_envelope ?? requiredLinkedContracts.mcp_usage_envelope),
     mcpVersioning: readJson(linked.mcp_versioning ?? requiredLinkedContracts.mcp_versioning),
     p0ToolCatalog: readJson(linked.p0_tool_catalog ?? requiredLinkedContracts.p0_tool_catalog),
+    sprint1LiveDataEvidenceManifest: readJson(
+      linked.sprint1_live_data_evidence_manifest ??
+        requiredLinkedContracts.sprint1_live_data_evidence_manifest
+    ),
     toolRouteReplay: readJson(linked.tool_route_replay ?? requiredLinkedContracts.tool_route_replay),
     toolRegistry: readJson(linked.tool_registry ?? requiredLinkedContracts.tool_registry),
     toolSchemas: readJson(linked.tool_schemas ?? requiredLinkedContracts.tool_schemas)
@@ -314,7 +320,19 @@ function validateBlockers(value) {
       errors.push(`${blocker.id}.source_field is required`);
     }
 
-    if (blocker.current_value !== false) {
+    if (blocker.id === "partner_source_rows") {
+      if (blocker.source_contract !== requiredLinkedContracts.sprint1_live_data_evidence_manifest) {
+        errors.push("partner_source_rows.source_contract must be sprint1 live data evidence manifest");
+      }
+
+      if (blocker.source_field !== "required_gates.partner_serving_rows_loaded.status") {
+        errors.push("partner_source_rows.source_field must point to partner_serving_rows_loaded status");
+      }
+
+      if (blocker.current_value !== "missing") {
+        errors.push("partner_source_rows.current_value must be missing");
+      }
+    } else if (blocker.current_value !== false) {
       errors.push(`${blocker.id}.current_value must be false`);
     }
 
@@ -358,6 +376,7 @@ function validateSourceContracts(contracts) {
   errors.push(...validateEvidenceLineageTools(contracts.evidenceLineageTools));
   errors.push(...validateEvidenceLineageService(contracts.evidenceLineageService));
   errors.push(...validateEvidenceLiveDbWriteSmoke(contracts.evidenceLiveDbWriteSmoke));
+  errors.push(...validateSprint1LiveDataEvidenceManifest(contracts.sprint1LiveDataEvidenceManifest));
   errors.push(...validateGoldenManifest(contracts.goldenManifest));
 
   return errors;
@@ -722,6 +741,84 @@ function validateEvidenceLiveDbWriteSmoke(value) {
   return errors;
 }
 
+function validateSprint1LiveDataEvidenceManifest(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["sprint1 live data evidence manifest must be an object"];
+  }
+
+  if (value.status !== "pending_external_evidence") {
+    errors.push("sprint1 live data evidence manifest status must be pending_external_evidence");
+  }
+
+  if (value.packet_directory !== "deploy/governance/sprint1-live-data-evidence-packets") {
+    errors.push("sprint1 live data evidence manifest packet_directory must match packet checker");
+  }
+
+  if (value.packet_checker !== "scripts/check-sprint1-live-data-evidence-packets.mjs") {
+    errors.push("sprint1 live data evidence manifest packet_checker must be present");
+  }
+
+  const policy = value.evidence_policy;
+
+  if (
+    !isRecord(policy) ||
+    policy.hash_only_evidence_refs_required !== true ||
+    policy.redacted_no_secrets_required !== true ||
+    policy.raw_partner_rows_forbidden_in_repo !== true ||
+    policy.packet_checker_allows_empty_directory_until_external_evidence_arrives !== true
+  ) {
+    errors.push("sprint1 live data evidence manifest must preserve hash-only redacted packet policy");
+  }
+
+  const partnerGate = Array.isArray(value.required_gates)
+    ? value.required_gates.find((gate) => isRecord(gate) && gate.id === "partner_serving_rows_loaded")
+    : undefined;
+
+  if (!isRecord(partnerGate)) {
+    errors.push("sprint1 live data evidence manifest must include partner_serving_rows_loaded gate");
+    return errors;
+  }
+
+  if (partnerGate.status !== "missing") {
+    errors.push("partner source row evidence gate must remain missing until accepted evidence packet is reviewed");
+  }
+
+  errors.push(
+    ...validateStringArray(
+      partnerGate.required_evidence,
+      ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows"],
+      "partner_serving_rows_loaded.required_evidence"
+    )
+  );
+  errors.push(
+    ...validateStringArray(
+      partnerGate.required_approver_roles,
+      ["data_platform_owner"],
+      "partner_serving_rows_loaded.required_approver_roles"
+    )
+  );
+
+  if (!Array.isArray(partnerGate.evidence_refs) || partnerGate.evidence_refs.length !== 0) {
+    errors.push("partner source row evidence gate must keep evidence_refs empty while missing");
+  }
+
+  if (partnerGate.evidence_sha256 !== null) {
+    errors.push("partner source row evidence gate must keep evidence_sha256 null while missing");
+  }
+
+  if (partnerGate.signed_at !== null || partnerGate.approver_role !== null) {
+    errors.push("partner source row evidence gate must keep signoff null while missing");
+  }
+
+  if (partnerGate.redaction_status !== "missing") {
+    errors.push("partner source row evidence gate redaction_status must be missing");
+  }
+
+  return errors;
+}
+
 function validateGoldenManifest(value) {
   const errors = [];
 
@@ -769,6 +866,8 @@ function validatePackageScripts(value) {
   const requiredScripts = {
     "check:evidence-live-db-write-smoke": "node scripts/check-evidence-live-db-write-smoke-contract.mjs",
     "check:mcp-protocol-tool-execution-smoke": "node scripts/check-mcp-protocol-tool-execution-smoke-contract.mjs",
+    "check:sprint1-live-data-evidence-manifest": "node scripts/check-sprint1-live-data-evidence-manifest-contract.mjs",
+    "check:sprint1-live-data-evidence-packets": "node scripts/check-sprint1-live-data-evidence-packets.mjs",
     "check:tool-route-replay": "node scripts/check-tool-route-replay-contract.mjs",
     "check:tool-route-replay-readiness": "node scripts/check-tool-route-replay-readiness-contract.mjs",
     "check:tool-route-replay-readiness-fixtures": "node scripts/check-tool-route-replay-readiness-fixtures.mjs"
@@ -802,6 +901,8 @@ function validateTrackerAndTodos(tracker, todos) {
     "MCP live protocol execution",
     "live DB writes",
     "partner source rows",
+    "partner source row evidence packet gate",
+    "npm run check:sprint1-live-data-evidence-manifest",
     "runtime schema serving",
     "server-orchestrated route replay"
   ]) {
