@@ -744,6 +744,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
+      "purpose": "Create no-write Agent live model streaming release gate scaffolds that link backend SSE progress, guarded streamText smokes, generated-answer evidence binding, and AI Gateway observability gates without enabling user-facing model token streaming, frontend rendering, model calls, or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_live_model_streaming_release_gate",
+        "governance.agent_live_model_streaming_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

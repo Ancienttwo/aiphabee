@@ -1,0 +1,94 @@
+{
+  "version": "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/agent-runtime",
+  "runtime_route": "GET /agent/runtime",
+  "route": "POST /agent/release-gates/live-model-streaming/plan",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "checker": "scripts/check-agent-live-model-streaming-release-gate-contract.mjs",
+  "test_files": [
+    "packages/agent-runtime/src/index.test.ts",
+    "apps/worker/src/index.test.ts"
+  ],
+  "migration": "supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "linked_contracts": [
+    "deploy/agent/tool-loop-planner.contract.json",
+    "deploy/agent/model-execution-audit-smoke.contract.json",
+    "deploy/agent/live-tool-loop-smoke.contract.json",
+    "deploy/agent/generated-answer-evidence-smoke.contract.json",
+    "deploy/agent/ai-gateway-observability-release-gate.contract.json"
+  ],
+  "linked_checks": [
+    "npm run check:tool-loop-agent",
+    "npm run check:agent-model-execution-audit-smoke",
+    "npm run check:agent-live-tool-loop-smoke",
+    "npm run check:agent-generated-answer-evidence-smoke",
+    "npm run check:agent-ai-gateway-observability-release-gate"
+  ],
+  "standard_response_envelope": true,
+  "actual_tool_execution": false,
+  "frontend_rendering": false,
+  "persistent_writes": false,
+  "live_model_execution": false,
+  "live_model_streaming": false,
+  "model_calls": false,
+  "sql_emitted": false,
+  "release_transition_allowed": false,
+  "backend_progress_stream_route": "POST /agent/runs/stream",
+  "backend_progress_stream_content_type": "text/event-stream",
+  "required_checks": [
+    "backend_progress_stream_contract_linked",
+    "model_execution_stream_text_smoke_contract_linked",
+    "live_tool_loop_stream_text_smoke_contract_linked",
+    "generated_answer_evidence_binding_smoke_linked",
+    "ai_gateway_observability_gate_linked",
+    "user_facing_stream_cutover_blocked"
+  ],
+  "required_output_fields": [
+    "linked_evidence",
+    "evidence_requirements",
+    "release_checks",
+    "release_gate",
+    "validation"
+  ],
+  "release_gate": {
+    "gate_status": "blocked_user_facing_live_model_streaming",
+    "no_live_release_claim": true,
+    "required_signoffs": ["agent", "product", "observability", "security"],
+    "blockers": [
+      "backend_progress_stream",
+      "guarded_model_audit_stream_text",
+      "guarded_live_tool_loop_stream_text",
+      "generated_answer_evidence_binding",
+      "ai_gateway_observability_gate",
+      "user_stream_auth_redaction",
+      "frontend_streaming_ui",
+      "route_does_not_execute_user_model_stream"
+    ]
+  },
+  "tables": [
+    "core.agent_live_model_streaming_release_gate",
+    "governance.agent_live_model_streaming_release_gate_contract"
+  ],
+  "not_claimed": [
+    "user_facing_live_model_streaming",
+    "live_model_token_streaming_route",
+    "frontend_ask_streaming_rendering",
+    "ai_gateway_logs_read",
+    "live_token_cost_fallback_log_writes",
+    "production_model_routing_cutover",
+    "persistent_user_run_stream_state",
+    "raw_model_output_returned"
+  ],
+  "verification": {
+    "runtime_unit_test": "npm run test -- packages/agent-runtime/src/index.test.ts",
+    "worker_unit_test": "npm run test -- apps/worker/src/index.test.ts",
+    "contract_check": "npm run check:agent-live-model-streaming-release-gate",
+    "tool_loop_check": "npm run check:tool-loop-agent",
+    "model_audit_check": "npm run check:agent-model-execution-audit-smoke",
+    "live_tool_loop_check": "npm run check:agent-live-tool-loop-smoke",
+    "generated_answer_check": "npm run check:agent-generated-answer-evidence-smoke",
+    "database_check": "npm run check:database"
+  }
+}

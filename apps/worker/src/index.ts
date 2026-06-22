@@ -38,6 +38,7 @@ import {
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
   createAgentAiGatewayObservabilityReleaseGatePlan,
+  createAgentLiveModelStreamingReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -47,6 +48,7 @@ import {
   getAgentLabelBudgetReleaseGateCapabilities,
   getAgentWorkflowTaskCapabilities,
   getAgentAiGatewayObservabilityReleaseGateCapabilities,
+  getAgentLiveModelStreamingReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -666,12 +668,16 @@ interface AgentBillingPostedLedgerSmokeResult {
 interface AgentRunRequestBody {
   account_analytics_read_permission_evidence?: unknown;
   accountAnalyticsReadPermissionEvidence?: unknown;
+  ai_gateway_observability_gate_accepted?: unknown;
+  aiGatewayObservabilityGateAccepted?: unknown;
   ambiguous_security_query?: unknown;
   ambiguousSecurityQuery?: unknown;
   as_of?: unknown;
   asOf?: unknown;
   answer_text?: unknown;
   answerText?: unknown;
+  backend_progress_stream_accepted?: unknown;
+  backendProgressStreamAccepted?: unknown;
   channel?: unknown;
   calculations?: unknown;
   claims?: unknown;
@@ -682,6 +688,10 @@ interface AgentRunRequestBody {
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
+  frontend_streaming_ui_accepted?: unknown;
+  frontendStreamingUiAccepted?: unknown;
+  generated_answer_evidence_accepted?: unknown;
+  generatedAnswerEvidenceAccepted?: unknown;
   max_credits?: unknown;
   max_rows?: unknown;
   max_steps?: unknown;
@@ -689,6 +699,8 @@ interface AgentRunRequestBody {
   max_wall_clock_ms?: unknown;
   methodology?: unknown;
   locale?: unknown;
+  live_tool_loop_stream_text_accepted?: unknown;
+  liveToolLoopStreamTextAccepted?: unknown;
   kill_switch_reason?: unknown;
   killSwitchReason?: unknown;
   language?: unknown;
@@ -696,6 +708,8 @@ interface AgentRunRequestBody {
   modelKillSwitch?: unknown;
   model_tier?: unknown;
   modelTier?: unknown;
+  model_audit_stream_text_accepted?: unknown;
+  modelAuditStreamTextAccepted?: unknown;
   plan?: unknown;
   prompt?: unknown;
   response_depth?: unknown;
@@ -753,6 +767,8 @@ interface AgentRunRequestBody {
   requestLogEvidenceAccepted?: unknown;
   source_run_id?: unknown;
   sourceRunId?: unknown;
+  stream_auth_redaction_accepted?: unknown;
+  streamAuthRedactionAccepted?: unknown;
   title?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
@@ -6906,6 +6922,67 @@ app.post("/agent/release-gates/ai-gateway-observability/plan", async (c) => {
             methodology_version: plan.version,
             source: "agent-runtime",
             source_record_id: "agent-ai-gateway-observability-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/agent/release-gates/live-model-streaming/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentLiveModelStreamingReleaseGatePlan({
+    aiGatewayObservabilityGateAccepted: normalizeOptionalBoolean(
+      body.ai_gateway_observability_gate_accepted ??
+        body.aiGatewayObservabilityGateAccepted
+    ),
+    backendProgressStreamAccepted: normalizeOptionalBoolean(
+      body.backend_progress_stream_accepted ?? body.backendProgressStreamAccepted
+    ),
+    frontendStreamingUiAccepted: normalizeOptionalBoolean(
+      body.frontend_streaming_ui_accepted ?? body.frontendStreamingUiAccepted
+    ),
+    generatedAnswerEvidenceAccepted: normalizeOptionalBoolean(
+      body.generated_answer_evidence_accepted ?? body.generatedAnswerEvidenceAccepted
+    ),
+    liveToolLoopStreamTextAccepted: normalizeOptionalBoolean(
+      body.live_tool_loop_stream_text_accepted ?? body.liveToolLoopStreamTextAccepted
+    ),
+    modelAuditStreamTextAccepted: normalizeOptionalBoolean(
+      body.model_audit_stream_text_accepted ?? body.modelAuditStreamTextAccepted
+    ),
+    requestId,
+    streamAuthRedactionAccepted: normalizeOptionalBoolean(
+      body.stream_auth_redaction_accepted ?? body.streamAuthRedactionAccepted
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentLiveModelStreamingReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-live-model-streaming-release-gate-plan"
           }
         ],
         requestId,

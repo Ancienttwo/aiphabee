@@ -64,6 +64,8 @@ export const AGENT_USER_RUN_PERSISTENCE_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-user-run-persistence-release-gate.v0";
 export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0";
+export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -172,6 +174,18 @@ export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES = [
   "core.agent_ai_gateway_observability_release_gate",
   "governance.agent_ai_gateway_observability_release_gate_contract"
 ] as const;
+export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS = [
+  "backend_progress_stream_contract_linked",
+  "model_execution_stream_text_smoke_contract_linked",
+  "live_tool_loop_stream_text_smoke_contract_linked",
+  "generated_answer_evidence_binding_smoke_linked",
+  "ai_gateway_observability_gate_linked",
+  "user_facing_stream_cutover_blocked"
+] as const;
+export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES = [
+  "core.agent_live_model_streaming_release_gate",
+  "governance.agent_live_model_streaming_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -193,6 +207,9 @@ export type AgentUserRunPersistenceReleaseGateStatus = "planned_no_write";
 export type AgentAiGatewayObservabilityReleaseGateCheck =
   (typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_CHECKS)[number];
 export type AgentAiGatewayObservabilityReleaseGateStatus = "planned_no_write";
+export type AgentLiveModelStreamingReleaseGateCheck =
+  (typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS)[number];
+export type AgentLiveModelStreamingReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -271,6 +288,17 @@ export interface CreateAgentAiGatewayObservabilityReleaseGatePlanInput {
   rateLimitFallbackEvidenceAccepted?: boolean;
   requestId: string;
   requestLogEvidenceAccepted?: boolean;
+}
+
+export interface CreateAgentLiveModelStreamingReleaseGatePlanInput {
+  aiGatewayObservabilityGateAccepted?: boolean;
+  backendProgressStreamAccepted?: boolean;
+  frontendStreamingUiAccepted?: boolean;
+  generatedAnswerEvidenceAccepted?: boolean;
+  liveToolLoopStreamTextAccepted?: boolean;
+  modelAuditStreamTextAccepted?: boolean;
+  requestId: string;
+  streamAuthRedactionAccepted?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -392,6 +420,26 @@ export interface AgentAiGatewayObservabilityReleaseGateCapabilities {
   status: "agent_ai_gateway_observability_release_gate_scaffold";
   tables: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES;
   version: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION;
+}
+
+export interface AgentLiveModelStreamingReleaseGateCapabilities {
+  actual_tool_execution: false;
+  ai_gateway_observability_release_gate_route: "POST /agent/release-gates/ai-gateway-observability/plan";
+  backend_progress_stream_route: "POST /agent/runs/stream";
+  frontend_rendering: false;
+  generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke";
+  live_model_streaming: false;
+  live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke";
+  model_calls: false;
+  model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke";
+  persistent_writes: false;
+  required_checks: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/live-model-streaming/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_live_model_streaming_release_gate_scaffold";
+  tables: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES;
+  version: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -545,6 +593,7 @@ export interface AgentRuntimeCapabilities {
   prompt_injection_tool_denial_release_gate: PromptInjectionToolDenialReleaseGateCapabilities;
   agent_user_run_persistence_release_gate: AgentUserRunPersistenceReleaseGateCapabilities;
   agent_ai_gateway_observability_release_gate: AgentAiGatewayObservabilityReleaseGateCapabilities;
+  agent_live_model_streaming_release_gate: AgentLiveModelStreamingReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -1925,6 +1974,82 @@ export interface AgentAiGatewayObservabilityReleaseGatePlan {
   version: typeof AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION;
 }
 
+export interface AgentLiveModelStreamingLinkedEvidence {
+  command?: string;
+  contract?: string;
+  covers: string[];
+  route?: string;
+  surface:
+    | "ai_gateway_observability_release_gate"
+    | "backend_progress_stream"
+    | "generated_answer_evidence_smoke"
+    | "live_tool_loop_smoke"
+    | "model_execution_audit_smoke";
+  status: "blocked_release_gate_required" | "guarded_smoke_required" | "local_contract_required";
+}
+
+export interface AgentLiveModelStreamingEvidenceRequirement {
+  evidence: string;
+  requirement:
+    | "ai_gateway_observability_gate"
+    | "backend_progress_stream"
+    | "frontend_streaming_ui"
+    | "generated_answer_evidence_binding"
+    | "guarded_live_tool_loop_stream_text"
+    | "guarded_model_audit_stream_text"
+    | "user_stream_auth_redaction";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentLiveModelStreamingReleaseGatePlan {
+  actual_tool_execution: false;
+  capability: AgentLiveModelStreamingReleaseGateCapabilities;
+  evidence_requirements: AgentLiveModelStreamingEvidenceRequirement[];
+  frontend_rendering: false;
+  linked_evidence: AgentLiveModelStreamingLinkedEvidence[];
+  live_model_execution: false;
+  live_model_streaming: false;
+  model_calls: false;
+  persistent_writes: false;
+  release_checks: Array<{
+    check: AgentLiveModelStreamingReleaseGateCheck;
+    evidence: string;
+    status: AgentLiveModelStreamingReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_user_facing_live_model_streaming";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "product", "observability", "security"];
+  };
+  release_transition_allowed: false;
+  request_id: string;
+  route: "POST /agent/release-gates/live-model-streaming/plan";
+  sql_emitted: false;
+  status: AgentLiveModelStreamingReleaseGateStatus;
+  tables: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES;
+  validation: {
+    ai_gateway_observability_gate_accepted: boolean;
+    ai_gateway_observability_gate_linked: boolean;
+    backend_progress_stream_accepted: boolean;
+    backend_progress_stream_linked: boolean;
+    frontend_streaming_ui_accepted: boolean;
+    generated_answer_evidence_accepted: boolean;
+    generated_answer_evidence_smoke_linked: boolean;
+    live_tool_loop_stream_text_accepted: boolean;
+    live_tool_loop_stream_text_smoke_linked: boolean;
+    model_audit_stream_text_accepted: boolean;
+    model_execution_audit_stream_text_linked: boolean;
+    no_frontend_rendering: true;
+    no_live_model_execution: true;
+    no_live_model_streaming: true;
+    no_model_calls: true;
+    release_transition_allowed: false;
+    stream_auth_redaction_accepted: boolean;
+  };
+  version: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2342,6 +2467,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       getAgentUserRunPersistenceReleaseGateCapabilities(),
     agent_ai_gateway_observability_release_gate:
       getAgentAiGatewayObservabilityReleaseGateCapabilities(),
+    agent_live_model_streaming_release_gate:
+      getAgentLiveModelStreamingReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2466,6 +2593,29 @@ export function getAgentAiGatewayObservabilityReleaseGateCapabilities(): AgentAi
     status: "agent_ai_gateway_observability_release_gate_scaffold",
     tables: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES,
     version: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentLiveModelStreamingReleaseGateCapabilities(): AgentLiveModelStreamingReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    ai_gateway_observability_release_gate_route:
+      "POST /agent/release-gates/ai-gateway-observability/plan",
+    backend_progress_stream_route: "POST /agent/runs/stream",
+    frontend_rendering: false,
+    generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke",
+    live_model_streaming: false,
+    live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke",
+    model_calls: false,
+    model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+    persistent_writes: false,
+    required_checks: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/live-model-streaming/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_live_model_streaming_release_gate_scaffold",
+    tables: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES,
+    version: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION
   };
 }
 
@@ -3470,6 +3620,210 @@ export function createAgentAiGatewayObservabilityReleaseGatePlan(
     tables: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_TABLES,
     validation,
     version: AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentLiveModelStreamingReleaseGatePlan(
+  input: CreateAgentLiveModelStreamingReleaseGatePlanInput
+): AgentLiveModelStreamingReleaseGatePlan {
+  const backendProgressStreamAccepted = input.backendProgressStreamAccepted === true;
+  const modelAuditStreamTextAccepted = input.modelAuditStreamTextAccepted === true;
+  const liveToolLoopStreamTextAccepted = input.liveToolLoopStreamTextAccepted === true;
+  const generatedAnswerEvidenceAccepted = input.generatedAnswerEvidenceAccepted === true;
+  const aiGatewayObservabilityGateAccepted =
+    input.aiGatewayObservabilityGateAccepted === true;
+  const frontendStreamingUiAccepted = input.frontendStreamingUiAccepted === true;
+  const streamAuthRedactionAccepted = input.streamAuthRedactionAccepted === true;
+  const linkedEvidence: AgentLiveModelStreamingLinkedEvidence[] = [
+    {
+      command: "npm run check:tool-loop-agent",
+      contract: "deploy/agent/tool-loop-planner.contract.json",
+      covers: [
+        "server_sent_events_transport",
+        "public_progress_events",
+        "prompt_and_chain_of_thought_excluded",
+        "stream_model_calls_false"
+      ],
+      route: "POST /agent/runs/stream",
+      surface: "backend_progress_stream",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:agent-model-execution-audit-smoke",
+      contract: "deploy/agent/model-execution-audit-smoke.contract.json",
+      covers: [
+        "ai_sdk_stream_text",
+        "hash_only_run_audit_preview",
+        "auth_before_model_execution"
+      ],
+      route: "POST /agent/runs/model-execution-audit-smoke",
+      surface: "model_execution_audit_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-live-tool-loop-smoke",
+      contract: "deploy/agent/live-tool-loop-smoke.contract.json",
+      covers: [
+        "fixed_tool_loop_plan_bound",
+        "fixed_worker_tool_route_execution",
+        "ai_gateway_stream_text_audit_preview"
+      ],
+      route: "POST /agent/runs/live-tool-loop-smoke",
+      surface: "live_tool_loop_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-generated-answer-evidence-smoke",
+      contract: "deploy/agent/generated-answer-evidence-smoke.contract.json",
+      covers: [
+        "generated_answer_evidence_card_binding",
+        "unsourced_generated_answer_blocked",
+        "hash_only_answer_validation"
+      ],
+      route: "POST /agent/runs/generated-answer-evidence-smoke",
+      surface: "generated_answer_evidence_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-ai-gateway-observability-release-gate",
+      contract: "deploy/agent/ai-gateway-observability-release-gate.contract.json",
+      covers: [
+        "ai_gateway_observability_gate",
+        "request_log_cost_cache_rate_limit_fallback_blockers",
+        "release_transition_allowed_false"
+      ],
+      route: "POST /agent/release-gates/ai-gateway-observability/plan",
+      surface: "ai_gateway_observability_release_gate",
+      status: "blocked_release_gate_required"
+    }
+  ];
+  const evidenceRequirements: AgentLiveModelStreamingEvidenceRequirement[] = [
+    {
+      evidence: backendProgressStreamAccepted
+        ? "backend SSE progress stream contract was marked accepted in request payload"
+        : "backend SSE progress stream contract must be accepted before user stream cutover",
+      requirement: "backend_progress_stream",
+      status: backendProgressStreamAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: modelAuditStreamTextAccepted
+        ? "model audit streamText smoke was marked accepted in request payload"
+        : "guarded model audit smoke must prove streamText with hash-only audit preview",
+      requirement: "guarded_model_audit_stream_text",
+      status: modelAuditStreamTextAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: liveToolLoopStreamTextAccepted
+        ? "live ToolLoop streamText smoke was marked accepted in request payload"
+        : "guarded live ToolLoop smoke must prove fixed-route streamText orchestration",
+      requirement: "guarded_live_tool_loop_stream_text",
+      status: liveToolLoopStreamTextAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: generatedAnswerEvidenceAccepted
+        ? "generated-answer evidence smoke was marked accepted in request payload"
+        : "generated answers must be bound to evidence before user-facing stream cutover",
+      requirement: "generated_answer_evidence_binding",
+      status: generatedAnswerEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: aiGatewayObservabilityGateAccepted
+        ? "AI Gateway observability release gate was marked accepted in request payload"
+        : "AI Gateway observability release gate must be accepted before user-facing stream cutover",
+      requirement: "ai_gateway_observability_gate",
+      status: aiGatewayObservabilityGateAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: streamAuthRedactionAccepted
+        ? "stream auth/redaction evidence was marked accepted in request payload"
+        : "user stream route needs auth, redaction, no raw prompt leakage, and no chain-of-thought exposure proof",
+      requirement: "user_stream_auth_redaction",
+      status: streamAuthRedactionAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: frontendStreamingUiAccepted
+        ? "frontend streaming UI evidence was marked accepted in request payload"
+        : "frontend Ask streaming UI is delegated and must be accepted before user-facing cutover",
+      requirement: "frontend_streaming_ui",
+      status: frontendStreamingUiAccepted ? "satisfied" : "blocked"
+    }
+  ];
+  const blockers = [
+    ...evidenceRequirements
+      .filter((requirement) => requirement.status === "blocked")
+      .map((requirement) => requirement.requirement),
+    "route_does_not_execute_user_model_stream"
+  ];
+  const linkedSurfaces = new Set(linkedEvidence.map((evidence) => evidence.surface));
+  const validation: AgentLiveModelStreamingReleaseGatePlan["validation"] = {
+    ai_gateway_observability_gate_accepted: aiGatewayObservabilityGateAccepted,
+    ai_gateway_observability_gate_linked: linkedSurfaces.has(
+      "ai_gateway_observability_release_gate"
+    ),
+    backend_progress_stream_accepted: backendProgressStreamAccepted,
+    backend_progress_stream_linked: linkedSurfaces.has("backend_progress_stream"),
+    frontend_streaming_ui_accepted: frontendStreamingUiAccepted,
+    generated_answer_evidence_accepted: generatedAnswerEvidenceAccepted,
+    generated_answer_evidence_smoke_linked: linkedSurfaces.has(
+      "generated_answer_evidence_smoke"
+    ),
+    live_tool_loop_stream_text_accepted: liveToolLoopStreamTextAccepted,
+    live_tool_loop_stream_text_smoke_linked: linkedSurfaces.has("live_tool_loop_smoke"),
+    model_audit_stream_text_accepted: modelAuditStreamTextAccepted,
+    model_execution_audit_stream_text_linked: linkedSurfaces.has(
+      "model_execution_audit_smoke"
+    ),
+    no_frontend_rendering: true,
+    no_live_model_execution: true,
+    no_live_model_streaming: true,
+    no_model_calls: true,
+    release_transition_allowed: false,
+    stream_auth_redaction_accepted: streamAuthRedactionAccepted
+  };
+  const releaseChecks = AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS.map(
+    (check): AgentLiveModelStreamingReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "backend_progress_stream_contract_linked"
+          ? "deploy/agent/tool-loop-planner.contract.json links POST /agent/runs/stream no-model SSE progress events"
+          : check === "model_execution_stream_text_smoke_contract_linked"
+            ? "deploy/agent/model-execution-audit-smoke.contract.json proves guarded AI SDK streamText audit preview"
+            : check === "live_tool_loop_stream_text_smoke_contract_linked"
+              ? "deploy/agent/live-tool-loop-smoke.contract.json proves fixed ToolLoop plus streamText smoke"
+              : check === "generated_answer_evidence_binding_smoke_linked"
+                ? "deploy/agent/generated-answer-evidence-smoke.contract.json proves generated answer evidence binding"
+                : check === "ai_gateway_observability_gate_linked"
+                  ? "deploy/agent/ai-gateway-observability-release-gate.contract.json keeps AI Gateway read evidence blocked until accepted"
+                  : "user-facing stream cutover remains blocked because this route does not execute or verify a user model stream",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    capability: getAgentLiveModelStreamingReleaseGateCapabilities(),
+    evidence_requirements: evidenceRequirements,
+    frontend_rendering: false,
+    linked_evidence: linkedEvidence,
+    live_model_execution: false,
+    live_model_streaming: false,
+    model_calls: false,
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_user_facing_live_model_streaming",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "product", "observability", "security"]
+    },
+    release_transition_allowed: false,
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/live-model-streaming/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION
   };
 }
 

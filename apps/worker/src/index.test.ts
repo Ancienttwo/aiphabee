@@ -3561,6 +3561,24 @@ interface AgentRuntimeBody {
       status: string;
       version: string;
     };
+    agent_live_model_streaming_release_gate: {
+      actual_tool_execution: boolean;
+      ai_gateway_observability_release_gate_route: string;
+      backend_progress_stream_route: string;
+      frontend_rendering: boolean;
+      generated_answer_evidence_smoke_route: string;
+      live_model_streaming: boolean;
+      live_tool_loop_smoke_route: string;
+      model_calls: boolean;
+      model_execution_audit_smoke_route: string;
+      persistent_writes: boolean;
+      required_checks: string[];
+      route: string;
+      runtime_route: string;
+      sql_emitted: boolean;
+      status: string;
+      version: string;
+    };
     registered_tools: Array<{
       name: string;
       schema: {
@@ -3935,6 +3953,51 @@ interface AgentAiGatewayObservabilityReleaseGatePlanBody {
     live_ai_gateway_reads: boolean;
     live_db_writes: boolean;
     live_model_execution: boolean;
+    model_calls: boolean;
+    persistent_writes: boolean;
+    release_checks: Array<{
+      check: string;
+      status: string;
+    }>;
+    release_gate: {
+      blockers: string[];
+      gate_status: string;
+      no_live_release_claim: boolean;
+      required_signoffs: string[];
+    };
+    release_transition_allowed: boolean;
+    validation: Record<string, boolean>;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
+}
+
+interface AgentLiveModelStreamingReleaseGatePlanBody {
+  data: {
+    actual_tool_execution: boolean;
+    capability: {
+      required_checks: string[];
+      route: string;
+      status: string;
+    };
+    evidence_requirements: Array<{
+      requirement: string;
+      status: string;
+    }>;
+    frontend_rendering: boolean;
+    linked_evidence: Array<{
+      command?: string;
+      contract?: string;
+      covers: string[];
+      route?: string;
+      status: string;
+      surface: string;
+    }>;
+    live_model_execution: boolean;
+    live_model_streaming: boolean;
     model_calls: boolean;
     persistent_writes: boolean;
     release_checks: Array<{
@@ -13466,6 +13529,32 @@ describe("worker runtime", () => {
       "rate_limit_fallback_evidence_required",
       "hash_only_capture_packet_required"
     ]);
+    expect(body.data.agent_live_model_streaming_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      ai_gateway_observability_release_gate_route:
+        "POST /agent/release-gates/ai-gateway-observability/plan",
+      backend_progress_stream_route: "POST /agent/runs/stream",
+      frontend_rendering: false,
+      generated_answer_evidence_smoke_route: "POST /agent/runs/generated-answer-evidence-smoke",
+      live_model_streaming: false,
+      live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke",
+      model_calls: false,
+      model_execution_audit_smoke_route: "POST /agent/runs/model-execution-audit-smoke",
+      persistent_writes: false,
+      route: "POST /agent/release-gates/live-model-streaming/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_live_model_streaming_release_gate_scaffold",
+      version: "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0"
+    });
+    expect(body.data.agent_live_model_streaming_release_gate.required_checks).toEqual([
+      "backend_progress_stream_contract_linked",
+      "model_execution_stream_text_smoke_contract_linked",
+      "live_tool_loop_stream_text_smoke_contract_linked",
+      "generated_answer_evidence_binding_smoke_linked",
+      "ai_gateway_observability_gate_linked",
+      "user_facing_stream_cutover_blocked"
+    ]);
     expect(body.data.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -13570,6 +13659,94 @@ describe("worker runtime", () => {
       rate_limit_fallback_evidence_present: true,
       release_transition_allowed: false,
       request_log_evidence_present: true
+    });
+    expect(body.usage.rows).toBe(6);
+  });
+
+  it("plans live model streaming release gate without executing user token streams", async () => {
+    const response = await app.request("/agent/release-gates/live-model-streaming/plan", {
+      body: JSON.stringify({
+        ai_gateway_observability_gate_accepted: true,
+        backend_progress_stream_accepted: true,
+        frontend_streaming_ui_accepted: true,
+        generated_answer_evidence_accepted: true,
+        live_tool_loop_stream_text_accepted: true,
+        model_audit_stream_text_accepted: true,
+        stream_auth_redaction_accepted: true
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-live-model-streaming-gate-route"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentLiveModelStreamingReleaseGatePlanBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.data).toMatchObject({
+      actual_tool_execution: false,
+      capability: {
+        route: "POST /agent/release-gates/live-model-streaming/plan",
+        status: "agent_live_model_streaming_release_gate_scaffold"
+      },
+      frontend_rendering: false,
+      live_model_execution: false,
+      live_model_streaming: false,
+      model_calls: false,
+      persistent_writes: false,
+      release_gate: {
+        blockers: ["route_does_not_execute_user_model_stream"],
+        gate_status: "blocked_user_facing_live_model_streaming",
+        no_live_release_claim: true,
+        required_signoffs: ["agent", "product", "observability", "security"]
+      },
+      release_transition_allowed: false,
+      version: "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0"
+    });
+    expect(body.data.capability.required_checks).toEqual([
+      "backend_progress_stream_contract_linked",
+      "model_execution_stream_text_smoke_contract_linked",
+      "live_tool_loop_stream_text_smoke_contract_linked",
+      "generated_answer_evidence_binding_smoke_linked",
+      "ai_gateway_observability_gate_linked",
+      "user_facing_stream_cutover_blocked"
+    ]);
+    expect(body.data.release_checks.map((check) => check.check)).toEqual(
+      body.data.capability.required_checks
+    );
+    expect(body.data.release_checks.every((check) => check.status === "planned_no_write")).toBe(
+      true
+    );
+    expect(body.data.linked_evidence.map((evidence) => evidence.surface)).toEqual([
+      "backend_progress_stream",
+      "model_execution_audit_smoke",
+      "live_tool_loop_smoke",
+      "generated_answer_evidence_smoke",
+      "ai_gateway_observability_release_gate"
+    ]);
+    expect(body.data.evidence_requirements.every((requirement) => requirement.status === "satisfied")).toBe(
+      true
+    );
+    expect(body.data.validation).toMatchObject({
+      ai_gateway_observability_gate_accepted: true,
+      ai_gateway_observability_gate_linked: true,
+      backend_progress_stream_accepted: true,
+      backend_progress_stream_linked: true,
+      frontend_streaming_ui_accepted: true,
+      generated_answer_evidence_accepted: true,
+      generated_answer_evidence_smoke_linked: true,
+      live_tool_loop_stream_text_accepted: true,
+      live_tool_loop_stream_text_smoke_linked: true,
+      model_audit_stream_text_accepted: true,
+      model_execution_audit_stream_text_linked: true,
+      no_frontend_rendering: true,
+      no_live_model_execution: true,
+      no_live_model_streaming: true,
+      no_model_calls: true,
+      release_transition_allowed: false,
+      stream_auth_redaction_accepted: true
     });
     expect(body.usage.rows).toBe(6);
   });
