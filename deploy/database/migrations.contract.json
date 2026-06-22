@@ -755,6 +755,17 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260622021000_agent_user_tool_loop_execution_release_gate.sql",
+      "purpose": "Create no-write Agent user ToolLoop execution release gate scaffolds that link planner, preflight, tool-enforcement, budget, failure-recovery, fixed tool execution, fixed ToolLoop, and user-run persistence gates without enabling arbitrary user ToolLoop execution, model calls, frontend rendering, or persistent writes.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.agent_user_tool_loop_execution_release_gate",
+        "governance.agent_user_tool_loop_execution_release_gate_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

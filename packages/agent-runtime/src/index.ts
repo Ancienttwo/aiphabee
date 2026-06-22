@@ -66,6 +66,8 @@ export const AGENT_AI_GATEWAY_OBSERVABILITY_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0";
 export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION =
   "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0";
+export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION =
+  "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0";
 export const AI_SDK_TARGET_VERSION = "7.0.0-beta.182";
 export const AI_GATEWAY_LIVE_SMOKE_VERSION =
   "2026-06-22.phase0.ai-gateway-live-smoke.v0";
@@ -186,6 +188,21 @@ export const AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES = [
   "core.agent_live_model_streaming_release_gate",
   "governance.agent_live_model_streaming_release_gate_contract"
 ] as const;
+export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS = [
+  "tool_loop_planner_contract_linked",
+  "pre_tool_call_resolution_contract_linked",
+  "tool_enforcement_contract_linked",
+  "budget_stop_policy_contract_linked",
+  "failure_recovery_policy_contract_linked",
+  "fixed_tool_execution_evidence_smoke_linked",
+  "fixed_live_tool_loop_smoke_linked",
+  "user_run_persistence_gate_linked",
+  "arbitrary_user_tool_loop_cutover_blocked"
+] as const;
+export const AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES = [
+  "core.agent_user_tool_loop_execution_release_gate",
+  "governance.agent_user_tool_loop_execution_release_gate_contract"
+] as const;
 
 export type AgentWorkflowTaskKind = (typeof AGENT_WORKFLOW_TASK_KINDS)[number];
 export type AgentWorkflowNotificationChannel =
@@ -210,6 +227,9 @@ export type AgentAiGatewayObservabilityReleaseGateStatus = "planned_no_write";
 export type AgentLiveModelStreamingReleaseGateCheck =
   (typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_CHECKS)[number];
 export type AgentLiveModelStreamingReleaseGateStatus = "planned_no_write";
+export type AgentUserToolLoopExecutionReleaseGateCheck =
+  (typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS)[number];
+export type AgentUserToolLoopExecutionReleaseGateStatus = "planned_no_write";
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -299,6 +319,19 @@ export interface CreateAgentLiveModelStreamingReleaseGatePlanInput {
   modelAuditStreamTextAccepted?: boolean;
   requestId: string;
   streamAuthRedactionAccepted?: boolean;
+}
+
+export interface CreateAgentUserToolLoopExecutionReleaseGatePlanInput {
+  budgetStopPolicyAccepted?: boolean;
+  failureRecoveryPolicyAccepted?: boolean;
+  fixedLiveToolLoopSmokeAccepted?: boolean;
+  fixedToolExecutionEvidenceAccepted?: boolean;
+  preToolCallResolutionAccepted?: boolean;
+  requestId: string;
+  toolEnforcementAccepted?: boolean;
+  toolLoopPlannerAccepted?: boolean;
+  userAuthEntitlementAccepted?: boolean;
+  userRunPersistenceGateAccepted?: boolean;
 }
 
 export interface ProductAgentReleaseGateCapabilities {
@@ -440,6 +473,32 @@ export interface AgentLiveModelStreamingReleaseGateCapabilities {
   status: "agent_live_model_streaming_release_gate_scaffold";
   tables: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES;
   version: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION;
+}
+
+export interface AgentUserToolLoopExecutionReleaseGateCapabilities {
+  actual_tool_execution: false;
+  arbitrary_user_tool_loop_execution: false;
+  budget_stop_policy_route: "POST /agent/runs/plan";
+  failure_recovery_policy_route: "POST /agent/runs/plan";
+  fixed_tool_execution_evidence_smoke_route: "POST /agent/runs/tool-execution-evidence-smoke";
+  frontend_rendering: false;
+  live_db_writes: false;
+  live_model_execution: false;
+  live_tool_execution: false;
+  live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke";
+  model_calls: false;
+  persistent_writes: false;
+  preflight_route: "POST /agent/runs/preflight";
+  required_checks: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS;
+  route: "POST /agent/release-gates/user-tool-loop-execution/plan";
+  runtime_route: "GET /agent/runtime";
+  sql_emitted: false;
+  status: "agent_user_tool_loop_execution_release_gate_scaffold";
+  tables: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES;
+  tool_enforcement_route: "POST /agent/runs/plan";
+  tool_loop_route: "POST /agent/runs/plan";
+  user_run_persistence_release_gate_route: "POST /agent/release-gates/user-run-persistence/plan";
+  version: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION;
 }
 
 export interface AgentRuntimeCapabilities {
@@ -594,6 +653,7 @@ export interface AgentRuntimeCapabilities {
   agent_user_run_persistence_release_gate: AgentUserRunPersistenceReleaseGateCapabilities;
   agent_ai_gateway_observability_release_gate: AgentAiGatewayObservabilityReleaseGateCapabilities;
   agent_live_model_streaming_release_gate: AgentLiveModelStreamingReleaseGateCapabilities;
+  agent_user_tool_loop_execution_release_gate: AgentUserToolLoopExecutionReleaseGateCapabilities;
   run_context: {
     budget_dimensions: readonly [
       "steps",
@@ -2050,6 +2110,96 @@ export interface AgentLiveModelStreamingReleaseGatePlan {
   version: typeof AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION;
 }
 
+export interface AgentUserToolLoopExecutionLinkedEvidence {
+  command: string;
+  contract: string;
+  covers: string[];
+  route: string;
+  surface:
+    | "budget_stop_policy"
+    | "failure_recovery_policy"
+    | "fixed_live_tool_loop_smoke"
+    | "fixed_tool_execution_evidence_smoke"
+    | "pre_tool_call_resolution"
+    | "tool_enforcement"
+    | "tool_loop_planner"
+    | "user_run_persistence_release_gate";
+  status: "blocked_release_gate_required" | "guarded_smoke_required" | "local_contract_required";
+}
+
+export interface AgentUserToolLoopExecutionEvidenceRequirement {
+  evidence: string;
+  requirement:
+    | "budget_stop_policy"
+    | "failure_recovery_policy"
+    | "fixed_live_tool_loop_smoke"
+    | "fixed_tool_execution_evidence"
+    | "pre_tool_call_resolution"
+    | "tool_enforcement"
+    | "tool_loop_planner"
+    | "user_auth_entitlement"
+    | "user_run_persistence_gate";
+  status: "blocked" | "satisfied";
+}
+
+export interface AgentUserToolLoopExecutionReleaseGatePlan {
+  actual_tool_execution: false;
+  arbitrary_user_tool_loop_execution: false;
+  capability: AgentUserToolLoopExecutionReleaseGateCapabilities;
+  evidence_requirements: AgentUserToolLoopExecutionEvidenceRequirement[];
+  frontend_rendering: false;
+  linked_evidence: AgentUserToolLoopExecutionLinkedEvidence[];
+  live_db_writes: false;
+  live_model_execution: false;
+  live_tool_execution: false;
+  model_calls: false;
+  persistent_writes: false;
+  release_checks: Array<{
+    check: AgentUserToolLoopExecutionReleaseGateCheck;
+    evidence: string;
+    status: AgentUserToolLoopExecutionReleaseGateStatus;
+  }>;
+  release_gate: {
+    blockers: string[];
+    gate_status: "blocked_arbitrary_user_tool_loop_execution";
+    no_live_release_claim: true;
+    required_signoffs: readonly ["agent", "data", "security", "operations"];
+  };
+  release_transition_allowed: false;
+  request_id: string;
+  route: "POST /agent/release-gates/user-tool-loop-execution/plan";
+  sql_emitted: false;
+  status: AgentUserToolLoopExecutionReleaseGateStatus;
+  tables: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES;
+  validation: {
+    arbitrary_user_tool_loop_execution: false;
+    budget_stop_policy_accepted: boolean;
+    budget_stop_policy_linked: boolean;
+    failure_recovery_policy_accepted: boolean;
+    failure_recovery_policy_linked: boolean;
+    fixed_live_tool_loop_smoke_accepted: boolean;
+    fixed_live_tool_loop_smoke_linked: boolean;
+    fixed_tool_execution_evidence_accepted: boolean;
+    fixed_tool_execution_evidence_smoke_linked: boolean;
+    no_frontend_rendering: true;
+    no_live_db_writes: true;
+    no_live_model_execution: true;
+    no_live_tool_execution: true;
+    no_model_calls: true;
+    pre_tool_call_resolution_accepted: boolean;
+    pre_tool_call_resolution_linked: boolean;
+    release_transition_allowed: false;
+    tool_enforcement_accepted: boolean;
+    tool_enforcement_linked: boolean;
+    tool_loop_planner_accepted: boolean;
+    tool_loop_planner_linked: boolean;
+    user_auth_entitlement_accepted: boolean;
+    user_run_persistence_gate_accepted: boolean;
+    user_run_persistence_gate_linked: boolean;
+  };
+  version: typeof AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION;
+}
+
 export type AgentRuntimeInputErrorCode =
   | "CONTEXT_REQUIRED"
   | "INVALID_CHANNEL"
@@ -2469,6 +2619,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       getAgentAiGatewayObservabilityReleaseGateCapabilities(),
     agent_live_model_streaming_release_gate:
       getAgentLiveModelStreamingReleaseGateCapabilities(),
+    agent_user_tool_loop_execution_release_gate:
+      getAgentUserToolLoopExecutionReleaseGateCapabilities(),
     run_context: {
       budget_dimensions: [
         "steps",
@@ -2616,6 +2768,35 @@ export function getAgentLiveModelStreamingReleaseGateCapabilities(): AgentLiveMo
     status: "agent_live_model_streaming_release_gate_scaffold",
     tables: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES,
     version: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION
+  };
+}
+
+export function getAgentUserToolLoopExecutionReleaseGateCapabilities(): AgentUserToolLoopExecutionReleaseGateCapabilities {
+  return {
+    actual_tool_execution: false,
+    arbitrary_user_tool_loop_execution: false,
+    budget_stop_policy_route: "POST /agent/runs/plan",
+    failure_recovery_policy_route: "POST /agent/runs/plan",
+    fixed_tool_execution_evidence_smoke_route: "POST /agent/runs/tool-execution-evidence-smoke",
+    frontend_rendering: false,
+    live_db_writes: false,
+    live_model_execution: false,
+    live_tool_execution: false,
+    live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke",
+    model_calls: false,
+    persistent_writes: false,
+    preflight_route: "POST /agent/runs/preflight",
+    required_checks: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS,
+    route: "POST /agent/release-gates/user-tool-loop-execution/plan",
+    runtime_route: "GET /agent/runtime",
+    sql_emitted: false,
+    status: "agent_user_tool_loop_execution_release_gate_scaffold",
+    tables: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES,
+    tool_enforcement_route: "POST /agent/runs/plan",
+    tool_loop_route: "POST /agent/runs/plan",
+    user_run_persistence_release_gate_route:
+      "POST /agent/release-gates/user-run-persistence/plan",
+    version: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION
   };
 }
 
@@ -3824,6 +4005,276 @@ export function createAgentLiveModelStreamingReleaseGatePlan(
     tables: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_TABLES,
     validation,
     version: AGENT_LIVE_MODEL_STREAMING_RELEASE_GATE_VERSION
+  };
+}
+
+export function createAgentUserToolLoopExecutionReleaseGatePlan(
+  input: CreateAgentUserToolLoopExecutionReleaseGatePlanInput
+): AgentUserToolLoopExecutionReleaseGatePlan {
+  const toolLoopPlannerAccepted = input.toolLoopPlannerAccepted === true;
+  const preToolCallResolutionAccepted = input.preToolCallResolutionAccepted === true;
+  const toolEnforcementAccepted = input.toolEnforcementAccepted === true;
+  const budgetStopPolicyAccepted = input.budgetStopPolicyAccepted === true;
+  const failureRecoveryPolicyAccepted = input.failureRecoveryPolicyAccepted === true;
+  const fixedToolExecutionEvidenceAccepted =
+    input.fixedToolExecutionEvidenceAccepted === true;
+  const fixedLiveToolLoopSmokeAccepted = input.fixedLiveToolLoopSmokeAccepted === true;
+  const userRunPersistenceGateAccepted = input.userRunPersistenceGateAccepted === true;
+  const userAuthEntitlementAccepted = input.userAuthEntitlementAccepted === true;
+  const linkedEvidence: AgentUserToolLoopExecutionLinkedEvidence[] = [
+    {
+      command: "npm run check:tool-loop-agent",
+      contract: "deploy/agent/tool-loop-planner.contract.json",
+      covers: [
+        "tool_loop_plan_shape",
+        "max_parallel_read_only_tools",
+        "progress_event_contract",
+        "actual_tool_execution_false"
+      ],
+      route: "POST /agent/runs/plan",
+      surface: "tool_loop_planner",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:pre-tool-call-resolution",
+      contract: "deploy/agent/pre-tool-call-resolution.contract.json",
+      covers: [
+        "security_time_currency_methodology_resolution",
+        "ambiguous_security_blocks_before_tool_calls",
+        "assumption_surface"
+      ],
+      route: "POST /agent/runs/preflight",
+      surface: "pre_tool_call_resolution",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:tool-enforcement",
+      contract: "deploy/agent/tool-enforcement.contract.json",
+      covers: [
+        "registered_tools_only",
+        "schema_bound_versioned_tools",
+        "no_arbitrary_sql_or_url",
+        "permission_scope_checks"
+      ],
+      route: "POST /agent/runs/plan",
+      surface: "tool_enforcement",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:budget-stop-policy",
+      contract: "deploy/agent/budget-stop-policy.contract.json",
+      covers: [
+        "step_credit_row_token_wall_clock_limits",
+        "graceful_stop_before_execution",
+        "continue_cost_surface"
+      ],
+      route: "POST /agent/runs/plan",
+      surface: "budget_stop_policy",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:failure-recovery-policy",
+      contract: "deploy/agent/failure-recovery-policy.contract.json",
+      covers: [
+        "failed_tool_call_only_retry",
+        "completed_evidence_reuse",
+        "no_double_charge_retry_policy"
+      ],
+      route: "POST /agent/runs/plan",
+      surface: "failure_recovery_policy",
+      status: "local_contract_required"
+    },
+    {
+      command: "npm run check:agent-tool-execution-evidence-smoke",
+      contract: "deploy/agent/tool-execution-evidence-smoke.contract.json",
+      covers: [
+        "fixed_worker_tool_route_execution",
+        "evidence_card_binding",
+        "unsourced_numeric_probe_blocked",
+        "hash_only_response"
+      ],
+      route: "POST /agent/runs/tool-execution-evidence-smoke",
+      surface: "fixed_tool_execution_evidence_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-live-tool-loop-smoke",
+      contract: "deploy/agent/live-tool-loop-smoke.contract.json",
+      covers: [
+        "fixed_tool_loop_plan",
+        "fixed_worker_tool_route_execution",
+        "fixed_model_audit_preview",
+        "hash_only_response"
+      ],
+      route: "POST /agent/runs/live-tool-loop-smoke",
+      surface: "fixed_live_tool_loop_smoke",
+      status: "guarded_smoke_required"
+    },
+    {
+      command: "npm run check:agent-user-run-persistence-release-gate",
+      contract: "deploy/agent/user-run-persistence-release-gate.contract.json",
+      covers: [
+        "run_audit_evidence_usage_state_billing_smokes",
+        "production_persistence_cutover_blocked",
+        "hash_only_smoke_chain"
+      ],
+      route: "POST /agent/release-gates/user-run-persistence/plan",
+      surface: "user_run_persistence_release_gate",
+      status: "blocked_release_gate_required"
+    }
+  ];
+  const evidenceRequirements: AgentUserToolLoopExecutionEvidenceRequirement[] = [
+    {
+      evidence: toolLoopPlannerAccepted
+        ? "ToolLoop planner contract was marked accepted in request payload"
+        : "ToolLoop planner contract must be accepted before arbitrary user ToolLoop execution",
+      requirement: "tool_loop_planner",
+      status: toolLoopPlannerAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: preToolCallResolutionAccepted
+        ? "pre-tool-call resolution contract was marked accepted in request payload"
+        : "security/time/currency/methodology resolution must be accepted before user tool calls",
+      requirement: "pre_tool_call_resolution",
+      status: preToolCallResolutionAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: toolEnforcementAccepted
+        ? "tool enforcement contract was marked accepted in request payload"
+        : "registered/versioned/schema-bound/no-SQL/no-URL tool enforcement must be accepted",
+      requirement: "tool_enforcement",
+      status: toolEnforcementAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: budgetStopPolicyAccepted
+        ? "budget/stop policy was marked accepted in request payload"
+        : "budget/stop policy must be accepted before arbitrary user ToolLoop execution",
+      requirement: "budget_stop_policy",
+      status: budgetStopPolicyAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: failureRecoveryPolicyAccepted
+        ? "failure recovery policy was marked accepted in request payload"
+        : "failure recovery policy must be accepted before arbitrary user ToolLoop execution",
+      requirement: "failure_recovery_policy",
+      status: failureRecoveryPolicyAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: fixedToolExecutionEvidenceAccepted
+        ? "fixed tool execution evidence smoke was marked accepted in request payload"
+        : "guarded fixed tool execution smoke must be accepted before arbitrary user tool execution",
+      requirement: "fixed_tool_execution_evidence",
+      status: fixedToolExecutionEvidenceAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: fixedLiveToolLoopSmokeAccepted
+        ? "fixed live ToolLoop smoke was marked accepted in request payload"
+        : "guarded fixed live ToolLoop smoke must be accepted before arbitrary user ToolLoop execution",
+      requirement: "fixed_live_tool_loop_smoke",
+      status: fixedLiveToolLoopSmokeAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: userRunPersistenceGateAccepted
+        ? "user-run persistence release gate was marked accepted in request payload"
+        : "user-run persistence gate must be accepted before arbitrary user ToolLoop execution",
+      requirement: "user_run_persistence_gate",
+      status: userRunPersistenceGateAccepted ? "satisfied" : "blocked"
+    },
+    {
+      evidence: userAuthEntitlementAccepted
+        ? "user auth/entitlement evidence was marked accepted in request payload"
+        : "live user auth, workspace entitlement, and request scope evidence must be accepted before arbitrary user ToolLoop execution",
+      requirement: "user_auth_entitlement",
+      status: userAuthEntitlementAccepted ? "satisfied" : "blocked"
+    }
+  ];
+  const blockers = [
+    ...evidenceRequirements
+      .filter((requirement) => requirement.status === "blocked")
+      .map((requirement) => requirement.requirement),
+    "route_does_not_accept_arbitrary_user_tool_loop"
+  ];
+  const linkedSurfaces = new Set(linkedEvidence.map((evidence) => evidence.surface));
+  const validation: AgentUserToolLoopExecutionReleaseGatePlan["validation"] = {
+    arbitrary_user_tool_loop_execution: false,
+    budget_stop_policy_accepted: budgetStopPolicyAccepted,
+    budget_stop_policy_linked: linkedSurfaces.has("budget_stop_policy"),
+    failure_recovery_policy_accepted: failureRecoveryPolicyAccepted,
+    failure_recovery_policy_linked: linkedSurfaces.has("failure_recovery_policy"),
+    fixed_live_tool_loop_smoke_accepted: fixedLiveToolLoopSmokeAccepted,
+    fixed_live_tool_loop_smoke_linked: linkedSurfaces.has("fixed_live_tool_loop_smoke"),
+    fixed_tool_execution_evidence_accepted: fixedToolExecutionEvidenceAccepted,
+    fixed_tool_execution_evidence_smoke_linked: linkedSurfaces.has(
+      "fixed_tool_execution_evidence_smoke"
+    ),
+    no_frontend_rendering: true,
+    no_live_db_writes: true,
+    no_live_model_execution: true,
+    no_live_tool_execution: true,
+    no_model_calls: true,
+    pre_tool_call_resolution_accepted: preToolCallResolutionAccepted,
+    pre_tool_call_resolution_linked: linkedSurfaces.has("pre_tool_call_resolution"),
+    release_transition_allowed: false,
+    tool_enforcement_accepted: toolEnforcementAccepted,
+    tool_enforcement_linked: linkedSurfaces.has("tool_enforcement"),
+    tool_loop_planner_accepted: toolLoopPlannerAccepted,
+    tool_loop_planner_linked: linkedSurfaces.has("tool_loop_planner"),
+    user_auth_entitlement_accepted: userAuthEntitlementAccepted,
+    user_run_persistence_gate_accepted: userRunPersistenceGateAccepted,
+    user_run_persistence_gate_linked: linkedSurfaces.has("user_run_persistence_release_gate")
+  };
+  const releaseChecks = AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_CHECKS.map(
+    (check): AgentUserToolLoopExecutionReleaseGatePlan["release_checks"][number] => ({
+      check,
+      evidence:
+        check === "tool_loop_planner_contract_linked"
+          ? "deploy/agent/tool-loop-planner.contract.json links no-model ToolLoop planning and progress contracts"
+          : check === "pre_tool_call_resolution_contract_linked"
+            ? "deploy/agent/pre-tool-call-resolution.contract.json blocks unresolved security/time/currency/methodology before tool calls"
+            : check === "tool_enforcement_contract_linked"
+              ? "deploy/agent/tool-enforcement.contract.json requires registered, versioned, schema-bound, scope-aware tools and denies arbitrary SQL/URL"
+              : check === "budget_stop_policy_contract_linked"
+                ? "deploy/agent/budget-stop-policy.contract.json keeps execution bounded by step, credit, row, token, and wall-clock limits"
+                : check === "failure_recovery_policy_contract_linked"
+                  ? "deploy/agent/failure-recovery-policy.contract.json covers failed-tool-call-only retry and no-double-charge behavior"
+                  : check === "fixed_tool_execution_evidence_smoke_linked"
+                    ? "deploy/agent/tool-execution-evidence-smoke.contract.json proves guarded fixed tool execution plus evidence binding"
+                    : check === "fixed_live_tool_loop_smoke_linked"
+                      ? "deploy/agent/live-tool-loop-smoke.contract.json proves guarded fixed ToolLoop orchestration"
+                      : check === "user_run_persistence_gate_linked"
+                        ? "deploy/agent/user-run-persistence-release-gate.contract.json keeps production persistence cutover blocked"
+                        : "arbitrary user ToolLoop cutover remains blocked because this route does not accept a user prompt for live tool execution",
+      status: "planned_no_write"
+    })
+  );
+
+  return {
+    actual_tool_execution: false,
+    arbitrary_user_tool_loop_execution: false,
+    capability: getAgentUserToolLoopExecutionReleaseGateCapabilities(),
+    evidence_requirements: evidenceRequirements,
+    frontend_rendering: false,
+    linked_evidence: linkedEvidence,
+    live_db_writes: false,
+    live_model_execution: false,
+    live_tool_execution: false,
+    model_calls: false,
+    persistent_writes: false,
+    release_checks: releaseChecks,
+    release_gate: {
+      blockers,
+      gate_status: "blocked_arbitrary_user_tool_loop_execution",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "data", "security", "operations"]
+    },
+    release_transition_allowed: false,
+    request_id: input.requestId,
+    route: "POST /agent/release-gates/user-tool-loop-execution/plan",
+    sql_emitted: false,
+    status: "planned_no_write",
+    tables: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_TABLES,
+    validation,
+    version: AGENT_USER_TOOL_LOOP_EXECUTION_RELEASE_GATE_VERSION
   };
 }
 

@@ -39,6 +39,7 @@ import {
   createAgentRunSkeleton,
   createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentLiveModelStreamingReleaseGatePlan,
+  createAgentUserToolLoopExecutionReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
@@ -50,6 +51,7 @@ import {
   getAgentAiGatewayObservabilityReleaseGateCapabilities,
   getAgentLiveModelStreamingReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
+  getAgentUserToolLoopExecutionReleaseGateCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
@@ -678,6 +680,8 @@ interface AgentRunRequestBody {
   answerText?: unknown;
   backend_progress_stream_accepted?: unknown;
   backendProgressStreamAccepted?: unknown;
+  budget_stop_policy_accepted?: unknown;
+  budgetStopPolicyAccepted?: unknown;
   channel?: unknown;
   calculations?: unknown;
   claims?: unknown;
@@ -688,10 +692,16 @@ interface AgentRunRequestBody {
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
+  failure_recovery_policy_accepted?: unknown;
+  failureRecoveryPolicyAccepted?: unknown;
   frontend_streaming_ui_accepted?: unknown;
   frontendStreamingUiAccepted?: unknown;
   generated_answer_evidence_accepted?: unknown;
   generatedAnswerEvidenceAccepted?: unknown;
+  fixed_live_tool_loop_smoke_accepted?: unknown;
+  fixedLiveToolLoopSmokeAccepted?: unknown;
+  fixed_tool_execution_evidence_accepted?: unknown;
+  fixedToolExecutionEvidenceAccepted?: unknown;
   max_credits?: unknown;
   max_rows?: unknown;
   max_steps?: unknown;
@@ -711,6 +721,8 @@ interface AgentRunRequestBody {
   model_audit_stream_text_accepted?: unknown;
   modelAuditStreamTextAccepted?: unknown;
   plan?: unknown;
+  pre_tool_call_resolution_accepted?: unknown;
+  preToolCallResolutionAccepted?: unknown;
   prompt?: unknown;
   response_depth?: unknown;
   responseDepth?: unknown;
@@ -769,7 +781,15 @@ interface AgentRunRequestBody {
   sourceRunId?: unknown;
   stream_auth_redaction_accepted?: unknown;
   streamAuthRedactionAccepted?: unknown;
+  tool_enforcement_accepted?: unknown;
+  toolEnforcementAccepted?: unknown;
   title?: unknown;
+  tool_loop_planner_accepted?: unknown;
+  toolLoopPlannerAccepted?: unknown;
+  user_auth_entitlement_accepted?: unknown;
+  userAuthEntitlementAccepted?: unknown;
+  user_run_persistence_gate_accepted?: unknown;
+  userRunPersistenceGateAccepted?: unknown;
   workflow_kind?: unknown;
   workflowKind?: unknown;
   workspace_id?: unknown;
@@ -6983,6 +7003,72 @@ app.post("/agent/release-gates/live-model-streaming/plan", async (c) => {
             methodology_version: plan.version,
             source: "agent-runtime",
             source_record_id: "agent-live-model-streaming-release-gate-plan"
+          }
+        ],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: plan.release_checks.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/agent/release-gates/user-tool-loop-execution/plan", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as AgentRunRequestBody;
+  const plan = createAgentUserToolLoopExecutionReleaseGatePlan({
+    budgetStopPolicyAccepted: normalizeOptionalBoolean(
+      body.budget_stop_policy_accepted ?? body.budgetStopPolicyAccepted
+    ),
+    failureRecoveryPolicyAccepted: normalizeOptionalBoolean(
+      body.failure_recovery_policy_accepted ?? body.failureRecoveryPolicyAccepted
+    ),
+    fixedLiveToolLoopSmokeAccepted: normalizeOptionalBoolean(
+      body.fixed_live_tool_loop_smoke_accepted ?? body.fixedLiveToolLoopSmokeAccepted
+    ),
+    fixedToolExecutionEvidenceAccepted: normalizeOptionalBoolean(
+      body.fixed_tool_execution_evidence_accepted ?? body.fixedToolExecutionEvidenceAccepted
+    ),
+    preToolCallResolutionAccepted: normalizeOptionalBoolean(
+      body.pre_tool_call_resolution_accepted ?? body.preToolCallResolutionAccepted
+    ),
+    requestId,
+    toolEnforcementAccepted: normalizeOptionalBoolean(
+      body.tool_enforcement_accepted ?? body.toolEnforcementAccepted
+    ),
+    toolLoopPlannerAccepted: normalizeOptionalBoolean(
+      body.tool_loop_planner_accepted ?? body.toolLoopPlannerAccepted
+    ),
+    userAuthEntitlementAccepted: normalizeOptionalBoolean(
+      body.user_auth_entitlement_accepted ?? body.userAuthEntitlementAccepted
+    ),
+    userRunPersistenceGateAccepted: normalizeOptionalBoolean(
+      body.user_run_persistence_gate_accepted ?? body.userRunPersistenceGateAccepted
+    )
+  });
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        ...plan,
+        capability: getAgentUserToolLoopExecutionReleaseGateCapabilities()
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: plan.version,
+        methodologyVersion: plan.version,
+        provenance: [
+          {
+            data_version: plan.version,
+            methodology_version: plan.version,
+            source: "agent-runtime",
+            source_record_id: "agent-user-tool-loop-execution-release-gate-plan"
           }
         ],
         requestId,

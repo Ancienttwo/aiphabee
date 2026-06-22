@@ -7,6 +7,7 @@ import {
   createAgentRunSkeleton,
   createAgentAiGatewayObservabilityReleaseGatePlan,
   createAgentLiveModelStreamingReleaseGatePlan,
+  createAgentUserToolLoopExecutionReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
   createAiSdkStopCondition,
   createPreToolCallResolution,
@@ -21,6 +22,7 @@ import {
   getAgentAiGatewayObservabilityReleaseGateCapabilities,
   getAgentLiveModelStreamingReleaseGateCapabilities,
   getAgentRuntimeCapabilities,
+  getAgentUserToolLoopExecutionReleaseGateCapabilities,
   getAgentUserRunPersistenceReleaseGateCapabilities,
   getPromptInjectionToolDenialReleaseGateCapabilities,
   getProductAgentReleaseGateCapabilities,
@@ -340,6 +342,42 @@ describe("agent runtime scaffold", () => {
       "ai_gateway_observability_gate_linked",
       "user_facing_stream_cutover_blocked"
     ]);
+    expect(capabilities.agent_user_tool_loop_execution_release_gate).toMatchObject({
+      actual_tool_execution: false,
+      arbitrary_user_tool_loop_execution: false,
+      budget_stop_policy_route: "POST /agent/runs/plan",
+      failure_recovery_policy_route: "POST /agent/runs/plan",
+      fixed_tool_execution_evidence_smoke_route:
+        "POST /agent/runs/tool-execution-evidence-smoke",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      live_tool_execution: false,
+      live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke",
+      model_calls: false,
+      persistent_writes: false,
+      preflight_route: "POST /agent/runs/preflight",
+      route: "POST /agent/release-gates/user-tool-loop-execution/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_user_tool_loop_execution_release_gate_scaffold",
+      tool_enforcement_route: "POST /agent/runs/plan",
+      tool_loop_route: "POST /agent/runs/plan",
+      user_run_persistence_release_gate_route:
+        "POST /agent/release-gates/user-run-persistence/plan",
+      version: "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0"
+    });
+    expect(capabilities.agent_user_tool_loop_execution_release_gate.required_checks).toEqual([
+      "tool_loop_planner_contract_linked",
+      "pre_tool_call_resolution_contract_linked",
+      "tool_enforcement_contract_linked",
+      "budget_stop_policy_contract_linked",
+      "failure_recovery_policy_contract_linked",
+      "fixed_tool_execution_evidence_smoke_linked",
+      "fixed_live_tool_loop_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "arbitrary_user_tool_loop_cutover_blocked"
+    ]);
     expect(capabilities.registered_tools).toHaveLength(16);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
@@ -607,6 +645,51 @@ describe("agent runtime scaffold", () => {
     ]);
   });
 
+  it("exposes user ToolLoop execution release gate capability without arbitrary execution", () => {
+    const capability = getAgentUserToolLoopExecutionReleaseGateCapabilities();
+
+    expect(capability).toMatchObject({
+      actual_tool_execution: false,
+      arbitrary_user_tool_loop_execution: false,
+      budget_stop_policy_route: "POST /agent/runs/plan",
+      failure_recovery_policy_route: "POST /agent/runs/plan",
+      fixed_tool_execution_evidence_smoke_route:
+        "POST /agent/runs/tool-execution-evidence-smoke",
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      live_tool_execution: false,
+      live_tool_loop_smoke_route: "POST /agent/runs/live-tool-loop-smoke",
+      model_calls: false,
+      persistent_writes: false,
+      preflight_route: "POST /agent/runs/preflight",
+      route: "POST /agent/release-gates/user-tool-loop-execution/plan",
+      runtime_route: "GET /agent/runtime",
+      sql_emitted: false,
+      status: "agent_user_tool_loop_execution_release_gate_scaffold",
+      tool_enforcement_route: "POST /agent/runs/plan",
+      tool_loop_route: "POST /agent/runs/plan",
+      user_run_persistence_release_gate_route:
+        "POST /agent/release-gates/user-run-persistence/plan",
+      version: "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0"
+    });
+    expect(capability.required_checks).toEqual([
+      "tool_loop_planner_contract_linked",
+      "pre_tool_call_resolution_contract_linked",
+      "tool_enforcement_contract_linked",
+      "budget_stop_policy_contract_linked",
+      "failure_recovery_policy_contract_linked",
+      "fixed_tool_execution_evidence_smoke_linked",
+      "fixed_live_tool_loop_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "arbitrary_user_tool_loop_cutover_blocked"
+    ]);
+    expect(capability.tables).toEqual([
+      "core.agent_user_tool_loop_execution_release_gate",
+      "governance.agent_user_tool_loop_execution_release_gate_contract"
+    ]);
+  });
+
   it("plans user-run persistence release gate from existing smoke proofs", () => {
     const plan = createAgentUserRunPersistenceReleaseGatePlan({
       operatorSignoff: true,
@@ -830,6 +913,98 @@ describe("agent runtime scaffold", () => {
       no_model_calls: true,
       release_transition_allowed: false,
       stream_auth_redaction_accepted: true
+    });
+  });
+
+  it("plans user ToolLoop execution release gate without accepting arbitrary user execution", () => {
+    const plan = createAgentUserToolLoopExecutionReleaseGatePlan({
+      budgetStopPolicyAccepted: true,
+      failureRecoveryPolicyAccepted: true,
+      fixedLiveToolLoopSmokeAccepted: true,
+      fixedToolExecutionEvidenceAccepted: true,
+      preToolCallResolutionAccepted: true,
+      requestId: "req-agent-user-tool-loop-execution-gate-1",
+      toolEnforcementAccepted: true,
+      toolLoopPlannerAccepted: true,
+      userAuthEntitlementAccepted: true,
+      userRunPersistenceGateAccepted: true
+    });
+
+    expect(plan).toMatchObject({
+      actual_tool_execution: false,
+      arbitrary_user_tool_loop_execution: false,
+      frontend_rendering: false,
+      live_db_writes: false,
+      live_model_execution: false,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      release_transition_allowed: false,
+      request_id: "req-agent-user-tool-loop-execution-gate-1",
+      route: "POST /agent/release-gates/user-tool-loop-execution/plan",
+      sql_emitted: false,
+      status: "planned_no_write",
+      version: "2026-06-22.phase1.agent-user-tool-loop-execution-release-gate.v0"
+    });
+    expect(plan.capability.required_checks).toEqual([
+      "tool_loop_planner_contract_linked",
+      "pre_tool_call_resolution_contract_linked",
+      "tool_enforcement_contract_linked",
+      "budget_stop_policy_contract_linked",
+      "failure_recovery_policy_contract_linked",
+      "fixed_tool_execution_evidence_smoke_linked",
+      "fixed_live_tool_loop_smoke_linked",
+      "user_run_persistence_gate_linked",
+      "arbitrary_user_tool_loop_cutover_blocked"
+    ]);
+    expect(plan.release_checks.map((check) => check.check)).toEqual(
+      plan.capability.required_checks
+    );
+    expect(plan.release_checks.every((check) => check.status === "planned_no_write")).toBe(true);
+    expect(plan.linked_evidence.map((evidence) => evidence.surface)).toEqual([
+      "tool_loop_planner",
+      "pre_tool_call_resolution",
+      "tool_enforcement",
+      "budget_stop_policy",
+      "failure_recovery_policy",
+      "fixed_tool_execution_evidence_smoke",
+      "fixed_live_tool_loop_smoke",
+      "user_run_persistence_release_gate"
+    ]);
+    expect(plan.evidence_requirements.every((requirement) => requirement.status === "satisfied")).toBe(
+      true
+    );
+    expect(plan.release_gate).toMatchObject({
+      blockers: ["route_does_not_accept_arbitrary_user_tool_loop"],
+      gate_status: "blocked_arbitrary_user_tool_loop_execution",
+      no_live_release_claim: true,
+      required_signoffs: ["agent", "data", "security", "operations"]
+    });
+    expect(plan.validation).toEqual({
+      arbitrary_user_tool_loop_execution: false,
+      budget_stop_policy_accepted: true,
+      budget_stop_policy_linked: true,
+      failure_recovery_policy_accepted: true,
+      failure_recovery_policy_linked: true,
+      fixed_live_tool_loop_smoke_accepted: true,
+      fixed_live_tool_loop_smoke_linked: true,
+      fixed_tool_execution_evidence_accepted: true,
+      fixed_tool_execution_evidence_smoke_linked: true,
+      no_frontend_rendering: true,
+      no_live_db_writes: true,
+      no_live_model_execution: true,
+      no_live_tool_execution: true,
+      no_model_calls: true,
+      pre_tool_call_resolution_accepted: true,
+      pre_tool_call_resolution_linked: true,
+      release_transition_allowed: false,
+      tool_enforcement_accepted: true,
+      tool_enforcement_linked: true,
+      tool_loop_planner_accepted: true,
+      tool_loop_planner_linked: true,
+      user_auth_entitlement_accepted: true,
+      user_run_persistence_gate_accepted: true,
+      user_run_persistence_gate_linked: true
     });
   });
 
