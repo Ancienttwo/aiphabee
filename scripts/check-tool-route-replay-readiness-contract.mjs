@@ -33,6 +33,7 @@ const requiredLinkedContracts = {
   golden_tool_manifest: "tests/golden/tools/manifest.json",
   mcp_pagination_limits: "deploy/mcp/pagination-limits.contract.json",
   mcp_protocol_release_gate: "deploy/mcp/protocol-release-gate.contract.json",
+  mcp_runtime_schema_snapshot: "deploy/mcp/runtime-schema-snapshot.contract.json",
   mcp_schema_validation: "deploy/mcp/tool-schema-validation.contract.json",
   mcp_usage_envelope: "deploy/mcp/usage-envelope.contract.json",
   mcp_versioning: "deploy/mcp/tool-versioning.contract.json",
@@ -45,6 +46,7 @@ const requiredSurfaceIds = [
   "tool_registry",
   "tool_schemas",
   "mcp_schema_validation",
+  "mcp_runtime_schema_snapshot",
   "mcp_versioning",
   "mcp_usage_envelope",
   "mcp_pagination_limits",
@@ -56,7 +58,6 @@ const requiredSurfaceIds = [
 ];
 const requiredBlockers = [
   "mcp_live_protocol_execution",
-  "runtime_schema_serving",
   "live_route_replay",
   "live_db_writes",
   "partner_source_rows"
@@ -160,6 +161,10 @@ function readSourceContracts(value) {
     goldenManifest: readJson(linked.golden_tool_manifest ?? requiredLinkedContracts.golden_tool_manifest),
     mcpPaginationLimits: readJson(linked.mcp_pagination_limits ?? requiredLinkedContracts.mcp_pagination_limits),
     mcpProtocolReleaseGate: readJson(linked.mcp_protocol_release_gate ?? requiredLinkedContracts.mcp_protocol_release_gate),
+    mcpRuntimeSchemaSnapshot: readJson(
+      linked.mcp_runtime_schema_snapshot ??
+        requiredLinkedContracts.mcp_runtime_schema_snapshot
+    ),
     mcpSchemaValidation: readJson(linked.mcp_schema_validation ?? requiredLinkedContracts.mcp_schema_validation),
     mcpUsageEnvelope: readJson(linked.mcp_usage_envelope ?? requiredLinkedContracts.mcp_usage_envelope),
     mcpVersioning: readJson(linked.mcp_versioning ?? requiredLinkedContracts.mcp_versioning),
@@ -195,7 +200,8 @@ function validateRouteReplayPolicy(value) {
     "local_catalog_consistency_ready",
     "local_schema_contract_ready",
     "local_golden_fixture_ready",
-    "no_live_posture_guarded"
+    "no_live_posture_guarded",
+    "runtime_schema_serving"
   ];
 
   for (const field of requiredTrue) {
@@ -214,7 +220,6 @@ function validateRouteReplayPolicy(value) {
 
   for (const field of [
     "mcp_live_protocol_execution",
-    "runtime_schema_serving",
     "live_db_writes",
     "partner_source_rows"
   ]) {
@@ -341,6 +346,7 @@ function validateSourceContracts(contracts) {
   errors.push(...validateMcpValidatedTools(contracts.mcpUsageEnvelope, "mcp_usage_envelope"));
   errors.push(...validateMcpValidatedTools(contracts.mcpPaginationLimits, "mcp_pagination_limits"));
   errors.push(...validateMcpProtocolReleaseGate(contracts.mcpProtocolReleaseGate));
+  errors.push(...validateMcpRuntimeSchemaSnapshot(contracts.mcpRuntimeSchemaSnapshot));
   errors.push(...validateAgentToolEnforcement(contracts.agentToolEnforcement));
   errors.push(...validateEvidenceLineageTools(contracts.evidenceLineageTools));
   errors.push(...validateEvidenceLineageService(contracts.evidenceLineageService));
@@ -471,6 +477,48 @@ function validateMcpProtocolReleaseGate(value) {
   if (!isRecord(value.release_gate) || value.release_gate.no_live_release_claim !== true) {
     errors.push("mcp protocol release gate must keep no_live_release_claim true");
   }
+
+  return errors;
+}
+
+function validateMcpRuntimeSchemaSnapshot(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["mcp runtime schema snapshot contract must be an object"];
+  }
+
+  if (value.route !== "GET /mcp/runtime/tool-schemas") {
+    errors.push("mcp runtime schema snapshot route must be GET /mcp/runtime/tool-schemas");
+  }
+
+  if (value.protocol_route !== "POST /mcp") {
+    errors.push("mcp runtime schema snapshot protocol_route must be POST /mcp");
+  }
+
+  if (value.schema_source_contract !== requiredLinkedContracts.tool_schemas) {
+    errors.push("mcp runtime schema snapshot must source deploy/tools/tool-schemas.contract.json");
+  }
+
+  if (value.runtime_schema_serving !== true || value.tools_list_schema_snapshot !== true) {
+    errors.push("mcp runtime schema snapshot must mark runtime schema serving and tools/list snapshot ready");
+  }
+
+  if (value.live_tool_execution !== false || value.frontend !== false) {
+    errors.push("mcp runtime schema snapshot must keep live_tool_execution and frontend false");
+  }
+
+  if (value.tool_count !== requiredTools.length) {
+    errors.push(`mcp runtime schema snapshot tool_count must be ${requiredTools.length}`);
+  }
+
+  errors.push(
+    ...validateStringArray(
+      value.validated_tools,
+      requiredTools,
+      "mcp_runtime_schema_snapshot.validated_tools"
+    )
+  );
 
   return errors;
 }

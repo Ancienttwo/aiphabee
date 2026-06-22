@@ -204,6 +204,7 @@ import {
   getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
+  getMcpRuntimeSchemaSnapshot,
   getMcpRuntimeStandardError,
   getMcpStandardErrorDefinition,
   getMcpTargetClientsConsoleReleaseGateCapabilities,
@@ -4646,6 +4647,35 @@ app.get("/mcp/runtime", (c) => {
         cached: false,
         credits: 0,
         rows: 0
+      }
+    })
+  );
+});
+
+app.get("/mcp/runtime/tool-schemas", (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const snapshot = getMcpRuntimeSchemaSnapshot();
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(snapshot, {
+      asOf: new Date().toISOString(),
+      dataVersion: snapshot.version,
+      methodologyVersion: snapshot.schema_snapshot_version,
+      provenance: [
+        {
+          data_version: snapshot.version,
+          methodology_version: snapshot.schema_snapshot_version,
+          source: "mcp-runtime",
+          source_record_id: "runtime-tool-schema-snapshot"
+        }
+      ],
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: snapshot.tool_count
       }
     })
   );

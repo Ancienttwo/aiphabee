@@ -25,6 +25,8 @@ export const MCP_REVOCATION_ENFORCEMENT_VERSION =
   "2026-06-21.phase2.mcp-revocation-enforcement-scaffold.v0";
 export const MCP_TOOL_SCHEMA_VALIDATION_VERSION =
   "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0";
+export const MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION =
+  "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0";
 export const MCP_PAGINATION_LIMITS_VERSION =
   "2026-06-21.phase2.mcp-pagination-limits-scaffold.v0";
 export const MCP_USAGE_ENVELOPE_VERSION =
@@ -152,6 +154,24 @@ export const MCP_SUPPORTED_METHODS = [
   "initialize",
   "tools/list",
   "tools/call"
+] as const;
+
+export const MCP_RUNTIME_SCHEMA_SNAPSHOT_ROUTE =
+  "GET /mcp/runtime/tool-schemas";
+export const MCP_TOOL_SCHEMA_SOURCE_CONTRACT =
+  "deploy/tools/tool-schemas.contract.json";
+export const MCP_JSON_SCHEMA_DIALECT =
+  "https://json-schema.org/draft/2020-12/schema";
+export const MCP_STANDARD_RESPONSE_ENVELOPE_FIELDS = [
+  "ok",
+  "request_id",
+  "as_of",
+  "market_status",
+  "provenance",
+  "usage",
+  "data",
+  "data_version",
+  "methodology_version"
 ] as const;
 
 export const DEFAULT_MCP_ALLOWED_ORIGINS = [
@@ -498,7 +518,55 @@ export interface McpToolDescriptor {
   public_version: string;
   required_scope: string;
   retrieval_limits: McpToolRetrievalLimitsDescriptor;
+  schema_snapshot: McpToolSchemaSnapshotDescriptor;
   version: string;
+}
+
+export interface McpToolSchemaSnapshotDescriptor {
+  input_schema: {
+    additional_properties_allowed: false;
+    allowed_properties: readonly string[];
+    any_of: readonly (readonly string[])[];
+    id: string;
+    required: readonly string[];
+  };
+  output_schema: {
+    id: string;
+    raw_text_only_response_allowed: false;
+    required_envelope_fields: typeof MCP_STANDARD_RESPONSE_ENVELOPE_FIELDS;
+    standard_response_envelope: true;
+    structured_content_required: true;
+  };
+  schema_dialect: typeof MCP_JSON_SCHEMA_DIALECT;
+  schema_snapshot_version: typeof MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION;
+  schema_source_contract: typeof MCP_TOOL_SCHEMA_SOURCE_CONTRACT;
+  standard_error_codes: readonly string[];
+}
+
+export interface McpRuntimeSchemaSnapshot {
+  live_tool_execution: false;
+  package: "@aiphabee/mcp-runtime";
+  protocol_route: "POST /mcp";
+  route: typeof MCP_RUNTIME_SCHEMA_SNAPSHOT_ROUTE;
+  runtime_schema_serving: true;
+  schema_dialect: typeof MCP_JSON_SCHEMA_DIALECT;
+  schema_snapshot_version: typeof MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION;
+  schema_source_contract: typeof MCP_TOOL_SCHEMA_SOURCE_CONTRACT;
+  status: "runtime_schema_snapshot_scaffold";
+  tool_count: number;
+  tools: McpToolDescriptor[];
+  tools_list_schema_snapshot: true;
+  version: typeof MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION;
+}
+
+export interface McpToolsListSchemaSnapshotSummary {
+  returned_schema_count: number;
+  runtime_schema_serving: true;
+  schema_catalog_available_after_rights_gate: true;
+  schema_snapshot_version: typeof MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION;
+  schema_source_contract: typeof MCP_TOOL_SCHEMA_SOURCE_CONTRACT;
+  tool_schema_count: number;
+  tools_list_schema_snapshot: true;
 }
 
 export interface McpToolRetrievalLimitsDescriptor {
@@ -1175,6 +1243,7 @@ export interface McpProtocolPlan {
   tools_list?: {
     blocked_tool_count: number;
     returned_tool_count: number;
+    schema_snapshot: McpToolsListSchemaSnapshotSummary;
     tool_catalog_available_after_rights_gate: true;
     tools: McpToolDescriptor[];
   };
@@ -1621,6 +1690,10 @@ export function getMcpRuntimeCapabilities() {
     pagination_or_rights_bypass_blocked: true,
     route: "POST /mcp" as const,
     runtime_route: "GET /mcp/runtime" as const,
+    runtime_schema_serving: true,
+    runtime_schema_snapshot_route: MCP_RUNTIME_SCHEMA_SNAPSHOT_ROUTE,
+    runtime_schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+    schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
     scopes_revocable: true,
     mcp_revocation_enforcement_error_code: "AUTH_REQUIRED" as const,
     mcp_revocation_enforcement_live: false,
@@ -1680,6 +1753,7 @@ export function getMcpRuntimeCapabilities() {
     rate_limit_plan_ready: true,
     time_range_limits_ready: true,
     tool_schema_validation_version: MCP_TOOL_SCHEMA_VALIDATION_VERSION,
+    tools_list_schema_snapshot: true,
     tool_versioning_ready: true,
     usage_envelope_ready: true,
     usage_envelope_version: MCP_USAGE_ENVELOPE_VERSION,
@@ -1699,6 +1773,26 @@ export function getMcpRuntimeCapabilities() {
     transport: "streamable_http" as const,
     version: MCP_RUNTIME_VERSION,
     web_rights_do_not_imply_mcp: true
+  };
+}
+
+export function getMcpRuntimeSchemaSnapshot(): McpRuntimeSchemaSnapshot {
+  const tools = createToolDescriptors(REGISTERED_TOOLS);
+
+  return {
+    live_tool_execution: false,
+    package: "@aiphabee/mcp-runtime",
+    protocol_route: "POST /mcp",
+    route: MCP_RUNTIME_SCHEMA_SNAPSHOT_ROUTE,
+    runtime_schema_serving: true,
+    schema_dialect: MCP_JSON_SCHEMA_DIALECT,
+    schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+    schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
+    status: "runtime_schema_snapshot_scaffold",
+    tool_count: tools.length,
+    tools,
+    tools_list_schema_snapshot: true,
+    version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION
   };
 }
 
@@ -3806,6 +3900,7 @@ export function createMcpProtocolPlan(
       tools_list: {
         blocked_tool_count: rightsConfirmed ? 0 : REGISTERED_TOOLS.length,
         returned_tool_count: tools.length,
+        schema_snapshot: createToolsListSchemaSnapshotSummary(tools.length),
         tool_catalog_available_after_rights_gate: true,
         tools
       },
@@ -4154,8 +4249,50 @@ function createToolDescriptors(
     public_version: tool.lifecycle.publicVersion,
     required_scope: tool.permissions.requiredScope,
     retrieval_limits: createToolRetrievalLimitsDescriptor(tool),
+    schema_snapshot: createToolSchemaSnapshotDescriptor(tool),
     version: tool.version
   }));
+}
+
+function createToolsListSchemaSnapshotSummary(
+  returnedSchemaCount: number
+): McpToolsListSchemaSnapshotSummary {
+  return {
+    returned_schema_count: returnedSchemaCount,
+    runtime_schema_serving: true,
+    schema_catalog_available_after_rights_gate: true,
+    schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+    schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
+    tool_schema_count: REGISTERED_TOOLS.length,
+    tools_list_schema_snapshot: true
+  };
+}
+
+function createToolSchemaSnapshotDescriptor(
+  tool: RegisteredToolDefinition
+): McpToolSchemaSnapshotDescriptor {
+  const inputRule = MCP_TOOL_INPUT_VALIDATION_RULES[tool.name];
+
+  return {
+    input_schema: {
+      additional_properties_allowed: false,
+      allowed_properties: inputRule.allowed,
+      any_of: inputRule.anyOf,
+      id: tool.schema.inputSchemaId,
+      required: inputRule.required
+    },
+    output_schema: {
+      id: tool.schema.outputSchemaId,
+      raw_text_only_response_allowed: false,
+      required_envelope_fields: MCP_STANDARD_RESPONSE_ENVELOPE_FIELDS,
+      standard_response_envelope: tool.schema.standardResponseEnvelope,
+      structured_content_required: true
+    },
+    schema_dialect: MCP_JSON_SCHEMA_DIALECT,
+    schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+    schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
+    standard_error_codes: tool.schema.standardErrorCodes
+  };
 }
 
 function createToolRetrievalLimitsDescriptor(

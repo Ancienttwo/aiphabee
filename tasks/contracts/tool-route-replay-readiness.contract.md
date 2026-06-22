@@ -19,13 +19,13 @@ replay by making the remaining blockers explicit and machine-checkable.
   - route replay readiness contract;
   - P0 catalog, registry, schema, MCP, Agent, Evidence/Lineage, and golden
     manifest cross-checks;
+  - MCP runtime schema snapshot serving cross-check;
   - no-live posture validation;
   - fixture scenarios for early release, missing blockers, catalog drift, and
     checked DoD regressions;
   - tracker and deferred-ledger updates.
 - Out of scope:
   - live MCP `tools/call` execution;
-  - runtime schema endpoint serving;
   - server-orchestrated route replay;
   - partner source rows;
   - live Evidence/Lineage DB writes;
@@ -36,7 +36,8 @@ replay by making the remaining blockers explicit and machine-checkable.
 ```yaml
 exit_criteria:
   content_checks:
-    - "Readiness contract records all 5 live blockers"
+    - "Readiness contract records all 4 remaining live blockers"
+    - "Runtime schema serving is validated through mcp runtime schema snapshot"
     - "release_transition_allowed remains false"
     - "All 16 P0 tools remain aligned across catalog/schema/MCP/golden/agent surfaces"
     - "Sprint 1.2 exit DoD remains unchecked"
@@ -47,6 +48,7 @@ exit_criteria:
     - npm run check:p0-tool-catalog
     - npm run check:tool-schemas
     - npm run check:mcp-tool-schema-validation
+    - npm run check:mcp-runtime-schema-snapshot
     - npm run check:mcp-protocol-release-gate
     - npm run check:evidence-service
     - npm run test:golden

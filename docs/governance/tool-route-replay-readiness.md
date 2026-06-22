@@ -8,8 +8,9 @@
 
 This slice adds a Sprint 1.2 readiness ledger for moving from static golden
 fixtures to live route replay. It does not enable MCP live protocol execution,
-runtime schema serving, live route replay, live DB writes, or partner source
-rows.
+live route replay, live DB writes, or partner source rows. Runtime schema
+serving is now represented by the `mcp_runtime_schema_snapshot` validated
+surface and remains no-live.
 
 ## P1 Architecture Map
 
@@ -17,7 +18,7 @@ rows.
 |---|---|---|
 | P0 catalog | `deploy/tools/p0-tool-catalog.contract.json` | Owns 16-tool cross-surface consistency |
 | Tool schemas | `deploy/tools/tool-schemas.contract.json` | Owns strict local input/output envelopes |
-| MCP contracts | `deploy/mcp/*.contract.json` | Own local schema/version/pagination/usage/protocol posture |
+| MCP contracts | `deploy/mcp/*.contract.json` | Own local schema/runtime-schema/version/pagination/usage/protocol posture |
 | Agent enforcement | `deploy/agent/tool-enforcement.contract.json` | Owns registered-tool/no-arbitrary-SQL/URL guard |
 | Evidence service | `deploy/evidence/service.contract.json` | Owns no-write evidence/source-ref planner |
 | Golden manifest | `tests/golden/tools/manifest.json` | Owns one synthetic fixture per P0 tool |
@@ -27,13 +28,14 @@ rows.
 
 1. `npm run check:tool-route-replay-readiness` reads the readiness contract.
 2. The checker loads the P0 catalog, registry, tool schema, MCP schema
-   validation/versioning/pagination/usage/protocol, Agent enforcement,
-   Evidence/Lineage service, Evidence/Lineage tools, and golden manifest.
+   validation/runtime-schema/versioning/pagination/usage/protocol, Agent
+   enforcement, Evidence/Lineage service, Evidence/Lineage tools, and golden
+   manifest.
 3. It verifies all 16 PRD §9.2 tool names still align across the local catalog
    surfaces.
 4. It verifies the live blockers remain explicit:
-   `mcp_live_protocol_execution`, `runtime_schema_serving`, `live_route_replay`,
-   `live_db_writes`, and `partner_source_rows`.
+   `mcp_live_protocol_execution`, `live_route_replay`, `live_db_writes`, and
+   `partner_source_rows`.
 5. It keeps `release_transition_allowed=false` and requires the Sprint 1.2 DoD
    line to remain unchecked until the live evidence exists.
 
@@ -60,6 +62,7 @@ Expected checks for this slice:
 - `npm run check:p0-tool-catalog`
 - `npm run check:tool-schemas`
 - `npm run check:mcp-tool-schema-validation`
+- `npm run check:mcp-runtime-schema-snapshot`
 - `npm run check:mcp-protocol-release-gate`
 - `npm run check:evidence-service`
 - `npm run test:golden`
@@ -70,7 +73,6 @@ Expected checks for this slice:
 ## Residual Gaps
 
 - MCP live protocol execution is absent.
-- Runtime schema serving is absent.
 - Server-orchestrated live route replay is absent.
 - Evidence/Lineage live DB writes are absent.
 - Partner source rows and data-owner signoff are absent.

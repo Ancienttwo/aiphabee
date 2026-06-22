@@ -9,8 +9,10 @@ handlers or enabling live execution.
 
 The existing P0 catalog proves local consistency across registry, schemas, MCP
 contract metadata, Agent enforcement, Evidence/Lineage descriptors, and golden
-fixtures. It does not prove MCP live protocol execution, runtime schema serving,
-server-orchestrated route replay, live DB writes, or partner source rows.
+fixtures. Runtime schema serving is now covered by the MCP runtime schema
+snapshot contract. The readiness ledger still does not prove MCP live protocol
+execution, server-orchestrated route replay, live DB writes, or partner source
+rows.
 
 ## Verification Surface
 
@@ -19,11 +21,11 @@ server-orchestrated route replay, live DB writes, or partner source rows.
 - `scripts/check-tool-route-replay-readiness-fixtures.mjs`
 - `npm run check:tool-route-replay-readiness`
 - `npm run check:tool-route-replay-readiness-fixtures`
+- `npm run check:mcp-runtime-schema-snapshot`
 
 ## Deferred
 
 - Live MCP tools/call smoke.
-- Runtime schema endpoint smoke.
 - Golden fixture versus live route response diff.
 - Evidence record/source-ref insert smoke.
 - Partner source-row sample manifest and data-owner signoff.

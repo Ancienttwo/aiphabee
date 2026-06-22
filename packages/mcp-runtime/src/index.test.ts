@@ -15,6 +15,7 @@ import {
   MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_REQUIRED_CHECKS,
   MCP_TARGET_CLIENTS_CONSOLE_RELEASE_GATE_VERSION,
   MCP_TOOL_LIMITER_VERSION,
+  MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
   McpRuntimeInputError,
   createMcpAuthLimitsReleaseGatePlan,
   createMcpApiKeyCreatePlan,
@@ -38,6 +39,7 @@ import {
   getMcpProtocolReleaseGateCapabilities,
   getMcpRevocationEnforcementCapabilities,
   getMcpRuntimeCapabilities,
+  getMcpRuntimeSchemaSnapshot,
   getMcpRuntimeStandardError,
   getMcpStandardErrorDefinition,
   getMcpTargetClientsConsoleReleaseGateCapabilities
@@ -56,7 +58,11 @@ describe("mcp endpoint default-deny scaffold", () => {
       package: "@aiphabee/mcp-runtime",
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
+      runtime_schema_serving: true,
+      runtime_schema_snapshot_route: "GET /mcp/runtime/tool-schemas",
+      runtime_schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
       status: "mcp_endpoint_default_deny_scaffold",
+      tools_list_schema_snapshot: true,
       tools_list_live: false,
       transport: "streamable_http",
       web_rights_do_not_imply_mcp: true
@@ -257,6 +263,42 @@ describe("mcp endpoint default-deny scaffold", () => {
       "fallback_to_tools_only_documented",
       "no_live_resources_prompts_apps_claim"
     ]);
+  });
+
+  it("serves a runtime schema snapshot without live tool execution", () => {
+    const snapshot = getMcpRuntimeSchemaSnapshot();
+
+    expect(snapshot).toMatchObject({
+      live_tool_execution: false,
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      route: "GET /mcp/runtime/tool-schemas",
+      runtime_schema_serving: true,
+      schema_dialect: "https://json-schema.org/draft/2020-12/schema",
+      schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+      schema_source_contract: "deploy/tools/tool-schemas.contract.json",
+      status: "runtime_schema_snapshot_scaffold",
+      tool_count: 16,
+      tools_list_schema_snapshot: true,
+      version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION
+    });
+    expect(snapshot.tools).toHaveLength(16);
+    expect(snapshot.tools.every((tool) => tool.schema_snapshot !== undefined)).toBe(true);
+    expect(
+      snapshot.tools.every(
+        (tool) =>
+          tool.schema_snapshot.input_schema.additional_properties_allowed === false &&
+          tool.schema_snapshot.output_schema.structured_content_required === true &&
+          tool.schema_snapshot.output_schema.raw_text_only_response_allowed === false &&
+          tool.schema_snapshot.schema_source_contract ===
+            "deploy/tools/tool-schemas.contract.json"
+      )
+    ).toBe(true);
+    expect(
+      snapshot.tools
+        .find((tool) => tool.name === "resolve_security")
+        ?.schema_snapshot.input_schema.required
+    ).toEqual(["query"]);
   });
 
   it("plans MCP compatibility status without live client smoke", () => {
@@ -1620,6 +1662,15 @@ describe("mcp endpoint default-deny scaffold", () => {
     expect(plan.tools_list).toMatchObject({
       blocked_tool_count: 16,
       returned_tool_count: 0,
+      schema_snapshot: {
+        returned_schema_count: 0,
+        runtime_schema_serving: true,
+        schema_catalog_available_after_rights_gate: true,
+        schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
+        schema_source_contract: "deploy/tools/tool-schemas.contract.json",
+        tool_schema_count: 16,
+        tools_list_schema_snapshot: true
+      },
       tool_catalog_available_after_rights_gate: true,
       tools: []
     });
@@ -1645,9 +1696,22 @@ describe("mcp endpoint default-deny scaffold", () => {
           tool.deprecation.minimum_notice_days === 90 &&
           tool.retrieval_limits.enforced_before_execution &&
           tool.retrieval_limits.plan_or_rights_bypass_blocked &&
-          tool.retrieval_limits.row_limit.max_limit >= 1
+          tool.retrieval_limits.row_limit.max_limit >= 1 &&
+          tool.schema_snapshot.schema_snapshot_version ===
+            MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION &&
+          tool.schema_snapshot.input_schema.id === tool.input_schema_id &&
+          tool.schema_snapshot.input_schema.additional_properties_allowed === false &&
+          tool.schema_snapshot.output_schema.id === tool.output_schema_id &&
+          tool.schema_snapshot.output_schema.structured_content_required === true
       )
     ).toBe(true);
+    expect(plan.tools_list?.schema_snapshot).toMatchObject({
+      returned_schema_count: 16,
+      runtime_schema_serving: true,
+      schema_catalog_available_after_rights_gate: true,
+      tool_schema_count: 16,
+      tools_list_schema_snapshot: true
+    });
   });
 
   it("rejects untrusted origins before tool discovery", () => {

@@ -22,6 +22,7 @@ const baseContracts = {
   goldenManifest: readJson("tests/golden/tools/manifest.json"),
   mcpPaginationLimits: readJson("deploy/mcp/pagination-limits.contract.json"),
   mcpProtocolReleaseGate: readJson("deploy/mcp/protocol-release-gate.contract.json"),
+  mcpRuntimeSchemaSnapshot: readJson("deploy/mcp/runtime-schema-snapshot.contract.json"),
   mcpSchemaValidation: readJson("deploy/mcp/tool-schema-validation.contract.json"),
   mcpUsageEnvelope: readJson("deploy/mcp/usage-envelope.contract.json"),
   mcpVersioning: readJson("deploy/mcp/tool-versioning.contract.json"),
@@ -53,11 +54,11 @@ const scenarios = [
     })
   },
   {
-    expectedError: "not_claimed must include runtime_schema_serving",
+    expectedError: "route_replay_policy.runtime_schema_serving must be true",
     expectValid: false,
-    name: "missing_runtime_schema_blocker_not_claimed",
+    name: "runtime_schema_serving_regressed",
     readiness: mutate(baseReadiness, (readiness) => {
-      readiness.not_claimed = readiness.not_claimed.filter((item) => item !== "runtime_schema_serving");
+      readiness.route_replay_policy.runtime_schema_serving = false;
     })
   },
   {

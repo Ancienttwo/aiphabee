@@ -5054,6 +5054,10 @@ interface McpRuntimeBody {
     pagination_or_rights_bypass_blocked: boolean;
     route: string;
     runtime_route: string;
+    runtime_schema_serving: boolean;
+    runtime_schema_snapshot_route: string;
+    runtime_schema_snapshot_version: string;
+    schema_source_contract: string;
     scopes_revocable: boolean;
     mcp_revocation_enforcement_error_code: string;
     mcp_revocation_enforcement_live: boolean;
@@ -5078,6 +5082,7 @@ interface McpRuntimeBody {
     time_range_limits_ready: boolean;
     tool_call_input_strict_validation: boolean;
     tool_schema_validation_version: string;
+    tools_list_schema_snapshot: boolean;
     tool_versioning_ready: boolean;
     usage_envelope_ready: boolean;
     usage_envelope_version: string;
@@ -5091,6 +5096,46 @@ interface McpRuntimeBody {
     web_rights_do_not_imply_mcp: boolean;
   };
   ok: true;
+}
+
+interface McpRuntimeSchemaSnapshotBody {
+  data: {
+    live_tool_execution: boolean;
+    package: string;
+    protocol_route: string;
+    route: string;
+    runtime_schema_serving: boolean;
+    schema_dialect: string;
+    schema_snapshot_version: string;
+    schema_source_contract: string;
+    status: string;
+    tool_count: number;
+    tools: Array<{
+      input_schema_id: string;
+      name: string;
+      output_schema_id: string;
+      schema_snapshot: {
+        input_schema: {
+          additional_properties_allowed: boolean;
+          allowed_properties: string[];
+          id: string;
+          required: string[];
+        };
+        output_schema: {
+          id: string;
+          raw_text_only_response_allowed: boolean;
+          structured_content_required: boolean;
+        };
+        schema_source_contract: string;
+      };
+    }>;
+    tools_list_schema_snapshot: boolean;
+    version: string;
+  };
+  ok: true;
+  usage: {
+    rows: number;
+  };
 }
 
 interface McpCompatibilityStatusBody {
@@ -5684,6 +5729,14 @@ interface McpProtocolPlanBody {
     tools_list?: {
       blocked_tool_count: number;
       returned_tool_count: number;
+      schema_snapshot: {
+        returned_schema_count: number;
+        runtime_schema_serving: boolean;
+        schema_catalog_available_after_rights_gate: boolean;
+        schema_source_contract: string;
+        tool_schema_count: number;
+        tools_list_schema_snapshot: boolean;
+      };
       tools: unknown[];
     };
     transport: string;
@@ -16556,6 +16609,11 @@ describe("worker runtime", () => {
       pagination_or_rights_bypass_blocked: true,
       route: "POST /mcp",
       runtime_route: "GET /mcp/runtime",
+      runtime_schema_serving: true,
+      runtime_schema_snapshot_route: "GET /mcp/runtime/tool-schemas",
+      runtime_schema_snapshot_version:
+        "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
+      schema_source_contract: "deploy/tools/tool-schemas.contract.json",
       scopes_revocable: true,
       mcp_revocation_enforcement_error_code: "AUTH_REQUIRED",
       mcp_revocation_enforcement_live: false,
@@ -16582,6 +16640,7 @@ describe("worker runtime", () => {
       tool_call_input_strict_validation: true,
       tool_schema_validation_version:
         "2026-06-21.phase2.mcp-tool-schema-validation-scaffold.v0",
+      tools_list_schema_snapshot: true,
       tool_versioning_ready: true,
       usage_envelope_ready: true,
       usage_envelope_version: "2026-06-21.phase2.mcp-usage-envelope-scaffold.v0",
@@ -16673,6 +16732,50 @@ describe("worker runtime", () => {
       retry_after_required: true,
       source_record_id: "mcp_error_rate_limited"
     });
+  });
+
+  it("serves MCP runtime tool schema snapshots without live execution", async () => {
+    const response = await app.request("/mcp/runtime/tool-schemas", {
+      headers: {
+        "x-request-id": "req-mcp-runtime-tool-schemas"
+      }
+    });
+    const body = (await response.json()) as McpRuntimeSchemaSnapshotBody;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.ok).toBe(true);
+    expect(body.usage.rows).toBe(16);
+    expect(body.data).toMatchObject({
+      live_tool_execution: false,
+      package: "@aiphabee/mcp-runtime",
+      protocol_route: "POST /mcp",
+      route: "GET /mcp/runtime/tool-schemas",
+      runtime_schema_serving: true,
+      schema_dialect: "https://json-schema.org/draft/2020-12/schema",
+      schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
+      schema_source_contract: "deploy/tools/tool-schemas.contract.json",
+      status: "runtime_schema_snapshot_scaffold",
+      tool_count: 16,
+      tools_list_schema_snapshot: true,
+      version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0"
+    });
+    expect(body.data.tools).toHaveLength(16);
+    expect(
+      body.data.tools.every(
+        (tool) =>
+          tool.schema_snapshot.input_schema.id === tool.input_schema_id &&
+          tool.schema_snapshot.input_schema.additional_properties_allowed === false &&
+          tool.schema_snapshot.output_schema.id === tool.output_schema_id &&
+          tool.schema_snapshot.output_schema.structured_content_required === true &&
+          tool.schema_snapshot.output_schema.raw_text_only_response_allowed === false
+      )
+    ).toBe(true);
+    expect(
+      body.data.tools
+        .find((tool) => tool.name === "resolve_security")
+        ?.schema_snapshot.input_schema.required
+    ).toEqual(["query"]);
   });
 
   it("serves MCP compatibility status without live SDK or Inspector smoke", async () => {
@@ -17956,6 +18059,15 @@ describe("worker runtime", () => {
     expect(body.data.tools_list).toEqual({
       blocked_tool_count: 16,
       returned_tool_count: 0,
+      schema_snapshot: {
+        returned_schema_count: 0,
+        runtime_schema_serving: true,
+        schema_catalog_available_after_rights_gate: true,
+        schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
+        schema_source_contract: "deploy/tools/tool-schemas.contract.json",
+        tool_schema_count: 16,
+        tools_list_schema_snapshot: true
+      },
       tool_catalog_available_after_rights_gate: true,
       tools: []
     });

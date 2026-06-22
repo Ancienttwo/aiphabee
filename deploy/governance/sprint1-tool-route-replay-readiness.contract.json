@@ -12,6 +12,7 @@
     "tool_registry": "deploy/tools/registry.contract.json",
     "tool_schemas": "deploy/tools/tool-schemas.contract.json",
     "mcp_schema_validation": "deploy/mcp/tool-schema-validation.contract.json",
+    "mcp_runtime_schema_snapshot": "deploy/mcp/runtime-schema-snapshot.contract.json",
     "mcp_versioning": "deploy/mcp/tool-versioning.contract.json",
     "mcp_usage_envelope": "deploy/mcp/usage-envelope.contract.json",
     "mcp_pagination_limits": "deploy/mcp/pagination-limits.contract.json",
@@ -27,7 +28,7 @@
     "local_golden_fixture_ready": true,
     "no_live_posture_guarded": true,
     "mcp_live_protocol_execution": false,
-    "runtime_schema_serving": false,
+    "runtime_schema_serving": true,
     "live_route_replay": false,
     "live_db_writes": false,
     "partner_source_rows": false,
@@ -59,6 +60,13 @@
       "id": "mcp_schema_validation",
       "contract": "deploy/mcp/tool-schema-validation.contract.json",
       "command": "npm run check:mcp-tool-schema-validation",
+      "expected_status": "local_contract",
+      "expected_count": 16
+    },
+    {
+      "id": "mcp_runtime_schema_snapshot",
+      "contract": "deploy/mcp/runtime-schema-snapshot.contract.json",
+      "command": "npm run check:mcp-runtime-schema-snapshot",
       "expected_status": "local_contract",
       "expected_count": 16
     },
@@ -129,14 +137,6 @@
       "release_blocker": true
     },
     {
-      "id": "runtime_schema_serving",
-      "source_contract": "deploy/tools/tool-schemas.contract.json",
-      "source_field": "runtime_schema_serving",
-      "current_value": false,
-      "required_evidence": ["runtime_schema_endpoint_smoke", "mcp_tools_list_schema_snapshot"],
-      "release_blocker": true
-    },
-    {
       "id": "live_route_replay",
       "source_contract": "tests/golden/tools/manifest.json",
       "source_field": "live_route_replay",
@@ -164,7 +164,6 @@
   "not_claimed": [
     "sprint1_2_exit_dod_complete",
     "mcp_live_protocol_execution",
-    "runtime_schema_serving",
     "live_route_replay",
     "live_db_writes",
     "partner_source_rows"
