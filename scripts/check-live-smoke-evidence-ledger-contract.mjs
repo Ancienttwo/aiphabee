@@ -8,6 +8,7 @@ const packagePath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
 const expectedVersion = "2026-06-22.phase0.live-smoke-evidence-ledger.v0";
+const captureTransitionReviewPath = "deploy/governance/live-smoke-capture-transition-review.contract.json";
 const requiredReadinessChecks = [
   "cloudflare_resource_live_readiness",
   "model_provider_live_readiness",
@@ -110,6 +111,16 @@ function validateLedger({ contracts, ledger: value, packageJson, todos, tracker 
 
   if (value.checker !== "scripts/check-live-smoke-evidence-ledger-contract.mjs") {
     errors.push("checker must point to scripts/check-live-smoke-evidence-ledger-contract.mjs");
+  }
+
+  if (!Array.isArray(value.linked_capture_transition_reviews)) {
+    errors.push("linked_capture_transition_reviews must be an array");
+  } else if (!value.linked_capture_transition_reviews.includes(captureTransitionReviewPath)) {
+    errors.push(`linked_capture_transition_reviews must include ${captureTransitionReviewPath}`);
+  }
+
+  if (!existsSync(resolve(process.cwd(), captureTransitionReviewPath))) {
+    errors.push(`${captureTransitionReviewPath} is missing`);
   }
 
   errors.push(...validateEvidencePolicy(value.evidence_policy));
@@ -369,6 +380,10 @@ function validateTransitionState(value) {
     errors.push("not_claimed must include sprint0_4_live_smoke_checkbox_complete");
   }
 
+  if (!Array.isArray(value.not_claimed) || !value.not_claimed.includes("capture_transition_review_complete")) {
+    errors.push("not_claimed must include capture_transition_review_complete");
+  }
+
   return errors;
 }
 
@@ -381,6 +396,8 @@ function validatePackageScripts(value) {
     "check:live-smoke-external-env-preflight": "node scripts/check-live-smoke-external-env-preflight.mjs",
     "check:live-smoke-capture-artifacts": "node scripts/check-live-smoke-capture-artifacts-contract.mjs",
     "check:live-smoke-capture-packets": "node scripts/check-live-smoke-capture-packets.mjs",
+    "check:live-smoke-capture-transition-review": "node scripts/check-live-smoke-capture-transition-review-contract.mjs",
+    "check:live-smoke-capture-transition-review-fixtures": "node scripts/check-live-smoke-capture-transition-review-fixtures.mjs",
     "check:live-smoke-evidence-ledger": "node scripts/check-live-smoke-evidence-ledger-contract.mjs",
     "check:live-smoke-evidence-ledger-fixtures": "node scripts/check-live-smoke-evidence-ledger-fixtures.mjs",
     "check:model-provider-live-readiness": "node scripts/check-model-provider-live-readiness.mjs",
@@ -416,6 +433,14 @@ function validatePackageScripts(value) {
     errors.push("root check must include check:live-smoke-capture-packets");
   }
 
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-transition-review")) {
+    errors.push("root check must include check:live-smoke-capture-transition-review");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-transition-review-fixtures")) {
+    errors.push("root check must include check:live-smoke-capture-transition-review-fixtures");
+  }
+
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-evidence-ledger-fixtures")) {
     errors.push("root check must include check:live-smoke-evidence-ledger-fixtures");
   }
@@ -428,7 +453,9 @@ function validateTrackerAndTodos(tracker, todos) {
 
   for (const text of [
     "live smoke evidence ledger",
+    "Live smoke capture transition review",
     "npm run check:live-smoke-evidence-ledger",
+    "npm run check:live-smoke-capture-transition-review",
     "Hyperdrive live `SELECT 1`",
     "provider secret"
   ]) {

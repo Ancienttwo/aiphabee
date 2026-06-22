@@ -1,0 +1,124 @@
+{
+  "version": "2026-06-23.goal.live-smoke-capture-transition-review.v0",
+  "status": "pending_capture_transition_review",
+  "checker": "scripts/check-live-smoke-capture-transition-review-contract.mjs",
+  "fixture_checker": "scripts/check-live-smoke-capture-transition-review-fixtures.mjs",
+  "capture_artifacts_contract": "deploy/governance/live-smoke-capture-artifacts.contract.json",
+  "ledger_contract": "deploy/governance/live-smoke-evidence-ledger.contract.json",
+  "capture_packet_directory": "deploy/governance/live-smoke-capture-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_live_smokes_passed": false,
+  "sprint0_4_live_smoke_checkbox_complete": false,
+  "passed_capture_packets_are_sufficient_alone": false,
+  "required_capture_ids": [
+    "cloudflare_resource_inventory",
+    "cloudflare_bindings_functional",
+    "ai_gateway_model_execution",
+    "ai_gateway_observability",
+    "observability_otlp_eval_store",
+    "provider_secret_store_rotation"
+  ],
+  "transition_policy": {
+    "passed_capture_packet_required": true,
+    "ledger_surface_passed_required": true,
+    "tracker_checkbox_change_requires_review": true,
+    "sprint_exit_gate_change_requires_review": true,
+    "passed_capture_packet_alone_never_completes_live_smoke": true,
+    "hash_only_capture_packet_validator_remains_source_of_truth": true
+  },
+  "capture_transition_reviews": [
+    {
+      "capture_id": "cloudflare_resource_inventory",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "cloudflare_resource_inventory",
+      "blocking_conditions": [
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ]
+    },
+    {
+      "capture_id": "cloudflare_bindings_functional",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "cloudflare_bindings_functional",
+      "blocking_conditions": [
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ]
+    },
+    {
+      "capture_id": "ai_gateway_model_execution",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "ai_gateway_model_execution",
+      "blocking_conditions": [
+        "ai_gateway_logs_api_read_verified",
+        "ai_gateway_cost_log_verified",
+        "ai_gateway_rate_limit_cache_fallback_log_verified",
+        "fallback_log_verified",
+        "persistent_cost_log_verified"
+      ]
+    },
+    {
+      "capture_id": "ai_gateway_observability",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "ai_gateway_observability",
+      "blocking_conditions": [
+        "AI Gateway Read",
+        "Account Analytics Read",
+        "request_logs",
+        "cost_logs",
+        "rate_limit_cache_fallback_logs"
+      ]
+    },
+    {
+      "capture_id": "observability_otlp_eval_store",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "observability_otlp_eval_store",
+      "blocking_conditions": [
+        "otlp_http_log_export",
+        "eval_store_record_write_read_delete",
+        "production_otlp_retention",
+        "eval_store_dashboard_evidence"
+      ]
+    },
+    {
+      "capture_id": "provider_secret_store_rotation",
+      "tracker_status": "☐",
+      "capture_packet_required": true,
+      "completion_allowed": false,
+      "linked_ledger_surface": "provider_secret_store_rotation",
+      "blocking_conditions": [
+        "cloudflare_workers_secret_set_rotate_delete",
+        "github_actions_secret_set_rotate_delete",
+        "supabase_secret_set_rotate_delete"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Live smoke capture transition review 已建立",
+    "| 2026-06-23 | 1.0hj | 完成 `live-smoke-capture-transition-review`"
+  ],
+  "required_todos_fragments": [
+    "Live smoke capture transition review",
+    "npm run check:live-smoke-capture-transition-review",
+    "passed capture packet alone"
+  ],
+  "not_claimed": [
+    "live_smoke_outputs_captured",
+    "all_live_smokes_passed",
+    "release_transition_allowed",
+    "sprint0_4_live_smoke_checkbox_complete",
+    "all_sprints_complete"
+  ]
+}

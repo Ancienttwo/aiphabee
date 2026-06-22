@@ -3,6 +3,9 @@
   "status": "pending_live_evidence",
   "tracker_item": "Sprint 0.4: live smoke evidence ledger",
   "checker": "scripts/check-live-smoke-evidence-ledger-contract.mjs",
+  "linked_capture_transition_reviews": [
+    "deploy/governance/live-smoke-capture-transition-review.contract.json"
+  ],
   "all_live_smokes_passed": false,
   "release_transition_allowed": false,
   "evidence_policy": {
@@ -208,6 +211,7 @@
   ],
   "not_claimed": [
     "all_live_smokes_passed",
+    "capture_transition_review_complete",
     "staging_deployability",
     "live_data_access",
     "production_observability_complete",

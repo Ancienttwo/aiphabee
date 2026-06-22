@@ -7,6 +7,7 @@
   "packet_checker": "scripts/check-live-smoke-capture-packets.mjs",
   "packet_fixture_checker": "scripts/check-live-smoke-capture-packet-fixtures.mjs",
   "handoff_checker": "scripts/check-live-smoke-capture-handoff.mjs",
+  "transition_review_checker": "scripts/check-live-smoke-capture-transition-review-contract.mjs",
   "artifact_directory": "deploy/governance/live-smoke-capture-packets",
   "packet_file_pattern": "<capture_id>.capture.json",
   "template_directory": "deploy/governance/live-smoke-capture-templates",
@@ -37,7 +38,8 @@
     "packet_fixture_checker_covers_invalid_packets": true,
     "operator_handoff_templates_validate_as_missing_env_packets": true,
     "operator_handoff_readme_lists_external_env_and_order": true,
-    "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true
+    "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true,
+    "passed_capture_alone_never_unlocks_sprint": true
   },
   "required_captures": [
     {
@@ -108,6 +110,7 @@
   "not_claimed": [
     "live_smoke_outputs_captured",
     "all_live_smokes_passed",
+    "capture_transition_review_complete",
     "sprint0_4_live_smoke_checkbox_complete"
   ]
 }
