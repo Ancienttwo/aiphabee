@@ -44,6 +44,9 @@ Operator order:
 5. For `provider_secret_store_rotation`, pass `--cleanup-verified` only after
    the synthetic Cloudflare/GitHub/Supabase secret values are confirmed absent.
 6. Run `npm run check:live-smoke-capture-packets`.
+7. Run `npm run check:live-smoke-ledger-update-review` before changing the live
+   smoke evidence ledger, then rerun `npm run check:live-smoke-capture-transition-review`
+   and `npm run check:live-smoke-evidence-ledger`.
 
 The generator computes `output_sha256`, rejects obvious secret-like redacted
 outputs, writes only packet metadata, and reuses the same packet validator as

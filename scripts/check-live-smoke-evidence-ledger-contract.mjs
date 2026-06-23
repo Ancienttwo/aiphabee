@@ -9,6 +9,7 @@ const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
 const todosPath = "tasks/todos.md";
 const expectedVersion = "2026-06-22.phase0.live-smoke-evidence-ledger.v0";
 const captureTransitionReviewPath = "deploy/governance/live-smoke-capture-transition-review.contract.json";
+const ledgerUpdateReviewPath = "deploy/governance/live-smoke-ledger-update-review.contract.json";
 const requiredReadinessChecks = [
   "cloudflare_resource_live_readiness",
   "model_provider_live_readiness",
@@ -121,6 +122,15 @@ function validateLedger({ contracts, ledger: value, packageJson, todos, tracker 
 
   if (!existsSync(resolve(process.cwd(), captureTransitionReviewPath))) {
     errors.push(`${captureTransitionReviewPath} is missing`);
+  }
+  if (!Array.isArray(value.linked_ledger_update_reviews)) {
+    errors.push("linked_ledger_update_reviews must be an array");
+  } else if (!value.linked_ledger_update_reviews.includes(ledgerUpdateReviewPath)) {
+    errors.push(`linked_ledger_update_reviews must include ${ledgerUpdateReviewPath}`);
+  }
+
+  if (!existsSync(resolve(process.cwd(), ledgerUpdateReviewPath))) {
+    errors.push(`${ledgerUpdateReviewPath} is missing`);
   }
 
   errors.push(...validateEvidencePolicy(value.evidence_policy));
@@ -400,6 +410,8 @@ function validatePackageScripts(value) {
     "check:live-smoke-capture-transition-review-fixtures": "node scripts/check-live-smoke-capture-transition-review-fixtures.mjs",
     "check:live-smoke-evidence-ledger": "node scripts/check-live-smoke-evidence-ledger-contract.mjs",
     "check:live-smoke-evidence-ledger-fixtures": "node scripts/check-live-smoke-evidence-ledger-fixtures.mjs",
+    "check:live-smoke-ledger-update-review": "node scripts/check-live-smoke-ledger-update-review-contract.mjs",
+    "check:live-smoke-ledger-update-review-fixtures": "node scripts/check-live-smoke-ledger-update-review-fixtures.mjs",
     "check:model-provider-live-readiness": "node scripts/check-model-provider-live-readiness.mjs",
     "check:observability-live-readiness": "node scripts/check-observability-live-readiness.mjs",
     "check:provider-secret-stores-live-readiness": "node scripts/check-provider-secret-stores-live-readiness.mjs",
@@ -441,6 +453,14 @@ function validatePackageScripts(value) {
     errors.push("root check must include check:live-smoke-capture-transition-review-fixtures");
   }
 
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-ledger-update-review")) {
+    errors.push("root check must include check:live-smoke-ledger-update-review");
+  }
+
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-ledger-update-review-fixtures")) {
+    errors.push("root check must include check:live-smoke-ledger-update-review-fixtures");
+  }
+
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-evidence-ledger-fixtures")) {
     errors.push("root check must include check:live-smoke-evidence-ledger-fixtures");
   }
@@ -454,6 +474,7 @@ function validateTrackerAndTodos(tracker, todos) {
   for (const text of [
     "live smoke evidence ledger",
     "Live smoke capture transition review",
+    "Live smoke ledger update review",
     "npm run check:live-smoke-evidence-ledger",
     "npm run check:live-smoke-capture-transition-review",
     "Hyperdrive live `SELECT 1`",

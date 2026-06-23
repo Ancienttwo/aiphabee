@@ -35,6 +35,7 @@
     "node scripts/create-live-smoke-capture-packet.mjs --capture-id <capture_id> --redacted-output <redacted-output.json> --runner <redacted-runner> --source-locator <redacted-locator> --exit-code <exit-code>",
     "npm run check:live-smoke-capture-packets",
     "npm run check:live-smoke-capture-transition-review",
+    "npm run check:live-smoke-ledger-update-review",
     "npm run check:live-smoke-evidence-ledger",
     "npm run check:current-release-readiness"
   ],

@@ -238,6 +238,7 @@ function validateReleaseReadinessAlignment(value, releaseReadiness) {
     "npm run check:live-smoke-operator-run-plan",
     "npm run check:live-smoke-capture-packets",
     "npm run check:live-smoke-capture-transition-review",
+    "npm run check:live-smoke-ledger-update-review",
     "npm run check:live-smoke-evidence-ledger"
   ]) {
     expectIncludes(errors, releaseReadiness.next_release_slice?.followup_checks, check, `release_readiness.next_release_slice.followup_checks.${check}`);
