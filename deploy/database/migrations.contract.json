@@ -1017,7 +1017,7 @@
     },
     {
       "file": "supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql",
-      "purpose": "Create the AiphaBee-local platform schema foundation for product registry, workspace membership, subscription plan, product access, entitlement policy, and access audit without seeding sibling-product rows, moving product-owned data, or enabling live migration apply.",
+      "purpose": "Create the AiphaBee-local platform schema foundation for product registry, workspace membership, subscription plan, product access, entitlement policy, access audit, and product-specific identity/entitlement RLS hardening without seeding sibling-product rows, moving product-owned data, or enabling live migration apply.",
       "schemas": [
         "platform",
         "platform_audit"
@@ -1050,14 +1050,22 @@
         "workspace_product_access_workspace_id_idx"
       ],
       "rls_tables": [
+        "aiphabee_core.account_profile",
+        "aiphabee_core.workspace_membership_profile",
+        "aiphabee_core.workspace_profile",
+        "aiphabee_governance.account_workspace_entitlement_contract",
+        "aiphabee_governance.data_entitlement",
+        "aiphabee_governance.workspace_entitlement",
         "platform.account",
         "platform.entitlement_policy",
         "platform.product",
         "platform.product_environment",
+        "platform.subscription_plan",
         "platform.workspace",
         "platform.workspace_entitlement",
         "platform.workspace_membership",
         "platform.workspace_product_access",
+        "platform.workspace_subscription",
         "platform_audit.product_access_event"
       ],
       "rls_session_claim": "aiphabee.account_id",

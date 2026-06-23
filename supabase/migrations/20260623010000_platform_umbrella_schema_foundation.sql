@@ -280,6 +280,24 @@ alter table platform.workspace_entitlement force row level security;
 alter table platform_audit.product_access_event enable row level security;
 alter table platform_audit.product_access_event force row level security;
 
+alter table aiphabee_core.account_profile enable row level security;
+alter table aiphabee_core.account_profile force row level security;
+
+alter table aiphabee_core.workspace_profile enable row level security;
+alter table aiphabee_core.workspace_profile force row level security;
+
+alter table aiphabee_core.workspace_membership_profile enable row level security;
+alter table aiphabee_core.workspace_membership_profile force row level security;
+
+alter table aiphabee_governance.data_entitlement enable row level security;
+alter table aiphabee_governance.data_entitlement force row level security;
+
+alter table aiphabee_governance.workspace_entitlement enable row level security;
+alter table aiphabee_governance.workspace_entitlement force row level security;
+
+alter table aiphabee_governance.account_workspace_entitlement_contract enable row level security;
+alter table aiphabee_governance.account_workspace_entitlement_contract force row level security;
+
 create policy product_registry_read
 on platform.product
 for select
@@ -319,16 +337,14 @@ using (
   and (valid_to is null or valid_to > now())
 );
 
-create policy subscription_plan_authenticated_read
+create policy subscription_plan_registry_read
 on platform.subscription_plan
 for select
-to authenticated
 using (status in ('planned', 'active', 'retired'));
 
 create policy workspace_subscription_member_read
 on platform.workspace_subscription
 for select
-to authenticated
 using ((select platform.is_workspace_member(workspace_id)));
 
 create policy workspace_product_access_member_read
@@ -353,3 +369,50 @@ create policy workspace_entitlement_member_read
 on platform.workspace_entitlement
 for select
 using ((select platform.is_workspace_member(workspace_id)));
+
+create policy account_profile_self_read
+on aiphabee_core.account_profile
+for select
+using (account_id = (select platform.current_account_id()));
+
+create policy workspace_profile_member_read
+on aiphabee_core.workspace_profile
+for select
+using ((select platform.is_workspace_member(workspace_id)));
+
+create policy workspace_membership_profile_self_read
+on aiphabee_core.workspace_membership_profile
+for select
+using (
+  exists (
+    select 1
+    from platform.workspace_membership wm
+    where wm.membership_id = workspace_membership_profile.membership_id
+      and wm.account_id = (select platform.current_account_id())
+      and wm.status = 'active'
+      and (wm.valid_to is null or wm.valid_to > now())
+  )
+);
+
+create policy data_entitlement_member_read
+on aiphabee_governance.data_entitlement
+for select
+using (
+  exists (
+    select 1
+    from aiphabee_governance.workspace_entitlement we
+    where we.entitlement_id = data_entitlement.entitlement_id
+      and (select platform.is_workspace_member(we.workspace_id))
+      and (we.valid_to is null or we.valid_to > now())
+  )
+);
+
+create policy workspace_entitlement_member_read
+on aiphabee_governance.workspace_entitlement
+for select
+using ((select platform.is_workspace_member(workspace_id)));
+
+create policy account_workspace_entitlement_contract_read
+on aiphabee_governance.account_workspace_entitlement_contract
+for select
+using (status in ('local_contract', 'provisioned'));
