@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Icon } from "../../ds";
-import { UntrustedDocumentView } from "../../components/evidence";
+import { AmbiguityResolver, UntrustedDocumentView } from "../../components/evidence";
 import {
   getAnnouncement,
   presentError,
@@ -35,8 +35,8 @@ function Documents() {
   const [selected, setSelected] = useState<string | null>(null);
   const seq = useRef(0);
 
-  const run = async () => {
-    const sq = security.trim();
+  const run = async (overrideSecurity?: string) => {
+    const sq = (overrideSecurity ?? security).trim();
     if (!sq && !keyword.trim()) return;
     const mySeq = ++seq.current;
     setLoading(true);
@@ -88,7 +88,16 @@ function Documents() {
       {loading ? <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在检索公告…</p> : null}
       {error ? <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--red-600)" }}>{error}</p></Card> : null}
 
-      {result ? (
+      {result && result.status === "blocked_resolution" && result.resolve_security?.candidates?.length ? (
+        <AmbiguityResolver
+          query={security}
+          candidates={result.resolve_security.candidates}
+          onSelect={(c) => {
+            setSecurity(c.symbol);
+            run(c.symbol);
+          }}
+        />
+      ) : result ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 20, alignItems: "start" }}>
           {/* Results list */}
           <div style={{ display: "grid", gap: 10 }}>

@@ -35,13 +35,16 @@ function AskRun() {
   const navigate = useNavigate();
   const { runId } = Route.useParams();
   const { q } = Route.useSearch();
-  const { events, status } = useAgentStream(q || undefined);
+  const { events, status, runId: backendRunId } = useAgentStream(q || undefined);
   const { data: planEnv } = useQuery({
     queryKey: ["agent-plan", q],
     queryFn: () => planAgentRun(q),
     enabled: Boolean(q),
   });
   const plan = planEnv?.ok ? planEnv.data : undefined;
+  // Evidence must reference the *backend* run id (x-aiphabee-run-id), not the
+  // locally generated route param, so the card points at a real run record.
+  const evidenceRunId = backendRunId ?? "pending";
   // Client-only timestamp: avoids any SSR/hydration time skew for the synthetic
   // evidence preview (the value only surfaces when the card is expanded).
   const [asOf, setAsOf] = useState("");
@@ -119,7 +122,8 @@ function AskRun() {
           marginBottom: 22,
         }}
       >
-        run {runId}
+        会话 {runId}
+        {backendRunId ? ` · 后端 run ${backendRunId}` : status === "streaming" ? " · 连接中…" : ""}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, alignItems: "start" }}>
@@ -164,12 +168,12 @@ function AskRun() {
               <div style={{ marginTop: 14 }}>
                 <EvidenceCard
                   asOf={asOf}
-                  dataVersion={`ask-run-${runId.slice(0, 8)}`}
+                  dataVersion={`ask-run-${evidenceRunId}`}
                   methodologyVersion="synthetic-preview-v0"
                   provenance={[
                     {
                       source: "agent-progress-stream",
-                      source_record_id: runId,
+                      source_record_id: evidenceRunId,
                       data_version: "synthetic-preview-v0",
                       methodology_version: "synthetic-preview-v0",
                     },
