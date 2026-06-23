@@ -299,175 +299,193 @@ alter table aiphabee_governance.workspace_entitlement force row level security;
 alter table aiphabee_governance.account_workspace_entitlement_contract enable row level security;
 alter table aiphabee_governance.account_workspace_entitlement_contract force row level security;
 
-create policy product_registry_read
-on platform.product
-for select
-using (status in ('planned', 'active', 'paused', 'retired'));
+-- Each read policy below is wrapped in an idempotent presence guard.
+-- PostgreSQL has no CREATE POLICY IF NOT EXISTS, and this migration may be
+-- replayed during local dry-runs or operator apply validation. The guards keep
+-- the policy definitions additive without relying on destructive recreate
+-- statements or Supabase role grants.
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'product' and policyname = 'product_registry_read') then
+    create policy product_registry_read
+    on platform.product
+    for select
+    using (status in ('planned', 'active', 'paused', 'retired'));
+  end if;
+end $do$;
 
-create policy product_environment_registry_read
-on platform.product_environment
-for select
-using (
-  exists (
-    select 1
-    from platform.product p
-    where p.product_id = product_environment.product_id
-      and p.status in ('planned', 'active', 'paused')
-  )
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'product_environment' and policyname = 'product_environment_registry_read') then
+    create policy product_environment_registry_read
+    on platform.product_environment
+    for select
+    using (
+      exists (
+        select 1
+        from platform.product p
+        where p.product_id = product_environment.product_id
+          and p.status in ('planned', 'active', 'paused')
+      )
+    );
+  end if;
+end $do$;
 
-create policy account_self_read
-on platform.account
-for select
-using (
-  account_id = (select platform.current_account_id())
-  and status = 'active'
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'account' and policyname = 'account_self_read') then
+    create policy account_self_read
+    on platform.account
+    for select
+    using (
+      account_id = (select platform.current_account_id())
+      and status = 'active'
+    );
+  end if;
+end $do$;
 
-create policy workspace_member_read
-on platform.workspace
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace' and policyname = 'workspace_member_read') then
+    create policy workspace_member_read
+    on platform.workspace
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy workspace_membership_self_read
-on platform.workspace_membership
-for select
-using (
-  account_id = (select platform.current_account_id())
-  and status = 'active'
-  and valid_from <= now()
-  and (valid_to is null or valid_to > now())
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace_membership' and policyname = 'workspace_membership_self_read') then
+    create policy workspace_membership_self_read
+    on platform.workspace_membership
+    for select
+    using (
+      account_id = (select platform.current_account_id())
+      and status = 'active'
+      and valid_from <= now()
+      and (valid_to is null or valid_to > now())
+    );
+  end if;
+end $do$;
 
-create policy subscription_plan_registry_read
-on platform.subscription_plan
-for select
-using (status in ('planned', 'active', 'retired'));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'subscription_plan' and policyname = 'subscription_plan_registry_read') then
+    create policy subscription_plan_registry_read
+    on platform.subscription_plan
+    for select
+    using (status in ('planned', 'active', 'retired'));
+  end if;
+end $do$;
 
-create policy workspace_subscription_member_read
-on platform.workspace_subscription
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace_subscription' and policyname = 'workspace_subscription_member_read') then
+    create policy workspace_subscription_member_read
+    on platform.workspace_subscription
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy workspace_product_access_member_read
-on platform.workspace_product_access
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace_product_access' and policyname = 'workspace_product_access_member_read') then
+    create policy workspace_product_access_member_read
+    on platform.workspace_product_access
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy entitlement_policy_member_read
-on platform.entitlement_policy
-for select
-using (
-  exists (
-    select 1
-    from platform.workspace_product_access wpa
-    where wpa.product_id = entitlement_policy.product_id
-      and wpa.access_status in ('trialing', 'active')
-      and (select platform.is_workspace_member(wpa.workspace_id))
-  )
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'entitlement_policy' and policyname = 'entitlement_policy_member_read') then
+    create policy entitlement_policy_member_read
+    on platform.entitlement_policy
+    for select
+    using (
+      exists (
+        select 1
+        from platform.workspace_product_access wpa
+        where wpa.product_id = entitlement_policy.product_id
+          and wpa.access_status in ('trialing', 'active')
+          and (select platform.is_workspace_member(wpa.workspace_id))
+      )
+    );
+  end if;
+end $do$;
 
-create policy workspace_entitlement_member_read
-on platform.workspace_entitlement
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace_entitlement' and policyname = 'workspace_entitlement_member_read') then
+    create policy workspace_entitlement_member_read
+    on platform.workspace_entitlement
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy account_profile_self_read
-on aiphabee_core.account_profile
-for select
-using (account_id = (select platform.current_account_id()));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_core' and tablename = 'account_profile' and policyname = 'account_profile_self_read') then
+    create policy account_profile_self_read
+    on aiphabee_core.account_profile
+    for select
+    using (account_id = (select platform.current_account_id()));
+  end if;
+end $do$;
 
-create policy workspace_profile_member_read
-on aiphabee_core.workspace_profile
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_core' and tablename = 'workspace_profile' and policyname = 'workspace_profile_member_read') then
+    create policy workspace_profile_member_read
+    on aiphabee_core.workspace_profile
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy workspace_membership_profile_self_read
-on aiphabee_core.workspace_membership_profile
-for select
-using (
-  exists (
-    select 1
-    from platform.workspace_membership wm
-    where wm.membership_id = workspace_membership_profile.membership_id
-      and wm.account_id = (select platform.current_account_id())
-      and wm.status = 'active'
-      and wm.valid_from <= now()
-      and (wm.valid_to is null or wm.valid_to > now())
-  )
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_core' and tablename = 'workspace_membership_profile' and policyname = 'workspace_membership_profile_self_read') then
+    create policy workspace_membership_profile_self_read
+    on aiphabee_core.workspace_membership_profile
+    for select
+    using (
+      exists (
+        select 1
+        from platform.workspace_membership wm
+        where wm.membership_id = workspace_membership_profile.membership_id
+          and wm.account_id = (select platform.current_account_id())
+          and wm.status = 'active'
+          and wm.valid_from <= now()
+          and (wm.valid_to is null or wm.valid_to > now())
+      )
+    );
+  end if;
+end $do$;
 
-create policy data_entitlement_member_read
-on aiphabee_governance.data_entitlement
-for select
-using (
-  exists (
-    select 1
-    from aiphabee_governance.workspace_entitlement we
-    where we.entitlement_id = data_entitlement.entitlement_id
-      and (select platform.is_workspace_member(we.workspace_id))
-      and we.valid_from <= now()
-      and (we.valid_to is null or we.valid_to > now())
-  )
-);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_governance' and tablename = 'data_entitlement' and policyname = 'data_entitlement_member_read') then
+    create policy data_entitlement_member_read
+    on aiphabee_governance.data_entitlement
+    for select
+    using (
+      exists (
+        select 1
+        from aiphabee_governance.workspace_entitlement we
+        where we.entitlement_id = data_entitlement.entitlement_id
+          and (select platform.is_workspace_member(we.workspace_id))
+          and we.valid_from <= now()
+          and (we.valid_to is null or we.valid_to > now())
+      )
+    );
+  end if;
+end $do$;
 
-create policy workspace_entitlement_member_read
-on aiphabee_governance.workspace_entitlement
-for select
-using ((select platform.is_workspace_member(workspace_id)));
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_governance' and tablename = 'workspace_entitlement' and policyname = 'workspace_entitlement_member_read') then
+    create policy workspace_entitlement_member_read
+    on aiphabee_governance.workspace_entitlement
+    for select
+    using ((select platform.is_workspace_member(workspace_id)));
+  end if;
+end $do$;
 
-create policy account_workspace_entitlement_contract_read
-on aiphabee_governance.account_workspace_entitlement_contract
-for select
-using (status in ('local_contract', 'provisioned'));
-
--- Supabase exposure grants. RLS only filters rows; without schema/table
--- privileges the authenticated read policies above are unreachable. Grant the
--- minimum: usage on the hardened schemas plus select on each read-policy table.
--- anon receives nothing. The cross-product audit log is granted to service_role
--- only, so it stays deny-all for authenticated.
-grant usage on schema platform to authenticated, service_role;
-grant usage on schema platform_audit to service_role;
-grant usage on schema aiphabee_core to authenticated, service_role;
-grant usage on schema aiphabee_governance to authenticated, service_role;
-
-grant select on
-  platform.product,
-  platform.product_environment,
-  platform.account,
-  platform.workspace,
-  platform.workspace_membership,
-  platform.subscription_plan,
-  platform.workspace_subscription,
-  platform.workspace_product_access,
-  platform.entitlement_policy,
-  platform.workspace_entitlement,
-  aiphabee_core.account_profile,
-  aiphabee_core.workspace_profile,
-  aiphabee_core.workspace_membership_profile,
-  aiphabee_governance.data_entitlement,
-  aiphabee_governance.workspace_entitlement,
-  aiphabee_governance.account_workspace_entitlement_contract
-to authenticated;
-
--- Service-role all-access policies, one per forced-RLS table. service_role also
--- carries bypassrls in Supabase; these policies keep server-side access intact
--- if that attribute is ever dropped. service_role paths must still filter by
--- product_id/workspace_id in application code.
-create policy product_service_role_all on platform.product for all to service_role using (true) with check (true);
-create policy product_environment_service_role_all on platform.product_environment for all to service_role using (true) with check (true);
-create policy account_service_role_all on platform.account for all to service_role using (true) with check (true);
-create policy workspace_service_role_all on platform.workspace for all to service_role using (true) with check (true);
-create policy workspace_membership_service_role_all on platform.workspace_membership for all to service_role using (true) with check (true);
-create policy subscription_plan_service_role_all on platform.subscription_plan for all to service_role using (true) with check (true);
-create policy workspace_subscription_service_role_all on platform.workspace_subscription for all to service_role using (true) with check (true);
-create policy workspace_product_access_service_role_all on platform.workspace_product_access for all to service_role using (true) with check (true);
-create policy entitlement_policy_service_role_all on platform.entitlement_policy for all to service_role using (true) with check (true);
-create policy workspace_entitlement_service_role_all on platform.workspace_entitlement for all to service_role using (true) with check (true);
-create policy product_access_event_service_role_all on platform_audit.product_access_event for all to service_role using (true) with check (true);
-create policy account_profile_service_role_all on aiphabee_core.account_profile for all to service_role using (true) with check (true);
-create policy workspace_profile_service_role_all on aiphabee_core.workspace_profile for all to service_role using (true) with check (true);
-create policy workspace_membership_profile_service_role_all on aiphabee_core.workspace_membership_profile for all to service_role using (true) with check (true);
-create policy data_entitlement_service_role_all on aiphabee_governance.data_entitlement for all to service_role using (true) with check (true);
-create policy workspace_entitlement_service_role_all on aiphabee_governance.workspace_entitlement for all to service_role using (true) with check (true);
-create policy account_workspace_entitlement_contract_service_role_all on aiphabee_governance.account_workspace_entitlement_contract for all to service_role using (true) with check (true);
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'aiphabee_governance' and tablename = 'account_workspace_entitlement_contract' and policyname = 'account_workspace_entitlement_contract_read') then
+    create policy account_workspace_entitlement_contract_read
+    on aiphabee_governance.account_workspace_entitlement_contract
+    for select
+    using (status in ('local_contract', 'provisioned'));
+  end if;
+end $do$;

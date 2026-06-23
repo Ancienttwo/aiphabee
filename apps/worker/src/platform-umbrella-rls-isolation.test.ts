@@ -4,18 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // RLS cross-tenant / cross-product isolation truth table for the umbrella
-// schema migration. This repo is Phase 0 / `status: local_contract` with no
-// provisioned Postgres (no `pg`/`supabase` dependency, no database service in
-// ci.yml), so RLS cannot be exercised against a live engine here. Instead we
-// lock the *isolation predicate* into the policy text: every workspace-scoped
-// read must gate on active membership and bound BOTH ends of every validity
-// window. This is the regression gate that fails when a temporal lower bound
-// (`valid_from`) or a membership scope is dropped from a policy.
-//
-// The executable A/B-workspace truth table (two tenants, a future-dated
-// membership, shared vs B-only entitlements, a zero-visibility audit row)
-// belongs against the planned Supabase provider once it exists; this static
-// gate is its standing proxy until then.
+// schema migration. The live Worker smoke exercises this through Hyperdrive;
+// this static gate locks the isolation predicate into the policy text so a
+// branch cannot silently drop membership scope, the `aiphabee.account_id`
+// session claim, or lower validity bounds.
 
 const migrationPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -120,45 +112,35 @@ describe("platform umbrella RLS isolation truth table", () => {
   it("account_self_read / account_profile_self_read stay self-scoped (no cross-account read)", () => {
     const [accountSelf] = policyBlocks("account_self_read");
     const [profileSelf] = policyBlocks("account_profile_self_read");
-    expect(accountSelf).toContain("auth_user_id = (select auth.uid())");
+    expect(accountSelf).toContain("account_id = (select platform.current_account_id())");
     expect(profileSelf).toContain("account_id = (select platform.current_account_id())");
   });
 
-  it("platform_audit.product_access_event stays deny-all to authenticated (service_role only, never granted)", () => {
+  it("platform_audit.product_access_event stays deny-all in the local migration", () => {
     expect(normalizedSql).toContain("alter table platform_audit.product_access_event enable row level security");
     expect(normalizedSql).toContain("alter table platform_audit.product_access_event force row level security");
     const auditPolicies = policyStatements
       .filter((stmt) => /on\s+platform_audit\.product_access_event/iu.test(stmt))
       .map(squish);
-    // No authenticated-facing policy on the audit log; any policy must be service_role.
-    expect(auditPolicies.some((policy) => policy.includes("to authenticated"))).toBe(false);
-    expect(auditPolicies.every((policy) => policy.includes("to service_role"))).toBe(true);
-    // And authenticated is never granted usage on the audit schema.
-    expect(normalizedSql).not.toContain("grant usage on schema platform_audit to authenticated");
+    expect(auditPolicies).toHaveLength(0);
   });
 
-  it("authenticated is granted reach + read on the hardened schemas, never the audit schema", () => {
-    expect(normalizedSql).toContain("grant usage on schema platform to authenticated");
-    expect(normalizedSql).toContain("grant usage on schema aiphabee_core to authenticated");
-    expect(normalizedSql).toContain("grant usage on schema aiphabee_governance to authenticated");
-    const grantSelect = squish(sql.match(/grant select on[\s\S]*?to authenticated\s*;/iu)?.[0] ?? "");
-    expect(grantSelect).toContain("platform.workspace");
-    expect(grantSelect).toContain("aiphabee_core.account_profile");
-    expect(grantSelect).toContain("aiphabee_governance.data_entitlement");
-    expect(grantSelect).not.toContain("platform_audit"); // audit log is never select-granted to authenticated
-  });
-
-  it("anon receives no grant or policy anywhere in the umbrella foundation", () => {
+  it("does not depend on Supabase browser roles or grants", () => {
+    expect(normalizedSql).not.toContain("auth.uid(");
+    expect(normalizedSql).not.toContain("to authenticated");
+    expect(normalizedSql).not.toContain("to service_role");
     expect(normalizedSql).not.toContain("to anon");
+    expect(normalizedSql).not.toContain("grant usage");
+    expect(normalizedSql).not.toContain("grant select");
+    expect(normalizedSql).not.toContain("supabase_");
   });
 
-  it("every forced-RLS table carries a service_role all-access policy (blessed foundation parity)", () => {
-    const forcedTables = (normalizedSql.match(/force row level security/gu) ?? []).length;
-    const serviceRolePolicies = policyStatements.filter((stmt) =>
-      /for all\s+to service_role/iu.test(squish(stmt))
-    ).length;
-    expect(forcedTables).toBeGreaterThanOrEqual(17);
-    expect(serviceRolePolicies).toBe(forcedTables);
+  it("every create policy is idempotently guarded for replay/apply validation", () => {
+    // A bare `create policy` has no IF NOT EXISTS and aborts on re-apply. Each
+    // policy must sit behind a pg_policies presence guard.
+    const guardCount = (sql.match(/if not exists \(\s*select 1 from pg_policies/giu) ?? []).length;
+    expect(policyStatements.length).toBeGreaterThanOrEqual(16);
+    expect(guardCount).toBe(policyStatements.length);
   });
 
   it("identity helpers pin an empty search_path (no search_path injection)", () => {
