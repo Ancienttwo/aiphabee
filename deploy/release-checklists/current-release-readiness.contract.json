@@ -69,6 +69,7 @@
     "followup_checks": [
       "npm run check:live-smoke-capture-packets",
       "npm run check:live-smoke-operator-run-plan",
+      "npm run check:live-smoke-capture-handoff",
       "npm run check:live-smoke-capture-transition-review",
       "npm run check:live-smoke-ledger-update-review",
       "npm run check:live-smoke-evidence-ledger",

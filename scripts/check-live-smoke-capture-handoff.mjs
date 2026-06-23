@@ -79,6 +79,9 @@ function validateHandoff({
   if (!value.artifact_policy?.operator_handoff_readme_lists_external_env_and_order) {
     errors.push("artifact policy must require handoff README to list env and command order");
   }
+  if (!value.artifact_policy?.operator_handoff_readme_lists_run_plan_gate) {
+    errors.push("artifact policy must require handoff README to list the operator run-plan gate");
+  }
 
   const scripts = packageJson?.scripts ?? {};
   if (scripts["check:live-smoke-capture-handoff"] !== "node scripts/check-live-smoke-capture-handoff.mjs") {
@@ -158,6 +161,7 @@ function validateHandoff({
 
   for (const text of [
     "npm run check:live-smoke-external-env-preflight",
+    "npm run check:live-smoke-operator-run-plan",
     "npm run check:live-smoke-capture-handoff",
     "npm run check:live-smoke-capture-packets",
     "deploy/governance/live-smoke-capture-packets"

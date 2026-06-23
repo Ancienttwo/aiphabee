@@ -108,6 +108,17 @@ function validateContract(value) {
   if (value.next_release_slice?.entrypoint !== "npm run check:live-smoke-external-env-preflight") {
     errors.push("next_release_slice.entrypoint must use the live-smoke env preflight");
   }
+  for (const check of [
+    "npm run check:live-smoke-operator-run-plan",
+    "npm run check:live-smoke-capture-handoff",
+    "npm run check:live-smoke-capture-packets",
+    "npm run check:live-smoke-capture-transition-review",
+    "npm run check:live-smoke-ledger-update-review",
+    "npm run check:live-smoke-evidence-ledger",
+    "npm run check:current-release-readiness"
+  ]) {
+    expectIncludes(errors, value.next_release_slice?.followup_checks, check, `next_release_slice.followup_checks.${check}`);
+  }
 
   for (const path of [
     value.tracker,

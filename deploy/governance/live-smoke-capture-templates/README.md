@@ -19,15 +19,16 @@ Required non-inferable env names:
 Operator order:
 
 1. Run `npm run check:live-smoke-external-env-preflight`.
-2. Run `npm run check:live-smoke-capture-handoff`.
-3. Run the credentialed live smoke commands:
+2. Run `npm run check:live-smoke-operator-run-plan`.
+3. Run `npm run check:live-smoke-capture-handoff`.
+4. Run the credentialed live smoke commands:
    - `npm run smoke:cloudflare-resources-live`
    - `npm run smoke:cloudflare-bindings-wrangler-live`
    - `npm run smoke:ai-gateway-live`
    - `npm run smoke:ai-gateway-observability-live`
    - `npm run smoke:observability-live`
    - `npm run smoke:provider-secret-stores-live`
-4. Save each command's already-redacted JSON output outside the repo, then run:
+5. Save each command's already-redacted JSON output outside the repo, then run:
 
    ```bash
    node scripts/create-live-smoke-capture-packet.mjs \
@@ -41,10 +42,10 @@ Operator order:
    Add one or more `--evidence-ref sha256:<hash>` values when the run has
    separate redacted evidence artifacts. If omitted, the generator uses the
    redacted output hash as the packet evidence ref.
-5. For `provider_secret_store_rotation`, pass `--cleanup-verified` only after
+6. For `provider_secret_store_rotation`, pass `--cleanup-verified` only after
    the synthetic Cloudflare/GitHub/Supabase secret values are confirmed absent.
-6. Run `npm run check:live-smoke-capture-packets`.
-7. Run `npm run check:live-smoke-ledger-update-review` before changing the live
+7. Run `npm run check:live-smoke-capture-packets`.
+8. Run `npm run check:live-smoke-ledger-update-review` before changing the live
    smoke evidence ledger, then rerun `npm run check:live-smoke-capture-transition-review`
    and `npm run check:live-smoke-evidence-ledger`.
 
