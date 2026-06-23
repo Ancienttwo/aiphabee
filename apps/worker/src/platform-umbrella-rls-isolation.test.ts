@@ -125,6 +125,27 @@ describe("platform umbrella RLS isolation truth table", () => {
     expect(auditPolicies).toHaveLength(0);
   });
 
+  it("entitlement_policy_member_read gates on an in-window product access, not just status", () => {
+    const [block] = policyBlocks("entitlement_policy_member_read");
+    expect(block).toBeDefined();
+    expect(block).toContain("wpa.access_status in ('trialing', 'active')");
+    expect(block).toContain("wpa.valid_from <= now()");
+    expect(block).toContain("wpa.valid_to is null or wpa.valid_to > now()");
+  });
+
+  it("security-sensitive membership/entitlement reads are force-converged on replayed databases", () => {
+    // Guarded create defers to a pre-existing policy of the same name, so an
+    // idempotent `alter policy` forces the hardened predicate onto the policy.
+    for (const name of [
+      "workspace_membership_self_read",
+      "workspace_membership_profile_self_read",
+      "data_entitlement_member_read",
+      "entitlement_policy_member_read"
+    ]) {
+      expect(normalizedSql, `${name} must be alter-converged`).toContain(`alter policy ${name}`);
+    }
+  });
+
   it("does not depend on Supabase browser roles or grants", () => {
     expect(normalizedSql).not.toContain("auth.uid(");
     expect(normalizedSql).not.toContain("to authenticated");

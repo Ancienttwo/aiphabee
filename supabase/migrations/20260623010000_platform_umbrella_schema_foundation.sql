@@ -400,6 +400,8 @@ do $do$ begin
         from platform.workspace_product_access wpa
         where wpa.product_id = entitlement_policy.product_id
           and wpa.access_status in ('trialing', 'active')
+          and wpa.valid_from <= now()
+          and (wpa.valid_to is null or wpa.valid_to > now())
           and (select platform.is_workspace_member(wpa.workspace_id))
       )
     );
@@ -485,5 +487,74 @@ do $do$ begin
     on aiphabee_governance.account_workspace_entitlement_contract
     for select
     using (status in ('local_contract', 'provisioned'));
+  end if;
+end $do$;
+
+-- Guarded creates defer when a policy already exists. These additive ALTER
+-- blocks converge the security-sensitive temporal predicates on replayed
+-- databases without relying on destructive policy recreation or role grants.
+do $do$ begin
+  if exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'workspace_membership' and policyname = 'workspace_membership_self_read') then
+    alter policy workspace_membership_self_read
+    on platform.workspace_membership
+    using (
+      account_id = (select platform.current_account_id())
+      and status = 'active'
+      and valid_from <= now()
+      and (valid_to is null or valid_to > now())
+    );
+  end if;
+end $do$;
+
+do $do$ begin
+  if exists (select 1 from pg_policies where schemaname = 'aiphabee_core' and tablename = 'workspace_membership_profile' and policyname = 'workspace_membership_profile_self_read') then
+    alter policy workspace_membership_profile_self_read
+    on aiphabee_core.workspace_membership_profile
+    using (
+      exists (
+        select 1
+        from platform.workspace_membership wm
+        where wm.membership_id = workspace_membership_profile.membership_id
+          and wm.account_id = (select platform.current_account_id())
+          and wm.status = 'active'
+          and wm.valid_from <= now()
+          and (wm.valid_to is null or wm.valid_to > now())
+      )
+    );
+  end if;
+end $do$;
+
+do $do$ begin
+  if exists (select 1 from pg_policies where schemaname = 'aiphabee_governance' and tablename = 'data_entitlement' and policyname = 'data_entitlement_member_read') then
+    alter policy data_entitlement_member_read
+    on aiphabee_governance.data_entitlement
+    using (
+      exists (
+        select 1
+        from aiphabee_governance.workspace_entitlement we
+        where we.entitlement_id = data_entitlement.entitlement_id
+          and (select platform.is_workspace_member(we.workspace_id))
+          and we.valid_from <= now()
+          and (we.valid_to is null or we.valid_to > now())
+      )
+    );
+  end if;
+end $do$;
+
+do $do$ begin
+  if exists (select 1 from pg_policies where schemaname = 'platform' and tablename = 'entitlement_policy' and policyname = 'entitlement_policy_member_read') then
+    alter policy entitlement_policy_member_read
+    on platform.entitlement_policy
+    using (
+      exists (
+        select 1
+        from platform.workspace_product_access wpa
+        where wpa.product_id = entitlement_policy.product_id
+          and wpa.access_status in ('trialing', 'active')
+          and wpa.valid_from <= now()
+          and (wpa.valid_to is null or wpa.valid_to > now())
+          and (select platform.is_workspace_member(wpa.workspace_id))
+      )
+    );
   end if;
 end $do$;

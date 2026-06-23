@@ -264,7 +264,15 @@ boundary:
 - **Policies are presence-guarded.** PostgreSQL has no `create policy if not
   exists`, so each read policy is wrapped in a `pg_policies` presence check
   before creation. The guard is non-destructive and avoids `drop policy` /
-  recreate churn during local dry-runs or operator apply validation.
+  recreate churn during local dry-runs or operator apply validation. Four
+  security-sensitive policies (`workspace_membership_self_read`,
+  `workspace_membership_profile_self_read`, `data_entitlement_member_read`, and
+  `entitlement_policy_member_read`) also have idempotent `alter policy` blocks
+  so an existing policy is converged to the hardened predicate.
+- **Entitlement-policy reads are access-window bounded.** The
+  `entitlement_policy_member_read` predicate now requires an active
+  `platform.workspace_product_access` row whose `valid_from` has started and
+  whose `valid_to` has not expired.
 - **Product seed does not overwrite.** The migration still seeds only
   `aiphabee`, and the seed uses `on conflict (product_code) do nothing`.
   AIMPACT/Salesko rows are not inserted by this repo.
