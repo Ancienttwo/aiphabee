@@ -62,8 +62,11 @@ function RootComponent() {
                 background: "var(--surface-page)",
               }}
             >
+              <a className="skip-link" href="#main-content">
+                Skip to main content
+              </a>
               <NavBar />
-              <div style={{ flex: 1 }}>
+              <div id="main-content" tabIndex={-1} style={{ flex: 1 }}>
                 <Outlet />
               </div>
               <Footer />
