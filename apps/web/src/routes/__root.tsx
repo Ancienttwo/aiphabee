@@ -1,24 +1,27 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Outlet,
   createRootRoute,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import aiphabeeCss from "../ds/styles/aiphabee.css?url";
 import { NavBar } from "../components/NavBar";
 import { Footer } from "../components/Footer";
+import { ResponseDepthProvider } from "../lib/context/ResponseDepthContext";
+import { SessionProvider } from "../lib/context/SessionContext";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AiphaBee · 港股 IPO 投研 Agent" },
+      { title: "AiphaBee · 港股研究 Agent 与 MCP 数据平台" },
       {
         name: "description",
         content:
-          "数据驱动的港股 IPO 投研平台 — 多模型估值、AI 招股书解读、基石与机构评分、市场情绪。Illustrative demo with mock data.",
+          "港股研究操作系统：自然语言研究、个股工作台、比较与筛选、公告研究，每个数字都可追溯证据。Web Agent 与 Remote MCP 双入口。当前为合成数据预览（Gate 0 前）。",
       },
     ],
     links: [
@@ -35,29 +38,46 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  // One QueryClient per document (per request on SSR, persisted on the client)
+  // to avoid cross-request cache bleed.
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+        },
+      }),
+  );
+
   return (
     <RootDocument>
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          background: "var(--surface-page)",
-        }}
-      >
-        <NavBar />
-        <div style={{ flex: 1 }}>
-          <Outlet />
-        </div>
-        <Footer />
-      </div>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <ResponseDepthProvider>
+            <div
+              style={{
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                background: "var(--surface-page)",
+              }}
+            >
+              <NavBar />
+              <div style={{ flex: 1 }}>
+                <Outlet />
+              </div>
+              <Footer />
+            </div>
+          </ResponseDepthProvider>
+        </SessionProvider>
+      </QueryClientProvider>
     </RootDocument>
   );
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-Hans">
+    <html lang="zh-Hant">
       <head>
         <HeadContent />
       </head>
