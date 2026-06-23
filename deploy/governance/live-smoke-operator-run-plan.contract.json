@@ -1,0 +1,170 @@
+{
+  "version": "2026-06-23.phase0.live-smoke-operator-run-plan.v0",
+  "status": "ready_for_credentialed_operator",
+  "checker": "scripts/check-live-smoke-operator-run-plan-contract.mjs",
+  "preflight_checker": "scripts/check-live-smoke-external-env-preflight.mjs",
+  "capture_artifacts_contract": "deploy/governance/live-smoke-capture-artifacts.contract.json",
+  "capture_packet_directory": "deploy/governance/live-smoke-capture-packets",
+  "capture_template_directory": "deploy/governance/live-smoke-capture-templates",
+  "capture_packet_generator": "scripts/create-live-smoke-capture-packet.mjs",
+  "capture_packet_generator_fixture_checker": "scripts/check-live-smoke-capture-packet-generator-fixtures.mjs",
+  "release_readiness_contract": "deploy/release-checklists/current-release-readiness.contract.json",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "operator_policy": {
+    "checker_does_not_run_live_smoke": true,
+    "checker_does_not_write_capture_packets": true,
+    "raw_outputs_forbidden_in_repo": true,
+    "env_values_forbidden_in_repo": true,
+    "hash_only_evidence_required_for_passed_packets": true,
+    "missing_env_packets_do_not_unlock_release": true,
+    "provider_secret_store_capture_requires_cleanup": true,
+    "packet_generator_hashes_redacted_output_only": true,
+    "packet_generator_reuses_packet_validator": true
+  },
+  "operator_order": [
+    "npm run check:live-smoke-external-env-preflight",
+    "npm run check:live-smoke-operator-run-plan",
+    "npm run check:live-smoke-capture-handoff",
+    "npm run smoke:cloudflare-resources-live",
+    "npm run smoke:cloudflare-bindings-wrangler-live",
+    "npm run smoke:ai-gateway-live",
+    "npm run smoke:ai-gateway-observability-live",
+    "npm run smoke:observability-live",
+    "npm run smoke:provider-secret-stores-live",
+    "node scripts/create-live-smoke-capture-packet.mjs --capture-id <capture_id> --redacted-output <redacted-output.json> --runner <redacted-runner> --source-locator <redacted-locator> --exit-code <exit-code>",
+    "npm run check:live-smoke-capture-packets",
+    "npm run check:live-smoke-capture-transition-review",
+    "npm run check:live-smoke-ledger-update-review",
+    "npm run check:live-smoke-evidence-ledger",
+    "npm run check:current-release-readiness"
+  ],
+  "command_run_plan": [
+    {
+      "id": "cloudflare_resource_inventory",
+      "command": "npm run smoke:cloudflare-resources-live",
+      "script": "scripts/smoke-cloudflare-resources-live.mjs",
+      "required_env": [
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_WORKER_NAME",
+        "CLOUDFLARE_WORKFLOW_NAME",
+        "QUEUE_NAME",
+        "CLOUDFLARE_DURABLE_OBJECT_NAMESPACE_NAME",
+        "R2_BUCKET_NAME",
+        "KV_NAMESPACE_ID",
+        "CLOUDFLARE_D1_DATABASE_NAME",
+        "AI_GATEWAY_NAME",
+        "CLOUDFLARE_HYPERDRIVE_CONFIG_NAME"
+      ],
+      "auth_sources": ["CLOUDFLARE_API_TOKEN"],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/cloudflare_resource_inventory.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/cloudflare_resource_inventory.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": false
+    },
+    {
+      "id": "cloudflare_bindings_functional",
+      "command": "npm run smoke:cloudflare-bindings-wrangler-live",
+      "script": "scripts/smoke-cloudflare-bindings-wrangler-live.mjs",
+      "required_env": [
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "AI_GATEWAY_NAME",
+        "AI_GATEWAY_SMOKE_MODEL"
+      ],
+      "auth_sources": ["CLOUDFLARE_API_TOKEN or Wrangler authenticated session"],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/cloudflare_bindings_functional.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/cloudflare_bindings_functional.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": false
+    },
+    {
+      "id": "ai_gateway_model_execution",
+      "command": "npm run smoke:ai-gateway-live",
+      "script": "scripts/smoke-ai-gateway-live.mjs",
+      "required_env": [
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "AI_GATEWAY_NAME",
+        "AI_GATEWAY_SMOKE_MODEL"
+      ],
+      "auth_sources": ["CLOUDFLARE_API_TOKEN"],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/ai_gateway_model_execution.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/ai_gateway_model_execution.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": false
+    },
+    {
+      "id": "ai_gateway_observability",
+      "command": "npm run smoke:ai-gateway-observability-live",
+      "script": "scripts/smoke-ai-gateway-observability-live.mjs",
+      "required_env": [
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "AI_GATEWAY_NAME"
+      ],
+      "auth_sources": ["CLOUDFLARE_API_TOKEN with AI Gateway Read and Account Analytics Read"],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/ai_gateway_observability.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/ai_gateway_observability.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": false
+    },
+    {
+      "id": "observability_otlp_eval_store",
+      "command": "npm run smoke:observability-live",
+      "script": "scripts/smoke-observability-live.mjs",
+      "required_env": [
+        "OTLP_EXPORTER_OTLP_ENDPOINT",
+        "OTLP_EXPORTER_OTLP_HEADERS",
+        "CLOUDFLARE_D1_DATABASE_NAME"
+      ],
+      "auth_sources": [
+        "OTLP destination headers",
+        "Wrangler authenticated session or CLOUDFLARE_API_TOKEN"
+      ],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/observability_otlp_eval_store.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/observability_otlp_eval_store.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": false
+    },
+    {
+      "id": "provider_secret_store_rotation",
+      "command": "npm run smoke:provider-secret-stores-live",
+      "script": "scripts/smoke-provider-secret-stores-live.mjs",
+      "required_env": [
+        "CLOUDFLARE_WORKER_NAME",
+        "GITHUB_REPOSITORY",
+        "GITHUB_ENVIRONMENT",
+        "SUPABASE_PROJECT_REF"
+      ],
+      "auth_sources": [
+        "Wrangler authenticated session or CLOUDFLARE_API_TOKEN",
+        "gh authenticated session or GITHUB_TOKEN",
+        "Supabase authenticated session or SUPABASE_ACCESS_TOKEN"
+      ],
+      "packet_template": "deploy/governance/live-smoke-capture-templates/provider_secret_store_rotation.capture.json",
+      "packet_output": "deploy/governance/live-smoke-capture-packets/provider_secret_store_rotation.capture.json",
+      "blocks_sprint0_4_checkbox": true,
+      "cleanup_required": true
+    }
+  ],
+  "forbidden_payload_policy": [
+    "raw command outputs",
+    "account IDs",
+    "resource IDs",
+    "API tokens",
+    "OTLP headers",
+    "provider outputs",
+    "prompts",
+    "model output text",
+    "environment values"
+  ],
+  "not_claimed": [
+    "live_smoke_executed",
+    "capture_packets_created",
+    "all_live_smokes_passed",
+    "sprint0_4_live_smoke_checkbox_complete",
+    "release_transition_allowed"
+  ]
+}

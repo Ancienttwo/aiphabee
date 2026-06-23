@@ -1,0 +1,97 @@
+{
+  "version": "2026-06-23.goal.current-release-readiness.v0",
+  "status": "blocked_pending_evidence",
+  "checker": "scripts/check-current-release-readiness-contract.mjs",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "sprint_completion_audit_contract": "deploy/governance/sprint-completion-audit.contract.json",
+  "sprint_exit_gate_transition_review_contract": "deploy/governance/sprint-exit-gate-transition-review.contract.json",
+  "mainline_publication_readiness_contract": "deploy/governance/mainline-publication-readiness.contract.json",
+  "release_transition_allowed": false,
+  "pr_creation_allowed": false,
+  "large_module_completed_this_slice": false,
+  "publication_ready_without_new_pr": false,
+  "external_or_live_or_frontend_evidence_required": true,
+  "frontend_evidence": "pending_recapture_on_main",
+  "required_blocker_manifests": [
+    {
+      "id": "gate0_signed_evidence",
+      "path": "deploy/governance/gate0-signed-evidence-manifest.contract.json",
+      "expected_status": "pending_external_evidence",
+      "next_packet_directory": "deploy/governance/gate0-signed-evidence-packets/"
+    },
+    {
+      "id": "phase0_live_smoke_evidence",
+      "path": "deploy/governance/live-smoke-evidence-ledger.contract.json",
+      "expected_status": "pending_live_evidence",
+      "next_packet_directory": "deploy/governance/live-smoke-capture-packets/"
+    },
+    {
+      "id": "sprint1_live_data_evidence",
+      "path": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
+      "expected_status": "pending_external_evidence",
+      "next_packet_directory": "deploy/governance/sprint1-live-data-evidence-packets/"
+    },
+    {
+      "id": "agent_model_output_corpus_release_gate",
+      "path": "deploy/agent/model-output-corpus-release-gate.contract.json",
+      "expected_status": "local_contract",
+      "next_packet_directory": null
+    },
+    {
+      "id": "mcp_target_client_live_e2e",
+      "path": "deploy/mcp/target-client-live-e2e-handoff.contract.json",
+      "expected_status": "pending_external_e2e",
+      "next_packet_directory": "deploy/mcp/target-client-live-e2e-packets/"
+    },
+    {
+      "id": "frontend_release_evidence",
+      "path": "deploy/governance/frontend-release-evidence-handoff.contract.json",
+      "expected_status": "pending_frontend_release_evidence",
+      "next_packet_directory": "deploy/governance/frontend-release-evidence-packets/"
+    },
+    {
+      "id": "sprint2_4_live_operations_evidence",
+      "path": "deploy/governance/sprint2-4-live-operations-evidence-manifest.contract.json",
+      "expected_status": "pending_external_evidence",
+      "next_packet_directory": "deploy/governance/sprint2-4-live-operations-evidence-packets/"
+    },
+    {
+      "id": "phase3_security_load_dr_release_evidence",
+      "path": "deploy/governance/phase3-security-load-dr-release-evidence-manifest.contract.json",
+      "expected_status": "pending_external_evidence",
+      "next_packet_directory": "deploy/governance/phase3-security-load-dr-release-evidence-packets/"
+    }
+  ],
+  "next_release_slice": {
+    "id": "credentialed_live_smoke_capture_packets",
+    "reason": "Sprint 0.4 and Phase 0 remain blocked by six credentialed live-smoke surfaces even though the local smoke harnesses and packet validators already exist.",
+    "entrypoint": "npm run check:live-smoke-external-env-preflight",
+    "followup_checks": [
+      "npm run check:live-smoke-capture-packets",
+      "npm run check:live-smoke-operator-run-plan",
+      "npm run check:live-smoke-capture-handoff",
+      "npm run check:live-smoke-capture-transition-review",
+      "npm run check:live-smoke-ledger-update-review",
+      "npm run check:live-smoke-evidence-ledger",
+      "npm run check:current-release-readiness"
+    ]
+  },
+  "required_tracker_fragments": [
+    "Current release readiness checklist 已建立",
+    "| 2026-06-23 | 1.0il | 完成 `current-release-readiness-checklist`"
+  ],
+  "required_todos_fragments": [
+    "Current release readiness checklist",
+    "check:current-release-readiness",
+    "credentialed live-smoke capture packets"
+  ],
+  "not_claimed": [
+    "any_phase_exit_gate_complete",
+    "external_signed_evidence_received",
+    "credentialed_live_smoke_complete",
+    "partner_live_data_complete",
+    "frontend_release_evidence_complete",
+    "pr_created"
+  ]
+}

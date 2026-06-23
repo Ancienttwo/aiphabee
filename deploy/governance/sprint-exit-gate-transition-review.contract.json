@@ -127,6 +127,11 @@
       "backlog_complete": true,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence", "phase0_live_smoke_evidence"],
+      "frontend_evidence": "pending_recapture_on_main",
+      "required_frontend_surface_ids": [
+        "agent_ask_progress_ui",
+        "agent_evidence_card_ui"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "blocker_manifest:frontend_release_evidence",
@@ -153,6 +158,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence"],
+      "frontend_evidence": "pending_recapture_on_main",
+      "required_frontend_surface_ids": [
+        "comparison_screening_ui"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
@@ -166,6 +175,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence"],
+      "frontend_evidence": "pending_recapture_on_main",
+      "required_frontend_surface_ids": [
+        "research_library_ui"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
@@ -179,6 +192,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["mcp_target_client_live_e2e", "frontend_release_evidence"],
+      "frontend_evidence": "pending_recapture_on_main",
+      "required_frontend_surface_ids": [
+        "developer_console_ui"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
@@ -218,6 +235,10 @@
       "backlog_complete": false,
       "completion_allowed": false,
       "blocker_manifest_ids": ["frontend_release_evidence"],
+      "frontend_evidence": "pending_recapture_on_main",
+      "required_frontend_surface_ids": [
+        "wcag_2_1_aa_audit"
+      ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "backlog_items_remaining",
