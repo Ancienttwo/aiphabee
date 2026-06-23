@@ -2,6 +2,25 @@ import {
   createErrorEnvelope,
   createSuccessEnvelope,
 } from "@aiphabee/data-contracts";
+import {
+  diffAnnouncements,
+  getAnnouncement,
+  searchAnnouncements,
+} from "@aiphabee/document-tools";
+import type {
+  DiffAnnouncementsResult,
+  GetAnnouncementResult,
+  SearchAnnouncementCategory,
+  SearchAnnouncementsResult,
+} from "@aiphabee/document-tools";
+import {
+  createResearchRunReplayPlan,
+  createResearchRunSavePlan,
+} from "@aiphabee/research-runtime";
+import type {
+  ResearchRunReplayPlan,
+  ResearchRunSavePlan,
+} from "@aiphabee/research-runtime";
 import type {
   EnvelopeMeta,
   ErrorEnvelope,
@@ -378,5 +397,205 @@ export function screenIpos(
       source: "mock-fixture",
     },
     mockMeta("mock-screen-ipos", rankedHits.length),
+  );
+}
+
+export interface ResearchLibraryInput {
+  category?: SearchAnnouncementCategory | "all";
+  keyword?: string;
+  language?: "en" | "zh-Hant" | "all";
+}
+
+export interface ResearchLibrarySnapshot {
+  detail: GetAnnouncementResult;
+  diff: DiffAnnouncementsResult;
+  replay: ResearchRunReplayPlan;
+  savedRun: ResearchRunSavePlan;
+  search: SearchAnnouncementsResult;
+  source: "mock-fixture";
+}
+
+const DEFAULT_RESEARCH_INPUT: Required<ResearchLibraryInput> = {
+  category: "all",
+  keyword: "results",
+  language: "all",
+};
+
+const DEFAULT_BASE_DOCUMENT_ID = "doc_ann_00700_20240320_results";
+const DEFAULT_COMPARISON_DOCUMENT_ID = "doc_ann_00700_20250320_results";
+
+export function normalizeResearchLibraryInput(
+  input: ResearchLibraryInput = {},
+): Required<ResearchLibraryInput> {
+  return {
+    category: input.category ?? DEFAULT_RESEARCH_INPUT.category,
+    keyword: input.keyword ?? DEFAULT_RESEARCH_INPUT.keyword,
+    language: input.language ?? DEFAULT_RESEARCH_INPUT.language,
+  };
+}
+
+export function searchResearchLibrary(
+  input: ResearchLibraryInput = {},
+): SuccessEnvelope<SearchAnnouncementsResult> {
+  const normalized = normalizeResearchLibraryInput(input);
+  const categories = normalized.category === "all" ? undefined : [normalized.category];
+  const language = normalized.language === "all" ? undefined : normalized.language;
+  const result = searchAnnouncements({
+    categories,
+    from: "2024-01-01",
+    instrumentId: "eq_hk_00700",
+    keyword: normalized.keyword,
+    language,
+    limit: 5,
+    requestId: "mock-research-search",
+    to: "2026-12-31",
+  });
+
+  return createSuccessEnvelope(
+    result,
+    mockMeta("mock-research-search", result.row_count),
+  );
+}
+
+export function getResearchAnnouncement(
+  documentId = DEFAULT_COMPARISON_DOCUMENT_ID,
+): SuccessEnvelope<GetAnnouncementResult> {
+  const result = getAnnouncement({
+    documentId,
+    maxExcerptChars: 280,
+    requestId: "mock-research-detail",
+    sections: ["financial_highlights", "management_discussion", "dividend_timetable", "repurchase_summary"],
+  });
+
+  return createSuccessEnvelope(
+    result,
+    mockMeta("mock-research-detail", result.row_count),
+  );
+}
+
+export function diffResearchAnnouncements(
+  baseDocumentId = DEFAULT_BASE_DOCUMENT_ID,
+  comparisonDocumentId = DEFAULT_COMPARISON_DOCUMENT_ID,
+): SuccessEnvelope<DiffAnnouncementsResult> {
+  const result = diffAnnouncements({
+    baseDocumentId,
+    comparisonDocumentId,
+    requestId: "mock-research-diff",
+    sections: ["financial_highlights"],
+  });
+
+  return createSuccessEnvelope(
+    result,
+    mockMeta("mock-research-diff", result.row_count),
+  );
+}
+
+export function getResearchLibrarySnapshot(
+  input: ResearchLibraryInput = {},
+): SuccessEnvelope<ResearchLibrarySnapshot> {
+  const search = searchResearchLibrary(input).data;
+  const detail = getResearchAnnouncement(DEFAULT_COMPARISON_DOCUMENT_ID).data;
+  const diff = diffResearchAnnouncements(
+    DEFAULT_BASE_DOCUMENT_ID,
+    DEFAULT_COMPARISON_DOCUMENT_ID,
+  ).data;
+  const baseEvidence = detail.excerpts.slice(0, 1).map((excerpt) => ({
+    citationLabel: excerpt.section_title,
+    dataVersion: detail.data_version,
+    documentLocation: {
+      anchor: excerpt.evidence_locator.anchor,
+      documentId: excerpt.evidence_locator.document_id,
+      page: excerpt.evidence_locator.page,
+      paragraph: excerpt.evidence_locator.paragraph,
+      sourceRecordId: excerpt.evidence_locator.source_record_id,
+    },
+    evidenceRecordId: `ev_${excerpt.evidence_locator.source_record_id}`,
+    methodologyVersion: detail.methodology_version,
+    sourceRecordIds: [excerpt.evidence_locator.source_record_id],
+  }));
+  const currentEvidence = detail.excerpts.map((excerpt) => ({
+    citationLabel: excerpt.section_title,
+    dataVersion: detail.data_version,
+    documentLocation: {
+      anchor: excerpt.evidence_locator.anchor,
+      documentId: excerpt.evidence_locator.document_id,
+      page: excerpt.evidence_locator.page,
+      paragraph: excerpt.evidence_locator.paragraph,
+      sourceRecordId: excerpt.evidence_locator.source_record_id,
+    },
+    evidenceRecordId: `ev_${excerpt.evidence_locator.source_record_id}`,
+    methodologyVersion: detail.methodology_version,
+    sourceRecordIds: [excerpt.evidence_locator.source_record_id],
+  }));
+  const savedRun = createResearchRunSavePlan({
+    answerHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    evidenceRecords: baseEvidence,
+    modelProvider: "mock-provider",
+    modelVersion: "mock-model-v1",
+    parameters: { temperature: 0, topK: 3 },
+    promptTemplateId: "research-library-summary",
+    promptVersion: "prompt-v1",
+    question: "Summarize Tencent annual result evidence and preserve the report snapshot.",
+    requestId: "mock-research-save",
+    toolCalls: [
+      {
+        dataVersion: search.data_version,
+        input: {
+          instrumentId: "eq_hk_00700",
+          keyword: normalizeResearchLibraryInput(input).keyword,
+        },
+        inputSchemaId: "search_announcements.input",
+        methodologyVersion: search.methodology_version,
+        outputSchemaId: "search_announcements.output",
+        requestId: "mock-research-search",
+        toolCallId: "tool_search_announcements",
+        toolName: "search_announcements",
+        toolVersion: search.data_version,
+      },
+    ],
+  });
+  const replay = createResearchRunReplayPlan({
+    currentRun: {
+      answerHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      evidenceRecords: currentEvidence,
+      modelProvider: "mock-provider",
+      modelVersion: "mock-model-v2",
+      parameters: { temperature: 0, topK: 5 },
+      promptTemplateId: "research-library-summary",
+      promptVersion: "prompt-v2",
+      question: "Summarize Tencent annual result evidence and preserve the report snapshot.",
+      toolCalls: [
+        {
+          dataVersion: diff.data_version,
+          input: {
+            baseDocumentId: DEFAULT_BASE_DOCUMENT_ID,
+            comparisonDocumentId: DEFAULT_COMPARISON_DOCUMENT_ID,
+            sections: ["financial_highlights"],
+          },
+          inputSchemaId: "diff_announcements.input",
+          methodologyVersion: diff.methodology_version,
+          outputSchemaId: "diff_announcements.output",
+          requestId: "mock-research-diff",
+          toolCallId: "tool_diff_announcements",
+          toolName: "diff_announcements",
+          toolVersion: diff.data_version,
+        },
+      ],
+    },
+    replayReason: "new annual result filing changed evidence and prompt version",
+    requestId: "mock-research-replay",
+    savedRun,
+  });
+
+  return createSuccessEnvelope(
+    {
+      detail,
+      diff,
+      replay,
+      savedRun,
+      search,
+      source: "mock-fixture",
+    },
+    mockMeta("mock-research-library", search.row_count + detail.row_count + diff.row_count),
   );
 }

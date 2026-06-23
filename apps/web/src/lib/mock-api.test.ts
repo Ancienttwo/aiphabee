@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   compareIpos,
+  diffResearchAnnouncements,
+  getResearchAnnouncement,
+  getResearchLibrarySnapshot,
   getIpo,
   getIpos,
   normalizeScreeningInput,
+  searchResearchLibrary,
   screenIpos,
 } from "./mock-api";
 import { IPOS } from "../data/ipos";
@@ -100,6 +104,56 @@ describe("mock-api", () => {
       minConfidence: 0,
       minSubscription: 0,
     });
+  });
+
+  it("searchResearchLibrary returns announcement rows with evidence locators", () => {
+    const env = searchResearchLibrary({ keyword: "results", category: "results" });
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.toolName).toBe("search_announcements");
+      expect(env.data.frontend_rendering).toBe(false);
+      expect(env.data.results.length).toBeGreaterThan(0);
+      expect(env.data.results[0]?.document_id).toContain("ann_");
+      expect(env.data.results[0]?.evidence_locator.locator_type).toBe("synthetic_original_locator");
+    }
+  });
+
+  it("getResearchAnnouncement exposes bounded sanitized excerpts", () => {
+    const env = getResearchAnnouncement("doc_ann_00700_20260103_dividend");
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.toolName).toBe("get_announcement");
+      expect(env.data.full_document_returned).toBe(false);
+      expect(env.data.excerpts_authorized).toBe(true);
+      expect(env.data.sanitization_summary.removed_item_count).toBeGreaterThan(0);
+      expect(env.data.excerpts.length).toBeGreaterThan(0);
+      expect(env.data.excerpts.every((excerpt) => excerpt.sanitization.raw_excerpt_returned === false)).toBe(true);
+    }
+  });
+
+  it("diffResearchAnnouncements returns schema-bound numeric changes", () => {
+    const env = diffResearchAnnouncements();
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.toolName).toBe("diff_announcements");
+      expect(env.data.schema_validation.valid).toBe(true);
+      expect(env.data.diffs.map((diff) => diff.field_id)).toEqual(["revenue", "operating_profit"]);
+      expect(env.data.diffs[0]?.direction).toBe("increase");
+    }
+  });
+
+  it("getResearchLibrarySnapshot plans immutable save and no-write replay", () => {
+    const env = getResearchLibrarySnapshot({ keyword: "results" });
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.savedRun.toolName).toBe("save_research_run");
+      expect(env.data.savedRun.immutable_report_snapshot).toBe(true);
+      expect(env.data.savedRun.persistence_plan.write_status).toBe("planned_no_write");
+      expect(env.data.replay.toolName).toBe("replay_research_run");
+      expect(env.data.replay.old_report.silent_rewrite_allowed).toBe(false);
+      expect(env.data.replay.replay_execution.execution_status).toBe("planned_no_write");
+      expect(env.data.replay.diff_summary.categories).toEqual(["data", "model", "parameters"]);
+    }
   });
 });
 

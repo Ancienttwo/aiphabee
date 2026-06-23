@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResearchRouteImport } from './routes/research'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IposIndexRouteImport } from './routes/ipos/index'
 import { Route as IposIpoIdRouteImport } from './routes/ipos/$ipoId'
 
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
+  '/research': typeof ResearchRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos/': typeof IposIndexRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
+  '/research': typeof ResearchRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos': typeof IposIndexRoute
 }
@@ -60,27 +68,49 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
+  '/research': typeof ResearchRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos/': typeof IposIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  fullPaths:
+    | '/'
+    | '/analysis'
+    | '/dashboard'
+    | '/research'
+    | '/ipos/$ipoId'
+    | '/ipos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos'
-  id: '__root__' | '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  to: '/' | '/analysis' | '/dashboard' | '/research' | '/ipos/$ipoId' | '/ipos'
+  id:
+    | '__root__'
+    | '/'
+    | '/analysis'
+    | '/dashboard'
+    | '/research'
+    | '/ipos/$ipoId'
+    | '/ipos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalysisRoute: typeof AnalysisRoute
   DashboardRoute: typeof DashboardRoute
+  ResearchRoute: typeof ResearchRoute
   IposIpoIdRoute: typeof IposIpoIdRoute
   IposIndexRoute: typeof IposIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -123,6 +153,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalysisRoute: AnalysisRoute,
   DashboardRoute: DashboardRoute,
+  ResearchRoute: ResearchRoute,
   IposIpoIdRoute: IposIpoIdRoute,
   IposIndexRoute: IposIndexRoute,
 }

@@ -38,13 +38,17 @@ export function NavBar() {
       <div
         style={{
           ...SHELL,
-          height: "var(--nav-height)",
+          minHeight: "var(--nav-height)",
+          paddingBottom: 10,
+          paddingTop: 10,
           display: "flex",
           alignItems: "center",
+          gap: 16,
           justifyContent: "space-between",
+          flexWrap: "wrap",
         }}
       >
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flex: "0 0 auto" }}>
           <img src={LOGO_MASCOT} alt="AiphaBee" style={{ height: 38, width: "auto" }} />
           <span
             style={{
@@ -58,7 +62,7 @@ export function NavBar() {
             AiphaBee
           </span>
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "10px 22px", flex: "1 1 320px", flexWrap: "wrap", maxWidth: "100%", minWidth: 0 }}>
           <Link to="/dashboard" style={linkStyle("/dashboard")}>
             Dashboard
           </Link>
@@ -67,6 +71,9 @@ export function NavBar() {
           </Link>
           <Link to="/analysis" style={linkStyle("/analysis")}>
             Analysis
+          </Link>
+          <Link to="/research" style={linkStyle("/research")}>
+            Research
           </Link>
           <Button size="sm" onClick={() => navigate({ to: "/dashboard" })}>
             Get Started

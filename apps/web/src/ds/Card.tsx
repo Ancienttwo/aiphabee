@@ -33,6 +33,7 @@ export function Card({
         transition:
           "box-shadow var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard)",
         overflow: "hidden",
+        minWidth: 0,
         ...(padded ? { padding: "var(--space-6)" } : {}),
         ...style,
       }}

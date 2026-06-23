@@ -9,7 +9,7 @@
   "release_transition_allowed": false,
   "all_sprint_exit_gates_complete": false,
   "all_phase_exit_gates_complete": false,
-  "sprint_completion_allowed_count": 1,
+  "sprint_completion_allowed_count": 2,
   "phase_completion_allowed_count": 0,
   "backlog_count_alone_never_completes_sprint": true,
   "required_sprint_ids": [
@@ -164,16 +164,17 @@
     },
     {
       "sprint_id": "2.2",
-      "tracker_exit_gate": "☐",
-      "backlog": "8 / 9",
-      "backlog_complete": false,
-      "completion_allowed": false,
+      "tracker_exit_gate": "☑",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": true,
       "blocker_manifest_ids": ["frontend_release_evidence"],
+      "required_frontend_surface_ids": ["research_library_ui"],
+      "frontend_surface_statuses": {
+        "research_library_ui": "accepted"
+      },
       "manual_blocking_conditions": [],
-      "blocking_conditions": [
-        "backlog_items_remaining",
-        "blocker_manifest:frontend_release_evidence"
-      ]
+      "blocking_conditions": []
     },
     {
       "sprint_id": "2.3",
@@ -297,7 +298,6 @@
       ],
       "manual_blocking_conditions": [],
       "blocking_conditions": [
-        "child_sprint:2.2",
         "child_sprint:2.3",
         "child_sprint:2.4",
         "blocker_manifest:mcp_target_client_live_e2e",
@@ -368,7 +368,10 @@
     "| 2.1 | 比较 + 筛选 + 确定性分析 | 🟦 | 9 / 9 | ☑ |",
     "| 2026-06-23 | 1.0in | 完成 `comparison-screening-web-ui`",
     "| 2026-06-23 | 1.0io | 完成 `comparison-screening-frontend-evidence-packet`",
-    "| 2026-06-23 | 1.0ip | 完成 `sprint2-1-surface-specific-exit-gate`"
+    "| 2026-06-23 | 1.0ip | 完成 `sprint2-1-surface-specific-exit-gate`",
+    "| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 9 / 9 | ☑ |",
+    "| 2026-06-23 | 1.0iq | 完成 `research-library-web-ui`",
+    "| 2026-06-23 | 1.0ir | 完成 `sprint2-2-surface-specific-exit-gate`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",

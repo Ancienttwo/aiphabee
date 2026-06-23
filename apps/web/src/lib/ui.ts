@@ -5,6 +5,8 @@ export const SHELL: CSSProperties = {
   maxWidth: "var(--container-max)",
   margin: "0 auto",
   padding: "0 24px",
+  boxSizing: "border-box",
+  width: "100%",
 };
 
 /** Public asset paths (copied into apps/web/public). */

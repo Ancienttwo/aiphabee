@@ -1,0 +1,23 @@
+{
+  "accessibility_audit_hash": "sha256:a5b79168f2b624415f9e13159331a118313e6d8f51846832f04dd89ea2db9fdf",
+  "artifact_hashes": [
+    "sha256:10a725327dc3a1bc00a269ed6e3e8903b6d88cf0dbc5491394d25cb754e04637",
+    "sha256:5dcc11c7cfca2cecb327c0ddc4fb49d659a8fc2bb659e6c2dcdae7caa2be443d",
+    "sha256:115ef0b5157f6c1aa5a1dd49d1b5c377be9432c4bc41e41d97bae4f992b11b49",
+    "sha256:a5b79168f2b624415f9e13159331a118313e6d8f51846832f04dd89ea2db9fdf",
+    "sha256:53b3d823fa6b549059723ba4ce6d1aa9dc13b87bac65b396155836c45cf127c6",
+    "sha256:c869c430a54bec9184f40c53eecff48154aa18334cca2efc6d49fb6fee014a2d"
+  ],
+  "build_output_hash": "sha256:53b3d823fa6b549059723ba4ce6d1aa9dc13b87bac65b396155836c45cf127c6",
+  "frontend_handoff_hash": "sha256:fb46d55803033c04c91077f2e6093a2807b7d8058c7453f98c8deb9f3206070b",
+  "missing_evidence": [],
+  "observed_at": "2026-06-23T05:32:33.145Z",
+  "operator": "codex-local-verification",
+  "redaction_status": "redacted_no_secrets",
+  "review_summary_hash": "sha256:c869c430a54bec9184f40c53eecff48154aa18334cca2efc6d49fb6fee014a2d",
+  "route_test_hash": "sha256:115ef0b5157f6c1aa5a1dd49d1b5c377be9432c4bc41e41d97bae4f992b11b49",
+  "screenshot_hash": "sha256:10a725327dc3a1bc00a269ed6e3e8903b6d88cf0dbc5491394d25cb754e04637",
+  "source_locator": "local:/research:research_library_ui",
+  "status": "accepted",
+  "surface_id": "research_library_ui"
+}
