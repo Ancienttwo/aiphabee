@@ -262,6 +262,45 @@ function validateSqlCoverage(migration, sql, errors) {
   if (!lowerSql.includes("default_deny")) {
     errors.push(`${migration.file} must preserve default_deny rights state`);
   }
+
+  if (migration.indexes !== undefined) {
+    if (!Array.isArray(migration.indexes) || migration.indexes.length === 0) {
+      errors.push(`${migration.file} indexes must be a non-empty array when present`);
+    } else {
+      for (const indexName of migration.indexes) {
+        if (typeof indexName !== "string" || indexName.length === 0) {
+          errors.push(`${migration.file} indexes must contain non-empty strings`);
+          continue;
+        }
+
+        if (!lowerSql.includes(`create index if not exists ${indexName.toLowerCase()}`)) {
+          errors.push(`${migration.file} must create index ${indexName}`);
+        }
+      }
+    }
+  }
+
+  if (migration.rls_tables !== undefined) {
+    if (!Array.isArray(migration.rls_tables) || migration.rls_tables.length === 0) {
+      errors.push(`${migration.file} rls_tables must be a non-empty array when present`);
+    } else {
+      for (const table of migration.rls_tables) {
+        if (typeof table !== "string" || table.length === 0) {
+          errors.push(`${migration.file} rls_tables must contain non-empty strings`);
+          continue;
+        }
+
+        const normalizedTable = table.toLowerCase();
+        if (!lowerSql.includes(`alter table ${normalizedTable} enable row level security`)) {
+          errors.push(`${migration.file} must enable row level security on ${table}`);
+        }
+
+        if (!lowerSql.includes(`alter table ${normalizedTable} force row level security`)) {
+          errors.push(`${migration.file} must force row level security on ${table}`);
+        }
+      }
+    }
+  }
 }
 
 function containsForbiddenKey(value, forbiddenKey) {

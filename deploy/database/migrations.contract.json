@@ -788,6 +788,49 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql",
+      "purpose": "Create the first umbrella platform schema foundation for product registry, workspace membership, product access, entitlement policy, and cross-product access audit without moving product-owned data or enabling live migration apply.",
+      "schemas": ["platform", "platform_audit"],
+      "tables": [
+        "platform.account",
+        "platform.entitlement_policy",
+        "platform.product",
+        "platform.product_environment",
+        "platform.workspace",
+        "platform.workspace_entitlement",
+        "platform.workspace_membership",
+        "platform.workspace_product_access",
+        "platform_audit.product_access_event"
+      ],
+      "indexes": [
+        "entitlement_policy_product_id_policy_version_idx",
+        "product_access_event_actor_account_id_idx",
+        "product_access_event_product_id_workspace_id_event_time_idx",
+        "product_access_event_workspace_id_idx",
+        "product_environment_product_id_idx",
+        "workspace_entitlement_product_id_workspace_id_entitlement_key_status_idx",
+        "workspace_entitlement_workspace_id_idx",
+        "workspace_membership_account_id_workspace_id_status_idx",
+        "workspace_membership_workspace_id_idx",
+        "workspace_owner_account_id_idx",
+        "workspace_product_access_product_id_workspace_id_access_status_idx",
+        "workspace_product_access_workspace_id_idx"
+      ],
+      "rls_tables": [
+        "platform.account",
+        "platform.entitlement_policy",
+        "platform.product",
+        "platform.product_environment",
+        "platform.workspace",
+        "platform.workspace_entitlement",
+        "platform.workspace_membership",
+        "platform.workspace_product_access",
+        "platform_audit.product_access_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
