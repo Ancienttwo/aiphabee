@@ -1,5 +1,6 @@
 import { apiCall } from "./client";
 import type {
+  AgentPlan,
   ResolveSecurityData,
   RuntimeCapabilities,
   StockWorkbenchSnapshot,
@@ -12,6 +13,16 @@ export function resolveSecurity(query: string, market?: string) {
   return apiCall<ResolveSecurityData>("/tools/resolve-security", {
     method: "POST",
     body: { query, market },
+  });
+}
+
+// --- Agent research plan -------------------------------------------------
+
+/** Pre-execution research plan: phased steps + answer/evidence contract. */
+export function planAgentRun(prompt: string) {
+  return apiCall<AgentPlan>("/agent/runs/plan", {
+    method: "POST",
+    body: { prompt },
   });
 }
 

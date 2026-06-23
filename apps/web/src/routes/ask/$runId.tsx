@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -18,6 +19,8 @@ import {
   ToolProgressStream,
 } from "../../components/evidence";
 import { Disclaimer } from "../../components/Disclaimer";
+import { EvidenceContractCard, ResearchPlanCard } from "../../components/research/PlanView";
+import { planAgentRun } from "../../lib/api";
 import { useAgentStream } from "../../lib/useAgentStream";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
 
@@ -33,6 +36,12 @@ function AskRun() {
   const { runId } = Route.useParams();
   const { q } = Route.useSearch();
   const { events, status } = useAgentStream(q || undefined);
+  const { data: planEnv } = useQuery({
+    queryKey: ["agent-plan", q],
+    queryFn: () => planAgentRun(q),
+    enabled: Boolean(q),
+  });
+  const plan = planEnv?.ok ? planEnv.data : undefined;
   // Client-only timestamp: avoids any SSR/hydration time skew for the synthetic
   // evidence preview (the value only surfaces when the card is expanded).
   const [asOf, setAsOf] = useState("");
@@ -115,6 +124,7 @@ function AskRun() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {plan ? <ResearchPlanCard plan={plan} /> : null}
           <Card>
             <CardHeader>
               <CardTitle>研究进度</CardTitle>
@@ -187,18 +197,22 @@ function AskRun() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <Card>
-            <CardHeader>
-              <CardTitle>证据强度</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EvidenceStrength strength="indeterminate" />
-              <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-                合成模式下不评估证据强度。接入 live 数据后，将按来源与一致性给出 强 / 中 / 弱
-                judgement，而非伪造的可信度百分比。
-              </p>
-            </CardContent>
-          </Card>
+          {plan ? (
+            <EvidenceContractCard plan={plan} />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>证据强度</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EvidenceStrength strength="indeterminate" />
+                <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                  合成模式下不评估证据强度。接入 live 数据后，将按来源与一致性给出 强 / 中 / 弱
+                  judgement，而非伪造的可信度百分比。
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

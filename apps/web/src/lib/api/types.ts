@@ -267,3 +267,66 @@ export interface StockWorkbenchSnapshot {
 
 // --- module runtime capability probe -------------------------------------
 export type RuntimeCapabilities = Record<string, unknown>;
+
+// --- agent research plan (POST /agent/runs/plan) -------------------------
+// The plan is a *pre-execution* description: the phased tool steps the agent
+// will run, the answer structure it must follow (PRD 8.3), and the numeric
+// source guard that blocks any number not bound to a tool result or
+// deterministic calculation. No model is called to produce it.
+export interface AgentPlanToolCall {
+  allow_arbitrary_sql: boolean;
+  allow_arbitrary_url: boolean;
+  data_classes: string[];
+  live_data_access: boolean;
+  name: string;
+  required_scope: string;
+  status: string;
+}
+export interface AgentPlanStep {
+  index: number;
+  phase: string;
+  public_label: string;
+  step_id: string;
+  tool_calls: AgentPlanToolCall[];
+}
+export interface AnswerStructureSection {
+  order: number;
+  required: boolean;
+  section_id: string;
+  source: string;
+}
+export interface AgentPlan {
+  actual_tool_execution: boolean;
+  answer_evidence_contract: {
+    answer_structure: {
+      key_evidence_items: { max: number; min: number };
+      max_direct_answer_sentences: number;
+      max_next_steps: number;
+      min_direct_answer_sentences: number;
+      ordered_sections: AnswerStructureSection[];
+    };
+  };
+  budget: {
+    max_credits: number;
+    max_parallel_tools: number;
+    max_rows: number;
+    max_steps: number;
+    max_tokens: number;
+  };
+  chain_of_thought_exposed: boolean;
+  model_calls: boolean;
+  numeric_source_guard: {
+    allowed_sources: string[];
+    answer_contract: {
+      failure_code: string;
+      requires_calculation_ref: boolean;
+      requires_source_record_ref: boolean;
+      unknown_value_label: string;
+      unsupported_numeric_claim_behavior: string;
+    };
+    blocked_sources: string[];
+  };
+  planned_step_count: number;
+  steps: AgentPlanStep[];
+  [key: string]: unknown;
+}
