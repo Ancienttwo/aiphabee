@@ -1,8 +1,12 @@
 import { apiCall } from "./client";
 import type {
   AgentPlan,
+  CompareResult,
+  GetAnnouncementResult,
   ResolveSecurityData,
   RuntimeCapabilities,
+  ScreenResult,
+  SearchAnnouncementsResult,
   StockWorkbenchSnapshot,
 } from "./types";
 
@@ -45,6 +49,52 @@ export function getStockSnapshot(params: StockSnapshotParams) {
       quote_mode: params.quoteMode,
       security_query: params.securityQuery,
     },
+  });
+}
+
+// --- Analytics: screen & compare -----------------------------------------
+
+/** Natural-language screen -> editable conditions + preview hits (ANA-03/04). */
+export function screenSecurities(naturalLanguage: string) {
+  return apiCall<ScreenResult>("/analytics/screen-securities", {
+    method: "POST",
+    body: { natural_language: naturalLanguage },
+  });
+}
+
+/** Compare 2–5 securities under a unified basis (ANA-01). */
+export function compareSecurities(securities: string[]) {
+  return apiCall<CompareResult>("/analytics/compare-securities", {
+    method: "POST",
+    body: { securities },
+  });
+}
+
+// --- Documents -----------------------------------------------------------
+
+export interface AnnouncementSearchParams {
+  securityQuery?: string;
+  keyword?: string;
+  categories?: string[];
+}
+
+/** Search announcements (DOC-01). */
+export function searchAnnouncements(params: AnnouncementSearchParams) {
+  return apiCall<SearchAnnouncementsResult>("/documents/search-announcements", {
+    method: "POST",
+    body: {
+      security_query: params.securityQuery,
+      keyword: params.keyword,
+      categories: params.categories,
+    },
+  });
+}
+
+/** Fetch sanitized, locator-bound excerpts of one announcement (DOC-02/03). */
+export function getAnnouncement(documentId: string) {
+  return apiCall<GetAnnouncementResult>("/documents/get-announcement", {
+    method: "POST",
+    body: { document_id: documentId },
   });
 }
 

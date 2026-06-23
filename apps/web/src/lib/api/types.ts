@@ -330,3 +330,124 @@ export interface AgentPlan {
   steps: AgentPlanStep[];
   [key: string]: unknown;
 }
+
+// --- analytics: screen-securities (packages/analytics-tools) --------------
+export interface ScreenCondition {
+  editable?: boolean;
+  field: string;
+  missing_value_rule?: string;
+  operator: string;
+  time_basis?: string;
+  value: number;
+}
+export interface ScreenHit {
+  instrument_id?: string;
+  matched_conditions: string[];
+  rank: number;
+  score: number;
+  source_record_ids: string[];
+  symbol?: string;
+  why: string[];
+}
+export interface ScreenRejected {
+  input: string;
+  reasons: string[];
+  symbol?: string;
+}
+export interface ScreenResult {
+  execution_preview: {
+    hit_count: number;
+    hits: ScreenHit[];
+    ranking_method: string;
+    rejected_count: number;
+    rejected_rows: ScreenRejected[];
+    universe_size: number;
+  };
+  natural_language?: string;
+  parsed_conditions: ScreenCondition[];
+  requires_confirmation_before_live_execution: boolean;
+  status: string;
+  usage: UsageSummary;
+  [key: string]: unknown;
+}
+
+// --- analytics: compare-securities ---------------------------------------
+export interface CompareRow {
+  candidates?: ResolveSecurityCandidate[];
+  currency?: string;
+  financials: Partial<Record<string, number>>;
+  input: string;
+  instrument_id?: string;
+  missing_metrics: string[];
+  quality_flags: string[];
+  quote?: { as_of: string; last_price?: number; market_status: string };
+  status: "blocked_resolution" | "comparable" | "incomparable";
+  symbol?: string;
+}
+export interface CompareResult {
+  requested_securities: string[];
+  row_count: number;
+  rows: CompareRow[];
+  status: "compared" | "invalid_input" | "partial";
+  unified_comparison: {
+    base_currency?: string;
+    currency_conversion: string;
+    incomparable_reasons: string[];
+    max_securities: number;
+    min_securities: number;
+  };
+  usage: UsageSummary;
+  [key: string]: unknown;
+}
+
+// --- documents: search-announcements -------------------------------------
+export interface AnnouncementResultItem {
+  announcement_id: string;
+  category: string;
+  document_id: string;
+  evidence_locator: { anchor: string; document_id: string; original_url: string; page: number; source_record_id: string };
+  instrument_id: string;
+  language: string;
+  matched_fields: string[];
+  published_at: string;
+  summary: string;
+  symbol: string;
+  title: string;
+}
+export interface SearchAnnouncementsResult {
+  categories: string[];
+  resolve_security?: ResolveSecurityData;
+  results: AnnouncementResultItem[];
+  row_count: number;
+  status: "blocked_resolution" | "found" | "not_found";
+  total_count: number;
+  usage: UsageSummary;
+  [key: string]: unknown;
+}
+
+// --- documents: get-announcement -----------------------------------------
+export interface AnnouncementExcerpt {
+  authorization: { max_excerpt_chars: number; truncated: boolean };
+  evidence_locator: { anchor: string; page: number; paragraph: number };
+  excerpt: string;
+  sanitization: { removed_items: string[]; status: string };
+  section_id: string;
+  section_title: string;
+}
+export interface GetAnnouncementResult {
+  allowed_sections: string[];
+  excerpts: AnnouncementExcerpt[];
+  sanitization_summary: { removed_item_count: number; sections_reviewed: number; sections_sanitized: number };
+  source?: {
+    announcement_id: string;
+    category: string;
+    instrument_id: string;
+    language: string;
+    published_at: string;
+    symbol: string;
+    title: string;
+  };
+  status: "found" | "not_found" | "section_not_found";
+  usage: UsageSummary;
+  [key: string]: unknown;
+}
