@@ -16,6 +16,11 @@ const requirementFrontendSurfaceIds = {
   "AGT-07": "agent_evidence_card_ui",
   "MCP-09": "developer_console_ui"
 };
+const expectedFrontendEvidenceAccepted = {
+  "AGT-01": false,
+  "AGT-07": false,
+  "MCP-09": true
+};
 
 if (isMainModule()) {
   runCli();
@@ -442,7 +447,12 @@ function validateTransitionDecisions(value, transitionReview) {
 
     expectEqual(errors, decision.completion_allowed, false, `${decision.requirement_code}.completion_allowed`);
     expectEqual(errors, decision.completion_allowed, review?.completion_allowed, `${decision.requirement_code}.contract_completion_allowed`);
-    expectEqual(errors, decision.frontend_evidence_accepted, false, `${decision.requirement_code}.frontend_evidence_accepted`);
+    expectEqual(
+      errors,
+      decision.frontend_evidence_accepted,
+      expectedFrontendEvidenceAccepted[decision.requirement_code],
+      `${decision.requirement_code}.frontend_evidence_accepted`
+    );
     expectEqual(errors, decision.frontend_surface_id, review?.frontend_surface_id, `${decision.requirement_code}.contract_frontend_surface_id`);
   }
 

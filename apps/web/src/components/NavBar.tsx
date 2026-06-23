@@ -75,6 +75,9 @@ export function NavBar() {
           <Link to="/research" style={linkStyle("/research")}>
             Research
           </Link>
+          <Link to="/developer-console" style={linkStyle("/developer-console")}>
+            Console
+          </Link>
           <Button size="sm" onClick={() => navigate({ to: "/dashboard" })}>
             Get Started
           </Button>

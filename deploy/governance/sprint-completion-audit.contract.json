@@ -10,23 +10,86 @@
   "frontend_delegated": true,
   "external_evidence_required": true,
   "live_credentials_required": true,
-  "completed_sprint_ids": ["2.1", "2.2"],
+  "completed_sprint_ids": [
+    "2.1",
+    "2.2"
+  ],
   "expected_sprint_rows": [
-    { "id": "0.1", "backlog": "2 / 8", "exit_gate": "☐" },
-    { "id": "0.2", "backlog": "9 / 9", "exit_gate": "☐" },
-    { "id": "0.3", "backlog": "9 / 9", "exit_gate": "☐" },
-    { "id": "0.4", "backlog": "19 / 23", "exit_gate": "☐" },
-    { "id": "1.1", "backlog": "22 / 26", "exit_gate": "☐" },
-    { "id": "1.2", "backlog": "13 / 13", "exit_gate": "☐" },
-    { "id": "1.3", "backlog": "10 / 10", "exit_gate": "☐" },
-    { "id": "1.4", "backlog": "9 / 9", "exit_gate": "☐" },
-    { "id": "2.1", "backlog": "9 / 9", "exit_gate": "☑" },
-    { "id": "2.2", "backlog": "9 / 9", "exit_gate": "☑" },
-    { "id": "2.3", "backlog": "10 / 11", "exit_gate": "☐" },
-    { "id": "2.4", "backlog": "10 / 10", "exit_gate": "☐" },
-    { "id": "3.1", "backlog": "9 / 9", "exit_gate": "☐" },
-    { "id": "3.2", "backlog": "8 / 9", "exit_gate": "☐" },
-    { "id": "3.3", "backlog": "17 / 17", "exit_gate": "☐" }
+    {
+      "id": "0.1",
+      "backlog": "2 / 8",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "0.2",
+      "backlog": "9 / 9",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "0.3",
+      "backlog": "9 / 9",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "0.4",
+      "backlog": "19 / 23",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "1.1",
+      "backlog": "22 / 26",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "1.2",
+      "backlog": "13 / 13",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "1.3",
+      "backlog": "10 / 10",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "1.4",
+      "backlog": "9 / 9",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "2.1",
+      "backlog": "9 / 9",
+      "exit_gate": "☑"
+    },
+    {
+      "id": "2.2",
+      "backlog": "9 / 9",
+      "exit_gate": "☑"
+    },
+    {
+      "id": "2.3",
+      "backlog": "11 / 11",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "2.4",
+      "backlog": "10 / 10",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "3.1",
+      "backlog": "9 / 9",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "3.2",
+      "backlog": "8 / 9",
+      "exit_gate": "☐"
+    },
+    {
+      "id": "3.3",
+      "backlog": "17 / 17",
+      "exit_gate": "☐"
+    }
   ],
   "completion_blocker_manifests": [
     {
@@ -43,7 +106,14 @@
           "fixture_checker": "scripts/check-gate0-signed-evidence-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 0.1", "Sprint 0.2", "Sprint 0.3", "Sprint 3.3", "Phase 0", "Phase 3"]
+      "blocks": [
+        "Sprint 0.1",
+        "Sprint 0.2",
+        "Sprint 0.3",
+        "Sprint 3.3",
+        "Phase 0",
+        "Phase 3"
+      ]
     },
     {
       "id": "phase0_live_smoke_evidence",
@@ -59,7 +129,13 @@
           "fixture_checker": "scripts/check-live-smoke-capture-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 0.4", "Sprint 1.3", "Sprint 3.3", "Phase 0", "Phase 3"]
+      "blocks": [
+        "Sprint 0.4",
+        "Sprint 1.3",
+        "Sprint 3.3",
+        "Phase 0",
+        "Phase 3"
+      ]
     },
     {
       "id": "sprint1_live_data_evidence",
@@ -75,7 +151,17 @@
           "fixture_checker": "scripts/check-sprint1-live-data-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 0.2", "Sprint 0.3", "Sprint 1.1", "Sprint 1.2", "Sprint 1.4", "Sprint 3.1", "Sprint 3.3", "Phase 1", "Phase 3"]
+      "blocks": [
+        "Sprint 0.2",
+        "Sprint 0.3",
+        "Sprint 1.1",
+        "Sprint 1.2",
+        "Sprint 1.4",
+        "Sprint 3.1",
+        "Sprint 3.3",
+        "Phase 1",
+        "Phase 3"
+      ]
     },
     {
       "id": "agent_model_output_corpus_release_gate",
@@ -84,7 +170,9 @@
       "expected_required_count": 10,
       "expected_accepted_count": 0,
       "release_gate_checker": "scripts/check-agent-model-output-corpus-release-gate-contract.mjs",
-      "blocks": ["Sprint 0.3"]
+      "blocks": [
+        "Sprint 0.3"
+      ]
     },
     {
       "id": "mcp_target_client_live_e2e",
@@ -100,7 +188,12 @@
           "fixture_checker": "scripts/check-mcp-target-client-live-e2e-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 2.3", "Sprint 3.3", "Phase 2", "Phase 3"]
+      "blocks": [
+        "Sprint 2.3",
+        "Sprint 3.3",
+        "Phase 2",
+        "Phase 3"
+      ]
     },
     {
       "id": "frontend_release_evidence",
@@ -116,7 +209,19 @@
           "fixture_checker": "scripts/check-p0-open-requirement-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 1.3", "Sprint 1.4", "Sprint 2.1", "Sprint 2.2", "Sprint 2.3", "Sprint 3.1", "Sprint 3.2", "Sprint 3.3", "Phase 1", "Phase 2", "Phase 3"]
+      "blocks": [
+        "Sprint 1.3",
+        "Sprint 1.4",
+        "Sprint 2.1",
+        "Sprint 2.2",
+        "Sprint 2.3",
+        "Sprint 3.1",
+        "Sprint 3.2",
+        "Sprint 3.3",
+        "Phase 1",
+        "Phase 2",
+        "Phase 3"
+      ]
     },
     {
       "id": "sprint2_4_live_operations_evidence",
@@ -132,7 +237,10 @@
           "fixture_checker": "scripts/check-sprint2-4-live-operations-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 2.4", "Phase 2"]
+      "blocks": [
+        "Sprint 2.4",
+        "Phase 2"
+      ]
     },
     {
       "id": "phase3_security_load_dr_release_evidence",
@@ -148,7 +256,10 @@
           "fixture_checker": "scripts/check-phase3-security-load-dr-release-transition-review-fixtures.mjs"
         }
       ],
-      "blocks": ["Sprint 3.3", "Phase 3"]
+      "blocks": [
+        "Sprint 3.3",
+        "Phase 3"
+      ]
     }
   ],
   "linked_transition_reviews": [
@@ -205,9 +316,11 @@
     "| 2026-06-23 | 1.0hq | 完成 `sprint-blocker-transition-audit`",
     "| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |",
     "| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 22 / 26 | ☐ |",
-    "| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |",
+    "| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 11 / 11 | ☐ |",
     "| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 8 / 9 | ☐ |",
-    "MCP-09 Developer Console | P0 | 2.3 | ☐"
+    "MCP-09 Developer Console | P0 | 2.3 | ☐",
+    "| 2026-06-23 | 1.0is | 完成 `developer-console-web-ui`",
+    "| 2026-06-23 | 1.0it | 完成 `developer-console-frontend-evidence-packet`"
   ],
   "required_todos_fragments": [
     "Sprint exit gate transition review",

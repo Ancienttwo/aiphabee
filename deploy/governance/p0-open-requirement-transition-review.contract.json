@@ -75,8 +75,6 @@
         "deploy/mcp/developer-console-log-store-smoke.contract.json"
       ],
       "blocking_conditions": [
-        "accepted_frontend_release_evidence_packet",
-        "frontend_console_ui",
         "production_console_log_store_cutover",
         "live_usage_ledger_reads",
         "live_key_generation_or_oauth_provider",

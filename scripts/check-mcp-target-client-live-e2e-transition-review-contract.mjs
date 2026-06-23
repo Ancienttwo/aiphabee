@@ -379,8 +379,8 @@ function validateTrackerAndTodos(errors, { contract, todos, tracker }) {
     }
   }
 
-  if (!tracker.includes("| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 10 / 11 | ☐ |")) {
-    errors.push("tracker must keep Sprint 2.3 row at 10 / 11 and unchecked");
+  if (!tracker.includes("| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 11 / 11 | ☐ |")) {
+    errors.push("tracker must keep Sprint 2.3 row at 11 / 11 and unchecked");
   }
 
   if (!tracker.includes("| MCP-09 Developer Console | P0 | 2.3 | ☐ |")) {

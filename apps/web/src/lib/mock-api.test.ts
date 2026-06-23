@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareIpos,
   diffResearchAnnouncements,
+  getDeveloperConsoleSnapshot,
   getResearchAnnouncement,
   getResearchLibrarySnapshot,
   getIpo,
@@ -153,6 +154,43 @@ describe("mock-api", () => {
       expect(env.data.replay.old_report.silent_rewrite_allowed).toBe(false);
       expect(env.data.replay.replay_execution.execution_status).toBe("planned_no_write");
       expect(env.data.replay.diff_summary.categories).toEqual(["data", "model", "parameters"]);
+    }
+  });
+
+  it("getDeveloperConsoleSnapshot renders planned MCP console evidence without secrets", () => {
+    const env = getDeveloperConsoleSnapshot();
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      const { plan, guardrails } = env.data;
+      expect(plan.connection_guide.steps.map((step) => step.step)).toEqual([
+        "choose_credential",
+        "initialize",
+        "list_tools",
+        "first_tool_call",
+      ]);
+      expect(plan.credentials.api_key.create_route).toBe("POST /mcp/api-keys/create/plan");
+      expect(plan.credentials.oauth.authorize_route).toBe("POST /mcp/oauth/authorize/plan");
+      expect(plan.scope_panel.scope_catalog.some((scope) => scope.scope === "market.read")).toBe(true);
+      expect(plan.quota_panel.request_id_visible).toBe(true);
+      expect(plan.quota_panel.usage.request_id).toContain("mock-developer-console");
+      expect(plan.examples.calls.map((example) => example.method)).toEqual([
+        "initialize",
+        "tools/list",
+        "tools/call",
+      ]);
+      expect(plan.request_log_panel.sample_rows[0]?.request_id).toContain("example-tools-call");
+      expect(guardrails).toEqual({
+        liveApiKeyGeneration: false,
+        liveConsoleLogStore: false,
+        liveOAuthProvider: false,
+        liveTargetClientE2E: false,
+        rawSecretDisplay: false,
+      });
+      expect(Object.keys(plan.request_log_panel.sample_rows[0] ?? {})).not.toEqual(
+        expect.arrayContaining(Array.from(plan.request_log_panel.forbidden_fields)),
+      );
+      expect(plan.credentials.api_key.live_secret_generation).toBe(false);
+      expect(plan.credentials.oauth.token_storage_live).toBe(false);
     }
   });
 });

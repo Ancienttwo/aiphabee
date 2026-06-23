@@ -17,6 +17,7 @@ import {
   createResearchRunReplayPlan,
   createResearchRunSavePlan,
 } from "@aiphabee/research-runtime";
+import { createMcpDeveloperConsolePlan } from "@aiphabee/mcp-runtime";
 import type {
   ResearchRunReplayPlan,
   ResearchRunSavePlan,
@@ -415,6 +416,20 @@ export interface ResearchLibrarySnapshot {
   source: "mock-fixture";
 }
 
+export type DeveloperConsolePlan = ReturnType<typeof createMcpDeveloperConsolePlan>;
+
+export interface DeveloperConsoleSnapshot {
+  guardrails: {
+    liveApiKeyGeneration: boolean;
+    liveConsoleLogStore: boolean;
+    liveOAuthProvider: boolean;
+    liveTargetClientE2E: boolean;
+    rawSecretDisplay: boolean;
+  };
+  plan: DeveloperConsolePlan;
+  source: "mcp-runtime-plan";
+}
+
 const DEFAULT_RESEARCH_INPUT: Required<ResearchLibraryInput> = {
   category: "all",
   keyword: "results",
@@ -597,5 +612,34 @@ export function getResearchLibrarySnapshot(
       source: "mock-fixture",
     },
     mockMeta("mock-research-library", search.row_count + detail.row_count + diff.row_count),
+  );
+}
+
+export function getDeveloperConsoleSnapshot(): SuccessEnvelope<DeveloperConsoleSnapshot> {
+  const plan = createMcpDeveloperConsolePlan({
+    allowedOrigins: ["https://app.aiphabee.local", "http://localhost:3001"],
+    clientName: "mcp_inspector",
+    clientVersion: "local-redacted",
+    origin: "https://app.aiphabee.local",
+    pendingCredits: 2,
+    requestId: "mock-developer-console",
+    usagePlanCode: "team",
+    usedCredits: 18,
+    workspaceId: "workspace_redacted",
+  });
+
+  return createSuccessEnvelope(
+    {
+      guardrails: {
+        liveApiKeyGeneration: plan.live_api_key_generation,
+        liveConsoleLogStore: plan.live_console_log_store,
+        liveOAuthProvider: plan.live_oauth_provider,
+        liveTargetClientE2E: plan.compatibility_status.live_client_e2e_passed,
+        rawSecretDisplay: false,
+      },
+      plan,
+      source: "mcp-runtime-plan",
+    },
+    mockMeta("mock-developer-console", plan.release_checks.length),
   );
 }

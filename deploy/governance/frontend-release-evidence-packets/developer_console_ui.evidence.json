@@ -1,0 +1,23 @@
+{
+  "accessibility_audit_hash": "sha256:afb9d1919b5b1792062ac53519ab1b6db468d69d134ade88bbd73f56f5754fad",
+  "artifact_hashes": [
+    "sha256:a3df7047d89c3d445b2767f213b5e6a8eb11c5ced38ca57e61f9b17c189a53eb",
+    "sha256:6438c3406c3e2cfbd66b3a52b24f54f204e3b85384fadb87bacc5738823ed690",
+    "sha256:06a038e2d0c238b8e9f74cdaf2b0b7308357d772d202c2042ae518462de6eec2",
+    "sha256:afb9d1919b5b1792062ac53519ab1b6db468d69d134ade88bbd73f56f5754fad",
+    "sha256:a5b041b474c4ef8bba3669bf11222195ccee9f5c57f416731a9b286a5236079e",
+    "sha256:5e7d267f04f9a9ee130a37503c9ff5c6cd2b04252936218be103a157e08fbb50"
+  ],
+  "build_output_hash": "sha256:5e7d267f04f9a9ee130a37503c9ff5c6cd2b04252936218be103a157e08fbb50",
+  "frontend_handoff_hash": "sha256:a5b041b474c4ef8bba3669bf11222195ccee9f5c57f416731a9b286a5236079e",
+  "missing_evidence": [],
+  "observed_at": "2026-06-23T05:43:21.000Z",
+  "operator": "codex-local-verification",
+  "redaction_status": "redacted_no_secrets",
+  "review_summary_hash": "sha256:a5b041b474c4ef8bba3669bf11222195ccee9f5c57f416731a9b286a5236079e",
+  "route_test_hash": "sha256:06a038e2d0c238b8e9f74cdaf2b0b7308357d772d202c2042ae518462de6eec2",
+  "screenshot_hash": "sha256:a3df7047d89c3d445b2767f213b5e6a8eb11c5ced38ca57e61f9b17c189a53eb",
+  "source_locator": "local:/developer-console:developer_console_ui",
+  "status": "accepted",
+  "surface_id": "developer_console_ui"
+}
