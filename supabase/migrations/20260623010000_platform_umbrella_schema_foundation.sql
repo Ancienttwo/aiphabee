@@ -242,11 +242,9 @@ insert into platform.product (
 )
 values
   ('aiphabee', 'aiphabee', 'AiphaBee', 'planned', 'aiphabee')
-on conflict (product_code) do update set
-  display_name = excluded.display_name,
-  status = excluded.status,
-  default_schema_prefix = excluded.default_schema_prefix,
-  updated_at = now();
+-- Do not overwrite an existing AiphaBee product row during replay or operator
+-- apply. Live product status and naming are runtime/operator-owned state.
+on conflict (product_code) do nothing;
 
 alter table platform.product enable row level security;
 alter table platform.product force row level security;
