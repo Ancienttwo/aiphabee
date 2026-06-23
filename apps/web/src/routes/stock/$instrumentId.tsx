@@ -1,53 +1,41 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Icon,
-  MascotState,
-} from "../../ds";
-import { Metric } from "../../components/Metric";
+import { Badge, Button, Card, Icon, MascotState } from "../../ds";
 import { EvidenceCard } from "../../components/evidence";
-import { Disclaimer } from "../../components/Disclaimer";
 import {
-  getStockSnapshot,
-  presentError,
-  type MarketStatus,
-  type WorkbenchSection,
-} from "../../lib/api";
+  AnnouncementsPanel,
+  CorporateActionsPanel,
+  DerivedPanel,
+  FinancialsPanel,
+  PricePanel,
+  ProfilePanel,
+  QuotePanel,
+} from "../../components/workbench/panels";
+import { Disclaimer } from "../../components/Disclaimer";
+import { getStockSnapshot, presentError } from "../../lib/api";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
 
 export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
 });
 
-const SECTIONS = [
-  { key: "security_profile", label: "公司档案" },
-  { key: "quote_snapshot", label: "行情快照" },
-  { key: "price_history", label: "价格历史" },
-  { key: "financial_facts", label: "财务事实" },
-  { key: "derived_metrics", label: "派生指标" },
-  { key: "announcement_search", label: "公告检索" },
-  { key: "corporate_actions", label: "公司行动" },
+const TABS = [
+  { key: "profile", label: "档案", statusKey: "security_profile" },
+  { key: "quote", label: "行情", statusKey: "quote_snapshot" },
+  { key: "financials", label: "财务", statusKey: "financial_facts" },
+  { key: "price", label: "价格", statusKey: "price_history" },
+  { key: "derived", label: "指标", statusKey: "derived_metrics" },
+  { key: "announcements", label: "公告", statusKey: "announcement_search" },
+  { key: "actions", label: "公司行动", statusKey: "corporate_actions" },
 ] as const;
 
-const MARKET_LABEL: Record<MarketStatus, string> = {
-  open: "开市",
-  closed: "收盘",
-  pre_open: "开盘前",
-  post_close: "收盘后",
-  halted: "暂停交易",
-  unknown: "未知",
-  not_applicable: "—",
-};
+type TabKey = (typeof TABS)[number]["key"];
 
 function StockWorkbench() {
   const navigate = useNavigate();
   const { instrumentId } = Route.useParams();
+  const [tab, setTab] = useState<TabKey>("profile");
   const { data: env, isLoading } = useQuery({
     queryKey: ["stock-snapshot", instrumentId],
     queryFn: () => getStockSnapshot({ instrumentId }),
@@ -74,26 +62,12 @@ function StockWorkbench() {
         <Icon name="arrow-left" size={16} /> 返回搜索
       </button>
 
-      <h1
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--text-3xl)",
-          fontWeight: 700,
-          color: "var(--ink-800)",
-        }}
-      >
-        {instrumentId}
-      </h1>
-
       {isLoading ? (
-        <p style={{ marginTop: 16, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-          正在加载工作台快照…
-        </p>
+        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载工作台快照…</p>
       ) : null}
 
       {env && !env.ok ? (
-        <Card padded style={{ marginTop: 16 }}>
+        <Card padded>
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--red-600)" }}>
             {presentError(env).detail}
           </p>
@@ -104,66 +78,115 @@ function StockWorkbench() {
       ) : null}
 
       {env && env.ok ? (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "12px 0 20px" }}>
-            <Badge tone="info" variant="soft" dot>
-              市场状态：{MARKET_LABEL[env.market_status]}
-            </Badge>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-              快照版本 {env.data.version}
-            </span>
-          </div>
+        (() => {
+          const snap = env.data;
+          const profile = snap.security_profile.profile;
+          const ready = Object.values(snap.data_quality.section_statuses).filter(
+            (s) => s === "found",
+          ).length;
+          return (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontFamily: "var(--font-display)",
+                    fontSize: "var(--text-3xl)",
+                    fontWeight: 700,
+                    color: "var(--ink-800)",
+                  }}
+                >
+                  {profile ? profile.company.name.zhHant || profile.company.name.en : instrumentId}
+                </h1>
+                {profile ? (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>
+                    {profile.symbol}
+                  </span>
+                ) : null}
+                <Badge
+                  tone={snap.status === "ready" ? "bullish" : snap.status === "partial" ? "warning" : "bearish"}
+                  variant="soft"
+                  size="sm"
+                  dot
+                >
+                  {snap.status === "ready" ? "数据就绪" : snap.status === "partial" ? "部分就绪" : "未解析"}
+                </Badge>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{ready}/7 区块 · 证据 {snap.evidence.provenance_count}</span>
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)", marginBottom: 18 }}>
+                {instrumentId}
+              </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <EvidenceCard
-              asOf={env.as_of}
-              dataVersion={env.data_version}
-              methodologyVersion={env.methodology_version}
-              provenance={env.provenance}
-              usage={env.usage}
-              label="查看本次快照的证据来源"
-            />
-          </div>
+              {/* Tab bar */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18, overflowX: "auto" }}>
+                {TABS.map((t) => {
+                  const active = tab === t.key;
+                  const found = snap.data_quality.section_statuses[t.statusKey] === "found";
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setTab(t.key)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "7px 14px",
+                        borderRadius: "var(--radius-md)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        border: "1px solid " + (active ? "var(--honey-500)" : "var(--border-subtle)"),
+                        background: active ? "var(--honey-500)" : "var(--surface-card)",
+                        color: active ? "var(--text-on-honey)" : "var(--text-body)",
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: found ? "var(--green-500)" : "var(--neutral-300)",
+                        }}
+                      />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-            {SECTIONS.map((s) => {
-              const section = env.data[s.key] as WorkbenchSection | undefined;
-              if (!section?.usage) return null;
-              return (
-                <Metric
-                  key={s.key}
-                  label={s.label}
-                  value={`${section.usage.rows} 行`}
-                  sub={`${section.usage.credits} credits${section.usage.cached ? " · 缓存" : ""}`}
+              {/* Active panel */}
+              {tab === "profile" ? <ProfilePanel section={snap.security_profile} /> : null}
+              {tab === "quote" ? <QuotePanel section={snap.quote_snapshot} /> : null}
+              {tab === "financials" ? <FinancialsPanel section={snap.financial_facts} /> : null}
+              {tab === "price" ? <PricePanel section={snap.price_history} /> : null}
+              {tab === "derived" ? <DerivedPanel section={snap.derived_metrics} /> : null}
+              {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
+              {tab === "actions" ? <CorporateActionsPanel section={snap.corporate_actions} /> : null}
+
+              {/* Aggregate snapshot evidence */}
+              <div style={{ marginTop: 20 }}>
+                <EvidenceCard
+                  asOf={env.as_of}
+                  dataVersion={env.data_version}
+                  methodologyVersion={env.methodology_version}
+                  provenance={env.provenance}
+                  usage={env.usage}
+                  label="查看本次快照的聚合证据来源"
                 />
-              );
-            })}
-          </div>
+              </div>
 
-          <Card style={{ marginTop: 24 }}>
-            <CardHeader>
-              <CardTitle>更深的工作台视图</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-                Phase 2 将把每个区块展开为完整面板：行情走势、财务趋势、估值口径、公告时间线与公司行动，
-                每个数字都挂接对应的证据卡片。当前为合成数据，已打通真实 API 信封（provenance / usage /
-                market_status）。
-              </p>
-            </CardContent>
-          </Card>
-
-          <Disclaimer style={{ marginTop: 24 }} />
-        </>
+              <Disclaimer style={{ marginTop: 24 }} />
+            </>
+          );
+        })()
       ) : null}
 
       {!isLoading && !env ? (
-        <MascotState
-          basePath={MASCOT_BP}
-          pose="empty"
-          title="暂无数据"
-          description="未能加载该证券的工作台快照。"
-        />
+        <MascotState basePath={MASCOT_BP} pose="empty" title="暂无数据" description="未能加载该证券的工作台快照。" />
       ) : null}
     </main>
   );
