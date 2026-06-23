@@ -124,13 +124,41 @@ describe("platform umbrella RLS isolation truth table", () => {
     expect(profileSelf).toContain("account_id = (select platform.current_account_id())");
   });
 
-  it("platform_audit.product_access_event is RLS-locked with no read policy (deny-all to authenticated)", () => {
+  it("platform_audit.product_access_event stays deny-all to authenticated (service_role only, never granted)", () => {
     expect(normalizedSql).toContain("alter table platform_audit.product_access_event enable row level security");
     expect(normalizedSql).toContain("alter table platform_audit.product_access_event force row level security");
-    const hasAuditPolicy = policyStatements.some((stmt) =>
-      /on\s+platform_audit\.product_access_event/iu.test(stmt)
-    );
-    expect(hasAuditPolicy, "audit event table must expose no SELECT policy").toBe(false);
+    const auditPolicies = policyStatements
+      .filter((stmt) => /on\s+platform_audit\.product_access_event/iu.test(stmt))
+      .map(squish);
+    // No authenticated-facing policy on the audit log; any policy must be service_role.
+    expect(auditPolicies.some((policy) => policy.includes("to authenticated"))).toBe(false);
+    expect(auditPolicies.every((policy) => policy.includes("to service_role"))).toBe(true);
+    // And authenticated is never granted usage on the audit schema.
+    expect(normalizedSql).not.toContain("grant usage on schema platform_audit to authenticated");
+  });
+
+  it("authenticated is granted reach + read on the hardened schemas, never the audit schema", () => {
+    expect(normalizedSql).toContain("grant usage on schema platform to authenticated");
+    expect(normalizedSql).toContain("grant usage on schema aiphabee_core to authenticated");
+    expect(normalizedSql).toContain("grant usage on schema aiphabee_governance to authenticated");
+    const grantSelect = squish(sql.match(/grant select on[\s\S]*?to authenticated\s*;/iu)?.[0] ?? "");
+    expect(grantSelect).toContain("platform.workspace");
+    expect(grantSelect).toContain("aiphabee_core.account_profile");
+    expect(grantSelect).toContain("aiphabee_governance.data_entitlement");
+    expect(grantSelect).not.toContain("platform_audit"); // audit log is never select-granted to authenticated
+  });
+
+  it("anon receives no grant or policy anywhere in the umbrella foundation", () => {
+    expect(normalizedSql).not.toContain("to anon");
+  });
+
+  it("every forced-RLS table carries a service_role all-access policy (blessed foundation parity)", () => {
+    const forcedTables = (normalizedSql.match(/force row level security/gu) ?? []).length;
+    const serviceRolePolicies = policyStatements.filter((stmt) =>
+      /for all\s+to service_role/iu.test(squish(stmt))
+    ).length;
+    expect(forcedTables).toBeGreaterThanOrEqual(17);
+    expect(serviceRolePolicies).toBe(forcedTables);
   });
 
   it("identity helpers pin an empty search_path (no search_path injection)", () => {

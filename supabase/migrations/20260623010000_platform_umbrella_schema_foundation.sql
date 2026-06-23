@@ -420,3 +420,54 @@ create policy account_workspace_entitlement_contract_read
 on aiphabee_governance.account_workspace_entitlement_contract
 for select
 using (status in ('local_contract', 'provisioned'));
+
+-- Supabase exposure grants. RLS only filters rows; without schema/table
+-- privileges the authenticated read policies above are unreachable. Grant the
+-- minimum: usage on the hardened schemas plus select on each read-policy table.
+-- anon receives nothing. The cross-product audit log is granted to service_role
+-- only, so it stays deny-all for authenticated.
+grant usage on schema platform to authenticated, service_role;
+grant usage on schema platform_audit to service_role;
+grant usage on schema aiphabee_core to authenticated, service_role;
+grant usage on schema aiphabee_governance to authenticated, service_role;
+
+grant select on
+  platform.product,
+  platform.product_environment,
+  platform.account,
+  platform.workspace,
+  platform.workspace_membership,
+  platform.subscription_plan,
+  platform.workspace_subscription,
+  platform.workspace_product_access,
+  platform.entitlement_policy,
+  platform.workspace_entitlement,
+  aiphabee_core.account_profile,
+  aiphabee_core.workspace_profile,
+  aiphabee_core.workspace_membership_profile,
+  aiphabee_governance.data_entitlement,
+  aiphabee_governance.workspace_entitlement,
+  aiphabee_governance.account_workspace_entitlement_contract
+to authenticated;
+
+-- Service-role all-access policies, one per forced-RLS table. service_role also
+-- carries bypassrls in Supabase; these policies keep server-side access intact
+-- if that attribute is ever dropped. service_role paths must still filter by
+-- product_id/workspace_id in application code.
+create policy product_service_role_all on platform.product for all to service_role using (true) with check (true);
+create policy product_environment_service_role_all on platform.product_environment for all to service_role using (true) with check (true);
+create policy account_service_role_all on platform.account for all to service_role using (true) with check (true);
+create policy workspace_service_role_all on platform.workspace for all to service_role using (true) with check (true);
+create policy workspace_membership_service_role_all on platform.workspace_membership for all to service_role using (true) with check (true);
+create policy subscription_plan_service_role_all on platform.subscription_plan for all to service_role using (true) with check (true);
+create policy workspace_subscription_service_role_all on platform.workspace_subscription for all to service_role using (true) with check (true);
+create policy workspace_product_access_service_role_all on platform.workspace_product_access for all to service_role using (true) with check (true);
+create policy entitlement_policy_service_role_all on platform.entitlement_policy for all to service_role using (true) with check (true);
+create policy workspace_entitlement_service_role_all on platform.workspace_entitlement for all to service_role using (true) with check (true);
+create policy product_access_event_service_role_all on platform_audit.product_access_event for all to service_role using (true) with check (true);
+create policy account_profile_service_role_all on aiphabee_core.account_profile for all to service_role using (true) with check (true);
+create policy workspace_profile_service_role_all on aiphabee_core.workspace_profile for all to service_role using (true) with check (true);
+create policy workspace_membership_profile_service_role_all on aiphabee_core.workspace_membership_profile for all to service_role using (true) with check (true);
+create policy data_entitlement_service_role_all on aiphabee_governance.data_entitlement for all to service_role using (true) with check (true);
+create policy workspace_entitlement_service_role_all on aiphabee_governance.workspace_entitlement for all to service_role using (true) with check (true);
+create policy account_workspace_entitlement_contract_service_role_all on aiphabee_governance.account_workspace_entitlement_contract for all to service_role using (true) with check (true);
