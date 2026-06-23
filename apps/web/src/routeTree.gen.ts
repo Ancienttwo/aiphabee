@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IposIndexRouteImport } from './routes/ipos/index'
 import { Route as IposIpoIdRouteImport } from './routes/ipos/$ipoId'
@@ -17,6 +18,11 @@ import { Route as IposIpoIdRouteImport } from './routes/ipos/$ipoId'
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,12 +43,14 @@ const IposIpoIdRoute = IposIpoIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos/': typeof IposIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos': typeof IposIndexRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/dashboard': typeof DashboardRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
   '/ipos/': typeof IposIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  fullPaths: '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos'
-  id: '__root__' | '/' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
+  to: '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos'
+  id: '__root__' | '/' | '/analysis' | '/dashboard' | '/ipos/$ipoId' | '/ipos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalysisRoute: typeof AnalysisRoute
   DashboardRoute: typeof DashboardRoute
   IposIpoIdRoute: typeof IposIpoIdRoute
   IposIndexRoute: typeof IposIndexRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalysisRoute: AnalysisRoute,
   DashboardRoute: DashboardRoute,
   IposIpoIdRoute: IposIpoIdRoute,
   IposIndexRoute: IposIndexRoute,

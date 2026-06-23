@@ -55,6 +55,27 @@ const scenarios = [
     sprint_reviews: [sprintReview()],
     blocker_manifest_states: readyBlockers(),
     sprint_rows: sprintRows("13 / 13")
+  },
+  {
+    expected_phase_allowed: true,
+    expected_sprint_allowed: true,
+    name: "accepted frontend surface packet can clear one sprint without full frontend release",
+    phase_reviews: [phaseReview({ blocker_manifest_ids: [] })],
+    sprint_reviews: [
+      sprintReview({
+        blocker_manifest_ids: ["frontend_release_evidence"],
+        required_frontend_surface_ids: ["comparison_screening_ui"]
+      })
+    ],
+    blocker_manifest_states: {
+      frontend_release_evidence: {
+        release_transition_allowed: false,
+        surface_statuses: {
+          comparison_screening_ui: "accepted"
+        }
+      }
+    },
+    sprint_rows: sprintRows("13 / 13")
   }
 ];
 
@@ -114,7 +135,7 @@ if (errors.length > 0) {
 console.log(
   JSON.stringify(
     {
-      allowed_scenarios: 1,
+      allowed_scenarios: 2,
       blocked_scenarios: 4,
       scenarios: scenarios.length,
       status: "ok"

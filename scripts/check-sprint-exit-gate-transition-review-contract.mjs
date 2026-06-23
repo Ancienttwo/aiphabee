@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const contractPath = "deploy/governance/sprint-exit-gate-transition-review.contract.json";
@@ -116,9 +116,14 @@ function deriveSprintExitGateTransitionReview({
     const backlog = row.backlog ?? review.backlog;
     const backlogState = parseBacklog(backlog);
     const blockerManifestIds = review.blocker_manifest_ids ?? [];
+    const requiredFrontendSurfaceIds = review.required_frontend_surface_ids ?? [];
     const manualBlockingConditions = review.manual_blocking_conditions ?? [];
-    const blockerManifestsClear = blockerManifestIds.every(
-      (manifestId) => blockerManifestStates[manifestId]?.release_transition_allowed === true
+    const blockerManifestsClear = blockerManifestIds.every((manifestId) =>
+      isBlockerManifestClear({
+        blockerManifestStates,
+        manifestId,
+        requiredFrontendSurfaceIds
+      })
     );
     const completionAllowed =
       backlogState.complete &&
@@ -134,10 +139,22 @@ function deriveSprintExitGateTransitionReview({
             backlogState,
             blockerManifestIds,
             blockerManifestStates,
+            requiredFrontendSurfaceIds,
             manualBlockingConditions
           }),
       blocker_manifest_ids: blockerManifestIds,
       completion_allowed: completionAllowed,
+      ...(requiredFrontendSurfaceIds.length > 0
+        ? {
+            frontend_surface_statuses: Object.fromEntries(
+              requiredFrontendSurfaceIds.map((surfaceId) => [
+                surfaceId,
+                blockerManifestStates.frontend_release_evidence?.surface_statuses?.[surfaceId] ?? "missing_frontend_evidence"
+              ])
+            ),
+            required_frontend_surface_ids: requiredFrontendSurfaceIds
+          }
+        : {}),
       manual_blocking_conditions: manualBlockingConditions,
       sprint_id: review.sprint_id,
       tracker_exit_gate: row.exitGate ?? review.tracker_exit_gate
@@ -273,15 +290,34 @@ function validateContract(value) {
       continue;
     }
 
-    expectEqual(errors, review.tracker_exit_gate, "☐", `Sprint ${id}.tracker_exit_gate`);
-    expectEqual(errors, review.completion_allowed, false, `Sprint ${id}.completion_allowed`);
+    if (typeof review.completion_allowed !== "boolean") {
+      errors.push(`Sprint ${id}.completion_allowed must be boolean`);
+    }
+    expectEqual(
+      errors,
+      review.tracker_exit_gate,
+      review.completion_allowed === true ? "☑" : "☐",
+      `Sprint ${id}.tracker_exit_gate`
+    );
     if (!Array.isArray(review.blocker_manifest_ids)) {
       errors.push(`Sprint ${id}.blocker_manifest_ids must be an array`);
+    }
+    if (review.required_frontend_surface_ids !== undefined) {
+      if (!Array.isArray(review.required_frontend_surface_ids)) {
+        errors.push(`Sprint ${id}.required_frontend_surface_ids must be an array`);
+      } else if (!review.blocker_manifest_ids?.includes("frontend_release_evidence")) {
+        errors.push(`Sprint ${id}.required_frontend_surface_ids requires frontend_release_evidence blocker manifest`);
+      }
     }
     if (!Array.isArray(review.manual_blocking_conditions)) {
       errors.push(`Sprint ${id}.manual_blocking_conditions must be an array`);
     }
-    if (!Array.isArray(review.blocking_conditions) || review.blocking_conditions.length === 0) {
+    if (review.completion_allowed === true) {
+      expectArray(errors, review.blocking_conditions, [], `Sprint ${id}.blocking_conditions`);
+      if (review.backlog_complete !== true) {
+        errors.push(`Sprint ${id}.completion_allowed requires backlog_complete true`);
+      }
+    } else if (!Array.isArray(review.blocking_conditions) || review.blocking_conditions.length === 0) {
       errors.push(`Sprint ${id}.blocking_conditions must not be empty while blocked`);
     }
     if (review.backlog_complete === true && review.blocking_conditions?.includes("backlog_items_remaining")) {
@@ -626,8 +662,18 @@ function validatePendingState(contract, transitionReview) {
   expectEqual(errors, transitionReview.release_transition_allowed, contract.release_transition_allowed, "derived.release_transition_allowed");
   expectEqual(errors, transitionReview.all_sprint_exit_gates_complete, contract.all_sprint_exit_gates_complete, "derived.all_sprint_exit_gates_complete");
   expectEqual(errors, transitionReview.all_phase_exit_gates_complete, contract.all_phase_exit_gates_complete, "derived.all_phase_exit_gates_complete");
-  expectEqual(errors, transitionReview.sprint_completion_allowed_count, 0, "derived.sprint_completion_allowed_count");
-  expectEqual(errors, transitionReview.phase_completion_allowed_count, 0, "derived.phase_completion_allowed_count");
+  expectEqual(
+    errors,
+    transitionReview.sprint_completion_allowed_count,
+    contract.sprint_completion_allowed_count ?? 0,
+    "derived.sprint_completion_allowed_count"
+  );
+  expectEqual(
+    errors,
+    transitionReview.phase_completion_allowed_count,
+    contract.phase_completion_allowed_count ?? 0,
+    "derived.phase_completion_allowed_count"
+  );
 
   return errors;
 }
@@ -636,6 +682,7 @@ function deriveBlockingConditions({
   backlogState,
   blockerManifestIds,
   blockerManifestStates,
+  requiredFrontendSurfaceIds = [],
   manualBlockingConditions
 }) {
   const conditions = [];
@@ -645,7 +692,16 @@ function deriveBlockingConditions({
   }
 
   for (const manifestId of blockerManifestIds) {
-    if (blockerManifestStates[manifestId]?.release_transition_allowed !== true) {
+    if (
+      manifestId === "frontend_release_evidence" &&
+      requiredFrontendSurfaceIds.length > 0
+    ) {
+      for (const surfaceId of requiredFrontendSurfaceIds) {
+        if (blockerManifestStates.frontend_release_evidence?.surface_statuses?.[surfaceId] !== "accepted") {
+          conditions.push(`frontend_surface:${surfaceId}`);
+        }
+      }
+    } else if (blockerManifestStates[manifestId]?.release_transition_allowed !== true) {
       conditions.push(`blocker_manifest:${manifestId}`);
     }
   }
@@ -653,6 +709,24 @@ function deriveBlockingConditions({
   conditions.push(...manualBlockingConditions);
 
   return [...new Set(conditions)];
+}
+
+function isBlockerManifestClear({
+  blockerManifestStates,
+  manifestId,
+  requiredFrontendSurfaceIds
+}) {
+  if (
+    manifestId === "frontend_release_evidence" &&
+    requiredFrontendSurfaceIds.length > 0
+  ) {
+    return requiredFrontendSurfaceIds.every(
+      (surfaceId) =>
+        blockerManifestStates.frontend_release_evidence?.surface_statuses?.[surfaceId] === "accepted"
+    );
+  }
+
+  return blockerManifestStates[manifestId]?.release_transition_allowed === true;
 }
 
 function derivePhaseBlockingConditions({
@@ -689,11 +763,39 @@ function readBlockerManifestStates(audit) {
     states[manifest.id] = {
       path: manifest.path,
       release_transition_allowed: data.release_transition_allowed === true,
+      ...(manifest.id === "frontend_release_evidence"
+        ? {
+            surface_statuses: readFrontendSurfaceStatuses(data)
+          }
+        : {}),
       status: data.status
     };
   }
 
   return states;
+}
+
+function readFrontendSurfaceStatuses(handoff) {
+  const statuses = {};
+  const packetDirectory = handoff.packet_directory;
+
+  if (typeof packetDirectory !== "string") {
+    return statuses;
+  }
+
+  const absoluteDirectory = resolve(process.cwd(), packetDirectory);
+  if (!existsSync(absoluteDirectory)) {
+    return statuses;
+  }
+
+  for (const file of readdirSync(absoluteDirectory).filter((name) => name.endsWith(".evidence.json")).sort()) {
+    const packet = readJson(join(packetDirectory, file));
+    if (isRecord(packet) && typeof packet.surface_id === "string") {
+      statuses[packet.surface_id] = packet.status;
+    }
+  }
+
+  return statuses;
 }
 
 function parseBacklog(value) {

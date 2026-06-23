@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { getIpo, getIpos } from "./mock-api";
+import {
+  compareIpos,
+  getIpo,
+  getIpos,
+  normalizeScreeningInput,
+  screenIpos,
+} from "./mock-api";
 import { IPOS } from "../data/ipos";
 import {
   demandColor,
@@ -40,6 +46,60 @@ describe("mock-api", () => {
     if (!env.ok) {
       expect(env.error.code).toBe("NOT_FOUND");
     }
+  });
+
+  it("compareIpos exposes a 2-5 IPO comparison matrix with why text", () => {
+    const env = compareIpos(["honeycomb", "lotus", "pearl"]);
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.rows).toHaveLength(3);
+      expect(env.data.metrics.map((metric) => metric.key)).toEqual([
+        "score",
+        "subscription",
+        "confidence",
+        "rating",
+        "cornerstone",
+      ]);
+      expect(env.data.rows[0]?.metrics.subscription).toBe(128.4);
+      expect(env.data.rows[0]?.why.join(" ")).toContain("2769.HK");
+      expect(env.data.incomparable_reasons).toEqual([]);
+    }
+  });
+
+  it("compareIpos rejects requests outside the 2-5 item contract", () => {
+    const env = compareIpos(["honeycomb"]);
+    expect(env.ok).toBe(false);
+    if (!env.ok) {
+      expect(env.error.code).toBe("OUT_OF_RANGE");
+    }
+  });
+
+  it("screenIpos returns editable conditions, hits, and rejected reasons", () => {
+    const env = screenIpos({
+      minScore: 60,
+      minSubscription: 20,
+      minConfidence: 70,
+      status: "pending",
+      requireCornerstone: true,
+    });
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      expect(env.data.confirmation_required_before_live_execution).toBe(true);
+      expect(env.data.conditions.some((condition) => condition.field === "status")).toBe(true);
+      expect(env.data.hits.map((hit) => hit.ipo.id)).toEqual(["honeycomb", "lotus"]);
+      expect(env.data.hits[0]?.why.join(" ")).toContain("passes all structured conditions");
+      expect(env.data.rejected.find((row) => row.ipo.id === "apex")?.rejected_reasons.join(" ")).toContain(
+        "score 49 < 60",
+      );
+    }
+  });
+
+  it("normalizeScreeningInput clamps editable numeric fields", () => {
+    expect(normalizeScreeningInput({ minScore: 120, minConfidence: -5, minSubscription: -10 })).toMatchObject({
+      minScore: 100,
+      minConfidence: 0,
+      minSubscription: 0,
+    });
   });
 });
 

@@ -36,7 +36,8 @@ emit(
   {
     all_sprints_complete: false,
     blocker_manifests: contract.completion_blocker_manifests.length,
-    open_sprints: contract.expected_sprint_rows.length,
+    completed_sprints: (contract.completed_sprint_ids ?? []).length,
+    open_sprints: contract.expected_sprint_rows.filter((row) => row.exit_gate === "☐").length,
     status: "ok",
     version: contract.version
   },
@@ -207,6 +208,7 @@ function validatePackageScripts(value) {
 function validateSprintRows(value, trackerText) {
   const errors = [];
   const sprintRows = parseSprintRows(trackerText);
+  const completedSprintIds = new Set(value.completed_sprint_ids ?? []);
 
   for (const expected of value.expected_sprint_rows ?? []) {
     const actual = sprintRows.get(expected.id);
@@ -219,8 +221,11 @@ function validateSprintRows(value, trackerText) {
     expectEqual(errors, actual.backlog, expected.backlog, `Sprint ${expected.id} backlog`);
     expectEqual(errors, actual.exitGate, expected.exit_gate, `Sprint ${expected.id} exit gate`);
 
-    if (actual.exitGate !== "☐") {
-      errors.push(`Sprint ${expected.id} must remain open until external/live/frontend blockers close`);
+    if (actual.exitGate !== "☐" && !completedSprintIds.has(expected.id)) {
+      errors.push(`Sprint ${expected.id} must remain open until its blockers close`);
+    }
+    if (completedSprintIds.has(expected.id) && actual.exitGate !== "☑") {
+      errors.push(`Sprint ${expected.id} completed_sprint_ids requires exit gate ☑`);
     }
   }
 

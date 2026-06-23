@@ -65,6 +65,9 @@ export function NavBar() {
           <Link to="/ipos" style={linkStyle("/ipos")}>
             Browse IPOs
           </Link>
+          <Link to="/analysis" style={linkStyle("/analysis")}>
+            Analysis
+          </Link>
           <Button size="sm" onClick={() => navigate({ to: "/dashboard" })}>
             Get Started
           </Button>
