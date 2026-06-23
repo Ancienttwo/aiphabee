@@ -58,6 +58,13 @@ function validateContract(value) {
   expectEqual(errors, value.capture_artifacts_contract, "deploy/governance/live-smoke-capture-artifacts.contract.json", "capture_artifacts_contract");
   expectEqual(errors, value.capture_packet_directory, "deploy/governance/live-smoke-capture-packets", "capture_packet_directory");
   expectEqual(errors, value.capture_template_directory, "deploy/governance/live-smoke-capture-templates", "capture_template_directory");
+  expectEqual(errors, value.capture_packet_generator, "scripts/create-live-smoke-capture-packet.mjs", "capture_packet_generator");
+  expectEqual(
+    errors,
+    value.capture_packet_generator_fixture_checker,
+    "scripts/check-live-smoke-capture-packet-generator-fixtures.mjs",
+    "capture_packet_generator_fixture_checker"
+  );
   expectEqual(errors, value.release_readiness_contract, "deploy/release-checklists/current-release-readiness.contract.json", "release_readiness_contract");
 
   for (const flag of [
@@ -67,7 +74,9 @@ function validateContract(value) {
     "env_values_forbidden_in_repo",
     "hash_only_evidence_required_for_passed_packets",
     "missing_env_packets_do_not_unlock_release",
-    "provider_secret_store_capture_requires_cleanup"
+    "provider_secret_store_capture_requires_cleanup",
+    "packet_generator_hashes_redacted_output_only",
+    "packet_generator_reuses_packet_validator"
   ]) {
     expectEqual(errors, value.operator_policy?.[flag], true, `operator_policy.${flag}`);
   }
@@ -81,6 +90,8 @@ function validateContract(value) {
     value.capture_artifacts_contract,
     value.capture_packet_directory,
     value.capture_template_directory,
+    value.capture_packet_generator,
+    value.capture_packet_generator_fixture_checker,
     value.release_readiness_contract,
     value.tracker,
     value.todos,
@@ -126,9 +137,18 @@ function validatePackageScripts(value) {
   ) {
     errors.push("package.json scripts.check:live-smoke-operator-run-plan must run the operator run plan checker");
   }
+  if (
+    scripts["check:live-smoke-capture-packet-generator-fixtures"] !==
+    "node scripts/check-live-smoke-capture-packet-generator-fixtures.mjs"
+  ) {
+    errors.push("package.json scripts.check:live-smoke-capture-packet-generator-fixtures must run the packet generator fixture checker");
+  }
 
   if (!String(scripts.check ?? "").includes("npm run check:live-smoke-operator-run-plan")) {
     errors.push("package.json scripts.check must include npm run check:live-smoke-operator-run-plan");
+  }
+  if (!String(scripts.check ?? "").includes("npm run check:live-smoke-capture-packet-generator-fixtures")) {
+    errors.push("package.json scripts.check must include npm run check:live-smoke-capture-packet-generator-fixtures");
   }
 
   return errors;
@@ -231,6 +251,7 @@ function validateFragments(trackerText, todosText) {
 
   for (const fragment of [
     "Live smoke operator run plan 已建立",
+    "Live smoke capture packet generator 已建立",
     "| 2026-06-23 | 1.0im | 完成 `live-smoke-operator-run-plan`"
   ]) {
     if (!trackerText.includes(fragment)) {
@@ -240,6 +261,7 @@ function validateFragments(trackerText, todosText) {
 
   for (const fragment of [
     "Live smoke operator run plan",
+    "create-live-smoke-capture-packet",
     "check:live-smoke-operator-run-plan",
     "credentialed operator"
   ]) {

@@ -27,14 +27,26 @@ Operator order:
    - `npm run smoke:ai-gateway-observability-live`
    - `npm run smoke:observability-live`
    - `npm run smoke:provider-secret-stores-live`
-4. Copy each matching template to `deploy/governance/live-smoke-capture-packets`
-   as `<capture_id>.capture.json`.
-5. Replace `observed_at`, `runner`, `exit_code`, `status`, `output_sha256`,
-   `source_locator`, `evidence_refs`, and `cleanup_verified` with redacted
-   metadata from the real run. Use `sha256:` refs only. Do not paste raw output,
-   account IDs, resource IDs, API tokens, OTLP headers, provider outputs, prompts,
-   model output text, or environment values.
+4. Save each command's already-redacted JSON output outside the repo, then run:
+
+   ```bash
+   node scripts/create-live-smoke-capture-packet.mjs \
+     --capture-id <capture_id> \
+     --redacted-output <redacted-output.json> \
+     --runner <redacted-runner> \
+     --source-locator <redacted-locator> \
+     --exit-code 0
+   ```
+
+   Add one or more `--evidence-ref sha256:<hash>` values when the run has
+   separate redacted evidence artifacts. If omitted, the generator uses the
+   redacted output hash as the packet evidence ref.
+5. For `provider_secret_store_rotation`, pass `--cleanup-verified` only after
+   the synthetic Cloudflare/GitHub/Supabase secret values are confirmed absent.
 6. Run `npm run check:live-smoke-capture-packets`.
 
-The provider secret store template may set `cleanup_verified=true` only after
-the synthetic Cloudflare/GitHub/Supabase secret values are confirmed absent.
+The generator computes `output_sha256`, rejects obvious secret-like redacted
+outputs, writes only packet metadata, and reuses the same packet validator as
+`npm run check:live-smoke-capture-packets`. Do not paste raw output, account IDs,
+resource IDs, API tokens, OTLP headers, provider outputs, prompts, model output
+text, or environment values into packet files.

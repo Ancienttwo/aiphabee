@@ -6,6 +6,8 @@
   "capture_artifacts_contract": "deploy/governance/live-smoke-capture-artifacts.contract.json",
   "capture_packet_directory": "deploy/governance/live-smoke-capture-packets",
   "capture_template_directory": "deploy/governance/live-smoke-capture-templates",
+  "capture_packet_generator": "scripts/create-live-smoke-capture-packet.mjs",
+  "capture_packet_generator_fixture_checker": "scripts/check-live-smoke-capture-packet-generator-fixtures.mjs",
   "release_readiness_contract": "deploy/release-checklists/current-release-readiness.contract.json",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
   "todos": "tasks/todos.md",
@@ -16,7 +18,9 @@
     "env_values_forbidden_in_repo": true,
     "hash_only_evidence_required_for_passed_packets": true,
     "missing_env_packets_do_not_unlock_release": true,
-    "provider_secret_store_capture_requires_cleanup": true
+    "provider_secret_store_capture_requires_cleanup": true,
+    "packet_generator_hashes_redacted_output_only": true,
+    "packet_generator_reuses_packet_validator": true
   },
   "operator_order": [
     "npm run check:live-smoke-external-env-preflight",
@@ -28,6 +32,7 @@
     "npm run smoke:ai-gateway-observability-live",
     "npm run smoke:observability-live",
     "npm run smoke:provider-secret-stores-live",
+    "node scripts/create-live-smoke-capture-packet.mjs --capture-id <capture_id> --redacted-output <redacted-output.json> --runner <redacted-runner> --source-locator <redacted-locator> --exit-code <exit-code>",
     "npm run check:live-smoke-capture-packets",
     "npm run check:live-smoke-capture-transition-review",
     "npm run check:live-smoke-evidence-ledger",
