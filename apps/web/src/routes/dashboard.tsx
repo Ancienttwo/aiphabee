@@ -49,7 +49,7 @@ function Dashboard() {
       </div>
 
       <div style={{ ...SHELL, padding: "32px 24px 80px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 18 }}>
           <StatCard label="Active IPOs 招股中" value="12" tone="honey" icon={<Icon name="calendar" size={20} />} />
           <StatCard
             label="本周上市 This week"
@@ -66,7 +66,7 @@ function Dashboard() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.4fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
             gap: 24,
             marginTop: 24,
             alignItems: "start",

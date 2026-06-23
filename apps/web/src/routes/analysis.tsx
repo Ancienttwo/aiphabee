@@ -135,7 +135,7 @@ function ComparisonTable({ selectedIds }: { selectedIds: string[] }) {
   }
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ maxWidth: "100%", overflowX: "auto", contain: "inline-size" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
         <thead>
           <tr>
@@ -359,7 +359,7 @@ function AnalysisWorkbench() {
 
   return (
     <main style={{ ...SHELL, padding: "36px 24px 80px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap", marginBottom: 24 }}>
         <div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <Icon name="columns-3" size={22} color="var(--honey-600)" />
@@ -379,7 +379,7 @@ function AnalysisWorkbench() {
         </Button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20, alignItems: "start" }}>
         <Card>
           <CardHeader>
             <CardTitle>Compare set</CardTitle>

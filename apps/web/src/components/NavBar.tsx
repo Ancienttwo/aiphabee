@@ -48,7 +48,7 @@ export function NavBar() {
           flexWrap: "wrap",
         }}
       >
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flex: "0 0 auto" }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flex: "0 0 auto" }} aria-current={isActive("/") ? "page" : undefined}>
           <img src={LOGO_MASCOT} alt="AiphaBee" style={{ height: 38, width: "auto" }} />
           <span
             style={{
@@ -63,22 +63,22 @@ export function NavBar() {
           </span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "10px 22px", flex: "1 1 320px", flexWrap: "wrap", maxWidth: "100%", minWidth: 0 }}>
-          <Link to="/dashboard" style={linkStyle("/dashboard")}>
+          <Link to="/dashboard" style={linkStyle("/dashboard")} aria-current={isActive("/dashboard") ? "page" : undefined}>
             Dashboard
           </Link>
-          <Link to="/ipos" style={linkStyle("/ipos")}>
+          <Link to="/ipos" style={linkStyle("/ipos")} aria-current={isActive("/ipos") ? "page" : undefined}>
             Browse IPOs
           </Link>
-          <Link to="/analysis" style={linkStyle("/analysis")}>
+          <Link to="/analysis" style={linkStyle("/analysis")} aria-current={isActive("/analysis") ? "page" : undefined}>
             Analysis
           </Link>
-          <Link to="/ask" style={linkStyle("/ask")}>
+          <Link to="/ask" style={linkStyle("/ask")} aria-current={isActive("/ask") ? "page" : undefined}>
             Ask
           </Link>
-          <Link to="/research" style={linkStyle("/research")}>
+          <Link to="/research" style={linkStyle("/research")} aria-current={isActive("/research") ? "page" : undefined}>
             Research
           </Link>
-          <Link to="/developer-console" style={linkStyle("/developer-console")}>
+          <Link to="/developer-console" style={linkStyle("/developer-console")} aria-current={isActive("/developer-console") ? "page" : undefined}>
             Console
           </Link>
           <Button size="sm" onClick={() => navigate({ to: "/dashboard" })}>

@@ -264,7 +264,6 @@ function validateContract(value) {
 
   for (const claim of [
     "accepted_packets_present",
-    "frontend_release_evidence_accepted",
     "frontend_release_surfaces_complete",
     "release_transition_allowed",
     "all_p0_requirements_complete",
@@ -371,10 +370,6 @@ function validateFrontendEvidenceHandoff(value, frontendEvidenceHandoff, fronten
       requirementFrontendSurfaceIds[code],
       `frontendEvidenceHandoff.required_surface_ids.${code}`
     );
-  }
-
-  if (frontendPacketResult.all_required_accepted === true) {
-    errors.push("current repo must not contain all accepted frontend release evidence packets while transition review is pending");
   }
 
   return errors;

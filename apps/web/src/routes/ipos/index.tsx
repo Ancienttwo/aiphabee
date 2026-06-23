@@ -50,7 +50,14 @@ function Metric({
 function IpoListCard({ ipo, onOpen }: { ipo: IpoRecord; onOpen: () => void }) {
   const st = STATUS_CONFIG[ipo.status];
   return (
-    <Card interactive onClick={onOpen} style={{ cursor: "pointer" }}>
+    <Card
+      as="button"
+      type="button"
+      interactive
+      onClick={onOpen}
+      aria-label={`Open IPO analysis for ${ipo.name}`}
+      style={{ cursor: "pointer", width: "100%", textAlign: "left" }}
+    >
       <div style={{ padding: "var(--space-6)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div style={{ minWidth: 0 }}>

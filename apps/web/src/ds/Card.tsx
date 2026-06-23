@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { HTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
 
 /**
  * AiphaBee Card — white surface, 12px radius, hairline border, soft
@@ -7,38 +7,72 @@ import type { HTMLAttributes } from "react";
  * `interactive` adds a hover lift + honey border for clickable cards.
  */
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+type CardElement = "div" | "button";
+
+type CardBaseProps<T extends CardElement> = {
+  as?: T;
   interactive?: boolean;
   padded?: boolean;
+};
+
+export type CardProps<T extends CardElement = "div"> = (T extends "button"
+  ? ButtonHTMLAttributes<HTMLButtonElement>
+  : HTMLAttributes<HTMLDivElement>) &
+  CardBaseProps<T>;
+
+function cardStyle({
+  hover,
+  padded,
+  style,
+}: {
+  hover: boolean;
+  padded: boolean;
+  style: HTMLAttributes<HTMLElement>["style"];
+}) {
+  return {
+    background: "var(--surface-card)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: "var(--radius-lg)",
+    boxShadow: hover ? "var(--shadow-md)" : "var(--shadow-sm)",
+    borderColor: hover ? "var(--honey-300)" : "var(--border-subtle)",
+    color: "var(--text-body)",
+    font: "inherit",
+    transition:
+      "box-shadow var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard)",
+    overflow: "hidden",
+    minWidth: 0,
+    ...(padded ? { padding: "var(--space-6)" } : {}),
+    ...style,
+  };
 }
 
-export function Card({
+export function Card<T extends CardElement = "div">({
+  as,
   interactive = false,
   padded = false,
   children,
   style = {},
   ...rest
-}: CardProps) {
+}: CardProps<T>) {
   const [hover, setHover] = useState(false);
+  const shared = {
+    onMouseEnter: () => interactive && setHover(true),
+    onMouseLeave: () => interactive && setHover(false),
+    style: cardStyle({ hover, padded, style }),
+  };
+
+  if (as === "button") {
+    const buttonProps = rest as ButtonHTMLAttributes<HTMLButtonElement>;
+    return (
+      <button type="button" {...shared} {...buttonProps}>
+        {children}
+      </button>
+    );
+  }
+
+  const divProps = rest as HTMLAttributes<HTMLDivElement>;
   return (
-    <div
-      onMouseEnter={() => interactive && setHover(true)}
-      onMouseLeave={() => interactive && setHover(false)}
-      style={{
-        background: "var(--surface-card)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-lg)",
-        boxShadow: hover ? "var(--shadow-md)" : "var(--shadow-sm)",
-        borderColor: hover ? "var(--honey-300)" : "var(--border-subtle)",
-        transition:
-          "box-shadow var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard)",
-        overflow: "hidden",
-        minWidth: 0,
-        ...(padded ? { padding: "var(--space-6)" } : {}),
-        ...style,
-      }}
-      {...rest}
-    >
+    <div {...shared} {...divProps}>
       {children}
     </div>
   );

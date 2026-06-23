@@ -31,5 +31,7 @@ describe("design-system render", () => {
     const html = renderToStaticMarkup(<ScoreMeter value={72} tone="bullish" />);
     expect(html).toContain("72");
     expect(html).toContain("width:72%");
+    expect(html).toContain("role=\"progressbar\"");
+    expect(html).toContain("aria-valuenow=\"72\"");
   });
 });

@@ -9,7 +9,7 @@
   "release_transition_allowed": false,
   "all_sprint_exit_gates_complete": false,
   "all_phase_exit_gates_complete": false,
-  "sprint_completion_allowed_count": 2,
+  "sprint_completion_allowed_count": 3,
   "phase_completion_allowed_count": 0,
   "backlog_count_alone_never_completes_sprint": true,
   "required_sprint_ids": [
@@ -268,18 +268,21 @@
     },
     {
       "sprint_id": "3.2",
-      "tracker_exit_gate": "☐",
-      "backlog": "8 / 9",
-      "backlog_complete": false,
-      "completion_allowed": false,
+      "tracker_exit_gate": "☑",
+      "backlog": "9 / 9",
+      "backlog_complete": true,
+      "completion_allowed": true,
       "blocker_manifest_ids": [
         "frontend_release_evidence"
       ],
+      "required_frontend_surface_ids": [
+        "wcag_2_1_aa_audit"
+      ],
+      "frontend_surface_statuses": {
+        "wcag_2_1_aa_audit": "accepted"
+      },
       "manual_blocking_conditions": [],
-      "blocking_conditions": [
-        "backlog_items_remaining",
-        "blocker_manifest:frontend_release_evidence"
-      ]
+      "blocking_conditions": []
     },
     {
       "sprint_id": "3.3",
@@ -399,7 +402,6 @@
       "manual_blocking_conditions": [],
       "blocking_conditions": [
         "child_sprint:3.1",
-        "child_sprint:3.2",
         "child_sprint:3.3",
         "blocker_manifest:gate0_signed_evidence",
         "blocker_manifest:phase0_live_smoke_evidence",
@@ -450,6 +452,8 @@
     "| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 9 / 9 | ☑ |",
     "| 2026-06-23 | 1.0iq | 完成 `research-library-web-ui`",
     "| 2026-06-23 | 1.0ir | 完成 `sprint2-2-surface-specific-exit-gate`",
+    "| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 9 / 9 | ☑ |",
+    "| 2026-06-23 | 1.0iw | 完成 `wcag-frontend-audit-evidence-packet`",
     "| 2026-06-23 | 1.0is | 完成 `developer-console-web-ui`",
     "| 2026-06-23 | 1.0it | 完成 `developer-console-frontend-evidence-packet`"
   ],

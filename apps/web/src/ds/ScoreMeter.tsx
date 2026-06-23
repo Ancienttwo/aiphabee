@@ -18,6 +18,7 @@ export interface ScoreMeterProps extends HTMLAttributes<HTMLDivElement> {
   value: number;
   max?: number;
   label?: ReactNode;
+  valueText?: string;
   tone?: ScoreMeterTone;
   labels?: string[];
   showValue?: boolean;
@@ -36,6 +37,7 @@ export function ScoreMeter({
   value = 0,
   max = 100,
   label,
+  valueText,
   tone = "honey",
   labels,
   showValue = true,
@@ -44,9 +46,19 @@ export function ScoreMeter({
 }: ScoreMeterProps) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   const color = TONE_COLOR[tone] ?? TONE_COLOR.honey;
+  const accessibleValueText =
+    valueText ?? (typeof label === "string" ? `${label}: ${value} of ${max}` : `${value} of ${max}`);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, ...style }} {...rest}>
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={Math.max(0, Math.min(max, value))}
+      aria-valuetext={accessibleValueText}
+      style={{ display: "flex", flexDirection: "column", gap: 10, ...style }}
+      {...rest}
+    >
       {label || showValue ? (
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           {label ? (

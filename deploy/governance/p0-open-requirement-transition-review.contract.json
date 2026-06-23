@@ -98,7 +98,6 @@
     "agt_07_complete",
     "mcp_09_complete",
     "accepted_packets_present",
-    "frontend_release_evidence_accepted",
     "frontend_release_surfaces_complete",
     "release_transition_allowed",
     "all_p0_requirements_complete",

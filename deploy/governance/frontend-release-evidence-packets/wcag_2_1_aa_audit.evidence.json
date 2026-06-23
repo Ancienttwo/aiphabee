@@ -1,0 +1,23 @@
+{
+  "accessibility_audit_hash": "sha256:5c448230178e4385f25a712701a6f8b5ad4367ddb270c49602027ef0ec3ecd9a",
+  "artifact_hashes": [
+    "sha256:32174ea5fc9c56b18df4f69c5fd6ea24bdef53af8d3ffab9ec2280c1c6a21a87",
+    "sha256:5c448230178e4385f25a712701a6f8b5ad4367ddb270c49602027ef0ec3ecd9a",
+    "sha256:605217575f6c1b70162f51fc1ac15c09ab349e0d6aea7c8ec44e58b042b5e194",
+    "sha256:7c6fc4bf1cd6dc0d108f33e1293905c34f7e906043776eced81367fbdfdc80b3",
+    "sha256:4401d75a805e165097be8f6031ab3b387b591397ec346acc0961c2d393298909",
+    "sha256:3ab839335b84b1d5442984ca308fd396352bd115bddcccccf28118fc00df9305"
+  ],
+  "build_output_hash": "sha256:605217575f6c1b70162f51fc1ac15c09ab349e0d6aea7c8ec44e58b042b5e194",
+  "frontend_handoff_hash": "sha256:7c6fc4bf1cd6dc0d108f33e1293905c34f7e906043776eced81367fbdfdc80b3",
+  "missing_evidence": [],
+  "observed_at": "2026-06-23T06:29:50.000Z",
+  "operator": "codex_local_playwright_wcag_audit",
+  "redaction_status": "redacted_no_secrets",
+  "review_summary_hash": "sha256:4401d75a805e165097be8f6031ab3b387b591397ec346acc0961c2d393298909",
+  "route_test_hash": "sha256:32174ea5fc9c56b18df4f69c5fd6ea24bdef53af8d3ffab9ec2280c1c6a21a87",
+  "screenshot_hash": "sha256:3ab839335b84b1d5442984ca308fd396352bd115bddcccccf28118fc00df9305",
+  "source_locator": "local_playwright_wcag_audit:127.0.0.1:3001",
+  "status": "accepted",
+  "surface_id": "wcag_2_1_aa_audit"
+}

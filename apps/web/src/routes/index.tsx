@@ -83,7 +83,7 @@ function Home() {
         >
           Find the alpha.
           <br />
-          <span style={{ color: "var(--honey-500)" }}>Let the bee do the digging.</span>
+          <span style={{ color: "var(--honey-700)" }}>Let the bee do the digging.</span>
         </h1>
         <p
           style={{

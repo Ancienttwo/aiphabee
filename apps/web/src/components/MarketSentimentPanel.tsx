@@ -16,7 +16,7 @@ import { MASCOT_BP } from "../lib/ui";
  */
 export function MarketSentimentPanel() {
   return (
-    <Card>
+    <Card role="region" aria-label="Market sentiment summary">
       <CardHeader>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
@@ -32,9 +32,13 @@ export function MarketSentimentPanel() {
         <ScoreMeter
           label="情绪指数 Sentiment Index"
           value={72}
+          valueText="HKEX market sentiment index is 72 out of 100, cautiously optimistic to bullish."
           tone="bullish"
           labels={["极度悲观", "中性", "极度乐观"]}
         />
+        <p style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)", lineHeight: 1.5 }}>
+          Text summary: HKEX sentiment index is 72/100 on a 30-day window, indicating a cautiously optimistic to bullish market.
+        </p>
         <div style={{ marginTop: 20 }}>
           <BeeNote basePath={MASCOT_BP} pose="insight" title="工蜂洞察 · 已为您勤劳搜罗">
             港股 IPO 市场情绪回暖，科技与金融科技板块认购火爆。优质基石阵容、超额认购

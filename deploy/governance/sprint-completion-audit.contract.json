@@ -12,7 +12,8 @@
   "live_credentials_required": true,
   "completed_sprint_ids": [
     "2.1",
-    "2.2"
+    "2.2",
+    "3.2"
   ],
   "expected_sprint_rows": [
     {
@@ -82,8 +83,8 @@
     },
     {
       "id": "3.2",
-      "backlog": "8 / 9",
-      "exit_gate": "☐"
+      "backlog": "9 / 9",
+      "exit_gate": "☑"
     },
     {
       "id": "3.3",
@@ -312,12 +313,14 @@
     "| 2.2 | 公告检索 + 研究保存/重放 | 🟦 | 9 / 9 | ☑ |",
     "| 2026-06-23 | 1.0iq | 完成 `research-library-web-ui`",
     "| 2026-06-23 | 1.0ir | 完成 `sprint2-2-surface-specific-exit-gate`",
+    "| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 9 / 9 | ☑ |",
+    "| 2026-06-23 | 1.0iw | 完成 `wcag-frontend-audit-evidence-packet`",
     "Sprint blocker transition audit 已建立",
     "| 2026-06-23 | 1.0hq | 完成 `sprint-blocker-transition-audit`",
     "| 0.4 | 工程地基（脚手架·CI·绑定） | 🟦 | 19 / 23 | ☐ |",
     "| 1.1 | 主真值源 + Data Access Gateway | 🟦 | 22 / 26 | ☐ |",
     "| 2.3 | Remote MCP OAuth + Developer Console | 🟦 | 11 / 11 | ☐ |",
-    "| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 8 / 9 | ☐ |",
+    "| 3.2 | 文档·状态页·隐私·分享报告·套餐正式化 | 🟦 | 9 / 9 | ☑ |",
     "MCP-09 Developer Console | P0 | 2.3 | ☐",
     "| 2026-06-23 | 1.0is | 完成 `developer-console-web-ui`",
     "| 2026-06-23 | 1.0it | 完成 `developer-console-frontend-evidence-packet`"
