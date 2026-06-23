@@ -18,10 +18,10 @@ owner: "Planner / PM"
 
 ## ⚠️ 头号阻断假设（Premise Collapse Watch）
 
-> **本路线图假设 Gate 0 成立：数据合作方授予 Web 展示 + MCP/API 机器可读再分发 + 派生数据权，且具体功能不构成 SFC Type 4 受规管活动。**
+> **本路线图假设 Gate 0 成立：数据合作方授予 Web 展示 + MCP/API 机器可读再分发 + 派生数据权。**（监管维度：Type 4 已由 **Owner 决策 2026-06-23** 收敛——见下方第 2 条；Gate 0 阻断焦点现仅剩**数据合作方再分发/派生权**。）
 >
 > - 若 **MCP/API 再分发权未获授权** → 整条 MCP 产品线（Sprint 2.3、Phase 3 MCP 部分、商业模式中 Developer/MCP 收入线）**不可上线**，产品退化为「纯 Web 研究工具」。
-> - 若 **某功能被判定为 Type 4 / 投资建议** → 取消该功能或接入持牌合作方，Phase 3 GA 签字门无法通过。
+> - ~~若 **某功能被判定为 Type 4 / 投资建议** → 取消该功能或接入持牌合作方~~ → **已收敛（Owner 决策 2026-06-23）**：本产品是**用户主动调用的研究/分析工具（pull）**、不主动推送投资建议、不输出个性化买/卖/持建议 → owner 判定**当前形态不构成 SFC Type 4 受规管活动，无需牌照**，此 collapse 风险撤除。残留风险：此为 owner 商业判断，书面法律意见列为可选/延后（非阻断）。**注：Phase 4「个性化建议」（Route 2，§5）若启动仍属 Type 4、仍需持牌。**
 > - 因此 **Gate 0（Sprint 0.1）未通过前，不投入大规模产品代码**（PRD 0.2 决策 7）。Phase 1+ 的勾选不应早于 Phase 0 退出门槛全绿。
 
 ---
@@ -35,10 +35,17 @@ owner: "Planner / PM"
   - ⬜ 未开始　🟦 进行中　✅ 完成　⛔ 阻塞　🅿️ 暂缓/降级
 - **追溯标签：** 任务后括号内为 PRD 需求 ID（如 `MCP-04`）、工具名（如 `get_price_history`）或 PRD 章节号（如 `§10.4`）。全量映射见 §M 追溯矩阵。
 - **更新约定：** 改动后同步顶部 `last_updated`，并在 §0 看板更新 Sprint 状态格；重大延迟项写进 `tasks/todos.md` 延迟目标台账（带 tradeoff + 重启触发条件）。
+- **提交措辞约定（2026-06-23）：** Sprint 的 exit gate 未 `☑` 前**禁止**用 "Complete Sprint X" 作 commit/PR 标题（易被误读为该 Sprint 已完成）；仅完成某前端 surface evidence 时用 "Sprint X frontend evidence accepted (exit gate ☐)"。看板中"仅 surface 验收"的 ☑ 标 `☑*(surface-only)`。
+- **scaffold vs live 勾选规则（2026-06-23）：** Phase 1+ **允许**勾 `planned_no_write` / no-live scaffold 叶子项；但任何 **live / 外部签署 / production 前端** 叶子项与**所有 exit gate**，在 Gate 0 `☑` 前一律保持未勾。消除「Premise watch 要求 Phase 0 先绿」与「Phase 1+ scaffold 已勾」的表面冲突。
 
 ---
 
 ## §0 进度总览看板（Dashboard）
+
+> **双轨里程碑（2026-06-23）：** 区分两种"验收"——
+> **① 工程切片验收** = 本地门禁全绿 + 无 backlog 过度声明（`npm run check` / `check:current-release-readiness` 的 `large_module_completed_this_slice`）；**当前可达**。
+> **② 产品门槛** = Gate 0（数据权利）+ credentialed live smoke + 外部签署 + exit gate `☑`（`release_transition_allowed`）；**当前为 false**，部分依赖外部输入。
+> 下表状态均指 ②；并行新工作流（如与港股数据 Gate 0 无依赖的增量线）只需挂 ①，不必等 ②。
 
 ### 阶段（Phase）
 
@@ -117,13 +124,13 @@ owner: "Planner / PM"
 - [ ] 与数据合作方完成**字段级权利矩阵**：所有者/来源、Web 展示、MCP/API 再分发、原始 vs 派生、实时/延迟/EOD、历史范围、导出与缓存、用户类型与地区、订阅者报送、审计与终止、商业条款（PRD §14.1 全 11 维）；外部证据 intake gate、signed evidence manifest 与 operator handoff templates 已新增 `deploy/governance/gate0-external-evidence-intake.contract.json`、`deploy/governance/gate0-signed-evidence-manifest.contract.json`、`deploy/governance/gate0-signed-evidence-templates/`、`npm run check:gate0-external-evidence-intake`、`npm run check:gate0-signed-evidence-manifest`、`npm run check:gate0-signed-evidence-handoff`，但未收到签署矩阵，保持未勾选
 - [x] 逐字段标注分发状态：`Web 可 / MCP 可 / 导出可 / 派生可`，未确认者标 **默认拒绝**：`deploy/governance/p0-field-distribution-status.contract.json` + `npm run check:p0-field-distribution-status` 覆盖 9 个 P0 dataset field groups 与 16 个 rights-aware P0 tools，所有 Web/MCP/API 再分发/导出/派生状态均为 `default_deny_pending_partner_matrix`；不声明 partner 签署或 live rights reads
 - [ ] HKEX 市场数据授权确认：End-user vs Market Data Vendor Licence、非展示使用费（§14.1、脚注 HKEX）；intake gate 已固化 partner vendor status / AiphaBee role / MCP redistribution / non-display / subscriber reporting / fee / termination 证据字段，外部书面确认未到位
-- [ ] 取得香港律师/合规对**具体功能**的 Type 4 / 研究工具分类书面意见（§14.2、PRD §0.4）；intake gate 已固化 actual UX/prompts/marketing/pricing/MCP behavior 审查字段，法律/合规书面意见未到位
+- [x] ~~取得香港律师/合规对**具体功能**的 Type 4 书面意见~~ → **Owner 决策 2026-06-23**：当前形态为用户主动调用的研究/分析工具（pull）、非主动推送投资建议、无个性化买/卖/持建议 → 判定**不构成 Type 4、无需牌照**；`mvp-product-boundary-copy` contract 已机器校验该产品边界（见下一项）。书面法律意见降级为**可选/延后**（残留风险，非阻断）。**Phase 4 个性化建议（Route 2，§5）若启动仍需 Type 4 持牌。**
 - [x] 确认 MVP 产品边界文案：新增 `deploy/public-ops/mvp-product-boundary-copy.contract.json`、`scripts/check-mvp-product-boundary-copy-contract.mjs`、`docs/governance/mvp-product-boundary-copy.md` 与 `npm run check:mvp-product-boundary-copy`，扫描 `docs/public/*.md` 与当前 `apps/web` 用户可见 copy，证明使用「研究/分析/数据解释」边界、不承诺荐股/投顾、不输出个性化买入/卖出/持有建议、不收集风险承受度生成适合性结论；Type 4 书面意见、外部合规签字和 Gate 0 决议书仍未到位（§14.2）
 - [ ] 确认 PCPD 个人资料保障合规路径（privacy-by-design、PDPO 原则，§13.3）；intake gate 已固化 data inventory / purpose limitation / retention / vendor-model risk / access-export-delete / PII minimization / incident response 证据字段，隐私签字未到位
 - [ ] 数据合作方商业结算维度落定（按数据集 × 渠道 × 客户类型，§15.4）；intake gate 已固化 dataset/channel/client/geography/usage/delay/derived/reporting/overage/termination 结算字段，商业条款未签署
 - [ ] 产出《Gate 0 决议书》并由 CEO/商务/数据/合规签字；intake gate 已固化 CEO/Business/Data/Compliance/Privacy/Engineering 6 角色 signature register 与 MCP rights fallback，签字未到位
 
-**退出门槛 DoD：** ☐ P0 字段权利矩阵 100% 有状态　☐ Type 4 书面意见到位　☐ MCP 再分发权结论明确（成立/否决，否决则触发 §0 退化路径）　☐ 决议书签字
+**退出门槛 DoD：** ☐ P0 字段权利矩阵 100% 有状态　☑ Type 4 分类已定（Owner 决策：非 Type 4 / 无需牌照，2026-06-23；书面意见可选）　☐ MCP 再分发权结论明确（成立/否决，否决则触发 §0 退化路径）　☐ 决议书签字
 
 ### Sprint 0.2 — 数据契约与口径基线　🟦
 **目标：** 在写服务代码前固定证券主表、时间/复权/重述/指标的口径定义（设计 + 数据字典，不含大规模实现）。
@@ -703,10 +710,28 @@ owner: "Planner / PM"
 
 ---
 
+## §G 分支基线决策（Base Branch Decision · 2026-06-23）
+
+> **背景：** 仓库在 merge-base `2704b28` 之后分出两条互不合并的线，各自重写了 `apps/web`：
+> - **`main` = "research OS shell"**：真 API client 层（`apps/web/src/lib/api/*`，8 文件 + 测试）、SSE hook、session/context、16 个嵌套 route（account / ask / compare / documents / library / mcp / screen / stock / watchlist / …），经 PR #3 Codex review；现已叠加 PR #12 `platform.*` umbrella schema。
+> - **codex sprint 栈（PR #4–#9、#11）= mock 前端**：无真 API 层，9 个扁平 route（analysis / ask / research / developer-console / …），为 sprint「前端 evidence packet」而建；另含 governance/tracker 增量（live-smoke harness 等）。
+>
+> **决策（Owner 授权 · Planner 定）：基线 = `main`。**
+> 1. `main` 是集成分支，前端架构实质更优（真 API / streaming / typed endpoints / context vs mock），PRD 对齐、已过 review，且已承载 platform umbrella schema。
+> 2. **codex 栈的 mock 前端作废**；若有独特 UI 思路，salvage 进 `main` 的 route 结构（#8 的 DS 层 a11y 可直接 salvage），不整体合并。
+> 3. **codex 栈的 governance/tracker 按"路径选择性"并入 `main`**（只取 `deploy/governance/*`、`scripts/check-*`、live-smoke harness；**不带 mock 前端**）。直接 branch-merge 会把 mock 前端带入，故必须 path-selective。
+> 4. **6 个已 "accepted" 的 frontend evidence packet 失效**（验证的是 mock UI）；须对 `main` 真前端**重抓** evidence 后相关 Sprint surface 方可重新声明。
+> 5. **后续 codex 自动化基于 `main` 派生**，停止扩展分叉栈。
+>
+> **执行清单见** `docs/governance/branch-convergence-plan.md`（PR #13）**与** `docs/governance/codex-convergence-handoff.md`。`core.* → platform.*` 收敛决策：A=subscription 上提 `platform.*`；B=趁无 live 数据一次性改名 + 上提。schema/platform PR 必须人审后再 merge。
+
+---
+
 ## 变更记录
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-06-23 | base/0623 | **基线决策 + 合规 + 治理规则**：定 base=`main`（research-os-shell 真前端 + PR #12 umbrella schema）；codex sprint 栈 mock 前端作废、governance 按 path-selective 并入；6 个 mock frontend evidence packet 失效待重抓。Owner 决策 Type 4：pull 工具非受规管 → 无需牌照（Phase 4 个性化建议仍需持牌）。新增提交措辞约定 / scaffold-vs-live 规则 / 双轨里程碑 / §G；收敛执行见 `branch-convergence-plan.md`(#13) + `codex-convergence-handoff.md`。未执行破坏性 merge。 |
 | 2026-06-23 | 1.0jc | 完成 `platform-umbrella-schema-foundation`：新增 `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`，创建 `platform` / `platform_audit` schema、product registry、account/workspace/membership/product access、entitlement policy、workspace entitlement、product access audit 表、FK/RLS indexes、read-only RLS policies 与 `aiphabee` / `aimpact` / `salesko` planned product seed；`deploy/database/migrations.contract.json` 登记新 migration 并声明 `indexes` / `rls_tables`，`scripts/check-database-migrations-contract.mjs` 增加声明式 index/RLS 验证；新增 `docs/governance/platform-umbrella-schema-foundation.md` 并更新三仓库 `docs/supabase-umbrella-schema-plan.md` 副本。`npm run check:database` 通过，migrations=64；未执行 remote dry-run/live apply，不改变 Sprint 完成度或 exit gate |
 | 2026-06-23 | 1.0jb | 完成 `supabase-umbrella-schema-plan`：新增 `docs/supabase-umbrella-schema-plan.md` 独立方案，定义共享 `platform` / `platform_audit` schema、AiphaBee/AIMPACT/Salesko product-owned schema、`product_id + workspace_id` RLS 边界、FK/RLS index 规则、service-role 过滤要求、分阶段迁移策略与 first migration candidate；同名副本已保存到 `/Users/chris/Projects/aimpact-new/docs/supabase-umbrella-schema-plan.md` 与 `/Users/chris/Projects/salesko-new/docs/supabase-umbrella-schema-plan.md`。本条为 schema planning artifact，不执行 live migration、不写入 secret、不改变 Sprint 完成度或 exit gate |
 | 2026-06-23 | 1.0ik | 完成 `gate0-signed-evidence-packet-intake-readiness`：在 `deploy/governance/gate0-signed-evidence-manifest.contract.json` 新增 `intake_readiness`，并扩展 handoff checker 与 packet README，固化 6 个 external signed evidence packet 文件、required approver roles、accepted packet 条件、acceptance commands 和 forbidden payload policy；不启用 external approvals complete、Gate 0 transition 或 Phase 0 gate，当前 packet directory 仍为空，6 个 manifest packets 仍 `missing`，不勾选任何 Sprint/Phase exit gate |
