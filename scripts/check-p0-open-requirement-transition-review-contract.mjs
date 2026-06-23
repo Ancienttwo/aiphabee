@@ -17,8 +17,8 @@ const requirementFrontendSurfaceIds = {
   "MCP-09": "developer_console_ui"
 };
 const expectedFrontendEvidenceAccepted = {
-  "AGT-01": false,
-  "AGT-07": false,
+  "AGT-01": true,
+  "AGT-07": true,
   "MCP-09": true
 };
 

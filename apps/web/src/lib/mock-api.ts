@@ -1,4 +1,12 @@
 import {
+  createAgentProgressStreamReport,
+  validatePostGenerationEvidenceBinding,
+  type AgentPostGenerationEvidenceBindingValidation,
+  type AgentProgressStreamReport,
+  type AgentToolLoopProgressEvent,
+  type RegisteredAgentToolName,
+} from "@aiphabee/agent-runtime";
+import {
   createErrorEnvelope,
   createSuccessEnvelope,
 } from "@aiphabee/data-contracts";
@@ -113,6 +121,59 @@ export interface ComparisonResult {
   metrics: ComparisonMetric[];
   incomparable_reasons: string[];
   source: "mock-fixture";
+}
+
+export interface AgentAskEvidenceCard {
+  asOf: string;
+  cardId: string;
+  claimId: string;
+  currency: string;
+  dataPoint: string;
+  dataVersion: string;
+  documentLocation: string;
+  evidenceStrength: "strong" | "medium" | "weak" | "unknown";
+  label: string;
+  methodologyVersion: string;
+  sourceRecordId: string;
+  sourceTool: RegisteredAgentToolName;
+  unit: string;
+  warnings: string[];
+}
+
+export interface AgentAskProgressUiEvent {
+  event: AgentToolLoopProgressEvent;
+  eventIndex: number;
+  publicLabel: string;
+  status: string;
+  stepId?: string;
+  toolName?: string;
+}
+
+export interface AgentAskEvidenceSnapshot {
+  answer: {
+    direct: string;
+    orderedSections: string[];
+    redactionBoundary: string;
+  };
+  blockingProbe: AgentPostGenerationEvidenceBindingValidation;
+  evidenceCards: AgentAskEvidenceCard[];
+  guardrails: {
+    actualToolExecution: false;
+    chainOfThoughtExposed: false;
+    liveEvidenceWrites: false;
+    modelCalls: false;
+    persistentWrites: false;
+    rawGeneratedAnswerReturned: false;
+  };
+  missingSourceCard: {
+    claimId: string;
+    message: string;
+    missingFields: string[];
+  };
+  progress: AgentProgressStreamReport;
+  publicProgressEvents: AgentAskProgressUiEvent[];
+  source: "agent-runtime-plan";
+  sourcedValidation: AgentPostGenerationEvidenceBindingValidation;
 }
 
 export type ScreeningOperator = ">=" | "<=" | "=";
@@ -641,5 +702,180 @@ export function getDeveloperConsoleSnapshot(): SuccessEnvelope<DeveloperConsoleS
       source: "mcp-runtime-plan",
     },
     mockMeta("mock-developer-console", plan.release_checks.length),
+  );
+}
+
+const AGENT_ASK_REQUEST_ID = "mock-agent-ui-progress";
+const AGENT_ASK_PROMPT =
+  "用公开可解释证据概括 00700.HK 的 IPO 可比公司风险信号，并标注每个具体数字来源。";
+const AGENT_ASK_TOOLS: RegisteredAgentToolName[] = [
+  "resolve_security",
+  "get_quote_snapshot",
+  "get_price_history",
+  "get_financial_facts",
+  "get_data_lineage",
+];
+
+const AGENT_ASK_EVIDENCE_CARDS: AgentAskEvidenceCard[] = [
+  {
+    asOf: "2026-06-20T00:00:00.000Z",
+    cardId: "ev_card_quote_00700",
+    claimId: "claim_market_cap",
+    currency: "HKD",
+    dataPoint: "Market cap observed at HK$3.62T",
+    dataVersion: "market-data-fixture-v1",
+    documentLocation: "quote_snapshot:eq_hk_00700:latest",
+    evidenceStrength: "strong",
+    label: "Fact",
+    methodologyVersion: "quote-snapshot-method-v1",
+    sourceRecordId: "quote_eq_hk_00700_20260620",
+    sourceTool: "get_quote_snapshot",
+    unit: "HKD",
+    warnings: ["fixture_not_live_market_data"],
+  },
+  {
+    asOf: "2026-06-20T00:00:00.000Z",
+    cardId: "ev_card_revenue_00700",
+    claimId: "claim_revenue_growth",
+    currency: "CNY",
+    dataPoint: "Revenue growth observed at 8.4%",
+    dataVersion: "financial-facts-fixture-v1",
+    documentLocation: "financial_facts:eq_hk_00700:annual_results",
+    evidenceStrength: "medium",
+    label: "Calculation",
+    methodologyVersion: "financial-facts-method-v1",
+    sourceRecordId: "financials_eq_hk_00700_2025",
+    sourceTool: "get_financial_facts",
+    unit: "percent",
+    warnings: ["requires_filing_refresh_before_live_use"],
+  },
+  {
+    asOf: "2026-06-20T00:00:00.000Z",
+    cardId: "ev_card_lineage_00700",
+    claimId: "claim_source_lineage",
+    currency: "not_applicable",
+    dataPoint: "Lineage confirms quote and filing sources stay separated",
+    dataVersion: "data-lineage-fixture-v1",
+    documentLocation: "lineage:eq_hk_00700:source_record_links",
+    evidenceStrength: "medium",
+    label: "Inference",
+    methodologyVersion: "data-lineage-method-v1",
+    sourceRecordId: "lineage_eq_hk_00700_20260620",
+    sourceTool: "get_data_lineage",
+    unit: "not_applicable",
+    warnings: ["no_live_evidence_write"],
+  },
+];
+
+function summarizeProgressEvent(event: AgentProgressStreamReport["stream_events"][number]): AgentAskProgressUiEvent {
+  return {
+    event: event.event,
+    eventIndex: event.event_index,
+    publicLabel:
+      typeof event.payload.public_label === "string"
+        ? event.payload.public_label
+        : event.event === "run.started"
+          ? "Run accepted by guarded stream"
+          : event.event === "run.completed"
+            ? "Guarded stream completed"
+            : "Progress event",
+    status: String(event.payload.status),
+    stepId: typeof event.payload.step_id === "string" ? event.payload.step_id : undefined,
+    toolName: typeof event.payload.tool_name === "string" ? event.payload.tool_name : undefined,
+  };
+}
+
+export function getAgentAskEvidenceSnapshot(): SuccessEnvelope<AgentAskEvidenceSnapshot> {
+  const progress = createAgentProgressStreamReport({
+    channel: "web",
+    currency: "HKD",
+    locale: "zh-Hans",
+    maxSteps: 4,
+    prompt: AGENT_ASK_PROMPT,
+    requestId: AGENT_ASK_REQUEST_ID,
+    requestedTools: AGENT_ASK_TOOLS,
+    responseDepth: "professional",
+    securities: ["00700.HK"],
+    userId: "user_redacted",
+    workspaceId: "workspace_redacted",
+  });
+  const evidenceCardRefs = AGENT_ASK_EVIDENCE_CARDS.map((card) => ({
+    cardId: card.cardId,
+    dataVersion: card.dataVersion,
+    methodologyVersion: card.methodologyVersion,
+    sourceRecordId: card.sourceRecordId,
+  }));
+  const sourcedValidation = validatePostGenerationEvidenceBinding({
+    asOf: "2026-06-20T00:00:00.000Z",
+    claims: [
+      {
+        claimId: "claim_market_cap",
+        evidenceCardId: "ev_card_quote_00700",
+        label: "fact",
+        text: "00700.HK market cap is HK$3.62T in the bounded fixture.",
+      },
+      {
+        calculationId: "calc_revenue_growth",
+        claimId: "claim_revenue_growth",
+        label: "calculation",
+        text: "Revenue growth is 8.4% using the annual-result fixture.",
+      },
+    ],
+    calculations: [
+      {
+        calculationId: "calc_revenue_growth",
+        methodologyVersion: "financial-facts-method-v1",
+        sourceRecordIds: ["financials_eq_hk_00700_2025"],
+      },
+    ],
+    evidenceCards: evidenceCardRefs,
+    requestId: `${AGENT_ASK_REQUEST_ID}:sourced`,
+  });
+  const blockingProbe = validatePostGenerationEvidenceBinding({
+    asOf: "2026-06-20T00:00:00.000Z",
+    claims: [
+      {
+        claimId: "claim_unsourced_price_target",
+        label: "fact",
+        text: "The generated answer says the target price is HK$480 without a source card.",
+      },
+    ],
+    evidenceCards: evidenceCardRefs,
+    requestId: `${AGENT_ASK_REQUEST_ID}:blocked`,
+  });
+
+  return createSuccessEnvelope(
+    {
+      answer: {
+        direct:
+          "当前结果是 guarded no-model preview：具体数字必须绑定 evidence card，缺来源数字会被拦截。",
+        orderedSections: progress.plan.answer_evidence_contract.answer_structure.ordered_sections.map(
+          (section) => section.section_id,
+        ),
+        redactionBoundary: "hash-only frontend evidence; no raw prompt, model output, secret, or connection string in packet",
+      },
+      blockingProbe,
+      evidenceCards: AGENT_ASK_EVIDENCE_CARDS,
+      guardrails: {
+        actualToolExecution: progress.actual_tool_execution,
+        chainOfThoughtExposed: progress.chain_of_thought_exposed,
+        liveEvidenceWrites: false,
+        modelCalls: progress.model_calls,
+        persistentWrites: false,
+        rawGeneratedAnswerReturned: false,
+      },
+      missingSourceCard: {
+        claimId: "claim_unsourced_price_target",
+        message: "Missing source binding blocks this generated numeric claim before user-visible release.",
+        missingFields:
+          blockingProbe.numeric_claims.find((claim) => claim.claim_id === "claim_unsourced_price_target")
+            ?.missing_fields ?? [],
+      },
+      progress,
+      publicProgressEvents: progress.stream_events.map(summarizeProgressEvent),
+      source: "agent-runtime-plan",
+      sourcedValidation,
+    },
+    mockMeta("mock-agent-ask-evidence", progress.stream_events.length + AGENT_ASK_EVIDENCE_CARDS.length),
   );
 }

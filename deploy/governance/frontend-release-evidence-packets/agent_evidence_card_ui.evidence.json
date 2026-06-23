@@ -1,0 +1,24 @@
+{
+  "accessibility_audit_hash": "sha256:bcbbf954ea07ee5379847277eb5dc93c3cacce513a1f8702e041e0984610dce4",
+  "artifact_hashes": [
+    "sha256:e33a7145eceb3a459930792533611224bbfc2393c9b21fa481c557eae1a0c8ea",
+    "sha256:09ece744f27d7b221fef4dd94594ddc4d5d1e82fbd7650fbeafd1264040f9404",
+    "sha256:d8ed847d98bcf73a33163814bf359a2c4e4a63625c99a3177fd29fc3c6701edd",
+    "sha256:7231e848fd09d328cba06fc67e80e0ed75336baf9ef94acb5f283e26c5c17908",
+    "sha256:bcbbf954ea07ee5379847277eb5dc93c3cacce513a1f8702e041e0984610dce4",
+    "sha256:ceed3388891529185db6cf9ac41cbb379dcae43d59bb58f0d51c0e647d117699",
+    "sha256:d7a329e38802cde66aeb92d28a92145058e3569ec847bff7e0ce3ecaf3ce03f3"
+  ],
+  "build_output_hash": "sha256:d7a329e38802cde66aeb92d28a92145058e3569ec847bff7e0ce3ecaf3ce03f3",
+  "frontend_handoff_hash": "sha256:ceed3388891529185db6cf9ac41cbb379dcae43d59bb58f0d51c0e647d117699",
+  "missing_evidence": [],
+  "observed_at": "2026-06-23T14:02:18.000Z",
+  "operator": "codex-local-verification",
+  "redaction_status": "redacted_no_secrets",
+  "review_summary_hash": "sha256:5fa3e284f19d7a8ac9f464e00e1319fc1e4a890ae7889cf4cfd2fc71ded3d1b9",
+  "route_test_hash": "sha256:7231e848fd09d328cba06fc67e80e0ed75336baf9ef94acb5f283e26c5c17908",
+  "screenshot_hash": "sha256:09ece744f27d7b221fef4dd94594ddc4d5d1e82fbd7650fbeafd1264040f9404",
+  "source_locator": "local:/ask:agent_evidence_card_ui",
+  "status": "accepted",
+  "surface_id": "agent_evidence_card_ui"
+}

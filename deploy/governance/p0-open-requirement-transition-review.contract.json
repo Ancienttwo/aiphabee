@@ -34,8 +34,7 @@
         "deploy/agent/user-tool-loop-execution-release-gate.contract.json"
       ],
       "blocking_conditions": [
-        "accepted_frontend_release_evidence_packet",
-        "frontend_ask_progress_rendering",
+        "accepted_p0_requirement_evidence_packet",
         "user_facing_live_model_token_streaming",
         "arbitrary_user_tool_loop_execution",
         "persistent_stream_state_or_production_cutover"
@@ -54,8 +53,7 @@
         "deploy/governance/post-generation-evidence-binding.contract.json"
       ],
       "blocking_conditions": [
-        "accepted_frontend_release_evidence_packet",
-        "frontend_clickable_evidence_cards",
+        "accepted_p0_requirement_evidence_packet",
         "live_evidence_writes",
         "production_generated_answer_evidence_binding",
         "live_model_output_corpus"

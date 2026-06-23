@@ -72,6 +72,9 @@ export function NavBar() {
           <Link to="/analysis" style={linkStyle("/analysis")}>
             Analysis
           </Link>
+          <Link to="/ask" style={linkStyle("/ask")}>
+            Ask
+          </Link>
           <Link to="/research" style={linkStyle("/research")}>
             Research
           </Link>

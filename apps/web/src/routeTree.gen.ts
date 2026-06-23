@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResearchRouteImport } from './routes/research'
 import { Route as DeveloperConsoleRouteImport } from './routes/developer-console'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AskRouteImport } from './routes/ask'
 import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IposIndexRouteImport } from './routes/ipos/index'
@@ -30,6 +31,11 @@ const DeveloperConsoleRoute = DeveloperConsoleRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskRoute = AskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalysisRoute = AnalysisRouteImport.update({
@@ -56,6 +62,7 @@ const IposIpoIdRoute = IposIpoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/ask': typeof AskRoute
   '/dashboard': typeof DashboardRoute
   '/developer-console': typeof DeveloperConsoleRoute
   '/research': typeof ResearchRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/ask': typeof AskRoute
   '/dashboard': typeof DashboardRoute
   '/developer-console': typeof DeveloperConsoleRoute
   '/research': typeof ResearchRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
+  '/ask': typeof AskRoute
   '/dashboard': typeof DashboardRoute
   '/developer-console': typeof DeveloperConsoleRoute
   '/research': typeof ResearchRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analysis'
+    | '/ask'
     | '/dashboard'
     | '/developer-console'
     | '/research'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analysis'
+    | '/ask'
     | '/dashboard'
     | '/developer-console'
     | '/research'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analysis'
+    | '/ask'
     | '/dashboard'
     | '/developer-console'
     | '/research'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalysisRoute: typeof AnalysisRoute
+  AskRoute: typeof AskRoute
   DashboardRoute: typeof DashboardRoute
   DeveloperConsoleRoute: typeof DeveloperConsoleRoute
   ResearchRoute: typeof ResearchRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask': {
+      id: '/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analysis': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalysisRoute: AnalysisRoute,
+  AskRoute: AskRoute,
   DashboardRoute: DashboardRoute,
   DeveloperConsoleRoute: DeveloperConsoleRoute,
   ResearchRoute: ResearchRoute,

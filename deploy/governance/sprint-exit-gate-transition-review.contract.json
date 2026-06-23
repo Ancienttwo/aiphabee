@@ -150,9 +150,16 @@
         "frontend_release_evidence",
         "phase0_live_smoke_evidence"
       ],
+      "required_frontend_surface_ids": [
+        "agent_ask_progress_ui",
+        "agent_evidence_card_ui"
+      ],
+      "frontend_surface_statuses": {
+        "agent_ask_progress_ui": "accepted",
+        "agent_evidence_card_ui": "accepted"
+      },
       "manual_blocking_conditions": [],
       "blocking_conditions": [
-        "blocker_manifest:frontend_release_evidence",
         "blocker_manifest:phase0_live_smoke_evidence"
       ]
     },

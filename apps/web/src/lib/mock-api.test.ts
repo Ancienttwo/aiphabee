@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   compareIpos,
+  getAgentAskEvidenceSnapshot,
   diffResearchAnnouncements,
   getDeveloperConsoleSnapshot,
   getResearchAnnouncement,
@@ -191,6 +192,41 @@ describe("mock-api", () => {
       );
       expect(plan.credentials.api_key.live_secret_generation).toBe(false);
       expect(plan.credentials.oauth.token_storage_live).toBe(false);
+    }
+  });
+
+  it("getAgentAskEvidenceSnapshot renders guarded progress and evidence cards without live claims", () => {
+    const env = getAgentAskEvidenceSnapshot();
+    expect(env.ok).toBe(true);
+    if (env.ok) {
+      const { progress, publicProgressEvents, evidenceCards, sourcedValidation, blockingProbe, guardrails } = env.data;
+      expect(progress.route).toBe("POST /agent/runs/stream");
+      expect(progress.content_type).toBe("text/event-stream");
+      expect(progress.tool_progress_public).toBe(true);
+      expect(progress.frontend).toBe(false);
+      expect(progress.model_calls).toBe(false);
+      expect(progress.actual_tool_execution).toBe(false);
+      expect(publicProgressEvents.map((event) => event.event)).toEqual(
+        expect.arrayContaining(["run.started", "tool.step.planned", "run.completed"]),
+      );
+      expect(evidenceCards.length).toBeGreaterThanOrEqual(3);
+      expect(evidenceCards.every((card) => card.sourceRecordId.length > 0)).toBe(true);
+      expect(sourcedValidation.output_allowed).toBe(true);
+      expect(blockingProbe.output_allowed).toBe(false);
+      expect(blockingProbe.status).toBe("blocked_unsourced_numeric_claim");
+      expect(guardrails).toEqual({
+        actualToolExecution: false,
+        chainOfThoughtExposed: false,
+        liveEvidenceWrites: false,
+        modelCalls: false,
+        persistentWrites: false,
+        rawGeneratedAnswerReturned: false,
+      });
+      const serialized = JSON.stringify(env.data);
+      expect(serialized).not.toContain("sk-");
+      expect(serialized).not.toContain("Bearer ");
+      expect(serialized).not.toContain("postgres://");
+      expect(serialized).not.toContain("raw_generated_answer");
     }
   });
 });
