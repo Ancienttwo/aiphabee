@@ -73,6 +73,7 @@ export function NavBar() {
         <Link
           to="/"
           style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}
+          aria-current={isActive("/") ? "page" : undefined}
         >
           <img src={LOGO_MASCOT} alt="AiphaBee" style={{ height: 36, width: "auto" }} />
           <span
@@ -98,7 +99,7 @@ export function NavBar() {
           }}
         >
           {NAV.map((item) => (
-            <Link key={item.to} to={item.to} style={linkStyle(item.to)}>
+            <Link key={item.to} to={item.to} style={linkStyle(item.to)} aria-current={isActive(item.to) ? "page" : undefined}>
               {item.label}
             </Link>
           ))}
