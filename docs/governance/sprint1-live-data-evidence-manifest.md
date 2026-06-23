@@ -38,8 +38,8 @@ npm run check:sprint1-live-data-evidence-handoff
 | `hyperdrive_select_1_passed` | missing | Hyperdrive config, read-only `SELECT 1`, connection redaction proof |
 | `serving_sql_execution_enabled` | missing | row limit, field projection, cache key material |
 | `quality_owner_cutover_approved` | missing | PASS/WARN release policy, HOLD/REJECT_RAW isolation, quality-owner signoff |
-| `usage_event_live_write_passed` | missing | `core.usage_event` insert, request id idempotency, no-double-charge probe |
-| `usage_ledger_entry_live_write_passed` | missing | `core.usage_ledger_entry` insert, weighted credits, workspace subscription context |
+| `usage_event_live_write_passed` | missing | `aiphabee_core.usage_event` insert, request id idempotency, no-double-charge probe |
+| `usage_ledger_entry_live_write_passed` | missing | `aiphabee_core.usage_ledger_entry` insert, weighted credits, workspace subscription context |
 | `billing_reconciliation_live_read_passed` | missing | invoice line trace, usage-to-invoice consistency, freshness under 5 minutes |
 
 ## Evidence Packets

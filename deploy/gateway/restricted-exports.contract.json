@@ -36,9 +36,9 @@
     "DATA_QUALITY_HOLD"
   ],
   "required_database_tables": [
-    "core.restricted_export_request",
-    "audit.restricted_export_event",
-    "governance.restricted_export_contract"
+    "aiphabee_core.restricted_export_request",
+    "aiphabee_audit.restricted_export_event",
+    "aiphabee_governance.restricted_export_contract"
   ],
   "live_data_access": false,
   "artifact_writes": false,

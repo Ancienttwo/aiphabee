@@ -21,8 +21,8 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.prompt_injection_tool_denial_release_gate",
-  "governance.prompt_injection_tool_denial_release_gate_contract"
+  "aiphabee_core.prompt_injection_tool_denial_release_gate",
+  "aiphabee_governance.prompt_injection_tool_denial_release_gate_contract"
 ];
 const requiredDeniedToolProbes = ["sql.query", "http.fetch", "admin.override"];
 const requiredCoveredItems = [

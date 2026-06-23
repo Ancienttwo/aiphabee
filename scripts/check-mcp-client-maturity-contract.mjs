@@ -55,8 +55,8 @@ const requiredBlockers = [
   "apps_sdk_security_review_missing"
 ];
 const requiredTables = [
-  "core.mcp_client_maturity_assessment",
-  "governance.mcp_client_maturity_contract"
+  "aiphabee_core.mcp_client_maturity_assessment",
+  "aiphabee_governance.mcp_client_maturity_contract"
 ];
 const linkedContracts = [
   "deploy/mcp/target-clients-console-release-gate.contract.json",

@@ -19,8 +19,8 @@ writes, SQL execution, or frontend operations UI.
 | Runtime route | `GET /gateway/runtime` | Reports nested `field_entitlement_enforcement.operations_config` readiness |
 | Planner route | `POST /gateway/field-authorizations/changes/plan` | Normalizes operator change requests and returns a no-write approval/effective-time plan |
 | Contract | `deploy/gateway/field-authorization-config.contract.json` | Guards approval, version, effective time, default-deny, no frontend, no reads, no writes, and no SQL |
-| Schema scaffold | `core.field_authorization_change`, `audit.field_authorization_approval`, `governance.field_authorization_config_contract` | Empty future persistence/audit tables |
-| Policy effect | `core.data_entitlement`, `core.workspace_entitlement` | Planned row shapes only; current runtime compiler remains row-snapshot based |
+| Schema scaffold | `aiphabee_core.field_authorization_change`, `aiphabee_audit.field_authorization_approval`, `aiphabee_governance.field_authorization_config_contract` | Empty future persistence/audit tables |
+| Policy effect | `aiphabee_governance.data_entitlement`, `aiphabee_governance.workspace_entitlement` | Planned row shapes only; current runtime compiler remains row-snapshot based |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace
@@ -34,8 +34,8 @@ writes, SQL execution, or frontend operations UI.
    record plus required approval audit record.
 4. The plan marks status as `awaiting_approval`, `scheduled`,
    `active_preview`, `rejected`, or `blocked_missing_context`.
-5. The policy-effect preview emits the future `core.data_entitlement` row and,
-   when workspace-scoped, future `core.workspace_entitlement` row.
+5. The policy-effect preview emits the future `aiphabee_governance.data_entitlement` row and,
+   when workspace-scoped, future `aiphabee_governance.workspace_entitlement` row.
 
 ## P3 Design Decision
 

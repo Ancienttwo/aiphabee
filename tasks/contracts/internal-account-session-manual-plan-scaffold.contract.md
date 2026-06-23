@@ -25,11 +25,11 @@ manual plan, login/session, and device management.
 - Do not call a billing provider.
 - Do not emit SQL or write to a database.
 - Reuse existing account/workspace/subscription tables:
-  - `core.account`
-  - `core.workspace`
-  - `core.workspace_membership`
-  - `core.subscription_plan`
-  - `core.workspace_subscription`
+  - `platform.account`
+  - `platform.workspace`
+  - `platform.workspace_membership`
+  - `platform.subscription_plan`
+  - `platform.workspace_subscription`
 - Keep frontend out of scope.
 
 ## Acceptance

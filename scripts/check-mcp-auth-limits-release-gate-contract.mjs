@@ -49,8 +49,8 @@ const requiredBlockers = [
   "live_usage_ledger_writes_missing"
 ];
 const requiredTables = [
-  "core.mcp_auth_limits_release_gate",
-  "governance.mcp_auth_limits_release_gate_contract"
+  "aiphabee_core.mcp_auth_limits_release_gate",
+  "aiphabee_governance.mcp_auth_limits_release_gate_contract"
 ];
 const requiredCoveredItems = [
   "mcp_oauth_scope_revoke_key_rotation",

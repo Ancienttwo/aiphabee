@@ -44,8 +44,8 @@ const requiredCompatibilityVectors = [
   "structured_content_text_fallback"
 ];
 const requiredTables = [
-  "core.mcp_protocol_release_gate",
-  "governance.mcp_protocol_release_gate_contract"
+  "aiphabee_core.mcp_protocol_release_gate",
+  "aiphabee_governance.mcp_protocol_release_gate_contract"
 ];
 const requiredCoveredItems = [
   "mcp_streamable_http_origin_auth",

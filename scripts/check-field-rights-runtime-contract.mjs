@@ -264,7 +264,7 @@ function validateFieldAuthorizationContract(value) {
   errors.push(
     ...validateStringArray(
       value.policy_effect_tables,
-      ["core.data_entitlement", "core.workspace_entitlement"],
+      ["aiphabee_governance.data_entitlement", "aiphabee_governance.workspace_entitlement"],
       "field_authorization.policy_effect_tables"
     )
   );
@@ -320,9 +320,9 @@ function validateGatewaySource(source) {
     "createUsageLedgerEventPlan",
     "export function createPolicyFromEntitlementRows",
     "activeWorkspaceEntitlements",
-    "core.data_entitlement",
-    "core.workspace_entitlement",
-    "core.workspace_subscription"
+    "aiphabee_governance.data_entitlement",
+    "aiphabee_governance.workspace_entitlement",
+    "platform.workspace_subscription"
   ]) {
     if (!source.includes(token)) {
       errors.push(`gateway source missing token ${token}`);

@@ -78,7 +78,7 @@ function validateContract(value) {
     route: "POST /mcp/developer-console/log-store-smoke",
     smoke_token_binding: "AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN",
     status: "local_contract",
-    table: "core.mcp_developer_console_request_log",
+    table: "aiphabee_core.mcp_developer_console_request_log",
     target_clients_console_gate_contract: targetClientsConsoleGateContractPath,
     test_file: testPath,
     version: expectedVersion,
@@ -230,9 +230,9 @@ function validateWorkerSource(source) {
     "runMcpDeveloperConsoleLogStoreSmoke",
     "missingMcpDeveloperConsoleLogStoreSmokeEnv",
     "isMcpDeveloperConsoleLogStoreSmokeAuthorized",
-    "insert into core.mcp_developer_console_request_log",
+    "insert into aiphabee_core.mcp_developer_console_request_log",
     "select\n        request_log_id",
-    "delete from core.mcp_developer_console_request_log",
+    "delete from aiphabee_core.mcp_developer_console_request_log",
     "mcp_developer_console_request_log_insert_select_delete",
     "live_console_log_store_smoke: true",
     "production_console_log_store: false",
@@ -254,8 +254,8 @@ function validateTestSource(source) {
     "AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN",
     "mcp-developer-console-log-store-v1",
     "missing_hyperdrive_binding",
-    "insert into core.mcp_developer_console_request_log",
-    "delete from core.mcp_developer_console_request_log",
+    "insert into aiphabee_core.mcp_developer_console_request_log",
+    "delete from aiphabee_core.mcp_developer_console_request_log",
     "live_console_log_store_smoke: true",
     "production_console_log_store: false",
     "not.toContain(rawRequestLogId)",
@@ -275,7 +275,7 @@ function validateMigration(source, databaseValue) {
   const lowerSource = source.toLowerCase();
 
   for (const text of [
-    "create table if not exists core.mcp_developer_console_request_log",
+    "create table if not exists aiphabee_core.mcp_developer_console_request_log",
     "request_log_id text primary key",
     "credential_kind in ('oauth_connection', 'api_key')",
     "live_console_log_store_enabled boolean not null default false",
@@ -299,13 +299,13 @@ function validateMigration(source, databaseValue) {
       errors.push("database migration entry default_rights_status must be default_deny");
     }
 
-    errors.push(...validateStringArray(entry.schemas, ["core", "governance"], "migration.schemas"));
+    errors.push(...validateStringArray(entry.schemas, ["aiphabee_core", "aiphabee_governance"], "migration.schemas"));
     errors.push(
       ...validateStringArray(
         entry.tables,
         [
-          "core.mcp_developer_console_request_log",
-          "governance.mcp_developer_console_contract"
+          "aiphabee_core.mcp_developer_console_request_log",
+          "aiphabee_governance.mcp_developer_console_contract"
         ],
         "migration.tables"
       )

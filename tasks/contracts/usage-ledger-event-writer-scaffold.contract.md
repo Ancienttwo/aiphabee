@@ -27,8 +27,8 @@ billing reconciliation.
   - gateway access contract guard update;
   - tracker/governance updates.
 - Out of scope:
-  - live SQL writes to `core.usage_event`;
-  - live SQL writes to `core.usage_ledger_entry`;
+  - live SQL writes to `aiphabee_core.usage_event`;
+  - live SQL writes to `aiphabee_core.usage_ledger_entry`;
   - billing provider integration;
   - invoice export or reconciliation posting;
   - quota display UI;

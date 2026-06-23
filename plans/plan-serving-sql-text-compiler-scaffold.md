@@ -18,7 +18,7 @@
   no executable boundary for compiling that descriptor into controlled SQL text.
 - Due diligence:
   - P1 map: `@aiphabee/serving-store`, `@aiphabee/data-access-gateway`,
-    Worker `/gateway/runtime`, `core.serving_record`, and Gateway contract guard
+    Worker `/gateway/runtime`, `aiphabee_core.serving_record`, and Gateway contract guard
     manifest.
   - P2 trace: Gateway decision -> `servingRead` -> `servingQuery` ->
     `servingSqlDescriptor` -> `servingSqlText` -> Worker capability.

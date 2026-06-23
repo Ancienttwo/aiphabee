@@ -20,7 +20,7 @@ screens.
 | Runtime route | `GET /account/runtime` | Reports supported login methods, plan codes, table dependencies, and no-live posture |
 | Planner route | `POST /account/session/plan` | Normalizes request fields and returns a standard no-write plan |
 | Contract | `deploy/account/session.contract.json` | Guards no frontend, no provider calls, no DB writes, no SQL, and forbidden payload classes |
-| Existing schema | `core.account`, `core.workspace`, `core.workspace_membership`, `core.subscription_plan`, `core.workspace_subscription` | Storage tables already exist from Sprint 1.1 schema scaffold |
+| Existing schema | `platform.account`, `platform.workspace`, `platform.workspace_membership`, `platform.subscription_plan`, `platform.workspace_subscription` | Storage tables already exist from Sprint 1.1 schema scaffold |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace
@@ -41,7 +41,7 @@ screens.
 ## P3 Design Decision
 
 Selected a no-write runtime planner instead of integrating Auth0/Clerk/Supabase
-Auth, issuing cookies, or writing `core.account` rows.
+Auth, issuing cookies, or writing `platform.account` rows.
 
 Reason:
 
@@ -93,5 +93,5 @@ Observed runtime fields:
 
 - Live identity provider selection and callback handling are absent.
 - Real session cookie issuance and revocation persistence are absent.
-- Manual plan assignment does not write `core.workspace_subscription`.
+- Manual plan assignment does not write `platform.workspace_subscription`.
 - Frontend account/settings UI is absent by delegation.

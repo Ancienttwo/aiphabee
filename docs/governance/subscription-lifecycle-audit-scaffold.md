@@ -20,8 +20,8 @@ writes, SQL emission, or frontend screens.
 | Runtime route | `GET /account/runtime` | Reports existing account capability plus nested `subscription_lifecycle` readiness |
 | Planner route | `POST /account/subscription/lifecycle/plan` | Normalizes lifecycle requests and returns a standard no-write audit plan |
 | Contract | `deploy/account/subscription-lifecycle.contract.json` | Guards standard envelope, supported actions, plan codes, billing states, no frontend, no billing provider, no writes, and no SQL |
-| Schema scaffold | `audit.subscription_lifecycle_event` | Empty audit-event table for future live lifecycle writes |
-| Existing schema | `core.account`, `core.workspace`, `core.subscription_plan`, `core.workspace_subscription` | Existing account/workspace/subscription tables remain the authority for future persistence |
+| Schema scaffold | `aiphabee_audit.subscription_lifecycle_event` | Empty audit-event table for future live lifecycle writes |
+| Existing schema | `platform.account`, `platform.workspace`, `platform.subscription_plan`, `platform.workspace_subscription` | Existing account/workspace/subscription tables remain the authority for future persistence |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace
@@ -45,7 +45,7 @@ writes, SQL emission, or frontend screens.
 ## P3 Design Decision
 
 Selected a no-write lifecycle audit planner plus an empty audit table scaffold
-instead of integrating Stripe, writing `core.workspace_subscription`, or
+instead of integrating Stripe, writing `platform.workspace_subscription`, or
 building frontend billing screens.
 
 Reason:
@@ -105,6 +105,6 @@ Observed runtime fields:
 
 - Live billing provider integration is absent.
 - Proration, invoice, refund, and payment retry previews are absent.
-- `core.workspace_subscription` and `audit.subscription_lifecycle_event` are not
+- `platform.workspace_subscription` and `aiphabee_audit.subscription_lifecycle_event` are not
   written by runtime code.
 - Frontend billing/settings UI is absent by delegation.

@@ -740,7 +740,7 @@ function validateEvidenceLiveDbWriteSmoke(value) {
   errors.push(
     ...validateStringArray(
       value.tables,
-      ["core.evidence_record", "core.evidence_source_ref"],
+      ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"],
       "evidence_live_db_write_smoke.tables"
     )
   );

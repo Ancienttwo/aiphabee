@@ -13,8 +13,8 @@ and metric alert planning.
 - The plan covers explicit confirmation, `alerts.write` scope, idempotency,
   dedupe, frequency, quiet period, evidence-required notification fanout, and
   price/announcement/metric evaluation sources.
-- `core.watchlist`, `core.watchlist_item`, `core.watchlist_alert_rule`, and
-  `core.watchlist_alert_event` exist as empty schema scaffolds for future
+- `aiphabee_core.watchlist`, `aiphabee_core.watchlist_item`, `aiphabee_core.watchlist_alert_rule`, and
+  `aiphabee_core.watchlist_alert_event` exist as empty schema scaffolds for future
   persistence.
 - The local contract checker verifies no live tool execution, no notification
   fanout, no persistent writes, `alerts.write` scope, dedupe/frequency/quiet

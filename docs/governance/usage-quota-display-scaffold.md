@@ -20,7 +20,7 @@ frontend UI.
 | Runtime route | `GET /usage/runtime` | Reports display fields, channels, plan codes, freshness target, and no-live posture |
 | Planner route | `POST /usage/quota/plan` | Returns deterministic quota display snapshot plan |
 | Contract | `deploy/usage/quota-display.contract.json` | Guards standard envelope, no frontend, no live reads, no writes, no billing reconciliation |
-| Existing schema | `core.workspace_subscription`, `core.usage_event`, `core.usage_ledger_entry`, `core.usage_reconciliation_batch` | Referenced storage tables from Sprint 1.1 usage ledger schema |
+| Existing schema | `platform.workspace_subscription`, `aiphabee_core.usage_event`, `aiphabee_core.usage_ledger_entry`, `aiphabee_core.usage_reconciliation_batch` | Referenced storage tables from Sprint 1.1 usage ledger schema |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

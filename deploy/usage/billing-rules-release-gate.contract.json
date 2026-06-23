@@ -64,9 +64,9 @@
     "validation"
   ],
   "tables": [
-    "core.billing_rules_release_gate",
-    "audit.billing_rules_drill_event",
-    "governance.billing_rules_release_gate_contract"
+    "aiphabee_core.billing_rules_release_gate",
+    "aiphabee_audit.billing_rules_drill_event",
+    "aiphabee_governance.billing_rules_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_billing_rules_validation",

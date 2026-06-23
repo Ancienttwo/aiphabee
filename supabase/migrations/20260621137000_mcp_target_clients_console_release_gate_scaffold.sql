@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.mcp_target_clients_console_release_gate (
+create table if not exists aiphabee_core.mcp_target_clients_console_release_gate (
   gate_id text primary key,
   request_id text not null,
   runtime_route text not null default 'GET /mcp/runtime' check (
@@ -100,7 +100,7 @@ create table if not exists core.mcp_target_clients_console_release_gate (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.mcp_target_clients_console_release_gate_contract (
+create table if not exists aiphabee_governance.mcp_target_clients_console_release_gate_contract (
   contract_name text not null default 'mcp_target_clients_console_release_gate',
   contract_version text not null default '2026-06-21.phase3.mcp-target-clients-console-release-gate-scaffold.v0',
   runtime_route text not null default 'GET /mcp/runtime',

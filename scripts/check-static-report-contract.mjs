@@ -31,9 +31,9 @@ const requiredStatuses = [
 ];
 const requiredFormats = ["html", "pdf", "image"];
 const requiredDatabaseTables = [
-  "core.static_report_artifact",
-  "audit.static_report_event",
-  "governance.static_report_contract"
+  "aiphabee_core.static_report_artifact",
+  "aiphabee_audit.static_report_event",
+  "aiphabee_governance.static_report_contract"
 ];
 
 let contract;

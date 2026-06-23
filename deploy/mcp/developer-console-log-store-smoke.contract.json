@@ -15,7 +15,7 @@
     "name": "x-aiphabee-smoke",
     "value": "mcp-developer-console-log-store-v1"
   },
-  "table": "core.mcp_developer_console_request_log",
+  "table": "aiphabee_core.mcp_developer_console_request_log",
   "actual_hyperdrive_execution": true,
   "transactional_insert_select_delete": true,
   "insert_smoke": true,

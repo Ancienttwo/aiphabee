@@ -73,8 +73,8 @@
     ]
   },
   "tables": [
-    "core.agent_ai_gateway_observability_release_gate",
-    "governance.agent_ai_gateway_observability_release_gate_contract"
+    "aiphabee_core.agent_ai_gateway_observability_release_gate",
+    "aiphabee_governance.agent_ai_gateway_observability_release_gate_contract"
   ],
   "not_claimed": [
     "ai_gateway_logs_read",

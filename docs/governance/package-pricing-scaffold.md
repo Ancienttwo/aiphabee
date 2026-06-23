@@ -21,7 +21,7 @@ emission, or frontend screens.
 | Usage linkage | `deploy/usage/quota-display.contract.json` | Remains the usage quota authority; package catalog references Pro `5000` and Developer `10000` credit limits |
 | Billing linkage | `deploy/usage/billing-reconciliation.contract.json` | Developer overage is planned but no live provider call or invoice execution occurs |
 | Contract | `deploy/account/package-pricing.contract.json` | Guards price assumptions, plan coverage, no frontend, no live prices, no billing provider, no writes, and no SQL |
-| Schema scaffold | `core.plan_pricing_catalog`, `core.plan_entitlement_bundle`, `governance.package_pricing_contract` | Empty future persistence surfaces |
+| Schema scaffold | `aiphabee_core.plan_pricing_catalog`, `aiphabee_core.plan_entitlement_bundle`, `aiphabee_governance.package_pricing_contract` | Empty future persistence surfaces |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

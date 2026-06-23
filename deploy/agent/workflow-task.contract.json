@@ -41,8 +41,8 @@
     "multi_company_analysis"
   ],
   "tables": [
-    "core.workflow_task",
-    "core.workflow_task_checkpoint"
+    "aiphabee_core.workflow_task",
+    "aiphabee_core.workflow_task_checkpoint"
   ],
   "linked_contracts": [
     "deploy/cloudflare/bindings.contract.json",

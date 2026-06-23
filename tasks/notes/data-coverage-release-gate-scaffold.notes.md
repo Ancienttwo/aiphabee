@@ -17,8 +17,8 @@ freshness labels and required data coverage domains.
     delistings, and identifier history;
   - a blocked release gate for missing partner coverage, live freshness policy,
     and golden signoff.
-- `core.data_coverage_release_gate` and
-  `governance.data_coverage_release_gate_contract` exist as empty schema
+- `aiphabee_core.data_coverage_release_gate` and
+  `aiphabee_governance.data_coverage_release_gate_contract` exist as empty schema
   scaffolds.
 
 ## Non-Goals

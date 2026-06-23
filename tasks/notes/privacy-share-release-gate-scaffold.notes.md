@@ -10,8 +10,8 @@
 - Extended `GET /sharing/runtime` with `privacy_share_release_gate`.
 - Added contract checker `npm run check:privacy-share-release-gate`.
 - Added empty DB scaffold tables:
-  - `core.privacy_share_release_gate`
-  - `governance.privacy_share_release_gate_contract`
+  - `aiphabee_core.privacy_share_release_gate`
+  - `aiphabee_governance.privacy_share_release_gate_contract`
 
 ## Evidence
 

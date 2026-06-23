@@ -1,13 +1,21 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
+create schema if not exists platform;
 
-create table if not exists core.account (
+create table if not exists platform.account (
   account_id text primary key,
-  email_hash text not null,
+  auth_user_id uuid unique,
+  email_hash text,
   display_name text,
   status text not null default 'active' check (
     status in ('active', 'suspended', 'closed')
   ),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists aiphabee_core.account_profile (
+  account_id text primary key references platform.account(account_id),
   region text,
   default_timezone text not null default 'Asia/Hong_Kong',
   data_retention_state text not null default 'standard' check (
@@ -18,38 +26,50 @@ create table if not exists core.account (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.workspace (
+create table if not exists platform.workspace (
   workspace_id text primary key,
-  owner_account_id text not null references core.account(account_id),
+  owner_account_id text not null references platform.account(account_id),
   display_name text not null,
   billing_region text,
   data_region text,
   status text not null default 'active' check (
     status in ('active', 'suspended', 'closed')
   ),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists aiphabee_core.workspace_profile (
+  workspace_id text primary key references platform.workspace(workspace_id),
   source_record_id text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.workspace_membership (
+create table if not exists platform.workspace_membership (
   membership_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
-  account_id text not null references core.account(account_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  account_id text not null references platform.account(account_id),
   role text not null check (role in ('owner', 'admin', 'member', 'viewer', 'billing')),
   status text not null default 'active' check (
     status in ('active', 'suspended', 'removed')
   ),
   valid_from timestamptz not null,
   valid_to timestamptz,
-  source_record_id text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (valid_to is null or valid_to > valid_from),
   unique (workspace_id, account_id, role, valid_from)
 );
 
-create table if not exists core.subscription_plan (
+create table if not exists aiphabee_core.workspace_membership_profile (
+  membership_id text primary key references platform.workspace_membership(membership_id),
+  source_record_id text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists platform.subscription_plan (
   plan_code text primary key check (
     plan_code in ('free', 'plus', 'pro', 'developer', 'team', 'enterprise')
   ),
@@ -65,10 +85,10 @@ create table if not exists core.subscription_plan (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.workspace_subscription (
+create table if not exists platform.workspace_subscription (
   subscription_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
-  plan_code text not null references core.subscription_plan(plan_code),
+  workspace_id text not null references platform.workspace(workspace_id),
+  plan_code text not null references platform.subscription_plan(plan_code),
   billing_state text not null default 'trialing' check (
     billing_state in ('trialing', 'active', 'grace_period', 'paused', 'canceled')
   ),
@@ -81,7 +101,7 @@ create table if not exists core.workspace_subscription (
   check (valid_to is null or valid_to > valid_from)
 );
 
-create table if not exists core.data_entitlement (
+create table if not exists aiphabee_governance.data_entitlement (
   entitlement_id text primary key,
   dataset text not null,
   channel text not null check (channel in ('web', 'mcp', 'api', 'export')),
@@ -98,11 +118,11 @@ create table if not exists core.data_entitlement (
   unique (dataset, channel, field_pattern, rights_policy_version)
 );
 
-create table if not exists core.workspace_entitlement (
+create table if not exists aiphabee_governance.workspace_entitlement (
   workspace_entitlement_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
-  subscription_id text references core.workspace_subscription(subscription_id),
-  entitlement_id text not null references core.data_entitlement(entitlement_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  subscription_id text references platform.workspace_subscription(subscription_id),
+  entitlement_id text not null references aiphabee_governance.data_entitlement(entitlement_id),
   status text not null default 'default_deny' check (
     status in ('default_deny', 'approved', 'blocked')
   ),
@@ -115,7 +135,7 @@ create table if not exists core.workspace_entitlement (
   unique (workspace_id, entitlement_id, valid_from)
 );
 
-create table if not exists governance.account_workspace_entitlement_contract (
+create table if not exists aiphabee_governance.account_workspace_entitlement_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -125,7 +145,7 @@ create table if not exists governance.account_workspace_entitlement_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.account_workspace_entitlement_contract (
+insert into aiphabee_governance.account_workspace_entitlement_contract (
   contract_key,
   contract_version,
   status,

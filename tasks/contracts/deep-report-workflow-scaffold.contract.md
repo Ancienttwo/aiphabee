@@ -15,8 +15,8 @@ validation, evidence index creation, static report metadata, and rerun seed.
 - Rerun route contract: `POST /research/runs/replay/plan`
 - Contract: `deploy/research/deep-report-workflow.contract.json`
 - Checker: `npm run check:deep-report-workflow`
-- Report snapshot table scaffold: `core.deep_report_snapshot`
-- Evidence index table scaffold: `core.deep_report_evidence_index`
+- Report snapshot table scaffold: `aiphabee_core.deep_report_snapshot`
+- Evidence index table scaffold: `aiphabee_core.deep_report_evidence_index`
 
 ## Required Guarantees
 

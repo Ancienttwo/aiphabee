@@ -1,6 +1,6 @@
-create schema if not exists governance;
+create schema if not exists aiphabee_governance;
 
-create table if not exists governance.agent_billing_posted_ledger_smoke_contract (
+create table if not exists aiphabee_governance.agent_billing_posted_ledger_smoke_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -20,7 +20,7 @@ create table if not exists governance.agent_billing_posted_ledger_smoke_contract
   updated_at timestamptz not null default now()
 );
 
-insert into governance.agent_billing_posted_ledger_smoke_contract (
+insert into aiphabee_governance.agent_billing_posted_ledger_smoke_contract (
   contract_key,
   contract_version,
   status,

@@ -67,9 +67,9 @@
     "validation"
   ],
   "tables": [
-    "core.load_dr_incident_drill_release_gate",
-    "audit.load_dr_incident_drill_event",
-    "governance.load_dr_incident_drill_release_gate_contract"
+    "aiphabee_core.load_dr_incident_drill_release_gate",
+    "aiphabee_audit.load_dr_incident_drill_event",
+    "aiphabee_governance.load_dr_incident_drill_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_load_dr_incident_validation",

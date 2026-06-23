@@ -18,9 +18,9 @@ not apply to a live database and does not load market data.
 | Migration | `supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql` | Creates empty `core` financial tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Runtime route | `GET /data/runtime` | Reports schema capability, no live query |
-| Financial statement | `core.financial_statement` | Period, statement type, currency/unit/scale, accounting standard, source, versions |
-| Financial fact | `core.financial_fact` | Metric-level values tied to statement, period, source, data version, methodology version |
-| Restatement | `core.financial_restatement` | Links original and restated statement versions with reason metadata |
+| Financial statement | `aiphabee_core.financial_statement` | Period, statement type, currency/unit/scale, accounting standard, source, versions |
+| Financial fact | `aiphabee_core.financial_fact` | Metric-level values tied to statement, period, source, data version, methodology version |
+| Restatement | `aiphabee_core.financial_restatement` | Links original and restated statement versions with reason metadata |
 | Engine scaffold | `packages/financial-facts` | Synthetic deterministic restatement engine exists, but no partner rows or Serving reads |
 | Live data | Absent | No partner rows, no Hyperdrive query, no Serving Store read |
 
@@ -89,9 +89,9 @@ Observed `/data/runtime` fields:
     "restatement_versions": true,
     "status": "schema_scaffold",
     "tables": [
-      "core.financial_statement",
-      "core.financial_fact",
-      "core.financial_restatement"
+      "aiphabee_core.financial_statement",
+      "aiphabee_core.financial_fact",
+      "aiphabee_core.financial_restatement"
     ]
   },
   "live_queries": false,

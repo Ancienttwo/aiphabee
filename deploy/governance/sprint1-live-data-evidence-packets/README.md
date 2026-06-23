@@ -17,8 +17,8 @@ packet filename must match `<gate_id>.evidence.json`.
 | `hyperdrive_select_1_passed` | `hyperdrive_select_1_passed.evidence.json` | `live_serving_sql_execution` | `platform_owner`, `sre_owner` | `hyperdrive_config`, `read_only_select_1`, `connection_redaction_proof` |
 | `serving_sql_execution_enabled` | `serving_sql_execution_enabled.evidence.json` | `live_serving_reads` | `data_gateway_owner` | `row_limit_enforced`, `field_projection_enforced`, `cache_key_material_verified` |
 | `quality_owner_cutover_approved` | `quality_owner_cutover_approved.evidence.json` | `live_serving_reads` | `data_quality_owner` | `PASS_WARN_release_policy`, `HOLD_REJECT_RAW_isolation`, `quality_owner_signoff` |
-| `usage_event_live_write_passed` | `usage_event_live_write_passed.evidence.json` | `live_usage_writes` | `usage_owner` | `core.usage_event_insert`, `request_id_idempotency`, `no_double_charge_probe` |
-| `usage_ledger_entry_live_write_passed` | `usage_ledger_entry_live_write_passed.evidence.json` | `live_usage_writes` | `usage_owner`, `billing_owner` | `core.usage_ledger_entry_insert`, `weighted_credits`, `workspace_subscription_context` |
+| `usage_event_live_write_passed` | `usage_event_live_write_passed.evidence.json` | `live_usage_writes` | `usage_owner` | `aiphabee_core.usage_event_insert`, `request_id_idempotency`, `no_double_charge_probe` |
+| `usage_ledger_entry_live_write_passed` | `usage_ledger_entry_live_write_passed.evidence.json` | `live_usage_writes` | `usage_owner`, `billing_owner` | `aiphabee_core.usage_ledger_entry_insert`, `weighted_credits`, `workspace_subscription_context` |
 | `billing_reconciliation_live_read_passed` | `billing_reconciliation_live_read_passed.evidence.json` | `billing_reconciliation_posting` | `billing_owner`, `finance_owner` | `invoice_line_trace`, `usage_to_invoice_consistency`, `freshness_under_5_minutes` |
 
 Accepted packets must satisfy all of these conditions:

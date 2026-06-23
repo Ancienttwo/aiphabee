@@ -12,10 +12,10 @@ const requiredSprintItems = [
   "model_prompt_version_snapshot"
 ];
 const requiredTables = [
-  "core.research_run",
-  "core.research_run_tool_call",
-  "core.research_run_evidence_snapshot",
-  "core.research_run_model_snapshot"
+  "aiphabee_core.research_run",
+  "aiphabee_core.research_run_tool_call",
+  "aiphabee_core.research_run_evidence_snapshot",
+  "aiphabee_core.research_run_model_snapshot"
 ];
 const requiredInputFields = [
   "question",

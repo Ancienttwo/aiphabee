@@ -26,12 +26,12 @@ const requiredOutputs = [
   "billing_provider"
 ];
 const requiredTables = [
-  "core.workspace_subscription",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.usage_reconciliation_batch",
-  "core.subscription_invoice",
-  "core.subscription_invoice_line"
+  "platform.workspace_subscription",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.usage_reconciliation_batch",
+  "aiphabee_core.subscription_invoice",
+  "aiphabee_core.subscription_invoice_line"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

@@ -21,7 +21,7 @@ execution, no live reads, and default-deny blocking.
   - `@aiphabee/serving-store` SQL text compiler contracts;
   - blocked-descriptor handling;
   - allow-listed statement id;
-  - fixed SQL text template for `core.serving_record`;
+  - fixed SQL text template for `aiphabee_core.serving_record`;
   - positional parameter order;
   - Data Access Gateway `servingSqlText` attachment;
   - Worker `/gateway/runtime` SQL text compiler capability;

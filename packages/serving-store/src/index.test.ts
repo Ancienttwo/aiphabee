@@ -291,7 +291,7 @@ describe("serving store read planner", () => {
         timeTo: "2024-01-31"
       },
       executionReady: false,
-      from: "core.serving_record",
+      from: "aiphabee_core.serving_record",
       liveRead: false,
       selectedFieldPaths: ["synthetic_profile.company_name"],
       sqlEmitted: false,
@@ -404,7 +404,7 @@ describe("serving store read planner", () => {
       sqlTextEmitted: true,
       status: "sql_text_planned"
     });
-    expect(sqlText.sqlText).toContain("from core.serving_record");
+    expect(sqlText.sqlText).toContain("from aiphabee_core.serving_record");
     expect(sqlText.sqlText).toContain("serving_snapshot_id = $1");
     expect(sqlText.sqlText).toContain("field_set @> $2::text[]");
     expect(sqlText.sqlText).toContain("limit $5");

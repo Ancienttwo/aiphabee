@@ -562,8 +562,8 @@ describe("agent runtime scaffold", () => {
       usage_reservation_route: "POST /usage/high-cost/reservation/plan"
     });
     expect(capability.tables).toEqual([
-      "core.agent_label_budget_release_gate",
-      "governance.agent_label_budget_release_gate_contract"
+      "aiphabee_core.agent_label_budget_release_gate",
+      "aiphabee_governance.agent_label_budget_release_gate_contract"
     ]);
   });
 
@@ -588,8 +588,8 @@ describe("agent runtime scaffold", () => {
       workflow_task_route: "POST /agent/workflows/tasks/plan"
     });
     expect(capability.tables).toEqual([
-      "core.task_replay_mode_release_gate",
-      "governance.task_replay_mode_release_gate_contract"
+      "aiphabee_core.task_replay_mode_release_gate",
+      "aiphabee_governance.task_replay_mode_release_gate_contract"
     ]);
     expect(capability.required_checks).toEqual([
       "long_task_returns_task_id_and_resume_handle",
@@ -619,8 +619,8 @@ describe("agent runtime scaffold", () => {
       tool_loop_route: "POST /agent/runs/plan"
     });
     expect(capability.tables).toEqual([
-      "core.prompt_injection_tool_denial_release_gate",
-      "governance.prompt_injection_tool_denial_release_gate_contract"
+      "aiphabee_core.prompt_injection_tool_denial_release_gate",
+      "aiphabee_governance.prompt_injection_tool_denial_release_gate_contract"
     ]);
   });
 
@@ -639,8 +639,8 @@ describe("agent runtime scaffold", () => {
       status: "product_agent_release_gate_scaffold"
     });
     expect(capability.tables).toEqual([
-      "core.product_agent_release_gate",
-      "governance.product_agent_release_gate_contract"
+      "aiphabee_core.product_agent_release_gate",
+      "aiphabee_governance.product_agent_release_gate_contract"
     ]);
   });
 
@@ -673,8 +673,8 @@ describe("agent runtime scaffold", () => {
       "production_retention_policy_required"
     ]);
     expect(capability.tables).toEqual([
-      "core.agent_user_run_persistence_release_gate",
-      "governance.agent_user_run_persistence_release_gate_contract"
+      "aiphabee_core.agent_user_run_persistence_release_gate",
+      "aiphabee_governance.agent_user_run_persistence_release_gate_contract"
     ]);
   });
 
@@ -709,8 +709,8 @@ describe("agent runtime scaffold", () => {
       "hash_only_capture_packet_required"
     ]);
     expect(capability.tables).toEqual([
-      "core.agent_ai_gateway_observability_release_gate",
-      "governance.agent_ai_gateway_observability_release_gate_contract"
+      "aiphabee_core.agent_ai_gateway_observability_release_gate",
+      "aiphabee_governance.agent_ai_gateway_observability_release_gate_contract"
     ]);
   });
 
@@ -744,8 +744,8 @@ describe("agent runtime scaffold", () => {
       "user_facing_stream_cutover_blocked"
     ]);
     expect(capability.tables).toEqual([
-      "core.agent_live_model_streaming_release_gate",
-      "governance.agent_live_model_streaming_release_gate_contract"
+      "aiphabee_core.agent_live_model_streaming_release_gate",
+      "aiphabee_governance.agent_live_model_streaming_release_gate_contract"
     ]);
   });
 
@@ -789,8 +789,8 @@ describe("agent runtime scaffold", () => {
       "arbitrary_user_tool_loop_cutover_blocked"
     ]);
     expect(capability.tables).toEqual([
-      "core.agent_user_tool_loop_execution_release_gate",
-      "governance.agent_user_tool_loop_execution_release_gate_contract"
+      "aiphabee_core.agent_user_tool_loop_execution_release_gate",
+      "aiphabee_governance.agent_user_tool_loop_execution_release_gate_contract"
     ]);
   });
 
@@ -830,8 +830,8 @@ describe("agent runtime scaffold", () => {
       "production_model_output_corpus_cutover_blocked"
     ]);
     expect(capability.tables).toEqual([
-      "core.agent_model_output_corpus_release_gate",
-      "governance.agent_model_output_corpus_release_gate_contract"
+      "aiphabee_core.agent_model_output_corpus_release_gate",
+      "aiphabee_governance.agent_model_output_corpus_release_gate_contract"
     ]);
   });
 
@@ -2675,7 +2675,7 @@ describe("agent runtime scaffold", () => {
       created_from: "agent_tool_loop_plan",
       run_id: "dry_req-workflow-report-1",
       status: "planned_no_write",
-      table: "core.workflow_task",
+      table: "aiphabee_core.workflow_task",
       task_id: "workflow_task_req_workflow_report_1_deep_report",
       task_kind: "deep_report",
       user_id: "user_internal_alpha",
@@ -2694,7 +2694,7 @@ describe("agent runtime scaffold", () => {
       resume_handle: "resume_workflow_task_req_workflow_report_1_deep_report",
       resume_route: "GET /agent/workflows/tasks/:task_id",
       resumable: true,
-      state_table: "core.workflow_task_checkpoint"
+      state_table: "aiphabee_core.workflow_task_checkpoint"
     });
     expect(task.notification).toEqual({
       channels: ["in_app", "email"],

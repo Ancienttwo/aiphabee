@@ -19,7 +19,7 @@ entries, export invoices, or touch frontend quota UI.
 | Gateway decision | `packages/data-access-gateway` | Attaches `usageLedger` to every decision |
 | Gateway contract | `deploy/gateway/access.contract.json` | Adds `usage_event_writer_scaffold` required guard |
 | Worker runtime route | `GET /gateway/runtime` | Reports event-writer capability, no live writes |
-| Usage schema | `core.usage_event`, `core.usage_ledger_entry` | Existing schema target only; no mutation |
+| Usage schema | `aiphabee_core.usage_event`, `aiphabee_core.usage_ledger_entry` | Existing schema target only; no mutation |
 | Billing | Absent | No provider integration, invoice posting, or reconciliation writes |
 
 ## P2 Concrete Trace

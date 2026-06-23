@@ -7,10 +7,10 @@ const databaseContractPath = "deploy/database/migrations.contract.json";
 const requiredPlanCodes = ["pro", "developer"];
 const requiredUsageChannels = ["web_agent", "mcp"];
 const requiredTables = [
-  "core.subscription_plan",
-  "core.plan_pricing_catalog",
-  "core.plan_entitlement_bundle",
-  "governance.package_pricing_contract"
+  "platform.subscription_plan",
+  "aiphabee_core.plan_pricing_catalog",
+  "aiphabee_core.plan_entitlement_bundle",
+  "aiphabee_governance.package_pricing_contract"
 ];
 const requiredValidationGates = [
   "data_authorization_cost_review",

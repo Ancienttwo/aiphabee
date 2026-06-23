@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.golden_correction_rollback_drill (
+create table if not exists aiphabee_core.golden_correction_rollback_drill (
   drill_id text primary key,
   request_id text not null,
   golden_manifest_version text not null,
@@ -30,7 +30,7 @@ create table if not exists core.golden_correction_rollback_drill (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.golden_correction_rollback_drill_contract (
+create table if not exists aiphabee_governance.golden_correction_rollback_drill_contract (
   contract_name text not null default 'golden_correction_rollback_drill',
   contract_version text not null default '2026-06-21.phase3.golden-correction-rollback-drill-scaffold.v0',
   runtime_route text not null default 'GET /research/runtime',

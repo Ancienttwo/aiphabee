@@ -65,6 +65,38 @@ create table if not exists platform.workspace_membership (
   unique (workspace_id, account_id, role, valid_from)
 );
 
+create table if not exists platform.subscription_plan (
+  plan_code text primary key check (
+    plan_code in ('free', 'plus', 'pro', 'developer', 'team', 'enterprise')
+  ),
+  plan_name text not null,
+  web_entitlement_tier text not null,
+  mcp_entitlement_tier text not null,
+  default_credit_limit integer not null default 0 check (default_credit_limit >= 0),
+  seat_limit integer check (seat_limit is null or seat_limit > 0),
+  export_allowed_default boolean not null default false,
+  status text not null default 'planned' check (status in ('planned', 'active', 'retired')),
+  source_record_id text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists platform.workspace_subscription (
+  subscription_id text primary key,
+  workspace_id text not null references platform.workspace(workspace_id),
+  plan_code text not null references platform.subscription_plan(plan_code),
+  billing_state text not null default 'trialing' check (
+    billing_state in ('trialing', 'active', 'grace_period', 'paused', 'canceled')
+  ),
+  seats_purchased integer not null default 1 check (seats_purchased > 0),
+  valid_from timestamptz not null,
+  valid_to timestamptz,
+  source_record_id text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (valid_to is null or valid_to > valid_from)
+);
+
 create table if not exists platform.workspace_product_access (
   workspace_product_access_id text primary key,
   workspace_id text not null references platform.workspace(workspace_id),
@@ -138,6 +170,12 @@ create index if not exists workspace_membership_workspace_id_idx
 
 create index if not exists workspace_membership_account_id_workspace_id_status_idx
   on platform.workspace_membership (account_id, workspace_id, status);
+
+create index if not exists workspace_subscription_workspace_id_idx
+  on platform.workspace_subscription (workspace_id);
+
+create index if not exists workspace_subscription_plan_code_billing_state_idx
+  on platform.workspace_subscription (plan_code, billing_state);
 
 create index if not exists workspace_product_access_workspace_id_idx
   on platform.workspace_product_access (workspace_id);
@@ -224,6 +262,12 @@ alter table platform.workspace force row level security;
 alter table platform.workspace_membership enable row level security;
 alter table platform.workspace_membership force row level security;
 
+alter table platform.subscription_plan enable row level security;
+alter table platform.subscription_plan force row level security;
+
+alter table platform.workspace_subscription enable row level security;
+alter table platform.workspace_subscription force row level security;
+
 alter table platform.workspace_product_access enable row level security;
 alter table platform.workspace_product_access force row level security;
 
@@ -274,6 +318,18 @@ using (
   and status = 'active'
   and (valid_to is null or valid_to > now())
 );
+
+create policy subscription_plan_authenticated_read
+on platform.subscription_plan
+for select
+to authenticated
+using (status in ('planned', 'active', 'retired'));
+
+create policy workspace_subscription_member_read
+on platform.workspace_subscription
+for select
+to authenticated
+using ((select platform.is_workspace_member(workspace_id)));
 
 create policy workspace_product_access_member_read
 on platform.workspace_product_access

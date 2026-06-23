@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.agent_ai_gateway_observability_release_gate (
+create table if not exists aiphabee_core.agent_ai_gateway_observability_release_gate (
   gate_id text primary key,
   request_id text not null,
   model_execution_audit_smoke_contract_linked boolean not null default true check (
@@ -52,7 +52,7 @@ create table if not exists core.agent_ai_gateway_observability_release_gate (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.agent_ai_gateway_observability_release_gate_contract (
+create table if not exists aiphabee_governance.agent_ai_gateway_observability_release_gate_contract (
   contract_name text not null default 'agent_ai_gateway_observability_release_gate',
   contract_version text not null default '2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0',
   runtime_route text not null default 'GET /agent/runtime',

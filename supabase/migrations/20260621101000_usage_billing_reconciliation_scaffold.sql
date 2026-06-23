@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.subscription_invoice (
+create table if not exists aiphabee_core.subscription_invoice (
   invoice_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
-  subscription_id text not null references core.workspace_subscription(subscription_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  subscription_id text not null references platform.workspace_subscription(subscription_id),
   period_start timestamptz not null,
   period_end timestamptz not null,
   invoice_status text not null default 'planned' check (
@@ -22,11 +22,11 @@ create table if not exists core.subscription_invoice (
   check (period_end > period_start)
 );
 
-create table if not exists core.subscription_invoice_line (
+create table if not exists aiphabee_core.subscription_invoice_line (
   invoice_line_id text primary key,
-  invoice_id text not null references core.subscription_invoice(invoice_id),
-  ledger_entry_id text not null references core.usage_ledger_entry(ledger_entry_id),
-  usage_event_id text not null references core.usage_event(usage_event_id),
+  invoice_id text not null references aiphabee_core.subscription_invoice(invoice_id),
+  ledger_entry_id text not null references aiphabee_core.usage_ledger_entry(ledger_entry_id),
+  usage_event_id text not null references aiphabee_core.usage_event(usage_event_id),
   request_id text not null,
   credit_delta numeric not null check (credit_delta >= 0),
   amount_minor integer not null default 0 check (amount_minor >= 0),
@@ -39,7 +39,7 @@ create table if not exists core.subscription_invoice_line (
   unique (invoice_id, ledger_entry_id)
 );
 
-create table if not exists governance.usage_billing_reconciliation_contract (
+create table if not exists aiphabee_governance.usage_billing_reconciliation_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -49,7 +49,7 @@ create table if not exists governance.usage_billing_reconciliation_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.usage_billing_reconciliation_contract (
+insert into aiphabee_governance.usage_billing_reconciliation_contract (
   contract_key,
   contract_version,
   status,

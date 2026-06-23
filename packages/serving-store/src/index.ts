@@ -112,10 +112,10 @@ export interface ServingReadPlan {
   sqlEmitted: false;
   status: ServingReadPlanStatus;
   tables: readonly [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ];
   version: typeof SERVING_STORE_READ_VERSION;
 }
@@ -154,10 +154,10 @@ export interface ServingQueryPlan {
   sqlEmitted: false;
   status: ServingQueryPlanStatus;
   tables: readonly [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ];
   version: typeof SERVING_STORE_QUERY_PLAN_VERSION;
 }
@@ -173,12 +173,12 @@ export interface ServingSqlDescriptor {
   blockedReason?: string;
   dataset: string;
   executionReady: false;
-  from: "core.serving_record";
+  from: "aiphabee_core.serving_record";
   liveRead: false;
   orderBy: readonly [
     {
       direction: "asc";
-      field: "core.serving_record.entity_id";
+      field: "aiphabee_core.serving_record.entity_id";
     }
   ];
   selectedFieldPaths: string[];
@@ -187,10 +187,10 @@ export interface ServingSqlDescriptor {
   statementId: "serving_record_projection_by_snapshot_v0";
   status: ServingSqlDescriptorStatus;
   tables: readonly [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ];
   where: {
     servingSnapshotId: string;
@@ -263,10 +263,10 @@ export interface ServingQualityReleasePlan {
   sourceRecordId: string;
   sqlEmitted: false;
   tables: readonly [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ];
   version: typeof SERVING_STORE_QUALITY_RELEASE_VERSION;
   warnings: string[];
@@ -298,10 +298,10 @@ export function createServingReadPlan(input: ServingReadPlanInput): ServingReadP
     sqlEmitted: false,
     status,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ],
     version: SERVING_STORE_READ_VERSION
   };
@@ -348,10 +348,10 @@ export function createServingQualityReleasePlan(
     sourceRecordId: input.sourceRecordId,
     sqlEmitted: false,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ],
     version: SERVING_STORE_QUALITY_RELEASE_VERSION,
     warnings: hasWarn ? ["quality_state_warn"] : []
@@ -394,10 +394,10 @@ export function createServingQueryPlan(input: ServingQueryPlanInput): ServingQue
     sqlEmitted: false,
     status,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ],
     version: SERVING_STORE_QUERY_PLAN_VERSION
   };
@@ -428,12 +428,12 @@ export function createServingSqlDescriptor(
     blockedReason,
     dataset: queryPlan.dataset,
     executionReady: false,
-    from: "core.serving_record",
+    from: "aiphabee_core.serving_record",
     liveRead: false,
     orderBy: [
       {
         direction: "asc",
-        field: "core.serving_record.entity_id"
+        field: "aiphabee_core.serving_record.entity_id"
       }
     ],
     selectedFieldPaths,
@@ -442,10 +442,10 @@ export function createServingSqlDescriptor(
     statementId: "serving_record_projection_by_snapshot_v0",
     status,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ],
     where: {
       servingSnapshotId: queryPlan.cacheKeyMaterial.servingSnapshotId,
@@ -536,10 +536,10 @@ export function getServingStoreReadCapabilities() {
     sql_emitted: false,
     status: "read_planner_scaffold" as const,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ] as const,
     uses_cache_key_material: [
       "data_version",
@@ -599,10 +599,10 @@ export function getServingStoreSqlDescriptorCapabilities() {
     statement_ids: ["serving_record_projection_by_snapshot_v0"] as const,
     status: "sql_descriptor_scaffold" as const,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ] as const,
     uses_allowed_field_set: true,
     uses_row_limit: true,
@@ -620,10 +620,10 @@ export function getServingStoreQueryPlannerCapabilities() {
     sql_emitted: false,
     status: "query_planner_scaffold" as const,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ] as const,
     uses_cache_key_material: [
       "data_version",
@@ -650,10 +650,10 @@ export function getServingStoreQualityReleaseCapabilities() {
     sql_emitted: false,
     status: "quality_release_isolation_scaffold" as const,
     tables: [
-      "core.serving_dataset",
-      "core.serving_field",
-      "core.serving_snapshot",
-      "core.serving_record"
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_field",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
     ] as const,
     uses_quality_state: true,
     version: SERVING_STORE_QUALITY_RELEASE_VERSION,
@@ -664,18 +664,18 @@ export function getServingStoreQualityReleaseCapabilities() {
 function createServingRecordProjectionSqlText(): string {
   return [
     "select",
-    "  core.serving_record.serving_record_id,",
-    "  core.serving_record.entity_type,",
-    "  core.serving_record.entity_id,",
-    "  core.serving_record.payload,",
-    "  core.serving_record.field_set,",
-    "  core.serving_record.source_record_id",
-    "from core.serving_record",
-    "where core.serving_record.serving_snapshot_id = $1",
-    "  and core.serving_record.field_set @> $2::text[]",
-    "  and ($3::date is null or core.serving_record.effective_to is null or core.serving_record.effective_to >= $3::date)",
-    "  and ($4::date is null or core.serving_record.effective_from is null or core.serving_record.effective_from <= $4::date)",
-    "order by core.serving_record.entity_id asc",
+    "  aiphabee_core.serving_record.serving_record_id,",
+    "  aiphabee_core.serving_record.entity_type,",
+    "  aiphabee_core.serving_record.entity_id,",
+    "  aiphabee_core.serving_record.payload,",
+    "  aiphabee_core.serving_record.field_set,",
+    "  aiphabee_core.serving_record.source_record_id",
+    "from aiphabee_core.serving_record",
+    "where aiphabee_core.serving_record.serving_snapshot_id = $1",
+    "  and aiphabee_core.serving_record.field_set @> $2::text[]",
+    "  and ($3::date is null or aiphabee_core.serving_record.effective_to is null or aiphabee_core.serving_record.effective_to >= $3::date)",
+    "  and ($4::date is null or aiphabee_core.serving_record.effective_from is null or aiphabee_core.serving_record.effective_from <= $4::date)",
+    "order by aiphabee_core.serving_record.entity_id asc",
     "limit $5"
   ].join("\n");
 }

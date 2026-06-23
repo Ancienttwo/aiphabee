@@ -21,7 +21,7 @@ const requiredTaskKinds = [
   "long_document",
   "multi_company_analysis"
 ];
-const requiredTables = ["core.workflow_task", "core.workflow_task_checkpoint"];
+const requiredTables = ["aiphabee_core.workflow_task", "aiphabee_core.workflow_task_checkpoint"];
 const requiredBindings = [
   "AIPHABEE_RESEARCH_WORKFLOW",
   "AIPHABEE_EVENTS_QUEUE",

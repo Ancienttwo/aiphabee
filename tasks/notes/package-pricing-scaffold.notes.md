@@ -17,8 +17,8 @@ pricing and entitlement catalog exposure.
 - Developer is represented as `HK$688+/month` with Pro Web entitlements,
   multiple MCP connections, API key access, bulk pagination, overage planning,
   and a `10000` credit quota reference.
-- `core.plan_pricing_catalog`, `core.plan_entitlement_bundle`, and
-  `governance.package_pricing_contract` exist as empty schema scaffolds.
+- `aiphabee_core.plan_pricing_catalog`, `aiphabee_core.plan_entitlement_bundle`, and
+  `aiphabee_governance.package_pricing_contract` exist as empty schema scaffolds.
 - The local contract checker verifies price assumptions, quota linkage,
   overage boundaries, redistribution controls, no provider calls, no SQL, no
   writes, and database contract linkage.

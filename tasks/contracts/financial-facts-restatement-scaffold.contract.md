@@ -16,9 +16,9 @@ facts, and restatement links without loading partner or market data.
 ## Scope
 
 - In scope:
-  - `core.financial_statement`;
-  - `core.financial_fact`;
-  - `core.financial_restatement`;
+  - `aiphabee_core.financial_statement`;
+  - `aiphabee_core.financial_fact`;
+  - `aiphabee_core.financial_restatement`;
   - governance contract row;
   - database migration contract update;
   - Worker `/data/runtime` capability route update;

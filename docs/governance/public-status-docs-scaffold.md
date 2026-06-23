@@ -22,7 +22,7 @@ final legal approval.
 | Docs route | `GET /public/docs` | Lists API/MCP/privacy/terms local publication drafts |
 | Static docs | `docs/public/*.md` | Holds local API, MCP, privacy, and terms draft content |
 | Contract | `deploy/public-ops/public-status-docs.contract.json` | Guards routes, document coverage, required sections, no frontend, no live feed, no writes, and no SQL |
-| Schema scaffold | `core.public_status_component`, `core.public_document_publication`, `governance.public_operations_contract` | Empty future persistence surfaces |
+| Schema scaffold | `aiphabee_core.public_status_component`, `aiphabee_core.public_document_publication`, `aiphabee_governance.public_operations_contract` | Empty future persistence surfaces |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

@@ -101,7 +101,7 @@ describe("support operations scaffold", () => {
     expect(plan.audit).toMatchObject({
       audit_event: "support.request_id_investigation.plan",
       support_agent_id: "support_agent_001",
-      table: "audit.support_investigation_event",
+      table: "aiphabee_audit.support_investigation_event",
       write_status: "planned_no_write"
     });
     expect(plan.privacy).toMatchObject({

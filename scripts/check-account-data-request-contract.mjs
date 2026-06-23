@@ -25,10 +25,10 @@ const requiredDeleteAllowedScopes = [
   "saved_research"
 ];
 const requiredTables = [
-  "core.account_data_request",
-  "core.account_data_request_item",
-  "audit.account_data_request_event",
-  "governance.account_data_request_contract"
+  "aiphabee_core.account_data_request",
+  "aiphabee_core.account_data_request_item",
+  "aiphabee_audit.account_data_request_event",
+  "aiphabee_governance.account_data_request_contract"
 ];
 const requiredOutputFields = [
   "account",
@@ -216,8 +216,8 @@ function validateAudit(value) {
     errors.push("audit.audit_event must be account.data_request.plan");
   }
 
-  if (value.event_table !== "audit.account_data_request_event") {
-    errors.push("audit.event_table must be audit.account_data_request_event");
+  if (value.event_table !== "aiphabee_audit.account_data_request_event") {
+    errors.push("audit.event_table must be aiphabee_audit.account_data_request_event");
   }
 
   if (value.identity_verification_required !== true) {

@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.data_correction_event (
+create table if not exists aiphabee_core.data_correction_event (
   correction_event_id text primary key,
   source_record_id text not null,
   previous_data_version text,
@@ -16,7 +16,7 @@ create table if not exists core.data_correction_event (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.research_run_correction_impact (
+create table if not exists aiphabee_core.research_run_correction_impact (
   impact_id text primary key,
   correction_event_id text not null,
   research_run_id text not null,
@@ -38,7 +38,7 @@ create table if not exists core.research_run_correction_impact (
   unique (correction_event_id, snapshot_id)
 );
 
-create table if not exists core.user_notification (
+create table if not exists aiphabee_core.user_notification (
   notification_event_id text primary key,
   impact_id text not null,
   workspace_id text not null,
@@ -57,7 +57,7 @@ create table if not exists core.user_notification (
   unique (impact_id, channel)
 );
 
-create table if not exists governance.data_correction_notifications_contract (
+create table if not exists aiphabee_governance.data_correction_notifications_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -67,7 +67,7 @@ create table if not exists governance.data_correction_notifications_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.data_correction_notifications_contract (
+insert into aiphabee_governance.data_correction_notifications_contract (
   contract_key,
   contract_version,
   status,

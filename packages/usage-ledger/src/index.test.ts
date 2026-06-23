@@ -398,7 +398,7 @@ describe("usage ledger event writer scaffold", () => {
       amount_minor: 68800,
       invoice_id: "inv_ws_internal_alpha_202606",
       source: "synthetic_billing_snapshot",
-      table: "core.subscription_invoice"
+      table: "aiphabee_core.subscription_invoice"
     });
     expect(plan.invoice_lines).toHaveLength(2);
     expect(plan.invoice_lines[0]).toMatchObject({
@@ -519,7 +519,7 @@ describe("usage ledger event writer scaffold", () => {
       export_status: "planned_no_write",
       group_by: ["dataset", "channel", "package_code", "user_id"],
       source: "usage_ledger_snapshot",
-      table: "core.partner_reconciliation_report"
+      table: "aiphabee_core.partner_reconciliation_report"
     });
     expect(plan.rows).toHaveLength(2);
     expect(plan.rows[0]).toMatchObject({
@@ -820,13 +820,13 @@ describe("usage ledger event writer scaffold", () => {
       pre_debit_credits: 8,
       required: true,
       status: "planned_no_write",
-      table: "core.usage_ledger_entry"
+      table: "aiphabee_core.usage_ledger_entry"
     });
     expect(plan.failure_refund).toMatchObject({
       refund_credits: 0,
       required: true,
       status: "not_triggered",
-      table: "core.usage_ledger_entry"
+      table: "aiphabee_core.usage_ledger_entry"
     });
     expect(plan.double_charge_guard.same_request_reuses_reservation).toBe(true);
   });

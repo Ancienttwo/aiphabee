@@ -21,8 +21,8 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.task_replay_mode_release_gate",
-  "governance.task_replay_mode_release_gate_contract"
+  "aiphabee_core.task_replay_mode_release_gate",
+  "aiphabee_governance.task_replay_mode_release_gate_contract"
 ];
 const requiredCoveredItems = [
   "long_task_resume",
@@ -191,8 +191,8 @@ function validateWorkflowResumePolicy(value) {
     }
   }
 
-  if (value.checkpoint_table !== "core.workflow_task_checkpoint") {
-    errors.push("workflow_resume_policy.checkpoint_table must be core.workflow_task_checkpoint");
+  if (value.checkpoint_table !== "aiphabee_core.workflow_task_checkpoint") {
+    errors.push("workflow_resume_policy.checkpoint_table must be aiphabee_core.workflow_task_checkpoint");
   }
 
   return errors;

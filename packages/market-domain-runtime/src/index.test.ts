@@ -56,10 +56,10 @@ describe("market domain runtime scaffold", () => {
     expect(capability.allowed_markets).toEqual(["HK", "CN_A", "US", "SG"]);
     expect(capability.allowed_mapping_types).toContain("currency_normalization");
     expect(capability.tables).toEqual([
-      "core.hk_data_domain_coverage",
-      "core.cross_market_security_mapping",
-      "audit.market_domain_coverage_event",
-      "governance.hk_data_domain_cross_market_contract"
+      "aiphabee_core.hk_data_domain_coverage",
+      "aiphabee_core.cross_market_security_mapping",
+      "aiphabee_audit.market_domain_coverage_event",
+      "aiphabee_governance.hk_data_domain_cross_market_contract"
     ]);
   });
 
@@ -105,7 +105,7 @@ describe("market domain runtime scaffold", () => {
       point_in_time_required: true,
       rights_state: "default_deny",
       status: "planned_no_write",
-      table: "core.hk_ipo_pipeline_event"
+      table: "aiphabee_core.hk_ipo_pipeline_event"
     });
     expect(plan.cross_market).toMatchObject({
       analytics_comparison_route: "POST /analytics/compare-securities",

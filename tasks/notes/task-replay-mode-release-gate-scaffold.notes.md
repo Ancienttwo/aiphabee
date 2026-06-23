@@ -21,8 +21,8 @@ saved-report replay, and newbie/professional response-depth invariants.
   `responseDepth=professional` to prove mode switching preserves tool policy,
   numeric-source policy, evidence contract, source refs, methodology versions,
   and data values while changing presentation depth only.
-- `core.task_replay_mode_release_gate` and
-  `governance.task_replay_mode_release_gate_contract` exist as empty schema
+- `aiphabee_core.task_replay_mode_release_gate` and
+  `aiphabee_governance.task_replay_mode_release_gate_contract` exist as empty schema
   scaffolds for future persistence.
 - The local contract checker verifies required checks, no-live boundaries,
   linked contracts, package script registration, and database contract coverage.

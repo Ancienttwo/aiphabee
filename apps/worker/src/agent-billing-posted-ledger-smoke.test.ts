@@ -29,18 +29,18 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("insert into core.account") ||
-          normalized.startsWith("insert into core.workspace") ||
-          normalized.startsWith("insert into core.usage_meter_rule") ||
-          normalized.startsWith("insert into core.usage_event") ||
-          normalized.startsWith("insert into core.usage_ledger_entry")
+          normalized.startsWith("insert into platform.account") ||
+          normalized.startsWith("insert into platform.workspace") ||
+          normalized.startsWith("insert into aiphabee_core.usage_meter_rule") ||
+          normalized.startsWith("insert into aiphabee_core.usage_event") ||
+          normalized.startsWith("insert into aiphabee_core.usage_ledger_entry")
         ) {
           return { rowCount: 1, rows: [] };
         }
 
         if (
           normalized.startsWith(
-            "select count(*)::int as row_count from core.usage_ledger_entry"
+            "select count(*)::int as row_count from aiphabee_core.usage_ledger_entry"
           ) &&
           normalized.includes("billable_state = 'preview'")
         ) {
@@ -51,7 +51,7 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("update core.usage_ledger_entry") &&
+          normalized.startsWith("update aiphabee_core.usage_ledger_entry") &&
           normalized.includes("billable_state = 'posted'") &&
           normalized.includes("billable_state = 'preview'")
         ) {
@@ -71,11 +71,11 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("delete from core.usage_ledger_entry") ||
-          normalized.startsWith("delete from core.usage_event") ||
-          normalized.startsWith("delete from core.usage_meter_rule") ||
-          normalized.startsWith("delete from core.workspace") ||
-          normalized.startsWith("delete from core.account")
+          normalized.startsWith("delete from aiphabee_core.usage_ledger_entry") ||
+          normalized.startsWith("delete from aiphabee_core.usage_event") ||
+          normalized.startsWith("delete from aiphabee_core.usage_meter_rule") ||
+          normalized.startsWith("delete from platform.workspace") ||
+          normalized.startsWith("delete from platform.account")
         ) {
           return { rowCount: 1, rows: [] };
         }
@@ -260,16 +260,16 @@ describe("Agent billing posted ledger smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const accountInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.account")
+      query.text.includes("insert into platform.account")
     );
     const workspaceInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.workspace")
+      query.text.includes("insert into platform.workspace")
     );
     const usageEventInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.usage_event")
+      query.text.includes("insert into aiphabee_core.usage_event")
     );
     const ledgerInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.usage_ledger_entry")
+      query.text.includes("insert into aiphabee_core.usage_ledger_entry")
     );
 
     expect(response.status).toBe(200);
@@ -301,35 +301,35 @@ describe("Agent billing posted ledger smoke", () => {
     );
     expect(body.agent_billing_posted_ledger_result?.usage_event_id_hash).toMatch(/^sha256:/u);
     expect(body.agent_billing_posted_ledger_result?.tables).toEqual([
-      "core.account",
-      "core.workspace",
-      "core.usage_meter_rule",
-      "core.usage_event",
-      "core.usage_ledger_entry"
+      "platform.account",
+      "platform.workspace",
+      "aiphabee_core.usage_meter_rule",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_ledger_entry"
     ]);
     expect(pgMock.configs[0]?.connectionString).toBe(
       "mock-agent-billing-posted-ledger-connection"
     );
     expect(client.end).toHaveBeenCalledOnce();
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into core.account");
-    expect(normalizedQueries[2]).toContain("insert into core.workspace");
-    expect(normalizedQueries[3]).toContain("insert into core.usage_meter_rule");
-    expect(normalizedQueries[4]).toContain("insert into core.usage_event");
-    expect(normalizedQueries[5]).toContain("insert into core.usage_ledger_entry");
+    expect(normalizedQueries[1]).toContain("insert into platform.account");
+    expect(normalizedQueries[2]).toContain("insert into platform.workspace");
+    expect(normalizedQueries[3]).toContain("insert into aiphabee_core.usage_meter_rule");
+    expect(normalizedQueries[4]).toContain("insert into aiphabee_core.usage_event");
+    expect(normalizedQueries[5]).toContain("insert into aiphabee_core.usage_ledger_entry");
     expect(normalizedQueries[6]).toContain("billable_state = 'preview'");
-    expect(normalizedQueries[7]).toContain("update core.usage_ledger_entry");
+    expect(normalizedQueries[7]).toContain("update aiphabee_core.usage_ledger_entry");
     expect(normalizedQueries[7]).toContain("billable_state = 'posted'");
     expect(normalizedQueries[7]).toContain("billable_state = 'preview'");
-    expect(normalizedQueries[8]).toContain("update core.usage_ledger_entry");
+    expect(normalizedQueries[8]).toContain("update aiphabee_core.usage_ledger_entry");
     expect(normalizedQueries[8]).toContain("billable_state = 'posted'");
     expect(normalizedQueries[8]).toContain("billable_state = 'preview'");
     expect(normalizedQueries[9]).toContain("billable_state = 'posted'");
-    expect(normalizedQueries[10]).toContain("delete from core.usage_ledger_entry");
-    expect(normalizedQueries[11]).toContain("delete from core.usage_event");
-    expect(normalizedQueries[12]).toContain("delete from core.usage_meter_rule");
-    expect(normalizedQueries[13]).toContain("delete from core.workspace");
-    expect(normalizedQueries[14]).toContain("delete from core.account");
+    expect(normalizedQueries[10]).toContain("delete from aiphabee_core.usage_ledger_entry");
+    expect(normalizedQueries[11]).toContain("delete from aiphabee_core.usage_event");
+    expect(normalizedQueries[12]).toContain("delete from aiphabee_core.usage_meter_rule");
+    expect(normalizedQueries[13]).toContain("delete from platform.workspace");
+    expect(normalizedQueries[14]).toContain("delete from platform.account");
     expect(normalizedQueries[15]).toBe("commit");
     expect(serialized).not.toContain(String(accountInsert?.values?.[0]));
     expect(serialized).not.toContain(String(workspaceInsert?.values?.[0]));

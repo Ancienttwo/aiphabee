@@ -55,9 +55,9 @@ export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_CHECKS = [
   "live_apm_and_probe_writes_blocked"
 ] as const;
 export const PERFORMANCE_AVAILABILITY_RELEASE_GATE_TABLES = [
-  "core.performance_availability_release_gate",
-  "audit.performance_slo_drill_event",
-  "governance.performance_availability_release_gate_contract"
+  "aiphabee_core.performance_availability_release_gate",
+  "aiphabee_audit.performance_slo_drill_event",
+  "aiphabee_governance.performance_availability_release_gate_contract"
 ] as const;
 export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS = [
   "load_test_artifact_present",
@@ -70,9 +70,9 @@ export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_CHECKS = [
   "live_execution_and_persistent_writes_blocked"
 ] as const;
 export const LOAD_DR_INCIDENT_DRILL_RELEASE_GATE_TABLES = [
-  "core.load_dr_incident_drill_release_gate",
-  "audit.load_dr_incident_drill_event",
-  "governance.load_dr_incident_drill_release_gate_contract"
+  "aiphabee_core.load_dr_incident_drill_release_gate",
+  "aiphabee_audit.load_dr_incident_drill_event",
+  "aiphabee_governance.load_dr_incident_drill_release_gate_contract"
 ] as const;
 
 export interface EvalV1MetricInput {

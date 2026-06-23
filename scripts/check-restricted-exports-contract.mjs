@@ -26,9 +26,9 @@ const requiredErrorCodes = [
   "DATA_QUALITY_HOLD"
 ];
 const requiredDatabaseTables = [
-  "core.restricted_export_request",
-  "audit.restricted_export_event",
-  "governance.restricted_export_contract"
+  "aiphabee_core.restricted_export_request",
+  "aiphabee_audit.restricted_export_event",
+  "aiphabee_governance.restricted_export_contract"
 ];
 
 let contract;

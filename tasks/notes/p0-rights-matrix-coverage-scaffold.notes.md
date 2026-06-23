@@ -12,8 +12,8 @@ matrix coverage across Web, MCP, export, and enterprise surfaces.
 - `GET /gateway/runtime` includes nested `p0_rights_matrix_coverage` readiness.
 - `GET /gateway/rights-matrix/p0/coverage` returns default-deny coverage for
   all 16 P0 Tool Registry tools and 9 core dataset/field groups.
-- `core.p0_rights_matrix_entry` and
-  `governance.p0_rights_matrix_contract` exist as empty schema scaffolds.
+- `aiphabee_core.p0_rights_matrix_entry` and
+  `aiphabee_governance.p0_rights_matrix_contract` exist as empty schema scaffolds.
 - Release gate status is `blocked_external_rights_matrix` until partner,
   commercial, and legal signoffs are present.
 

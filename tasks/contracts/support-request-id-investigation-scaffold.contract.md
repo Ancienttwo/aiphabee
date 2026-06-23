@@ -15,9 +15,9 @@ request id investigation.
 - Checker: `npm run check:support-ops`
 - Help center draft: `docs/public/help-center.md`
 - Schema scaffolds:
-  - `core.support_ticket`
-  - `audit.support_investigation_event`
-  - `governance.support_request_id_contract`
+  - `aiphabee_core.support_ticket`
+  - `aiphabee_audit.support_investigation_event`
+  - `aiphabee_governance.support_request_id_contract`
 
 ## Required Guarantees
 

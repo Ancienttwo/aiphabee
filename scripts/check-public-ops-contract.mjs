@@ -18,9 +18,9 @@ const requiredDocumentKinds = [
   "terms_of_service"
 ];
 const requiredTables = [
-  "core.public_status_component",
-  "core.public_document_publication",
-  "governance.public_operations_contract"
+  "aiphabee_core.public_status_component",
+  "aiphabee_core.public_document_publication",
+  "aiphabee_governance.public_operations_contract"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

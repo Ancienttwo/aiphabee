@@ -28,15 +28,15 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("insert into core.agent_run_state") ||
-          normalized.startsWith("insert into core.agent_run_checkpoint")
+          normalized.startsWith("insert into aiphabee_core.agent_run_state") ||
+          normalized.startsWith("insert into aiphabee_core.agent_run_checkpoint")
         ) {
           return { rowCount: 1, rows: [] };
         }
 
         if (
-          normalized.startsWith("select count(*)::int as row_count from core.agent_run_state") ||
-          normalized.startsWith("select count(*)::int as row_count from core.agent_run_checkpoint")
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_core.agent_run_state") ||
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_core.agent_run_checkpoint")
         ) {
           return {
             rowCount: 1,
@@ -44,13 +44,13 @@ const pgMock = vi.hoisted(() => {
           };
         }
 
-        if (normalized.startsWith("update core.agent_run_state")) {
+        if (normalized.startsWith("update aiphabee_core.agent_run_state")) {
           return { rowCount: 1, rows: [] };
         }
 
         if (
-          normalized.startsWith("delete from core.agent_run_checkpoint") ||
-          normalized.startsWith("delete from core.agent_run_state")
+          normalized.startsWith("delete from aiphabee_core.agent_run_checkpoint") ||
+          normalized.startsWith("delete from aiphabee_core.agent_run_state")
         ) {
           return { rowCount: 1, rows: [] };
         }
@@ -231,10 +231,10 @@ describe("Agent run state persistence smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const stateInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.agent_run_state")
+      query.text.includes("insert into aiphabee_core.agent_run_state")
     );
     const checkpointInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.agent_run_checkpoint")
+      query.text.includes("insert into aiphabee_core.agent_run_checkpoint")
     );
 
     expect(response.status).toBe(200);
@@ -256,7 +256,7 @@ describe("Agent run state persistence smoke", () => {
       selected_rows: 3,
       status: "passed",
       surface: "agent_run_state_checkpoint_insert_select_update_delete",
-      tables: ["core.agent_run_state", "core.agent_run_checkpoint"],
+      tables: ["aiphabee_core.agent_run_state", "aiphabee_core.agent_run_checkpoint"],
       updated_rows: 1,
       user_facing_resume_enabled: false
     });
@@ -266,14 +266,14 @@ describe("Agent run state persistence smoke", () => {
     expect(body.agent_run_state_persistence_result?.run_state_id_hash).toMatch(/^sha256:/u);
     expect(normalizedQueries).toHaveLength(10);
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into core.agent_run_state");
-    expect(normalizedQueries[2]).toContain("insert into core.agent_run_checkpoint");
-    expect(normalizedQueries[3]).toContain("from core.agent_run_state");
-    expect(normalizedQueries[4]).toContain("from core.agent_run_checkpoint");
-    expect(normalizedQueries[5]).toContain("update core.agent_run_state");
-    expect(normalizedQueries[6]).toContain("from core.agent_run_state");
-    expect(normalizedQueries[7]).toContain("delete from core.agent_run_checkpoint");
-    expect(normalizedQueries[8]).toContain("delete from core.agent_run_state");
+    expect(normalizedQueries[1]).toContain("insert into aiphabee_core.agent_run_state");
+    expect(normalizedQueries[2]).toContain("insert into aiphabee_core.agent_run_checkpoint");
+    expect(normalizedQueries[3]).toContain("from aiphabee_core.agent_run_state");
+    expect(normalizedQueries[4]).toContain("from aiphabee_core.agent_run_checkpoint");
+    expect(normalizedQueries[5]).toContain("update aiphabee_core.agent_run_state");
+    expect(normalizedQueries[6]).toContain("from aiphabee_core.agent_run_state");
+    expect(normalizedQueries[7]).toContain("delete from aiphabee_core.agent_run_checkpoint");
+    expect(normalizedQueries[8]).toContain("delete from aiphabee_core.agent_run_state");
     expect(normalizedQueries[9]).toBe("commit");
     expect(stateInsert?.values?.[5]).toBe("running");
     expect(checkpointInsert?.values?.[3]).toBe("completed");

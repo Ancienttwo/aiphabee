@@ -27,7 +27,7 @@ without enabling live database writes, SQL reads, or partner data surfaces.
   - gateway access contract guard update;
   - tracker/governance updates.
 - Out of scope:
-  - live SQL writes to `core.serving_snapshot`;
+  - live SQL writes to `aiphabee_core.serving_snapshot`;
   - live SQL reads from Serving Store;
   - partner-loaded rows;
   - live quality jobs or replay jobs;

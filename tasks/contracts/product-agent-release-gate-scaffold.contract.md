@@ -13,8 +13,8 @@ numbers.
 - `POST /agent/release-gates/product-agent/plan` returns the gate plan.
 - Local contract checker: `npm run check:product-agent-release-gate`.
 - Empty schema scaffold:
-  - `core.product_agent_release_gate`
-  - `governance.product_agent_release_gate_contract`
+  - `aiphabee_core.product_agent_release_gate`
+  - `aiphabee_governance.product_agent_release_gate_contract`
 
 ## Behavioral Contract
 

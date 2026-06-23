@@ -45,10 +45,10 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.saved_screening",
-  "core.saved_screening_run_schedule",
-  "core.saved_screening_run",
-  "governance.saved_screening_schedule_contract"
+  "aiphabee_core.saved_screening",
+  "aiphabee_core.saved_screening_run_schedule",
+  "aiphabee_core.saved_screening_run",
+  "aiphabee_governance.saved_screening_schedule_contract"
 ];
 const forbiddenTextPatterns = [
   /(?:^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{10,}/u,
@@ -286,8 +286,8 @@ function validateSourceTokens(value) {
     errors.push("tracker must mark ANA-05 complete in §M");
   }
 
-  if (!value.migration.includes("create table if not exists core.saved_screening")) {
-    errors.push("migration must create core.saved_screening");
+  if (!value.migration.includes("create table if not exists aiphabee_core.saved_screening")) {
+    errors.push("migration must create aiphabee_core.saved_screening");
   }
 
   if (!value.analytics.includes("workflow_execution: false")) {

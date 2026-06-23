@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.p0_rights_matrix_entry (
+create table if not exists aiphabee_core.p0_rights_matrix_entry (
   rights_matrix_entry_id text not null,
   entry_kind text not null check (entry_kind in ('tool', 'dataset_field')),
   entry_name text not null,
@@ -18,7 +18,7 @@ create table if not exists core.p0_rights_matrix_entry (
   primary key (rights_matrix_entry_id)
 );
 
-create table if not exists governance.p0_rights_matrix_contract (
+create table if not exists aiphabee_governance.p0_rights_matrix_contract (
   contract_name text not null default 'p0_rights_matrix_coverage',
   contract_version text not null default '2026-06-21.phase3.p0-rights-matrix-coverage-scaffold.v0',
   runtime_route text not null default 'GET /gateway/runtime',

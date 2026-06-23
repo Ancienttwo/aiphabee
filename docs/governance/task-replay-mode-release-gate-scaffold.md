@@ -18,7 +18,7 @@ saved-report replay, and newbie/professional response-depth invariants.
 - Long tasks return a user-visible `task_id`.
 - Long tasks include a `resume_handle` and
   `GET /agent/workflows/tasks/:task_id` resume route.
-- Workflow checkpoint state is anchored to `core.workflow_task_checkpoint`.
+- Workflow checkpoint state is anchored to `aiphabee_core.workflow_task_checkpoint`.
 - Saved reports include a deterministic replay seed.
 - Replay keeps the old report snapshot immutable and blocks silent rewrite.
 - Newbie/professional modes preserve conclusion, values, evidence refs,

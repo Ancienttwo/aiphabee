@@ -91,10 +91,10 @@ export interface LicensedAdviceExplorationCapabilities {
   sql_emitted: false;
   status: "licensed_advice_exploration_scaffold";
   tables: readonly [
-    "core.licensed_advice_exploration",
-    "core.suitability_control_profile",
-    "audit.licensed_advice_review_event",
-    "governance.licensed_advice_exploration_contract"
+    "aiphabee_core.licensed_advice_exploration",
+    "aiphabee_core.suitability_control_profile",
+    "aiphabee_audit.licensed_advice_review_event",
+    "aiphabee_governance.licensed_advice_exploration_contract"
   ];
   version: typeof LICENSED_ADVICE_RUNTIME_VERSION;
 }
@@ -159,10 +159,10 @@ export interface LicensedAdviceExplorationPlan {
 }
 
 const LICENSED_ADVICE_TABLES: LicensedAdviceExplorationCapabilities["tables"] = [
-  "core.licensed_advice_exploration",
-  "core.suitability_control_profile",
-  "audit.licensed_advice_review_event",
-  "governance.licensed_advice_exploration_contract"
+  "aiphabee_core.licensed_advice_exploration",
+  "aiphabee_core.suitability_control_profile",
+  "aiphabee_audit.licensed_advice_review_event",
+  "aiphabee_governance.licensed_advice_exploration_contract"
 ];
 
 export function getLicensedAdviceRuntimeCapabilities(): LicensedAdviceRuntimeCapabilities {

@@ -14,8 +14,8 @@ and plans completion/failure notifications.
 - Resume route contract: `GET /agent/workflows/tasks/:task_id`
 - Contract: `deploy/agent/workflow-task.contract.json`
 - Checker: `npm run check:agent-workflow-task`
-- Task table scaffold: `core.workflow_task`
-- Checkpoint table scaffold: `core.workflow_task_checkpoint`
+- Task table scaffold: `aiphabee_core.workflow_task`
+- Checkpoint table scaffold: `aiphabee_core.workflow_task_checkpoint`
 
 ## Required Guarantees
 

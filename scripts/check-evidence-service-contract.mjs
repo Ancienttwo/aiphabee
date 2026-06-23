@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const contractPath = "deploy/evidence/service.contract.json";
 const requiredRoutes = ["GET /evidence/runtime", "POST /evidence/records/plan"];
-const requiredTables = ["core.evidence_record", "core.evidence_source_ref"];
+const requiredTables = ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"];
 const requiredCapabilities = [
   "tool_call_linking",
   "source_record_linking",
@@ -91,8 +91,8 @@ function validateContract(value) {
     errors.push("package must be @aiphabee/evidence-lineage");
   }
 
-  if (value.governance_table !== "governance.evidence_lineage_service_contract") {
-    errors.push("governance_table must be governance.evidence_lineage_service_contract");
+  if (value.governance_table !== "aiphabee_governance.evidence_lineage_service_contract") {
+    errors.push("governance_table must be aiphabee_governance.evidence_lineage_service_contract");
   }
 
   for (const booleanField of ["live_db_writes", "partner_source_records_loaded", "sql_emitted"]) {

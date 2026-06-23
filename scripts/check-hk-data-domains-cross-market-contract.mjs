@@ -46,10 +46,10 @@ const requiredMethodologyFields = [
   "methodology_version"
 ];
 const requiredTables = [
-  "core.hk_data_domain_coverage",
-  "core.cross_market_security_mapping",
-  "audit.market_domain_coverage_event",
-  "governance.hk_data_domain_cross_market_contract"
+  "aiphabee_core.hk_data_domain_coverage",
+  "aiphabee_core.cross_market_security_mapping",
+  "aiphabee_audit.market_domain_coverage_event",
+  "aiphabee_governance.hk_data_domain_cross_market_contract"
 ];
 const requiredOutputFields = [
   "coverage_contract",
@@ -303,10 +303,10 @@ function validateMigrationText(value) {
   const errors = [];
 
   for (const token of [
-    "create table if not exists core.hk_data_domain_coverage",
-    "create table if not exists core.cross_market_security_mapping",
-    "create table if not exists audit.market_domain_coverage_event",
-    "create table if not exists governance.hk_data_domain_cross_market_contract",
+    "create table if not exists aiphabee_core.hk_data_domain_coverage",
+    "create table if not exists aiphabee_core.cross_market_security_mapping",
+    "create table if not exists aiphabee_audit.market_domain_coverage_event",
+    "create table if not exists aiphabee_governance.hk_data_domain_cross_market_contract",
     "default 'default_deny'",
     "point_in_time_required boolean not null default true",
     "live_data_loaded boolean not null default false",

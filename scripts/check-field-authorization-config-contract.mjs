@@ -16,11 +16,11 @@ const requiredRequestFields = [
 ];
 const requiredOutputs = ["change", "approval", "policy_effect", "validation"];
 const requiredTables = [
-  "core.data_entitlement",
-  "core.workspace_entitlement",
-  "core.field_authorization_change",
-  "audit.field_authorization_approval",
-  "governance.field_authorization_config_contract"
+  "aiphabee_governance.data_entitlement",
+  "aiphabee_governance.workspace_entitlement",
+  "aiphabee_core.field_authorization_change",
+  "aiphabee_audit.field_authorization_approval",
+  "aiphabee_governance.field_authorization_config_contract"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
@@ -132,7 +132,7 @@ function validateContract(value, databaseValue) {
   errors.push(
     ...validateStringArray(
       value.policy_effect_tables,
-      ["core.data_entitlement", "core.workspace_entitlement"],
+      ["aiphabee_governance.data_entitlement", "aiphabee_governance.workspace_entitlement"],
       "policy_effect_tables"
     )
   );

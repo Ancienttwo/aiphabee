@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.mcp_client_maturity_assessment (
+create table if not exists aiphabee_core.mcp_client_maturity_assessment (
   assessment_id text primary key,
   request_id text not null,
   workspace_id text,
@@ -72,7 +72,7 @@ create table if not exists core.mcp_client_maturity_assessment (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.mcp_client_maturity_contract (
+create table if not exists aiphabee_governance.mcp_client_maturity_contract (
   contract_name text not null default 'mcp_client_maturity',
   contract_version text not null default '2026-06-22.phase4.mcp-client-maturity-scaffold.v0',
   runtime_route text not null default 'GET /mcp/runtime',

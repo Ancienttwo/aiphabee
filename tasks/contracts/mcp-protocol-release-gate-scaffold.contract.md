@@ -17,8 +17,8 @@ This slice covers Sprint 3.3 MCP §19.3:
 - Local contract: `deploy/mcp/protocol-release-gate.contract.json`
 - Checker: `npm run check:mcp-protocol-release-gate`
 - Empty schema scaffolds:
-  - `core.mcp_protocol_release_gate`
-  - `governance.mcp_protocol_release_gate_contract`
+  - `aiphabee_core.mcp_protocol_release_gate`
+  - `aiphabee_governance.mcp_protocol_release_gate_contract`
 
 ## Required Checks
 

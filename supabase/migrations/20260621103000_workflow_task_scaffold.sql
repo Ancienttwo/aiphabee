@@ -1,11 +1,11 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.workflow_task (
+create table if not exists aiphabee_core.workflow_task (
   task_id text primary key,
   request_id text not null,
   run_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   user_id text not null,
   workflow_kind text not null check (
     workflow_kind in (
@@ -31,9 +31,9 @@ create table if not exists core.workflow_task (
   unique (request_id, workflow_kind)
 );
 
-create table if not exists core.workflow_task_checkpoint (
+create table if not exists aiphabee_core.workflow_task_checkpoint (
   checkpoint_id text primary key,
-  task_id text not null references core.workflow_task(task_id),
+  task_id text not null references aiphabee_core.workflow_task(task_id),
   step_id text not null,
   checkpoint_status text not null default 'planned' check (
     checkpoint_status in ('planned', 'ready', 'consumed', 'expired')
@@ -47,7 +47,7 @@ create table if not exists core.workflow_task_checkpoint (
   unique (task_id, step_id)
 );
 
-create table if not exists governance.workflow_task_contract (
+create table if not exists aiphabee_governance.workflow_task_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -57,7 +57,7 @@ create table if not exists governance.workflow_task_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.workflow_task_contract (
+insert into aiphabee_governance.workflow_task_contract (
   contract_key,
   contract_version,
   status,

@@ -25,8 +25,8 @@ financial numbers.
 - The answer/evidence contract requires fact/calculation/inference/unknown
   labels, evidence cards for facts, calculation refs for calculations, and
   missing reasons for unknown values.
-- `core.product_agent_release_gate` and
-  `governance.product_agent_release_gate_contract` exist as empty schema
+- `aiphabee_core.product_agent_release_gate` and
+  `aiphabee_governance.product_agent_release_gate_contract` exist as empty schema
   scaffolds for future persistence.
 - The local contract checker verifies release checks, linked contracts,
   no-live boundaries, package script registration, and database contract

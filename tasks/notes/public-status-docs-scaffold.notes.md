@@ -15,8 +15,8 @@ privacy policy, and terms surfaces.
   privacy policy, and terms of service drafts.
 - `docs/public/api.md`, `docs/public/mcp.md`, `docs/public/privacy.md`, and
   `docs/public/terms.md` exist as local publication drafts.
-- `core.public_status_component`, `core.public_document_publication`, and
-  `governance.public_operations_contract` exist as empty schema scaffolds.
+- `aiphabee_core.public_status_component`, `aiphabee_core.public_document_publication`, and
+  `aiphabee_governance.public_operations_contract` exist as empty schema scaffolds.
 - The local contract checker verifies routes, document coverage, required
   sections, status components, no live incident feed, no live publication claim,
   no SQL, no writes, and database contract linkage.

@@ -6,8 +6,8 @@
 > **Route**: `POST /evidence/records/live-db-smoke`
 
 This slice proves that the Worker can execute a guarded Hyperdrive-backed
-Evidence/Lineage write path against `core.evidence_record` and
-`core.evidence_source_ref`. It is smoke-only: it inserts deterministic
+Evidence/Lineage write path against `aiphabee_core.evidence_record` and
+`aiphabee_core.evidence_source_ref`. It is smoke-only: it inserts deterministic
 synthetic rows, reads them back, deletes them in the same transaction, and
 returns only hashes and counts.
 
@@ -18,7 +18,7 @@ returns only hashes and counts.
 | Worker route | Owns `x-aiphabee-smoke=evidence-lineage-live-db-v1` and `AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN` guards |
 | Hyperdrive binding | Owns live Postgres connection via `AIPHABEE_HYPERDRIVE` |
 | Evidence planner | Owns deterministic evidence/source-ref ids and default-deny metadata |
-| Evidence tables | Own smoke insert/read/delete for `core.evidence_record` and `core.evidence_source_ref` |
+| Evidence tables | Own smoke insert/read/delete for `aiphabee_core.evidence_record` and `aiphabee_core.evidence_source_ref` |
 | Readiness ledger | Consumes this contract to move `live_db_writes` out of blockers |
 
 ## P2 Concrete Trace

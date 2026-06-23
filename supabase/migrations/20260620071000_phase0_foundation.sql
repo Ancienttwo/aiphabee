@@ -1,8 +1,8 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists governance.phase0_migration_contract (
+create table if not exists aiphabee_governance.phase0_migration_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -11,7 +11,7 @@ create table if not exists governance.phase0_migration_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.phase0_migration_contract (
+insert into aiphabee_governance.phase0_migration_contract (
   contract_key,
   contract_version,
   status,
@@ -29,7 +29,7 @@ on conflict (contract_key) do update set
   default_data_rights_status = excluded.default_data_rights_status,
   updated_at = now();
 
-create table if not exists governance.data_rights_channel_status (
+create table if not exists aiphabee_governance.data_rights_channel_status (
   channel text primary key check (channel in ('web', 'mcp', 'api', 'export')),
   status text not null default 'default_deny' check (
     status in ('default_deny', 'approved', 'blocked')
@@ -38,7 +38,7 @@ create table if not exists governance.data_rights_channel_status (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.data_rights_channel_status (channel, status, source_evidence)
+insert into aiphabee_governance.data_rights_channel_status (channel, status, source_evidence)
 values
   ('web', 'default_deny', 'gate0_pending'),
   ('mcp', 'default_deny', 'gate0_pending'),

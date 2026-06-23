@@ -25,9 +25,9 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.compliance_ops_release_gate",
-  "audit.compliance_ops_drill_event",
-  "governance.compliance_ops_release_gate_contract"
+  "aiphabee_core.compliance_ops_release_gate",
+  "aiphabee_audit.compliance_ops_drill_event",
+  "aiphabee_governance.compliance_ops_release_gate_contract"
 ];
 const requiredLinkedContracts = [
   "deploy/public-ops/public-status-docs.contract.json",
@@ -397,7 +397,7 @@ function validateDatabaseTables(databaseValue) {
 
   const errors = [];
 
-  errors.push(...validateStringArray(migration.schemas, ["audit", "core", "governance"], "migration.schemas"));
+  errors.push(...validateStringArray(migration.schemas, ["aiphabee_audit", "aiphabee_core", "aiphabee_governance"], "migration.schemas"));
   errors.push(...validateStringArray(migration.tables, requiredTables, "migration.tables"));
 
   if (migration.market_data !== false) {

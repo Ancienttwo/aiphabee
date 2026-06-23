@@ -2,7 +2,7 @@
   "gate_id": "usage_event_live_write_passed",
   "status": "missing",
   "blocks": ["live_usage_writes"],
-  "required_evidence": ["core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"],
+  "required_evidence": ["aiphabee_core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"],
   "observed_at": "2026-06-22T00:00:00.000Z",
   "source_locator": "template:usage_event_live_write_passed:replace-after-evidence",
   "evidence_refs": [],

@@ -24,9 +24,9 @@ const requiredStatuses = [
   "blocked_recipient_gateway_denied"
 ];
 const requiredDatabaseTables = [
-  "core.private_share_link",
-  "audit.private_share_event",
-  "governance.private_sharing_contract"
+  "aiphabee_core.private_share_link",
+  "aiphabee_audit.private_share_event",
+  "aiphabee_governance.private_sharing_contract"
 ];
 
 let contract;

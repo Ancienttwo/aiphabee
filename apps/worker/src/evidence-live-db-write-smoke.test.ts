@@ -26,11 +26,11 @@ const pgMock = vi.hoisted(() => {
           return { rowCount: null, rows: [] };
         }
 
-        if (normalized.startsWith("insert into core.evidence_record")) {
+        if (normalized.startsWith("insert into aiphabee_core.evidence_record")) {
           return { rowCount: 1, rows: [] };
         }
 
-        if (normalized.startsWith("insert into core.evidence_source_ref")) {
+        if (normalized.startsWith("insert into aiphabee_core.evidence_source_ref")) {
           return { rowCount: 1, rows: [] };
         }
 
@@ -54,11 +54,11 @@ const pgMock = vi.hoisted(() => {
           };
         }
 
-        if (normalized.startsWith("delete from core.evidence_source_ref")) {
+        if (normalized.startsWith("delete from aiphabee_core.evidence_source_ref")) {
           return { rowCount: 1, rows: [] };
         }
 
-        if (normalized.startsWith("delete from core.evidence_record")) {
+        if (normalized.startsWith("delete from aiphabee_core.evidence_record")) {
           return { rowCount: 1, rows: [] };
         }
 
@@ -227,10 +227,10 @@ describe("Evidence live DB write smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const recordInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.evidence_record")
+      query.text.includes("insert into aiphabee_core.evidence_record")
     );
     const sourceRefInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.evidence_source_ref")
+      query.text.includes("insert into aiphabee_core.evidence_source_ref")
     );
     const rawEvidenceRecordId = String(recordInsert?.values?.[0]);
     const rawSourceRecordId = String(sourceRefInsert?.values?.[3]);
@@ -254,12 +254,12 @@ describe("Evidence live DB write smoke", () => {
     expect(pgMock.configs[0]?.connectionString).toBe("mock-hyperdrive-connection-string");
     expect(client.end).toHaveBeenCalledOnce();
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into core.evidence_record");
-    expect(normalizedQueries[2]).toContain("insert into core.evidence_source_ref");
+    expect(normalizedQueries[1]).toContain("insert into aiphabee_core.evidence_record");
+    expect(normalizedQueries[2]).toContain("insert into aiphabee_core.evidence_source_ref");
     expect(normalizedQueries[3]).toContain("select evidence_record_id, live_write_state");
     expect(normalizedQueries[4]).toContain("select count(*)::int as source_ref_count");
-    expect(normalizedQueries[5]).toContain("delete from core.evidence_source_ref");
-    expect(normalizedQueries[6]).toContain("delete from core.evidence_record");
+    expect(normalizedQueries[5]).toContain("delete from aiphabee_core.evidence_source_ref");
+    expect(normalizedQueries[6]).toContain("delete from aiphabee_core.evidence_record");
     expect(normalizedQueries[7]).toBe("commit");
     expect(serialized).not.toContain(rawEvidenceRecordId);
     expect(serialized).not.toContain(rawSourceRecordId);

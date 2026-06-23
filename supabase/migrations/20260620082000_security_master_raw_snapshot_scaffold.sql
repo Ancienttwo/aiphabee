@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.company (
+create table if not exists aiphabee_core.company (
   company_id text primary key,
   legal_name text not null,
   display_name text not null,
@@ -15,9 +15,9 @@ create table if not exists core.company (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.instrument (
+create table if not exists aiphabee_core.instrument (
   instrument_id text primary key,
-  company_id text not null references core.company(company_id),
+  company_id text not null references aiphabee_core.company(company_id),
   instrument_type text not null check (
     instrument_type in ('ordinary_share', 'etf', 'reit', 'preferred_share', 'unknown')
   ),
@@ -30,9 +30,9 @@ create table if not exists core.instrument (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.listing (
+create table if not exists aiphabee_core.listing (
   listing_id text primary key,
-  instrument_id text not null references core.instrument(instrument_id),
+  instrument_id text not null references aiphabee_core.instrument(instrument_id),
   exchange text not null,
   ticker text not null,
   currency text not null,
@@ -48,10 +48,10 @@ create table if not exists core.listing (
   check (delisted_at is null or listed_at is null or delisted_at >= listed_at)
 );
 
-create table if not exists core.identifier_history (
+create table if not exists aiphabee_core.identifier_history (
   identifier_history_id text primary key,
-  instrument_id text not null references core.instrument(instrument_id),
-  listing_id text references core.listing(listing_id),
+  instrument_id text not null references aiphabee_core.instrument(instrument_id),
+  listing_id text references aiphabee_core.listing(listing_id),
   identifier_type text not null check (
     identifier_type in ('ticker', 'isin', 'sedol', 'ric', 'bbg', 'name')
   ),
@@ -65,7 +65,7 @@ create table if not exists core.identifier_history (
   check (valid_to is null or valid_to >= valid_from)
 );
 
-create table if not exists core.raw_source_batch (
+create table if not exists aiphabee_core.raw_source_batch (
   source_batch_id text primary key,
   source_name text not null,
   source_dataset text not null,
@@ -79,9 +79,9 @@ create table if not exists core.raw_source_batch (
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.raw_snapshot (
+create table if not exists aiphabee_core.raw_snapshot (
   raw_snapshot_id text primary key,
-  source_batch_id text not null references core.raw_source_batch(source_batch_id),
+  source_batch_id text not null references aiphabee_core.raw_source_batch(source_batch_id),
   source_record_id text not null,
   record_kind text not null check (
     record_kind in ('company', 'instrument', 'listing', 'identifier_history', 'financial_fact', 'corporate_action')
@@ -99,9 +99,9 @@ create table if not exists core.raw_snapshot (
   unique (source_batch_id, source_record_id)
 );
 
-create table if not exists core.data_version_batch (
+create table if not exists aiphabee_core.data_version_batch (
   data_version text primary key,
-  source_batch_id text not null references core.raw_source_batch(source_batch_id),
+  source_batch_id text not null references aiphabee_core.raw_source_batch(source_batch_id),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_run_id text,
@@ -112,7 +112,7 @@ create table if not exists core.data_version_batch (
   )
 );
 
-create table if not exists governance.security_master_contract (
+create table if not exists aiphabee_governance.security_master_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -122,7 +122,7 @@ create table if not exists governance.security_master_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.security_master_contract (
+insert into aiphabee_governance.security_master_contract (
   contract_key,
   contract_version,
   status,

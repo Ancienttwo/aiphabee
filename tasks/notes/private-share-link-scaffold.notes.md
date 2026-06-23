@@ -15,9 +15,9 @@ released field list is the intersection of creator and recipient rights.
 - Added local contract `deploy/sharing/private-share-link.contract.json`.
 - Added `npm run check:private-sharing`.
 - Added empty DB scaffold tables:
-  - `core.private_share_link`
-  - `audit.private_share_event`
-  - `governance.private_sharing_contract`
+  - `aiphabee_core.private_share_link`
+  - `aiphabee_audit.private_share_event`
+  - `aiphabee_governance.private_sharing_contract`
 
 ## Verification Focus
 

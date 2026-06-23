@@ -18,9 +18,9 @@ and avoiding live database reads.
 ## Scope
 
 - In scope:
-  - row contracts for `core.data_entitlement`;
-  - row contracts for `core.workspace_entitlement`;
-  - row contracts for `core.workspace_subscription`;
+  - row contracts for `aiphabee_governance.data_entitlement`;
+  - row contracts for `aiphabee_governance.workspace_entitlement`;
+  - row contracts for `platform.workspace_subscription`;
   - active validity filtering;
   - billing-state filtering for subscription rows;
   - wildcard field pattern support;

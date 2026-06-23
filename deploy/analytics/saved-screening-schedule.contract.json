@@ -73,9 +73,9 @@
     "default_timezone": "Asia/Hong_Kong"
   },
   "tables": [
-    "core.saved_screening",
-    "core.saved_screening_run_schedule",
-    "core.saved_screening_run",
-    "governance.saved_screening_schedule_contract"
+    "aiphabee_core.saved_screening",
+    "aiphabee_core.saved_screening_run_schedule",
+    "aiphabee_core.saved_screening_run",
+    "aiphabee_governance.saved_screening_schedule_contract"
   ]
 }

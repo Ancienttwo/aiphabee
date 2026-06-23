@@ -18,7 +18,7 @@
   rows/credits/quality/Serving posture, but no executable per-call usage event
   and ledger-entry plan existed.
 - Due diligence:
-  - P1 map: `core.usage_*` schema, Data Access Gateway decision shape, Worker
+  - P1 map: `aiphabee_core.usage_*` schema, Data Access Gateway decision shape, Worker
     `/gateway/runtime`, ACC-04 usage/billing tracker rows.
   - P2 trace: Gateway access request -> decision usage summary -> usage event
     plan -> ledger entry preview -> runtime capability -> no live write.

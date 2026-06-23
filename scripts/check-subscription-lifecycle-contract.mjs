@@ -15,11 +15,11 @@ const requiredActions = [
 const requiredPlanCodes = ["free", "plus", "pro", "developer", "team", "enterprise"];
 const requiredBillingStates = ["trialing", "active", "grace_period", "paused", "canceled"];
 const requiredTables = [
-  "core.account",
-  "core.workspace",
-  "core.subscription_plan",
-  "core.workspace_subscription",
-  "audit.subscription_lifecycle_event"
+  "platform.account",
+  "platform.workspace",
+  "platform.subscription_plan",
+  "platform.workspace_subscription",
+  "aiphabee_audit.subscription_lifecycle_event"
 ];
 const requiredRequestFields = [
   "account_id",

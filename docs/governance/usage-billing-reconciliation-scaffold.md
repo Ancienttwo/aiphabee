@@ -20,8 +20,8 @@ ledger reads, persistent writes, SQL execution, or frontend screens.
 | Runtime route | `GET /usage/runtime` | Reports quota display capability plus nested `billing_reconciliation` readiness |
 | Planner route | `POST /usage/billing/reconciliation/plan` | Normalizes invoice snapshot + ledger entry rows and returns a standard no-write reconciliation plan |
 | Contract | `deploy/usage/billing-reconciliation.contract.json` | Guards trace fields, no frontend, no live reads, no writes, no SQL, and no billing provider calls |
-| Schema scaffold | `core.subscription_invoice`, `core.subscription_invoice_line` | Empty invoice/line tables for future billing persistence and request-level traceability |
-| Existing ledger schema | `core.usage_event`, `core.usage_ledger_entry`, `core.usage_reconciliation_batch` | Existing usage ledger rows remain the future source of billable usage truth |
+| Schema scaffold | `aiphabee_core.subscription_invoice`, `aiphabee_core.subscription_invoice_line` | Empty invoice/line tables for future billing persistence and request-level traceability |
+| Existing ledger schema | `aiphabee_core.usage_event`, `aiphabee_core.usage_ledger_entry`, `aiphabee_core.usage_reconciliation_batch` | Existing usage ledger rows remain the future source of billable usage truth |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

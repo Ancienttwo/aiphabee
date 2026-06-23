@@ -305,7 +305,7 @@ Mitigations:
   financial/announcement/cross-source/lifecycle cases.
 - [x] Quality hold workflow returns `DATA_QUALITY_HOLD` before Serving.
 - [x] Data correction workflow preserves old/new values, impact, replay,
-  notification, and audit.
+  notification, and aiphabee_audit.
 - [x] Package entitlement matrix separates Web and MCP/API entitlements.
 - [x] Weighted credits model covers light tools through event study/deep reports.
 - [x] Unit economics formula and margin targets are documented.

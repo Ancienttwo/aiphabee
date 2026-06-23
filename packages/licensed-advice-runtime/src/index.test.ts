@@ -57,10 +57,10 @@ describe("licensed advice runtime scaffold", () => {
     ]);
     expect(capability.required_controls).toContain("type4_written_opinion");
     expect(capability.tables).toEqual([
-      "core.licensed_advice_exploration",
-      "core.suitability_control_profile",
-      "audit.licensed_advice_review_event",
-      "governance.licensed_advice_exploration_contract"
+      "aiphabee_core.licensed_advice_exploration",
+      "aiphabee_core.suitability_control_profile",
+      "aiphabee_audit.licensed_advice_review_event",
+      "aiphabee_governance.licensed_advice_exploration_contract"
     ]);
   });
 

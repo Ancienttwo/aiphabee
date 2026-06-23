@@ -18,8 +18,8 @@
   executable logic proving version preservation, point-in-time selection, or
   restatement deltas.
 - Due diligence:
-  - P1 map: PRD §10.5, existing `core.financial_statement`,
-    `core.financial_fact`, `core.financial_restatement`, golden fixtures, Worker
+  - P1 map: PRD §10.5, existing `aiphabee_core.financial_statement`,
+    `aiphabee_core.financial_fact`, `aiphabee_core.financial_restatement`, golden fixtures, Worker
     `/data/runtime`.
   - P2 trace: synthetic statement versions -> timeline -> as-of selection ->
     restatement event deltas -> package tests -> Worker capability.

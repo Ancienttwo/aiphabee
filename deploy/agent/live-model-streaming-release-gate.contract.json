@@ -68,8 +68,8 @@
     ]
   },
   "tables": [
-    "core.agent_live_model_streaming_release_gate",
-    "governance.agent_live_model_streaming_release_gate_contract"
+    "aiphabee_core.agent_live_model_streaming_release_gate",
+    "aiphabee_governance.agent_live_model_streaming_release_gate_contract"
   ],
   "not_claimed": [
     "user_facing_live_model_streaming",

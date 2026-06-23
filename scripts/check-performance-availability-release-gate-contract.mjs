@@ -18,9 +18,9 @@ const requiredChecks = [
 ];
 const requiredOutputFields = ["slo_report", "release_checks", "release_gate", "validation"];
 const requiredTables = [
-  "core.performance_availability_release_gate",
-  "audit.performance_slo_drill_event",
-  "governance.performance_availability_release_gate_contract"
+  "aiphabee_core.performance_availability_release_gate",
+  "aiphabee_audit.performance_slo_drill_event",
+  "aiphabee_governance.performance_availability_release_gate_contract"
 ];
 const requiredRoutes = ["/health", "/mcp", "/agent/runs/stream", "/agent/runs/plan"];
 const requiredBlockers = [

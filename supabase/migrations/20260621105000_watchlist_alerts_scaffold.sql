@@ -1,9 +1,9 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.watchlist (
+create table if not exists aiphabee_core.watchlist (
   watchlist_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   owner_user_id text not null,
   name text not null,
   list_status text not null default 'planned' check (
@@ -14,9 +14,9 @@ create table if not exists core.watchlist (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.watchlist_item (
+create table if not exists aiphabee_core.watchlist_item (
   watchlist_item_id text primary key,
-  watchlist_id text not null references core.watchlist(watchlist_id),
+  watchlist_id text not null references aiphabee_core.watchlist(watchlist_id),
   instrument_id text,
   security_query text,
   item_status text not null default 'planned' check (
@@ -31,9 +31,9 @@ create table if not exists core.watchlist_item (
   unique (watchlist_id, security_query)
 );
 
-create table if not exists core.watchlist_alert_rule (
+create table if not exists aiphabee_core.watchlist_alert_rule (
   alert_rule_id text primary key,
-  watchlist_item_id text not null references core.watchlist_item(watchlist_item_id),
+  watchlist_item_id text not null references aiphabee_core.watchlist_item(watchlist_item_id),
   alert_kind text not null check (alert_kind in ('price', 'announcement', 'metric')),
   frequency text not null check (frequency in ('realtime', 'daily', 'weekly')),
   quiet_hours_start text,
@@ -52,9 +52,9 @@ create table if not exists core.watchlist_alert_rule (
   unique (idempotency_key)
 );
 
-create table if not exists core.watchlist_alert_event (
+create table if not exists aiphabee_core.watchlist_alert_event (
   alert_event_id text primary key,
-  alert_rule_id text not null references core.watchlist_alert_rule(alert_rule_id),
+  alert_rule_id text not null references aiphabee_core.watchlist_alert_rule(alert_rule_id),
   source_record_id text not null,
   event_status text not null default 'planned' check (
     event_status in ('planned', 'suppressed_duplicate', 'ready_to_send', 'sent', 'failed')
@@ -68,7 +68,7 @@ create table if not exists core.watchlist_alert_event (
   unique (alert_rule_id, dedupe_key, source_record_id)
 );
 
-create table if not exists governance.watchlist_alerts_contract (
+create table if not exists aiphabee_governance.watchlist_alerts_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -78,7 +78,7 @@ create table if not exists governance.watchlist_alerts_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.watchlist_alerts_contract (
+insert into aiphabee_governance.watchlist_alerts_contract (
   contract_key,
   contract_version,
   status,

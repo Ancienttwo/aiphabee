@@ -229,7 +229,7 @@ describe("evidence-lineage tool scaffolds", () => {
     expect(plan.status).toBe("planned_no_write");
     expect(plan.liveDbWrites).toBe(false);
     expect(plan.sqlEmitted).toBe(false);
-    expect(plan.tables).toEqual(["core.evidence_record", "core.evidence_source_ref"]);
+    expect(plan.tables).toEqual(["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"]);
     expect(plan.evidenceRecord).toMatchObject({
       inputSchemaId: "tool.get_financial_facts.input.v0",
       outputSchemaId: "tool.get_financial_facts.output.v0",

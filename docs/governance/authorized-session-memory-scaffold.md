@@ -19,7 +19,7 @@ answers, financial values, credentials, or render frontend settings UI.
 | Account package | `@aiphabee/account-runtime` | Owns authorized memory keys, forbidden payload classes, and no-write view/upsert/delete planning |
 | Runtime route | `GET /account/runtime` | Reports `authorized_memory` capability and no-live posture |
 | Planner route | `POST /account/authorized-memory/plan` | Normalizes memory keys/actions and returns standard envelope plan |
-| Schema scaffold | `core.authorized_session_memory`, `governance.authorized_session_memory_contract` | Empty future-persistence scaffolds only; current route does not write |
+| Schema scaffold | `aiphabee_core.authorized_session_memory`, `aiphabee_governance.authorized_session_memory_contract` | Empty future-persistence scaffolds only; current route does not write |
 | Contract gate | `deploy/account/authorized-session-memory.contract.json` | Locks allowed keys, forbidden payloads, privacy policy, and output fields |
 | Frontend | Out of scope | User-visible settings UI remains delegated |
 

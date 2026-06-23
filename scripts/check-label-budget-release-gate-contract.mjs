@@ -21,8 +21,8 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.agent_label_budget_release_gate",
-  "governance.agent_label_budget_release_gate_contract"
+  "aiphabee_core.agent_label_budget_release_gate",
+  "aiphabee_governance.agent_label_budget_release_gate_contract"
 ];
 const requiredCoveredItems = ["claim_labels_effective", "high_cost_budget_confirmation"];
 const requiredBlockers = [

@@ -12,7 +12,7 @@ upgrade, downgrade, renewal, cancellation, and grace-period lifecycle planning.
 - Planner route: `POST /account/subscription/lifecycle/plan`
 - Contract: `deploy/account/subscription-lifecycle.contract.json`
 - Checker: `npm run check:subscription-lifecycle`
-- Audit table scaffold: `audit.subscription_lifecycle_event`
+- Audit table scaffold: `aiphabee_audit.subscription_lifecycle_event`
 
 ## Required Guarantees
 
@@ -25,8 +25,8 @@ upgrade, downgrade, renewal, cancellation, and grace-period lifecycle planning.
 - Make grace-period transitions explicit and auditable.
 - Do not call a billing provider.
 - Do not emit SQL.
-- Do not write `core.workspace_subscription`.
-- Do not write `audit.subscription_lifecycle_event`.
+- Do not write `platform.workspace_subscription`.
+- Do not write `aiphabee_audit.subscription_lifecycle_event`.
 - Keep frontend UI out of scope.
 
 ## Acceptance

@@ -37,8 +37,8 @@
     "get_financial_ratios"
   ],
   "tables": [
-    "core.watchlist_briefing",
-    "core.watchlist_briefing_item"
+    "aiphabee_core.watchlist_briefing",
+    "aiphabee_core.watchlist_briefing_item"
   ],
   "covered_prd_items": [
     "RES-06",

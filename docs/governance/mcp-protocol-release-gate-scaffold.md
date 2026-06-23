@@ -13,7 +13,7 @@
 | `GET /mcp/runtime` | Worker runtime surface | Publishes protocol release gate capability, route, version, and required checks |
 | `GET /mcp/compatibility/status` | MCP compatibility surface | Supplies local compatibility vectors and target protocol metadata |
 | `POST /mcp/release-gates/protocol/plan` | Release gate route | Combines existing MCP plans into Sprint 3.3 protocol validation evidence |
-| `core.mcp_protocol_release_gate`, `governance.mcp_protocol_release_gate_contract` | Future persistence | Empty no-live schema scaffolds for release-gate evidence |
+| `aiphabee_core.mcp_protocol_release_gate`, `aiphabee_governance.mcp_protocol_release_gate_contract` | Future persistence | Empty no-live schema scaffolds for release-gate evidence |
 
 Out of scope for this slice:
 

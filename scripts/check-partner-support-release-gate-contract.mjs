@@ -24,9 +24,9 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.partner_support_release_gate",
-  "audit.partner_support_drill_event",
-  "governance.partner_support_release_gate_contract"
+  "aiphabee_core.partner_support_release_gate",
+  "aiphabee_audit.partner_support_drill_event",
+  "aiphabee_governance.partner_support_release_gate_contract"
 ];
 const requiredLinkedContracts = [
   "deploy/usage/partner-reconciliation-report.contract.json",

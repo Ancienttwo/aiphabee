@@ -7,7 +7,7 @@ This readiness gate closes DAT-05 for repo-local runtime acceptance by joining a
 ## Boundary
 
 - Partner matrix rows cover the PRD §14.1 dimensions as fixture metadata.
-- DB policy rows use `core.data_entitlement`, `core.workspace_entitlement`, and `core.workspace_subscription` row snapshots.
+- DB policy rows use `aiphabee_governance.data_entitlement`, `aiphabee_governance.workspace_entitlement`, and `platform.workspace_subscription` row snapshots.
 - The compiled policy is evaluated through `evaluateDataAccessRequest()`.
 - Runtime smoke covers workspace, plan, channel, dataset, field, time range, export, blocked precedence, and versioned cache key behavior.
 - `/gateway/runtime` exposes `field_entitlement_enforcement.live_policy_source_readiness`.

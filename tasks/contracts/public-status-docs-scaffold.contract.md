@@ -19,9 +19,9 @@ documentation, privacy policy, and terms publication surfaces.
   - `docs/public/privacy.md`
   - `docs/public/terms.md`
 - Schema scaffolds:
-  - `core.public_status_component`
-  - `core.public_document_publication`
-  - `governance.public_operations_contract`
+  - `aiphabee_core.public_status_component`
+  - `aiphabee_core.public_document_publication`
+  - `aiphabee_governance.public_operations_contract`
 
 ## Required Guarantees
 

@@ -20,9 +20,9 @@ const requiredOutputs = [
   "validation"
 ];
 const requiredTables = [
-  "core.data_correction_event",
-  "core.research_run_correction_impact",
-  "core.user_notification"
+  "aiphabee_core.data_correction_event",
+  "aiphabee_core.research_run_correction_impact",
+  "aiphabee_core.user_notification"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

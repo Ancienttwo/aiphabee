@@ -215,7 +215,7 @@ export interface EvidenceRecordPlan {
   sourceRefs: EvidenceSourceRefPlan[];
   sqlEmitted: false;
   status: EvidenceRecordPlanStatus;
-  tables: readonly ["core.evidence_record", "core.evidence_source_ref"];
+  tables: readonly ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"];
   usage: UsageSummary;
   version: typeof EVIDENCE_LINEAGE_SERVICE_VERSION;
 }
@@ -777,7 +777,7 @@ export function createEvidenceRecordPlan(
     sourceRefs,
     sqlEmitted: false,
     status: "planned_no_write",
-    tables: ["core.evidence_record", "core.evidence_source_ref"],
+    tables: ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"],
     usage: createUsage(sourceRefs.length, 1),
     version: EVIDENCE_LINEAGE_SERVICE_VERSION
   };
@@ -793,7 +793,7 @@ export function getEvidenceServiceCapabilities() {
     no_sql_execution: true,
     source_record_linking: true,
     status: "evidence_lineage_service_scaffold" as const,
-    tables: ["core.evidence_record", "core.evidence_source_ref"] as const,
+    tables: ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"] as const,
     tool_call_linking: true,
     user_visible_citations: true,
     version: EVIDENCE_LINEAGE_SERVICE_VERSION

@@ -167,9 +167,9 @@ export interface EntitlementPolicySourcePlan {
   sqlEmitted: false;
   status: "policy_source_scaffold";
   tables: readonly [
-    "core.data_entitlement",
-    "core.workspace_entitlement",
-    "core.workspace_subscription"
+    "aiphabee_governance.data_entitlement",
+    "aiphabee_governance.workspace_entitlement",
+    "platform.workspace_subscription"
   ];
   version: typeof DATA_ACCESS_GATEWAY_VERSION;
 }
@@ -257,7 +257,7 @@ export interface FieldAuthorizationConfigChangePlan {
     approved_by?: string;
     required: true;
     status: FieldAuthorizationApprovalStatus;
-    table: "audit.field_authorization_approval";
+    table: "aiphabee_audit.field_authorization_approval";
     write_status: "planned_no_write";
   };
   change: {
@@ -274,7 +274,7 @@ export interface FieldAuthorizationConfigChangePlan {
     policy_version: string;
     reason?: string;
     target_status: DataAccessFieldStatus;
-    table: "core.field_authorization_change";
+    table: "aiphabee_core.field_authorization_change";
     workspace_id?: string;
     write_status: "planned_no_write";
   };
@@ -295,7 +295,7 @@ export interface FieldAuthorizationConfigChangePlan {
       rights_policy_version: string;
       source_record_id: string;
       status: DataAccessFieldStatus;
-      table: "core.data_entitlement";
+      table: "aiphabee_governance.data_entitlement";
       time_range_days?: number;
     };
     versioned_cache_key_required: true;
@@ -303,7 +303,7 @@ export interface FieldAuthorizationConfigChangePlan {
       entitlement_id: string;
       source_record_id: string;
       status: DataAccessFieldStatus;
-      table: "core.workspace_entitlement";
+      table: "aiphabee_governance.workspace_entitlement";
       valid_from: string;
       valid_to?: string;
       workspace_entitlement_id: string;
@@ -314,11 +314,11 @@ export interface FieldAuthorizationConfigChangePlan {
   sql_emitted: false;
   status: FieldAuthorizationConfigStatus;
   tables: readonly [
-    "core.data_entitlement",
-    "core.workspace_entitlement",
-    "core.field_authorization_change",
-    "audit.field_authorization_approval",
-    "governance.field_authorization_config_contract"
+    "aiphabee_governance.data_entitlement",
+    "aiphabee_governance.workspace_entitlement",
+    "aiphabee_core.field_authorization_change",
+    "aiphabee_audit.field_authorization_approval",
+    "aiphabee_governance.field_authorization_config_contract"
   ];
   validation: {
     approval_required: true;
@@ -345,7 +345,7 @@ export interface P0RightsMatrixCoverageCapabilities {
   runtime_route: "GET /gateway/runtime";
   sql_emitted: false;
   status: "p0_rights_matrix_coverage_scaffold";
-  tables: readonly ["core.p0_rights_matrix_entry", "governance.p0_rights_matrix_contract"];
+  tables: readonly ["aiphabee_core.p0_rights_matrix_entry", "aiphabee_governance.p0_rights_matrix_contract"];
   version: typeof P0_RIGHTS_MATRIX_COVERAGE_VERSION;
   web_authorization_configured: true;
 }
@@ -403,8 +403,8 @@ export interface DataCoverageReleaseGateCapabilities {
   sql_emitted: false;
   status: "data_coverage_release_gate_scaffold";
   tables: readonly [
-    "core.data_coverage_release_gate",
-    "governance.data_coverage_release_gate_contract"
+    "aiphabee_core.data_coverage_release_gate",
+    "aiphabee_governance.data_coverage_release_gate_contract"
   ];
   version: typeof DATA_COVERAGE_RELEASE_GATE_VERSION;
 }
@@ -563,10 +563,10 @@ export interface ServingQualityLiveReadinessCapabilities {
   sql_executed: false;
   status: "serving_quality_live_readiness_scaffold";
   tables: readonly [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ];
   validates_gateway_quality_hold: true;
   validates_release_isolation: true;
@@ -764,20 +764,20 @@ export const DEFAULT_DATA_ACCESS_POLICY: DataAccessPolicy = {
 };
 
 const FIELD_AUTHORIZATION_CONFIG_TABLES: FieldAuthorizationConfigChangePlan["tables"] = [
-  "core.data_entitlement",
-  "core.workspace_entitlement",
-  "core.field_authorization_change",
-  "audit.field_authorization_approval",
-  "governance.field_authorization_config_contract"
+  "aiphabee_governance.data_entitlement",
+  "aiphabee_governance.workspace_entitlement",
+  "aiphabee_core.field_authorization_change",
+  "aiphabee_audit.field_authorization_approval",
+  "aiphabee_governance.field_authorization_config_contract"
 ];
 const P0_RIGHTS_MATRIX_COVERAGE_TABLES: P0RightsMatrixCoverageCapabilities["tables"] = [
-  "core.p0_rights_matrix_entry",
-  "governance.p0_rights_matrix_contract"
+  "aiphabee_core.p0_rights_matrix_entry",
+  "aiphabee_governance.p0_rights_matrix_contract"
 ];
 const P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT = 23;
 const DATA_COVERAGE_RELEASE_GATE_TABLES: DataCoverageReleaseGateCapabilities["tables"] = [
-  "core.data_coverage_release_gate",
-  "governance.data_coverage_release_gate_contract"
+  "aiphabee_core.data_coverage_release_gate",
+  "aiphabee_governance.data_coverage_release_gate_contract"
 ];
 const FIELD_RIGHTS_LIVE_POLICY_REQUIRED_DIMENSIONS = [
   "workspace",
@@ -797,10 +797,10 @@ const FIELD_RIGHTS_EXTERNAL_ACTIVATION_BLOCKERS: FieldRightsLivePolicySourceRepo
 const SERVING_QUALITY_REQUIRED_STATES: ServingQualityLiveReadinessCapabilities["required_quality_states"] =
   ["PASS", "WARN", "HOLD", "REJECT_RAW"];
 const SERVING_QUALITY_LIVE_READINESS_TABLES: ServingQualityLiveReadinessCapabilities["tables"] = [
-  "core.serving_dataset",
-  "core.serving_field",
-  "core.serving_snapshot",
-  "core.serving_record"
+  "aiphabee_core.serving_dataset",
+  "aiphabee_core.serving_field",
+  "aiphabee_core.serving_snapshot",
+  "aiphabee_core.serving_record"
 ];
 const SERVING_QUALITY_ACTIVATION_BLOCKERS: ServingQualityLiveReadinessReport["activation"]["blockers"] =
   [
@@ -861,7 +861,7 @@ const DATA_COVERAGE_DOMAIN_COVERAGE: DataCoverageReleaseGateReport["coverage_dom
     evidence_surfaces: ["get_corporate_actions", "corporate_action_adjustment_engine"],
     live_partner_rows_loaded: false,
     status: "scaffold_covered_no_live_partner_rows",
-    tables: ["core.corporate_action", "core.price_adjustment_factor"]
+    tables: ["aiphabee_core.corporate_action", "aiphabee_core.price_adjustment_factor"]
   },
   {
     blocks_release_until_verified: true,
@@ -870,7 +870,7 @@ const DATA_COVERAGE_DOMAIN_COVERAGE: DataCoverageReleaseGateReport["coverage_dom
     evidence_surfaces: ["get_financial_facts", "financial_restatement_engine"],
     live_partner_rows_loaded: false,
     status: "scaffold_covered_no_live_partner_rows",
-    tables: ["core.financial_statement", "core.financial_fact", "core.financial_restatement"]
+    tables: ["aiphabee_core.financial_statement", "aiphabee_core.financial_fact", "aiphabee_core.financial_restatement"]
   },
   {
     blocks_release_until_verified: true,
@@ -879,7 +879,7 @@ const DATA_COVERAGE_DOMAIN_COVERAGE: DataCoverageReleaseGateReport["coverage_dom
     evidence_surfaces: ["resolve_security", "get_security_profile", "get_security_history"],
     live_partner_rows_loaded: false,
     status: "scaffold_covered_no_live_partner_rows",
-    tables: ["core.security_master", "core.listing", "core.identifier_history"]
+    tables: ["aiphabee_core.security_master", "aiphabee_core.listing", "aiphabee_core.identifier_history"]
   },
   {
     blocks_release_until_verified: true,
@@ -888,7 +888,7 @@ const DATA_COVERAGE_DOMAIN_COVERAGE: DataCoverageReleaseGateReport["coverage_dom
     evidence_surfaces: ["resolve_security", "get_security_history"],
     live_partner_rows_loaded: false,
     status: "scaffold_covered_no_live_partner_rows",
-    tables: ["core.identifier_history", "core.security_name_history"]
+    tables: ["aiphabee_core.identifier_history", "aiphabee_core.security_name_history"]
   }
 ];
 const P0_RIGHTS_MATRIX_DATASET_FIELDS: P0RightsMatrixCoverageReport["dataset_field_coverage"] = [
@@ -1726,9 +1726,9 @@ export function createPolicyFromEntitlementRows(
     sqlEmitted: false,
     status: "policy_source_scaffold",
     tables: [
-      "core.data_entitlement",
-      "core.workspace_entitlement",
-      "core.workspace_subscription"
+      "aiphabee_governance.data_entitlement",
+      "aiphabee_governance.workspace_entitlement",
+      "platform.workspace_subscription"
     ],
     version: DATA_ACCESS_GATEWAY_VERSION
   };
@@ -1780,7 +1780,7 @@ export function createFieldAuthorizationConfigChangePlan(
           entitlement_id: entitlementId,
           source_record_id: changeId,
           status: targetStatus,
-          table: "core.workspace_entitlement" as const,
+          table: "aiphabee_governance.workspace_entitlement" as const,
           valid_from: effectiveAt,
           valid_to: input.expiresAt,
           workspace_entitlement_id: `workspace_entitlement_${sanitizeForId(
@@ -1795,7 +1795,7 @@ export function createFieldAuthorizationConfigChangePlan(
       approved_by: input.approvedBy,
       required: true,
       status: approvalStatus,
-      table: "audit.field_authorization_approval",
+      table: "aiphabee_audit.field_authorization_approval",
       write_status: "planned_no_write"
     },
     change: {
@@ -1812,7 +1812,7 @@ export function createFieldAuthorizationConfigChangePlan(
       policy_version: policyVersion,
       reason: input.reason,
       target_status: targetStatus,
-      table: "core.field_authorization_change",
+      table: "aiphabee_core.field_authorization_change",
       workspace_id: input.workspaceId,
       write_status: "planned_no_write"
     },
@@ -1833,7 +1833,7 @@ export function createFieldAuthorizationConfigChangePlan(
         rights_policy_version: policyVersion,
         source_record_id: changeId,
         status: targetStatus,
-        table: "core.data_entitlement",
+        table: "aiphabee_governance.data_entitlement",
         time_range_days: input.maxWindowDays
       },
       versioned_cache_key_required: true,
@@ -2272,9 +2272,9 @@ export function getEntitlementPolicySourceCapabilities() {
     live_db_reads: false,
     partner_rights_matrix_loaded: false,
     source_tables: [
-      "core.data_entitlement",
-      "core.workspace_entitlement",
-      "core.workspace_subscription"
+      "aiphabee_governance.data_entitlement",
+      "aiphabee_governance.workspace_entitlement",
+      "platform.workspace_subscription"
     ] as const,
     sql_emitted: false,
     status: "policy_source_scaffold" as const,

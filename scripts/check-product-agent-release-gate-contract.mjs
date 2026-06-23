@@ -22,8 +22,8 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.product_agent_release_gate",
-  "governance.product_agent_release_gate_contract"
+  "aiphabee_core.product_agent_release_gate",
+  "aiphabee_governance.product_agent_release_gate_contract"
 ];
 const requiredAllowedNumericSources = ["tool_result", "deterministic_calculation"];
 const requiredBlockedNumericSources = [

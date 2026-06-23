@@ -19,7 +19,7 @@ frontend export UI.
 | Gateway package | `@aiphabee/data-access-gateway` | Owns restricted export planner and synthetic export policy |
 | Runtime route | `GET /gateway/runtime` | Reports `restricted_exports` capability and no-live posture |
 | Planner route | `POST /gateway/exports/plan` | Checks `exports.read`, evaluates `channel=export`, and returns a standard envelope plan |
-| Schema scaffold | `core.restricted_export_request`, `audit.restricted_export_event`, `governance.restricted_export_contract` | Empty future-live scaffolds only; current route does not write |
+| Schema scaffold | `aiphabee_core.restricted_export_request`, `aiphabee_audit.restricted_export_event`, `aiphabee_governance.restricted_export_contract` | Empty future-live scaffolds only; current route does not write |
 | Contract gate | `deploy/gateway/restricted-exports.contract.json` | Locks formats, required scope, watermark fields, error codes, and DB tables |
 | Frontend / R2 | Out of scope | No export UI and no artifact writes |
 

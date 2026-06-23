@@ -70,9 +70,9 @@ export interface SupportOperationsCapabilities {
   support_help_topics: typeof SUPPORT_HELP_TOPIC_CODES;
   support_lookup_fields: typeof SUPPORT_INVESTIGATION_ALLOWED_FIELDS;
   tables: readonly [
-    "core.support_ticket",
-    "audit.support_investigation_event",
-    "governance.support_request_id_contract"
+    "aiphabee_core.support_ticket",
+    "aiphabee_audit.support_investigation_event",
+    "aiphabee_governance.support_request_id_contract"
   ];
   version: typeof SUPPORT_OPERATIONS_VERSION;
 }
@@ -119,7 +119,7 @@ export interface SupportRequestIdInvestigationPlan {
     audit_event: "support.request_id_investigation.plan";
     audit_event_ref: string;
     support_agent_id: string;
-    table: "audit.support_investigation_event";
+    table: "aiphabee_audit.support_investigation_event";
     write_status: "planned_no_write";
   };
   help_center: {
@@ -160,7 +160,7 @@ export interface SupportRequestIdInvestigationPlan {
   support_ticket: {
     reason: string;
     support_ticket_ref: string;
-    table: "core.support_ticket";
+    table: "aiphabee_core.support_ticket";
     ticket_status: "blocked" | "planned_no_write";
     workspace_id: string;
   };
@@ -175,9 +175,9 @@ export interface SupportRequestIdInvestigationPlan {
 }
 
 const SUPPORT_OPERATIONS_TABLES: SupportOperationsCapabilities["tables"] = [
-  "core.support_ticket",
-  "audit.support_investigation_event",
-  "governance.support_request_id_contract"
+  "aiphabee_core.support_ticket",
+  "aiphabee_audit.support_investigation_event",
+  "aiphabee_governance.support_request_id_contract"
 ];
 
 const SUPPORT_HELP_TOPICS: SupportHelpCenter["help_topics"] = [
@@ -288,7 +288,7 @@ export function createSupportRequestIdInvestigationPlan(
         targetRequestId
       )}`,
       support_agent_id: supportAgentId,
-      table: "audit.support_investigation_event",
+      table: "aiphabee_audit.support_investigation_event",
       write_status: "planned_no_write"
     },
     help_center: {
@@ -329,7 +329,7 @@ export function createSupportRequestIdInvestigationPlan(
     support_ticket: {
       reason: normalizeIdentifier(input.reason, "reason_unresolved"),
       support_ticket_ref: `support_ticket_${sanitizeForId(targetRequestId)}`,
-      table: "core.support_ticket",
+      table: "aiphabee_core.support_ticket",
       ticket_status: status === "planned_no_write" ? "planned_no_write" : "blocked",
       workspace_id: workspaceId
     },

@@ -16,8 +16,8 @@
 - Routing reason: corporate-action storage schema exists, but there is no
   executable method-versioned adjustment logic or synthetic golden parity check.
 - Due diligence:
-  - P1 map: PRD §10.4 adjustment methodology, existing `core.corporate_action`
-    and `core.price_adjustment_factor` schema, golden fixture gate, Worker
+  - P1 map: PRD §10.4 adjustment methodology, existing `aiphabee_core.corporate_action`
+    and `aiphabee_core.price_adjustment_factor` schema, golden fixture gate, Worker
     `/data/runtime`.
   - P2 trace: synthetic price bars + actions -> adjustment factors -> adjusted
     observations -> package tests -> Worker capability.

@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.task_replay_mode_release_gate (
+create table if not exists aiphabee_core.task_replay_mode_release_gate (
   gate_id text primary key,
   request_id text not null,
   task_id_visible boolean not null default true check (
@@ -16,8 +16,8 @@ create table if not exists core.task_replay_mode_release_gate (
   disconnect_safe boolean not null default true check (
     disconnect_safe = true
   ),
-  checkpoint_table text not null default 'core.workflow_task_checkpoint' check (
-    checkpoint_table = 'core.workflow_task_checkpoint'
+  checkpoint_table text not null default 'aiphabee_core.workflow_task_checkpoint' check (
+    checkpoint_table = 'aiphabee_core.workflow_task_checkpoint'
   ),
   deterministic_replay_seed_required boolean not null default true check (
     deterministic_replay_seed_required = true
@@ -64,7 +64,7 @@ create table if not exists core.task_replay_mode_release_gate (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.task_replay_mode_release_gate_contract (
+create table if not exists aiphabee_governance.task_replay_mode_release_gate_contract (
   contract_name text not null default 'task_replay_mode_release_gate',
   contract_version text not null default '2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0',
   runtime_route text not null default 'GET /agent/runtime',

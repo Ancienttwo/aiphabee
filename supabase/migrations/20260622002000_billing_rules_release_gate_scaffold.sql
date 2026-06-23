@@ -1,8 +1,8 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.billing_rules_release_gate (
+create table if not exists aiphabee_core.billing_rules_release_gate (
   gate_ref text primary key,
   request_id text not null,
   runtime_route text not null default 'GET /usage/runtime' check (
@@ -88,7 +88,7 @@ create table if not exists core.billing_rules_release_gate (
   created_at timestamptz not null default now()
 );
 
-create table if not exists audit.billing_rules_drill_event (
+create table if not exists aiphabee_audit.billing_rules_drill_event (
   drill_event_ref text primary key,
   request_id text not null,
   drill_kind text not null check (
@@ -107,7 +107,7 @@ create table if not exists audit.billing_rules_drill_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.billing_rules_release_gate_contract (
+create table if not exists aiphabee_governance.billing_rules_release_gate_contract (
   contract_name text not null default 'billing_rules_release_gate',
   contract_version text not null default '2026-06-22.phase3.billing-rules-release-gate-scaffold.v0',
   runtime_route text not null default 'GET /usage/runtime',

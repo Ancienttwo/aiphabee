@@ -58,10 +58,10 @@ const linkedContracts = [
   "deploy/gateway/access.contract.json"
 ];
 const requiredTables = [
-  "core.data_entitlement",
-  "core.workspace_entitlement",
-  "core.workspace_subscription",
-  "core.p0_rights_matrix_entry"
+  "aiphabee_governance.data_entitlement",
+  "aiphabee_governance.workspace_entitlement",
+  "platform.workspace_subscription",
+  "aiphabee_core.p0_rights_matrix_entry"
 ];
 const forbiddenTextPatterns = [
   /(?:^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{10,}/u,

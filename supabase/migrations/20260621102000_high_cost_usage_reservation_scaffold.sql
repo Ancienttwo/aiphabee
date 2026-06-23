@@ -1,16 +1,16 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.usage_credit_reservation (
+create table if not exists aiphabee_core.usage_credit_reservation (
   reservation_id text primary key,
   request_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
-  subscription_id text not null references core.workspace_subscription(subscription_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  subscription_id text not null references platform.workspace_subscription(subscription_id),
   task_id text not null,
   tool_name text not null,
   estimated_credits numeric not null check (estimated_credits >= 0),
-  pre_debit_ledger_entry_id text references core.usage_ledger_entry(ledger_entry_id),
-  refund_ledger_entry_id text references core.usage_ledger_entry(ledger_entry_id),
+  pre_debit_ledger_entry_id text references aiphabee_core.usage_ledger_entry(ledger_entry_id),
+  refund_ledger_entry_id text references aiphabee_core.usage_ledger_entry(ledger_entry_id),
   reservation_status text not null default 'planned' check (
     reservation_status in (
       'planned',
@@ -31,7 +31,7 @@ create table if not exists core.usage_credit_reservation (
   unique (request_id, task_id)
 );
 
-create table if not exists governance.high_cost_usage_reservation_contract (
+create table if not exists aiphabee_governance.high_cost_usage_reservation_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -41,7 +41,7 @@ create table if not exists governance.high_cost_usage_reservation_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.high_cost_usage_reservation_contract (
+insert into aiphabee_governance.high_cost_usage_reservation_contract (
   contract_key,
   contract_version,
   status,

@@ -20,7 +20,7 @@ estimate plus user confirmation before enqueue.
 | High-cost planner | `POST /analytics/high-cost/plan` | Produces deterministic credit estimate, queue decision, and confirmation gate |
 | Usage reservation | `POST /usage/high-cost/reservation/plan` | Produces pre-debit, failure-refund, and idempotency no-write plan |
 | Contract | `deploy/agent/label-budget-release-gate.contract.json` | Guards label requirements, high-cost budget policy, linked contracts, and blockers |
-| Schema scaffold | `core.agent_label_budget_release_gate`, `governance.agent_label_budget_release_gate_contract` | Empty future persistence tables |
+| Schema scaffold | `aiphabee_core.agent_label_budget_release_gate`, `aiphabee_governance.agent_label_budget_release_gate_contract` | Empty future persistence tables |
 | Explicitly absent | Generated-answer label parser, frontend budget confirmation UI, live high-cost queue execution | Remain blocked or delegated |
 
 ## P2 Concrete Trace

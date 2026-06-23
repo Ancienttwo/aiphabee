@@ -18,8 +18,8 @@
   entitlement schemas exist, but there was no executable contract for compiling
   entitlement rows into a Gateway policy.
 - Due diligence:
-  - P1 map: `core.data_entitlement`, `core.workspace_entitlement`,
-    `core.workspace_subscription`, `DataAccessPolicy`, Worker
+  - P1 map: `aiphabee_governance.data_entitlement`, `aiphabee_governance.workspace_entitlement`,
+    `platform.workspace_subscription`, `DataAccessPolicy`, Worker
     `/gateway/runtime`, and Gateway contract guard manifest.
   - P2 trace: entitlement rows -> active subscription/workspace filtering ->
     field/entitlement policies -> Gateway evaluator -> no live DB read.

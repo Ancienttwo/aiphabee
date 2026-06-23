@@ -11,7 +11,7 @@
     "name": "x-aiphabee-smoke",
     "value": "evidence-lineage-live-db-v1"
   },
-  "tables": ["core.evidence_record", "core.evidence_source_ref"],
+  "tables": ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"],
   "sample_tool_name": "get_quote_snapshot",
   "default_rights_status": "default_deny",
   "live_db_writes": true,

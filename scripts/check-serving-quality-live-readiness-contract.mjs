@@ -30,10 +30,10 @@ const activationBlockers = [
 ];
 const requiredSignoffs = ["data_engineering", "data_partner", "quality_owner"];
 const requiredTables = [
-  "core.serving_dataset",
-  "core.serving_field",
-  "core.serving_snapshot",
-  "core.serving_record"
+  "aiphabee_core.serving_dataset",
+  "aiphabee_core.serving_field",
+  "aiphabee_core.serving_snapshot",
+  "aiphabee_core.serving_record"
 ];
 const linkedContracts = [
   "deploy/gateway/access.contract.json",

@@ -49,8 +49,8 @@
     ]
   },
   "tables": [
-    "core.prompt_injection_tool_denial_release_gate",
-    "governance.prompt_injection_tool_denial_release_gate_contract"
+    "aiphabee_core.prompt_injection_tool_denial_release_gate",
+    "aiphabee_governance.prompt_injection_tool_denial_release_gate_contract"
   ],
   "covered_sprint_3_3_items": [
     "prompt_injection_tests_pass",

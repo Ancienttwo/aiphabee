@@ -26,7 +26,7 @@ writes, billing provider posting, or frontend behavior.
 - Out of scope:
   - loading partner Serving rows;
   - enabling Hyperdrive SQL execution;
-  - writing `core.usage_event` or `core.usage_ledger_entry`;
+  - writing `aiphabee_core.usage_event` or `aiphabee_core.usage_ledger_entry`;
   - posting billing reconciliation;
   - frontend changes.
 

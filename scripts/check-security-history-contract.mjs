@@ -23,10 +23,10 @@ const requiredHistoryFields = [
   "coverage"
 ];
 const requiredDatabaseTables = [
-  "core.security_name_history",
-  "core.security_industry_history",
-  "core.index_constituent_history",
-  "governance.security_history_contract"
+  "aiphabee_core.security_name_history",
+  "aiphabee_core.security_industry_history",
+  "aiphabee_core.index_constituent_history",
+  "aiphabee_governance.security_history_contract"
 ];
 const requiredFixtureCases = [
   "historical_name",

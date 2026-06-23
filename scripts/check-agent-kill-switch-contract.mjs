@@ -49,8 +49,8 @@ const requiredDegradationModes = [
 ];
 const requiredTargets = ["model", "tool", "all", "none"];
 const requiredTables = [
-  "core.agent_kill_switch_state",
-  "governance.agent_kill_switch_contract"
+  "aiphabee_core.agent_kill_switch_state",
+  "aiphabee_governance.agent_kill_switch_contract"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

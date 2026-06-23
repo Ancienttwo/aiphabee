@@ -29,7 +29,7 @@
   "audit": {
     "required": true,
     "audit_event": "account.enterprise_controls.plan",
-    "event_table": "audit.enterprise_admin_event",
+    "event_table": "aiphabee_audit.enterprise_admin_event",
     "raw_payload_stored": false
   },
   "security_contract": {
@@ -41,11 +41,11 @@
     "default_deny_until_approved": true
   },
   "tables": [
-    "core.enterprise_seat_assignment",
-    "core.enterprise_sso_config",
-    "audit.enterprise_admin_event",
-    "core.private_data_connector",
-    "governance.enterprise_controls_contract"
+    "aiphabee_core.enterprise_seat_assignment",
+    "aiphabee_core.enterprise_sso_config",
+    "aiphabee_audit.enterprise_admin_event",
+    "aiphabee_core.private_data_connector",
+    "aiphabee_governance.enterprise_controls_contract"
   ],
   "required_output_fields": [
     "account",

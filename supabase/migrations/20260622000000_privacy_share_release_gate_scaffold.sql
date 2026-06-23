@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.privacy_share_release_gate (
+create table if not exists aiphabee_core.privacy_share_release_gate (
   gate_ref text primary key,
   request_id text not null,
   runtime_route text not null default 'GET /sharing/runtime' check (
@@ -75,7 +75,7 @@ create table if not exists core.privacy_share_release_gate (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.privacy_share_release_gate_contract (
+create table if not exists aiphabee_governance.privacy_share_release_gate_contract (
   contract_name text not null default 'privacy_share_release_gate',
   contract_version text not null default '2026-06-22.phase3.privacy-share-release-gate-scaffold.v0',
   runtime_route text not null default 'GET /sharing/runtime',

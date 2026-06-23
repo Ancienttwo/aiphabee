@@ -12,7 +12,7 @@ lifecycle planning.
 - `POST /account/subscription/lifecycle/plan` returns deterministic no-write
   plans for upgrade, downgrade, renewal, cancellation, grace-period entry, and
   grace-period exit.
-- `audit.subscription_lifecycle_event` exists as an empty schema scaffold for
+- `aiphabee_audit.subscription_lifecycle_event` exists as an empty schema scaffold for
   future persistence.
 - The local contract checker verifies supported actions, plan codes, billing
   states, audit event naming, no provider calls, no SQL, no writes, and database

@@ -35,10 +35,10 @@ const requiredDataScopes = [
   "analytics_results"
 ];
 const requiredTables = [
-  "core.partner_program",
-  "core.partner_embed_surface",
-  "audit.partner_distribution_event",
-  "governance.partner_white_label_contract"
+  "aiphabee_core.partner_program",
+  "aiphabee_core.partner_embed_surface",
+  "aiphabee_audit.partner_distribution_event",
+  "aiphabee_governance.partner_white_label_contract"
 ];
 const requiredOutputFields = [
   "partner",
@@ -316,10 +316,10 @@ function validateMigrationText(value) {
   const errors = [];
 
   for (const token of [
-    "create table if not exists core.partner_program",
-    "create table if not exists core.partner_embed_surface",
-    "create table if not exists audit.partner_distribution_event",
-    "create table if not exists governance.partner_white_label_contract",
+    "create table if not exists aiphabee_core.partner_program",
+    "create table if not exists aiphabee_core.partner_embed_surface",
+    "create table if not exists aiphabee_audit.partner_distribution_event",
+    "create table if not exists aiphabee_governance.partner_white_label_contract",
     "default 'default_deny'",
     "external_redistribution_allowed boolean not null default false",
     "script_bundle_generated boolean not null default false",

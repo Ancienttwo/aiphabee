@@ -69,9 +69,9 @@ export const COMPLIANCE_OPS_RELEASE_GATE_CHECKS = [
   "public_status_incident_disclosure_surface_present"
 ] as const;
 export const COMPLIANCE_OPS_RELEASE_GATE_TABLES = [
-  "core.compliance_ops_release_gate",
-  "audit.compliance_ops_drill_event",
-  "governance.compliance_ops_release_gate_contract"
+  "aiphabee_core.compliance_ops_release_gate",
+  "aiphabee_audit.compliance_ops_drill_event",
+  "aiphabee_governance.compliance_ops_release_gate_contract"
 ] as const;
 export const PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS = [
   "public_status_page_scaffold_published",
@@ -82,9 +82,9 @@ export const PUBLICATION_ECONOMICS_RELEASE_GATE_CHECKS = [
   "live_publication_and_finance_writes_blocked"
 ] as const;
 export const PUBLICATION_ECONOMICS_RELEASE_GATE_TABLES = [
-  "core.publication_economics_release_gate",
-  "audit.publication_economics_drill_event",
-  "governance.publication_economics_release_gate_contract"
+  "aiphabee_core.publication_economics_release_gate",
+  "aiphabee_audit.publication_economics_drill_event",
+  "aiphabee_governance.publication_economics_release_gate_contract"
 ] as const;
 
 export type PublicDocumentKind = (typeof PUBLIC_DOCUMENT_KINDS)[number];
@@ -157,9 +157,9 @@ export interface PublicOperationsCapabilities {
   status_components: typeof PUBLIC_STATUS_COMPONENTS;
   status_route: "GET /public/status";
   tables: readonly [
-    "core.public_status_component",
-    "core.public_document_publication",
-    "governance.public_operations_contract"
+    "aiphabee_core.public_status_component",
+    "aiphabee_core.public_document_publication",
+    "aiphabee_governance.public_operations_contract"
   ];
   version: typeof PUBLIC_OPERATIONS_VERSION;
 }
@@ -428,9 +428,9 @@ export interface PublicDocsManifest {
 }
 
 const PUBLIC_OPERATIONS_TABLES: PublicOperationsCapabilities["tables"] = [
-  "core.public_status_component",
-  "core.public_document_publication",
-  "governance.public_operations_contract"
+  "aiphabee_core.public_status_component",
+  "aiphabee_core.public_document_publication",
+  "aiphabee_governance.public_operations_contract"
 ];
 
 const PUBLIC_DOCUMENTS: PublicDocsManifest["documents"] = [

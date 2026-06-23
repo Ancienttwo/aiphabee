@@ -18,7 +18,7 @@ corporate-action rows, or prove external benchmark parity.
 |---|---|---|
 | Engine package | `packages/corporate-actions` | Deterministic adjustment logic and synthetic golden cases |
 | Worker runtime route | `GET /data/runtime` | Reports engine capability and golden case status |
-| Schema target | `core.corporate_action`, `core.price_adjustment_factor` | Existing storage scaffold; not read by this slice |
+| Schema target | `aiphabee_core.corporate_action`, `aiphabee_core.price_adjustment_factor` | Existing storage scaffold; not read by this slice |
 | Golden cases | package tests | Split, consolidation, and cash dividend cases |
 | Live partner data | Absent | No partner rows, raw bars, benchmark comparison, or Serving reads |
 

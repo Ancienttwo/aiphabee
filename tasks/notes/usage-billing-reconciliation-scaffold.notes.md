@@ -12,7 +12,7 @@ usage-ledger reconciliation and request-level traceability.
 - `POST /usage/billing/reconciliation/plan` returns deterministic no-write
   reconciliation plans with invoice fields, invoice line fields, consistency
   status, and request-ID traceability.
-- `core.subscription_invoice` and `core.subscription_invoice_line` exist as
+- `aiphabee_core.subscription_invoice` and `aiphabee_core.subscription_invoice_line` exist as
   empty schema scaffolds for future persistence.
 - The local contract checker verifies trace fields, no live ledger reads, no
   billing provider calls, no writes, no SQL, and database contract linkage.

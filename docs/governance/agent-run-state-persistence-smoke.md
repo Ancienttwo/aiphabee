@@ -16,7 +16,7 @@ user-facing live model streaming.
 |---|---|---|
 | Worker route | `apps/worker/src/index.ts` | Guarded smoke route and transaction runner |
 | Contract | `deploy/agent/state-persistence-smoke.contract.json` | Machine-readable route/schema/non-claim contract |
-| Migration | `supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql` | `core.agent_run_state`, `core.agent_run_checkpoint`, governance contract |
+| Migration | `supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql` | `aiphabee_core.agent_run_state`, `aiphabee_core.agent_run_checkpoint`, governance contract |
 | Checker | `scripts/check-agent-run-state-persistence-smoke-contract.mjs` | Verifies route, package wiring, migration, tests, and non-claims |
 | Tests | `apps/worker/src/agent-run-state-persistence-smoke.test.ts` | Guard/auth/missing-binding/success-path coverage |
 
@@ -28,8 +28,8 @@ user-facing live model streaming.
 3. The route requires `AIPHABEE_HYPERDRIVE`; missing binding returns `424` before
    opening a DB connection.
 4. The smoke opens one transaction and writes:
-   - `core.agent_run_state` with a synthetic `running` state.
-   - `core.agent_run_checkpoint` with one completed checkpoint.
+   - `aiphabee_core.agent_run_state` with a synthetic `running` state.
+   - `aiphabee_core.agent_run_checkpoint` with one completed checkpoint.
 5. It reads both rows, updates the state to `partial`, reads the updated state,
    deletes checkpoint and state rows, then commits.
 6. The response includes only hashes, counts, table names, and explicit

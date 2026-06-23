@@ -89,7 +89,7 @@ function validateContract(value) {
   errors.push(
     ...validateStringArray(
       value.tables,
-      ["core.evidence_record", "core.evidence_source_ref"],
+      ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"],
       "tables"
     )
   );
@@ -205,10 +205,10 @@ function validateWorkerSource(source) {
     "EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE",
     "isEvidenceLiveDbWriteSmokeAuthorized",
     "runEvidenceLiveDbWriteSmoke",
-    "insert into core.evidence_record",
-    "insert into core.evidence_source_ref",
-    "delete from core.evidence_source_ref",
-    "delete from core.evidence_record",
+    "insert into aiphabee_core.evidence_record",
+    "insert into aiphabee_core.evidence_source_ref",
+    "delete from aiphabee_core.evidence_source_ref",
+    "delete from aiphabee_core.evidence_record",
     "evidence_record_source_ref_insert_select_delete",
     "hashRuntimeSmokeString(evidenceRecord.evidenceRecordId)"
   ]) {

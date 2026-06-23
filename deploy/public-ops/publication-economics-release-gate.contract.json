@@ -112,9 +112,9 @@
     "validation"
   ],
   "tables": [
-    "core.publication_economics_release_gate",
-    "audit.publication_economics_drill_event",
-    "governance.publication_economics_release_gate_contract"
+    "aiphabee_core.publication_economics_release_gate",
+    "aiphabee_audit.publication_economics_drill_event",
+    "aiphabee_governance.publication_economics_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_publication_economics_validation",

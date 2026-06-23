@@ -14,10 +14,10 @@ reconciliation report planning.
   report plans grouped by dataset, channel, package code, and user ID.
 - Planned report lines aggregate usage count, credits, metered rows, request
   IDs, usage event IDs, delay, missing rows, errors, and backfills.
-- `core.partner_reconciliation_report`,
-  `core.partner_reconciliation_report_line`,
-  `audit.partner_reconciliation_event`, and
-  `governance.partner_reconciliation_contract` exist as empty schema scaffolds.
+- `aiphabee_core.partner_reconciliation_report`,
+  `aiphabee_core.partner_reconciliation_report_line`,
+  `aiphabee_audit.partner_reconciliation_event`, and
+  `aiphabee_governance.partner_reconciliation_contract` exist as empty schema scaffolds.
 - The local contract checker verifies dimensions, SLA fields, trace fields,
   sensitive-payload exclusions, no live reads, no writes, no SQL, no billing
   calls, and database contract linkage.

@@ -66,10 +66,10 @@
     "analytics_compare": "POST /analytics/compare-securities"
   },
   "tables": [
-    "core.hk_data_domain_coverage",
-    "core.cross_market_security_mapping",
-    "audit.market_domain_coverage_event",
-    "governance.hk_data_domain_cross_market_contract"
+    "aiphabee_core.hk_data_domain_coverage",
+    "aiphabee_core.cross_market_security_mapping",
+    "aiphabee_audit.market_domain_coverage_event",
+    "aiphabee_governance.hk_data_domain_cross_market_contract"
   ],
   "required_output_fields": [
     "coverage_contract",

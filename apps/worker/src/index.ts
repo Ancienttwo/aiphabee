@@ -779,7 +779,7 @@ interface EvidenceLiveDbWriteSmokeResult {
   source_ref_hashes?: string[];
   status: CloudflareBindingSmokeStatus;
   surface: "evidence_record_source_ref_insert_select_delete";
-  tables?: ["core.evidence_record", "core.evidence_source_ref"];
+  tables?: ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"];
 }
 
 interface HkIpoPublicHeldDbApplySmokeResult {
@@ -930,14 +930,14 @@ interface AgentRunLiveWriteSmokeResult {
   status: CloudflareBindingSmokeStatus;
   surface: "agent_run_audit_evidence_usage_insert_select_delete";
   tables?: [
-    "audit.agent_run_audit_event",
-    "core.evidence_record",
-    "core.evidence_source_ref",
-    "core.account",
-    "core.workspace",
-    "core.usage_meter_rule",
-    "core.usage_event",
-    "core.usage_ledger_entry"
+    "aiphabee_audit.agent_run_audit_event",
+    "aiphabee_core.evidence_record",
+    "aiphabee_core.evidence_source_ref",
+    "platform.account",
+    "platform.workspace",
+    "aiphabee_core.usage_meter_rule",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry"
   ];
   usage_event_id_hash?: string;
 }
@@ -965,7 +965,7 @@ interface McpDeveloperConsoleLogStoreSmokeResult {
   source_record_hash?: string;
   status: CloudflareBindingSmokeStatus;
   surface: "mcp_developer_console_request_log_insert_select_delete";
-  tables?: ["core.mcp_developer_console_request_log"];
+  tables?: ["aiphabee_core.mcp_developer_console_request_log"];
 }
 
 interface AgentRunStatePersistenceSmokeResult {
@@ -986,7 +986,7 @@ interface AgentRunStatePersistenceSmokeResult {
   selected_rows?: number;
   status: CloudflareBindingSmokeStatus;
   surface: "agent_run_state_checkpoint_insert_select_update_delete";
-  tables?: ["core.agent_run_state", "core.agent_run_checkpoint"];
+  tables?: ["aiphabee_core.agent_run_state", "aiphabee_core.agent_run_checkpoint"];
   updated_rows?: number;
   user_facing_resume_enabled?: false;
 }
@@ -1014,11 +1014,11 @@ interface AgentBillingPostedLedgerSmokeResult {
   surface: "agent_billing_posted_ledger_preview_to_posted_idempotency";
   synthetic_posted_transition?: true;
   tables?: [
-    "core.account",
-    "core.workspace",
-    "core.usage_meter_rule",
-    "core.usage_event",
-    "core.usage_ledger_entry"
+    "platform.account",
+    "platform.workspace",
+    "aiphabee_core.usage_meter_rule",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry"
   ];
   updated_rows?: number;
   usage_event_id_hash?: string;
@@ -3887,13 +3887,13 @@ app.get("/data/runtime", (c) => {
           live_enforcement: false,
           status: "schema_scaffold",
           tables: [
-            "core.account",
-            "core.workspace",
-            "core.workspace_membership",
-            "core.subscription_plan",
-            "core.workspace_subscription",
-            "core.data_entitlement",
-            "core.workspace_entitlement"
+            "platform.account",
+            "platform.workspace",
+            "platform.workspace_membership",
+            "platform.subscription_plan",
+            "platform.workspace_subscription",
+            "aiphabee_governance.data_entitlement",
+            "aiphabee_governance.workspace_entitlement"
           ],
           workspace_isolation: true
         },
@@ -3906,13 +3906,13 @@ app.get("/data/runtime", (c) => {
           quality_default_state: "HOLD",
           status: "schema_scaffold",
           tables: [
-            "core.corporate_action",
-            "core.adjustment_methodology",
-            "core.price_adjustment_factor"
+            "aiphabee_core.corporate_action",
+            "aiphabee_core.adjustment_methodology",
+            "aiphabee_core.price_adjustment_factor"
           ]
         },
         data_version_batches: {
-          table: "core.data_version_batch",
+          table: "aiphabee_core.data_version_batch",
           status: "schema_scaffold",
           live_batches: false
         },
@@ -3924,9 +3924,9 @@ app.get("/data/runtime", (c) => {
           restatement_versions: true,
           status: "schema_scaffold",
           tables: [
-            "core.financial_statement",
-            "core.financial_fact",
-            "core.financial_restatement"
+            "aiphabee_core.financial_statement",
+            "aiphabee_core.financial_fact",
+            "aiphabee_core.financial_restatement"
           ]
         },
         live_queries: false,
@@ -3934,14 +3934,14 @@ app.get("/data/runtime", (c) => {
         raw_snapshots: {
           immutable: true,
           quality_default_state: "HOLD",
-          table: "core.raw_snapshot"
+          table: "aiphabee_core.raw_snapshot"
         },
         security_master: {
           tables: [
-            "core.company",
-            "core.instrument",
-            "core.listing",
-            "core.identifier_history"
+            "aiphabee_core.company",
+            "aiphabee_core.instrument",
+            "aiphabee_core.listing",
+            "aiphabee_core.identifier_history"
           ],
           status: "schema_scaffold"
         },
@@ -3960,15 +3960,15 @@ app.get("/data/runtime", (c) => {
           release_state_default: "held",
           status: "schema_scaffold",
           tables: [
-            "core.serving_dataset",
-            "core.serving_field",
-            "core.serving_snapshot",
-            "core.serving_record"
+            "aiphabee_core.serving_dataset",
+            "aiphabee_core.serving_field",
+            "aiphabee_core.serving_snapshot",
+            "aiphabee_core.serving_record"
           ]
         },
         source_batches: {
           rights_default_state: "default_deny",
-          table: "core.raw_source_batch"
+          table: "aiphabee_core.raw_source_batch"
         }
       },
       {
@@ -4143,13 +4143,13 @@ app.get("/gateway/runtime", (c) => {
           live_enforcement: false,
           status: "schema_scaffold",
           tables: [
-            "core.account",
-            "core.workspace",
-            "core.workspace_membership",
-            "core.subscription_plan",
-            "core.workspace_subscription",
-            "core.data_entitlement",
-            "core.workspace_entitlement"
+            "platform.account",
+            "platform.workspace",
+            "platform.workspace_membership",
+            "platform.subscription_plan",
+            "platform.workspace_subscription",
+            "aiphabee_governance.data_entitlement",
+            "aiphabee_governance.workspace_entitlement"
           ],
           workspace_isolation: true
         },
@@ -4241,10 +4241,10 @@ app.get("/gateway/runtime", (c) => {
           sql_text_compiler: getServingStoreSqlTextCompilerCapabilities(),
           status: "schema_scaffold",
           tables: [
-            "core.serving_dataset",
-            "core.serving_field",
-            "core.serving_snapshot",
-            "core.serving_record"
+            "aiphabee_core.serving_dataset",
+            "aiphabee_core.serving_field",
+            "aiphabee_core.serving_snapshot",
+            "aiphabee_core.serving_record"
           ],
           uses_quality_state: true,
           uses_versioned_snapshots: true
@@ -4255,10 +4255,10 @@ app.get("/gateway/runtime", (c) => {
           reconciliation_target_delay_minutes: 5,
           status: "schema_scaffold",
           tables: [
-            "core.usage_meter_rule",
-            "core.usage_event",
-            "core.usage_reconciliation_batch",
-            "core.usage_ledger_entry"
+            "aiphabee_core.usage_meter_rule",
+            "aiphabee_core.usage_event",
+            "aiphabee_core.usage_reconciliation_batch",
+            "aiphabee_core.usage_ledger_entry"
           ],
           weighted_credits: true
         },
@@ -9320,7 +9320,7 @@ app.post("/agent/release-gates/task-replay-mode/plan", async (c) => {
     const validation = {
       checkpoint_state_is_disconnect_safe:
         workflowTask.resume.disconnect_safe &&
-        workflowTask.resume.state_table === "core.workflow_task_checkpoint",
+        workflowTask.resume.state_table === "aiphabee_core.workflow_task_checkpoint",
       long_task_returns_task_id_and_resume_handle:
         workflowTask.task_id_visible &&
         workflowTask.task_id.length > 0 &&
@@ -9361,7 +9361,7 @@ app.post("/agent/release-gates/task-replay-mode/plan", async (c) => {
         check === "long_task_returns_task_id_and_resume_handle"
           ? "createWorkflowTaskPlan returns task_id, task_id_visible=true, resumable=true, and resume_handle"
           : check === "long_task_checkpoint_state_is_disconnect_safe"
-            ? "workflow task resume uses core.workflow_task_checkpoint and disconnect_safe=true"
+            ? "workflow task resume uses aiphabee_core.workflow_task_checkpoint and disconnect_safe=true"
             : check === "saved_report_has_deterministic_replay_seed"
               ? "createResearchRunSavePlan returns replay_seed.deterministic_replay_ready=true"
               : check === "replay_preserves_old_report_snapshot"
@@ -13319,7 +13319,7 @@ async function runEvidenceLiveDbWriteSmoke(
     transactionStarted = true;
 
     const recordInsert = await client.query(
-      `insert into core.evidence_record (
+      `insert into aiphabee_core.evidence_record (
         evidence_record_id,
         request_id,
         tool_name,
@@ -13376,7 +13376,7 @@ async function runEvidenceLiveDbWriteSmoke(
 
     for (const sourceRef of plan.sourceRefs) {
       const sourceRefInsert = await client.query(
-        `insert into core.evidence_source_ref (
+        `insert into aiphabee_core.evidence_source_ref (
           evidence_source_ref_id,
           evidence_record_id,
           source,
@@ -13409,13 +13409,13 @@ async function runEvidenceLiveDbWriteSmoke(
       source_record_count: number | string;
     }>(
       `select evidence_record_id, live_write_state, source_record_count
-      from core.evidence_record
+      from aiphabee_core.evidence_record
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
     const sourceRefCountSelect = await client.query<{ source_ref_count: number | string }>(
       `select count(*)::int as source_ref_count
-      from core.evidence_source_ref
+      from aiphabee_core.evidence_source_ref
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
@@ -13435,12 +13435,12 @@ async function runEvidenceLiveDbWriteSmoke(
     }
 
     const sourceRefDelete = await client.query(
-      `delete from core.evidence_source_ref
+      `delete from aiphabee_core.evidence_source_ref
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
     const recordDelete = await client.query(
-      `delete from core.evidence_record
+      `delete from aiphabee_core.evidence_record
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
@@ -13465,7 +13465,7 @@ async function runEvidenceLiveDbWriteSmoke(
       ),
       status: "passed",
       surface: "evidence_record_source_ref_insert_select_delete",
-      tables: ["core.evidence_record", "core.evidence_source_ref"]
+      tables: ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"]
     };
   } catch (error) {
     if (transactionStarted && !committed) {
@@ -15061,7 +15061,7 @@ async function runMcpDeveloperConsoleLogStoreSmoke(
     transactionStarted = true;
 
     const insertResult = await client.query(
-      `insert into core.mcp_developer_console_request_log (
+      `insert into aiphabee_core.mcp_developer_console_request_log (
         request_log_id,
         request_id,
         workspace_id,
@@ -15128,7 +15128,7 @@ async function runMcpDeveloperConsoleLogStoreSmoke(
         live_oauth_provider_enabled,
         live_tool_execution_enabled,
         live_usage_ledger_reads_enabled
-      from core.mcp_developer_console_request_log
+      from aiphabee_core.mcp_developer_console_request_log
       where request_log_id = $1`,
       [requestLogId]
     );
@@ -15152,7 +15152,7 @@ async function runMcpDeveloperConsoleLogStoreSmoke(
     }
 
     const deleteResult = await client.query(
-      `delete from core.mcp_developer_console_request_log
+      `delete from aiphabee_core.mcp_developer_console_request_log
       where request_log_id = $1`,
       [requestLogId]
     );
@@ -15181,7 +15181,7 @@ async function runMcpDeveloperConsoleLogStoreSmoke(
       source_record_hash: await hashRuntimeSmokeString(sourceRecordId),
       status: "passed",
       surface: "mcp_developer_console_request_log_insert_select_delete",
-      tables: ["core.mcp_developer_console_request_log"]
+      tables: ["aiphabee_core.mcp_developer_console_request_log"]
     };
   } catch (error) {
     if (transactionStarted && !committed) {
@@ -15298,7 +15298,7 @@ async function runAgentRunLiveWriteSmoke(
     transactionStarted = true;
 
     const auditInsert = await client.query(
-      `insert into audit.agent_run_audit_event (
+      `insert into aiphabee_audit.agent_run_audit_event (
         audit_event_id,
         event_type,
         event_version,
@@ -15334,7 +15334,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const evidenceInsert = await client.query(
-      `insert into core.evidence_record (
+      `insert into aiphabee_core.evidence_record (
         evidence_record_id,
         request_id,
         tool_name,
@@ -15387,7 +15387,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const sourceRefInsert = await client.query(
-      `insert into core.evidence_source_ref (
+      `insert into aiphabee_core.evidence_source_ref (
         evidence_source_ref_id,
         evidence_record_id,
         source,
@@ -15412,7 +15412,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const accountInsert = await client.query(
-      `insert into core.account (
+      `insert into platform.account (
         account_id,
         email_hash,
         display_name,
@@ -15444,7 +15444,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const workspaceInsert = await client.query(
-      `insert into core.workspace (
+      `insert into platform.workspace (
         workspace_id,
         owner_account_id,
         display_name,
@@ -15465,7 +15465,7 @@ async function runAgentRunLiveWriteSmoke(
       [workspaceId, accountId, "Agent run live write smoke", "HK", "HK", "active", sourceRecordId]
     );
     const meterRuleInsert = await client.query(
-      `insert into core.usage_meter_rule (
+      `insert into aiphabee_core.usage_meter_rule (
         meter_rule_id,
         meter_name,
         channel,
@@ -15509,7 +15509,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const usageEventInsert = await client.query(
-      `insert into core.usage_event (
+      `insert into aiphabee_core.usage_event (
         usage_event_id,
         request_id,
         run_id,
@@ -15576,7 +15576,7 @@ async function runAgentRunLiveWriteSmoke(
       ]
     );
     const ledgerEntryInsert = await client.query(
-      `insert into core.usage_ledger_entry (
+      `insert into aiphabee_core.usage_ledger_entry (
         ledger_entry_id,
         usage_event_id,
         workspace_id,
@@ -15612,25 +15612,25 @@ async function runAgentRunLiveWriteSmoke(
     );
     const auditSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from audit.agent_run_audit_event
+      from aiphabee_audit.agent_run_audit_event
       where audit_event_id = $1 and event_type = 'run.audit'`,
       [auditEvent.event_id]
     );
     const evidenceSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.evidence_record
+      from aiphabee_core.evidence_record
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
     const usageSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.usage_event
+      from aiphabee_core.usage_event
       where usage_event_id = $1`,
       [usagePlan.event.usageEventId]
     );
     const ledgerSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.usage_ledger_entry
+      from aiphabee_core.usage_ledger_entry
       where ledger_entry_id = $1`,
       [usagePlan.ledgerEntry.ledgerEntryId]
     );
@@ -15645,42 +15645,42 @@ async function runAgentRunLiveWriteSmoke(
     }
 
     const ledgerDelete = await client.query(
-      `delete from core.usage_ledger_entry
+      `delete from aiphabee_core.usage_ledger_entry
       where ledger_entry_id = $1`,
       [usagePlan.ledgerEntry.ledgerEntryId]
     );
     const usageEventDelete = await client.query(
-      `delete from core.usage_event
+      `delete from aiphabee_core.usage_event
       where usage_event_id = $1`,
       [usagePlan.event.usageEventId]
     );
     const meterRuleDelete = await client.query(
-      `delete from core.usage_meter_rule
+      `delete from aiphabee_core.usage_meter_rule
       where meter_rule_id = $1`,
       [usagePlan.ledgerEntry.meterRuleId]
     );
     const sourceRefDelete = await client.query(
-      `delete from core.evidence_source_ref
+      `delete from aiphabee_core.evidence_source_ref
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
     const evidenceDelete = await client.query(
-      `delete from core.evidence_record
+      `delete from aiphabee_core.evidence_record
       where evidence_record_id = $1`,
       [evidenceRecord.evidenceRecordId]
     );
     const workspaceDelete = await client.query(
-      `delete from core.workspace
+      `delete from platform.workspace
       where workspace_id = $1`,
       [workspaceId]
     );
     const accountDelete = await client.query(
-      `delete from core.account
+      `delete from platform.account
       where account_id = $1`,
       [accountId]
     );
     const auditDelete = await client.query(
-      `delete from audit.agent_run_audit_event
+      `delete from aiphabee_audit.agent_run_audit_event
       where audit_event_id = $1`,
       [auditEvent.event_id]
     );
@@ -15722,14 +15722,14 @@ async function runAgentRunLiveWriteSmoke(
       status: "passed",
       surface: "agent_run_audit_evidence_usage_insert_select_delete",
       tables: [
-        "audit.agent_run_audit_event",
-        "core.evidence_record",
-        "core.evidence_source_ref",
-        "core.account",
-        "core.workspace",
-        "core.usage_meter_rule",
-        "core.usage_event",
-        "core.usage_ledger_entry"
+        "aiphabee_audit.agent_run_audit_event",
+        "aiphabee_core.evidence_record",
+        "aiphabee_core.evidence_source_ref",
+        "platform.account",
+        "platform.workspace",
+        "aiphabee_core.usage_meter_rule",
+        "aiphabee_core.usage_event",
+        "aiphabee_core.usage_ledger_entry"
       ],
       usage_event_id_hash: await hashRuntimeSmokeString(usagePlan.event.usageEventId)
     };
@@ -15771,9 +15771,9 @@ async function runAgentRunStatePersistenceSmoke(
     completed_step_count: 0,
     current_step_id: "step.fetch_quote",
     recovery_state: {
-      checkpoint_table: "core.agent_run_checkpoint",
+      checkpoint_table: "aiphabee_core.agent_run_checkpoint",
       persisted: true,
-      state_store: "core.agent_run_state"
+      state_store: "aiphabee_core.agent_run_state"
     },
     requested_tools: ["get_quote_snapshot"],
     route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
@@ -15795,9 +15795,9 @@ async function runAgentRunStatePersistenceSmoke(
     completed_step_count: 1,
     current_step_id: "step.answer_contract",
     recovery_state: {
-      checkpoint_table: "core.agent_run_checkpoint",
+      checkpoint_table: "aiphabee_core.agent_run_checkpoint",
       persisted: true,
-      state_store: "core.agent_run_state"
+      state_store: "aiphabee_core.agent_run_state"
     },
     requested_tools: ["get_quote_snapshot"],
     route: `POST ${AGENT_RUN_STATE_PERSISTENCE_SMOKE_ROUTE}`,
@@ -15821,7 +15821,7 @@ async function runAgentRunStatePersistenceSmoke(
     transactionStarted = true;
 
     const stateInsert = await client.query(
-      `insert into core.agent_run_state (
+      `insert into aiphabee_core.agent_run_state (
         run_state_id,
         run_id,
         request_id,
@@ -15871,7 +15871,7 @@ async function runAgentRunStatePersistenceSmoke(
       ]
     );
     const checkpointInsert = await client.query(
-      `insert into core.agent_run_checkpoint (
+      `insert into aiphabee_core.agent_run_checkpoint (
         checkpoint_id,
         run_state_id,
         step_id,
@@ -15912,18 +15912,18 @@ async function runAgentRunStatePersistenceSmoke(
     );
     const stateSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.agent_run_state
+      from aiphabee_core.agent_run_state
       where run_state_id = $1 and status = 'running'`,
       [runStateId]
     );
     const checkpointSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.agent_run_checkpoint
+      from aiphabee_core.agent_run_checkpoint
       where checkpoint_id = $1 and step_status = 'completed'`,
       [checkpointId]
     );
     const stateUpdate = await client.query(
-      `update core.agent_run_state
+      `update aiphabee_core.agent_run_state
       set status = $2,
         current_step_id = $3,
         completed_step_count = $4,
@@ -15942,7 +15942,7 @@ async function runAgentRunStatePersistenceSmoke(
     );
     const updatedStateSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.agent_run_state
+      from aiphabee_core.agent_run_state
       where run_state_id = $1 and status = 'partial' and completed_step_count = 1`,
       [runStateId]
     );
@@ -15956,12 +15956,12 @@ async function runAgentRunStatePersistenceSmoke(
     }
 
     const checkpointDelete = await client.query(
-      `delete from core.agent_run_checkpoint
+      `delete from aiphabee_core.agent_run_checkpoint
       where checkpoint_id = $1`,
       [checkpointId]
     );
     const stateDelete = await client.query(
-      `delete from core.agent_run_state
+      `delete from aiphabee_core.agent_run_state
       where run_state_id = $1`,
       [runStateId]
     );
@@ -15988,7 +15988,7 @@ async function runAgentRunStatePersistenceSmoke(
       selected_rows: selectedRows,
       status: "passed",
       surface: "agent_run_state_checkpoint_insert_select_update_delete",
-      tables: ["core.agent_run_state", "core.agent_run_checkpoint"],
+      tables: ["aiphabee_core.agent_run_state", "aiphabee_core.agent_run_checkpoint"],
       updated_rows: stateUpdate.rowCount ?? 0,
       user_facing_resume_enabled: false
     };
@@ -16065,7 +16065,7 @@ async function runAgentBillingPostedLedgerSmoke(
     transactionStarted = true;
 
     const accountInsert = await client.query(
-      `insert into core.account (
+      `insert into platform.account (
         account_id,
         email_hash,
         display_name,
@@ -16097,7 +16097,7 @@ async function runAgentBillingPostedLedgerSmoke(
       ]
     );
     const workspaceInsert = await client.query(
-      `insert into core.workspace (
+      `insert into platform.workspace (
         workspace_id,
         owner_account_id,
         display_name,
@@ -16126,7 +16126,7 @@ async function runAgentBillingPostedLedgerSmoke(
       ]
     );
     const meterRuleInsert = await client.query(
-      `insert into core.usage_meter_rule (
+      `insert into aiphabee_core.usage_meter_rule (
         meter_rule_id,
         meter_name,
         channel,
@@ -16170,7 +16170,7 @@ async function runAgentBillingPostedLedgerSmoke(
       ]
     );
     const usageEventInsert = await client.query(
-      `insert into core.usage_event (
+      `insert into aiphabee_core.usage_event (
         usage_event_id,
         request_id,
         run_id,
@@ -16237,7 +16237,7 @@ async function runAgentBillingPostedLedgerSmoke(
       ]
     );
     const ledgerEntryInsert = await client.query(
-      `insert into core.usage_ledger_entry (
+      `insert into aiphabee_core.usage_ledger_entry (
         ledger_entry_id,
         usage_event_id,
         workspace_id,
@@ -16274,12 +16274,12 @@ async function runAgentBillingPostedLedgerSmoke(
     );
     const previewSelect = await client.query<{ row_count: number | string }>(
       `select count(*)::int as row_count
-      from core.usage_ledger_entry
+      from aiphabee_core.usage_ledger_entry
       where ledger_entry_id = $1 and billable_state = 'preview' and posted_at is null`,
       [usagePlan.ledgerEntry.ledgerEntryId]
     );
     const postedUpdate = await client.query(
-      `update core.usage_ledger_entry
+      `update aiphabee_core.usage_ledger_entry
       set billable_state = 'posted',
         posted_at = $2::timestamptz,
         updated_at = now()
@@ -16287,7 +16287,7 @@ async function runAgentBillingPostedLedgerSmoke(
       [usagePlan.ledgerEntry.ledgerEntryId, postedAt]
     );
     const idempotentPostedUpdate = await client.query(
-      `update core.usage_ledger_entry
+      `update aiphabee_core.usage_ledger_entry
       set billable_state = 'posted',
         posted_at = $2::timestamptz,
         updated_at = now()
@@ -16300,7 +16300,7 @@ async function runAgentBillingPostedLedgerSmoke(
     }>(
       `select count(*)::int as row_count,
         coalesce(sum(credit_delta), 0)::numeric as credit_delta
-      from core.usage_ledger_entry
+      from aiphabee_core.usage_ledger_entry
       where ledger_entry_id = $1 and billable_state = 'posted' and posted_at = $2::timestamptz`,
       [usagePlan.ledgerEntry.ledgerEntryId, postedAt]
     );
@@ -16322,27 +16322,27 @@ async function runAgentBillingPostedLedgerSmoke(
     }
 
     const ledgerDelete = await client.query(
-      `delete from core.usage_ledger_entry
+      `delete from aiphabee_core.usage_ledger_entry
       where ledger_entry_id = $1`,
       [usagePlan.ledgerEntry.ledgerEntryId]
     );
     const usageEventDelete = await client.query(
-      `delete from core.usage_event
+      `delete from aiphabee_core.usage_event
       where usage_event_id = $1`,
       [usagePlan.event.usageEventId]
     );
     const meterRuleDelete = await client.query(
-      `delete from core.usage_meter_rule
+      `delete from aiphabee_core.usage_meter_rule
       where meter_rule_id = $1`,
       [usagePlan.ledgerEntry.meterRuleId]
     );
     const workspaceDelete = await client.query(
-      `delete from core.workspace
+      `delete from platform.workspace
       where workspace_id = $1`,
       [workspaceId]
     );
     const accountDelete = await client.query(
-      `delete from core.account
+      `delete from platform.account
       where account_id = $1`,
       [accountId]
     );
@@ -16395,11 +16395,11 @@ async function runAgentBillingPostedLedgerSmoke(
       surface: "agent_billing_posted_ledger_preview_to_posted_idempotency",
       synthetic_posted_transition: true,
       tables: [
-        "core.account",
-        "core.workspace",
-        "core.usage_meter_rule",
-        "core.usage_event",
-        "core.usage_ledger_entry"
+        "platform.account",
+        "platform.workspace",
+        "aiphabee_core.usage_meter_rule",
+        "aiphabee_core.usage_event",
+        "aiphabee_core.usage_ledger_entry"
       ],
       updated_rows: updatedRows,
       usage_event_id_hash: await hashRuntimeSmokeString(usagePlan.event.usageEventId)

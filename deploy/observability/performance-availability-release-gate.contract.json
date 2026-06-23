@@ -98,9 +98,9 @@
     "validation"
   ],
   "tables": [
-    "core.performance_availability_release_gate",
-    "audit.performance_slo_drill_event",
-    "governance.performance_availability_release_gate_contract"
+    "aiphabee_core.performance_availability_release_gate",
+    "aiphabee_audit.performance_slo_drill_event",
+    "aiphabee_governance.performance_availability_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_performance_availability_validation",

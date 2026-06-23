@@ -12,7 +12,7 @@ Implemented the Sprint 2.4 backend scaffold for deep report Workflow planning.
 - The plan covers fetch, deterministic analysis, section generation, citation
   validation, evidence index, static report snapshot metadata, rerun seed, and
   high-cost usage estimate.
-- `core.deep_report_snapshot` and `core.deep_report_evidence_index` exist as
+- `aiphabee_core.deep_report_snapshot` and `aiphabee_core.deep_report_evidence_index` exist as
   empty schema scaffolds for future persistence.
 - The local contract checker verifies stage order, no live Workflow execution,
   no tool/model execution, no writes, citation validation, evidence index,

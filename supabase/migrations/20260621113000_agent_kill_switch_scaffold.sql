@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.agent_kill_switch_state (
+create table if not exists aiphabee_core.agent_kill_switch_state (
   switch_ref text not null,
   target text not null check (target in ('model', 'tool', 'all')),
   switch_state text not null check (switch_state in ('active', 'tripped')),
@@ -15,7 +15,7 @@ create table if not exists core.agent_kill_switch_state (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.agent_kill_switch_contract (
+create table if not exists aiphabee_governance.agent_kill_switch_contract (
   contract_name text not null default 'agent_kill_switch',
   contract_version text not null default '2026-06-21.phase2.kill-switch-scaffold.v0',
   runtime_route text not null default 'GET /agent/runtime',

@@ -24,9 +24,9 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.publication_economics_release_gate",
-  "audit.publication_economics_drill_event",
-  "governance.publication_economics_release_gate_contract"
+  "aiphabee_core.publication_economics_release_gate",
+  "aiphabee_audit.publication_economics_drill_event",
+  "aiphabee_governance.publication_economics_release_gate_contract"
 ];
 const requiredLinkedContracts = [
   "deploy/public-ops/public-status-docs.contract.json",

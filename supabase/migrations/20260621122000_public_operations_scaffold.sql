@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.public_status_component (
+create table if not exists aiphabee_core.public_status_component (
   status_component_ref text not null,
   component_code text not null,
   evidence_route text not null,
@@ -14,7 +14,7 @@ create table if not exists core.public_status_component (
   primary key (status_component_ref)
 );
 
-create table if not exists core.public_document_publication (
+create table if not exists aiphabee_core.public_document_publication (
   document_publication_ref text not null,
   document_kind text not null check (
     document_kind in ('api_reference', 'mcp_reference', 'privacy_policy', 'terms_of_service')
@@ -29,7 +29,7 @@ create table if not exists core.public_document_publication (
   primary key (document_publication_ref)
 );
 
-create table if not exists governance.public_operations_contract (
+create table if not exists aiphabee_governance.public_operations_contract (
   contract_name text not null default 'public_status_docs',
   contract_version text not null default '2026-06-21.phase3.public-status-docs-scaffold.v0',
   runtime_route text not null default 'GET /public/runtime',

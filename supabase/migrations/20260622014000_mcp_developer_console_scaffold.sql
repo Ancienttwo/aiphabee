@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.mcp_developer_console_request_log (
+create table if not exists aiphabee_core.mcp_developer_console_request_log (
   request_log_id text primary key,
   request_id text not null,
   workspace_id text not null,
@@ -106,7 +106,7 @@ create table if not exists core.mcp_developer_console_request_log (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.mcp_developer_console_contract (
+create table if not exists aiphabee_governance.mcp_developer_console_contract (
   contract_name text not null default 'mcp_developer_console',
   contract_version text not null default '2026-06-22.phase2.mcp-developer-console-backend-scaffold.v0',
   runtime_route text not null default 'GET /mcp/runtime',

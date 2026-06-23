@@ -1,8 +1,8 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.support_ticket (
+create table if not exists aiphabee_core.support_ticket (
   support_ticket_ref text not null,
   target_request_id text not null,
   workspace_id text,
@@ -19,9 +19,9 @@ create table if not exists core.support_ticket (
   primary key (support_ticket_ref)
 );
 
-create table if not exists audit.support_investigation_event (
+create table if not exists aiphabee_audit.support_investigation_event (
   support_event_ref text not null,
-  support_ticket_ref text not null references core.support_ticket(support_ticket_ref),
+  support_ticket_ref text not null references aiphabee_core.support_ticket(support_ticket_ref),
   target_request_id text not null,
   support_agent_id text not null,
   event_kind text not null default 'planned',
@@ -34,7 +34,7 @@ create table if not exists audit.support_investigation_event (
   primary key (support_event_ref)
 );
 
-create table if not exists governance.support_request_id_contract (
+create table if not exists aiphabee_governance.support_request_id_contract (
   contract_name text not null default 'support_request_id_investigation',
   contract_version text not null default '2026-06-21.phase3.support-request-id-investigation-scaffold.v0',
   runtime_route text not null default 'GET /support/runtime',

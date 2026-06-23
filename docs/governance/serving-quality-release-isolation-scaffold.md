@@ -9,7 +9,7 @@
 > `tasks/contracts/serving-quality-release-isolation-scaffold.contract.md`
 
 This slice creates a deterministic quality release/isolation planner for Serving
-Store. It does not write live `core.serving_snapshot` rows, read partner data,
+Store. It does not write live `aiphabee_core.serving_snapshot` rows, read partner data,
 or enable frontend surfaces.
 
 ## P1 Architecture Map
@@ -17,7 +17,7 @@ or enable frontend surfaces.
 | Surface | State | Boundary |
 |---|---|---|
 | Release planner | `packages/serving-store` | Converts quality states into `held`, `released`, or `withdrawn` posture |
-| Serving schema | `core.serving_snapshot.release_state` | Existing schema allows `held`, `released`, and `withdrawn` |
+| Serving schema | `aiphabee_core.serving_snapshot.release_state` | Existing schema allows `held`, `released`, and `withdrawn` |
 | Gateway contract | `deploy/gateway/access.contract.json` | Adds `serving_quality_release_isolation` required guard |
 | Data runtime route | `GET /data/runtime` | Reports release/isolation capability, no live writes |
 | Gateway runtime route | `GET /gateway/runtime` | Reports release/isolation capability, no live reads |

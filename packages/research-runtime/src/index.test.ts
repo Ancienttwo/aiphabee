@@ -113,9 +113,9 @@ describe("research run save scaffold", () => {
       "email"
     ]);
     expect(getDataCorrectionNotificationCapabilities().tables).toEqual([
-      "core.data_correction_event",
-      "core.research_run_correction_impact",
-      "core.user_notification"
+      "aiphabee_core.data_correction_event",
+      "aiphabee_core.research_run_correction_impact",
+      "aiphabee_core.user_notification"
     ]);
   });
 
@@ -144,10 +144,10 @@ describe("research run save scaffold", () => {
       "rollback_replay_plan"
     ]);
     expect(getGoldenCorrectionRollbackDrillCapabilities().tables).toEqual([
-      "core.golden_correction_rollback_drill",
-      "governance.golden_correction_rollback_drill_contract",
-      "core.data_correction_event",
-      "core.research_run_correction_impact"
+      "aiphabee_core.golden_correction_rollback_drill",
+      "aiphabee_governance.golden_correction_rollback_drill_contract",
+      "aiphabee_core.data_correction_event",
+      "aiphabee_core.research_run_correction_impact"
     ]);
   });
 
@@ -258,7 +258,7 @@ describe("research run save scaffold", () => {
       report_id: "report_00700_static",
       source_run_id: "research_run_00700",
       static_report_allowed: true,
-      table: "core.static_report_artifact"
+      table: "aiphabee_core.static_report_artifact"
     });
     expect(plan.rights_boundary).toEqual({
       allowed_scope_only: true,
@@ -378,7 +378,7 @@ describe("research run save scaffold", () => {
       unsupported_claim_label: "unknown"
     });
     expect(plan.evidence_index).toMatchObject({
-      table: "core.deep_report_evidence_index"
+      table: "aiphabee_core.deep_report_evidence_index"
     });
     expect(plan.evidence_index.records).toHaveLength(plan.section_plan.sections.length);
     expect(plan.evidence_index.records[0]).toMatchObject({
@@ -391,7 +391,7 @@ describe("research run save scaffold", () => {
       data_delay_minutes: 15,
       immutable_report_snapshot: true,
       static_report_allowed: true,
-      table: "core.deep_report_snapshot",
+      table: "aiphabee_core.deep_report_snapshot",
       version: plan.version
     });
     expect(plan.rerun).toEqual({
@@ -408,10 +408,10 @@ describe("research run save scaffold", () => {
       r2_writes: false,
       sql_emitted: false,
       tables: [
-        "core.deep_report_snapshot",
-        "core.deep_report_evidence_index",
-        "core.workflow_task",
-        "core.workflow_task_checkpoint"
+        "aiphabee_core.deep_report_snapshot",
+        "aiphabee_core.deep_report_evidence_index",
+        "aiphabee_core.workflow_task",
+        "aiphabee_core.workflow_task_checkpoint"
       ],
       write_status: "planned_no_write"
     });
@@ -522,10 +522,10 @@ describe("research run save scaffold", () => {
       write_status: "planned_no_write"
     });
     expect(plan.persistence_plan.tables).toEqual([
-      "core.research_run",
-      "core.research_run_tool_call",
-      "core.research_run_evidence_snapshot",
-      "core.research_run_model_snapshot"
+      "aiphabee_core.research_run",
+      "aiphabee_core.research_run_tool_call",
+      "aiphabee_core.research_run_evidence_snapshot",
+      "aiphabee_core.research_run_model_snapshot"
     ]);
     expect(plan.tool_input_snapshot.tool_call_count).toBe(1);
     expect(plan.tool_input_snapshot.tool_calls[0]).toMatchObject({
@@ -809,7 +809,7 @@ describe("research run save scaffold", () => {
         reason: "partner_restatement",
         severity: "high",
         source_record_id: "src_00700_old",
-        table: "core.data_correction_event",
+        table: "aiphabee_core.data_correction_event",
         write_status: "planned_no_write"
       }
     ]);
@@ -820,7 +820,7 @@ describe("research run save scaffold", () => {
       notification_required: true,
       research_run_id: "run_00700_research",
       snapshot_id: affectedRun.snapshot_id,
-      table: "core.research_run_correction_impact",
+      table: "aiphabee_core.research_run_correction_impact",
       user_id: "user_internal_alpha",
       workspace_id: "workspace_research",
       write_status: "planned_no_write"
@@ -830,7 +830,7 @@ describe("research run save scaffold", () => {
       event_queue: "AIPHABEE_EVENTS_QUEUE",
       fanout_status: "planned_no_write",
       notification_required: true,
-      table: "core.user_notification",
+      table: "aiphabee_core.user_notification",
       user_notification_count: 2
     });
     expect(plan.notification_plan.notifications.map((item) => item.channel)).toEqual([
@@ -842,9 +842,9 @@ describe("research run save scaffold", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.data_correction_event",
-        "core.research_run_correction_impact",
-        "core.user_notification"
+        "aiphabee_core.data_correction_event",
+        "aiphabee_core.research_run_correction_impact",
+        "aiphabee_core.user_notification"
       ],
       write_status: "planned_no_write"
     });
@@ -954,10 +954,10 @@ describe("research run save scaffold", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.golden_correction_rollback_drill",
-        "governance.golden_correction_rollback_drill_contract",
-        "core.data_correction_event",
-        "core.research_run_correction_impact"
+        "aiphabee_core.golden_correction_rollback_drill",
+        "aiphabee_governance.golden_correction_rollback_drill_contract",
+        "aiphabee_core.data_correction_event",
+        "aiphabee_core.research_run_correction_impact"
       ],
       write_status: "planned_no_write"
     });

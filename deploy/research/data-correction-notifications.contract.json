@@ -33,9 +33,9 @@
     "validation"
   ],
   "tables": [
-    "core.data_correction_event",
-    "core.research_run_correction_impact",
-    "core.user_notification"
+    "aiphabee_core.data_correction_event",
+    "aiphabee_core.research_run_correction_impact",
+    "aiphabee_core.user_notification"
   ],
   "covered_prd_items": [
     "DAT-08",

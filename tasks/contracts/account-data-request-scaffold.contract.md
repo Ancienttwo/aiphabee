@@ -13,10 +13,10 @@ delete requests.
   plans.
 - Local contract checker: `npm run check:account-data-request`.
 - Empty schema scaffold:
-  - `core.account_data_request`
-  - `core.account_data_request_item`
-  - `audit.account_data_request_event`
-  - `governance.account_data_request_contract`
+  - `aiphabee_core.account_data_request`
+  - `aiphabee_core.account_data_request_item`
+  - `aiphabee_audit.account_data_request_event`
+  - `aiphabee_governance.account_data_request_contract`
 
 ## Behavioral Contract
 

@@ -12,8 +12,8 @@ const requiredCoverageDomains = [
   "identifier_history"
 ];
 const requiredTables = [
-  "core.data_coverage_release_gate",
-  "governance.data_coverage_release_gate_contract"
+  "aiphabee_core.data_coverage_release_gate",
+  "aiphabee_governance.data_coverage_release_gate_contract"
 ];
 const requiredOutputFields = [
   "freshness_markers",

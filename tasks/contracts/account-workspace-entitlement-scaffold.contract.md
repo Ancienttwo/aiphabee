@@ -17,13 +17,13 @@ billing, or entitlement execution.
 ## Scope
 
 - In scope:
-  - `core.account`;
-  - `core.workspace`;
-  - `core.workspace_membership`;
-  - `core.subscription_plan`;
-  - `core.workspace_subscription`;
-  - `core.data_entitlement`;
-  - `core.workspace_entitlement`;
+  - `platform.account`;
+  - `platform.workspace`;
+  - `platform.workspace_membership`;
+  - `platform.subscription_plan`;
+  - `platform.workspace_subscription`;
+  - `aiphabee_governance.data_entitlement`;
+  - `aiphabee_governance.workspace_entitlement`;
   - governance contract row;
   - database migration contract update;
   - Worker `/data/runtime` and `/gateway/runtime` capability route updates;

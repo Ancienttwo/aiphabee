@@ -46,10 +46,10 @@ const requiredCaseFields = [
 const requiredAdjustmentOutputs = ["splitAdjustedClose", "totalReturnAdjustedClose"];
 const requiredActionTypes = ["split", "consolidation", "dividend"];
 const requiredTables = [
-  "core.corporate_action",
-  "core.adjustment_methodology",
-  "core.price_adjustment_factor",
-  "governance.corporate_action_adjustment_contract"
+  "aiphabee_core.corporate_action",
+  "aiphabee_core.adjustment_methodology",
+  "aiphabee_core.price_adjustment_factor",
+  "aiphabee_governance.corporate_action_adjustment_contract"
 ];
 const forbiddenTextPatterns = [
   /(?:^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{10,}/u,

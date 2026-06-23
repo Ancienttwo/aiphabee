@@ -19,9 +19,9 @@ const requiredChecks = [
 ];
 const requiredOutputFields = ["drill_report", "release_checks", "release_gate", "validation"];
 const requiredTables = [
-  "core.load_dr_incident_drill_release_gate",
-  "audit.load_dr_incident_drill_event",
-  "governance.load_dr_incident_drill_release_gate_contract"
+  "aiphabee_core.load_dr_incident_drill_release_gate",
+  "aiphabee_audit.load_dr_incident_drill_event",
+  "aiphabee_governance.load_dr_incident_drill_release_gate_contract"
 ];
 const requiredScenarios = [
   "load_test_peak_traffic",
