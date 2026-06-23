@@ -222,6 +222,7 @@ as $$
     where wm.workspace_id = target_workspace_id
       and wm.account_id = (select platform.current_account_id())
       and wm.status = 'active'
+      and wm.valid_from <= now()
       and (wm.valid_to is null or wm.valid_to > now())
       and exists (
         select 1
@@ -334,6 +335,7 @@ for select
 using (
   account_id = (select platform.current_account_id())
   and status = 'active'
+  and valid_from <= now()
   and (valid_to is null or valid_to > now())
 );
 
@@ -390,6 +392,7 @@ using (
     where wm.membership_id = workspace_membership_profile.membership_id
       and wm.account_id = (select platform.current_account_id())
       and wm.status = 'active'
+      and wm.valid_from <= now()
       and (wm.valid_to is null or wm.valid_to > now())
   )
 );
@@ -403,6 +406,7 @@ using (
     from aiphabee_governance.workspace_entitlement we
     where we.entitlement_id = data_entitlement.entitlement_id
       and (select platform.is_workspace_member(we.workspace_id))
+      and we.valid_from <= now()
       and (we.valid_to is null or we.valid_to > now())
   )
 );
