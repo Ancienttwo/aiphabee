@@ -4,8 +4,8 @@
 
 ## Current Snapshot
 
-- Latest snapshot: (none yet)
-- Semantic diagram source: (none yet)
+- Latest snapshot: [20260625-root-web-route-boundary](snapshots/20260625-root-web-route-boundary.md)
+- Semantic diagram source: [Route Boundary Diagram](snapshots/20260625-root-web-route-boundary.md#route-boundary-diagram)
 - Latest human diagram: (none yet)
 
 ## Architecture Drift Flow
@@ -20,5 +20,5 @@
 ## Pending Requests
 
 <!-- BEGIN ARCHITECTURE PENDING REQUESTS -->
-- [ ] 2026-06-25T02:28:50+0800 [medium] `apps/web/src/routes/index.tsx` -> [root](requests/root.md)
+- (none)
 <!-- END ARCHITECTURE PENDING REQUESTS -->

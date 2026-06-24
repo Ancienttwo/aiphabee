@@ -1,6 +1,6 @@
 # Architecture Queue Card: root
 
-> **Status**: Pending
+> **Status**: Resolved
 > **Detected**: 2026-06-24T23:33:53+0800
 > **Updated**: 2026-06-25T02:28:50+0800
 > **Severity**: medium
@@ -68,3 +68,11 @@
   "contract_sync_required": false
 }
 ```
+
+## Archive Resolution
+
+- Status: Resolved
+- Archived: 2026-06-25T02:45:57+0800
+- Artifacts:
+- `docs/architecture/snapshots/20260625-root-web-route-boundary.md`
+- Note: Resolved by documenting the root TanStack route shell, IPO workbench route expansion, shared providers, default-deny entitlement boundary, and verification surface.
