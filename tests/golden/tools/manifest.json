@@ -274,6 +274,118 @@
           "source_record_id": "data-entitlement:ent_corporate_actions_web_all|data-entitlement:ent_entitlements_web_all|data-entitlement:ent_financial_facts_web_assets|data-entitlement:ent_financial_facts_web_capital_expenditure|data-entitlement:ent_financial_facts_web_equity|data-entitlement:ent_financial_facts_web_net_income|data-entitlement:ent_financial_facts_web_revenue|data-entitlement:ent_lineage_web_all|data-entitlement:ent_market_calendar_web_all|data-entitlement:ent_price_history_web_all|data-entitlement:ent_quote_snapshot_api_all|data-entitlement:ent_quote_snapshot_web_all|data-entitlement:ent_security_master_web_all|data-entitlement:ent_security_profile_web_all|workspace-entitlement:ws_demo_free:ent_entitlements_web_all|workspace-entitlement:ws_demo_free:ent_lineage_web_all|workspace-entitlement:ws_demo_free:ent_market_calendar_web_all|workspace-entitlement:ws_demo_free:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_free:ent_security_master_web_all|workspace-entitlement:ws_demo_free:ent_security_profile_web_all|workspace-entitlement:ws_demo_pro:ent_corporate_actions_web_all|workspace-entitlement:ws_demo_pro:ent_entitlements_web_all|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_assets|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_capital_expenditure|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_equity|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_net_income|workspace-entitlement:ws_demo_pro:ent_financial_facts_web_revenue|workspace-entitlement:ws_demo_pro:ent_lineage_web_all|workspace-entitlement:ws_demo_pro:ent_market_calendar_web_all|workspace-entitlement:ws_demo_pro:ent_price_history_web_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_api_all|workspace-entitlement:ws_demo_pro:ent_quote_snapshot_web_all|workspace-entitlement:ws_demo_pro:ent_security_master_web_all|workspace-entitlement:ws_demo_pro:ent_security_profile_web_all"
         }
       ]
+    },
+    {
+      "sample_id": "tool_get_ipo_profile_001",
+      "tool_name": "get_ipo_profile",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_ipo_profile_001.json",
+      "input_schema_id": "tool.get_ipo_profile.input.v0",
+      "output_schema_id": "tool.get_ipo_profile.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "ipo-fixture",
+          "source_record_id": "ipo-fixture:honeycomb",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_search_ipo_calendar_001",
+      "tool_name": "search_ipo_calendar",
+      "fixture_path": "tests/golden/tools/fixtures/tool_search_ipo_calendar_001.json",
+      "input_schema_id": "tool.search_ipo_calendar.input.v0",
+      "output_schema_id": "tool.search_ipo_calendar.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "ipo-calendar",
+          "source_record_id": "ipo-calendar-fixture",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_ipo_timetable_001",
+      "tool_name": "get_ipo_timetable",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_ipo_timetable_001.json",
+      "input_schema_id": "tool.get_ipo_timetable.input.v0",
+      "output_schema_id": "tool.get_ipo_timetable.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "ipo-fixture",
+          "source_record_id": "ipo-fixture:honeycomb",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_ipo_offering_001",
+      "tool_name": "get_ipo_offering",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_ipo_offering_001.json",
+      "input_schema_id": "tool.get_ipo_offering.input.v0",
+      "output_schema_id": "tool.get_ipo_offering.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "ipo-fixture",
+          "source_record_id": "ipo-fixture:honeycomb",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_get_ipo_allotment_001",
+      "tool_name": "get_ipo_allotment",
+      "fixture_path": "tests/golden/tools/fixtures/tool_get_ipo_allotment_001.json",
+      "input_schema_id": "tool.get_ipo_allotment.input.v0",
+      "output_schema_id": "tool.get_ipo_allotment.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "ipo-fixture",
+          "source_record_id": "ipo-fixture:honeycomb",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_screen_ipos_001",
+      "tool_name": "screen_ipos",
+      "fixture_path": "tests/golden/tools/fixtures/tool_screen_ipos_001.json",
+      "input_schema_id": "tool.screen_ipos.input.v0",
+      "output_schema_id": "tool.screen_ipos.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "analytics-screen-ipos",
+          "source_record_id": "screen-ipos-fixture",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
+    },
+    {
+      "sample_id": "tool_compare_ipos_001",
+      "tool_name": "compare_ipos",
+      "fixture_path": "tests/golden/tools/fixtures/tool_compare_ipos_001.json",
+      "input_schema_id": "tool.compare_ipos.input.v0",
+      "output_schema_id": "tool.compare_ipos.output.v0",
+      "expected_status": "fixture_scaffold",
+      "source_records": [
+        {
+          "source": "analytics-compare-ipos",
+          "source_record_id": "compare-ipos-fixture",
+          "data_version": "ipo-fixture-scaffold-v0",
+          "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+        }
+      ]
     }
   ]
 }

@@ -45,7 +45,7 @@ export function AmbiguityResolver({
           fontFamily: "var(--font-sans)",
           fontSize: "var(--text-sm)",
           fontWeight: 700,
-          color: "var(--ink-800)",
+          color: "var(--text-primary)",
           marginBottom: 4,
         }}
       >
@@ -73,7 +73,7 @@ export function AmbiguityResolver({
                 fontFamily: "var(--font-mono)",
                 fontSize: "var(--text-sm)",
                 fontWeight: 600,
-                color: "var(--ink-800)",
+                color: "var(--text-primary)",
                 minWidth: 92,
               }}
             >

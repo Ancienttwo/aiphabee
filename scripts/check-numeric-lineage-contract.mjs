@@ -23,7 +23,14 @@ const requiredTools = [
   "calculate_returns_risk",
   "get_event_timeline",
   "get_data_lineage",
-  "get_entitlements"
+  "get_entitlements",
+  "get_ipo_profile",
+  "search_ipo_calendar",
+  "get_ipo_timetable",
+  "get_ipo_offering",
+  "get_ipo_allotment",
+  "screen_ipos",
+  "compare_ipos"
 ];
 const methodologyByTool = {
   calculate_returns_risk: "2026-06-21.phase2.returns-risk-scaffold.v0",
@@ -32,6 +39,13 @@ const methodologyByTool = {
   get_corporate_actions: "2026-06-21.phase1.get-corporate-actions-tool-scaffold.v0",
   get_data_lineage: "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
   get_entitlements: "2026-06-21.phase1.evidence-lineage-tools-scaffold.v0",
+  get_ipo_profile: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  search_ipo_calendar: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  get_ipo_timetable: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  get_ipo_offering: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  get_ipo_allotment: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  screen_ipos: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+  compare_ipos: "2026-06-24.phase1.ipo-pipeline-foundation.v0",
   get_event_timeline: "2026-06-21.phase3.get-event-timeline-tool-scaffold.v0",
   get_financial_facts: "2026-06-21.phase1.get-financial-facts-tool-scaffold.v0",
   get_financial_ratios: "2026-06-21.phase2.financial-ratios-scaffold.v0",

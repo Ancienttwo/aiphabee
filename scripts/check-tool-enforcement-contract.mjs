@@ -140,8 +140,8 @@ function validateContract(value) {
     }
   }
 
-  if (value.registered_tool_count !== 16) {
-    errors.push("registered_tool_count must be 16");
+  if (value.registered_tool_count !== 23) {
+    errors.push("registered_tool_count must be 23");
   }
 
   if (value.denied_tool_behavior !== "reject_request") {

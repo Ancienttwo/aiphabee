@@ -175,20 +175,20 @@ const scenarios = [
     })
   },
   {
-    expectedError: "p0 tool catalog p0_tool_count must be 16",
+    expectedError: "p0 tool catalog p0_tool_count must be 23",
     expectValid: false,
     name: "p0_catalog_count_drift",
     contracts: mutate(baseContracts, (contracts) => {
-      contracts.p0ToolCatalog.p0_tool_count = 15;
+      contracts.p0ToolCatalog.p0_tool_count = 22;
     }),
     readiness: baseReadiness
   },
   {
-    expectedError: "golden manifest must contain exactly 16 samples",
+    expectedError: "golden manifest must contain exactly 23 samples",
     expectValid: false,
     name: "golden_manifest_missing_tool",
     contracts: mutate(baseContracts, (contracts) => {
-      contracts.goldenManifest.samples = contracts.goldenManifest.samples.slice(0, 15);
+      contracts.goldenManifest.samples = contracts.goldenManifest.samples.slice(0, 22);
     }),
     readiness: baseReadiness
   },

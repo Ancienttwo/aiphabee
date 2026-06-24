@@ -75,7 +75,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
         fontFamily: "var(--font-display)",
         fontSize: "var(--text-xl)",
         fontWeight: 600,
-        color: "var(--ink-800)",
+        color: "var(--text-primary)",
       }}
     >
       {children}
@@ -119,7 +119,7 @@ export function ProfilePanel({ section }: { section: SecurityProfileSection }) {
     <Card padded>
       <SectionTitle>公司档案</SectionTitle>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--ink-800)" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--text-primary)" }}>
           {p.company.name.zhHant || p.company.name.en}
         </span>
         <Badge tone={p.listingStatus === "listed" ? "bullish" : "warning"} variant="soft" size="sm">
@@ -151,7 +151,7 @@ export function QuotePanel({ section }: { section: QuoteSection }) {
           <QualityBadge state={q.qualityState} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+      <div className="ab-grid-3" style={{ gap: 14 }}>
         <Metric label={`最新价 (${q.currency})`} value={fmt(f.lastPrice)} />
         <Metric label="涨跌" value={fmt(f.change)} tone={changeTone} sub={`${fmt(f.changePercent)}%`} />
         <Metric label="昨收" value={fmt(f.previousClose)} />
@@ -220,7 +220,7 @@ export function DerivedPanel({ section }: { section: DerivedMetricsSection }) {
   return (
     <Card padded>
       <SectionTitle>派生指标</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+      <div className="ab-grid-2" style={{ gap: 12 }}>
         {section.metrics.map((m) => (
           <div
             key={m.metric_id}

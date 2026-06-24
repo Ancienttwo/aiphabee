@@ -1,0 +1,38 @@
+{
+  "sample_id": "tool_screen_ipos_001",
+  "tool_name": "screen_ipos",
+  "input_schema_id": "tool.screen_ipos.input.v0",
+  "output_schema_id": "tool.screen_ipos.output.v0",
+  "request": {
+    "status": "listed",
+    "limit": 10
+  },
+  "expected_response": {
+    "as_of": "2026-06-24T00:00:00.000Z",
+    "data": {
+      "toolName": "screen_ipos",
+      "status": "fixture_scaffold",
+      "liveDataAccess": false,
+      "data_version": "ipo-fixture-scaffold-v0",
+      "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+    },
+    "data_version": "ipo-fixture-scaffold-v0",
+    "market_status": "not_applicable",
+    "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+    "ok": true,
+    "provenance": [
+      {
+        "source": "analytics-screen-ipos",
+        "source_record_id": "screen-ipos-fixture",
+        "data_version": "ipo-fixture-scaffold-v0",
+        "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+      }
+    ],
+    "request_id": "golden-screen-ipos",
+    "usage": {
+      "cached": false,
+      "credits": 0,
+      "rows": 1
+    }
+  }
+}

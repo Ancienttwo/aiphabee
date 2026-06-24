@@ -66,7 +66,7 @@ function Documents() {
 
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
-      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--ink-800)" }}>
+      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--text-primary)" }}>
         公告与文档
       </h1>
       <p style={{ margin: "8px 0 20px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
@@ -98,7 +98,7 @@ function Documents() {
           }}
         />
       ) : result ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 20, alignItems: "start" }}>
+        <div className="ab-grid-2" style={{ gap: 20, alignItems: "start" }}>
           {/* Results list */}
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{result.total_count} 条结果</div>

@@ -2829,6 +2829,1160 @@
           }
         }
       }
+    },
+    "get_ipo_profile": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_profile.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "ipo_id"
+            ]
+          },
+          {
+            "required": [
+              "ipoId"
+            ]
+          },
+          {
+            "required": [
+              "hkex_code"
+            ]
+          },
+          {
+            "required": [
+              "hkexCode"
+            ]
+          }
+        ],
+        "properties": {
+          "ipo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipoId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkex_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkexCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "include_sensitive_fields": {
+            "type": "boolean"
+          },
+          "includeSensitiveFields": {
+            "type": "boolean"
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_profile.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "get_ipo_profile"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "search_ipo_calendar": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.search_ipo_calendar.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.search_ipo_calendar.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "search_ipo_calendar"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "get_ipo_timetable": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_timetable.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "ipo_id"
+            ]
+          },
+          {
+            "required": [
+              "ipoId"
+            ]
+          },
+          {
+            "required": [
+              "hkex_code"
+            ]
+          },
+          {
+            "required": [
+              "hkexCode"
+            ]
+          }
+        ],
+        "properties": {
+          "ipo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipoId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkex_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkexCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDate": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_timetable.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "get_ipo_timetable"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "get_ipo_offering": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "SCOPE_DENIED"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_offering.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "ipo_id"
+            ]
+          },
+          {
+            "required": [
+              "ipoId"
+            ]
+          },
+          {
+            "required": [
+              "hkex_code"
+            ]
+          },
+          {
+            "required": [
+              "hkexCode"
+            ]
+          }
+        ],
+        "properties": {
+          "ipo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipoId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkex_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkexCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDate": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_offering.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "get_ipo_offering"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "get_ipo_allotment": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_allotment.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "ipo_id"
+            ]
+          },
+          {
+            "required": [
+              "ipoId"
+            ]
+          },
+          {
+            "required": [
+              "hkex_code"
+            ]
+          },
+          {
+            "required": [
+              "hkexCode"
+            ]
+          }
+        ],
+        "properties": {
+          "ipo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipoId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkex_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hkexCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.get_ipo_allotment.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "get_ipo_allotment"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "screen_ipos": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.screen_ipos.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "board": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sector": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date_from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDateFrom": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listing_date_to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "listingDateTo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "min_oversubscription": {
+            "type": "number"
+          },
+          "minOversubscription": {
+            "type": "number"
+          },
+          "has_cornerstone": {
+            "type": "boolean"
+          },
+          "hasCornerstone": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.screen_ipos.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "screen_ipos"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "compare_ipos": {
+      "standard_error_codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "NOT_FOUND",
+        "TOO_MANY_ROWS"
+      ],
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.compare_ipos.input.v0",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "ipo_ids"
+            ]
+          },
+          {
+            "required": [
+              "ipoIds"
+            ]
+          }
+        ],
+        "properties": {
+          "ipo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "ipoIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "tool.compare_ipos.output.v0",
+        "type": "object",
+        "required": [
+          "ok",
+          "request_id",
+          "as_of",
+          "market_status",
+          "provenance",
+          "usage",
+          "data",
+          "data_version",
+          "methodology_version"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "minLength": 1
+          },
+          "market_status": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source",
+                "source_record_id",
+                "data_version",
+                "methodology_version"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "methodology_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "toolName",
+              "status",
+              "liveDataAccess",
+              "data_version",
+              "methodology_version"
+            ],
+            "properties": {
+              "toolName": {
+                "const": "compare_ipos"
+              },
+              "status": {
+                "type": "string"
+              },
+              "liveDataAccess": {
+                "const": false
+              },
+              "data_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "methodology_version": {
+                "type": "string",
+                "minLength": 1,
+                "const": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+              }
+            }
+          },
+          "data_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methodology_version": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   },
   "error_schema": {

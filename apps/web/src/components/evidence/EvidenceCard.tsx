@@ -94,10 +94,10 @@ export function EvidenceCard({
           fontFamily: "var(--font-sans)",
           fontSize: "var(--text-xs)",
           fontWeight: 600,
-          color: "var(--honey-800)",
+          color: "var(--accent-strong)",
         }}
       >
-        <Icon name="layers" size={14} color="var(--honey-700)" />
+        <Icon name="layers" size={14} color="var(--accent-strong)" />
         {label}
         <span
           style={{

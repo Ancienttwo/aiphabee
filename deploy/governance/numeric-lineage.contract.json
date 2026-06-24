@@ -7,7 +7,7 @@
   "live_data_access": false,
   "persistent_writes": false,
   "sql_emitted": false,
-  "p0_tool_count": 16,
+  "p0_tool_count": 23,
   "required_lineage_fields": [
     "source",
     "source_record_id",

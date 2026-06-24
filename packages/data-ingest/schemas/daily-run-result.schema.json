@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aiphabee.data-ingest.hkex-news.daily-run-result.v0",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "run_id",
+    "data_version",
+    "business_date",
+    "timezone",
+    "status",
+    "release_state",
+    "last_completed_stage",
+    "counts",
+    "retryable",
+    "error_code",
+    "error_summary"
+  ],
+  "properties": {
+    "run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "data_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "business_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "timezone": {
+      "const": "Asia/Hong_Kong"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed",
+        "held_quality_failure",
+        "no_change",
+        "skipped_locked"
+      ]
+    },
+    "release_state": {
+      "const": "held"
+    },
+    "last_completed_stage": {
+      "enum": [
+        "preflight",
+        "lock",
+        "raw_source_batch",
+        "data_version",
+        "crawl_run",
+        "scrapy",
+        "sanitize",
+        "extract",
+        "link",
+        "validate",
+        "finalize"
+      ]
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovered",
+        "fetched",
+        "unchanged",
+        "changed",
+        "documents_persisted",
+        "facts_extracted",
+        "warnings",
+        "errors"
+      ],
+      "properties": {
+        "discovered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fetched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documents_persisted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "facts_extracted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "error_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "error_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

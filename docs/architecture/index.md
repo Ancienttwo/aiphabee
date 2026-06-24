@@ -20,6 +20,5 @@
 ## Pending Requests
 
 <!-- BEGIN ARCHITECTURE PENDING REQUESTS -->
-- (none)
+- [ ] 2026-06-25T02:28:50+0800 [medium] `apps/web/src/routes/index.tsx` -> [root](requests/root.md)
 <!-- END ARCHITECTURE PENDING REQUESTS -->
-

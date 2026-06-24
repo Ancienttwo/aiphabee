@@ -36,8 +36,8 @@ function variantStyle(variant: ButtonVariant, hover: boolean): CSSProperties {
   switch (variant) {
     case "secondary":
       return {
-        background: hover ? "var(--ink-700)" : "var(--ink-800)",
-        color: "var(--text-inverse)",
+        background: hover ? "var(--surface-inverse-hover)" : "var(--surface-inverse)",
+        color: "var(--text-on-inverse)",
         border: "1px solid transparent",
       };
     case "outline":

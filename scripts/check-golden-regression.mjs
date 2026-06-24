@@ -25,7 +25,14 @@ const REQUIRED_TOOL_GOLDEN_TOOLS = [
   "calculate_returns_risk",
   "get_event_timeline",
   "get_data_lineage",
-  "get_entitlements"
+  "get_entitlements",
+  "get_ipo_profile",
+  "search_ipo_calendar",
+  "get_ipo_timetable",
+  "get_ipo_offering",
+  "get_ipo_allotment",
+  "screen_ipos",
+  "compare_ipos"
 ];
 
 const QUALITY_RULES = [

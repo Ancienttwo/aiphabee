@@ -23,6 +23,7 @@
     "@aiphabee/event-timeline": "file:../../packages/event-timeline",
     "@aiphabee/evidence-lineage": "file:../../packages/evidence-lineage",
     "@aiphabee/financial-facts": "file:../../packages/financial-facts",
+    "@aiphabee/ipo": "file:../../packages/ipo",
     "@aiphabee/licensed-advice-runtime": "file:../../packages/licensed-advice-runtime",
     "@aiphabee/market-calendar": "file:../../packages/market-calendar",
     "@aiphabee/market-data": "file:../../packages/market-data",

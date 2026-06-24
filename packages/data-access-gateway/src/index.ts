@@ -339,7 +339,7 @@ export interface P0RightsMatrixCoverageCapabilities {
   package: "@aiphabee/data-access-gateway";
   partner_signed_matrix_loaded: false;
   persistent_writes: false;
-  required_p0_tool_count: 16;
+  required_p0_tool_count: number;
   required_surfaces: typeof P0_RIGHTS_MATRIX_SURFACES;
   route: "GET /gateway/rights-matrix/p0/coverage";
   runtime_route: "GET /gateway/runtime";
@@ -383,7 +383,7 @@ export interface P0RightsMatrixCoverageReport {
   }>;
   validation: {
     all_required_surfaces_configured: boolean;
-    required_p0_tool_count: 16;
+    required_p0_tool_count: number;
     tool_count: number;
     tool_count_matches_registry: boolean;
   };
@@ -774,6 +774,7 @@ const P0_RIGHTS_MATRIX_COVERAGE_TABLES: P0RightsMatrixCoverageCapabilities["tabl
   "core.p0_rights_matrix_entry",
   "governance.p0_rights_matrix_contract"
 ];
+const P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT = 23;
 const DATA_COVERAGE_RELEASE_GATE_TABLES: DataCoverageReleaseGateCapabilities["tables"] = [
   "core.data_coverage_release_gate",
   "governance.data_coverage_release_gate_contract"
@@ -942,6 +943,12 @@ const P0_RIGHTS_MATRIX_DATASET_FIELDS: P0RightsMatrixCoverageReport["dataset_fie
   {
     dataset: "evidence_lineage",
     field_patterns: ["source_record_id", "data_version", "methodology_version", "rights_policy_version"],
+    rights_state: "default_deny_until_partner_matrix_signed",
+    surfaces: createDefaultDenySurfaceCoverage()
+  },
+  {
+    dataset: "ipo_pipeline",
+    field_patterns: ["ipo_id", "hkex_code", "offer_price", "cornerstone_amount", "forecast_metric"],
     rights_state: "default_deny_until_partner_matrix_signed",
     surfaces: createDefaultDenySurfaceCoverage()
   }
@@ -1891,7 +1898,7 @@ export function getP0RightsMatrixCoverageCapabilities(): P0RightsMatrixCoverageC
     package: "@aiphabee/data-access-gateway",
     partner_signed_matrix_loaded: false,
     persistent_writes: false,
-    required_p0_tool_count: 16,
+    required_p0_tool_count: P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT,
     required_surfaces: P0_RIGHTS_MATRIX_SURFACES,
     route: "GET /gateway/rights-matrix/p0/coverage",
     runtime_route: "GET /gateway/runtime",
@@ -1936,9 +1943,9 @@ export function createP0RightsMatrixCoverageReport(
     })),
     validation: {
       all_required_surfaces_configured: true,
-      required_p0_tool_count: 16,
+      required_p0_tool_count: P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT,
       tool_count: uniqueToolNames.length,
-      tool_count_matches_registry: uniqueToolNames.length === 16
+      tool_count_matches_registry: uniqueToolNames.length === P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT
     },
     version: P0_RIGHTS_MATRIX_COVERAGE_VERSION
   };

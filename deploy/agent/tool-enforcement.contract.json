@@ -9,7 +9,7 @@
   "actual_tool_execution": false,
   "frontend": false,
   "registry_version_required": true,
-  "registered_tool_count": 16,
+  "registered_tool_count": 23,
   "registered_tools_only": true,
   "versioned_tools": true,
   "schema_bound": true,
@@ -56,7 +56,15 @@
     "standard_response_envelope",
     "execution"
   ],
-  "forbidden_tool_names": ["sql.query", "http.fetch"],
-  "forbidden_input_properties": ["sql", "url", "queryText", "rawSql"],
+  "forbidden_tool_names": [
+    "sql.query",
+    "http.fetch"
+  ],
+  "forbidden_input_properties": [
+    "sql",
+    "url",
+    "queryText",
+    "rawSql"
+  ],
   "standard_error_code": "SCOPE_DENIED"
 }

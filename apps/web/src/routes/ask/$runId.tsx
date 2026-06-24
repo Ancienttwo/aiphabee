@@ -99,7 +99,7 @@ function AskRun() {
             fontFamily: "var(--font-display)",
             fontSize: "var(--text-2xl)",
             fontWeight: 700,
-            color: "var(--ink-800)",
+            color: "var(--text-primary)",
           }}
         >
           {q}
@@ -126,7 +126,7 @@ function AskRun() {
         {backendRunId ? ` · 后端 run ${backendRunId}` : status === "streaming" ? " · 连接中…" : ""}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, alignItems: "start" }}>
+      <div className="ab-split" style={{ gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {plan ? <ResearchPlanCard plan={plan} /> : null}
           <Card>

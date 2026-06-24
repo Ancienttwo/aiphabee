@@ -27,7 +27,7 @@ function Account() {
           fontFamily: "var(--font-display)",
           fontSize: "var(--text-3xl)",
           fontWeight: 700,
-          color: "var(--ink-800)",
+          color: "var(--text-primary)",
         }}
       >
         账户

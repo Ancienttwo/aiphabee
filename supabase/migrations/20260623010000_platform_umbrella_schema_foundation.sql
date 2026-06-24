@@ -200,9 +200,7 @@ insert into platform.product (
   default_schema_prefix
 )
 values
-  ('aiphabee', 'aiphabee', 'AiphaBee', 'planned', 'aiphabee'),
-  ('aimpact', 'aimpact', 'AIMPACT', 'planned', 'aimpact'),
-  ('salesko', 'salesko', 'Salesko', 'planned', 'salesko')
+  ('aiphabee', 'aiphabee', 'AiphaBee', 'planned', 'aiphabee')
 on conflict (product_code) do update set
   display_name = excluded.display_name,
   status = excluded.status,

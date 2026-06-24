@@ -1,0 +1,143 @@
+{
+  "version": "2026-06-25.hkex-news-ingest-runtime.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-ingest",
+  "skill": "hkex-news-daily",
+  "cli": {
+    "bin": "data-ingest",
+    "repo_script": "npm run data-ingest --",
+    "daily_command": [
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "hkex",
+      "daily",
+      "--business-date",
+      "today",
+      "--timezone",
+      "Asia/Hong_Kong",
+      "--until",
+      "held",
+      "--output",
+      "json"
+    ],
+    "status_command": [
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "run",
+      "status",
+      "--run-id",
+      "<run_id>",
+      "--output",
+      "json"
+    ],
+    "resume_command": [
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "run",
+      "resume",
+      "--run-id",
+      "<run_id>",
+      "--output",
+      "json"
+    ],
+    "validate_command": [
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "validate",
+      "--data-version",
+      "<data_version>",
+      "--output",
+      "json"
+    ],
+    "release_command": [
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "release",
+      "--data-version",
+      "<data_version>",
+      "--approval-id",
+      "<approval_id>",
+      "--output",
+      "json"
+    ],
+    "automation_may_call_release": false
+  },
+  "runtime": {
+    "source_of_truth": "postgres",
+    "scrapy_engine": true,
+    "scrapy_spider": "hkex_news",
+    "jobdir_template": "runtime/scrapy-jobs/<run_id>",
+    "report_template": "runtime/reports/<run_id>/documents.jsonl",
+    "raw_storage_uri_policy": "file_uri_or_object_store_uri",
+    "database_write_requires_env": "DATA_INGEST_ENABLE_DB_WRITE=1",
+    "database_url_env": [
+      "DATA_INGEST_DATABASE_URL",
+      "IPO_DATABASE_URL",
+      "DATABASE_URL"
+    ]
+  },
+  "source_surfaces": [
+    "latest_list",
+    "title_search",
+    "content_search",
+    "new_listing_information",
+    "ap_phip",
+    "progress_report"
+  ],
+  "pipeline_stages": [
+    "preflight",
+    "lock",
+    "raw_source_batch",
+    "data_version",
+    "crawl_run",
+    "scrapy",
+    "sanitize",
+    "extract",
+    "link",
+    "validate",
+    "finalize"
+  ],
+  "normal_outcomes": [
+    "completed",
+    "no_change",
+    "skipped_locked"
+  ],
+  "triage_outcomes": [
+    "failed",
+    "held_quality_failure"
+  ],
+  "release_state": "held",
+  "rights": {
+    "default_data_rights_status": "default_deny",
+    "field_authorization_required": true,
+    "export_allowed": false,
+    "mcp_redistribution_allowed": false
+  },
+  "forbidden_automation_actions": [
+    "data-ingest release",
+    "psql",
+    "manual SQL",
+    "direct core.ipo_* write",
+    "second run to compensate for failed run"
+  ],
+  "output_schema": "packages/data-ingest/schemas/daily-run-result.schema.json",
+  "exit_codes": {
+    "completed_or_no_change": 0,
+    "skipped_locked": 10,
+    "retryable_network_failure": 20,
+    "held_quality_failure": 30,
+    "configuration_failure": 40,
+    "database_or_storage_failure": 50,
+    "invariant_violation": 60
+  }
+}

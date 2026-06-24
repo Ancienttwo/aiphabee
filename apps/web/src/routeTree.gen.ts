@@ -22,6 +22,8 @@ import { Route as CompareIndexRouteImport } from './routes/compare/index'
 import { Route as AskIndexRouteImport } from './routes/ask/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as StockInstrumentIdRouteImport } from './routes/stock/$instrumentId'
+import { Route as IposCompareRouteImport } from './routes/ipos/compare'
+import { Route as IposCalendarRouteImport } from './routes/ipos/calendar'
 import { Route as IposIpoIdRouteImport } from './routes/ipos/$ipoId'
 import { Route as AskRunIdRouteImport } from './routes/ask/$runId'
 
@@ -90,6 +92,16 @@ const StockInstrumentIdRoute = StockInstrumentIdRouteImport.update({
   path: '/stock/$instrumentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IposCompareRoute = IposCompareRouteImport.update({
+  id: '/ipos/compare',
+  path: '/ipos/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IposCalendarRoute = IposCalendarRouteImport.update({
+  id: '/ipos/calendar',
+  path: '/ipos/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IposIpoIdRoute = IposIpoIdRouteImport.update({
   id: '/ipos/$ipoId',
   path: '/ipos/$ipoId',
@@ -106,6 +118,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/ipos/calendar': typeof IposCalendarRoute
+  '/ipos/compare': typeof IposCompareRoute
   '/stock/$instrumentId': typeof StockInstrumentIdRoute
   '/account/': typeof AccountIndexRoute
   '/ask/': typeof AskIndexRoute
@@ -123,6 +137,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/ipos/calendar': typeof IposCalendarRoute
+  '/ipos/compare': typeof IposCompareRoute
   '/stock/$instrumentId': typeof StockInstrumentIdRoute
   '/account': typeof AccountIndexRoute
   '/ask': typeof AskIndexRoute
@@ -141,6 +157,8 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/ask/$runId': typeof AskRunIdRoute
   '/ipos/$ipoId': typeof IposIpoIdRoute
+  '/ipos/calendar': typeof IposCalendarRoute
+  '/ipos/compare': typeof IposCompareRoute
   '/stock/$instrumentId': typeof StockInstrumentIdRoute
   '/account/': typeof AccountIndexRoute
   '/ask/': typeof AskIndexRoute
@@ -160,6 +178,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/ask/$runId'
     | '/ipos/$ipoId'
+    | '/ipos/calendar'
+    | '/ipos/compare'
     | '/stock/$instrumentId'
     | '/account/'
     | '/ask/'
@@ -177,6 +197,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/ask/$runId'
     | '/ipos/$ipoId'
+    | '/ipos/calendar'
+    | '/ipos/compare'
     | '/stock/$instrumentId'
     | '/account'
     | '/ask'
@@ -194,6 +216,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/ask/$runId'
     | '/ipos/$ipoId'
+    | '/ipos/calendar'
+    | '/ipos/compare'
     | '/stock/$instrumentId'
     | '/account/'
     | '/ask/'
@@ -212,6 +236,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   AskRunIdRoute: typeof AskRunIdRoute
   IposIpoIdRoute: typeof IposIpoIdRoute
+  IposCalendarRoute: typeof IposCalendarRoute
+  IposCompareRoute: typeof IposCompareRoute
   StockInstrumentIdRoute: typeof StockInstrumentIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
   AskIndexRoute: typeof AskIndexRoute
@@ -318,6 +344,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StockInstrumentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ipos/compare': {
+      id: '/ipos/compare'
+      path: '/ipos/compare'
+      fullPath: '/ipos/compare'
+      preLoaderRoute: typeof IposCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ipos/calendar': {
+      id: '/ipos/calendar'
+      path: '/ipos/calendar'
+      fullPath: '/ipos/calendar'
+      preLoaderRoute: typeof IposCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ipos/$ipoId': {
       id: '/ipos/$ipoId'
       path: '/ipos/$ipoId'
@@ -340,6 +380,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   AskRunIdRoute: AskRunIdRoute,
   IposIpoIdRoute: IposIpoIdRoute,
+  IposCalendarRoute: IposCalendarRoute,
+  IposCompareRoute: IposCompareRoute,
   StockInstrumentIdRoute: StockInstrumentIdRoute,
   AccountIndexRoute: AccountIndexRoute,
   AskIndexRoute: AskIndexRoute,

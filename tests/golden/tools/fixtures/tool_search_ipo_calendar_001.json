@@ -1,0 +1,39 @@
+{
+  "sample_id": "tool_search_ipo_calendar_001",
+  "tool_name": "search_ipo_calendar",
+  "input_schema_id": "tool.search_ipo_calendar.input.v0",
+  "output_schema_id": "tool.search_ipo_calendar.output.v0",
+  "request": {
+    "from": "2026-01-01",
+    "to": "2026-12-31",
+    "limit": 10
+  },
+  "expected_response": {
+    "as_of": "2026-06-24T00:00:00.000Z",
+    "data": {
+      "toolName": "search_ipo_calendar",
+      "status": "fixture_scaffold",
+      "liveDataAccess": false,
+      "data_version": "ipo-fixture-scaffold-v0",
+      "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+    },
+    "data_version": "ipo-fixture-scaffold-v0",
+    "market_status": "not_applicable",
+    "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0",
+    "ok": true,
+    "provenance": [
+      {
+        "source": "ipo-calendar",
+        "source_record_id": "ipo-calendar-fixture",
+        "data_version": "ipo-fixture-scaffold-v0",
+        "methodology_version": "2026-06-24.phase1.ipo-pipeline-foundation.v0"
+      }
+    ],
+    "request_id": "golden-search-ipo-calendar",
+    "usage": {
+      "cached": false,
+      "credits": 0,
+      "rows": 20
+    }
+  }
+}

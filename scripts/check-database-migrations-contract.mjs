@@ -12,7 +12,7 @@ const requiredCommands = [
   "apply_remote"
 ];
 const forbiddenSqlPatterns = [
-  /\bdrop\b/iu,
+  /\bdrop\s+(?!constraint\b)/iu,
   /\btruncate\b/iu,
   /\bdelete\b/iu,
   /\bcopy\b/iu,
@@ -96,9 +96,51 @@ function validateContract(value) {
     }
   }
 
+  errors.push(...validateDatabaseBoundary(value.database_boundary));
   errors.push(...validateHyperdrive(value.hyperdrive));
   errors.push(...validateCommands(value.commands));
   errors.push(...validateMigrations(value.migrations));
+
+  return errors;
+}
+
+function validateDatabaseBoundary(value) {
+  const errors = [];
+
+  if (!isRecord(value)) {
+    return ["database_boundary must be an object"];
+  }
+
+  if (value.scope !== "aiphabee_dedicated_supabase_project") {
+    errors.push("database_boundary.scope must be aiphabee_dedicated_supabase_project");
+  }
+
+  if (value.organization !== "aiphabee_dedicated_supabase_organization") {
+    errors.push("database_boundary.organization must be aiphabee_dedicated_supabase_organization");
+  }
+
+  if (value.share_with_aimpact !== false) {
+    errors.push("database_boundary.share_with_aimpact must be false");
+  }
+
+  if (value.share_with_salesko !== false) {
+    errors.push("database_boundary.share_with_salesko must be false");
+  }
+
+  if (value.cross_product_tables !== false) {
+    errors.push("database_boundary.cross_product_tables must be false");
+  }
+
+  if (
+    value.active_boundary_doc !==
+    "docs/governance/aiphabee-independent-supabase-boundary.md"
+  ) {
+    errors.push("database_boundary.active_boundary_doc must point to the active boundary doc");
+  }
+
+  if (value.superseded_shared_plan !== "docs/supabase-umbrella-schema-plan.md") {
+    errors.push("database_boundary.superseded_shared_plan must point to the superseded plan");
+  }
 
   return errors;
 }

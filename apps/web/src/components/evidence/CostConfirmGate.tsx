@@ -36,7 +36,7 @@ export function CostConfirmGate({
         alignItems: "center",
         justifyContent: "center",
         padding: "var(--space-4)",
-        background: "rgba(15, 23, 42, 0.45)",
+        background: "var(--surface-overlay)",
       }}
       onClick={onCancel}
     >
@@ -53,7 +53,7 @@ export function CostConfirmGate({
               fontFamily: "var(--font-display)",
               fontSize: "var(--text-lg)",
               fontWeight: 700,
-              color: "var(--ink-800)",
+              color: "var(--text-primary)",
             }}
           >
             确认本次操作
@@ -95,7 +95,7 @@ function Line({ k, v, strong = false }: { k: string; v: string; strong?: boolean
           fontFamily: "var(--font-sans)",
           fontSize: "var(--text-sm)",
           fontWeight: strong ? 700 : 500,
-          color: strong ? "var(--honey-700)" : "var(--text-body)",
+          color: strong ? "var(--accent-strong)" : "var(--text-body)",
         }}
       >
         {v}

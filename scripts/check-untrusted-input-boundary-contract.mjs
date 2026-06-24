@@ -360,8 +360,8 @@ function validateToolEnforcementContract(value) {
     }
   }
 
-  if (value.registered_tool_count !== 16) {
-    errors.push("tool enforcement registered_tool_count must be 16");
+  if (value.registered_tool_count !== 23) {
+    errors.push("tool enforcement registered_tool_count must be 23");
   }
 
   if (!Array.isArray(value.forbidden_tool_names) || !value.forbidden_tool_names.includes("http.fetch")) {

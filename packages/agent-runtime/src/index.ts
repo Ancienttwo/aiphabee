@@ -6840,6 +6840,48 @@ const TOOL_USAGE_ESTIMATES: Record<
     tokens: 200,
     wall_clock_ms: 300
   },
+  get_ipo_profile: {
+    credits: 3,
+    rows: 12,
+    tokens: 700,
+    wall_clock_ms: 800
+  },
+  search_ipo_calendar: {
+    credits: 2,
+    rows: 50,
+    tokens: 500,
+    wall_clock_ms: 500
+  },
+  get_ipo_timetable: {
+    credits: 2,
+    rows: 24,
+    tokens: 450,
+    wall_clock_ms: 500
+  },
+  get_ipo_offering: {
+    credits: 2,
+    rows: 1,
+    tokens: 450,
+    wall_clock_ms: 500
+  },
+  get_ipo_allotment: {
+    credits: 3,
+    rows: 100,
+    tokens: 700,
+    wall_clock_ms: 800
+  },
+  screen_ipos: {
+    credits: 4,
+    rows: 20,
+    tokens: 700,
+    wall_clock_ms: 900
+  },
+  compare_ipos: {
+    credits: 4,
+    rows: 5,
+    tokens: 700,
+    wall_clock_ms: 900
+  },
   get_event_timeline: {
     credits: 4,
     rows: 20,

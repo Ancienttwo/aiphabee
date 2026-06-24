@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import {
   MCP_AUTH_LIMITS_RELEASE_GATE_REQUIRED_CHECKS,
   MCP_AUTH_LIMITS_RELEASE_GATE_VERSION,
@@ -44,6 +45,8 @@ import {
   getMcpStandardErrorDefinition,
   getMcpTargetClientsConsoleReleaseGateCapabilities
 } from "./index";
+
+const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
 
 describe("mcp endpoint default-deny scaffold", () => {
   it("reports MCP runtime capabilities with default-deny rights gate", () => {
@@ -278,11 +281,11 @@ describe("mcp endpoint default-deny scaffold", () => {
       schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
       schema_source_contract: "deploy/tools/tool-schemas.contract.json",
       status: "runtime_schema_snapshot_scaffold",
-      tool_count: 16,
+      tool_count: REGISTERED_TOOL_COUNT,
       tools_list_schema_snapshot: true,
       version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION
     });
-    expect(snapshot.tools).toHaveLength(16);
+    expect(snapshot.tools).toHaveLength(REGISTERED_TOOL_COUNT);
     expect(snapshot.tools.every((tool) => tool.schema_snapshot !== undefined)).toBe(true);
     expect(
       snapshot.tools.every(
@@ -1660,7 +1663,7 @@ describe("mcp endpoint default-deny scaffold", () => {
 
     expect(plan.status).toBe("planned_default_deny");
     expect(plan.tools_list).toMatchObject({
-      blocked_tool_count: 16,
+      blocked_tool_count: REGISTERED_TOOL_COUNT,
       returned_tool_count: 0,
       schema_snapshot: {
         returned_schema_count: 0,
@@ -1668,7 +1671,7 @@ describe("mcp endpoint default-deny scaffold", () => {
         schema_catalog_available_after_rights_gate: true,
         schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
         schema_source_contract: "deploy/tools/tool-schemas.contract.json",
-        tool_schema_count: 16,
+        tool_schema_count: REGISTERED_TOOL_COUNT,
         tools_list_schema_snapshot: true
       },
       tool_catalog_available_after_rights_gate: true,
@@ -1685,7 +1688,7 @@ describe("mcp endpoint default-deny scaffold", () => {
       requestId: "req-mcp-tools-list-versioned"
     });
 
-    expect(plan.tools_list?.returned_tool_count).toBe(16);
+    expect(plan.tools_list?.returned_tool_count).toBe(REGISTERED_TOOL_COUNT);
     expect(
       plan.tools_list?.tools.every(
         (tool) =>
@@ -1706,10 +1709,10 @@ describe("mcp endpoint default-deny scaffold", () => {
       )
     ).toBe(true);
     expect(plan.tools_list?.schema_snapshot).toMatchObject({
-      returned_schema_count: 16,
+      returned_schema_count: REGISTERED_TOOL_COUNT,
       runtime_schema_serving: true,
       schema_catalog_available_after_rights_gate: true,
-      tool_schema_count: 16,
+      tool_schema_count: REGISTERED_TOOL_COUNT,
       tools_list_schema_snapshot: true
     });
   });

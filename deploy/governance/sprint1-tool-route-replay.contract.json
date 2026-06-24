@@ -7,9 +7,9 @@
   "test_file": "apps/worker/src/tool-route-replay.test.ts",
   "worker_entrypoint": "apps/worker/src/index.ts",
   "manifest": "tests/golden/tools/manifest.json",
-  "p0_tool_count": 16,
-  "route_count": 16,
-  "golden_fixture_count": 16,
+  "p0_tool_count": 23,
+  "route_count": 23,
+  "golden_fixture_count": 23,
   "server_orchestrated_route_replay": true,
   "golden_vs_route_response_diff": true,
   "canonical_projection_replay": true,
@@ -33,7 +33,14 @@
     "calculate_returns_risk",
     "get_event_timeline",
     "get_data_lineage",
-    "get_entitlements"
+    "get_entitlements",
+    "get_ipo_profile",
+    "search_ipo_calendar",
+    "get_ipo_timetable",
+    "get_ipo_offering",
+    "get_ipo_allotment",
+    "screen_ipos",
+    "compare_ipos"
   ],
   "route_map": {
     "resolve_security": "/tools/resolve-security",
@@ -51,7 +58,14 @@
     "calculate_returns_risk": "/analytics/returns-risk",
     "get_event_timeline": "/tools/get-event-timeline",
     "get_data_lineage": "/tools/get-data-lineage",
-    "get_entitlements": "/tools/get-entitlements"
+    "get_entitlements": "/tools/get-entitlements",
+    "get_ipo_profile": "/workbench/ipo/snapshot",
+    "search_ipo_calendar": "/ipos/calendar",
+    "get_ipo_timetable": "/tools/get-ipo-timetable",
+    "get_ipo_offering": "/tools/get-ipo-offering",
+    "get_ipo_allotment": "/tools/get-ipo-allotment",
+    "screen_ipos": "/analytics/screen-ipos",
+    "compare_ipos": "/analytics/compare-ipos"
   },
   "normalization_policy": {
     "dynamic_envelope_as_of": "asserted_string_then_projected_to_fixture_as_of",

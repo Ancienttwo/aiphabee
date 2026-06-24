@@ -1447,6 +1447,75 @@ const MCP_TOOL_INPUT_VALIDATION_RULES = {
     anyOf: [],
     required: []
   },
+  get_ipo_profile: {
+    allowed: [
+      "ipo_id",
+      "ipoId",
+      "hkex_code",
+      "hkexCode",
+      "listing_date",
+      "listingDate",
+      "include_sensitive_fields",
+      "includeSensitiveFields"
+    ],
+    anyOf: [["ipo_id"], ["ipoId"], ["hkex_code"], ["hkexCode"]],
+    required: []
+  },
+  search_ipo_calendar: {
+    allowed: ["from", "to", "event_types", "eventTypes", "limit", "cursor"],
+    anyOf: [],
+    required: []
+  },
+  get_ipo_timetable: {
+    allowed: ["ipo_id", "ipoId", "hkex_code", "hkexCode", "listing_date", "listingDate"],
+    anyOf: [["ipo_id"], ["ipoId"], ["hkex_code"], ["hkexCode"]],
+    required: []
+  },
+  get_ipo_offering: {
+    allowed: ["ipo_id", "ipoId", "hkex_code", "hkexCode", "listing_date", "listingDate"],
+    anyOf: [["ipo_id"], ["ipoId"], ["hkex_code"], ["hkexCode"]],
+    required: []
+  },
+  get_ipo_allotment: {
+    allowed: [
+      "ipo_id",
+      "ipoId",
+      "hkex_code",
+      "hkexCode",
+      "listing_date",
+      "listingDate",
+      "limit",
+      "cursor"
+    ],
+    anyOf: [["ipo_id"], ["ipoId"], ["hkex_code"], ["hkexCode"]],
+    required: []
+  },
+  screen_ipos: {
+    allowed: [
+      "status",
+      "board",
+      "sector",
+      "listing_type",
+      "listingType",
+      "listing_date_from",
+      "listingDateFrom",
+      "listing_date_to",
+      "listingDateTo",
+      "min_oversubscription",
+      "minOversubscription",
+      "has_cornerstone",
+      "hasCornerstone",
+      "limit",
+      "cursor"
+    ],
+    anyOf: [],
+    required: []
+  },
+  compare_ipos: {
+    allowed: ["ipo_ids", "ipoIds"],
+    anyOf: [["ipo_ids"], ["ipoIds"]],
+    required: []
+  },
   get_financial_facts: {
     allowed: [
       "instrument_id",

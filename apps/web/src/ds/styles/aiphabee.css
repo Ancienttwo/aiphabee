@@ -51,6 +51,7 @@
   --blue-500:   #1d4ed8;
   --blue-50:    #eff6ff;
   --orange-500: #b45309;
+  --orange-50:  #fff7ed;
   --pink-500:   #be185d;
 
   /* ============================================================
@@ -86,6 +87,18 @@
   --border-default: var(--neutral-300);
   --border-strong:  var(--neutral-400);
   --ring:           var(--honey-500);
+
+  /* Extra surfaces / inverse (theme-aware, redefined in the dark block) */
+  --surface-nav:           rgba(255, 255, 255, 0.82);  /* sticky nav glass */
+  --surface-track:         var(--neutral-200);         /* progress/track fills */
+  --surface-overlay:       rgba(15, 23, 42, 0.45);     /* modal scrim */
+  --surface-inverse:       var(--ink-800);             /* navy "secondary" fills */
+  --surface-inverse-hover: var(--ink-700);
+  --text-on-inverse:       var(--neutral-0);
+  /* Honey accent for text/icons on theme-flipping surfaces (cards/page).
+     Dark brown honey-700 is unreadable on dark, so this brightens in dark.
+     NOTE: on constant light honey washes, keep raw --honey-700 instead. */
+  --accent-strong:         var(--honey-700);
 
   /* Status */
   --success: var(--green-500);
@@ -331,3 +344,199 @@ img { max-width: 100%; }
     border-color: ButtonText;
   }
 }
+
+/* ============================================================
+   AiphaBee — Dark theme
+   Only the SEMANTIC layer is redefined; brand/functional base
+   scales (honey, ink, violet, red…) stay constant so the brand
+   stays recognisable. Auto via prefers-color-scheme, with a
+   manual [data-theme] override. No pure black.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-bg:        #0b0f23;
+    --surface-page:    #0b0f23;
+    --surface-card:    #141a33;
+    --surface-muted:   #1c2342;
+    --surface-sunken:  #0e1430;
+    --surface-ink:     #0b0f23;
+    --surface-nav:     rgba(11, 15, 35, 0.82);
+    --surface-track:   #2a3354;
+    --surface-overlay: rgba(0, 0, 0, 0.6);
+    --surface-inverse: #e8edf6;
+    --surface-inverse-hover: #d8e0ee;
+    --text-on-inverse: #0b0f23;
+
+    --text-primary: #f1f5f9;
+    --text-body:    #cbd5e1;
+    --text-muted:   #94a3b8;
+    --text-subtle:  #94a3b8;
+    --text-link:    var(--honey-400);
+    --accent-strong: var(--honey-400);
+
+    /* functional: tint chips → dark translucent; accent text → bright;
+       solid -500 fills are kept dark so white-on-fill stays legible. */
+    --honey-50:   rgba(251, 203, 10, 0.10);
+    --honey-700:  var(--honey-300);
+    --honey-800:  var(--honey-200);
+    --green-50:   rgba(52, 211, 153, 0.14);
+    --green-600:  #34d399;
+    --red-50:     rgba(248, 113, 113, 0.14);
+    --red-600:    #f87171;
+    --violet-50:  rgba(167, 139, 250, 0.16);
+    --violet-600: #a78bfa;
+    --blue-50:    rgba(96, 165, 250, 0.14);
+    --blue-500:   #60a5fa;
+    --orange-50:  rgba(251, 191, 36, 0.14);
+
+    --border-subtle:  #232b47;
+    --border-default: #2d3756;
+    --border-strong:  #3a4585;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.40);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg:        #0b0f23;
+  --surface-page:    #0b0f23;
+  --surface-card:    #141a33;
+  --surface-muted:   #1c2342;
+  --surface-sunken:  #0e1430;
+  --surface-ink:     #0b0f23;
+  --surface-nav:     rgba(11, 15, 35, 0.82);
+  --surface-track:   #2a3354;
+  --surface-overlay: rgba(0, 0, 0, 0.6);
+  --surface-inverse: #e8edf6;
+  --surface-inverse-hover: #d8e0ee;
+  --text-on-inverse: #0b0f23;
+
+  --text-primary: #f1f5f9;
+  --text-body:    #cbd5e1;
+  --text-muted:   #94a3b8;
+  --text-subtle:  #94a3b8;
+  --text-link:    var(--honey-400);
+  --accent-strong: var(--honey-400);
+
+  /* functional: tint chips → dark translucent; accent text → bright;
+     solid -500 fills are kept dark so white-on-fill stays legible. */
+  --honey-50:   rgba(251, 203, 10, 0.10);
+  --honey-700:  var(--honey-300);
+  --honey-800:  var(--honey-200);
+  --green-50:   rgba(52, 211, 153, 0.14);
+  --green-600:  #34d399;
+  --red-50:     rgba(248, 113, 113, 0.14);
+  --red-600:    #f87171;
+  --violet-50:  rgba(167, 139, 250, 0.16);
+  --violet-600: #a78bfa;
+  --blue-50:    rgba(96, 165, 250, 0.14);
+  --blue-500:   #60a5fa;
+  --orange-50:  rgba(251, 191, 36, 0.14);
+
+  --border-subtle:  #232b47;
+  --border-default: #2d3756;
+  --border-strong:  #3a4585;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.40);
+}
+
+/* ============================================================
+   AiphaBee — Reduced motion (mandatory: motion > 3 must degrade)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   AiphaBee — Responsive layout utilities
+   Inline styles can't hold media queries; these classes give the
+   inline-styled app real breakpoints. Columns only — each call
+   site keeps its own `gap` inline. Pair with the SHELL helper,
+   whose gutter narrows via --content-gutter below.
+   ============================================================ */
+.ab-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ab-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ab-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ab-grid-6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+/* main + aside split (collapses to one column on tablet) */
+.ab-split   { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+
+@media (max-width: 1024px) {
+  .ab-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ab-grid-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .ab-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ab-split  { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .ab-grid-2,
+  .ab-grid-3,
+  .ab-grid-4,
+  .ab-grid-6 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Page-shell gutter narrows on small screens (consumed by SHELL). */
+@media (max-width: 768px) { :root { --content-gutter: 1.25rem; } }
+@media (max-width: 480px) { :root { --content-gutter: 1rem; } }
+
+/* IPO pipeline row: dense 7-col on desktop → stacked card on mobile.
+   Children order: name, offer, listing, subscription, sentiment, compare, chevron. */
+.ipo-row {
+  display: grid;
+  grid-template-columns: 2.4fr 1fr 1fr 1fr 1.1fr 0.7fr 40px;
+  gap: 14px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .ipo-row {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 12px 16px;
+  }
+  .ipo-row > :first-child { grid-column: 1 / -1; }   /* name block spans full width */
+  .ipo-row > :last-child  { display: none; }          /* hide chevron (row is clickable) */
+}
+
+/* ============================================================
+   AiphaBee — Navigation: desktop inline, hamburger ≤880px
+   ============================================================ */
+.nav-links-desktop   { display: flex; }
+.nav-actions-desktop { display: flex; }
+.nav-hamburger       { display: none; }
+
+@media (max-width: 880px) {
+  .nav-links-desktop   { display: none; }
+  .nav-actions-desktop { display: none; }
+  .nav-hamburger       { display: inline-flex; }
+}
+@media (min-width: 881px) {
+  .nav-mobile-menu { display: none; }
+}
+
+.nav-mobile-link {
+  display: block;
+  padding: 12px 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-body);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.nav-mobile-link[aria-current="page"] { color: var(--text-primary); }

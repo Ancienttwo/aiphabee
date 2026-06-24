@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import {
   AGENT_KILL_SWITCH_VERSION,
   AgentRuntimeInputError,
@@ -35,6 +36,8 @@ import {
   UNSOURCED_NUMERIC_SAMPLING_VERSION,
   type AiGatewayLiveSmokeFetch
 } from "./index";
+
+const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
 
 describe("agent runtime scaffold", () => {
   it("exposes AI SDK v7 dry-run capabilities without model calls", () => {
@@ -444,7 +447,7 @@ describe("agent runtime scaffold", () => {
       "user_run_persistence_gate_linked",
       "live_token_cost_fallback_writes_blocked"
     ]);
-    expect(capabilities.registered_tools).toHaveLength(16);
+    expect(capabilities.registered_tools).toHaveLength(REGISTERED_TOOL_COUNT);
     expect(capabilities.registered_tools[0]).toMatchObject({
       name: "resolve_security",
       schema: {
@@ -2508,7 +2511,7 @@ describe("agent runtime scaffold", () => {
       denied_tools: [],
       model_calls: false,
       permission_aware: true,
-      registered_tool_count: 16,
+      registered_tool_count: REGISTERED_TOOL_COUNT,
       registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
       requested_tools: [
         "resolve_security",

@@ -5,8 +5,8 @@
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md#sprint-12--tool-registry--原子数据工具--证据血缘",
   "checker": "scripts/check-tool-route-replay-readiness-contract.mjs",
   "fixture_checker": "scripts/check-tool-route-replay-readiness-fixtures.mjs",
-  "p0_tool_count": 16,
-  "golden_fixture_count": 16,
+  "p0_tool_count": 23,
+  "golden_fixture_count": 23,
   "linked_contracts": {
     "p0_tool_catalog": "deploy/tools/p0-tool-catalog.contract.json",
     "tool_registry": "deploy/tools/registry.contract.json",
@@ -44,56 +44,56 @@
       "contract": "deploy/tools/p0-tool-catalog.contract.json",
       "command": "npm run check:p0-tool-catalog",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "tool_registry",
       "contract": "deploy/tools/registry.contract.json",
       "command": "npm run check:tool-registry",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "tool_schemas",
       "contract": "deploy/tools/tool-schemas.contract.json",
       "command": "npm run check:tool-schemas",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_schema_validation",
       "contract": "deploy/mcp/tool-schema-validation.contract.json",
       "command": "npm run check:mcp-tool-schema-validation",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_runtime_schema_snapshot",
       "contract": "deploy/mcp/runtime-schema-snapshot.contract.json",
       "command": "npm run check:mcp-runtime-schema-snapshot",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_versioning",
       "contract": "deploy/mcp/tool-versioning.contract.json",
       "command": "npm run check:mcp-tool-versioning",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_usage_envelope",
       "contract": "deploy/mcp/usage-envelope.contract.json",
       "command": "npm run check:mcp-usage-envelope",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_pagination_limits",
       "contract": "deploy/mcp/pagination-limits.contract.json",
       "command": "npm run check:mcp-pagination-limits",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "mcp_protocol_release_gate",
@@ -114,14 +114,14 @@
       "contract": "deploy/governance/sprint1-tool-route-replay.contract.json",
       "command": "npm run check:tool-route-replay",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "agent_tool_enforcement",
       "contract": "deploy/agent/tool-enforcement.contract.json",
       "command": "npm run check:tool-enforcement",
       "expected_status": "local_contract",
-      "expected_count": 16
+      "expected_count": 23
     },
     {
       "id": "evidence_lineage_tools",
@@ -156,7 +156,7 @@
       "contract": "tests/golden/tools/manifest.json",
       "command": "npm run test:golden",
       "expected_status": "tool-golden-fixtures-version=2026-06-21.phase1.v0",
-      "expected_count": 16
+      "expected_count": 23
     }
   ],
   "blockers": [
@@ -165,7 +165,12 @@
       "source_contract": "deploy/governance/sprint1-live-data-evidence-manifest.contract.json",
       "source_field": "required_gates.partner_serving_rows_loaded.status",
       "current_value": "missing",
-      "required_evidence": ["serving_dataset_rows", "serving_snapshot_rows", "serving_record_rows", "data_platform_owner_signoff"],
+      "required_evidence": [
+        "serving_dataset_rows",
+        "serving_snapshot_rows",
+        "serving_record_rows",
+        "data_platform_owner_signoff"
+      ],
       "release_blocker": true
     }
   ],

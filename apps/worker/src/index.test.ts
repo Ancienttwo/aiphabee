@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import app, { AiphaBeeResearchWorkflow, AiphaBeeRunCoordinator } from "./index";
+
+const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -13868,7 +13871,7 @@ describe("worker runtime", () => {
       status: "kill_switch_scaffold",
       tool_kill_switch_ready: true
     });
-    expect(body.data.registered_tools).toHaveLength(16);
+    expect(body.data.registered_tools).toHaveLength(REGISTERED_TOOL_COUNT);
     expect(body.data.registered_tools[0]).toMatchObject({
       name: "resolve_security",
       schema: {
@@ -14998,12 +15001,12 @@ describe("worker runtime", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("shared_tool_registry_scaffold");
-    expect(body.data.tool_count).toBe(16);
+    expect(body.data.tool_count).toBe(REGISTERED_TOOL_COUNT);
     expect(body.data.schema_ready).toBe(true);
     expect(body.data.rights_aware).toBe(true);
     expect(body.data.standard_response_envelope).toBe(true);
     expect(body.data.execution_ready).toBe(false);
-    expect(body.data.handler_ready_tool_count).toBe(16);
+    expect(body.data.handler_ready_tool_count).toBe(REGISTERED_TOOL_COUNT);
     expect(body.data.allow_arbitrary_sql).toBe(false);
     expect(body.data.allow_arbitrary_url).toBe(false);
     expect(body.data.versioning_ready).toBe(true);
@@ -17885,7 +17888,7 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
-    expect(body.usage.rows).toBe(16);
+    expect(body.usage.rows).toBe(REGISTERED_TOOL_COUNT);
     expect(body.data).toMatchObject({
       live_tool_execution: false,
       package: "@aiphabee/mcp-runtime",
@@ -17896,11 +17899,11 @@ describe("worker runtime", () => {
       schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
       schema_source_contract: "deploy/tools/tool-schemas.contract.json",
       status: "runtime_schema_snapshot_scaffold",
-      tool_count: 16,
+      tool_count: REGISTERED_TOOL_COUNT,
       tools_list_schema_snapshot: true,
       version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0"
     });
-    expect(body.data.tools).toHaveLength(16);
+    expect(body.data.tools).toHaveLength(REGISTERED_TOOL_COUNT);
     expect(
       body.data.tools.every(
         (tool) =>
@@ -19197,7 +19200,7 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("planned_default_deny");
     expect(body.data.tools_list).toEqual({
-      blocked_tool_count: 16,
+      blocked_tool_count: REGISTERED_TOOL_COUNT,
       returned_tool_count: 0,
       schema_snapshot: {
         returned_schema_count: 0,
@@ -19205,7 +19208,7 @@ describe("worker runtime", () => {
         schema_catalog_available_after_rights_gate: true,
         schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
         schema_source_contract: "deploy/tools/tool-schemas.contract.json",
-        tool_schema_count: 16,
+        tool_schema_count: REGISTERED_TOOL_COUNT,
         tools_list_schema_snapshot: true
       },
       tool_catalog_available_after_rights_gate: true,
@@ -19458,7 +19461,7 @@ describe("worker runtime", () => {
       mcp_authorization_configured: true,
       partner_signed_matrix_loaded: false,
       persistent_writes: false,
-      required_p0_tool_count: 16,
+      required_p0_tool_count: REGISTERED_TOOL_COUNT,
       required_surfaces: ["web", "mcp", "export", "enterprise"],
       route: "GET /gateway/rights-matrix/p0/coverage",
       runtime_route: "GET /gateway/runtime",
@@ -19769,11 +19772,11 @@ describe("worker runtime", () => {
       status: "p0_rights_matrix_coverage_scaffold"
     });
     expect(body.data.capability).toMatchObject({
-      required_p0_tool_count: 16,
+      required_p0_tool_count: REGISTERED_TOOL_COUNT,
       route: "GET /gateway/rights-matrix/p0/coverage",
       status: "p0_rights_matrix_coverage_scaffold"
     });
-    expect(body.data.tool_coverage).toHaveLength(16);
+    expect(body.data.tool_coverage).toHaveLength(REGISTERED_TOOL_COUNT);
     expect(body.data.tool_coverage.map((item) => item.tool_name)).toEqual(
       expect.arrayContaining(["resolve_security", "get_quote_snapshot", "get_entitlements"])
     );
@@ -19805,11 +19808,13 @@ describe("worker runtime", () => {
     });
     expect(body.data.validation).toMatchObject({
       all_required_surfaces_configured: true,
-      required_p0_tool_count: 16,
-      tool_count: 16,
+      required_p0_tool_count: REGISTERED_TOOL_COUNT,
+      tool_count: REGISTERED_TOOL_COUNT,
       tool_count_matches_registry: true
     });
-    expect(body.usage.rows).toBe(25);
+    expect(body.usage.rows).toBe(
+      body.data.tool_coverage.length + body.data.dataset_field_coverage.length
+    );
   });
 
   it("serves data coverage release gate for freshness and coverage labels", async () => {
@@ -21642,7 +21647,7 @@ describe("worker runtime", () => {
       denied_tools: [],
       model_calls: false,
       permission_aware: true,
-      registered_tool_count: 16,
+      registered_tool_count: REGISTERED_TOOL_COUNT,
       registry_version: "2026-06-21.phase1.shared-tool-registry-scaffold.v0",
       requested_tools: [
         "resolve_security",
@@ -22156,5 +22161,172 @@ describe("worker runtime", () => {
       blocked_tools: ["resolve_security", "get_financial_facts"],
       can_plan_tools: false
     });
+  });
+
+  it("returns IPO workbench snapshots with provenance and sensitive fields redacted", async () => {
+    const response = await app.request("/workbench/ipo/snapshot", {
+      body: JSON.stringify({ ipo_id: "honeycomb" }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-ipo-snapshot"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as {
+      data: {
+        accessPolicy: {
+          defaultRightsStatus: string;
+          redactedFields: string[];
+        };
+        cornerstones: Array<{
+          amountText: null | string;
+          redacted: boolean;
+        }>;
+        liveDataAccess: boolean;
+        offering: {
+          hkexCode: string;
+        };
+        provenance: Array<{
+          source: string;
+        }>;
+        researchSignal: {
+          source: string;
+          status: string;
+        };
+      };
+      ok: true;
+      provenance: Array<{
+        source: string;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.offering.hkexCode).toBe("2769");
+    expect(body.data.liveDataAccess).toBe(false);
+    expect(body.data.accessPolicy.defaultRightsStatus).toBe("default_deny");
+    expect(body.data.accessPolicy.redactedFields).toContain("ipo_cornerstone.invest_amount");
+    expect(body.data.cornerstones[0]).toMatchObject({
+      amountText: null,
+      redacted: true
+    });
+    expect(body.data.researchSignal).toMatchObject({
+      source: "aiphabee_research",
+      status: "descriptive_signal_not_advice"
+    });
+    expect(body.provenance.map((item) => item.source)).toContain("ipo-fixture");
+  });
+
+  it("screens IPOs through a rights-aware analytics envelope", async () => {
+    const response = await app.request("/analytics/screen-ipos", {
+      body: JSON.stringify({ has_cornerstone: true, min_oversubscription: 20 }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-screen-ipos"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as {
+      data: {
+        accessPolicy: {
+          exportAllowed: boolean;
+          mcpRedistributionAllowed: boolean;
+        };
+        rows: Array<{
+          id: string;
+        }>;
+        toolName: string;
+        totalRows: number;
+      };
+      ok: true;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("screen_ipos");
+    expect(body.data.rows.map((row) => row.id)).toEqual(["honeycomb", "lotus"]);
+    expect(body.data.totalRows).toBe(2);
+    expect(body.data.accessPolicy).toMatchObject({
+      exportAllowed: false,
+      mcpRedistributionAllowed: false
+    });
+  });
+
+  it("returns IPO calendar events for the listing filter", async () => {
+    const response = await app.request("/ipos/calendar?event_type=listing", {
+      headers: {
+        "x-request-id": "req-ipo-calendar"
+      },
+      method: "GET"
+    });
+    const body = (await response.json()) as {
+      data: {
+        events: Array<{
+          eventType: string;
+        }>;
+        toolName: string;
+      };
+      ok: true;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("search_ipo_calendar");
+    expect(body.data.events.length).toBeGreaterThan(0);
+    expect(body.data.events.every((event) => event.eventType === "listing")).toBe(true);
+  });
+
+  it.each([
+    "/tools/get-ipo-timetable",
+    "/tools/get-ipo-offering",
+    "/tools/get-ipo-allotment"
+  ])("returns NOT_FOUND envelopes for unknown IPO tool lookups at %s", async (route) => {
+    const response = await app.request(route, {
+      body: JSON.stringify({ ipo_id: "missing-ipo" }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": `req-${route.split("/").pop()}-missing`
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as {
+      error: {
+        code: string;
+      };
+      ok: false;
+    };
+
+    expect(response.status).toBe(404);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  it("compares IPOs through the dedicated analytics route", async () => {
+    const response = await app.request("/analytics/compare-ipos", {
+      body: JSON.stringify({ ipo_ids: ["honeycomb", "lotus", "pearl"] }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-compare-ipos"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as {
+      data: {
+        rows: Array<{
+          ticker: string;
+        }>;
+        toolName: string;
+      };
+      ok: true;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.toolName).toBe("compare_ipos");
+    expect(body.data.rows.map((row) => row.ticker)).toEqual([
+      "2769.HK",
+      "2611.HK",
+      "2197.HK"
+    ]);
   });
 });

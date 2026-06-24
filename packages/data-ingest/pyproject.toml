@@ -1,0 +1,10 @@
+[project]
+name = "aiphabee-data-ingest"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+  "scrapy>=2.16.0"
+]
+
+[tool.scrapy]
+settings = "data_ingest.hkex.settings"

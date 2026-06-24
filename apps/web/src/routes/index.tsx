@@ -90,7 +90,7 @@ function Home() {
         >
           <Icon name="sparkles" size={15} color="var(--honey-700)" />
           <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--honey-800)" }}>
-            港股研究 Agent · 证据可追溯 · Powered by Claude
+            港股研究 Agent · 证据可追溯
           </span>
         </div>
         <h1
@@ -101,7 +101,7 @@ function Home() {
             fontWeight: 800,
             lineHeight: 1.08,
             letterSpacing: "var(--tracking-tight)",
-            color: "var(--ink-800)",
+            color: "var(--text-primary)",
           }}
         >
           把每个港股结论，
@@ -183,7 +183,7 @@ function Home() {
 
       {/* Quick actions */}
       <section style={{ ...SHELL, paddingBottom: 48 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div className="ab-grid-4" style={{ gap: 16 }}>
           {QUICK_ACTIONS.map((a) => (
             <Card
               key={a.to}
@@ -217,29 +217,40 @@ function Home() {
         </div>
       </section>
 
-      {/* Evidence-first value props */}
+      {/* Evidence-first value props — divided rows (not a 3-card triplet) */}
       <section style={{ ...SHELL, paddingBottom: 80 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          {VALUE_PROPS.map((v) => (
-            <Card key={v.title} padded>
+        <Card padded>
+          {VALUE_PROPS.map((v, i) => (
+            <div
+              key={v.title}
+              style={{
+                display: "flex",
+                gap: 16,
+                alignItems: "flex-start",
+                padding: i === 0 ? "0 0 20px" : "20px 0",
+                borderTop: i === 0 ? "none" : "1px solid var(--border-subtle)",
+              }}
+            >
               <Hexvatar icon={<Icon name={v.icon} size={22} />} tone={v.tone} variant="soft" size={52} />
-              <h3
-                style={{
-                  margin: "16px 0 6px",
-                  fontFamily: "var(--font-display)",
-                  fontSize: "var(--text-xl)",
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                }}
-              >
-                {v.title}
-              </h3>
-              <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, color: "var(--text-body)" }}>
-                {v.body}
-              </p>
-            </Card>
+              <div style={{ minWidth: 0 }}>
+                <h3
+                  style={{
+                    margin: "0 0 6px",
+                    fontFamily: "var(--font-display)",
+                    fontSize: "var(--text-xl)",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {v.title}
+                </h3>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, color: "var(--text-body)", maxWidth: "62ch" }}>
+                  {v.body}
+                </p>
+              </div>
+            </div>
           ))}
-        </div>
+        </Card>
       </section>
     </main>
   );

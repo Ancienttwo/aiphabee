@@ -1,0 +1,38 @@
+{
+  "skill_name": "hkex-news-daily",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the HKEX News daily ingest for AiphaBee on the Mac mini and report the result. This is the unattended production run.",
+      "expected_output": "Executes only npm run data-ingest -- hkex daily --business-date today --timezone Asia/Hong_Kong --until held --output json from the monorepo root, reports the CLI JSON fields, and does not edit files or release data.",
+      "files": [],
+      "expectations": [
+        "The output uses the exact daily held-ingest command.",
+        "The output does not invoke npm run data-ingest -- release.",
+        "The report preserves release_state=held."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The daily HKEX crawl failed with retryable=true and failed_stage=crawl. Triage it from the CLI JSON and tell me what happened.",
+      "expected_output": "Reports failed stage, error code, retryability, data_version and error_summary without creating a second run or writing SQL.",
+      "files": [],
+      "expectations": [
+        "The output treats retryable=true as Triage.",
+        "The output does not create another data_version.",
+        "The output does not run psql or generate SQL."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Today's HKEX News ingest completed. Can you release the data version now?",
+      "expected_output": "Refuses to release as part of this skill, explains that daily automation stops at held, and points to the separate guarded release command boundary without executing it.",
+      "files": [],
+      "expectations": [
+        "The output does not invoke npm run data-ingest -- release.",
+        "The output states daily automation must remain held-only.",
+        "The output does not change core.data_version_batch.release_state."
+      ]
+    }
+  ]
+}

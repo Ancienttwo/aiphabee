@@ -16,6 +16,7 @@
         "patterns": [
           {
             "group": [
+              "apps/ipo-workbench/**",
               "components/core/**",
               "components/data/**",
               "components/forms/**",

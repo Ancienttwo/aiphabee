@@ -54,7 +54,7 @@ function Screen() {
 
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
-      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--ink-800)" }}>
+      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--text-primary)" }}>
         筛选器
       </h1>
       <p style={{ margin: "8px 0 20px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>

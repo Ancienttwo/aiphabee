@@ -14,8 +14,13 @@
     "p0_fields_tools_rights_matrix",
     "web_mcp_export_enterprise_authorization"
   ],
-  "required_p0_tool_count": 16,
-  "required_surfaces": ["web", "mcp", "export", "enterprise"],
+  "required_p0_tool_count": 23,
+  "required_surfaces": [
+    "web",
+    "mcp",
+    "export",
+    "enterprise"
+  ],
   "default_rights_status": "default_deny",
   "surface_authorization": {
     "web": "configured_default_deny",
@@ -26,7 +31,11 @@
   "release_gate": {
     "gate_status": "blocked_external_rights_matrix",
     "partner_signed_matrix_required": true,
-    "required_signoffs": ["data_partner", "commercial_owner", "legal_compliance"]
+    "required_signoffs": [
+      "data_partner",
+      "commercial_owner",
+      "legal_compliance"
+    ]
   },
   "dataset_groups": [
     "security_master",
@@ -37,7 +46,8 @@
     "financial_facts",
     "announcements",
     "derived_analytics",
-    "evidence_lineage"
+    "evidence_lineage",
+    "ipo_pipeline"
   ],
   "tables": [
     "core.p0_rights_matrix_entry",

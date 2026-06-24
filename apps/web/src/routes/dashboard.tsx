@@ -35,7 +35,7 @@ function Dashboard() {
                   fontFamily: "var(--font-display)",
                   fontSize: "var(--text-3xl)",
                   fontWeight: 700,
-                  color: "var(--ink-800)",
+                  color: "var(--text-primary)",
                 }}
               >
                 IPO Agent Dashboard
@@ -49,7 +49,7 @@ function Dashboard() {
       </div>
 
       <div style={{ ...SHELL, padding: "32px 24px 80px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
+        <div className="ab-grid-4" style={{ gap: 18 }}>
           <StatCard label="Active IPOs 招股中" value="12" tone="honey" icon={<Icon name="calendar" size={20} />} />
           <StatCard
             label="本周上市 This week"
@@ -64,9 +64,8 @@ function Dashboard() {
         </div>
 
         <div
+          className="ab-split"
           style={{
-            display: "grid",
-            gridTemplateColumns: "1.4fr 1fr",
             gap: 24,
             marginTop: 24,
             alignItems: "start",
@@ -82,7 +81,7 @@ function Dashboard() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: "var(--ink-700)",
+                    color: "var(--text-body)",
                     fontWeight: 600,
                     fontSize: "var(--text-xs)",
                     fontFamily: "var(--font-sans)",

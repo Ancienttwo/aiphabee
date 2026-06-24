@@ -74,7 +74,7 @@ function Compare() {
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 24 }}>
         {securities.map((s, i) => (
-          <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: "var(--radius-pill)", background: "var(--honey-50)", border: "1px solid var(--honey-200)", fontSize: "var(--text-sm)", color: "var(--ink-800)" }}>
+          <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: "var(--radius-pill)", background: "var(--honey-50)", border: "1px solid var(--honey-200)", fontSize: "var(--text-sm)", color: "var(--text-primary)" }}>
             {s}
             <button type="button" aria-label={`移除 ${s}`} onClick={() => remove(i)} style={{ display: "inline-flex", border: "none", background: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}>
               <Icon name="x" size={13} />

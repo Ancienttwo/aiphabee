@@ -109,6 +109,31 @@ import {
   runCorporateActionBenchmarkParityGate
 } from "@aiphabee/corporate-actions";
 import {
+  IPO_ACCESS_POLICY,
+  IPO_FIXTURE_DATA_VERSION,
+  IPO_PIPELINE_VERSION,
+  IPO_RESEARCH_METHODOLOGY_VERSION,
+  compareIpos,
+  createIpoWorkbenchSnapshot,
+  getIpoCapabilities,
+  IpoNotFoundError,
+  screenIpos,
+  searchIpoCalendar,
+  type IpoCalendarEvent,
+  type IpoCalendarEventType,
+  type IpoCalendarResult,
+  type IpoCompareResult,
+  type IpoCornerstoneFact,
+  type IpoNarrativeSection,
+  type IpoOfferingFact,
+  type IpoProvenance,
+  type IpoQualityState,
+  type IpoResearchSignalBlock,
+  type IpoScreenInput,
+  type IpoScreenResult,
+  type IpoWorkbenchSnapshot
+} from "@aiphabee/ipo";
+import {
   DATA_ACCESS_GATEWAY_VERSION,
   DEFAULT_DATA_ACCESS_POLICY,
   createDataCoverageReleaseGateReport,
@@ -419,6 +444,74 @@ interface RuntimeQueue {
 interface RuntimeHyperdrive {
   connectionString?: string;
 }
+
+interface IpoServingOfferingRow {
+  board_lot: number | string | null;
+  business_overview_text?: string | null;
+  clawback_type: string | null;
+  currency_code: string | null;
+  data_version: string;
+  final_offer_price: number | string | null;
+  funds_raised_text_en: string | null;
+  funds_raised_text_zh_hans: string | null;
+  funds_raised_text_zh_hant: string | null;
+  has_cornerstone?: boolean | null;
+  hkex_code: string;
+  ipo_status: string;
+  listing_board: string | null;
+  listing_date: Date | string;
+  listing_type: string | null;
+  market_cap_text_en: string | null;
+  market_cap_text_zh_hans: string | null;
+  market_cap_text_zh_hant: string | null;
+  name_en: string | null;
+  name_zh_hans: string | null;
+  name_zh_hant: string | null;
+  offer_price_max: number | string | null;
+  offer_price_min: number | string | null;
+  offering_id: string;
+  one_lot_success_rate: number | string | null;
+  over_subscription_multiple: number | string | null;
+  quality_state: string;
+  sector_code: string | null;
+  source_record_id: string;
+}
+
+interface IpoServingNarrativeRow {
+  content_html: string | null;
+  content_text: string | null;
+  lang: string;
+  section_key: string;
+}
+
+interface IpoServingTimetableRow {
+  event_code: string;
+  event_date: Date | string | null;
+  event_type: string;
+  offering_id: string;
+  title_en: string | null;
+  title_zh_hant: string | null;
+}
+
+interface IpoServingCornerstoneRow {
+  invest_amount: number | string | null;
+  invest_currency_code: string | null;
+  investor_name_en: string | null;
+  investor_name_zh_hant: string | null;
+  issued_share_pct: number | string | null;
+  lockup_period_text: string | null;
+  offer_share_pct: number | string | null;
+}
+
+type IpoSnapshotServingRead =
+  | {
+      snapshot: IpoWorkbenchSnapshot;
+      status: "found";
+    }
+  | {
+      dataVersion: string;
+      status: "no_released_data" | "not_found";
+    };
 
 interface RuntimeQueueBatch {
   messages: RuntimeQueueMessage[];
@@ -958,6 +1051,7 @@ interface McpRevocationEnforcementRequestBody {
 const app = new Hono<{ Bindings: WorkerBindings }>();
 const MCP_TOOL_EXECUTION_ROUTE_MAP: Record<string, string> = {
   calculate_returns_risk: "/analytics/returns-risk",
+  compare_ipos: "/analytics/compare-ipos",
   compare_securities: "/analytics/compare-securities",
   get_announcement: "/documents/get-announcement",
   get_corporate_actions: "/tools/get-corporate-actions",
@@ -966,12 +1060,18 @@ const MCP_TOOL_EXECUTION_ROUTE_MAP: Record<string, string> = {
   get_event_timeline: "/tools/get-event-timeline",
   get_financial_facts: "/tools/get-financial-facts",
   get_financial_ratios: "/analytics/financial-ratios",
+  get_ipo_allotment: "/tools/get-ipo-allotment",
+  get_ipo_offering: "/tools/get-ipo-offering",
+  get_ipo_profile: "/workbench/ipo/snapshot",
+  get_ipo_timetable: "/tools/get-ipo-timetable",
   get_market_calendar: "/tools/get-market-calendar",
   get_price_history: "/tools/get-price-history",
   get_quote_snapshot: "/tools/get-quote-snapshot",
   get_security_profile: "/tools/get-security-profile",
   resolve_security: "/tools/resolve-security",
   screen_securities: "/analytics/screen-securities",
+  screen_ipos: "/analytics/screen-ipos",
+  search_ipo_calendar: "/ipos/calendar",
   search_announcements: "/documents/search-announcements"
 };
 const DEFAULT_DEEP_REPORT_WORKFLOW_TOOLS = [
@@ -1012,6 +1112,7 @@ const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_TOKEN_BINDING =
 const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_VERSION =
   "2026-06-22.phase2.mcp-developer-console-log-store-smoke.v0";
 const CLOUDFLARE_QUEUE_SMOKE_ROUTE = "/cloudflare/queues/smoke";
+const IPO_NO_RELEASED_DATA_VERSION = "ipo-no-released-data-version";
 const CLOUDFLARE_QUEUE_SMOKE_KIND = "aiphabee.queue.smoke.v1";
 const CLOUDFLARE_QUEUE_SMOKE_MAX_ATTEMPTS = 20;
 const CLOUDFLARE_QUEUE_SMOKE_POLL_MS = 500;
@@ -4691,6 +4792,145 @@ app.post("/analytics/compare-securities", async (c) => {
   );
 });
 
+app.post("/analytics/screen-ipos", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const filters = {
+    board: normalizeString(body.board),
+    hasCornerstone: normalizeOptionalBoolean(body.has_cornerstone ?? body.hasCornerstone),
+    listingDateFrom: normalizeString(body.listing_date_from ?? body.listingDateFrom),
+    listingDateTo: normalizeString(body.listing_date_to ?? body.listingDateTo),
+    listingType: normalizeString(body.listing_type ?? body.listingType),
+    minOversubscription: normalizeOptionalNumber(
+      body.min_oversubscription ?? body.minOversubscription
+    ),
+    sector: normalizeString(body.sector),
+    status: normalizeIpoScreenStatus(body.status ?? body.stage)
+  };
+  const screen = (await readReleasedIpoScreen(c.env ?? {}, filters)) ?? screenIpos(filters);
+
+  return c.json(
+    createSuccessEnvelope(screen, {
+      asOf: new Date().toISOString(),
+      dataVersion: screen.dataVersion,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      provenance: createIpoRouteProvenance(
+        screen.dataVersion,
+        screen.status,
+        "analytics-screen-ipos",
+        "screen-ipos-fixture"
+      ),
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: screen.totalRows
+      }
+    })
+  );
+});
+
+app.post("/analytics/compare-ipos", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const input = {
+    ipoIds: normalizeStringArray(body.ipo_ids ?? body.ipoIds)
+  };
+  const comparison = (await readReleasedIpoCompare(c.env ?? {}, input)) ?? compareIpos(input);
+
+  return c.json(
+    createSuccessEnvelope(comparison, {
+      asOf: new Date().toISOString(),
+      dataVersion: comparison.dataVersion,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      provenance: createIpoRouteProvenance(
+        comparison.dataVersion,
+        comparison.status,
+        "analytics-compare-ipos",
+        "compare-ipos-fixture"
+      ),
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: comparison.rows.length
+      }
+    })
+  );
+});
+
+app.get("/ipos/calendar", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const input = {
+    eventTypes: normalizeIpoCalendarEventTypes(c.req.query("event_type")),
+    from: normalizeString(c.req.query("from")),
+    to: normalizeString(c.req.query("to"))
+  };
+  const calendar = (await readReleasedIpoCalendar(c.env ?? {}, input)) ?? searchIpoCalendar(input);
+
+  c.header("Cache-Control", "no-store");
+
+  return c.json(
+    createSuccessEnvelope(calendar, {
+      asOf: new Date().toISOString(),
+      dataVersion: calendar.dataVersion,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      provenance: createIpoRouteProvenance(
+        calendar.dataVersion,
+        calendar.status,
+        "ipo-calendar",
+        "ipo-calendar-fixture"
+      ),
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: calendar.events.length
+      }
+    })
+  );
+});
+
+app.post("/ipos/calendar", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const input = {
+    eventTypes: normalizeIpoCalendarEventTypes(body.event_types ?? body.eventTypes),
+    from: normalizeString(body.from),
+    to: normalizeString(body.to)
+  };
+  const calendar = (await readReleasedIpoCalendar(c.env ?? {}, input)) ?? searchIpoCalendar(input);
+
+  return c.json(
+    createSuccessEnvelope(calendar, {
+      asOf: new Date().toISOString(),
+      dataVersion: calendar.dataVersion,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      provenance: createIpoRouteProvenance(
+        calendar.dataVersion,
+        calendar.status,
+        "ipo-calendar",
+        "ipo-calendar-fixture"
+      ),
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: calendar.events.length
+      }
+    })
+  );
+});
+
 app.get("/workbench/runtime", (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -4715,6 +4955,243 @@ app.get("/workbench/runtime", (c) => {
         rows: 0
       }
     })
+  );
+});
+
+app.post("/workbench/ipo/snapshot", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const ipoId = normalizeString(body.ipo_id ?? body.ipoId ?? body.hkex_code ?? body.hkexCode);
+  const includeSensitiveFields =
+    normalizeOptionalBoolean(body.include_sensitive_fields ?? body.includeSensitiveFields) ===
+    true;
+  const snapshotRead = await resolveIpoSnapshotRead(c.env ?? {}, {
+    includeSensitiveFields,
+    ipoId
+  });
+
+  if (snapshotRead.status !== "found") {
+    return c.json(
+      createErrorEnvelope(
+        "NOT_FOUND",
+        snapshotRead.status === "no_released_data"
+          ? "No released IPO data_version is available."
+          : `No IPO matches id "${ipoId ?? ""}" in IPO serving data.`,
+        {
+          asOf: new Date().toISOString(),
+          dataVersion: snapshotRead.dataVersion,
+          methodologyVersion: IPO_PIPELINE_VERSION,
+          provenance: [],
+          requestId,
+          usage: {
+            cached: false,
+            credits: 0,
+            rows: 0
+          }
+        }
+      ),
+      404
+    );
+  }
+
+  const snapshot = snapshotRead.snapshot;
+
+  return c.json(
+    createSuccessEnvelope(snapshot, {
+      asOf: new Date().toISOString(),
+      dataVersion: snapshot.dataVersion,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      provenance: snapshot.provenance,
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows:
+          1 +
+          snapshot.narratives.length +
+          snapshot.timetable.length +
+          snapshot.cornerstones.length
+      }
+    })
+  );
+});
+
+app.post("/tools/get-ipo-timetable", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const snapshotRead = await resolveIpoSnapshotRead(c.env ?? {}, {
+    ipoId: normalizeString(body.ipo_id ?? body.ipoId ?? body.hkex_code ?? body.hkexCode)
+  });
+  const snapshot = snapshotRead.status === "found" ? snapshotRead.snapshot : undefined;
+
+  if (snapshot === undefined) {
+    return c.json(
+      createErrorEnvelope("NOT_FOUND", "No released IPO timetable is available.", {
+        asOf: new Date().toISOString(),
+        dataVersion: ipoSnapshotReadDataVersion(snapshotRead),
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: [],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      404
+    );
+  }
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        accessPolicy: snapshot.accessPolicy,
+        dataVersion: snapshot.dataVersion,
+        liveDataAccess: snapshot.liveDataAccess,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        offering: snapshot.offering,
+        status: snapshot.status,
+        timetable: snapshot.timetable,
+        toolName: "get_ipo_timetable"
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: snapshot.dataVersion,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: snapshot.provenance,
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: snapshot.timetable.length
+        }
+      }
+    )
+  );
+});
+
+app.post("/tools/get-ipo-offering", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const snapshotRead = await resolveIpoSnapshotRead(c.env ?? {}, {
+    ipoId: normalizeString(body.ipo_id ?? body.ipoId ?? body.hkex_code ?? body.hkexCode)
+  });
+  const snapshot = snapshotRead.status === "found" ? snapshotRead.snapshot : undefined;
+
+  if (snapshot === undefined) {
+    return c.json(
+      createErrorEnvelope("NOT_FOUND", "No released IPO offering is available.", {
+        asOf: new Date().toISOString(),
+        dataVersion: ipoSnapshotReadDataVersion(snapshotRead),
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: [],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      404
+    );
+  }
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        accessPolicy: snapshot.accessPolicy,
+        dataVersion: snapshot.dataVersion,
+        liveDataAccess: snapshot.liveDataAccess,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        offering: snapshot.offering,
+        status: snapshot.status,
+        toolName: "get_ipo_offering"
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: snapshot.dataVersion,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: snapshot.provenance,
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 1
+        }
+      }
+    )
+  );
+});
+
+app.post("/tools/get-ipo-allotment", async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const snapshotRead = await resolveIpoSnapshotRead(c.env ?? {}, {
+    ipoId: normalizeString(body.ipo_id ?? body.ipoId ?? body.hkex_code ?? body.hkexCode)
+  });
+  const snapshot = snapshotRead.status === "found" ? snapshotRead.snapshot : undefined;
+
+  if (snapshot === undefined) {
+    return c.json(
+      createErrorEnvelope("NOT_FOUND", "No released IPO allotment is available.", {
+        asOf: new Date().toISOString(),
+        dataVersion: ipoSnapshotReadDataVersion(snapshotRead),
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: [],
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 0
+        }
+      }),
+      404
+    );
+  }
+
+  return c.json(
+    createSuccessEnvelope(
+      {
+        accessPolicy: snapshot.accessPolicy,
+        allotmentSummary: {
+          oneLotSuccessRate: snapshot.offering.oneLotSuccessRate,
+          overSubscriptionMultiple: snapshot.offering.overSubscriptionMultiple,
+          redactedFields: snapshot.accessPolicy.redactedFields.filter((field) =>
+            field.startsWith("ipo_allotment")
+          )
+        },
+        dataVersion: snapshot.dataVersion,
+        liveDataAccess: snapshot.liveDataAccess,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        offering: snapshot.offering,
+        status: snapshot.status,
+        toolName: "get_ipo_allotment"
+      },
+      {
+        asOf: new Date().toISOString(),
+        dataVersion: snapshot.dataVersion,
+        methodologyVersion: IPO_PIPELINE_VERSION,
+        provenance: snapshot.provenance,
+        requestId,
+        usage: {
+          cached: false,
+          credits: 0,
+          rows: 1
+        }
+      }
+    )
   );
 });
 
@@ -14057,8 +14534,956 @@ function normalizeWatchlistPriceField(
   return value === "close" || value === "last" || value === "volume" ? value : undefined;
 }
 
+async function withIpoPostgres<T>(
+  env: WorkerBindings,
+  callback: (client: Client) => Promise<T>
+): Promise<T | undefined> {
+  const connectionString = getIpoPostgresConnectionString(env);
+
+  if (connectionString === undefined) {
+    return undefined;
+  }
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    return await callback(client);
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+function getIpoPostgresConnectionString(env: WorkerBindings): string | undefined {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return undefined;
+  }
+
+  const connectionString = hyperdrive.connectionString?.trim();
+  return connectionString && connectionString.length > 0 ? connectionString : undefined;
+}
+
+async function getLatestReleasedIpoDataVersion(
+  client: Client
+): Promise<string | undefined> {
+  const result = await client.query<{ data_version: string }>(
+    `
+      select batch.data_version
+      from core.data_version_batch batch
+      where batch.release_state = 'released'
+        and exists (
+          select 1
+          from core.ipo_offering offering
+          where offering.data_version = batch.data_version
+        )
+      order by coalesce(batch.released_at, batch.created_at) desc, batch.data_version desc
+      limit 1
+    `
+  );
+
+  return result.rows[0]?.data_version;
+}
+
+async function readReleasedIpoScreen(
+  env: WorkerBindings,
+  filters: IpoScreenInput
+): Promise<IpoScreenResult | undefined> {
+  return withIpoPostgres(env, async (client) => {
+    const dataVersion = await getLatestReleasedIpoDataVersion(client);
+
+    if (dataVersion === undefined) {
+      return createNoReleasedIpoScreen(filters);
+    }
+
+    const rows = await readIpoOfferingRows(client, dataVersion);
+    const filteredRows = rows
+      .map((row) => ({
+        hasCornerstone: row.has_cornerstone === true,
+        offering: ipoOfferingFromPostgres(row)
+      }))
+      .filter(({ hasCornerstone, offering }) =>
+        matchesIpoScreenFilters(offering, hasCornerstone, filters)
+      )
+      .map(({ offering }) => offering);
+
+    return {
+      accessPolicy: IPO_ACCESS_POLICY,
+      dataVersion,
+      filters,
+      liveDataAccess: true,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      rows: filteredRows,
+      status: "released_serving",
+      toolName: "screen_ipos",
+      totalRows: filteredRows.length
+    };
+  });
+}
+
+async function readReleasedIpoCalendar(
+  env: WorkerBindings,
+  input: {
+    eventTypes?: IpoCalendarEventType[];
+    from?: string;
+    to?: string;
+  }
+): Promise<IpoCalendarResult | undefined> {
+  return withIpoPostgres(env, async (client) => {
+    const dataVersion = await getLatestReleasedIpoDataVersion(client);
+
+    if (dataVersion === undefined) {
+      return createNoReleasedIpoCalendar();
+    }
+
+    const result = await client.query<IpoServingTimetableRow>(
+      `
+        select
+          event.offering_id,
+          event.event_code,
+          event.event_type,
+          event.event_date,
+          event.title_en,
+          event.title_zh_hant
+        from core.ipo_timetable_event event
+        where event.data_version = $1
+          and event.event_date is not null
+        order by event.event_date asc, event.offering_id asc, event.event_code asc
+      `,
+      [dataVersion]
+    );
+    const events = result.rows
+      .map(ipoCalendarEventFromPostgres)
+      .filter((event): event is IpoCalendarEvent => event !== undefined)
+      .filter((event) => !input.from || event.date >= input.from)
+      .filter((event) => !input.to || event.date <= input.to)
+      .filter(
+        (event) => !input.eventTypes?.length || input.eventTypes.includes(event.eventType)
+      );
+
+    return {
+      accessPolicy: IPO_ACCESS_POLICY,
+      dataVersion,
+      events,
+      liveDataAccess: true,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      status: "released_serving",
+      toolName: "search_ipo_calendar"
+    };
+  });
+}
+
+async function readReleasedIpoCompare(
+  env: WorkerBindings,
+  input: { ipoIds?: string[] }
+): Promise<IpoCompareResult | undefined> {
+  return withIpoPostgres(env, async (client) => {
+    const dataVersion = await getLatestReleasedIpoDataVersion(client);
+
+    if (dataVersion === undefined) {
+      return createNoReleasedIpoCompare();
+    }
+
+    const rows = (await readIpoOfferingRows(client, dataVersion)).map(ipoOfferingFromPostgres);
+    const requestedIds = input.ipoIds?.length ? input.ipoIds : rows.slice(0, 3).map((row) => row.id);
+    const selected = requestedIds
+      .map((id) => rows.find((row) => ipoOfferingMatchesLookup(row, id)))
+      .filter((row): row is IpoOfferingFact => row !== undefined)
+      .slice(0, 5)
+      .map((offering) => ({
+        board: offering.board,
+        finalOfferPrice: offering.finalOfferPrice,
+        fundsRaisedText: offering.fundsRaisedText,
+        id: offering.id,
+        listingDate: offering.listingDate,
+        listingType: offering.listingType,
+        marketCapText: offering.marketCapText,
+        nameZhHant: offering.nameZhHant,
+        oneLotSuccessRate: offering.oneLotSuccessRate,
+        overSubscriptionMultiple: offering.overSubscriptionMultiple,
+        sector: offering.sector,
+        ticker: offering.ticker
+      }));
+
+    return {
+      accessPolicy: IPO_ACCESS_POLICY,
+      dataVersion,
+      liveDataAccess: true,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      rows: selected,
+      status: "released_serving",
+      toolName: "compare_ipos"
+    };
+  });
+}
+
+async function readReleasedIpoSnapshot(
+  env: WorkerBindings,
+  input: {
+    includeSensitiveFields?: boolean;
+    ipoId?: string;
+  }
+): Promise<IpoSnapshotServingRead | undefined> {
+  return withIpoPostgres(env, async (client) => {
+    const dataVersion = await getLatestReleasedIpoDataVersion(client);
+
+    if (dataVersion === undefined) {
+      return {
+        dataVersion: IPO_NO_RELEASED_DATA_VERSION,
+        status: "no_released_data"
+      };
+    }
+
+    const row = await readIpoOfferingRow(client, dataVersion, input.ipoId);
+
+    if (row === undefined) {
+      return {
+        dataVersion,
+        status: "not_found"
+      };
+    }
+
+    const offering = ipoOfferingFromPostgres(row);
+    const narratives = await readIpoNarratives(client, row.offering_id, dataVersion, offering);
+    const timetable = await readIpoTimetable(client, row.offering_id, dataVersion);
+    const cornerstones = await readIpoCornerstones(
+      client,
+      row.offering_id,
+      dataVersion,
+      input.includeSensitiveFields === true
+    );
+
+    const snapshot: IpoWorkbenchSnapshot = {
+      accessPolicy: IPO_ACCESS_POLICY,
+      capability: getIpoCapabilities({
+        liveDataAccess: true,
+        status: "released_serving"
+      }),
+      cornerstones,
+      dataVersion,
+      liveDataAccess: true,
+      methodologyVersion: IPO_PIPELINE_VERSION,
+      narratives,
+      offering: {
+        ...offering,
+        desc: narratives[0]?.contentText ?? offering.desc
+      },
+      provenance: createIpoServingProvenance(dataVersion, row.source_record_id),
+      qualityState: normalizeIpoQualityState(row.quality_state),
+      researchSignal: createIpoServingResearchSignal(offering),
+      status: "released_serving",
+      timetable,
+      toolName: "get_ipo_profile"
+    };
+
+    return {
+      snapshot,
+      status: "found"
+    };
+  });
+}
+
+async function resolveIpoSnapshotRead(
+  env: WorkerBindings,
+  input: {
+    includeSensitiveFields?: boolean;
+    ipoId?: string;
+  }
+): Promise<IpoSnapshotServingRead> {
+  const releasedRead = await readReleasedIpoSnapshot(env, input);
+
+  if (releasedRead !== undefined) {
+    return releasedRead;
+  }
+
+  try {
+    return {
+      snapshot: createIpoWorkbenchSnapshot(input),
+      status: "found"
+    };
+  } catch (error) {
+    if (error instanceof IpoNotFoundError) {
+      return {
+        dataVersion: IPO_FIXTURE_DATA_VERSION,
+        status: "not_found"
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function readIpoOfferingRows(
+  client: Client,
+  dataVersion: string
+): Promise<IpoServingOfferingRow[]> {
+  const result = await client.query<IpoServingOfferingRow>(
+    `
+      select
+        offering.*,
+        exists (
+          select 1
+          from core.ipo_cornerstone cornerstone
+          where cornerstone.offering_id = offering.offering_id
+            and cornerstone.data_version = offering.data_version
+        ) as has_cornerstone,
+        (
+          select narrative.content_text
+          from core.ipo_narrative narrative
+          where narrative.offering_id = offering.offering_id
+            and narrative.data_version = offering.data_version
+            and narrative.lang = 'zh_hant'
+            and narrative.section_key = 'business_overview'
+          order by narrative.created_at asc
+          limit 1
+        ) as business_overview_text
+      from core.ipo_offering offering
+      where offering.data_version = $1
+      order by offering.listing_date desc, offering.hkex_code asc
+    `,
+    [dataVersion]
+  );
+
+  return result.rows;
+}
+
+async function readIpoOfferingRow(
+  client: Client,
+  dataVersion: string,
+  ipoId: string | undefined
+): Promise<IpoServingOfferingRow | undefined> {
+  const lookup = normalizeIpoLookup(ipoId);
+
+  if (lookup === undefined) {
+    const result = await client.query<IpoServingOfferingRow>(
+      `
+        select
+          offering.*,
+          exists (
+            select 1
+            from core.ipo_cornerstone cornerstone
+            where cornerstone.offering_id = offering.offering_id
+              and cornerstone.data_version = offering.data_version
+          ) as has_cornerstone,
+          (
+            select narrative.content_text
+            from core.ipo_narrative narrative
+            where narrative.offering_id = offering.offering_id
+              and narrative.data_version = offering.data_version
+              and narrative.lang = 'zh_hant'
+              and narrative.section_key = 'business_overview'
+            order by narrative.created_at asc
+            limit 1
+          ) as business_overview_text
+        from core.ipo_offering offering
+        where offering.data_version = $1
+        order by offering.listing_date desc, offering.hkex_code asc
+        limit 1
+      `,
+      [dataVersion]
+    );
+
+    return result.rows[0];
+  }
+
+  const result = await client.query<IpoServingOfferingRow>(
+    `
+      select
+        offering.*,
+        exists (
+          select 1
+          from core.ipo_cornerstone cornerstone
+          where cornerstone.offering_id = offering.offering_id
+            and cornerstone.data_version = offering.data_version
+        ) as has_cornerstone,
+        (
+          select narrative.content_text
+          from core.ipo_narrative narrative
+          where narrative.offering_id = offering.offering_id
+            and narrative.data_version = offering.data_version
+            and narrative.lang = 'zh_hant'
+            and narrative.section_key = 'business_overview'
+          order by narrative.created_at asc
+          limit 1
+        ) as business_overview_text
+      from core.ipo_offering offering
+      where offering.data_version = $1
+        and (
+          lower(offering.offering_id) = lower($2)
+          or offering.hkex_code = $3
+          or lower(offering.hkex_code || '.HK') = lower($4)
+        )
+      order by offering.listing_date desc, offering.hkex_code asc
+      limit 1
+    `,
+    [dataVersion, lookup.raw, lookup.hkexCode, lookup.ticker]
+  );
+
+  return result.rows[0];
+}
+
+async function readIpoNarratives(
+  client: Client,
+  offeringId: string,
+  dataVersion: string,
+  offering: IpoOfferingFact
+): Promise<IpoNarrativeSection[]> {
+  const result = await client.query<IpoServingNarrativeRow>(
+    `
+      select section_key, lang, content_html, content_text
+      from core.ipo_narrative
+      where offering_id = $1
+        and data_version = $2
+        and lang = 'zh_hant'
+      order by
+        case section_key
+          when 'business_overview' then 1
+          when 'competitive_strengths' then 2
+          when 'risk_factors' then 3
+          when 'use_of_proceeds' then 4
+          else 9
+        end,
+        section_key asc
+    `,
+    [offeringId, dataVersion]
+  );
+  const narratives = result.rows
+    .map(ipoNarrativeFromPostgres)
+    .filter((section): section is IpoNarrativeSection => section !== undefined);
+
+  if (narratives.length > 0) {
+    return narratives;
+  }
+
+  return [
+    {
+      contentHtml: `<p>${escapeHtml(offering.desc)}</p>`,
+      contentText: offering.desc,
+      lang: "zh_hant",
+      sectionKey: "business_overview",
+      title: "业务概览 Business Overview"
+    }
+  ];
+}
+
+async function readIpoTimetable(
+  client: Client,
+  offeringId: string,
+  dataVersion: string
+): Promise<IpoCalendarEvent[]> {
+  const result = await client.query<IpoServingTimetableRow>(
+    `
+      select offering_id, event_code, event_type, event_date, title_en, title_zh_hant
+      from core.ipo_timetable_event
+      where offering_id = $1
+        and data_version = $2
+        and event_date is not null
+      order by event_date asc, event_code asc
+    `,
+    [offeringId, dataVersion]
+  );
+
+  return result.rows
+    .map(ipoCalendarEventFromPostgres)
+    .filter((event): event is IpoCalendarEvent => event !== undefined);
+}
+
+async function readIpoCornerstones(
+  client: Client,
+  offeringId: string,
+  dataVersion: string,
+  includeSensitiveFields: boolean
+): Promise<IpoCornerstoneFact[]> {
+  const result = await client.query<IpoServingCornerstoneRow>(
+    `
+      select
+        investor_name_en,
+        investor_name_zh_hant,
+        invest_currency_code,
+        invest_amount,
+        offer_share_pct,
+        issued_share_pct,
+        lockup_period_text
+      from core.ipo_cornerstone
+      where offering_id = $1
+        and data_version = $2
+      order by investor_name_zh_hant asc nulls last, investor_name_en asc nulls last
+    `,
+    [offeringId, dataVersion]
+  );
+
+  return result.rows.map((row) => ({
+    amountText: includeSensitiveFields
+      ? formatIpoAmountText(row.invest_currency_code, row.invest_amount)
+      : null,
+    investorName:
+      row.investor_name_zh_hant ?? row.investor_name_en ?? "Unknown investor",
+    lockupPeriod: row.lockup_period_text,
+    pct: numberOrNull(row.offer_share_pct ?? row.issued_share_pct),
+    redacted: includeSensitiveFields ? false : true
+  }));
+}
+
+function createNoReleasedIpoScreen(filters: IpoScreenInput): IpoScreenResult {
+  return {
+    accessPolicy: IPO_ACCESS_POLICY,
+    dataVersion: IPO_NO_RELEASED_DATA_VERSION,
+    filters,
+    liveDataAccess: true,
+    methodologyVersion: IPO_PIPELINE_VERSION,
+    rows: [],
+    status: "no_released_data",
+    toolName: "screen_ipos",
+    totalRows: 0
+  };
+}
+
+function createNoReleasedIpoCalendar(): IpoCalendarResult {
+  return {
+    accessPolicy: IPO_ACCESS_POLICY,
+    dataVersion: IPO_NO_RELEASED_DATA_VERSION,
+    events: [],
+    liveDataAccess: true,
+    methodologyVersion: IPO_PIPELINE_VERSION,
+    status: "no_released_data",
+    toolName: "search_ipo_calendar"
+  };
+}
+
+function createNoReleasedIpoCompare(): IpoCompareResult {
+  return {
+    accessPolicy: IPO_ACCESS_POLICY,
+    dataVersion: IPO_NO_RELEASED_DATA_VERSION,
+    liveDataAccess: true,
+    methodologyVersion: IPO_PIPELINE_VERSION,
+    rows: [],
+    status: "no_released_data",
+    toolName: "compare_ipos"
+  };
+}
+
+function ipoSnapshotReadDataVersion(snapshotRead: IpoSnapshotServingRead | undefined): string {
+  if (snapshotRead === undefined) {
+    return IPO_NO_RELEASED_DATA_VERSION;
+  }
+
+  return snapshotRead.status === "found"
+    ? snapshotRead.snapshot.dataVersion
+    : snapshotRead.dataVersion;
+}
+
+function ipoOfferingFromPostgres(row: IpoServingOfferingRow): IpoOfferingFact {
+  const offerPriceMin = numberOrNull(row.offer_price_min);
+  const offerPriceMax = numberOrNull(row.offer_price_max);
+
+  return {
+    board: normalizeIpoBoard(row.listing_board),
+    boardLot: numberOrNull(row.board_lot) ?? 0,
+    clawbackType: normalizeIpoClawbackType(row.clawback_type),
+    currency: normalizeIpoCurrency(row.currency_code),
+    desc: row.business_overview_text ?? row.name_zh_hant ?? row.name_en ?? row.offering_id,
+    exchange: "HKEX",
+    finalOfferPrice: numberOrNull(row.final_offer_price),
+    fundsRaisedText: firstNonEmpty(
+      row.funds_raised_text_zh_hant,
+      row.funds_raised_text_en,
+      row.funds_raised_text_zh_hans,
+      "N/A"
+    ),
+    hkexCode: row.hkex_code,
+    id: row.offering_id,
+    listingDate: dateString(row.listing_date) ?? "",
+    listingType: normalizeIpoListingType(row.listing_type),
+    marketCapText: firstNonEmpty(
+      row.market_cap_text_zh_hant,
+      row.market_cap_text_en,
+      row.market_cap_text_zh_hans,
+      "N/A"
+    ),
+    nameEn: row.name_en ?? row.name_zh_hant ?? row.hkex_code,
+    nameZhHans: row.name_zh_hans ?? row.name_zh_hant ?? row.name_en ?? row.hkex_code,
+    nameZhHant: row.name_zh_hant ?? row.name_en ?? row.hkex_code,
+    offerPriceRange:
+      offerPriceMin === null && offerPriceMax === null
+        ? null
+        : [offerPriceMin ?? offerPriceMax ?? 0, offerPriceMax ?? offerPriceMin ?? 0],
+    oneLotSuccessRate: numberOrNull(row.one_lot_success_rate),
+    overSubscriptionMultiple: numberOrNull(row.over_subscription_multiple),
+    sector: normalizeIpoSector(row.sector_code),
+    status: normalizeIpoStatus(row.ipo_status),
+    ticker: `${row.hkex_code}.HK`
+  };
+}
+
+function ipoCalendarEventFromPostgres(
+  row: IpoServingTimetableRow
+): IpoCalendarEvent | undefined {
+  const date = dateString(row.event_date);
+
+  if (date === undefined) {
+    return undefined;
+  }
+
+  return {
+    date,
+    eventCode: row.event_code,
+    eventType: normalizeIpoEventType(row.event_type, row.event_code, row.title_zh_hant),
+    offeringId: row.offering_id,
+    titleEn: row.title_en ?? row.event_code,
+    titleZhHant: row.title_zh_hant ?? row.event_code
+  };
+}
+
+function ipoNarrativeFromPostgres(
+  row: IpoServingNarrativeRow
+): IpoNarrativeSection | undefined {
+  const section = normalizeIpoNarrativeSection(row.section_key);
+
+  if (section === undefined) {
+    return undefined;
+  }
+
+  const contentText = row.content_text ?? "";
+
+  return {
+    contentHtml: row.content_html ?? `<p>${escapeHtml(contentText)}</p>`,
+    contentText,
+    lang: "zh_hant",
+    sectionKey: section.sectionKey,
+    title: section.title
+  };
+}
+
+function createIpoServingProvenance(
+  dataVersion: string,
+  sourceRecordId: string
+): IpoProvenance[] {
+  return [
+    {
+      data_version: dataVersion,
+      methodology_version: IPO_PIPELINE_VERSION,
+      source: "postgres-ipo-serving",
+      source_record_id: sourceRecordId
+    }
+  ];
+}
+
+function createIpoRouteProvenance(
+  dataVersion: string,
+  status: "fixture_scaffold" | "no_released_data" | "released_serving",
+  source: string,
+  sourceRecordId: string
+): IpoProvenance[] {
+  return [
+    {
+      data_version: dataVersion,
+      methodology_version: IPO_PIPELINE_VERSION,
+      source: status === "released_serving" ? "postgres-ipo-serving" : source,
+      source_record_id:
+        status === "released_serving"
+          ? `${sourceRecordId}-released`
+          : status === "no_released_data"
+            ? `${sourceRecordId}-no-released-data`
+            : sourceRecordId
+    }
+  ];
+}
+
+function createIpoServingResearchSignal(offering: IpoOfferingFact): IpoResearchSignalBlock {
+  return {
+    confidence: 50,
+    dims: [
+      { key: "chip", label: "筹码分布", score: 50 },
+      { key: "sponsor", label: "保荐质量", score: 50 },
+      { key: "underwriter", label: "承销实力", score: 50 },
+      { key: "sector", label: "板块动能", score: 50 },
+      { key: "fundamentals", label: "基本面", score: 50 },
+      { key: "cornerstone", label: "基石质量", score: 50 }
+    ],
+    methodologyVersion: IPO_RESEARCH_METHODOLOGY_VERSION,
+    note: `${offering.nameZhHant} 已接入 Postgres 事实层；当前研究信号仅为描述性占位，不构成建议。`,
+    signal: "neutral",
+    source: "aiphabee_research",
+    status: "descriptive_signal_not_advice"
+  };
+}
+
+function matchesIpoScreenFilters(
+  offering: IpoOfferingFact,
+  hasCornerstone: boolean,
+  input: IpoScreenInput
+): boolean {
+  if (input.status && offering.status !== input.status) return false;
+  if (input.board && offering.board !== input.board) return false;
+  if (input.sector && offering.sector !== input.sector) return false;
+  if (input.listingType && offering.listingType !== input.listingType) return false;
+  if (
+    input.minOversubscription !== undefined &&
+    (offering.overSubscriptionMultiple ?? 0) < input.minOversubscription
+  ) {
+    return false;
+  }
+  if (input.hasCornerstone === true && !hasCornerstone) return false;
+  if (input.listingDateFrom && offering.listingDate < input.listingDateFrom) return false;
+  if (input.listingDateTo && offering.listingDate > input.listingDateTo) return false;
+  return true;
+}
+
+function ipoOfferingMatchesLookup(offering: IpoOfferingFact, id: string): boolean {
+  const lookup = normalizeIpoLookup(id);
+
+  if (lookup === undefined) {
+    return false;
+  }
+
+  return (
+    offering.id.toLowerCase() === lookup.raw.toLowerCase() ||
+    offering.hkexCode === lookup.hkexCode ||
+    offering.ticker.toLowerCase() === lookup.ticker.toLowerCase()
+  );
+}
+
+function normalizeIpoLookup(
+  ipoId: string | undefined
+): { hkexCode: string; raw: string; ticker: string } | undefined {
+  if (!ipoId) {
+    return undefined;
+  }
+
+  const raw = ipoId.trim();
+
+  if (raw.length === 0) {
+    return undefined;
+  }
+
+  const withoutSuffix = raw.replace(/\.hk$/iu, "");
+  const hkexCode = /^\d+$/u.test(withoutSuffix)
+    ? withoutSuffix.padStart(4, "0")
+    : withoutSuffix;
+
+  return {
+    hkexCode,
+    raw,
+    ticker: `${hkexCode}.HK`
+  };
+}
+
+function normalizeIpoBoard(value: string | null): IpoOfferingFact["board"] {
+  return value === "GEM" || value === "NASQ" ? value : "MAIN";
+}
+
+function normalizeIpoCurrency(value: string | null): IpoOfferingFact["currency"] {
+  const upper = value?.toUpperCase();
+
+  if (upper === "USD") return "USD";
+  if (upper === "RMB" || upper === "CNY") return "RMB";
+  return "HKD";
+}
+
+function normalizeIpoClawbackType(value: string | null): IpoOfferingFact["clawbackType"] {
+  return value === "A" || value === "B" ? value : "NA";
+}
+
+function normalizeIpoListingType(value: string | null): IpoOfferingFact["listingType"] {
+  return value === "18A" || value === "18C" ? value : "Normal";
+}
+
+function normalizeIpoSector(value: string | null): IpoOfferingFact["sector"] {
+  if (value === "03") return "energy";
+  if (value === "04") return "fintech";
+  if (value === "05") return "health";
+  if (value === "07") return "tech";
+  return "industrial";
+}
+
+function normalizeIpoStatus(value: string): IpoOfferingFact["status"] {
+  if (value === "listed") return "listed";
+  if (value === "withdrawn" || value === "cancelled") return "withdrawn";
+  if (value === "suspended") return "priced";
+  return "pending";
+}
+
+function normalizeIpoScreenStatus(value: unknown): string | undefined {
+  const status = normalizeString(value);
+
+  if (status === undefined) {
+    return undefined;
+  }
+
+  if (status === "upcoming" || status === "pipeline" || status === "in_process") {
+    return "pending";
+  }
+
+  if (status === "cancelled") {
+    return "withdrawn";
+  }
+
+  return status;
+}
+
+function normalizeIpoQualityState(value: string): IpoQualityState {
+  return value === "PASS" || value === "WARN" || value === "REJECT_RAW" ? value : "HOLD";
+}
+
+function normalizeIpoEventType(
+  value: string,
+  eventCode: string,
+  titleZhHant: string | null
+): IpoCalendarEventType {
+  const allowed = new Set<IpoCalendarEventType>([
+    "application_start",
+    "application_end",
+    "pricing",
+    "allotment",
+    "grey_market",
+    "listing",
+    "lockup"
+  ]);
+
+  if (allowed.has(value as IpoCalendarEventType)) {
+    return value as IpoCalendarEventType;
+  }
+
+  const title = titleZhHant ?? "";
+  if (/暗盤/u.test(title) || eventCode.startsWith("GM_")) return "grey_market";
+  if (/上市/u.test(title)) return "listing";
+  if (/定價/u.test(title)) return "pricing";
+  if (/配發|結果/u.test(title)) return "allotment";
+  if (/截止|結束/u.test(title)) return "application_end";
+  if (/開始|招股/u.test(title)) return "application_start";
+  return "pricing";
+}
+
+function normalizeIpoNarrativeSection(
+  value: string
+):
+  | {
+      sectionKey: IpoNarrativeSection["sectionKey"];
+      title: string;
+    }
+  | undefined {
+  if (value === "business_overview") {
+    return {
+      sectionKey: "business_overview",
+      title: "业务概览 Business Overview"
+    };
+  }
+
+  if (value === "competitive_strengths") {
+    return {
+      sectionKey: "competitive_strengths",
+      title: "竞争优势 Competitive Strengths"
+    };
+  }
+
+  if (value === "risk_factors") {
+    return {
+      sectionKey: "risk_factors",
+      title: "风险因素 Risk Factors"
+    };
+  }
+
+  if (value === "use_of_proceeds") {
+    return {
+      sectionKey: "use_of_proceeds",
+      title: "所得款项用途 Use of Proceeds"
+    };
+  }
+
+  return undefined;
+}
+
+function firstNonEmpty(
+  first: string | null | undefined,
+  second: string | null | undefined,
+  third: string | null | undefined,
+  fallback: string
+): string {
+  return first && first.length > 0
+    ? first
+    : second && second.length > 0
+      ? second
+      : third && third.length > 0
+        ? third
+        : fallback;
+}
+
+function dateString(value: Date | string | null): string | undefined {
+  if (value === null) {
+    return undefined;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return value.slice(0, 10);
+}
+
+function numberOrNull(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatIpoAmountText(
+  currencyCode: string | null,
+  amount: number | string | null
+): string | null {
+  const numeric = numberOrNull(amount);
+
+  if (numeric === null) {
+    return null;
+  }
+
+  return `${currencyCode ?? "HKD"} ${numeric.toLocaleString("en-US")}`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function normalizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function normalizeIpoCalendarEventTypes(value: unknown): IpoCalendarEventType[] | undefined {
+  const rawValues =
+    typeof value === "string"
+      ? value.split(",")
+      : Array.isArray(value)
+        ? value
+        : undefined;
+
+  if (rawValues === undefined) {
+    return undefined;
+  }
+
+  const allowed = new Set<IpoCalendarEventType>([
+    "application_start",
+    "application_end",
+    "pricing",
+    "allotment",
+    "grey_market",
+    "listing",
+    "lockup"
+  ]);
+  const eventTypes = rawValues
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item): item is IpoCalendarEventType =>
+      allowed.has(item as IpoCalendarEventType)
+    );
+
+  return eventTypes.length > 0 ? [...new Set(eventTypes)] : undefined;
 }
 
 function normalizeBoolean(value: unknown): boolean {

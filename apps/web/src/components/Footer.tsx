@@ -25,7 +25,7 @@ export function Footer() {
         background: "var(--surface-card)",
       }}
     >
-      <div style={{ ...SHELL, padding: "40px 24px", textAlign: "center" }}>
+      <div style={{ ...SHELL, padding: "40px var(--content-gutter)", textAlign: "center" }}>
         <img src={LOGO_MASCOT} alt="AiphaBee" style={{ height: 44, marginBottom: 12 }} />
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
           © 2026 AiphaBee · 港股研究 Agent 与 MCP 数据平台

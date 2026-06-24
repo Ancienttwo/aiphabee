@@ -165,8 +165,8 @@ function validateContract({
     errors.push("required_golden_sample_count must be 8");
   }
 
-  if (value.required_tool_golden_sample_count !== 16) {
-    errors.push("required_tool_golden_sample_count must be 16");
+  if (value.required_tool_golden_sample_count !== toolGoldenValue.samples.length) {
+    errors.push("required_tool_golden_sample_count must match tool golden manifest samples");
   }
 
   if (value.required_quality_rule_count !== 12) {

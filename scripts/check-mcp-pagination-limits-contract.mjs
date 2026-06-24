@@ -21,13 +21,21 @@ const requiredTools = [
   "calculate_returns_risk",
   "get_event_timeline",
   "get_data_lineage",
-  "get_entitlements"
+  "get_entitlements",
+  "get_ipo_profile",
+  "search_ipo_calendar",
+  "get_ipo_timetable",
+  "get_ipo_offering",
+  "get_ipo_allotment",
+  "screen_ipos",
+  "compare_ipos"
 ];
 const paginatedTools = [
   "get_price_history",
   "get_corporate_actions",
   "get_financial_facts",
-  "get_event_timeline"
+  "get_event_timeline",
+  "search_ipo_calendar"
 ];
 const timeRangeTools = [
   "get_market_calendar",
@@ -40,7 +48,8 @@ const timeRangeTools = [
   "compare_securities",
   "calculate_returns_risk",
   "get_event_timeline",
-  "get_entitlements"
+  "get_entitlements",
+  "search_ipo_calendar"
 ];
 const requiredSprintItems = [
   "MCP-06",

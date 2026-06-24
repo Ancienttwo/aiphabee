@@ -4,6 +4,16 @@
   "provider": "supabase_postgres",
   "connection_path": "cloudflare_hyperdrive",
   "migration_directory": "supabase/migrations",
+  "database_boundary": {
+    "scope": "aiphabee_dedicated_supabase_project",
+    "organization": "aiphabee_dedicated_supabase_organization",
+    "share_with_aimpact": false,
+    "share_with_salesko": false,
+    "cross_product_tables": false,
+    "migration_reason": "AiphaBee must remain independently movable when IPO, HK F10, serving, lineage, or usage-ledger data creates capacity, PITR, replica, or database-engine migration pressure.",
+    "active_boundary_doc": "docs/governance/aiphabee-independent-supabase-boundary.md",
+    "superseded_shared_plan": "docs/supabase-umbrella-schema-plan.md"
+  },
   "hyperdrive": {
     "binding": "AIPHABEE_HYPERDRIVE",
     "status": "planned",
@@ -791,7 +801,7 @@
     },
     {
       "file": "supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql",
-      "purpose": "Create the first umbrella platform schema foundation for product registry, workspace membership, product access, entitlement policy, and cross-product access audit without moving product-owned data or enabling live migration apply.",
+      "purpose": "Create the AiphaBee-local platform schema foundation for product registry, workspace membership, product access, entitlement policy, and access audit without seeding sibling-product rows, moving product-owned data, or enabling live migration apply.",
       "schemas": ["platform", "platform_audit"],
       "tables": [
         "platform.account",
@@ -828,6 +838,78 @@
         "platform.workspace_membership",
         "platform.workspace_product_access",
         "platform_audit.product_access_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260624001000_ipo_pipeline_foundation.sql",
+      "purpose": "Create empty HK IPO raw-ingest compatibility, serving tables, field catalog, and governance contract without loading MDB source data, enabling live serving reads, external redistribution, persistent release, or frontend-only rights bypass.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.vendor_code",
+        "core.ipo_offering",
+        "core.ipo_narrative",
+        "core.ipo_timetable_event",
+        "core.ipo_offer_statistic",
+        "core.ipo_cornerstone",
+        "core.ipo_pool",
+        "core.ipo_clawback_tier",
+        "core.ipo_allotment_result",
+        "core.ipo_allotment_summary",
+        "core.ipo_parties",
+        "core.ipo_corporate_info",
+        "core.ipo_lockup",
+        "core.ipo_application_share",
+        "core.ipo_pipeline_application",
+        "core.ipo_research_signal",
+        "governance.ipo_contract"
+      ],
+      "indexes": [
+        "vendor_code_table_name_code_idx",
+        "ipo_offering_listing_date_idx",
+        "ipo_offering_status_board_idx",
+        "ipo_offering_sector_idx",
+        "ipo_narrative_offering_section_idx",
+        "ipo_timetable_event_date_idx",
+        "ipo_cornerstone_offering_idx",
+        "ipo_allotment_result_offering_pool_idx",
+        "ipo_pipeline_application_status_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260625002000_hkex_news_ingest_foundation.sql",
+      "purpose": "Create empty HKEX News ingest scaffolds for crawl runs, canonical documents, per-run observations, multi-valued headlines, document lifecycle, sanitized content, extracted facts, deterministic transform runs, and held-only governance without loading public HKEX data or enabling redistribution.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.hkex_news_crawl_run",
+        "core.hkex_news_document",
+        "core.hkex_news_document_observation",
+        "core.hkex_news_document_headline",
+        "core.hkex_news_document_relation",
+        "core.hkex_news_document_content",
+        "core.ipo_source_document_link",
+        "core.hkex_news_extraction_run",
+        "core.hkex_news_extracted_fact",
+        "core.hkex_news_transform_run",
+        "governance.hkex_news_ingest_contract"
+      ],
+      "indexes": [
+        "hkex_news_crawl_run_version_status_idx",
+        "hkex_news_document_code_date_idx",
+        "hkex_news_document_state_idx",
+        "hkex_news_document_obs_version_idx",
+        "hkex_news_document_headline_idx",
+        "hkex_news_document_relation_to_idx",
+        "hkex_news_document_content_hash_idx",
+        "ipo_source_document_link_offering_idx",
+        "hkex_news_extraction_run_document_idx",
+        "hkex_news_extracted_fact_offering_idx",
+        "hkex_news_extracted_fact_locator_gin",
+        "hkex_news_extracted_fact_value_json_gin",
+        "hkex_news_transform_run_version_status_idx"
       ],
       "market_data": false,
       "default_rights_status": "default_deny"

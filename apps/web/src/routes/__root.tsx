@@ -11,6 +11,8 @@ import { NavBar } from "../components/NavBar";
 import { Footer } from "../components/Footer";
 import { ResponseDepthProvider } from "../lib/context/ResponseDepthContext";
 import { SessionProvider } from "../lib/context/SessionContext";
+import { EntitlementProvider } from "../lib/context/EntitlementContext";
+import { IpoCompareProvider } from "../lib/context/IpoCompareContext";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -54,14 +56,16 @@ function RootComponent() {
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
           <ResponseDepthProvider>
-            <div
-              style={{
-                minHeight: "100vh",
-                display: "flex",
-                flexDirection: "column",
-                background: "var(--surface-page)",
-              }}
-            >
+            <EntitlementProvider>
+              <IpoCompareProvider>
+              <div
+                style={{
+                  minHeight: "100vh",
+                  display: "flex",
+                  flexDirection: "column",
+                  background: "var(--surface-page)",
+                }}
+              >
               <a className="skip-link" href="#main-content">
                 Skip to main content
               </a>
@@ -70,7 +74,9 @@ function RootComponent() {
                 <Outlet />
               </div>
               <Footer />
-            </div>
+              </div>
+              </IpoCompareProvider>
+            </EntitlementProvider>
           </ResponseDepthProvider>
         </SessionProvider>
       </QueryClientProvider>
@@ -83,6 +89,14 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="zh-Hant">
       <head>
         <HeadContent />
+        {/* Set the theme before first paint (no flash). Honors a saved
+            choice, else the OS preference. Paired with [data-theme] in CSS. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var s=localStorage.getItem('aiphabee-theme');var t=s||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+          }}
+        />
       </head>
       <body>
         {children}

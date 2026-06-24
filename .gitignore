@@ -21,6 +21,12 @@ _ops/
 !.dev.vars.example
 # OS metadata
 .DS_Store
+# Language/runtime caches
+__pycache__/
+*.py[cod]
+# Supabase local CLI state
+supabase/.branches/
+supabase/.temp/
 
 # BEGIN: claude-runtime-temp (managed by repo-harness)
 .claude/settings.local.json

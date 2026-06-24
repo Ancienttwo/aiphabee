@@ -1,10 +1,24 @@
 # Supabase 伞产品 Schema 方案
 
-> Status: design plan, not applied migration
-> Updated: 2026-06-23
-> Applies to: AiphaBee umbrella product, AIMPACT, Salesko, and future subproducts sharing one Supabase project
+> Status: superseded for live topology
+> Updated: 2026-06-24
+> Superseded By: `docs/governance/aiphabee-independent-supabase-boundary.md`
+> Applies to: historical shared-project design context only
+
+## 当前结论
+
+本方案不再作为 AiphaBee 的 live Supabase 部署方向。AiphaBee 采用独立
+Supabase organization/project 边界，原因是未来 IPO/F10/证券事实/Serving
+Store 数据会有独立迁库、扩容、PITR、read replica 或数据库引擎切换压力。
+与 AIMPACT 或 Salesko 混在同一个 Supabase project 会让 AiphaBee 迁库被无关
+产品表、RLS、auth、release schedule 和账单状态绑住。
+
+保留本文是为了记录被取代的 shared umbrella 设计，不再用于 live apply 决策。
+新的约束见 `docs/governance/aiphabee-independent-supabase-boundary.md`。
 
 ## 目标
+
+Historical design goal:
 
 把 `aimpact-new` 的 Supabase 当作伞产品级共享数据库时，schema 必须同时满足三件事：
 
@@ -255,7 +269,9 @@ Phase 0: inventory
 Phase 1: create shared platform schema
 
 - Add `platform` and `platform_audit` only.
-- Seed `platform.product` with `aiphabee`, `aimpact`, `salesko`.
+- Historical version seeded `platform.product` with `aiphabee`, `aimpact`,
+  `salesko`; the current AiphaBee-only live boundary must not seed sibling
+  product rows into a dedicated AiphaBee database.
 - Add indexes and RLS before exposing any API route.
 - No product data move in this phase.
 
@@ -324,6 +340,10 @@ Repo-local status: implemented in
 and registered in `deploy/database/migrations.contract.json`. It has passed
 `npm run check:database`; no remote dry-run or live apply has been executed.
 
+As of 2026-06-24, this migration is constrained to an AiphaBee-local platform
+foundation for a dedicated AiphaBee Supabase project. The shared AIMPACT/Salesko
+registry seed is no longer part of the live target.
+
 The first concrete migration is limited to:
 
 - `create schema if not exists platform;`
@@ -337,4 +357,5 @@ The first concrete migration is limited to:
 - required FK indexes
 - read-only authenticated RLS for membership/product access
 
-That slice is sufficient because it creates the shared identity/product boundary without moving any product-owned data or changing runtime behavior.
+That slice is sufficient because it creates the local identity/product boundary
+without moving any product-owned data or changing runtime behavior.

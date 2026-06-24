@@ -24,7 +24,14 @@ export type RegisteredToolName =
   | "calculate_returns_risk"
   | "get_event_timeline"
   | "get_data_lineage"
-  | "get_entitlements";
+  | "get_entitlements"
+  | "get_ipo_profile"
+  | "search_ipo_calendar"
+  | "get_ipo_timetable"
+  | "get_ipo_offering"
+  | "get_ipo_allotment"
+  | "screen_ipos"
+  | "compare_ipos";
 
 export interface RegisteredToolDefinition {
   channels: readonly RegisteredToolChannel[];
@@ -500,7 +507,55 @@ export const REGISTERED_TOOLS = [
     status: "scaffold",
     testing: createTesting("get_entitlements", true),
     version: "0.0.0"
-  }
+  },
+  createIpoToolDefinition(
+    "get_ipo_profile",
+    "Return an IPO profile with supplier facts separated from AiphaBee research signal.",
+    { defaultLimit: 1, maxLimit: 1, rowLimitParameter: null },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"]
+  ),
+  createIpoToolDefinition(
+    "search_ipo_calendar",
+    "Search IPO timetable events including application, pricing, allotment, listing, and lock-up dates.",
+    {
+      defaultLimit: 50,
+      maxLimit: 200,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: "limit"
+    },
+    ["DATA_NOT_LICENSED", "OUT_OF_RANGE", "TOO_MANY_ROWS"]
+  ),
+  createIpoToolDefinition(
+    "get_ipo_timetable",
+    "Return the normalized timetable for one IPO offering.",
+    { defaultLimit: 24, maxLimit: 32, rowLimitParameter: null },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"]
+  ),
+  createIpoToolDefinition(
+    "get_ipo_offering",
+    "Return offering terms, board lot, offer price range, proceeds, and subscription facts.",
+    { defaultLimit: 1, maxLimit: 1, rowLimitParameter: null },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED"]
+  ),
+  createIpoToolDefinition(
+    "get_ipo_allotment",
+    "Return allotment summary and application result facts subject to field authorization.",
+    { defaultLimit: 100, maxLimit: 500, rowLimitParameter: "limit" },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "SCOPE_DENIED", "TOO_MANY_ROWS"]
+  ),
+  createIpoToolDefinition(
+    "screen_ipos",
+    "Screen HK IPO offerings by status, board, sector, listing type, date, demand, and cornerstone flags.",
+    { defaultLimit: 20, maxLimit: 100, rowLimitParameter: "limit" },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "OUT_OF_RANGE", "TOO_MANY_ROWS"]
+  ),
+  createIpoToolDefinition(
+    "compare_ipos",
+    "Compare two to five IPO offerings on aligned listing, pricing, demand, and cornerstone dimensions.",
+    { defaultLimit: 5, maxLimit: 5, rowLimitParameter: null },
+    ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "TOO_MANY_ROWS"]
+  )
 ] as const satisfies readonly RegisteredToolDefinition[];
 
 export interface ToolRegistryValidationResult {
@@ -646,6 +701,36 @@ function createRetrievalLimits(input: {
       required: input.requiresTimeRange ?? false,
       toParameters: input.timeRangeToParameters ?? ["to"]
     }
+  };
+}
+
+function createIpoToolDefinition(
+  name: Extract<
+    RegisteredToolName,
+    | "get_ipo_profile"
+    | "search_ipo_calendar"
+    | "get_ipo_timetable"
+    | "get_ipo_offering"
+    | "get_ipo_allotment"
+    | "screen_ipos"
+    | "compare_ipos"
+  >,
+  description: string,
+  retrieval: Parameters<typeof createRetrievalLimits>[0],
+  standardErrorCodes: readonly string[]
+): RegisteredToolDefinition {
+  return {
+    channels: ["web", "mcp", "api"],
+    description,
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle(name),
+    name,
+    permissions: createPermissions("ipo:read", ["ipo_pipeline"]),
+    retrieval: createRetrievalLimits(retrieval),
+    schema: createSchema(name, standardErrorCodes),
+    status: "scaffold",
+    testing: createTesting(name, true),
+    version: "0.0.0"
   };
 }
 

@@ -8,6 +8,7 @@ import app from "./index";
 const MANIFEST_PATH = "tests/golden/tools/manifest.json";
 const TOOL_ROUTES = {
   calculate_returns_risk: "/analytics/returns-risk",
+  compare_ipos: "/analytics/compare-ipos",
   compare_securities: "/analytics/compare-securities",
   get_announcement: "/documents/get-announcement",
   get_corporate_actions: "/tools/get-corporate-actions",
@@ -16,13 +17,19 @@ const TOOL_ROUTES = {
   get_event_timeline: "/tools/get-event-timeline",
   get_financial_facts: "/tools/get-financial-facts",
   get_financial_ratios: "/analytics/financial-ratios",
+  get_ipo_allotment: "/tools/get-ipo-allotment",
+  get_ipo_offering: "/tools/get-ipo-offering",
+  get_ipo_profile: "/workbench/ipo/snapshot",
+  get_ipo_timetable: "/tools/get-ipo-timetable",
   get_market_calendar: "/tools/get-market-calendar",
   get_price_history: "/tools/get-price-history",
   get_quote_snapshot: "/tools/get-quote-snapshot",
   get_security_profile: "/tools/get-security-profile",
   resolve_security: "/tools/resolve-security",
+  screen_ipos: "/analytics/screen-ipos",
   screen_securities: "/analytics/screen-securities",
-  search_announcements: "/documents/search-announcements"
+  search_announcements: "/documents/search-announcements",
+  search_ipo_calendar: "/ipos/calendar"
 } as const;
 
 type ToolName = keyof typeof TOOL_ROUTES;

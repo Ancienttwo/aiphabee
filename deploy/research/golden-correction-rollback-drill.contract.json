@@ -16,7 +16,7 @@
   "golden_manifest_path": "tests/golden/manifest.json",
   "tool_golden_manifest_path": "tests/golden/tools/manifest.json",
   "required_golden_sample_count": 8,
-  "required_tool_golden_sample_count": 16,
+  "required_tool_golden_sample_count": 23,
   "required_quality_rule_count": 12,
   "quality_rules_version": "quality_rules_v0",
   "production_partner_corpus_loaded": false,

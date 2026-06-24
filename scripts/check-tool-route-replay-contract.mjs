@@ -24,7 +24,14 @@ const requiredRouteMap = {
   calculate_returns_risk: "/analytics/returns-risk",
   get_event_timeline: "/tools/get-event-timeline",
   get_data_lineage: "/tools/get-data-lineage",
-  get_entitlements: "/tools/get-entitlements"
+  get_entitlements: "/tools/get-entitlements",
+  get_ipo_profile: "/workbench/ipo/snapshot",
+  search_ipo_calendar: "/ipos/calendar",
+  get_ipo_timetable: "/tools/get-ipo-timetable",
+  get_ipo_offering: "/tools/get-ipo-offering",
+  get_ipo_allotment: "/tools/get-ipo-allotment",
+  screen_ipos: "/analytics/screen-ipos",
+  compare_ipos: "/analytics/compare-ipos"
 };
 const requiredTools = Object.keys(requiredRouteMap);
 const forbiddenTextPatterns = [

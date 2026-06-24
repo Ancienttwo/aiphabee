@@ -21,6 +21,17 @@ import {
   getServingResultEnvelopeCapabilities
 } from "./index";
 
+const REQUIRED_P0_TOOL_COUNT = 23;
+const IPO_TOOL_NAMES = [
+  "get_ipo_profile",
+  "search_ipo_calendar",
+  "get_ipo_timetable",
+  "get_ipo_offering",
+  "get_ipo_allotment",
+  "screen_ipos",
+  "compare_ipos"
+] as const;
+
 describe("data access gateway", () => {
   it("denies fields by default before rights approval", () => {
     const decision = evaluateDataAccessRequest({
@@ -723,7 +734,7 @@ describe("data access gateway", () => {
       mcp_authorization_configured: true,
       partner_signed_matrix_loaded: false,
       persistent_writes: false,
-      required_p0_tool_count: 16,
+      required_p0_tool_count: REQUIRED_P0_TOOL_COUNT,
       route: "GET /gateway/rights-matrix/p0/coverage",
       runtime_route: "GET /gateway/runtime",
       sql_emitted: false,
@@ -758,7 +769,8 @@ describe("data access gateway", () => {
         "calculate_returns_risk",
         "get_event_timeline",
         "get_data_lineage",
-        "get_entitlements"
+        "get_entitlements",
+        ...IPO_TOOL_NAMES
       ]
     });
 
@@ -771,11 +783,11 @@ describe("data access gateway", () => {
       sql_emitted: false,
       status: "p0_rights_matrix_coverage_scaffold"
     });
-    expect(report.tool_coverage).toHaveLength(16);
+    expect(report.tool_coverage).toHaveLength(REQUIRED_P0_TOOL_COUNT);
     expect(report.validation).toMatchObject({
       all_required_surfaces_configured: true,
-      required_p0_tool_count: 16,
-      tool_count: 16,
+      required_p0_tool_count: REQUIRED_P0_TOOL_COUNT,
+      tool_count: REQUIRED_P0_TOOL_COUNT,
       tool_count_matches_registry: true
     });
     expect(report.surface_coverage).toMatchObject({

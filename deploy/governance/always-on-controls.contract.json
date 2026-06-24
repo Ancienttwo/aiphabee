@@ -6,7 +6,7 @@
   "live_data_access": false,
   "persistent_writes": false,
   "sql_emitted": false,
-  "p0_tool_count": 16,
+  "p0_tool_count": 23,
   "covered_tracker_items": [
     "A1.standard_response_envelope_consistent_for_registered_p0_tools",
     "A1.answer_claim_labels_fact_calculation_inference_unknown",

@@ -9,6 +9,14 @@ import type {
   SearchAnnouncementsResult,
   StockWorkbenchSnapshot,
 } from "./types";
+import type {
+  IpoCalendarRange,
+  IpoCalendarResult,
+  IpoCompareResult,
+  IpoScreenFilters,
+  IpoScreenResult,
+  IpoSnapshot,
+} from "./ipo-types";
 
 // --- Security resolution -------------------------------------------------
 
@@ -67,6 +75,46 @@ export function compareSecurities(securities: string[]) {
   return apiCall<CompareResult>("/analytics/compare-securities", {
     method: "POST",
     body: { securities },
+  });
+}
+
+// --- IPO workbench -------------------------------------------------------
+// Backed by Codex's worker routes (mock-first via ./ipo-mock until live).
+
+/** Aggregate IPO detail snapshot (POST /workbench/ipo/snapshot). */
+export function getIpoSnapshot(id: string) {
+  return apiCall<IpoSnapshot>("/workbench/ipo/snapshot", {
+    method: "POST",
+    body: { ipo_id: id },
+  });
+}
+
+/** Filter the IPO pipeline by lifecycle stage / sector / query (POST /analytics/screen-ipos). */
+export function screenIpos(filters: IpoScreenFilters) {
+  return apiCall<IpoScreenResult>("/analytics/screen-ipos", {
+    method: "POST",
+    body: {
+      stage: filters.stage,
+      sector: filters.sector,
+      q: filters.q,
+      sort: filters.sort,
+    },
+  });
+}
+
+/** Compare 2–5 IPOs metric-by-metric (POST /analytics/compare-ipos). */
+export function compareIpos(ids: string[]) {
+  return apiCall<IpoCompareResult>("/analytics/compare-ipos", {
+    method: "POST",
+    body: { ipo_ids: ids },
+  });
+}
+
+/** Cross-IPO timetable agenda (POST /ipos/calendar). */
+export function getIpoCalendar(range?: IpoCalendarRange) {
+  return apiCall<IpoCalendarResult>("/ipos/calendar", {
+    method: "POST",
+    body: { from: range?.from, to: range?.to },
   });
 }
 

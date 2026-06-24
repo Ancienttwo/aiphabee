@@ -52,7 +52,7 @@ function AskIndex() {
           fontFamily: "var(--font-display)",
           fontSize: "var(--text-3xl)",
           fontWeight: 700,
-          color: "var(--ink-800)",
+          color: "var(--text-primary)",
         }}
       >
         研究对话
@@ -101,7 +101,7 @@ function AskIndex() {
       >
         研究模板
       </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+      <div className="ab-grid-2" style={{ gap: 16 }}>
         {TEMPLATES.map((t) => (
           <Card
             key={t.title}
@@ -131,7 +131,7 @@ function AskIndex() {
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "var(--text-xs)",
-                color: "var(--ink-700)",
+                color: "var(--text-body)",
                 background: "var(--surface-sunken)",
                 borderRadius: "var(--radius-sm)",
                 padding: "8px 10px",

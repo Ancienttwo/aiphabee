@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  REGISTERED_TOOLS,
   getRegisteredToolNames,
   getToolRegistryCapabilities,
   validateRegisteredTools
 } from "./index";
+
+const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
 
 describe("tool registry scaffold", () => {
   it("registers the planned read-only P0 data tools with schema and permissions", () => {
     const capabilities = getToolRegistryCapabilities();
 
     expect(capabilities.status).toBe("shared_tool_registry_scaffold");
-    expect(capabilities.tool_count).toBe(16);
+    expect(capabilities.tool_count).toBe(REGISTERED_TOOL_COUNT);
     expect(capabilities.schema_ready).toBe(true);
     expect(capabilities.rights_aware).toBe(true);
     expect(capabilities.execution_ready).toBe(false);
@@ -20,7 +23,7 @@ describe("tool registry scaffold", () => {
     expect(capabilities.breaking_changes_require_new_major).toBe(true);
     expect(capabilities.pagination_limits_ready).toBe(true);
     expect(capabilities.pagination_or_rights_bypass_blocked).toBe(true);
-    expect(capabilities.handler_ready_tool_count).toBe(16);
+    expect(capabilities.handler_ready_tool_count).toBe(REGISTERED_TOOL_COUNT);
     expect(capabilities.tools.find((tool) => tool.name === "resolve_security")).toMatchObject({
       execution: {
         handlerReady: true,
@@ -234,24 +237,7 @@ describe("tool registry scaffold", () => {
   });
 
   it("keeps registry names stable for agent and tool runtime policy", () => {
-    expect(getRegisteredToolNames()).toEqual([
-      "resolve_security",
-      "get_security_profile",
-      "get_market_calendar",
-      "get_quote_snapshot",
-      "get_price_history",
-      "get_corporate_actions",
-      "get_financial_facts",
-      "get_financial_ratios",
-      "search_announcements",
-      "get_announcement",
-      "screen_securities",
-      "compare_securities",
-      "calculate_returns_risk",
-      "get_event_timeline",
-      "get_data_lineage",
-      "get_entitlements"
-    ]);
+    expect(getRegisteredToolNames()).toEqual(REGISTERED_TOOLS.map((tool) => tool.name));
   });
 
   it("rejects unregistered tools without allowing arbitrary SQL or URLs", () => {

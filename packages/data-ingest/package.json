@@ -1,0 +1,23 @@
+{
+  "name": "@aiphabee/data-ingest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "data-ingest": "./bin/data-ingest.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
+  }
+}

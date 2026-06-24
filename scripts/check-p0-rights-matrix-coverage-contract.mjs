@@ -14,7 +14,8 @@ const requiredDatasetGroups = [
   "financial_facts",
   "announcements",
   "derived_analytics",
-  "evidence_lineage"
+  "evidence_lineage",
+  "ipo_pipeline"
 ];
 const requiredTables = [
   "core.p0_rights_matrix_entry",
@@ -118,8 +119,8 @@ function validateContract(value, databaseValue) {
     errors.push("standard_response_envelope must be true");
   }
 
-  if (value.required_p0_tool_count !== 16) {
-    errors.push("required_p0_tool_count must be 16");
+  if (value.required_p0_tool_count !== 23) {
+    errors.push("required_p0_tool_count must be 23");
   }
 
   if (value.default_rights_status !== "default_deny") {

@@ -19,7 +19,8 @@ const requiredDatasetGroups = [
   "financial_facts",
   "announcements",
   "derived_analytics",
-  "evidence_lineage"
+  "evidence_lineage",
+  "ipo_pipeline"
 ];
 const requiredDistributionStatusFields = [
   "web_display",
@@ -139,8 +140,8 @@ function validateContract({
     }
   }
 
-  if (value.required_p0_tool_count !== 16) {
-    errors.push("required_p0_tool_count must be 16");
+  if (value.required_p0_tool_count !== toolRegistryContract.required_tools.length) {
+    errors.push("required_p0_tool_count must match tool registry required_tools length");
   }
 
   if (value.default_unconfirmed_status !== requiredDefaultStatus) {
@@ -292,8 +293,8 @@ function validateToolRegistry(value) {
     errors.push("tool registry must be rights_aware");
   }
 
-  if (!Array.isArray(value.required_tools) || value.required_tools.length !== 16) {
-    errors.push("tool registry required_tools must contain exactly 16 tools");
+  if (!Array.isArray(value.required_tools) || value.required_tools.length !== toolRegistryContract.required_tools.length) {
+    errors.push("tool registry required_tools must match current required tool count");
   }
 
   if (value.live_data_access !== false) {

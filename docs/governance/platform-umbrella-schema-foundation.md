@@ -1,23 +1,28 @@
 # Platform Umbrella Schema Foundation
 
-> Status: verified repo-local migration scaffold
-> Last Updated: 2026-06-23
+> Status: verified repo-local migration scaffold; shared-product topology superseded
+> Last Updated: 2026-06-24
 > Source Tracker: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > Design Plan: `docs/supabase-umbrella-schema-plan.md`
+> Active Boundary: `docs/governance/aiphabee-independent-supabase-boundary.md`
 
-This slice turns the standalone umbrella schema plan into the first repo-local
-Supabase migration. It does not apply SQL to a live database, move product data,
-or expose product-owned schemas through Supabase Data API.
+This slice originally turned the standalone umbrella schema plan into the first
+repo-local Supabase migration. The shared Supabase topology is now superseded:
+AiphaBee uses a dedicated Supabase organization/project boundary. The migration
+is retained as an AiphaBee-local platform scaffold and does not apply SQL to a
+live database, move product data, or expose product-owned schemas through
+Supabase Data API.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
-| Design plan | `docs/supabase-umbrella-schema-plan.md` | Shared platform/product-owned schema decision |
-| Migration | `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty umbrella platform tables, indexes, helper functions, RLS policies, and product registry seed rows |
+| Design plan | `docs/supabase-umbrella-schema-plan.md` | Historical shared platform/product-owned schema decision; superseded for live topology |
+| Active boundary | `docs/governance/aiphabee-independent-supabase-boundary.md` | Dedicated AiphaBee Supabase organization/project |
+| Migration | `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty AiphaBee-local platform tables, indexes, helper functions, RLS policies, and an AiphaBee registry seed row |
 | Manifest | `deploy/database/migrations.contract.json` | Registers schemas, tables, indexes, and RLS tables for `npm run check:database` |
 | Checker | `scripts/check-database-migrations-contract.mjs` | Verifies migration coverage plus declared `indexes` and `rls_tables` |
-| Product-owned schemas | Not created here | AiphaBee/AIMPACT/Salesko business tables stay outside this foundation slice |
+| Product-owned schemas | Not created here | AiphaBee business tables stay outside this foundation slice; AIMPACT/Salesko are external systems |
 | Live database | Not touched | No Supabase project link, DB URL, Hyperdrive ID, or remote dry-run is committed or executed |
 
 Created schemas:
@@ -56,23 +61,21 @@ service-role access can bypass RLS.
 
 ## P3 Design Decision
 
-The smallest coherent first migration is the shared `platform` foundation, not
-an AiphaBee product-table rename.
+The smallest coherent first migration is the local AiphaBee `platform`
+foundation, not an AiphaBee product-table rename or a cross-product shared DB.
 
 Reason:
 
 - Existing AiphaBee scaffolds already use `core/governance/audit`; renaming them
   now would mix a platform boundary decision with product data migration.
-- AIMPACT and Salesko have their own storage/runtime boundaries; a shared
-  Supabase project should start with product registry, workspace membership, and
-  product access control.
+- AIMPACT and Salesko have their own storage/runtime boundaries and must not
+  share AiphaBee's Supabase project.
 - RLS and index verification must be contract-backed before any product-owned
   schema is exposed.
 
 Tradeoff:
 
-- The platform registry now has seed product codes for `aiphabee`, `aimpact`,
-  and `salesko`.
+- The platform registry now seeds only `aiphabee`.
 - No workspace/product access rows are seeded, so the migration creates the
   boundary but does not grant any user data access.
 
@@ -106,7 +109,8 @@ foundation migration declares both, so the database contract proves:
 
 - No remote `supabase db push --dry-run` was executed.
 - No live Supabase/Hyperdrive `SELECT 1` evidence was produced.
-- Product-owned schemas such as `aiphabee_core`, `aimpact_core`, and
-  `salesko_core` are not created in this slice.
+- Product-owned schemas such as `aiphabee_core` are not created in this slice.
 - Existing AiphaBee `core/governance/audit` scaffold migrations remain in place
   until a later compatibility or rename migration is explicitly planned.
+- AIMPACT/Salesko integration, if needed, must use APIs or explicit federation
+  rather than shared Supabase tables.

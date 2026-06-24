@@ -1,8 +1,19 @@
 # Supabase Migrations
 
-This directory stores repo-local SQL migrations for the planned Supabase
-Postgres database. Values, project IDs, database URLs, and credentials are not
-stored here.
+This directory stores repo-local SQL migrations for the planned dedicated
+AiphaBee Supabase Postgres database. Values, project IDs, database URLs, and
+credentials are not stored here.
+
+## Project Boundary
+
+AiphaBee uses its own Supabase organization/project boundary. Do not point these
+migrations, `HYPERDRIVE_DATABASE_URL`, or `AIPHABEE_HYPERDRIVE` at AIMPACT,
+Salesko, or any shared sibling-product Supabase project.
+
+Reason: AiphaBee will carry IPO, HK F10, security master, financial facts,
+serving, lineage, and usage-ledger data. It must remain independently movable
+when data volume, plan, PITR, read-replica, or database-engine pressure requires
+a migration.
 
 ## Commands
 
