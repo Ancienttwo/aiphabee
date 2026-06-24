@@ -80,7 +80,7 @@
       "purpose": "Future Postgres/Supabase connection path for Worker runtime.",
       "required_by_sprint": "1.1",
       "smoke_test": "Run read-only SELECT 1 through Hyperdrive.",
-      "provisioned": false
+      "provisioned": true
     }
   ]
 }

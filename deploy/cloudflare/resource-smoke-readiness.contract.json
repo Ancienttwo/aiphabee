@@ -126,7 +126,8 @@
       "AIPHABEE_ARTIFACTS",
       "AIPHABEE_CONFIG",
       "AIPHABEE_EVAL_STORE",
-      "AIPHABEE_AI_GATEWAY"
+      "AIPHABEE_AI_GATEWAY",
+      "AIPHABEE_HYPERDRIVE"
     ],
     "resource_names": {
       "worker": "aiphabee-worker",
@@ -176,14 +177,13 @@
       {
         "surface": "ai_gateway_model_request_smoke",
         "result": "AIPHABEE_AI_GATEWAY deployed Worker model-provider route smoke passed"
+      },
+      {
+        "surface": "hyperdrive_config_readback",
+        "result": "aiphabee-hyperdrive found with Supabase pooler origin, sslmode require, caching disabled, and connection limit 5"
       }
     ],
-    "blocked_bindings": [
-      {
-        "binding_name": "AIPHABEE_HYPERDRIVE",
-        "reason": "hyperdrive_requires_postgres_origin"
-      }
-    ]
+    "blocked_bindings": []
   },
   "functional_smoke": {
     "status": "partial_live_passed",
@@ -248,12 +248,12 @@
       {
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "surface": "cron_natural_trigger_evidence",
-        "reason": "guarded natural-evidence route and KV marker collector exist, but no natural scheduled event has been observed after deployment"
+        "reason": "post-deploy KV marker has been observed for the natural scheduled event; v0 checker keeps this surface in remaining until readiness contract advances"
       },
       {
         "binding_name": "AIPHABEE_HYPERDRIVE",
         "surface": "hyperdrive_select_1_smoke",
-        "reason": "guarded Worker route and temporary Wrangler binding support exist, but Hyperdrive config/origin and SELECT 1 live evidence are not yet present"
+        "reason": "Hyperdrive config/origin exists and token-backed deployed Worker route smoke passed; v0 checker keeps this surface in remaining until readiness contract advances"
       }
     ]
   },

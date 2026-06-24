@@ -424,6 +424,11 @@ async function smokeWorkerRuntimeBindings() {
       secretFilePath
     ]);
     const workerUrl = extractWorkersDevUrl(deployResult.stdout);
+    const queueConsumerSetupFailure = await prepareQueueWorkerConsumer({
+      configPath,
+      queueName: resourceNames.queue,
+      workerName
+    });
 
     if (!hasValue(workerUrl)) {
       return [
@@ -545,7 +550,9 @@ async function smokeWorkerRuntimeBindings() {
 
     return [
       workerRuntimeResult,
-      await smokeQueuePublishConsume(workerUrl),
+      await smokeQueuePublishConsume(workerUrl).then((queueResult) =>
+        queueResult.status === "passed" ? queueResult : (queueConsumerSetupFailure ?? queueResult)
+      ),
       await smokeDurableObjectState(workerUrl),
       await smokeWorkflowInstanceExecution(workerUrl),
       await smokeCronHandler(workerUrl),
@@ -613,10 +620,21 @@ async function smokeWorkerRuntimeBindings() {
       })
     ];
   } finally {
-    await runWrangler(
-      ["queues", "consumer", "worker", "remove", resourceNames.queue, workerName],
-      { allowFailure: true, input: "y\n" }
-    );
+    if (configPath) {
+      await runWrangler(
+        [
+          "queues",
+          "consumer",
+          "worker",
+          "remove",
+          resourceNames.queue,
+          workerName,
+          "--config",
+          configPath
+        ],
+        { allowFailure: true, input: "y\n" }
+      );
+    }
     await runWrangler(["secret", "delete", "AI_GATEWAY_LIVE_SMOKE_TOKEN", "--name", workerName], {
       allowFailure: true,
       input: "y\n"
@@ -1223,6 +1241,86 @@ function normalizeCloudflareItems(value) {
   }
 
   return [];
+}
+
+async function prepareQueueWorkerConsumer({ configPath, queueName, workerName }) {
+  const surface = "queue_publish_consume_smoke";
+
+  if (!hasValue(queueName)) {
+    return failedResult({
+      bindingName: "AIPHABEE_EVENTS_QUEUE",
+      detail: "queue resource name is missing",
+      failureCode: "queue_consumer_resource_missing",
+      key: "AIPHABEE_EVENTS_QUEUE",
+      surface
+    });
+  }
+
+  if (await queueWorkerConsumerExists({ configPath, queueName, workerName })) {
+    return undefined;
+  }
+
+  const addResult = await runWrangler(
+    [
+      "queues",
+      "consumer",
+      "worker",
+      "add",
+      queueName,
+      workerName,
+      "--batch-size",
+      "1",
+      "--batch-timeout",
+      "1",
+      "--message-retries",
+      "1",
+      "--config",
+      configPath
+    ],
+    { allowFailure: true }
+  );
+
+  if (await waitForQueueWorkerConsumer({ configPath, queueName, workerName })) {
+    return undefined;
+  }
+
+  return failedResult({
+    bindingName: "AIPHABEE_EVENTS_QUEUE",
+    detail: JSON.stringify({
+      add_exit_code: addResult.exitCode,
+      add_stderr_hash: hashString(sanitizeText(addResult.stderr)),
+      add_stdout_hash: hashString(sanitizeText(addResult.stdout))
+    }),
+    failureCode:
+      addResult.exitCode === 0 ? "queue_consumer_not_visible_after_add" : "queue_consumer_add_failed",
+    key: queueName,
+    surface
+  });
+}
+
+async function waitForQueueWorkerConsumer({ configPath, queueName, workerName }) {
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    if (await queueWorkerConsumerExists({ configPath, queueName, workerName })) {
+      return true;
+    }
+
+    await sleep(1000 * attempt);
+  }
+
+  return false;
+}
+
+async function queueWorkerConsumerExists({ configPath, queueName, workerName }) {
+  const listResult = await runWrangler(
+    ["queues", "consumer", "worker", "list", queueName, "--config", configPath],
+    { allowFailure: true }
+  );
+
+  if (listResult.exitCode !== 0) {
+    return false;
+  }
+
+  return `${listResult.stdout}\n${listResult.stderr}`.includes(workerName);
 }
 
 function createEvalStoreSmokeRecord(id) {

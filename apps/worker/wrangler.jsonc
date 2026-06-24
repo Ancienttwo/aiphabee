@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "aiphabee-worker",
+  "account_id": "ab66185011440a6f8a698d61ad58703a",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-20",
   "compatibility_flags": ["nodejs_compat"],
@@ -13,5 +14,11 @@
   "vars": {
     "APP_ENV": "local",
     "APP_VERSION": "0.0.0"
-  }
+  },
+  "hyperdrive": [
+    {
+      "binding": "AIPHABEE_HYPERDRIVE",
+      "id": "df117134ac654f5dbfd93ea79f1775a8"
+    }
+  ]
 }
