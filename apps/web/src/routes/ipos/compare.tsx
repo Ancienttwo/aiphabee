@@ -94,7 +94,7 @@ function CompareView() {
   const cols = selected.length;
 
   return (
-    <main style={{ ...SHELL, padding: "32px 24px 80px" }}>
+    <main style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
       <button
         type="button"
         onClick={() => navigate({ to: "/ipos" })}

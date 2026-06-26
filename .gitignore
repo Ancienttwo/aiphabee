@@ -8,6 +8,8 @@ node_modules/
 .output/
 *.tar.gz
 *.tgz
+# Wrong package manager — this repo uses npm (package-lock.json is authoritative)
+bun.lock
 # External references
 _ref/
 .codegraph/

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import pg from "pg";
@@ -128,15 +129,32 @@ async function emitHkexDaily(parsedFlags) {
   }
 
   const resolvedDate = businessDate === "today" ? todayInHongKong() : businessDate;
+  const command = [
+    "data-ingest",
+    "hkex",
+    "daily",
+    "--business-date",
+    businessDate,
+    "--timezone",
+    timezone,
+    "--until",
+    until,
+    "--output",
+    output
+  ];
   if (localContractMode(parsedFlags)) {
-    emit(localContractDailyResult(resolvedDate), EXIT_CODES.completed);
+    emit(localContractDailyResult(resolvedDate, command), EXIT_CODES.completed);
   }
 
+  await runHkexDaily(resolvedDate, command);
+}
+
+async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
   const databaseUrl = databaseUrlFromEnv();
   if (!databaseUrl || process.env.DATA_INGEST_ENABLE_DB_WRITE !== "1") {
     emit(
       failureResult({
-        command: DAILY_COMMAND,
+        command,
         errorCode: "LIVE_ADAPTER_NOT_CONFIGURED",
         failedStage: "preflight",
         summary: "Set DATA_INGEST_ENABLE_DB_WRITE=1 and DATA_INGEST_DATABASE_URL/IPO_DATABASE_URL/DATABASE_URL before running live HKEX News ingest."
@@ -158,7 +176,7 @@ async function emitHkexDaily(parsedFlags) {
     lockAcquired = lock.rows[0]?.locked === true;
     if (!lockAcquired) {
       emit({
-        ...baseRunResult(resolvedDate, ids, "skipped_locked"),
+        ...baseRunResult(resolvedDate, ids, "skipped_locked", command),
         last_completed_stage: "lock"
       }, EXIT_CODES.skippedLocked);
     }
@@ -179,7 +197,7 @@ async function emitHkexDaily(parsedFlags) {
       await markCrawlFailed(client, ids, scrapy);
       emit(
         failureResult({
-          command: DAILY_COMMAND,
+          command,
           dataVersion: ids.dataVersion,
           errorCode: "SCRAPY_CRAWL_FAILED",
           failedStage: "scrapy",
@@ -191,8 +209,11 @@ async function emitHkexDaily(parsedFlags) {
       );
     }
 
-    const counts = readScrapyCounts(ids.reportPath);
+    const report = readScrapyReport(ids.reportPath);
     await client.query("begin");
+    const persistence = await persistScrapyDocuments(client, ids, report.items);
+    const counts = countsFromScrapyReport(report, persistence);
+    await updateSourceBatchRowCount(client, ids, counts.documents_persisted);
     await upsertCrawlRun(client, ids, resolvedDate, "completed", {
       changed: counts.changed,
       discovered: counts.discovered,
@@ -202,7 +223,7 @@ async function emitHkexDaily(parsedFlags) {
     await client.query("commit");
 
     emit({
-      ...baseRunResult(resolvedDate, ids, counts.changed > 0 ? "completed" : "no_change"),
+      ...baseRunResult(resolvedDate, ids, counts.changed > 0 ? "completed" : "no_change", command),
       counts,
       last_completed_stage: "validate"
     }, EXIT_CODES.completed);
@@ -210,7 +231,7 @@ async function emitHkexDaily(parsedFlags) {
     await client.query("rollback").catch(() => undefined);
     emit(
       failureResult({
-        command: DAILY_COMMAND,
+        command,
         dataVersion: ids.dataVersion,
         errorCode: "DATABASE_OR_STORAGE_FAILURE",
         failedStage: "finalize",
@@ -320,17 +341,38 @@ async function emitRunResume(parsedFlags) {
       EXIT_CODES.configurationFailure
     );
   }
-  emit(
-    failureResult({
-      command: ["data-ingest", "run", "resume"],
-      dataVersion: `dv_${runId}`,
-      errorCode: "RESUME_REQUIRES_DAILY_ORCHESTRATOR",
-      failedStage: "preflight",
-      runId,
-      summary: "Use data-ingest hkex daily; the daily orchestrator handles retryable run resumption for the business date."
-    }),
-    EXIT_CODES.configurationFailure
-  );
+
+  const resolvedDate = businessDateFromRunId(runId);
+  if (!resolvedDate) {
+    emit(
+      failureResult({
+        command: ["data-ingest", "run", "resume"],
+        dataVersion: `dv_${runId}`,
+        errorCode: "INVALID_RUN_ID",
+        failedStage: "preflight",
+        runId,
+        summary: "run resume requires a cr_hkex_news_YYYYMMDD run id."
+      }),
+      EXIT_CODES.configurationFailure
+    );
+  }
+
+  if (localContractMode(parsedFlags)) {
+    emit({
+      ...baseRunResult(resolvedDate, idsForBusinessDate(resolvedDate), "completed", [
+        "data-ingest",
+        "run",
+        "resume",
+        "--run-id",
+        runId,
+        "--output",
+        "json"
+      ]),
+      last_completed_stage: "validate"
+    }, EXIT_CODES.completed);
+  }
+
+  await runHkexDaily(resolvedDate, ["data-ingest", "run", "resume", "--run-id", runId, "--output", "json"]);
 }
 
 async function emitValidate(parsedFlags) {
@@ -346,23 +388,54 @@ async function emitValidate(parsedFlags) {
       EXIT_CODES.configurationFailure
     );
   }
-  emit({
-    data_version: dataVersion,
-    release_state: "held",
-    status: localContractMode(parsedFlags) ? "completed" : "failed",
-    validation: {
-      content_integrity: localContractMode(parsedFlags),
-      extraction_quality: localContractMode(parsedFlags),
-      governance: {
-        default_data_rights_status: "default_deny",
-        export_allowed: false,
-        field_authorization_required: true,
-        mcp_redistribution_allowed: false
-      },
-      schema_quality: localContractMode(parsedFlags)
-    },
-    version: DATA_INGEST_VERSION
-  }, localContractMode(parsedFlags) ? EXIT_CODES.completed : EXIT_CODES.configurationFailure);
+  if (localContractMode(parsedFlags)) {
+    emit(validationResult(dataVersion, true), EXIT_CODES.completed);
+  }
+
+  const databaseUrl = databaseUrlFromEnv();
+  if (!databaseUrl) {
+    emit(
+      failureResult({
+        command: ["data-ingest", "validate"],
+        dataVersion,
+        errorCode: "LIVE_ADAPTER_NOT_CONFIGURED",
+        failedStage: "preflight",
+        summary: "validate requires DATA_INGEST_DATABASE_URL/IPO_DATABASE_URL/DATABASE_URL."
+      }),
+      EXIT_CODES.configurationFailure
+    );
+  }
+
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const result = await client.query(
+      `
+        select dv.data_version, dv.release_state, cr.status, cr.error_count
+        from core.data_version_batch dv
+        left join core.hkex_news_crawl_run cr on cr.data_version = dv.data_version
+        where dv.data_version = $1
+      `,
+      [dataVersion]
+    );
+    if (result.rows.length === 0) {
+      emit(
+        failureResult({
+          command: ["data-ingest", "validate"],
+          dataVersion,
+          errorCode: "DATA_VERSION_NOT_FOUND",
+          failedStage: "validate",
+          summary: `No data_version found for ${dataVersion}.`
+        }),
+        EXIT_CODES.configurationFailure
+      );
+    }
+    const row = result.rows[0];
+    const pass = row.release_state === "held" && row.status === "completed" && Number(row.error_count ?? 0) === 0;
+    emit(validationResult(dataVersion, pass), pass ? EXIT_CODES.completed : EXIT_CODES.heldQualityFailure);
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 async function emitRelease(parsedFlags) {
@@ -500,26 +573,249 @@ async function markCrawlFailed(client, ids, scrapy) {
   );
 }
 
+async function updateSourceBatchRowCount(client, ids, rowCount) {
+  await client.query(
+    `
+      update core.raw_source_batch
+      set row_count = $2
+      where source_batch_id = $1
+    `,
+    [ids.sourceBatchId, rowCount]
+  );
+}
+
+async function persistScrapyDocuments(client, ids, items) {
+  let changed = 0;
+  let documentsPersisted = 0;
+  let warnings = 0;
+
+  for (const [index, item] of items.entries()) {
+    const document = normalizeScrapyDocument(item, index);
+    if (!document) {
+      warnings += 1;
+      continue;
+    }
+
+    const previous = await client.query(
+      `
+        select latest_content_hash_sha256
+        from core.hkex_news_document
+        where source_name = $1 and source_record_id = $2
+        limit 1
+      `,
+      [SOURCE_NAME, document.sourceRecordId]
+    );
+    const previousHash = previous.rows[0]?.latest_content_hash_sha256 ?? null;
+    const isChanged = previousHash !== document.contentHash;
+
+    if (isChanged) {
+      changed += 1;
+    }
+    documentsPersisted += 1;
+
+    await upsertRawSnapshot(client, ids, document);
+    await upsertDocument(client, document);
+    await upsertDocumentObservation(client, ids, document, isChanged);
+    if (document.contentHash) {
+      await upsertDocumentContent(client, document);
+    }
+  }
+
+  return {
+    changed,
+    documentsPersisted,
+    warnings
+  };
+}
+
+async function upsertRawSnapshot(client, ids, document) {
+  await client.query(
+    `
+      insert into core.raw_snapshot (
+        raw_snapshot_id,
+        source_batch_id,
+        source_record_id,
+        record_kind,
+        payload,
+        payload_hash_sha256,
+        received_at,
+        quality_state,
+        data_version,
+        methodology_version
+      )
+      values ($1, $2, $3, 'hkex_news_document', $4::jsonb, $5, now(), 'HOLD', $6, $7)
+      on conflict (source_batch_id, source_record_id) do update set
+        payload = excluded.payload,
+        payload_hash_sha256 = excluded.payload_hash_sha256,
+        received_at = excluded.received_at,
+        quality_state = excluded.quality_state,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version
+    `,
+    [
+      document.rawSnapshotId,
+      ids.sourceBatchId,
+      document.sourceRecordId,
+      JSON.stringify(document.rawPayload),
+      document.payloadHash,
+      ids.dataVersion,
+      METHODOLOGY_VERSION
+    ]
+  );
+}
+
+async function upsertDocument(client, document) {
+  await client.query(
+    `
+      insert into core.hkex_news_document (
+        document_id,
+        source_name,
+        source_record_id,
+        canonical_url,
+        document_url,
+        title_en,
+        title_zh_hant,
+        hkex_code,
+        market,
+        published_at,
+        language,
+        content_type,
+        latest_content_hash_sha256,
+        document_state,
+        access_policy,
+        rights_policy_version,
+        quality_state
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, 'UNKNOWN', $9, 'unknown', $10, $11, 'unknown', $12, $13, 'HOLD')
+      on conflict (source_name, source_record_id) do update set
+        canonical_url = excluded.canonical_url,
+        document_url = excluded.document_url,
+        title_en = excluded.title_en,
+        title_zh_hant = excluded.title_zh_hant,
+        hkex_code = excluded.hkex_code,
+        published_at = excluded.published_at,
+        content_type = excluded.content_type,
+        latest_content_hash_sha256 = excluded.latest_content_hash_sha256,
+        access_policy = excluded.access_policy,
+        rights_policy_version = excluded.rights_policy_version,
+        quality_state = excluded.quality_state,
+        last_seen_at = now()
+    `,
+    [
+      document.documentId,
+      SOURCE_NAME,
+      document.sourceRecordId,
+      document.canonicalUrl,
+      document.documentUrl,
+      document.titleEn,
+      document.titleZhHant,
+      document.hkexCode,
+      document.publishedAt,
+      document.contentType,
+      document.contentHash,
+      document.accessPolicy,
+      RIGHTS_POLICY_VERSION
+    ]
+  );
+}
+
+async function upsertDocumentObservation(client, ids, document, isChanged) {
+  await client.query(
+    `
+      insert into core.hkex_news_document_observation (
+        document_observation_id,
+        document_id,
+        crawl_run_id,
+        raw_snapshot_id,
+        data_version,
+        source_surface,
+        source_page_url,
+        result_rank,
+        fetched_at,
+        http_status,
+        observed_content_hash_sha256,
+        is_changed
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, now(), $9, $10, $11)
+      on conflict (document_id, crawl_run_id, source_page_url) do update set
+        raw_snapshot_id = excluded.raw_snapshot_id,
+        result_rank = excluded.result_rank,
+        fetched_at = excluded.fetched_at,
+        http_status = excluded.http_status,
+        observed_content_hash_sha256 = excluded.observed_content_hash_sha256,
+        is_changed = excluded.is_changed
+    `,
+    [
+      document.observationId,
+      document.documentId,
+      ids.runId,
+      document.rawSnapshotId,
+      ids.dataVersion,
+      document.sourceSurface,
+      document.sourcePageUrl,
+      document.resultRank,
+      document.httpStatus,
+      document.contentHash,
+      isChanged
+    ]
+  );
+}
+
+async function upsertDocumentContent(client, document) {
+  await client.query(
+    `
+      insert into core.hkex_news_document_content (
+        document_content_id,
+        document_id,
+        raw_snapshot_id,
+        storage_uri,
+        binary_hash_sha256,
+        sanitizer_version,
+        extraction_ready,
+        prompt_injection_isolated
+      )
+      values ($1, $2, $3, $4, $5, 'raw-storage-v0', false, true)
+      on conflict (document_id, sanitizer_version, binary_hash_sha256) do update set
+        raw_snapshot_id = excluded.raw_snapshot_id,
+        storage_uri = excluded.storage_uri,
+        extraction_ready = false,
+        prompt_injection_isolated = true
+    `,
+    [
+      document.contentId,
+      document.documentId,
+      document.rawSnapshotId,
+      document.storageUri,
+      document.contentHash
+    ]
+  );
+}
+
 function runScrapy(ids) {
   const scrapyBin = process.env.DATA_INGEST_SCRAPY_BIN ?? "scrapy";
   const scrapyProjectDir = resolve(process.cwd(), "packages", "data-ingest");
   const pythonPath = resolve(scrapyProjectDir, "src_py");
+  const startUrl = process.env.DATA_INGEST_SCRAPY_START_URL;
+  const scrapyArgs = [
+    "crawl",
+    "hkex_news",
+    "-s",
+    `JOBDIR=${ids.jobDir}`,
+    "-a",
+    `crawl_run_id=${ids.runId}`,
+    "-a",
+    `data_version=${ids.dataVersion}`,
+    "-O",
+    ids.reportPath
+  ];
+  if (startUrl) {
+    scrapyArgs.splice(6, 0, "-a", `start_url=${startUrl}`);
+  }
   mkdirSync(dirname(ids.reportPath), { recursive: true });
   mkdirSync(ids.jobDir, { recursive: true });
   return spawnSync(
     scrapyBin,
-    [
-      "crawl",
-      "hkex_news",
-      "-s",
-      `JOBDIR=${ids.jobDir}`,
-      "-a",
-      `crawl_run_id=${ids.runId}`,
-      "-a",
-      `data_version=${ids.dataVersion}`,
-      "-O",
-      ids.reportPath
-    ],
+    scrapyArgs,
     {
       cwd: scrapyProjectDir,
       encoding: "utf8",
@@ -535,49 +831,167 @@ function runScrapy(ids) {
   );
 }
 
-function readScrapyCounts(reportPath) {
+function readScrapyReport(reportPath) {
   if (!existsSync(reportPath)) {
-    return zeroCounts();
+    return {
+      items: [],
+      malformed: 0
+    };
   }
 
   const lines = readFileSync(reportPath, "utf8")
     .split(/\r?\n/u)
     .filter((line) => line.trim().length > 0);
-  let changed = 0;
-  let fetched = 0;
+  const items = [];
+  let malformed = 0;
+
   for (const line of lines) {
     try {
-      const item = JSON.parse(line);
-      fetched += item.document_url || item.response_body_storage_uri ? 1 : 0;
-      changed += item.content_hash_sha256 ? 1 : 0;
+      items.push(JSON.parse(line));
     } catch {
-      // Keep malformed spider output visible as a warning rather than hiding it.
+      malformed += 1;
     }
   }
+
   return {
-    changed,
-    discovered: lines.length,
-    documents_persisted: fetched,
-    errors: 0,
-    facts_extracted: 0,
-    fetched,
-    unchanged: Math.max(lines.length - changed, 0),
-    warnings: 0
+    items,
+    malformed
   };
 }
 
-function localContractDailyResult(resolvedDate) {
+function countsFromScrapyReport(report, persistence) {
   return {
-    ...baseRunResult(resolvedDate, idsForBusinessDate(resolvedDate), "completed"),
+    changed: persistence.changed,
+    discovered: report.items.length + report.malformed,
+    documents_persisted: persistence.documentsPersisted,
+    errors: 0,
+    facts_extracted: 0,
+    fetched: persistence.documentsPersisted,
+    unchanged: Math.max(report.items.length - persistence.changed, 0),
+    warnings: persistence.warnings + report.malformed
+  };
+}
+
+function normalizeScrapyDocument(item, index) {
+  if (!isRecord(item)) {
+    return null;
+  }
+
+  const canonicalUrl = nonEmptyString(item.canonical_url) ?? nonEmptyString(item.document_url);
+  if (!canonicalUrl) {
+    return null;
+  }
+
+  const sourceRecordId = nonEmptyString(item.source_record_id) ?? stableHash(canonicalUrl);
+  const sourceSurface = SOURCE_SURFACES.includes(item.source_surface) ? item.source_surface : "new_listing_information";
+  const documentId = `hkex_doc_${stableHash(`${SOURCE_NAME}:${sourceRecordId}`).slice(0, 32)}`;
+  const contentHash = nonEmptyString(item.content_hash_sha256) ?? stableHash(JSON.stringify(item));
+  const rawSnapshotId = `raw_hkex_news_${stableHash(`${sourceRecordId}:${item.data_version ?? ""}`).slice(0, 32)}`;
+  const rawPayload = {
+    canonical_url: canonicalUrl,
+    content_hash_sha256: contentHash,
+    content_type: nonEmptyString(item.content_type) ?? "unknown",
+    crawl_run_id: nonEmptyString(item.crawl_run_id),
+    data_version: nonEmptyString(item.data_version),
+    document_url: nonEmptyString(item.document_url),
+    hkex_code: nonEmptyString(item.hkex_code),
+    published_at: nonEmptyString(item.published_at),
+    response_body_storage_uri: nonEmptyString(item.response_body_storage_uri),
+    source_page_url: nonEmptyString(item.source_page_url),
+    source_record_id: sourceRecordId,
+    source_surface: sourceSurface,
+    title_en: nonEmptyString(item.title_en),
+    title_zh_hant: nonEmptyString(item.title_zh_hant)
+  };
+
+  return {
+    accessPolicy: accessPolicyForSurface(sourceSurface),
+    canonicalUrl,
+    contentHash,
+    contentId: `hkc_${stableHash(`${documentId}:${contentHash}`).slice(0, 32)}`,
+    contentType: rawPayload.content_type,
+    documentId,
+    documentUrl: nonEmptyString(item.document_url) ?? canonicalUrl,
+    hkexCode: nonEmptyString(item.hkex_code),
+    httpStatus: integerOrNull(item.http_status),
+    observationId: `hko_${stableHash(`${documentId}:${item.crawl_run_id ?? ""}:${rawPayload.source_page_url ?? canonicalUrl}`).slice(0, 32)}`,
+    payloadHash: stableHash(JSON.stringify(rawPayload)),
+    publishedAt: isoTimestampOrNull(item.published_at),
+    rawPayload,
+    rawSnapshotId,
+    resultRank: integerOrNull(item.result_rank) ?? index + 1,
+    sourcePageUrl: nonEmptyString(item.source_page_url) ?? canonicalUrl,
+    sourceRecordId,
+    sourceSurface,
+    storageUri: nonEmptyString(item.response_body_storage_uri),
+    titleEn: nonEmptyString(item.title_en),
+    titleZhHant: nonEmptyString(item.title_zh_hant)
+  };
+}
+
+function accessPolicyForSurface(sourceSurface) {
+  if (sourceSurface === "ap_phip") return "public_ap_phip_warning_gate";
+  if (sourceSurface === "new_listing_information") return "public_new_listing";
+  return "public_general";
+}
+
+function stableHash(value) {
+  return createHash("sha256").update(String(value)).digest("hex");
+}
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function integerOrNull(value) {
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && /^\d+$/u.test(value)) return Number(value);
+  return null;
+}
+
+function isoTimestampOrNull(value) {
+  const text = nonEmptyString(value);
+  if (!text) return null;
+  const timestamp = Date.parse(text);
+  return Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString();
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function localContractDailyResult(resolvedDate, command = DAILY_COMMAND) {
+  return {
+    ...baseRunResult(resolvedDate, idsForBusinessDate(resolvedDate), "completed", command),
     counts: zeroCounts(),
     last_completed_stage: "validate"
   };
 }
 
-function baseRunResult(businessDate, ids, status) {
+function validationResult(dataVersion, pass) {
+  return {
+    data_version: dataVersion,
+    release_state: "held",
+    status: pass ? "completed" : "held_quality_failure",
+    validation: {
+      content_integrity: pass,
+      extraction_quality: pass,
+      governance: {
+        default_data_rights_status: "default_deny",
+        export_allowed: false,
+        field_authorization_required: true,
+        mcp_redistribution_allowed: false
+      },
+      schema_quality: pass
+    },
+    version: DATA_INGEST_VERSION
+  };
+}
+
+function baseRunResult(businessDate, ids, status, command = DAILY_COMMAND) {
   return {
     business_date: businessDate,
-    command: DAILY_COMMAND,
+    command,
     counts: zeroCounts(),
     data_version: ids.dataVersion,
     error_code: null,
@@ -628,14 +1042,21 @@ function failureResult({
 function idsForBusinessDate(businessDate) {
   const compactDate = businessDate.replaceAll("-", "");
   const runId = `cr_hkex_news_${compactDate}`;
+  const runtimeRoot = resolve(process.env.DATA_INGEST_RUNTIME_DIR ?? resolve(process.cwd(), "runtime"));
   return {
     dataVersion: `dv_hkex_news_${compactDate}`,
-    jobDir: resolve(process.cwd(), "runtime", "scrapy-jobs", runId),
-    reportPath: resolve(process.cwd(), "runtime", "reports", runId, "documents.jsonl"),
+    jobDir: resolve(runtimeRoot, "scrapy-jobs", runId),
+    reportPath: resolve(runtimeRoot, "reports", runId, "documents.jsonl"),
     requestFingerprint: `hkex-news-daily:${businessDate}:v0`,
     runId,
     sourceBatchId: `rsb_hkex_news_${compactDate}`
   };
+}
+
+function businessDateFromRunId(runId) {
+  const match = /^cr_hkex_news_(\d{4})(\d{2})(\d{2})$/u.exec(runId);
+  if (!match) return null;
+  return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
 function zeroCounts() {

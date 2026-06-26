@@ -1,0 +1,32 @@
+{
+  "version": "2026-06-26.database-apply-packet.v0",
+  "status": "local_apply_packet",
+  "provider": "planetscale_postgres",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "local_dry_run_contract": "deploy/database/local-dry-run.contract.json",
+  "checker": "scripts/check-database-apply-packet.mjs",
+  "package_script": "check:database-apply-packet",
+  "command": "npm run check:database-apply-packet",
+  "migration_directory": "supabase/migrations",
+  "migration_count": 66,
+  "first_file": "supabase/migrations/20260620071000_phase0_foundation.sql",
+  "last_file": "supabase/migrations/20260625002000_hkex_news_ingest_foundation.sql",
+  "total_size_bytes": 294237,
+  "packet_hash": "sha256:12962e56e3d436227adf4d857c77e62a22730e62407323b3adb417e352ee1523",
+  "packet_material": [
+    "migration file path",
+    "migration file sha256",
+    "migration file size_bytes"
+  ],
+  "remote_apply_gates": [
+    "npm run check:database",
+    "npm run check:database-local-dry-run",
+    "npm run check:database-apply-packet",
+    "node scripts/check-planetscale-direct-preflight.mjs --smoke-select-1 --use-keychain"
+  ],
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "counts_and_hashes_only": true
+  }
+}

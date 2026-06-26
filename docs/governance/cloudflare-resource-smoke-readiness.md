@@ -29,10 +29,9 @@ smoke without claiming complete Cloudflare binding smoke.
 - Functional smoke command:
   `npm run smoke:cloudflare-bindings-wrangler-live`.
 - Readiness gate: `npm run check:cloudflare-resource-live-readiness`.
-- Out of scope: Hyperdrive resource completion, natural Cron trigger live
-  observation, passing Hyperdrive `SELECT 1`, AI Gateway
-  cost/cache/rate-limit/fallback log verification, OTLP export, or rotating
-  provider secrets.
+- Out of scope: natural Cron trigger live observation beyond the current
+  readiness marker, AI Gateway cost/cache/rate-limit/fallback log verification,
+  OTLP export, or rotating provider secrets.
 
 ## P2 Concrete Trace
 
@@ -101,11 +100,18 @@ smoke without claiming complete Cloudflare binding smoke.
     dedicated temporary Worker secret after the route call.
 19. The Worker also exposes guarded `POST /cloudflare/hyperdrive/smoke`. When a
     real Hyperdrive config exists, the Wrangler smoke resolves the config ID by
-    names-only `aiphabee-hyperdrive`, writes it only into the temporary deleted
+    names-only `aiphabee-prod-runtime`, writes it only into the temporary deleted
     Wrangler config, and binds it as `AIPHABEE_HYPERDRIVE`.
 20. The Hyperdrive route uses `pg` with `env.AIPHABEE_HYPERDRIVE.connectionString`
     and runs read-only `SELECT 1 AS hyperdrive_smoke_result`; output is reduced
     to hashes, row count, operation count, and status.
+21. The production PlanetScale-backed runtime Hyperdrive path passed on
+    2026-06-25:
+    deployed `POST /cloudflare/hyperdrive/smoke` returned `status=ok`,
+    `database_create_privilege=false`, and response hash
+    `sha256:39701a96a519ffc42069ee0a4dca588180b0cacf164354f819609febd4bbb1c1`.
+    The runtime-role smoke verified the bound Hyperdrive origin itself is
+    `aiphabee_runtime_rls`, non-bypass, non-owner, and no-`CREATE`.
 
 ## P3 Decision
 
@@ -115,11 +121,11 @@ resource-level KV/R2/D1 write-read-delete through Wrangler, upgrade D1 smoke to
 write/read a prompt-free eval-store record, prove Worker runtime KV/R2/D1, prove Queue publish/consume through a temporary Worker
 consumer, prove Durable Object state put/get/delete, prove Workflow
 `create()`/KV evidence, prove Cron handler/config execution, add the natural
-Cron evidence collector/route/polling harness, add a guarded Hyperdrive
-`SELECT 1` route plus temporary binding harness, and prove the deployed Worker
+Cron evidence collector/route/polling harness, prove the guarded
+PlanetScale-backed Hyperdrive `SELECT 1` route, and prove the deployed Worker
 AI Gateway model request path while keeping the overall resource smoke item
-unchecked until Hyperdrive live evidence and natural Cron live event evidence
-are complete.
+unchecked until Cron natural live evidence, token-backed full smoke, OTLP, and
+provider secret smoke are complete.
 
 At 10x scale this fails first on partial provisioning and token scope drift:
 some resources may exist while D1/Durable Object list permissions are missing.
@@ -189,25 +195,29 @@ completed the following names-only provisioning and verification:
   it against `after_issued_at`, and the Wrangler functional smoke polls that
   route with hash-only output. No deploy-after natural scheduled event has been
   observed or claimed.
-- Hyperdrive guarded route and harness are implemented: `POST
-  /cloudflare/hyperdrive/smoke` runs `SELECT 1 AS hyperdrive_smoke_result`
-  through `pg` when `AIPHABEE_HYPERDRIVE` is bound; the temporary Wrangler smoke
-  config enables `nodejs_compat` and can bind names-only `aiphabee-hyperdrive`
-  if a real config ID exists.
+- Hyperdrive `aiphabee-prod-runtime` is provisioned against the dedicated
+  PlanetScale production origin and bound as `AIPHABEE_HYPERDRIVE`.
+- Deployed `POST /cloudflare/hyperdrive/smoke` passed with `status=ok`,
+  `database_create_privilege=false`, and response hash
+  `sha256:39701a96a519ffc42069ee0a4dca588180b0cacf164354f819609febd4bbb1c1`.
+- Follow-up platform smokes passed: `platform-runtime-role-smoke` returned
+  `runtime_role_ready=true` with response hash
+  `sha256:6193531f7ab4a6f0f5dfbbe34fca5590750d884b0179cadaccf149792cc21a03`,
+  and `platform-rls-fixture-smoke` returned rollback-confirmed RLS evidence
+  with response hash
+  `sha256:b634572a91f84023bf1e625a268db330ea4d9e96f30d6b0981d6e037182000bf`.
 
-Hyperdrive remains unprovisioned because it requires a Postgres origin decision
-before safe creation; the new route/harness does not claim a live `SELECT 1`
-pass. Natural Cron trigger live event evidence and AI Gateway
-cost/cache/rate-limit/fallback log verification are not claimed by this slice.
+Natural Cron trigger live event evidence and AI Gateway cost/cache/rate-limit/
+fallback log verification are not claimed by this slice.
 
 ## Residual Gaps
 
-- Sprint 0.4 Cloudflare resource provisioning remains unchecked because not all
-  required resource classes are provisioned.
+- Sprint 0.4 Cloudflare resource provisioning remains unchecked because the
+  full token-backed resource smoke and adjacent OTLP/provider-secret surfaces
+  are still not accepted as complete.
 - Functional binding smoke remains unchecked: Cron natural evidence
-  collector/route/polling exists, but no deploy-after natural event has been
-  observed; Hyperdrive route/harness exists, but Hyperdrive config/origin and
-  live `SELECT 1` are not claimed.
+  collector/route/polling exists, but the readiness contract still keeps that
+  surface in remaining until the full Cloudflare smoke packet advances.
 - AI Gateway model request smoke passed, but request/cost/cache/rate-limit and
   fallback log evidence is still owned by the model-provider/A5 slice.
 - Eval-store record write/read smoke is implemented in the guarded route and

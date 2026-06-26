@@ -18,7 +18,7 @@ create table if not exists platform.product_environment (
   product_id text not null references platform.product(product_id),
   environment text not null check (environment in ('dev', 'staging', 'prod')),
   runtime_base_url text,
-  supabase_exposed_schemas text[] not null default '{}'::text[],
+  api_exposed_schemas text[] not null default '{}'::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (product_id, environment)
@@ -26,7 +26,7 @@ create table if not exists platform.product_environment (
 
 create table if not exists platform.account (
   account_id text primary key,
-  auth_user_id uuid unique,
+  auth_subject text unique,
   email_hash text,
   display_name text,
   status text not null default 'active' check (
@@ -142,7 +142,7 @@ create index if not exists workspace_membership_account_id_workspace_id_status_i
 create index if not exists workspace_product_access_workspace_id_idx
   on platform.workspace_product_access (workspace_id);
 
-create index if not exists workspace_product_access_product_id_workspace_id_access_status_idx
+create index if not exists workspace_product_access_product_id_workspace_id_access_status_
   on platform.workspace_product_access (product_id, workspace_id, access_status);
 
 create index if not exists entitlement_policy_product_id_policy_version_idx
@@ -151,7 +151,7 @@ create index if not exists entitlement_policy_product_id_policy_version_idx
 create index if not exists workspace_entitlement_workspace_id_idx
   on platform.workspace_entitlement (workspace_id);
 
-create index if not exists workspace_entitlement_product_id_workspace_id_entitlement_key_status_idx
+create index if not exists workspace_entitlement_product_id_workspace_id_entitlement_key_s
   on platform.workspace_entitlement (product_id, workspace_id, entitlement_key, status);
 
 create index if not exists product_access_event_product_id_workspace_id_event_time_idx
@@ -169,11 +169,7 @@ language sql
 stable
 set search_path = ''
 as $$
-  select account_id
-  from platform.account
-  where auth_user_id = (select auth.uid())
-    and status = 'active'
-  limit 1
+  select nullif(current_setting('aiphabee.account_id', true), '')
 $$;
 
 create or replace function platform.is_workspace_member(target_workspace_id text)
@@ -189,6 +185,12 @@ as $$
       and wm.account_id = (select platform.current_account_id())
       and wm.status = 'active'
       and (wm.valid_to is null or wm.valid_to > now())
+      and exists (
+        select 1
+        from platform.account a
+        where a.account_id = wm.account_id
+          and a.status = 'active'
+      )
   )
 $$;
 
@@ -234,16 +236,14 @@ alter table platform.workspace_entitlement force row level security;
 alter table platform_audit.product_access_event enable row level security;
 alter table platform_audit.product_access_event force row level security;
 
-create policy product_authenticated_read
+create policy product_registry_read
 on platform.product
 for select
-to authenticated
 using (status in ('planned', 'active', 'paused', 'retired'));
 
-create policy product_environment_authenticated_read
+create policy product_environment_registry_read
 on platform.product_environment
 for select
-to authenticated
 using (
   exists (
     select 1
@@ -256,22 +256,19 @@ using (
 create policy account_self_read
 on platform.account
 for select
-to authenticated
 using (
-  auth_user_id = (select auth.uid())
+  account_id = (select platform.current_account_id())
   and status = 'active'
 );
 
 create policy workspace_member_read
 on platform.workspace
 for select
-to authenticated
 using ((select platform.is_workspace_member(workspace_id)));
 
 create policy workspace_membership_self_read
 on platform.workspace_membership
 for select
-to authenticated
 using (
   account_id = (select platform.current_account_id())
   and status = 'active'
@@ -281,13 +278,11 @@ using (
 create policy workspace_product_access_member_read
 on platform.workspace_product_access
 for select
-to authenticated
 using ((select platform.is_workspace_member(workspace_id)));
 
 create policy entitlement_policy_member_read
 on platform.entitlement_policy
 for select
-to authenticated
 using (
   exists (
     select 1
@@ -301,5 +296,4 @@ using (
 create policy workspace_entitlement_member_read
 on platform.workspace_entitlement
 for select
-to authenticated
 using ((select platform.is_workspace_member(workspace_id)));

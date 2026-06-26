@@ -117,6 +117,9 @@ if (runtimeContract.runtime?.scrapy_engine !== true || runtimeContract.runtime?.
 if (runtimeContract.runtime?.database_write_requires_env !== "DATA_INGEST_ENABLE_DB_WRITE=1") {
   errors.push("runtime contract must require DATA_INGEST_ENABLE_DB_WRITE=1");
 }
+if (runtimeContract.runtime?.runtime_dir_env !== "DATA_INGEST_RUNTIME_DIR") {
+  errors.push("runtime contract must declare DATA_INGEST_RUNTIME_DIR for isolated smoke/resume state");
+}
 if (runtimeContract.cli?.automation_may_call_release !== false) {
   errors.push("runtime contract must prohibit automation release");
 }
@@ -138,7 +141,7 @@ for (const file of scrapyFiles) {
   }
 }
 const spiderSource = readText("packages/data-ingest/src_py/data_ingest/hkex/spiders/hkex_news.py");
-for (const fragment of ["name = \"hkex_news\"", "crawl_run_id", "data_version", "DocumentItem"]) {
+for (const fragment of ["name = \"hkex_news\"", "crawl_run_id", "data_version", "DocumentItem", "source_page_url", "result_rank", "http_status"]) {
   if (!spiderSource.includes(fragment)) {
     errors.push(`Scrapy spider missing fragment: ${fragment}`);
   }
@@ -230,15 +233,60 @@ const cliSource = readText(cliPath);
 for (const fragment of [
   "pg_try_advisory_lock",
   "core.raw_source_batch",
+  "core.raw_snapshot",
   "core.data_version_batch",
   "core.hkex_news_crawl_run",
+  "core.hkex_news_document",
+  "core.hkex_news_document_observation",
+  "core.hkex_news_document_content",
+  "persistScrapyDocuments",
+  "upsertRawSnapshot",
+  "upsertDocumentObservation",
   "scrapy",
   "JOBDIR=",
+  "DATA_INGEST_SCRAPY_START_URL",
+  "DATA_INGEST_RUNTIME_DIR",
   "DATA_INGEST_ENABLE_DB_WRITE"
 ]) {
   if (!cliSource.includes(fragment)) {
     errors.push(`CLI runtime missing fragment: ${fragment}`);
   }
+}
+if (cliSource.includes("RESUME_REQUIRES_DAILY_ORCHESTRATOR")) {
+  errors.push("run resume must not remain a refusal-only stub");
+}
+
+const resume = runCli([
+  "run",
+  "resume",
+  "--run-id",
+  "cr_hkex_news_20260625",
+  "--output",
+  "json"
+], { DATA_INGEST_LOCAL_CONTRACT_MODE: "1" });
+
+if (resume.status !== 0) {
+  errors.push(`data-ingest run resume local contract exited ${resume.status}: ${resume.stderr || resume.stdout}`);
+} else {
+  const payload = parseJson(resume.stdout, "resume cli output");
+  if (payload?.release_state !== "held") errors.push("resume cli output must remain release_state=held");
+  if (payload?.last_completed_stage !== "validate") errors.push("resume cli output must complete through validate in local contract mode");
+}
+
+const validate = runCli([
+  "validate",
+  "--data-version",
+  "dv_hkex_news_20260625_local_contract",
+  "--output",
+  "json"
+], { DATA_INGEST_LOCAL_CONTRACT_MODE: "1" });
+
+if (validate.status !== 0) {
+  errors.push(`data-ingest validate local contract exited ${validate.status}: ${validate.stderr || validate.stdout}`);
+} else {
+  const payload = parseJson(validate.stdout, "validate cli output");
+  if (payload?.release_state !== "held") errors.push("validate cli output must remain release_state=held");
+  if (payload?.validation?.governance?.export_allowed !== false) errors.push("validate cli output must preserve export_allowed=false");
 }
 
 const release = runCli([

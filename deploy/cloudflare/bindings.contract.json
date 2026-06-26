@@ -77,10 +77,12 @@
     {
       "name": "AIPHABEE_HYPERDRIVE",
       "type": "hyperdrive",
-      "purpose": "Future Postgres/Supabase connection path for Worker runtime.",
+      "purpose": "PlanetScale Postgres connection path for Worker runtime.",
       "required_by_sprint": "1.1",
       "smoke_test": "Run read-only SELECT 1 through Hyperdrive.",
-      "provisioned": true
+      "provisioned": true,
+      "staging_alias": "HYPERDRIVE",
+      "staging_topology": "shared_platform_umbrella_database"
     }
   ]
 }

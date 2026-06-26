@@ -1,0 +1,31 @@
+{
+  "version": "2026-06-26.database-local-dry-run.v0",
+  "status": "local_tooling_check",
+  "provider": "planetscale_postgres",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "migration_directory": "supabase/migrations",
+  "checker": "scripts/check-database-local-dry-run.mjs",
+  "package_script": "check:database-local-dry-run",
+  "command": "npm run check:database-local-dry-run",
+  "toolchain": [
+    "initdb",
+    "pg_ctl",
+    "createdb",
+    "psql"
+  ],
+  "execution": {
+    "cluster": "temporary_local_postgres",
+    "network": false,
+    "auth": "trust",
+    "cleanup": "always_remove_temporary_cluster",
+    "applies_schema": true,
+    "applies_data": false,
+    "target_compatibility": "basic_postgres_apply_order_and_syntax_before_planetscale_direct_apply"
+  },
+  "pass_conditions": [
+    "migration file list matches deploy/database/migrations.contract.json",
+    "all migrations apply in ascending filename order",
+    "temporary cluster stops and is removed",
+    "output contains counts only"
+  ]
+}

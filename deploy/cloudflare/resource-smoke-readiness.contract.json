@@ -139,7 +139,7 @@
       "kv_namespace_title": "AIPHABEE_CONFIG",
       "d1_database": "AIPHABEE_EVAL_STORE",
       "ai_gateway": "default",
-      "hyperdrive_config": "aiphabee-hyperdrive"
+      "hyperdrive_config": "aiphabee-prod-runtime"
     },
     "live_smoke_results": [
       {
@@ -180,7 +180,7 @@
       },
       {
         "surface": "hyperdrive_config_readback",
-        "result": "aiphabee-hyperdrive found with Supabase pooler origin, sslmode require, caching disabled, and connection limit 5"
+        "result": "aiphabee-prod-runtime found with PlanetScale runtime origin, caching disabled, and connection limit 15"
       }
     ],
     "blocked_bindings": []
@@ -242,6 +242,12 @@
         "binding_name": "AIPHABEE_EVAL_STORE",
         "surface": "d1_eval_write_read_delete",
         "result": "passed"
+      },
+      {
+        "binding_name": "AIPHABEE_HYPERDRIVE",
+        "surface": "hyperdrive_select_1_smoke",
+        "result": "passed",
+        "response_hash": "sha256:39701a96a519ffc42069ee0a4dca588180b0cacf164354f819609febd4bbb1c1"
       }
     ],
     "remaining_surfaces": [
@@ -249,17 +255,11 @@
         "binding_name": "AIPHABEE_MAINTENANCE_CRON",
         "surface": "cron_natural_trigger_evidence",
         "reason": "post-deploy KV marker has been observed for the natural scheduled event; v0 checker keeps this surface in remaining until readiness contract advances"
-      },
-      {
-        "binding_name": "AIPHABEE_HYPERDRIVE",
-        "surface": "hyperdrive_select_1_smoke",
-        "reason": "Hyperdrive config/origin exists and token-backed deployed Worker route smoke passed; v0 checker keeps this surface in remaining until readiness contract advances"
       }
     ]
   },
   "tracker_items_remaining_unchecked": [
     "Cloudflare resources provisioned + binding smoke tests",
-    "Hyperdrive-backed Postgres/Supabase live connection smoke",
     "OTLP destination + persistent eval store live smoke",
     "Provider secret stores provisioned + rotation/revocation smoke"
   ],
@@ -267,7 +267,6 @@
     "cloudflare_resources_created",
     "full_cloudflare_binding_smoke",
     "cron_natural_trigger_evidence",
-    "hyperdrive_select_1_smoke",
     "provider_secret_rotation_smoke"
   ]
 }

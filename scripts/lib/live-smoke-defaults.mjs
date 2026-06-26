@@ -2,6 +2,12 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const cloudflareResourceContractPath = "deploy/cloudflare/resource-smoke-readiness.contract.json";
+const localOpsEnvFileListEnvName = "AIPHABEE_LIVE_SMOKE_ENV_FILES";
+const defaultLocalOpsEnvPaths = [
+  "_ops/env/aiphabee-planetscale-prod.env",
+  "_ops/env/aiphabee-planetscale-prod.private.env",
+  "_ops/env/aiphabee-live-smoke-private.env"
+];
 const resourceNameEnvMap = {
   AI_GATEWAY_NAME: "ai_gateway",
   CLOUDFLARE_D1_DATABASE_NAME: "d1_database",
@@ -19,10 +25,17 @@ export const cloudflareLiveSmokeDefaultEnvNames = Object.freeze(
 );
 
 let cachedCloudflareResourceNames;
+let cachedLocalOpsEnvValues;
 
 export function getLiveSmokeEnvValue(name) {
   if (hasValue(process.env[name])) {
     return process.env[name].trim();
+  }
+
+  const localOpsEnvValue = getLocalOpsEnvValue(name);
+
+  if (hasValue(localOpsEnvValue)) {
+    return localOpsEnvValue.trim();
   }
 
   const resourceNameKey = resourceNameEnvMap[name];
@@ -56,7 +69,83 @@ export function getLiveSmokeEnvSource(name) {
     return "env";
   }
 
+  if (hasValue(getLocalOpsEnvValue(name))) {
+    return "local_ops_env_file";
+  }
+
   return hasValue(getLiveSmokeEnvValue(name)) ? "contract_partial_provisioning" : "missing";
+}
+
+function getLocalOpsEnvValue(name) {
+  const values = getLocalOpsEnvValues();
+  const value = values[name];
+
+  return hasValue(value) ? value : "";
+}
+
+function getLocalOpsEnvValues() {
+  if (cachedLocalOpsEnvValues) {
+    return cachedLocalOpsEnvValues;
+  }
+
+  cachedLocalOpsEnvValues = {};
+
+  for (const path of getLocalOpsEnvPaths()) {
+    Object.assign(cachedLocalOpsEnvValues, readLocalOpsEnvFile(path));
+  }
+
+  return cachedLocalOpsEnvValues;
+}
+
+function getLocalOpsEnvPaths() {
+  const configuredPaths = process.env[localOpsEnvFileListEnvName];
+
+  if (hasValue(configuredPaths)) {
+    return configuredPaths
+      .split(",")
+      .map((value) => value.trim())
+      .filter(hasValue);
+  }
+
+  return defaultLocalOpsEnvPaths;
+}
+
+function readLocalOpsEnvFile(path) {
+  try {
+    return parseLocalOpsEnv(readFileSync(resolve(process.cwd(), path), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function parseLocalOpsEnv(value) {
+  const parsed = {};
+
+  for (const line of value.split(/\r?\n/u)) {
+    const match = line.match(/^\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)=(.*)\s*$/u);
+
+    if (!match) {
+      continue;
+    }
+
+    const [, name, rawValue] = match;
+    parsed[name] = normalizeLocalOpsEnvValue(rawValue);
+  }
+
+  return parsed;
+}
+
+function normalizeLocalOpsEnvValue(value) {
+  const trimmed = value.trim();
+
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
 }
 
 function getCloudflareResourceNames() {

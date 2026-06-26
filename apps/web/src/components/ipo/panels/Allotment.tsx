@@ -66,7 +66,8 @@ export function Allotment({ ipo }: { ipo: IpoRecord }) {
         ))}
       </div>
       <Eyebrow style={{ marginBottom: 8 }}>各档中签率 Allotment by Tier</Eyebrow>
-      <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+      <div className="ab-table-scroll" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)" }}>
+        <div style={{ minWidth: 360 }}>
         <div
           style={{
             display: "grid",
@@ -125,6 +126,7 @@ export function Allotment({ ipo }: { ipo: IpoRecord }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

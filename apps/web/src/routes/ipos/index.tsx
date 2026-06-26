@@ -42,7 +42,7 @@ function PipelineView() {
   const rows = res.ok ? res.data.rows : [];
 
   return (
-    <main style={{ ...SHELL, padding: "32px 24px 80px" }}>
+    <main style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
       {/* header */}
       <div
         style={{

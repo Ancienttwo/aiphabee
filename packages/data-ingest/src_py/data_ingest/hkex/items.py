@@ -15,5 +15,8 @@ class DocumentItem(scrapy.Item):
     content_hash_sha256 = scrapy.Field()
     response_body_storage_uri = scrapy.Field()
     source_surface = scrapy.Field()
+    source_page_url = scrapy.Field()
+    result_rank = scrapy.Field()
+    http_status = scrapy.Field()
     crawl_run_id = scrapy.Field()
     data_version = scrapy.Field()

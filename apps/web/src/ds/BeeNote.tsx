@@ -106,7 +106,9 @@ export function BeeNote({
             fontFamily: "var(--font-sans)",
             fontSize: "var(--text-sm)",
             lineHeight: "var(--leading-relaxed)",
-            color: dark ? "rgba(255,255,255,0.86)" : "var(--ink-700)",
+            // honey wash flips dark in dark-mode, so use the theme-aware body
+            // token (raw --ink-700 stays dark-navy and vanishes on the tint).
+            color: dark ? "rgba(255,255,255,0.86)" : "var(--text-body)",
           }}
         >
           {children}

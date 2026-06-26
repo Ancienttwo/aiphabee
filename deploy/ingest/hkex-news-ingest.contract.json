@@ -76,6 +76,7 @@
     "source_of_truth": "postgres",
     "scrapy_engine": true,
     "scrapy_spider": "hkex_news",
+    "runtime_dir_env": "DATA_INGEST_RUNTIME_DIR",
     "jobdir_template": "runtime/scrapy-jobs/<run_id>",
     "report_template": "runtime/reports/<run_id>/documents.jsonl",
     "raw_storage_uri_policy": "file_uri_or_object_store_uri",

@@ -51,11 +51,11 @@ const requiredFunctionalSurfaces = [
   ["AIPHABEE_AI_GATEWAY", "ai_gateway_model_request_smoke"],
   ["AIPHABEE_CONFIG", "kv_put_get_delete"],
   ["AIPHABEE_ARTIFACTS", "r2_put_get_delete"],
-  ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"]
+  ["AIPHABEE_EVAL_STORE", "d1_eval_write_read_delete"],
+  ["AIPHABEE_HYPERDRIVE", "hyperdrive_select_1_smoke"]
 ];
 const requiredRemainingFunctionalSurfaces = [
-  ["AIPHABEE_MAINTENANCE_CRON", "cron_natural_trigger_evidence"],
-  ["AIPHABEE_HYPERDRIVE", "hyperdrive_select_1_smoke"]
+  ["AIPHABEE_MAINTENANCE_CRON", "cron_natural_trigger_evidence"]
 ];
 const forbiddenOutputFields = [
   "authorization",
@@ -675,8 +675,8 @@ function validateTrackerSync(value) {
     errors.push("tracker Cloudflare resources live item must remain unchecked");
   }
 
-  if (!/^- \[ \] Hyperdrive-backed Postgres\/Supabase live connection smoke/mu.test(value)) {
-    errors.push("tracker Hyperdrive live smoke item must remain unchecked");
+  if (!/^- \[x\] Hyperdrive-backed Postgres\/Supabase live connection smoke/mu.test(value)) {
+    errors.push("tracker Hyperdrive live smoke item must be checked after PlanetScale production readback");
   }
 
   return errors;

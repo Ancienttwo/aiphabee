@@ -546,7 +546,7 @@ function IpoDetail() {
 
   if (!env.ok) {
     return (
-      <main style={{ ...SHELL, padding: "48px 24px 96px" }}>
+      <main style={{ ...SHELL, padding: "48px var(--content-gutter) 96px" }}>
         <div
           style={{
             background: "var(--surface-card)",
@@ -572,7 +572,7 @@ function IpoDetail() {
   const ipo = env.data;
 
   return (
-    <main style={{ ...SHELL, padding: "20px 24px 80px" }}>
+    <main style={{ ...SHELL, padding: "20px var(--content-gutter) 80px" }}>
       <BackButton onClick={() => navigate({ to: "/ipos" })} />
 
       <TopBar ipo={ipo} />

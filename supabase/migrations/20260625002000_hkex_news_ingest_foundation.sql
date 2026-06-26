@@ -453,8 +453,8 @@ values
   ('hkex_news_document.canonical_url', 'hkex_news_document', 'canonical_url', 'Canonical URL', 'text', false, 'default_deny', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:document.canonical_url'),
   ('hkex_news_document.document_state', 'hkex_news_document', 'document_state', 'Document lifecycle state', 'text', false, 'default_deny', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:document.document_state'),
   ('hkex_news_document.access_policy', 'hkex_news_document', 'access_policy', 'Source access policy', 'text', false, 'blocked', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:document.access_policy'),
-  ('hkex_news_extracted_fact.locator', 'hkex_news_extracted_fact', 'locator', 'Evidence locator', 'jsonb', false, 'default_deny', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:fact.locator'),
-  ('hkex_news_extracted_fact.value_json', 'hkex_news_extracted_fact', 'value_json', 'Extracted JSON value', 'jsonb', false, 'blocked', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:fact.value_json')
+  ('hkex_news_extracted_fact.locator', 'hkex_news_extracted_fact', 'locator', 'Evidence locator', 'json', false, 'default_deny', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:fact.locator'),
+  ('hkex_news_extracted_fact.value_json', 'hkex_news_extracted_fact', 'value_json', 'Extracted JSON value', 'json', false, 'blocked', 'HOLD', '2026-06-25.hkex-news-ingest-foundation.v0', 'hkex-news-serving-field:fact.value_json')
 on conflict (serving_dataset_id, field_path, methodology_version) do update set
   display_name = excluded.display_name,
   data_type = excluded.data_type,

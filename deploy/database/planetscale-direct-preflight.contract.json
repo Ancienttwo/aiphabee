@@ -1,0 +1,72 @@
+{
+  "version": "2026-06-26.planetscale-direct-preflight.v1",
+  "status": "readiness_no_secret",
+  "provider": "planetscale_postgres",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "boundary_doc": "docs/governance/aiphabee-planetscale-boundary.md",
+  "checker": "scripts/check-planetscale-direct-preflight.mjs",
+  "package_script": "check:planetscale-direct-preflight",
+  "target": {
+    "organization": "chris-fung",
+    "database": "aiphabee-prod",
+    "host": "ap-southeast-2.pg.psdb.cloud",
+    "port": 5432,
+    "dbname": "postgres",
+    "user": "pscale_api_yn66uahpa46b.bpvsmvgwkutr",
+    "primary_region": "aws_ap_southeast_1",
+    "sslmode": "verify-full",
+    "sslrootcert_candidates": [
+      "/etc/ssl/cert.pem",
+      "/opt/homebrew/etc/openssl@3/cert.pem",
+      "/usr/local/etc/openssl@3/cert.pem"
+    ]
+  },
+  "credential_sources": [
+    {
+      "name": "PLANETSCALE_DATABASE_URL",
+      "source": "local_environment",
+      "required_for": ["direct_select_1", "schema_apply"]
+    },
+    {
+      "name": "macos_keychain_password",
+      "source": "macos_keychain",
+      "service": "AiphaBee PlanetScale Postgres chris-fung aiphabee-prod",
+      "account": "pscale_api_yn66uahpa46b.bpvsmvgwkutr",
+      "required_for": ["build_planetscale_database_url"]
+    }
+  ],
+  "commands": [
+    {
+      "name": "readiness",
+      "command": "npm run check:planetscale-direct-preflight",
+      "network": false,
+      "effect": "local_readiness"
+    },
+    {
+      "name": "require_direct_secret",
+      "command": "node scripts/check-planetscale-direct-preflight.mjs --require-direct-secret",
+      "network": false,
+      "effect": "local_secret_presence"
+    },
+    {
+      "name": "direct_select_1",
+      "command": "node scripts/check-planetscale-direct-preflight.mjs --smoke-select-1",
+      "network": true,
+      "effect": "remote_readonly_query"
+    },
+    {
+      "name": "direct_select_1_from_keychain",
+      "command": "node scripts/check-planetscale-direct-preflight.mjs --smoke-select-1 --use-keychain",
+      "network": true,
+      "effect": "remote_readonly_query"
+    }
+  ],
+  "safe_output_policy": {
+    "never_log_database_url": true,
+    "never_log_password": true,
+    "never_pass_database_url_as_process_argument": true,
+    "never_log_raw_psql_output": true,
+    "emit_hashes_only_for_smoke": true,
+    "emit_safe_failure_reason": true
+  }
+}

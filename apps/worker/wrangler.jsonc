@@ -12,13 +12,31 @@
     }
   },
   "vars": {
-    "APP_ENV": "local",
+    "APP_ENV": "prod",
     "APP_VERSION": "0.0.0"
   },
   "hyperdrive": [
     {
       "binding": "AIPHABEE_HYPERDRIVE",
-      "id": "df117134ac654f5dbfd93ea79f1775a8"
+      "id": "2ddc2108d072420c9263ff6923b4f2c3"
     }
-  ]
+  ],
+  "env": {
+    "staging": {
+      "vars": {
+        "APP_ENV": "staging",
+        "APP_VERSION": "0.0.0"
+      },
+      "hyperdrive": [
+        {
+          "binding": "AIPHABEE_HYPERDRIVE",
+          "id": "755ab0a9b0404e10be1f8ab1c736358a"
+        },
+        {
+          "binding": "HYPERDRIVE",
+          "id": "1e83eb563db44746a168175e065cc958"
+        }
+      ]
+    }
+  }
 }

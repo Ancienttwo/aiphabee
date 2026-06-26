@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DATA_INGEST_EXIT_CODES,
   HKEX_NEWS_DAILY_COMMAND,
+  HKEX_NEWS_REPO_DAILY_COMMAND,
   HKEX_NEWS_RUNTIME_CONFIG,
   HKEX_NEWS_SCRAPY_SPIDER,
   HKEX_NEWS_SCHEMA_TABLES,
@@ -27,6 +28,22 @@ describe("data-ingest HKEX News contract", () => {
       "json"
     ]);
     expect(HKEX_NEWS_DAILY_COMMAND).not.toContain("release");
+    expect(HKEX_NEWS_REPO_DAILY_COMMAND).toEqual([
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "hkex",
+      "daily",
+      "--business-date",
+      "today",
+      "--timezone",
+      "Asia/Hong_Kong",
+      "--until",
+      "held",
+      "--output",
+      "json"
+    ]);
   });
 
   it("models HKEX News as multi-surface public inflow with Postgres as source of truth", () => {
@@ -46,6 +63,7 @@ describe("data-ingest HKEX News contract", () => {
       database_write_requires_env: "DATA_INGEST_ENABLE_DB_WRITE=1",
       jobdir_template: "runtime/scrapy-jobs/<run_id>",
       report_template: "runtime/reports/<run_id>/documents.jsonl",
+      runtime_dir_env: "DATA_INGEST_RUNTIME_DIR",
       scrapy_engine: true,
       scrapy_spider: HKEX_NEWS_SCRAPY_SPIDER,
       source_of_truth: "postgres"

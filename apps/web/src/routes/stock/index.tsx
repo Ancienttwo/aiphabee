@@ -80,7 +80,7 @@ function StockSearch() {
           e.preventDefault();
           run(query);
         }}
-        style={{ display: "flex", gap: 10, marginBottom: 24 }}
+        style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24 }}
       >
         <input
           value={query}

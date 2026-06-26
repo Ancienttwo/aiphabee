@@ -61,7 +61,7 @@ function Screen() {
         用自然语言描述条件，转成可编辑的结构化筛选；执行前预览命中与理由，且不能用未来数据筛历史时点。
       </p>
 
-      <form onSubmit={(e) => { e.preventDefault(); run(query); }} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+      <form onSubmit={(e) => { e.preventDefault(); run(query); }} style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}

@@ -118,8 +118,13 @@ interface CloudflareCronSmokeBody {
 interface CloudflareHyperdriveSmokeBody {
   hyperdrive_result: {
     binding_name: string;
+    current_database_hash?: string;
+    current_user_hash?: string;
+    database_create_privilege?: boolean;
     detail_hash?: string;
     failure_code?: string;
+    failure_sqlstate?: string;
+    failure_stage?: string;
     operation_count?: number;
     query_hash?: string;
     row_count?: number;
@@ -131,6 +136,94 @@ interface CloudflareHyperdriveSmokeBody {
   request_id: string;
   response_hash: string;
   route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
+interface CloudflareHyperdriveSchemaInventoryBody {
+  hyperdrive_schema_inventory_result: {
+    binding_name: string;
+    detail_hash?: string;
+    expected_index_count?: number;
+    expected_rls_table_count?: number;
+    expected_schema_count?: number;
+    expected_table_count?: number;
+    failure_code?: string;
+    missing_indexes?: string[];
+    missing_rls_tables?: string[];
+    missing_schemas?: string[];
+    missing_tables?: string[];
+    observed_index_count?: number;
+    observed_rls_table_count?: number;
+    observed_schema_count?: number;
+    observed_table_count?: number;
+    operation_count?: number;
+    platform_product_aiphabee_present?: boolean;
+    platform_product_aiphabee_status_hash?: string;
+    query_hash?: string;
+    status: string;
+    surface: string;
+  };
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
+interface PlatformUmbrellaRlsFixtureSmokeBody {
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  rls_fixture_result: {
+    binding_name: string;
+    cleanup_rolled_back?: boolean;
+    current_role_bypassrls?: boolean;
+    current_role_superuser?: boolean;
+    current_user_hash?: string;
+    detail_hash?: string;
+    failure_code?: string;
+    operation_count?: number;
+    query_hash?: string;
+    runtime_role_active_for_selects?: boolean;
+    runtime_role_bypassrls?: boolean;
+    runtime_role_superuser?: boolean;
+    runtime_user_hash?: string;
+    status: string;
+    surface: string;
+    workspace_table_owner_is_current_user?: boolean;
+  };
+  route: string;
+  status: string;
+  synthetic_prefix: string;
+}
+
+interface PlatformRuntimeRoleSmokeBody {
+  missing_bindings: string[];
+  request_id: string;
+  response_hash: string;
+  route: string;
+  runtime_role_result: {
+    binding_name: string;
+    current_role_bypassrls?: boolean;
+    current_role_superuser?: boolean;
+    current_user_hash?: string;
+    database_create_privilege?: boolean;
+    detail_hash?: string;
+    failure_code?: string;
+    operation_count?: number;
+    platform_account_select_privilege?: boolean;
+    platform_schema_create_privilege?: boolean;
+    platform_schema_usage_privilege?: boolean;
+    platform_workspace_rls_forced?: boolean;
+    platform_workspace_select_privilege?: boolean;
+    query_hash?: string;
+    runtime_role_ready?: boolean;
+    status: string;
+    surface: string;
+    workspace_table_owner_is_current_user?: boolean;
+  };
   status: string;
   synthetic_prefix: string;
 }
@@ -6390,9 +6483,21 @@ interface DatabaseRuntimeBody {
     hyperdrive: {
       binding_configured: boolean;
       binding_name: string;
+      requires_real_resource_id?: boolean;
       status: string;
     };
     live_queries: boolean;
+    live_readiness: {
+      requested: boolean;
+      result?: {
+        binding_name: string;
+        failure_code?: string;
+        status: string;
+        surface: string;
+      };
+      route: string;
+      source_route: string;
+    };
     market_data_surfaces: boolean;
     migration_directory: string;
     provider: string;
@@ -8828,6 +8933,126 @@ describe("worker runtime", () => {
       failure_code: "missing_hyperdrive_binding",
       status: "missing_binding",
       surface: "hyperdrive_select_1_smoke"
+    });
+  });
+
+  it("rejects the Hyperdrive schema inventory route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/schema-inventory", {
+      headers: {
+        "x-request-id": "req-cloudflare-hyperdrive-schema-inventory-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-cloudflare-hyperdrive-schema-inventory-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/hyperdrive/schema-inventory",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing Hyperdrive binding for the Hyperdrive schema inventory route", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/schema-inventory", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-cloudflare-hyperdrive-schema-inventory-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as CloudflareHyperdriveSchemaInventoryBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_HYPERDRIVE"]);
+    expect(body.hyperdrive_schema_inventory_result).toMatchObject({
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      failure_code: "missing_hyperdrive_binding",
+      status: "missing_binding",
+      surface: "platform_umbrella_schema_inventory"
+    });
+  });
+
+  it("rejects the platform RLS fixture smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/platform-rls-fixture-smoke", {
+      headers: {
+        "x-request-id": "req-platform-rls-fixture-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-platform-rls-fixture-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/hyperdrive/platform-rls-fixture-smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing Hyperdrive binding for the platform RLS fixture smoke route", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/platform-rls-fixture-smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-platform-rls-fixture-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PlatformUmbrellaRlsFixtureSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_HYPERDRIVE"]);
+    expect(body.rls_fixture_result).toMatchObject({
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      failure_code: "missing_hyperdrive_binding",
+      status: "missing_binding",
+      surface: "platform_umbrella_rls_fixture_smoke"
+    });
+  });
+
+  it("rejects the platform runtime role smoke route without the smoke header", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/platform-runtime-role-smoke", {
+      headers: {
+        "x-request-id": "req-platform-runtime-role-denied"
+      },
+      method: "POST"
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-platform-runtime-role-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /cloudflare/hyperdrive/platform-runtime-role-smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing Hyperdrive binding for the platform runtime role smoke route", async () => {
+    const response = await app.request("/cloudflare/hyperdrive/platform-runtime-role-smoke", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-platform-runtime-role-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as PlatformRuntimeRoleSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.status).toBe("failed");
+    expect(body.missing_bindings).toEqual(["AIPHABEE_HYPERDRIVE"]);
+    expect(body.runtime_role_result).toMatchObject({
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      failure_code: "missing_hyperdrive_binding",
+      status: "missing_binding",
+      surface: "platform_runtime_role_smoke"
     });
   });
 
@@ -19316,7 +19541,7 @@ describe("worker runtime", () => {
     });
   });
 
-  it("serves database runtime capabilities without live queries", async () => {
+  it("serves database runtime capabilities without live queries by default", async () => {
     const response = await app.request("/database/runtime", {
       headers: {
         "x-request-id": "req-database-runtime"
@@ -19327,14 +19552,59 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
-    expect(body.data.provider).toBe("supabase_postgres");
+    expect(body.data.provider).toBe("planetscale_postgres");
     expect(body.data.connection_path).toBe("cloudflare_hyperdrive");
     expect(body.data.hyperdrive.binding_name).toBe("AIPHABEE_HYPERDRIVE");
     expect(body.data.hyperdrive.binding_configured).toBe(false);
     expect(body.data.hyperdrive.status).toBe("planned");
     expect(body.data.migration_directory).toBe("supabase/migrations");
     expect(body.data.live_queries).toBe(false);
+    expect(body.data.live_readiness).toMatchObject({
+      requested: false,
+      route: "/database/runtime?live=1",
+      source_route: "/cloudflare/hyperdrive/schema-inventory"
+    });
+    expect(body.data.live_readiness.result).toBeUndefined();
     expect(body.data.market_data_surfaces).toBe(false);
+  });
+
+  it("rejects database runtime live readiness without the smoke header", async () => {
+    const response = await app.request("/database/runtime?live=1", {
+      headers: {
+        "x-request-id": "req-database-runtime-live-denied"
+      }
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-database-runtime-live-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "GET /database/runtime?live=1",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing Hyperdrive binding for database runtime live readiness", async () => {
+    const response = await app.request("/database/runtime?live=1", {
+      headers: {
+        "x-aiphabee-smoke": "cloudflare-bindings-runtime-v1",
+        "x-request-id": "req-database-runtime-live-missing"
+      }
+    });
+    const body = (await response.json()) as DatabaseRuntimeBody;
+
+    expect(response.status).toBe(424);
+    expect(body.ok).toBe(true);
+    expect(body.data.live_queries).toBe(false);
+    expect(body.data.hyperdrive.status).toBe("missing_binding");
+    expect(body.data.live_readiness.result).toMatchObject({
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      failure_code: "missing_hyperdrive_binding",
+      status: "missing_binding",
+      surface: "platform_umbrella_schema_inventory"
+    });
   });
 
   it("serves gateway runtime capabilities with default-deny guards", async () => {

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "dev": "wrangler dev --config wrangler.jsonc --port 8787",
+    "dev": "node ../../scripts/dev-worker.mjs",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },

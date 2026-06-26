@@ -92,7 +92,8 @@ export function AppTiers({ ipo }: { ipo: IpoRecord }) {
     );
   }
   return (
-    <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+    <div className="ab-table-scroll" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)" }}>
+      <div style={{ minWidth: 440 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.2fr 1fr", padding: "8px 14px", background: "var(--surface-muted)" }}>
         {["手数 Lots", "股数 Shares", "入场金额 HK$", ipo.allotment ? "中签率" : ""].map((h, i) => (
           <Eyebrow key={i}>{h}</Eyebrow>
@@ -123,6 +124,7 @@ export function AppTiers({ ipo }: { ipo: IpoRecord }) {
           <Mono color="var(--accent-strong)">{t.rate || "—"}</Mono>
         </div>
       ))}
+      </div>
     </div>
   );
 }

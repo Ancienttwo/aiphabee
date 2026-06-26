@@ -21,7 +21,9 @@ for (const name of cloudflareLiveSmokeDefaultEnvNames) {
   const value = getLiveSmokeEnvValue(name);
 
   if (typeof value !== "string" || value.trim().length === 0) {
-    errors.push(`${name} must resolve from env or contract partial_provisioning.resource_names`);
+    errors.push(
+      `${name} must resolve from env, local ops env file, or contract partial_provisioning.resource_names`
+    );
   }
 }
 

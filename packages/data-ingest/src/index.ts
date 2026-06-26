@@ -23,6 +23,14 @@ export const HKEX_NEWS_DAILY_COMMAND = [
   "json"
 ] as const;
 
+export const HKEX_NEWS_REPO_DAILY_COMMAND = [
+  "npm",
+  "run",
+  "data-ingest",
+  "--",
+  ...HKEX_NEWS_DAILY_COMMAND.slice(1)
+] as const;
+
 export const HKEX_NEWS_SOURCE_SURFACES = [
   "latest_list",
   "title_search",
@@ -124,8 +132,11 @@ export interface HkexNewsDocumentItem {
   content_type: string;
   document_url?: string;
   hkex_code?: string;
+  http_status?: number;
   published_at?: string;
+  result_rank?: number;
   response_body_storage_uri?: string;
+  source_page_url?: string;
   source_record_id: string;
   source_surface: HkexNewsSourceSurface;
   title_en?: string;
@@ -137,6 +148,7 @@ export interface HkexNewsRuntimeConfig {
   database_url_env: readonly ["DATA_INGEST_DATABASE_URL", "IPO_DATABASE_URL", "DATABASE_URL"];
   jobdir_template: typeof HKEX_NEWS_JOBDIR_TEMPLATE;
   report_template: typeof HKEX_NEWS_REPORT_TEMPLATE;
+  runtime_dir_env: "DATA_INGEST_RUNTIME_DIR";
   scrapy_engine: true;
   scrapy_spider: typeof HKEX_NEWS_SCRAPY_SPIDER;
   source_of_truth: typeof HKEX_NEWS_RUNTIME_SOURCE_OF_TRUTH;
@@ -147,6 +159,7 @@ export const HKEX_NEWS_RUNTIME_CONFIG: HkexNewsRuntimeConfig = {
   database_url_env: ["DATA_INGEST_DATABASE_URL", "IPO_DATABASE_URL", "DATABASE_URL"],
   jobdir_template: HKEX_NEWS_JOBDIR_TEMPLATE,
   report_template: HKEX_NEWS_REPORT_TEMPLATE,
+  runtime_dir_env: "DATA_INGEST_RUNTIME_DIR",
   scrapy_engine: true,
   scrapy_spider: HKEX_NEWS_SCRAPY_SPIDER,
   source_of_truth: HKEX_NEWS_RUNTIME_SOURCE_OF_TRUTH

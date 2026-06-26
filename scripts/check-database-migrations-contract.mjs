@@ -20,6 +20,9 @@ const forbiddenSqlPatterns = [
   /\balter\s+role\b/iu,
   /\bgrant\s+all\b/iu,
   /\bpostgres(?:ql)?:\/\//iu,
+  /\bauth\.uid\s*\(/iu,
+  /\bto\s+authenticated\b/iu,
+  /\bsupabase_[a-z0-9_]*\b/iu,
   /\bpassword\b/iu,
   /\bsecret\b/iu,
   /\btoken\b/iu
@@ -78,8 +81,8 @@ function validateContract(value) {
     errors.push("status must be local_contract until a database is provisioned");
   }
 
-  if (value.provider !== "supabase_postgres") {
-    errors.push("provider must be supabase_postgres");
+  if (value.provider !== "planetscale_postgres") {
+    errors.push("provider must be planetscale_postgres");
   }
 
   if (value.connection_path !== "cloudflare_hyperdrive") {
@@ -111,12 +114,12 @@ function validateDatabaseBoundary(value) {
     return ["database_boundary must be an object"];
   }
 
-  if (value.scope !== "aiphabee_dedicated_supabase_project") {
-    errors.push("database_boundary.scope must be aiphabee_dedicated_supabase_project");
+  if (value.scope !== "aiphabee_dedicated_planetscale_database") {
+    errors.push("database_boundary.scope must be aiphabee_dedicated_planetscale_database");
   }
 
-  if (value.organization !== "aiphabee_dedicated_supabase_organization") {
-    errors.push("database_boundary.organization must be aiphabee_dedicated_supabase_organization");
+  if (value.organization !== "chris_fung_planetscale_organization") {
+    errors.push("database_boundary.organization must be chris_fung_planetscale_organization");
   }
 
   if (value.share_with_aimpact !== false) {
@@ -133,13 +136,16 @@ function validateDatabaseBoundary(value) {
 
   if (
     value.active_boundary_doc !==
-    "docs/governance/aiphabee-independent-supabase-boundary.md"
+    "docs/governance/aiphabee-planetscale-boundary.md"
   ) {
     errors.push("database_boundary.active_boundary_doc must point to the active boundary doc");
   }
 
-  if (value.superseded_shared_plan !== "docs/supabase-umbrella-schema-plan.md") {
-    errors.push("database_boundary.superseded_shared_plan must point to the superseded plan");
+  if (
+    value.superseded_database_boundary !==
+    "docs/governance/aiphabee-independent-supabase-boundary.md"
+  ) {
+    errors.push("database_boundary.superseded_database_boundary must point to the superseded boundary");
   }
 
   return errors;
@@ -341,6 +347,18 @@ function validateSqlCoverage(migration, sql, errors) {
           errors.push(`${migration.file} must force row level security on ${table}`);
         }
       }
+    }
+  }
+
+  if (migration.rls_session_claim !== undefined) {
+    if (typeof migration.rls_session_claim !== "string" || migration.rls_session_claim.length === 0) {
+      errors.push(`${migration.file} rls_session_claim must be a non-empty string when present`);
+    } else if (
+      !lowerSql.includes(
+        `current_setting('${migration.rls_session_claim.toLowerCase()}', true)`
+      )
+    ) {
+      errors.push(`${migration.file} must read rls_session_claim ${migration.rls_session_claim}`);
     }
   }
 }

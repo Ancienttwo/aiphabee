@@ -652,6 +652,9 @@ interface CloudflareCronSmokeResult {
 
 interface CloudflareHyperdriveSmokeResult {
   binding_name: "AIPHABEE_HYPERDRIVE";
+  current_database_hash?: string;
+  current_user_hash?: string;
+  database_create_privilege?: boolean;
   detail_hash?: string;
   failure_code?: string;
   operation_count?: number;
@@ -660,6 +663,102 @@ interface CloudflareHyperdriveSmokeResult {
   selected_value_hash?: string;
   status: CloudflareBindingSmokeStatus;
   surface: "hyperdrive_select_1_smoke";
+}
+
+interface CloudflareHyperdriveSchemaInventoryResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  current_database_hash?: string;
+  current_user_hash?: string;
+  database_create_privilege?: boolean;
+  detail_hash?: string;
+  expected_index_count?: number;
+  expected_rls_table_count?: number;
+  expected_schema_count?: number;
+  expected_table_count?: number;
+  failure_code?: string;
+  missing_indexes?: string[];
+  missing_rls_tables?: string[];
+  missing_schemas?: string[];
+  missing_tables?: string[];
+  observed_index_count?: number;
+  observed_rls_table_count?: number;
+  observed_schema_count?: number;
+  observed_table_count?: number;
+  operation_count?: number;
+  platform_product_aiphabee_present?: boolean;
+  platform_product_aiphabee_status_hash?: string;
+  query_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "platform_umbrella_schema_inventory";
+}
+
+interface PlatformUmbrellaRlsFixtureSmokeResult {
+  account_id_hash?: string;
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  cleanup_rolled_back?: boolean;
+  current_role_bypassrls?: boolean;
+  current_role_superuser?: boolean;
+  current_user_hash?: string;
+  detail_hash?: string;
+  entitlement_policy_with_claim_rows?: number;
+  failure_code?: string;
+  failure_sqlstate?: string;
+  failure_stage?: string;
+  fixture_policy_count?: number;
+  inserted_rows?: number;
+  operation_count?: number;
+  product_id_hash?: string;
+  query_hash?: string;
+  runtime_role_active_for_selects?: boolean;
+  runtime_role_bypassrls?: boolean;
+  runtime_role_superuser?: boolean;
+  runtime_user_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "platform_umbrella_rls_fixture_smoke";
+  workspace_entitlement_with_claim_rows?: number;
+  workspace_id_hash?: string;
+  workspace_membership_with_claim_rows?: number;
+  workspace_product_access_with_claim_rows?: number;
+  workspace_table_owner_is_current_user?: boolean;
+  workspace_with_claim_rows?: number;
+  workspace_without_claim_rows?: number;
+  workspace_with_wrong_claim_rows?: number;
+}
+
+interface PlatformRuntimeRoleSmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  current_database_hash?: string;
+  current_role_bypassrls?: boolean;
+  current_role_superuser?: boolean;
+  current_user_hash?: string;
+  database_create_privilege?: boolean;
+  detail_hash?: string;
+  failure_code?: string;
+  operation_count?: number;
+  platform_account_select_privilege?: boolean;
+  platform_schema_create_privilege?: boolean;
+  platform_schema_usage_privilege?: boolean;
+  platform_workspace_rls_forced?: boolean;
+  platform_workspace_select_privilege?: boolean;
+  query_hash?: string;
+  runtime_role_ready?: boolean;
+  status: CloudflareBindingSmokeStatus;
+  surface: "platform_runtime_role_smoke";
+  workspace_table_owner_is_current_user?: boolean;
+}
+
+interface PlatformRlsReadContext {
+  client: Client;
+  operationCount: number;
+  runtimeRoleActive: boolean;
+  runtimeRoleBypassRls: boolean;
+  runtimeRoleSuperuser: boolean;
+  runtimeUserName: string;
+}
+
+interface PlatformRlsReadTransactionResult<T> {
+  context: PlatformRlsReadContext;
+  result: T;
 }
 
 interface EvidenceLiveDbWriteSmokeResult {
@@ -1097,6 +1196,80 @@ const CLOUDFLARE_CRON_SMOKE_KIND = "aiphabee.cron.smoke.v1";
 const CLOUDFLARE_MAINTENANCE_CRON = "*/30 * * * *";
 const CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}/runtime/cron-natural/latest`;
 const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
+const CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE =
+  "/cloudflare/hyperdrive/schema-inventory";
+const CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE =
+  "/cloudflare/hyperdrive/platform-rls-fixture-smoke";
+const CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE =
+  "/cloudflare/hyperdrive/platform-runtime-role-smoke";
+const PLATFORM_UMBRELLA_EXPECTED_SCHEMAS = ["platform", "platform_audit"] as const;
+const PLATFORM_UMBRELLA_EXPECTED_TABLES = [
+  "platform.account",
+  "platform.entitlement_policy",
+  "platform.product",
+  "platform.product_environment",
+  "platform.workspace",
+  "platform.workspace_entitlement",
+  "platform.workspace_membership",
+  "platform.workspace_product_access",
+  "platform_audit.product_access_event"
+] as const;
+const PLATFORM_UMBRELLA_EXPECTED_INDEXES = [
+  "entitlement_policy_product_id_policy_version_idx",
+  "product_access_event_actor_account_id_idx",
+  "product_access_event_product_id_workspace_id_event_time_idx",
+  "product_access_event_workspace_id_idx",
+  "product_environment_product_id_idx",
+  "workspace_entitlement_product_id_workspace_id_entitlement_key_s",
+  "workspace_entitlement_workspace_id_idx",
+  "workspace_membership_account_id_workspace_id_status_idx",
+  "workspace_membership_workspace_id_idx",
+  "workspace_owner_account_id_idx",
+  "workspace_product_access_product_id_workspace_id_access_status_",
+  "workspace_product_access_workspace_id_idx"
+] as const;
+const PLATFORM_UMBRELLA_EXPECTED_RLS_TABLES = PLATFORM_UMBRELLA_EXPECTED_TABLES;
+const PLATFORM_UMBRELLA_SCHEMA_INVENTORY_QUERY_LABEL = JSON.stringify({
+  indexes: PLATFORM_UMBRELLA_EXPECTED_INDEXES,
+  rls_tables: PLATFORM_UMBRELLA_EXPECTED_RLS_TABLES,
+  schemas: PLATFORM_UMBRELLA_EXPECTED_SCHEMAS,
+  surface: "platform_umbrella_schema_inventory",
+  tables: PLATFORM_UMBRELLA_EXPECTED_TABLES
+});
+const PLATFORM_RLS_FIXTURE_ID_PREFIX = "aiphabee-rls-smoke:";
+const PLATFORM_RLS_RUNTIME_ROLE = "aiphabee_runtime_rls";
+const PLATFORM_RLS_FIXTURE_QUERY_LABEL = JSON.stringify({
+  claim: "aiphabee.account_id",
+  fixture_prefix: PLATFORM_RLS_FIXTURE_ID_PREFIX,
+  rollback: true,
+  runtime_role: PLATFORM_RLS_RUNTIME_ROLE,
+  surface: "platform_umbrella_rls_fixture_smoke",
+  tables: [
+    "platform.account",
+    "platform.workspace",
+    "platform.workspace_membership",
+    "platform.workspace_product_access",
+    "platform.entitlement_policy",
+    "platform.workspace_entitlement"
+  ]
+});
+const PLATFORM_RUNTIME_ROLE_QUERY_LABEL = JSON.stringify({
+  binding: "AIPHABEE_HYPERDRIVE",
+  required_false: [
+    "current_role_bypassrls",
+    "current_role_superuser",
+    "database_create_privilege",
+    "platform_schema_create_privilege",
+    "workspace_table_owner_is_current_user"
+  ],
+  required_true: [
+    "platform_schema_usage_privilege",
+    "platform_account_select_privilege",
+    "platform_workspace_select_privilege",
+    "platform_workspace_rls_forced"
+  ],
+  surface: "platform_runtime_role_smoke"
+});
 const AGENT_TOOL_EXECUTION_SMOKE_ROUTE = "/agent/runs/tool-execution-evidence-smoke";
 const AGENT_TOOL_EXECUTION_SMOKE_HEADER_VALUE = "agent-tool-execution-evidence-v1";
 const AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING = "AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN";
@@ -1479,6 +1652,119 @@ app.post(CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     hyperdriveResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const inventoryResult = await runPlatformUmbrellaSchemaInventory(c.env ?? {});
+  const bodyWithoutHash = {
+    hyperdrive_schema_inventory_result: inventoryResult,
+    missing_bindings:
+      inventoryResult.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE}`,
+    status: inventoryResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    inventoryResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const rlsResult = await runPlatformUmbrellaRlsFixtureSmoke(c.env ?? {});
+  const bodyWithoutHash = {
+    missing_bindings: rlsResult.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE}`,
+    rls_fixture_result: rlsResult,
+    status: rlsResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    rlsResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const runtimeRoleResult = await runPlatformRuntimeRoleSmoke(c.env ?? {});
+  const bodyWithoutHash = {
+    missing_bindings:
+      runtimeRoleResult.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE}`,
+    runtime_role_result: runtimeRoleResult,
+    status: runtimeRoleResult.status === "passed" ? "ok" : "failed",
+    synthetic_prefix: CLOUDFLARE_BINDING_SMOKE_PREFIX
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    runtimeRoleResult.status === "passed" ? 200 : 424
   );
 });
 
@@ -3083,10 +3369,31 @@ app.post("/account/session/plan", async (c) => {
   );
 });
 
-app.get("/database/runtime", (c) => {
+app.get("/database/runtime", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const liveReadRequested = ["1", "true"].includes(c.req.query("live") ?? "");
 
   c.header("Cache-Control", "no-store");
+
+  if (
+    liveReadRequested &&
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CLOUDFLARE_BINDING_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: "GET /database/runtime?live=1",
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const liveReadiness = liveReadRequested
+    ? await runPlatformUmbrellaSchemaInventory(c.env ?? {})
+    : undefined;
+  const liveQueries = liveReadiness?.status === "passed";
 
   return c.json(
     createSuccessEnvelope(
@@ -3096,14 +3403,25 @@ app.get("/database/runtime", (c) => {
           binding_configured: Boolean(c.env?.AIPHABEE_HYPERDRIVE),
           binding_name: "AIPHABEE_HYPERDRIVE",
           requires_real_resource_id: true,
-          status: "planned"
+          status:
+            liveReadiness === undefined
+              ? "planned"
+              : liveReadiness.status === "passed"
+                ? "live_readiness_passed"
+                : liveReadiness.status
         },
-        live_queries: false,
+        live_queries: liveQueries,
+        live_readiness: {
+          requested: liveReadRequested,
+          result: liveReadiness,
+          route: "/database/runtime?live=1",
+          source_route: CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE
+        },
         market_data_surfaces: false,
         mcp_redistribution_surfaces: false,
         migration_contract: "deploy/database/migrations.contract.json",
         migration_directory: "supabase/migrations",
-        provider: "supabase_postgres"
+        provider: "planetscale_postgres"
       },
       {
         asOf: new Date().toISOString(),
@@ -3120,10 +3438,11 @@ app.get("/database/runtime", (c) => {
         usage: {
           cached: false,
           credits: 0,
-          rows: 0
+          rows: liveReadiness?.operation_count ?? 0
         }
       }
-    )
+    ),
+    liveReadRequested && !liveQueries ? 424 : 200
   );
 });
 
@@ -11707,11 +12026,115 @@ async function readCloudflareCronNaturalEvidence(
   }
 }
 
+async function withHyperdrivePostgresClient<T>(
+  env: WorkerBindings,
+  callback: (client: Client) => Promise<T>
+): Promise<T | undefined> {
+  const connectionString = getRuntimeHyperdriveConnectionString(env);
+
+  if (connectionString === undefined) {
+    return undefined;
+  }
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    return await callback(client);
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+function getRuntimeHyperdriveConnectionString(env: WorkerBindings): string | undefined {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return undefined;
+  }
+
+  const connectionString = hyperdrive.connectionString?.trim();
+  return connectionString && connectionString.length > 0 ? connectionString : undefined;
+}
+
+async function enterPlatformRlsReadContext(
+  client: Client,
+  accountId: string
+): Promise<PlatformRlsReadContext> {
+  let operationCount = 0;
+
+  await client.query("SELECT set_config('aiphabee.account_id', $1, true)", [accountId]);
+  operationCount += 1;
+  await client.query(`SET LOCAL ROLE ${quoteSqlIdentifier(PLATFORM_RLS_RUNTIME_ROLE)}`);
+  operationCount += 1;
+
+  const runtimeRoleInfo = await client.query<{
+    runtime_role_bypassrls: boolean | null;
+    runtime_role_superuser: boolean | null;
+    runtime_user_name: string;
+  }>(`
+    SELECT
+      current_user AS runtime_user_name,
+      role.rolbypassrls AS runtime_role_bypassrls,
+      role.rolsuper AS runtime_role_superuser
+    FROM pg_roles role
+    WHERE role.rolname = current_user
+    LIMIT 1
+  `);
+  operationCount += 1;
+
+  const runtimeUserName = runtimeRoleInfo.rows[0]?.runtime_user_name ?? "";
+
+  return {
+    client,
+    operationCount,
+    runtimeRoleActive: runtimeUserName === PLATFORM_RLS_RUNTIME_ROLE,
+    runtimeRoleBypassRls: Boolean(runtimeRoleInfo.rows[0]?.runtime_role_bypassrls),
+    runtimeRoleSuperuser: Boolean(runtimeRoleInfo.rows[0]?.runtime_role_superuser),
+    runtimeUserName
+  };
+}
+
+async function withPlatformRlsReadTransaction<T>(
+  env: WorkerBindings,
+  accountId: string,
+  callback: (context: PlatformRlsReadContext) => Promise<T>
+): Promise<PlatformRlsReadTransactionResult<T> | undefined> {
+  return withHyperdrivePostgresClient(env, async (client) => {
+    let transactionStarted = false;
+    let committed = false;
+
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+      const context = await enterPlatformRlsReadContext(client, accountId);
+      const result = await callback(context);
+      await client.query("RESET ROLE");
+      await client.query("COMMIT");
+      committed = true;
+
+      return { context, result };
+    } catch (error) {
+      if (transactionStarted && !committed) {
+        await client.query("ROLLBACK").catch(() => undefined);
+      }
+
+      throw error;
+    }
+  });
+}
+
 async function runCloudflareHyperdriveSmoke(
   env: WorkerBindings
 ): Promise<CloudflareHyperdriveSmokeResult> {
   const hyperdrive = env.AIPHABEE_HYPERDRIVE;
-  const query = "SELECT 1 AS hyperdrive_smoke_result";
+  const query = `
+    SELECT
+      1 AS hyperdrive_smoke_result,
+      current_database() AS current_database_name,
+      current_user AS current_user_name,
+      has_database_privilege(current_user, current_database(), 'CREATE') AS database_create_privilege
+  `;
 
   if (!isRuntimeHyperdrive(hyperdrive)) {
     return missingCloudflareHyperdriveResult("missing_hyperdrive_binding");
@@ -11723,8 +12146,14 @@ async function runCloudflareHyperdriveSmoke(
 
   try {
     await client.connect();
-    const result = await client.query<{ hyperdrive_smoke_result: number | string }>(query);
-    const selectedValue = result.rows[0]?.hyperdrive_smoke_result;
+    const result = await client.query<{
+      current_database_name: string;
+      current_user_name: string;
+      database_create_privilege: boolean;
+      hyperdrive_smoke_result: number | string;
+    }>(query);
+    const row = result.rows[0];
+    const selectedValue = row?.hyperdrive_smoke_result;
 
     if (Number(selectedValue) !== 1) {
       return failedCloudflareHyperdriveResult({
@@ -11739,6 +12168,9 @@ async function runCloudflareHyperdriveSmoke(
 
     return {
       binding_name: "AIPHABEE_HYPERDRIVE",
+      current_database_hash: await hashRuntimeSmokeString(row?.current_database_name ?? ""),
+      current_user_hash: await hashRuntimeSmokeString(row?.current_user_name ?? ""),
+      database_create_privilege: Boolean(row?.database_create_privilege),
       operation_count: 2,
       query_hash: await hashRuntimeSmokeString(query),
       row_count: result.rowCount ?? result.rows.length,
@@ -11754,6 +12186,670 @@ async function runCloudflareHyperdriveSmoke(
     });
   } finally {
     await client.end().catch(() => undefined);
+  }
+}
+
+async function runPlatformUmbrellaSchemaInventory(
+  env: WorkerBindings
+): Promise<CloudflareHyperdriveSchemaInventoryResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+  const connectionInfoQuery = `
+    SELECT
+      current_database() AS current_database_name,
+      current_user AS current_user_name,
+      has_database_privilege(current_user, current_database(), 'CREATE') AS database_create_privilege
+  `;
+  const schemaQuery = `
+    SELECT schema_name
+    FROM information_schema.schemata
+    WHERE schema_name = ANY($1::text[])
+    ORDER BY schema_name
+  `;
+  const tableQuery = `
+    SELECT table_schema || '.' || table_name AS table_name
+    FROM information_schema.tables
+    WHERE table_type = 'BASE TABLE'
+      AND table_schema || '.' || table_name = ANY($1::text[])
+    ORDER BY table_schema, table_name
+  `;
+  const indexQuery = `
+    SELECT indexname
+    FROM pg_indexes
+    WHERE schemaname = ANY($1::text[])
+      AND indexname = ANY($2::text[])
+    ORDER BY indexname
+  `;
+  const rlsQuery = `
+    SELECT n.nspname || '.' || c.relname AS table_name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relkind = 'r'
+      AND n.nspname || '.' || c.relname = ANY($1::text[])
+      AND c.relrowsecurity
+      AND c.relforcerowsecurity
+    ORDER BY n.nspname, c.relname
+  `;
+  const productQuery = `
+    SELECT product_id, status
+    FROM platform.product
+    WHERE product_code = 'aiphabee'
+    LIMIT 1
+  `;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingCloudflareHyperdriveSchemaInventoryResult("missing_hyperdrive_binding");
+  }
+
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+
+  try {
+    await client.connect();
+    const connectionInfo = await client.query<{
+      current_database_name: string;
+      current_user_name: string;
+      database_create_privilege: boolean;
+    }>(connectionInfoQuery);
+    const schemaResult = await client.query<{ schema_name: string }>(schemaQuery, [
+      [...PLATFORM_UMBRELLA_EXPECTED_SCHEMAS]
+    ]);
+    const tableResult = await client.query<{ table_name: string }>(tableQuery, [
+      [...PLATFORM_UMBRELLA_EXPECTED_TABLES]
+    ]);
+    const indexResult = await client.query<{ indexname: string }>(indexQuery, [
+      [...PLATFORM_UMBRELLA_EXPECTED_SCHEMAS],
+      [...PLATFORM_UMBRELLA_EXPECTED_INDEXES]
+    ]);
+    const rlsResult = await client.query<{ table_name: string }>(rlsQuery, [
+      [...PLATFORM_UMBRELLA_EXPECTED_RLS_TABLES]
+    ]);
+
+    const observedSchemas = new Set(schemaResult.rows.map((row) => row.schema_name));
+    const observedTables = new Set(tableResult.rows.map((row) => row.table_name));
+    const observedIndexes = new Set(indexResult.rows.map((row) => row.indexname));
+    const observedRlsTables = new Set(rlsResult.rows.map((row) => row.table_name));
+    const missingSchemas = missingExpectedRuntimeNames(
+      PLATFORM_UMBRELLA_EXPECTED_SCHEMAS,
+      observedSchemas
+    );
+    const missingTables = missingExpectedRuntimeNames(
+      PLATFORM_UMBRELLA_EXPECTED_TABLES,
+      observedTables
+    );
+    const missingIndexes = missingExpectedRuntimeNames(
+      PLATFORM_UMBRELLA_EXPECTED_INDEXES,
+      observedIndexes
+    );
+    const missingRlsTables = missingExpectedRuntimeNames(
+      PLATFORM_UMBRELLA_EXPECTED_RLS_TABLES,
+      observedRlsTables
+    );
+    let operationCount = 5;
+    let productStatus: string | undefined;
+
+    if (observedTables.has("platform.product")) {
+      const productResult = await client.query<{ product_id: string; status: string }>(productQuery);
+      operationCount += 1;
+      const productRow = productResult.rows.find((row) => row.product_id === "aiphabee");
+      productStatus = productRow?.status;
+    }
+
+    const productPresent = typeof productStatus === "string";
+    const failureCode =
+      missingSchemas.length > 0 ||
+      missingTables.length > 0 ||
+      missingIndexes.length > 0 ||
+      missingRlsTables.length > 0
+        ? "platform_umbrella_schema_inventory_incomplete"
+        : productPresent
+          ? undefined
+          : "platform_product_aiphabee_missing";
+    const connectionRow = connectionInfo.rows[0];
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      current_database_hash: await hashRuntimeSmokeString(
+        connectionRow?.current_database_name ?? ""
+      ),
+      current_user_hash: await hashRuntimeSmokeString(connectionRow?.current_user_name ?? ""),
+      database_create_privilege: Boolean(connectionRow?.database_create_privilege),
+      expected_index_count: PLATFORM_UMBRELLA_EXPECTED_INDEXES.length,
+      expected_rls_table_count: PLATFORM_UMBRELLA_EXPECTED_RLS_TABLES.length,
+      expected_schema_count: PLATFORM_UMBRELLA_EXPECTED_SCHEMAS.length,
+      expected_table_count: PLATFORM_UMBRELLA_EXPECTED_TABLES.length,
+      failure_code: failureCode,
+      missing_indexes: missingIndexes,
+      missing_rls_tables: missingRlsTables,
+      missing_schemas: missingSchemas,
+      missing_tables: missingTables,
+      observed_index_count: observedIndexes.size,
+      observed_rls_table_count: observedRlsTables.size,
+      observed_schema_count: observedSchemas.size,
+      observed_table_count: observedTables.size,
+      operation_count: operationCount,
+      platform_product_aiphabee_present: productPresent,
+      platform_product_aiphabee_status_hash:
+        typeof productStatus === "string" ? await hashRuntimeSmokeString(productStatus) : undefined,
+      query_hash: await hashRuntimeSmokeString(PLATFORM_UMBRELLA_SCHEMA_INVENTORY_QUERY_LABEL),
+      status: failureCode === undefined ? "passed" : "failed",
+      surface: "platform_umbrella_schema_inventory"
+    };
+  } catch (error) {
+    return failedCloudflareHyperdriveSchemaInventoryResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "platform_umbrella_schema_inventory_failed",
+      queryLabel: PLATFORM_UMBRELLA_SCHEMA_INVENTORY_QUERY_LABEL
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function runPlatformUmbrellaRlsFixtureSmoke(
+  env: WorkerBindings
+): Promise<PlatformUmbrellaRlsFixtureSmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingPlatformUmbrellaRlsFixtureSmokeResult("missing_hyperdrive_binding");
+  }
+
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  const suffix = crypto.randomUUID().replace(/-/gu, "").slice(0, 12);
+  const accountId = `${PLATFORM_RLS_FIXTURE_ID_PREFIX}account:${suffix}`;
+  const wrongAccountId = `${PLATFORM_RLS_FIXTURE_ID_PREFIX}account:wrong:${suffix}`;
+  const workspaceId = `${PLATFORM_RLS_FIXTURE_ID_PREFIX}workspace:${suffix}`;
+  const policyVersion = `${PLATFORM_RLS_FIXTURE_ID_PREFIX}policy:${suffix}`;
+  const entitlementKey = "market_data:ipo:read";
+  const policyStatements = [
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_acc_i_${suffix}`)}
+      ON platform.account
+      FOR INSERT
+      WITH CHECK (account_id LIKE 'aiphabee-rls-smoke:account:%')`,
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_ws_i_${suffix}`)}
+      ON platform.workspace
+      FOR INSERT
+      WITH CHECK (
+        workspace_id LIKE 'aiphabee-rls-smoke:workspace:%'
+        AND owner_account_id LIKE 'aiphabee-rls-smoke:account:%'
+      )`,
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_wm_i_${suffix}`)}
+      ON platform.workspace_membership
+      FOR INSERT
+      WITH CHECK (
+        membership_id LIKE 'aiphabee-rls-smoke:membership:%'
+        AND workspace_id LIKE 'aiphabee-rls-smoke:workspace:%'
+        AND account_id LIKE 'aiphabee-rls-smoke:account:%'
+      )`,
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_wpa_i_${suffix}`)}
+      ON platform.workspace_product_access
+      FOR INSERT
+      WITH CHECK (
+        workspace_product_access_id LIKE 'aiphabee-rls-smoke:workspace-product-access:%'
+        AND workspace_id LIKE 'aiphabee-rls-smoke:workspace:%'
+        AND product_id = 'aiphabee'
+        AND policy_version LIKE 'aiphabee-rls-smoke:policy:%'
+      )`,
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_ep_i_${suffix}`)}
+      ON platform.entitlement_policy
+      FOR INSERT
+      WITH CHECK (
+        entitlement_policy_id LIKE 'aiphabee-rls-smoke:entitlement-policy:%'
+        AND product_id = 'aiphabee'
+        AND policy_version LIKE 'aiphabee-rls-smoke:policy:%'
+        AND default_rights_status = 'default_deny'
+      )`,
+    `CREATE POLICY ${quoteSqlIdentifier(`ab_rls_we_i_${suffix}`)}
+      ON platform.workspace_entitlement
+      FOR INSERT
+      WITH CHECK (
+        workspace_entitlement_id LIKE 'aiphabee-rls-smoke:workspace-entitlement:%'
+        AND workspace_id LIKE 'aiphabee-rls-smoke:workspace:%'
+        AND product_id = 'aiphabee'
+      )`
+  ];
+  let cleanupRolledBack = false;
+  let insertedRows = 0;
+  let operationCount = 0;
+  let transactionStarted = false;
+  let failureStage = "connect";
+
+  try {
+    failureStage = "connect";
+    await client.connect();
+    failureStage = "begin";
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    failureStage = "origin_role_info";
+    const roleInfo = await client.query<{
+      current_role_bypassrls: boolean | null;
+      current_role_superuser: boolean | null;
+      current_user_name: string;
+      workspace_table_owner_is_current_user: boolean;
+    }>(`
+      SELECT
+        current_user AS current_user_name,
+        role.rolbypassrls AS current_role_bypassrls,
+        role.rolsuper AS current_role_superuser,
+        EXISTS (
+          SELECT 1
+          FROM pg_class cls
+          JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+          JOIN pg_roles owner_role ON owner_role.oid = cls.relowner
+          WHERE ns.nspname = 'platform'
+            AND cls.relname = 'workspace'
+            AND owner_role.rolname = current_user
+        ) AS workspace_table_owner_is_current_user
+      FROM pg_roles role
+      WHERE role.rolname = current_user
+      LIMIT 1
+    `);
+    operationCount += 1;
+
+    failureStage = "create_insert_policies";
+    for (const statement of policyStatements) {
+      await client.query(statement);
+      operationCount += 1;
+    }
+
+    failureStage = "insert_account";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.account (
+              account_id,
+              auth_subject,
+              email_hash,
+              display_name,
+              status
+            )
+            VALUES ($1, $2, $3, 'AiphaBee RLS fixture', 'active')
+          `,
+          [accountId, accountId, `sha256:${suffix}`]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "insert_workspace";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.workspace (
+              workspace_id,
+              owner_account_id,
+              display_name,
+              billing_region,
+              data_region,
+              status
+            )
+            VALUES ($1, $2, 'AiphaBee RLS fixture workspace', 'HK', 'HK', 'active')
+          `,
+          [workspaceId, accountId]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "insert_workspace_membership";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.workspace_membership (
+              membership_id,
+              workspace_id,
+              account_id,
+              role,
+              status,
+              valid_from
+            )
+            VALUES ($1, $2, $3, 'owner', 'active', now() - interval '1 minute')
+          `,
+          [`${PLATFORM_RLS_FIXTURE_ID_PREFIX}membership:${suffix}`, workspaceId, accountId]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "insert_workspace_product_access";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.workspace_product_access (
+              workspace_product_access_id,
+              workspace_id,
+              product_id,
+              access_status,
+              policy_version,
+              valid_from
+            )
+            VALUES ($1, $2, 'aiphabee', 'active', $3, now() - interval '1 minute')
+          `,
+          [
+            `${PLATFORM_RLS_FIXTURE_ID_PREFIX}workspace-product-access:${suffix}`,
+            workspaceId,
+            policyVersion
+          ]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "insert_entitlement_policy";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.entitlement_policy (
+              entitlement_policy_id,
+              product_id,
+              policy_version,
+              status,
+              default_rights_status,
+              source_ref,
+              effective_from
+            )
+            VALUES ($1, 'aiphabee', $2, 'active', 'default_deny', $3, now() - interval '1 minute')
+          `,
+          [
+            `${PLATFORM_RLS_FIXTURE_ID_PREFIX}entitlement-policy:${suffix}`,
+            policyVersion,
+            `${PLATFORM_RLS_FIXTURE_ID_PREFIX}source:${suffix}`
+          ]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "insert_workspace_entitlement";
+    insertedRows +=
+      (
+        await client.query(
+          `
+            INSERT INTO platform.workspace_entitlement (
+              workspace_entitlement_id,
+              workspace_id,
+              product_id,
+              entitlement_key,
+              status,
+              valid_from
+            )
+            VALUES ($1, $2, 'aiphabee', $3, 'approved', now() - interval '1 minute')
+          `,
+          [
+            `${PLATFORM_RLS_FIXTURE_ID_PREFIX}workspace-entitlement:${suffix}`,
+            workspaceId,
+            entitlementKey
+          ]
+        )
+      ).rowCount ?? 0;
+    operationCount += 1;
+
+    failureStage = "enter_platform_rls_read_context";
+    const rlsContext = await enterPlatformRlsReadContext(client, "");
+    operationCount += rlsContext.operationCount;
+    failureStage = "select_workspace_without_claim";
+    const workspaceWithoutClaimRows = await countPlatformRows(
+      client,
+      "SELECT count(*) AS row_count FROM platform.workspace WHERE workspace_id = $1",
+      [workspaceId]
+    );
+    operationCount += 1;
+
+    failureStage = "select_workspace_with_wrong_claim";
+    await client.query("SELECT set_config('aiphabee.account_id', $1, true)", [wrongAccountId]);
+    operationCount += 1;
+    const workspaceWithWrongClaimRows = await countPlatformRows(
+      client,
+      "SELECT count(*) AS row_count FROM platform.workspace WHERE workspace_id = $1",
+      [workspaceId]
+    );
+    operationCount += 1;
+
+    failureStage = "select_platform_rows_with_claim";
+    await client.query("SELECT set_config('aiphabee.account_id', $1, true)", [accountId]);
+    operationCount += 1;
+    const accountWithClaimRows = await countPlatformRows(
+      client,
+      "SELECT count(*) AS row_count FROM platform.account WHERE account_id = $1",
+      [accountId]
+    );
+    const workspaceWithClaimRows = await countPlatformRows(
+      client,
+      "SELECT count(*) AS row_count FROM platform.workspace WHERE workspace_id = $1",
+      [workspaceId]
+    );
+    const workspaceMembershipWithClaimRows = await countPlatformRows(
+      client,
+      `
+        SELECT count(*) AS row_count
+        FROM platform.workspace_membership
+        WHERE workspace_id = $1
+          AND account_id = $2
+      `,
+      [workspaceId, accountId]
+    );
+    const workspaceProductAccessWithClaimRows = await countPlatformRows(
+      client,
+      `
+        SELECT count(*) AS row_count
+        FROM platform.workspace_product_access
+        WHERE workspace_id = $1
+          AND product_id = 'aiphabee'
+      `,
+      [workspaceId]
+    );
+    const entitlementPolicyWithClaimRows = await countPlatformRows(
+      client,
+      `
+        SELECT count(*) AS row_count
+        FROM platform.entitlement_policy
+        WHERE product_id = 'aiphabee'
+          AND policy_version = $1
+      `,
+      [policyVersion]
+    );
+    const workspaceEntitlementWithClaimRows = await countPlatformRows(
+      client,
+      `
+        SELECT count(*) AS row_count
+        FROM platform.workspace_entitlement
+        WHERE workspace_id = $1
+          AND product_id = 'aiphabee'
+          AND entitlement_key = $2
+      `,
+      [workspaceId, entitlementKey]
+    );
+    operationCount += 6;
+
+    failureStage = "reset_role";
+    await client.query("RESET ROLE");
+    operationCount += 1;
+    failureStage = "rollback";
+    await client.query("ROLLBACK");
+    cleanupRolledBack = true;
+
+    const failureCode =
+      rlsContext.runtimeRoleActive &&
+      !rlsContext.runtimeRoleBypassRls &&
+      !rlsContext.runtimeRoleSuperuser &&
+      workspaceWithoutClaimRows === 0 &&
+      workspaceWithWrongClaimRows === 0 &&
+      accountWithClaimRows === 1 &&
+      workspaceWithClaimRows === 1 &&
+      workspaceMembershipWithClaimRows === 1 &&
+      workspaceProductAccessWithClaimRows === 1 &&
+      entitlementPolicyWithClaimRows === 1 &&
+      workspaceEntitlementWithClaimRows === 1
+        ? undefined
+        : "platform_umbrella_rls_fixture_mismatch";
+
+    return {
+      account_id_hash: await hashRuntimeSmokeString(accountId),
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      cleanup_rolled_back: cleanupRolledBack,
+      current_role_bypassrls: Boolean(roleInfo.rows[0]?.current_role_bypassrls),
+      current_role_superuser: Boolean(roleInfo.rows[0]?.current_role_superuser),
+      current_user_hash: await hashRuntimeSmokeString(roleInfo.rows[0]?.current_user_name ?? ""),
+      entitlement_policy_with_claim_rows: entitlementPolicyWithClaimRows,
+      failure_code: failureCode,
+      fixture_policy_count: policyStatements.length,
+      inserted_rows: insertedRows,
+      operation_count: operationCount,
+      product_id_hash: await hashRuntimeSmokeString("aiphabee"),
+      query_hash: await hashRuntimeSmokeString(PLATFORM_RLS_FIXTURE_QUERY_LABEL),
+      runtime_role_active_for_selects: rlsContext.runtimeRoleActive,
+      runtime_role_bypassrls: rlsContext.runtimeRoleBypassRls,
+      runtime_role_superuser: rlsContext.runtimeRoleSuperuser,
+      runtime_user_hash: await hashRuntimeSmokeString(rlsContext.runtimeUserName),
+      status: failureCode === undefined ? "passed" : "failed",
+      surface: "platform_umbrella_rls_fixture_smoke",
+      workspace_entitlement_with_claim_rows: workspaceEntitlementWithClaimRows,
+      workspace_id_hash: await hashRuntimeSmokeString(workspaceId),
+      workspace_membership_with_claim_rows: workspaceMembershipWithClaimRows,
+      workspace_product_access_with_claim_rows: workspaceProductAccessWithClaimRows,
+      workspace_table_owner_is_current_user: Boolean(
+        roleInfo.rows[0]?.workspace_table_owner_is_current_user
+      ),
+      workspace_with_claim_rows: workspaceWithClaimRows,
+      workspace_without_claim_rows: workspaceWithoutClaimRows,
+      workspace_with_wrong_claim_rows: workspaceWithWrongClaimRows
+    };
+  } catch (error) {
+    if (transactionStarted && !cleanupRolledBack) {
+      await client
+        .query("ROLLBACK")
+        .then(() => {
+          cleanupRolledBack = true;
+        })
+        .catch(() => undefined);
+    }
+
+    return failedPlatformUmbrellaRlsFixtureSmokeResult({
+      cleanupRolledBack,
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "platform_umbrella_rls_fixture_failed",
+      failureSqlstate:
+        typeof (error as { code?: unknown }).code === "string"
+          ? (error as { code: string }).code
+          : undefined,
+      failureStage,
+      queryLabel: PLATFORM_RLS_FIXTURE_QUERY_LABEL
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function runPlatformRuntimeRoleSmoke(
+  env: WorkerBindings
+): Promise<PlatformRuntimeRoleSmokeResult> {
+  const query = `
+    SELECT
+      $1::text AS smoke_nonce,
+      current_database() AS current_database_name,
+      current_user AS current_user_name,
+      role.rolbypassrls AS current_role_bypassrls,
+      role.rolsuper AS current_role_superuser,
+      has_database_privilege(current_user, current_database(), 'CREATE') AS database_create_privilege,
+      has_schema_privilege(current_user, 'platform', 'USAGE') AS platform_schema_usage_privilege,
+      has_schema_privilege(current_user, 'platform', 'CREATE') AS platform_schema_create_privilege,
+      has_table_privilege(current_user, 'platform.account', 'SELECT') AS platform_account_select_privilege,
+      has_table_privilege(current_user, 'platform.workspace', 'SELECT') AS platform_workspace_select_privilege,
+      EXISTS (
+        SELECT 1
+        FROM pg_class cls
+        JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+        WHERE ns.nspname = 'platform'
+          AND cls.relname = 'workspace'
+          AND cls.relrowsecurity
+          AND cls.relforcerowsecurity
+      ) AS platform_workspace_rls_forced,
+      EXISTS (
+        SELECT 1
+        FROM pg_class cls
+        JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+        JOIN pg_roles owner_role ON owner_role.oid = cls.relowner
+        WHERE ns.nspname = 'platform'
+          AND cls.relname = 'workspace'
+          AND owner_role.rolname = current_user
+      ) AS workspace_table_owner_is_current_user
+    FROM pg_roles role
+    WHERE role.rolname = current_user
+    LIMIT 1
+  `;
+
+  try {
+    const result = await withHyperdrivePostgresClient(env, async (client) =>
+      client.query<{
+        current_database_name: string;
+        current_role_bypassrls: boolean | null;
+        current_role_superuser: boolean | null;
+        current_user_name: string;
+        database_create_privilege: boolean | null;
+        platform_account_select_privilege: boolean | null;
+        platform_schema_create_privilege: boolean | null;
+        platform_schema_usage_privilege: boolean | null;
+        platform_workspace_rls_forced: boolean | null;
+        platform_workspace_select_privilege: boolean | null;
+        workspace_table_owner_is_current_user: boolean | null;
+      }>(query, [crypto.randomUUID()])
+    );
+
+    if (result === undefined) {
+      return missingPlatformRuntimeRoleSmokeResult("missing_hyperdrive_binding");
+    }
+
+    const row = result.rows[0];
+    const currentRoleBypassRls = Boolean(row?.current_role_bypassrls);
+    const currentRoleSuperuser = Boolean(row?.current_role_superuser);
+    const databaseCreatePrivilege = Boolean(row?.database_create_privilege);
+    const platformSchemaUsagePrivilege = Boolean(row?.platform_schema_usage_privilege);
+    const platformSchemaCreatePrivilege = Boolean(row?.platform_schema_create_privilege);
+    const platformAccountSelectPrivilege = Boolean(row?.platform_account_select_privilege);
+    const platformWorkspaceSelectPrivilege = Boolean(row?.platform_workspace_select_privilege);
+    const platformWorkspaceRlsForced = Boolean(row?.platform_workspace_rls_forced);
+    const workspaceTableOwnerIsCurrentUser = Boolean(row?.workspace_table_owner_is_current_user);
+    const runtimeRoleReady =
+      !currentRoleBypassRls &&
+      !currentRoleSuperuser &&
+      !databaseCreatePrivilege &&
+      !platformSchemaCreatePrivilege &&
+      !workspaceTableOwnerIsCurrentUser &&
+      platformSchemaUsagePrivilege &&
+      platformAccountSelectPrivilege &&
+      platformWorkspaceSelectPrivilege &&
+      platformWorkspaceRlsForced;
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      current_database_hash: await hashRuntimeSmokeString(row?.current_database_name ?? ""),
+      current_role_bypassrls: currentRoleBypassRls,
+      current_role_superuser: currentRoleSuperuser,
+      current_user_hash: await hashRuntimeSmokeString(row?.current_user_name ?? ""),
+      database_create_privilege: databaseCreatePrivilege,
+      failure_code: runtimeRoleReady ? undefined : "platform_runtime_role_not_ready",
+      operation_count: 2,
+      platform_account_select_privilege: platformAccountSelectPrivilege,
+      platform_schema_create_privilege: platformSchemaCreatePrivilege,
+      platform_schema_usage_privilege: platformSchemaUsagePrivilege,
+      platform_workspace_rls_forced: platformWorkspaceRlsForced,
+      platform_workspace_select_privilege: platformWorkspaceSelectPrivilege,
+      query_hash: await hashRuntimeSmokeString(PLATFORM_RUNTIME_ROLE_QUERY_LABEL),
+      runtime_role_ready: runtimeRoleReady,
+      status: runtimeRoleReady ? "passed" : "failed",
+      surface: "platform_runtime_role_smoke",
+      workspace_table_owner_is_current_user: workspaceTableOwnerIsCurrentUser
+    };
+  } catch (error) {
+    return failedPlatformRuntimeRoleSmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      failureCode: "platform_runtime_role_smoke_failed",
+      queryLabel: PLATFORM_RUNTIME_ROLE_QUERY_LABEL
+    });
   }
 }
 
@@ -13445,6 +14541,40 @@ function missingCloudflareHyperdriveResult(
   };
 }
 
+function missingCloudflareHyperdriveSchemaInventoryResult(
+  failureCode: string
+): CloudflareHyperdriveSchemaInventoryResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "platform_umbrella_schema_inventory"
+  };
+}
+
+function missingPlatformUmbrellaRlsFixtureSmokeResult(
+  failureCode: string
+): PlatformUmbrellaRlsFixtureSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    cleanup_rolled_back: false,
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "platform_umbrella_rls_fixture_smoke"
+  };
+}
+
+function missingPlatformRuntimeRoleSmokeResult(
+  failureCode: string
+): PlatformRuntimeRoleSmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    status: "missing_binding",
+    surface: "platform_runtime_role_smoke"
+  };
+}
+
 function missingEvidenceLiveDbWriteSmokeResult(
   failureCode: string
 ): EvidenceLiveDbWriteSmokeResult {
@@ -13748,6 +14878,72 @@ async function failedCloudflareHyperdriveResult({
   };
 }
 
+async function failedCloudflareHyperdriveSchemaInventoryResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<CloudflareHyperdriveSchemaInventoryResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "platform_umbrella_schema_inventory"
+  };
+}
+
+async function failedPlatformUmbrellaRlsFixtureSmokeResult({
+  cleanupRolledBack,
+  detail,
+  failureCode,
+  failureSqlstate,
+  failureStage,
+  queryLabel
+}: {
+  cleanupRolledBack: boolean;
+  detail: string;
+  failureCode: string;
+  failureSqlstate?: string;
+  failureStage?: string;
+  queryLabel: string;
+}): Promise<PlatformUmbrellaRlsFixtureSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    cleanup_rolled_back: cleanupRolledBack,
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    failure_sqlstate: failureSqlstate,
+    failure_stage: failureStage,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "platform_umbrella_rls_fixture_smoke"
+  };
+}
+
+async function failedPlatformRuntimeRoleSmokeResult({
+  detail,
+  failureCode,
+  queryLabel
+}: {
+  detail: string;
+  failureCode: string;
+  queryLabel: string;
+}): Promise<PlatformRuntimeRoleSmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    failure_code: failureCode,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "platform_runtime_role_smoke"
+  };
+}
+
 async function failedEvidenceLiveDbWriteSmokeResult({
   detail,
   failureCode,
@@ -13956,6 +15152,27 @@ function isRuntimeQueue(value: unknown): value is RuntimeQueue {
 
 function isRuntimeHyperdrive(value: unknown): value is RuntimeHyperdrive {
   return isPlainRecord(value) && typeof value.connectionString === "string";
+}
+
+async function countPlatformRows(
+  client: Client,
+  query: string,
+  values: unknown[]
+): Promise<number> {
+  const result = await client.query<{ row_count: number | string }>(query, values);
+
+  return Number(result.rows[0]?.row_count ?? 0);
+}
+
+function missingExpectedRuntimeNames(
+  expected: readonly string[],
+  observed: ReadonlySet<string>
+): string[] {
+  return expected.filter((name) => !observed.has(name));
+}
+
+function quoteSqlIdentifier(value: string): string {
+  return `"${value.replace(/"/gu, "\"\"")}"`;
 }
 
 function isRuntimeWorkflow<T = unknown>(value: unknown): value is RuntimeWorkflow<T> {
@@ -14538,31 +15755,7 @@ async function withIpoPostgres<T>(
   env: WorkerBindings,
   callback: (client: Client) => Promise<T>
 ): Promise<T | undefined> {
-  const connectionString = getIpoPostgresConnectionString(env);
-
-  if (connectionString === undefined) {
-    return undefined;
-  }
-
-  const client = new Client({ connectionString });
-
-  try {
-    await client.connect();
-    return await callback(client);
-  } finally {
-    await client.end().catch(() => undefined);
-  }
-}
-
-function getIpoPostgresConnectionString(env: WorkerBindings): string | undefined {
-  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
-
-  if (!isRuntimeHyperdrive(hyperdrive)) {
-    return undefined;
-  }
-
-  const connectionString = hyperdrive.connectionString?.trim();
-  return connectionString && connectionString.length > 0 ? connectionString : undefined;
+  return withHyperdrivePostgresClient(env, callback);
 }
 
 async function getLatestReleasedIpoDataVersion(
@@ -15175,11 +16368,13 @@ function createIpoRouteProvenance(
   source: string,
   sourceRecordId: string
 ): IpoProvenance[] {
+  const provenanceSource = status === "fixture_scaffold" ? source : "postgres-ipo-serving";
+
   return [
     {
       data_version: dataVersion,
       methodology_version: IPO_PIPELINE_VERSION,
-      source: status === "released_serving" ? "postgres-ipo-serving" : source,
+      source: provenanceSource,
       source_record_id:
         status === "released_serving"
           ? `${sourceRecordId}-released`

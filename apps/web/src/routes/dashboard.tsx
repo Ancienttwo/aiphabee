@@ -9,8 +9,7 @@ import {
   StatCard,
 } from "../ds";
 import { MarketSentimentPanel } from "../components/MarketSentimentPanel";
-import { getIpos } from "../lib/mock-api";
-import { SECTOR_LABEL, SENTIMENT_LABEL, SENTIMENT_TONE } from "../data/ipos";
+import { IPOS, SECTOR_LABEL, SENTIMENT_LABEL, SENTIMENT_TONE } from "../data/ipos.fixtures";
 import { formatMultiple } from "../lib/format";
 import { SHELL } from "../lib/ui";
 
@@ -20,12 +19,12 @@ export const Route = createFileRoute("/dashboard")({
 
 function Dashboard() {
   const navigate = useNavigate();
-  const upcoming = getIpos().data.filter((ipo) => ipo.status === "pending");
+  const upcoming = IPOS.filter((ipo) => ipo.stage === "subscribing");
 
   return (
     <main>
       <div style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--surface-card)" }}>
-        <div style={{ ...SHELL, padding: "32px 24px" }}>
+        <div style={{ ...SHELL, padding: "32px var(--content-gutter)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Icon name="rocket" size={30} color="var(--honey-500)" />
             <div>
@@ -48,7 +47,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div style={{ ...SHELL, padding: "32px 24px 80px" }}>
+      <div style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
         <div className="ab-grid-4" style={{ gap: 18 }}>
           <StatCard label="Active IPOs 招股中" value="12" tone="honey" icon={<Icon name="calendar" size={20} />} />
           <StatCard
@@ -119,7 +118,7 @@ function Dashboard() {
                       </span>
                     </div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 2 }}>
-                      {ipo.listing} · {SECTOR_LABEL[ipo.sector]}
+                      {ipo.listingDate} · {SECTOR_LABEL[ipo.sector]}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -127,7 +126,7 @@ function Dashboard() {
                       {SENTIMENT_LABEL[ipo.sentiment]}
                     </Badge>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
-                      {formatMultiple(ipo.sub)}
+                      {ipo.live.subPublic != null ? formatMultiple(ipo.live.subPublic) : "—"}
                     </span>
                   </div>
                 </button>

@@ -1,0 +1,72 @@
+{
+  "version": "2026-06-26.planetscale-remote-apply.v0",
+  "status": "guarded_remote_apply",
+  "provider": "planetscale_postgres",
+  "database_contract": "deploy/database/migrations.contract.json",
+  "apply_packet_contract": "deploy/database/apply-packet.contract.json",
+  "direct_preflight_contract": "deploy/database/planetscale-direct-preflight.contract.json",
+  "runner": "scripts/apply-planetscale-migrations.mjs",
+  "package_script_check": "check:planetscale-remote-apply",
+  "package_script_execute": "database:planetscale:apply",
+  "target": {
+    "organization": "chris-fung",
+    "database": "aiphabee-prod",
+    "host": "ap-southeast-2.pg.psdb.cloud",
+    "port": 5432,
+    "dbname": "postgres",
+    "user": "pscale_api_yn66uahpa46b.bpvsmvgwkutr",
+    "primary_region": "aws_ap_southeast_1",
+    "sslmode": "verify-full",
+    "sslrootcert_candidates": [
+      "/etc/ssl/cert.pem",
+      "/opt/homebrew/etc/openssl@3/cert.pem",
+      "/usr/local/etc/openssl@3/cert.pem"
+    ]
+  },
+  "credential_source": {
+    "source": "macos_keychain",
+    "service": "AiphaBee PlanetScale Postgres chris-fung aiphabee-prod",
+    "account": "pscale_api_yn66uahpa46b.bpvsmvgwkutr"
+  },
+  "execution": {
+    "network": true,
+    "requires_execute_flag": true,
+    "requires_keychain_flag": true,
+    "single_transaction": true,
+    "stop_on_error": true,
+    "requires_database_create_privilege": true,
+    "applies_schema": true,
+    "applies_data": false,
+    "allowed_existing_tables": [
+      "pscale_extensions.hypopg_hidden_indexes",
+      "pscale_extensions.hypopg_list_indexes"
+    ]
+  },
+  "commands": [
+    {
+      "name": "preflight",
+      "command": "npm run check:planetscale-remote-apply",
+      "network": false,
+      "effect": "local_contract_and_packet_guard"
+    },
+    {
+      "name": "remote_inventory",
+      "command": "node scripts/apply-planetscale-migrations.mjs --inventory --use-keychain",
+      "network": true,
+      "effect": "remote_readonly_schema_inventory"
+    },
+    {
+      "name": "execute",
+      "command": "npm run database:planetscale:apply",
+      "network": true,
+      "effect": "remote_database_schema_apply"
+    }
+  ],
+  "safe_output_policy": {
+    "never_log_database_url": true,
+    "never_log_password": true,
+    "never_pass_database_url_as_process_argument": true,
+    "emit_counts_and_hashes_only": true,
+    "emit_safe_failure_reason": true
+  }
+}

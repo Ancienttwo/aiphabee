@@ -91,7 +91,7 @@ function CalendarView() {
   const types = ["all", ...Array.from(new Set(all.map((x) => x.e.type)))];
 
   return (
-    <main style={{ ...SHELL, padding: "32px 24px 80px" }}>
+    <main style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
       <Eyebrow style={{ marginBottom: 8 }}>招股时间表 · IPO Calendar</Eyebrow>
       <h1
         style={{
@@ -169,7 +169,7 @@ function CalendarView() {
             const g = groups[key];
             const [mon, day] = key.split(" ");
             return (
-              <div key={key} style={{ display: "grid", gridTemplateColumns: "88px 1fr", gap: 18, alignItems: "start" }}>
+              <div key={key} style={{ display: "grid", gridTemplateColumns: "88px minmax(0, 1fr)", gap: 18, alignItems: "start" }}>
                 {/* date rail */}
                 <div
                   style={{

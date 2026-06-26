@@ -485,11 +485,17 @@ img { max-width: 100%; }
   .ab-split  { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
+  /* Content pairs/triples go full-width so prose stays readable… */
   .ab-grid-2,
-  .ab-grid-3,
+  .ab-grid-3 { grid-template-columns: minmax(0, 1fr); }
+  /* …but short stat/KPI tiles stay 2-up instead of a tall single stack. */
   .ab-grid-4,
-  .ab-grid-6 { grid-template-columns: minmax(0, 1fr); }
+  .ab-grid-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Horizontal-scroll wrapper for dense data tables on narrow screens
+   (header + rows share one min-width inner so columns stay aligned). */
+.ab-table-scroll { overflow-x: auto; }
 
 /* Page-shell gutter narrows on small screens (consumed by SHELL). */
 @media (max-width: 768px) { :root { --content-gutter: 1.25rem; } }

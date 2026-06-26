@@ -1,4 +1,5 @@
 from urllib.parse import urljoin
+from urllib.parse import urlparse
 
 import scrapy
 
@@ -27,16 +28,24 @@ class HkexNewsSpider(scrapy.Spider):
             start_url
             or "https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=en"
         ]
+        if start_url:
+            parsed = urlparse(start_url)
+            if parsed.hostname in {"127.0.0.1", "localhost"}:
+                self.allowed_domains = [*self.allowed_domains, parsed.hostname]
 
     def parse(self, response):
-        for href in response.css("a::attr(href)").getall():
+        for rank, href in enumerate(response.css("a::attr(href)").getall(), start=1):
             url = urljoin(response.url, href)
             if not is_candidate_document_url(url):
                 continue
-            yield response.follow(url, callback=self.parse_document)
+            yield response.follow(
+                url,
+                callback=self.parse_document,
+                meta={"source_page_url": response.url, "result_rank": rank},
+            )
 
     def parse_document(self, response):
-        title = response.css("title::text").get()
+        title = response.css("title::text").get() if hasattr(response, "css") else None
         yield DocumentItem(
             source_record_id=None,
             canonical_url=response.url,
@@ -51,6 +60,9 @@ class HkexNewsSpider(scrapy.Spider):
             response_body=response.body,
             response_headers={key.decode(): value[0].decode(errors="ignore") for key, value in response.headers.items()},
             source_surface=self.source_surface,
+            source_page_url=response.meta.get("source_page_url") or response.url,
+            result_rank=response.meta.get("result_rank"),
+            http_status=response.status,
         )
 
 

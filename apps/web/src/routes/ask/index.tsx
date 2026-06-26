@@ -66,7 +66,7 @@ function AskIndex() {
           e.preventDefault();
           start(prompt);
         }}
-        style={{ display: "flex", gap: 10, marginBottom: 28 }}
+        style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 28 }}
       >
         <input
           value={prompt}

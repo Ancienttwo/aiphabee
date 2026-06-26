@@ -54,14 +54,14 @@ function Compare() {
 
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
-      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--ink-800)" }}>
+      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--text-primary)" }}>
         比较器
       </h1>
       <p style={{ margin: "8px 0 20px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
         2–5 只证券统一口径比较；货币与单位自动统一，或明确标注不可比项。
       </p>
 
-      <form onSubmit={(e) => { e.preventDefault(); add(draft); }} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+      <form onSubmit={(e) => { e.preventDefault(); add(draft); }} style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

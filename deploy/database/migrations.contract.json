@@ -1,18 +1,24 @@
 {
   "version": "2026-06-21.phase1.evidence-lineage-service.v0",
   "status": "local_contract",
-  "provider": "supabase_postgres",
+  "provider": "planetscale_postgres",
   "connection_path": "cloudflare_hyperdrive",
   "migration_directory": "supabase/migrations",
   "database_boundary": {
-    "scope": "aiphabee_dedicated_supabase_project",
-    "organization": "aiphabee_dedicated_supabase_organization",
+    "scope": "aiphabee_dedicated_planetscale_database",
+    "organization": "chris_fung_planetscale_organization",
     "share_with_aimpact": false,
     "share_with_salesko": false,
     "cross_product_tables": false,
+    "staging_scope": "shared_platform_umbrella_database",
+    "staging_share_with_sibling_products": true,
+    "staging_cross_product_tables": true,
+    "staging_hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "staging_hyperdrive_alias": "HYPERDRIVE",
+    "staging_runtime_source": "apps/worker/wrangler.jsonc env.staging.hyperdrive",
     "migration_reason": "AiphaBee must remain independently movable when IPO, HK F10, serving, lineage, or usage-ledger data creates capacity, PITR, replica, or database-engine migration pressure.",
-    "active_boundary_doc": "docs/governance/aiphabee-independent-supabase-boundary.md",
-    "superseded_shared_plan": "docs/supabase-umbrella-schema-plan.md"
+    "active_boundary_doc": "docs/governance/aiphabee-planetscale-boundary.md",
+    "superseded_database_boundary": "docs/governance/aiphabee-independent-supabase-boundary.md"
   },
   "hyperdrive": {
     "binding": "AIPHABEE_HYPERDRIVE",
@@ -24,22 +30,22 @@
   "commands": [
     {
       "name": "create_migration",
-      "command": "supabase migration new <name>",
+      "command": "create timestamped SQL file in supabase/migrations",
       "effect": "local_file"
     },
     {
       "name": "apply_local",
-      "command": "supabase migration up --local",
+      "command": "psql \"$LOCAL_DATABASE_URL\" -f <migration_file>",
       "effect": "local_database"
     },
     {
       "name": "dry_run_remote",
-      "command": "supabase db push --dry-run --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "command": "review migration SQL against PLANETSCALE_DATABASE_URL without committed secrets",
       "effect": "remote_dry_run"
     },
     {
       "name": "apply_remote",
-      "command": "supabase db push --db-url \"$HYPERDRIVE_DATABASE_URL\"",
+      "command": "psql \"$PLANETSCALE_DATABASE_URL\" -f <migration_file>",
       "effect": "remote_database"
     }
   ],
@@ -820,12 +826,12 @@
         "product_access_event_product_id_workspace_id_event_time_idx",
         "product_access_event_workspace_id_idx",
         "product_environment_product_id_idx",
-        "workspace_entitlement_product_id_workspace_id_entitlement_key_status_idx",
+        "workspace_entitlement_product_id_workspace_id_entitlement_key_s",
         "workspace_entitlement_workspace_id_idx",
         "workspace_membership_account_id_workspace_id_status_idx",
         "workspace_membership_workspace_id_idx",
         "workspace_owner_account_id_idx",
-        "workspace_product_access_product_id_workspace_id_access_status_idx",
+        "workspace_product_access_product_id_workspace_id_access_status_",
         "workspace_product_access_workspace_id_idx"
       ],
       "rls_tables": [
@@ -839,6 +845,7 @@
         "platform.workspace_product_access",
         "platform_audit.product_access_event"
       ],
+      "rls_session_claim": "aiphabee.account_id",
       "market_data": false,
       "default_rights_status": "default_deny"
     },
