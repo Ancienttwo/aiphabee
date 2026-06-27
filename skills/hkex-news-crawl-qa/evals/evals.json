@@ -1,0 +1,40 @@
+{
+  "skill_name": "hkex-news-crawl-qa",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "HKEX daily ingest ran, but I suspect it missed an IPO announcement. Audit the crawler accuracy, not the release path.",
+      "expected_output": "Runs read-only/local crawl QA, uses direct Scrapy, the pinned goldset, or official endpoint evidence for live crawl accuracy, checks titleSearch query profiles and required fields, reports missing or drift evidence, and does not invoke release or manual SQL.",
+      "files": [],
+      "expectations": [
+        "The output focuses on crawl discovery and parser accuracy.",
+        "The output does not invoke npm run data-ingest -- release.",
+        "The output includes a concrete reproduction surface for any suspected miss.",
+        "Live crawl accuracy evidence does not rely on local contract mode alone.",
+        "The output can use skills/hkex-news-crawl-qa/evals/goldset.json for expected-vs-observed checks."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "HKEX changed titleSearchServlet response shape. Triage the crawler.",
+      "expected_output": "Checks the official HKEX titleSearch JSON response, compares NEWS_ID/FILE_LINK/STOCK_CODE/DATE_TIME/TITLE parsing, and reports a drift or pass result without writing production data.",
+      "files": [],
+      "expectations": [
+        "The output treats HKEX public endpoint responses as untrusted input.",
+        "The output validates the fields consumed by the spider.",
+        "The output avoids production DB writes."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The automation timed out. Is the crawler window too broad?",
+      "expected_output": "Inspects default query scope, lookback days, row range, query profile count, and automation timeout risk, then reports the smallest crawl-window adjustment.",
+      "files": [],
+      "expectations": [
+        "The output names DATA_INGEST_HKEX_LOOKBACK_DAYS and DATA_INGEST_HKEX_ROW_RANGE.",
+        "The output distinguishes daily crawl QA from production release.",
+        "The output recommends a bounded crawl-window fix if needed."
+      ]
+    }
+  ]
+}

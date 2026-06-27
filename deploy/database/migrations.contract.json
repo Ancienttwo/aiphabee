@@ -920,6 +920,28 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
+      "purpose": "Create empty HK IPO public observation and reconciliation preflight tables for AASTOCKS and VBKR source-attributed observations without loading public web data, storing raw HTML in repo, writing serving tables, or promoting third-party facts.",
+      "schemas": ["core", "governance"],
+      "tables": [
+        "core.hk_ipo_public_source_run",
+        "core.hk_ipo_public_observation",
+        "core.hk_ipo_public_reconciliation_row",
+        "core.hk_ipo_public_supplement_candidate",
+        "governance.hk_ipo_public_observation_contract"
+      ],
+      "indexes": [
+        "hk_ipo_public_source_run_version_status_idx",
+        "hk_ipo_public_observation_code_field_idx",
+        "hk_ipo_public_observation_source_record_idx",
+        "hk_ipo_public_observation_value_json_gin",
+        "hk_ipo_public_reconciliation_status_idx",
+        "hk_ipo_public_supplement_candidate_status_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

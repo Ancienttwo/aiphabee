@@ -8,6 +8,7 @@ class DocumentItem(scrapy.Item):
     title_en = scrapy.Field()
     title_zh_hant = scrapy.Field()
     published_at = scrapy.Field()
+    hkex_code = scrapy.Field()
     category = scrapy.Field()
     content_type = scrapy.Field()
     response_body = scrapy.Field()

@@ -77,6 +77,11 @@
     "scrapy_engine": true,
     "scrapy_spider": "hkex_news",
     "runtime_dir_env": "DATA_INGEST_RUNTIME_DIR",
+    "hkex_title_search_defaults": {
+      "query_scope": "ipo",
+      "lookback_days": 0,
+      "row_range": 20
+    },
     "jobdir_template": "runtime/scrapy-jobs/<run_id>",
     "report_template": "runtime/reports/<run_id>/documents.jsonl",
     "raw_storage_uri_policy": "file_uri_or_object_store_uri",

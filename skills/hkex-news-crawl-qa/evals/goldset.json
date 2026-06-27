@@ -1,0 +1,179 @@
+{
+  "version": "2026-06-27.hkex-news-crawl-goldset.v1",
+  "authority": "HKEX official titleSearchServlet.do public endpoint",
+  "source_endpoint": "https://www1.hkexnews.hk/search/titleSearchServlet.do",
+  "frozen_at": "2026-06-27T15:15:00Z",
+  "live_probe_hint": {
+    "crawl_run_id": "cr_hkex_news_20250131",
+    "data_version": "dv_hkex_crawl_qa_goldset_20250131",
+    "query_scope": "ipo",
+    "lookback_days": 30,
+    "row_range": 3
+  },
+  "required_hkex_row_fields": ["NEWS_ID", "FILE_LINK", "STOCK_CODE", "DATE_TIME", "TITLE"],
+  "required_observed_fields": [
+    "source_record_id",
+    "document_url",
+    "title_en",
+    "category",
+    "hkex_code",
+    "published_at",
+    "source_page_url",
+    "result_rank",
+    "http_status"
+  ],
+  "samples": [
+    {
+      "id": "phip_02565_20250128",
+      "expected": {
+        "source_record_id": "11686988",
+        "category": "phip",
+        "hkex_code": "02565",
+        "published_at": "2025-01-28T17:39:00+08:00",
+        "title_contains": "PHIP"
+      },
+      "title_search": {
+        "query_label": "phip",
+        "params": {
+          "sortDir": "0",
+          "sortByOptions": "DateTime",
+          "category": "0",
+          "market": "SEHK",
+          "stockId": "",
+          "documentType": "-1",
+          "fromDate": "20250101",
+          "toDate": "20250131",
+          "title": "",
+          "searchType": "1",
+          "t1code": "91000",
+          "t2Gcode": "-1",
+          "t2code": "91100",
+          "rowRange": "3",
+          "lang": "E"
+        },
+        "source_url": "https://www1.hkexnews.hk/search/titleSearchServlet.do?sortDir=0&sortByOptions=DateTime&category=0&market=SEHK&stockId=&documentType=-1&fromDate=20250101&toDate=20250131&title=&searchType=1&t1code=91000&t2Gcode=-1&t2code=91100&rowRange=3&lang=E",
+        "row": {
+          "NEWS_ID": "11686988",
+          "STOCK_CODE": "02565",
+          "DATE_TIME": "28/01/2025 17:39",
+          "TITLE": "PHIP (1st submission)",
+          "FILE_LINK": "/listedco/listconews/sehk/2025/0527/sehk25012800622.pdf"
+        }
+      }
+    },
+    {
+      "id": "application_proof_03677_20250127",
+      "expected": {
+        "source_record_id": "11624648",
+        "category": "application_proof",
+        "hkex_code": "03677",
+        "published_at": "2025-01-27T22:30:00+08:00",
+        "title_contains": "Application Proof"
+      },
+      "title_search": {
+        "query_label": "application_proof",
+        "params": {
+          "sortDir": "0",
+          "sortByOptions": "DateTime",
+          "category": "0",
+          "market": "SEHK",
+          "stockId": "",
+          "documentType": "-1",
+          "fromDate": "20250101",
+          "toDate": "20250131",
+          "title": "",
+          "searchType": "1",
+          "t1code": "91000",
+          "t2Gcode": "-1",
+          "t2code": "91200",
+          "rowRange": "3",
+          "lang": "E"
+        },
+        "source_url": "https://www1.hkexnews.hk/search/titleSearchServlet.do?sortDir=0&sortByOptions=DateTime&category=0&market=SEHK&stockId=&documentType=-1&fromDate=20250101&toDate=20250131&title=&searchType=1&t1code=91000&t2Gcode=-1&t2code=91200&rowRange=3&lang=E",
+        "row": {
+          "NEWS_ID": "11624648",
+          "STOCK_CODE": "03677",
+          "DATE_TIME": "27/01/2025 22:30",
+          "TITLE": "Application Proof (1st submission)",
+          "FILE_LINK": "/listedco/listconews/sehk/2025/0414/sehk25012701328.pdf"
+        }
+      }
+    },
+    {
+      "id": "oc_announcement_03677_20250127",
+      "expected": {
+        "source_record_id": "11624651",
+        "category": "oc_announcement",
+        "hkex_code": "03677",
+        "published_at": "2025-01-27T22:33:00+08:00",
+        "title_contains": "OC Announcement"
+      },
+      "title_search": {
+        "query_label": "oc_announcement",
+        "params": {
+          "sortDir": "0",
+          "sortByOptions": "DateTime",
+          "category": "0",
+          "market": "SEHK",
+          "stockId": "",
+          "documentType": "-1",
+          "fromDate": "20250101",
+          "toDate": "20250131",
+          "title": "",
+          "searchType": "1",
+          "t1code": "91000",
+          "t2Gcode": "-1",
+          "t2code": "91300",
+          "rowRange": "3",
+          "lang": "E"
+        },
+        "source_url": "https://www1.hkexnews.hk/search/titleSearchServlet.do?sortDir=0&sortByOptions=DateTime&category=0&market=SEHK&stockId=&documentType=-1&fromDate=20250101&toDate=20250131&title=&searchType=1&t1code=91000&t2Gcode=-1&t2code=91300&rowRange=3&lang=E",
+        "row": {
+          "NEWS_ID": "11624651",
+          "STOCK_CODE": "03677",
+          "DATE_TIME": "27/01/2025 22:33",
+          "TITLE": "OC Announcement - Appointment",
+          "FILE_LINK": "/listedco/listconews/sehk/2025/0414/sehk25012701398.pdf"
+        }
+      }
+    },
+    {
+      "id": "allotment_results_02571_20250114",
+      "expected": {
+        "source_record_id": "11510437",
+        "category": "allotment_results",
+        "hkex_code": "02571",
+        "published_at": "2025-01-14T21:49:00+08:00",
+        "title_contains": "FINAL OFFER PRICE AND ALLOTMENT RESULTS"
+      },
+      "title_search": {
+        "query_label": "allotment_results",
+        "params": {
+          "sortDir": "0",
+          "sortByOptions": "DateTime",
+          "category": "0",
+          "market": "SEHK",
+          "stockId": "",
+          "documentType": "-1",
+          "fromDate": "20250101",
+          "toDate": "20250131",
+          "title": "",
+          "searchType": "1",
+          "t1code": "10000",
+          "t2Gcode": "5",
+          "t2code": "15100",
+          "rowRange": "3",
+          "lang": "E"
+        },
+        "source_url": "https://www1.hkexnews.hk/search/titleSearchServlet.do?sortDir=0&sortByOptions=DateTime&category=0&market=SEHK&stockId=&documentType=-1&fromDate=20250101&toDate=20250131&title=&searchType=1&t1code=10000&t2Gcode=5&t2code=15100&rowRange=3&lang=E",
+        "row": {
+          "NEWS_ID": "11510437",
+          "STOCK_CODE": "02571",
+          "DATE_TIME": "14/01/2025 21:49",
+          "TITLE": "ANNOUNCEMENT OF FINAL OFFER PRICE AND ALLOTMENT RESULTS",
+          "FILE_LINK": "/listedco/listconews/sehk/2025/0114/2025011400898.pdf"
+        }
+      }
+    }
+  ]
+}

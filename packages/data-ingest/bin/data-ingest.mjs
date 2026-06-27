@@ -12,6 +12,11 @@ const SOURCE_NAME = "hkex_news";
 const SOURCE_DATASET = "hkex_news_daily";
 const METHODOLOGY_VERSION = "2026-06-25.hkex-news-ingest-runtime.v0";
 const RIGHTS_POLICY_VERSION = "hkex-news-rights-policy-scaffold-v0";
+const SANITIZER_VERSION = "metadata-sanitizer-v0";
+const EXTRACTOR_NAME = "hkex-news-metadata-extractor";
+const EXTRACTOR_VERSION = "2026-06-27.metadata-facts.v0";
+const TRANSFORM_VERSION = "2026-06-27.pending-fact-transform.v0";
+const STALE_RUNNING_RUN_MINUTES = 15;
 const DAILY_COMMAND = [
   "data-ingest",
   "hkex",
@@ -32,6 +37,12 @@ const SOURCE_SURFACES = [
   "new_listing_information",
   "ap_phip",
   "progress_report"
+];
+const AUTO_IPO_LINK_MATCHED_BY = [
+  "hkex_code",
+  "hkex_code:application",
+  "hkex_code:offering",
+  "hkex_code:offering_application"
 ];
 const PIPELINE_STAGES = [
   "preflight",
@@ -184,6 +195,7 @@ async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
     await client.query("begin");
     await upsertSourceBatch(client, ids, resolvedDate);
     await upsertDataVersion(client, ids);
+    await markStaleRunningRunFailed(client, ids);
     await upsertCrawlRun(client, ids, resolvedDate, "running", {
       changed: 0,
       discovered: 0,
@@ -212,7 +224,10 @@ async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
     const report = readScrapyReport(ids.reportPath);
     await client.query("begin");
     const persistence = await persistScrapyDocuments(client, ids, report.items);
+    const reconciliation = await reconcileCurrentRunScope(client, ids, persistence.documents);
+    const heldFacts = await runHeldFactPipeline(client, ids, persistence.documents, reconciliation);
     const counts = countsFromScrapyReport(report, persistence);
+    counts.facts_extracted = heldFacts.factsExtracted;
     await updateSourceBatchRowCount(client, ids, counts.documents_persisted);
     await upsertCrawlRun(client, ids, resolvedDate, "completed", {
       changed: counts.changed,
@@ -223,7 +238,12 @@ async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
     await client.query("commit");
 
     emit({
-      ...baseRunResult(resolvedDate, ids, counts.changed > 0 ? "completed" : "no_change", command),
+      ...baseRunResult(
+        resolvedDate,
+        ids,
+        counts.changed > 0 || counts.facts_extracted > 0 ? "completed" : "no_change",
+        command
+      ),
       counts,
       last_completed_stage: "validate"
     }, EXIT_CODES.completed);
@@ -411,9 +431,45 @@ async function emitValidate(parsedFlags) {
   try {
     const result = await client.query(
       `
-        select dv.data_version, dv.release_state, cr.status, cr.error_count
+        with latest_crawl as (
+          select status, error_count
+          from core.hkex_news_crawl_run
+          where data_version = $1
+          order by completed_at desc nulls last, crawl_run_id desc
+          limit 1
+        ),
+        observation_counts as (
+          select count(distinct document_id)::int as document_count
+          from core.hkex_news_document_observation
+          where data_version = $1
+        ),
+        fact_counts as (
+          select count(distinct extracted_fact_id)::int as extracted_fact_count
+          from core.hkex_news_extracted_fact
+          where data_version = $1
+            and fact_namespace = 'hkex_news'
+        ),
+        latest_transform as (
+          select status, validation_report
+          from core.hkex_news_transform_run
+          where data_version = $1
+          order by completed_at desc nulls last, transform_run_id desc
+          limit 1
+        )
+        select
+          dv.data_version,
+          dv.release_state,
+          cr.status,
+          cr.error_count,
+          coalesce(obs.document_count, 0)::int as document_count,
+          coalesce(fact.extracted_fact_count, 0)::int as extracted_fact_count,
+          tx.status = 'completed' as transform_completed,
+          tx.validation_report
         from core.data_version_batch dv
-        left join core.hkex_news_crawl_run cr on cr.data_version = dv.data_version
+        left join latest_crawl cr on true
+        left join observation_counts obs on true
+        left join fact_counts fact on true
+        left join latest_transform tx on true
         where dv.data_version = $1
       `,
       [dataVersion]
@@ -431,8 +487,33 @@ async function emitValidate(parsedFlags) {
       );
     }
     const row = result.rows[0];
-    const pass = row.release_state === "held" && row.status === "completed" && Number(row.error_count ?? 0) === 0;
-    emit(validationResult(dataVersion, pass), pass ? EXIT_CODES.completed : EXIT_CODES.heldQualityFailure);
+    const documentCount = Number(row.document_count ?? 0);
+    const extractedFactCount = Number(row.extracted_fact_count ?? 0);
+    const transformCompleted = row.transform_completed === true;
+    const validationReport = isRecord(row.validation_report) ? row.validation_report : {};
+    const expectedDocumentCount = integerOrNull(validationReport.document_count);
+    const expectedFactCount = integerOrNull(validationReport.candidate_fact_count);
+    const countsMatchTransform = (expectedDocumentCount === null || documentCount === expectedDocumentCount)
+      && (expectedFactCount === null || extractedFactCount === expectedFactCount);
+    const pass = row.release_state === "held"
+      && row.status === "completed"
+      && Number(row.error_count ?? 0) === 0
+      && (documentCount === 0 || extractedFactCount > 0)
+      && transformCompleted
+      && countsMatchTransform;
+    emit(
+      validationResult(dataVersion, pass, {
+        counts_match_transform: countsMatchTransform,
+        document_count: documentCount,
+        expected_document_count: expectedDocumentCount,
+        expected_fact_count: expectedFactCount,
+        extracted_fact_count: extractedFactCount,
+        linked_document_count: integerOrNull(validationReport.linked_document_count),
+        reconciliation: isRecord(validationReport.reconciliation) ? validationReport.reconciliation : null,
+        transform_completed: transformCompleted
+      }),
+      pass ? EXIT_CODES.completed : EXIT_CODES.heldQualityFailure
+    );
   } finally {
     await client.end().catch(() => undefined);
   }
@@ -536,18 +617,29 @@ async function upsertCrawlRun(client, ids, businessDate, status, counts) {
         error_count,
         data_version
       )
-      values ($1, 'new_listing_information', $2, 'ipo', $3, $4, $5, $6, $7, $8, $9)
+      values ($1, 'title_search', $2, 'ipo', $3, $4, $5, $6, $7, $8, $9)
       on conflict (crawl_run_id) do update set
+        source_surface = excluded.source_surface,
+        target_url = excluded.target_url,
+        crawl_scope = excluded.crawl_scope,
         status = excluded.status,
+        request_fingerprint = excluded.request_fingerprint,
+        started_at = case when excluded.status = 'running' then now() else core.hkex_news_crawl_run.started_at end,
         discovered_count = excluded.discovered_count,
         fetched_count = excluded.fetched_count,
         changed_count = excluded.changed_count,
         error_count = excluded.error_count,
-        completed_at = case when excluded.status = 'completed' then now() else core.hkex_news_crawl_run.completed_at end
+        error_summary = case when excluded.status in ('running', 'completed') then null else core.hkex_news_crawl_run.error_summary end,
+        data_version = excluded.data_version,
+        completed_at = case
+          when excluded.status = 'completed' then now()
+          when excluded.status = 'running' then null
+          else core.hkex_news_crawl_run.completed_at
+        end
     `,
     [
       ids.runId,
-      `https://www1.hkexnews.hk/search/titlesearch.xhtml?business_date=${businessDate}`,
+      `https://www1.hkexnews.hk/search/titleSearchServlet.do?business_date=${businessDate}&scope=ipo`,
       status,
       ids.requestFingerprint,
       counts.discovered,
@@ -555,6 +647,28 @@ async function upsertCrawlRun(client, ids, businessDate, status, counts) {
       counts.changed,
       counts.errors,
       ids.dataVersion
+    ]
+  );
+}
+
+async function markStaleRunningRunFailed(client, ids) {
+  await client.query(
+    `
+      update core.hkex_news_crawl_run
+      set status = 'failed',
+          completed_at = now(),
+          error_count = error_count + 1,
+          error_summary = $3
+      where crawl_run_id = $1
+        and data_version = $2
+        and status = 'running'
+        and started_at < now() - ($4::int * interval '1 minute')
+    `,
+    [
+      ids.runId,
+      ids.dataVersion,
+      `Stale running HKEX News ingest recovered before rerun after ${STALE_RUNNING_RUN_MINUTES} minutes; previous execution likely ended before JSON output.`,
+      STALE_RUNNING_RUN_MINUTES
     ]
   );
 }
@@ -588,6 +702,7 @@ async function persistScrapyDocuments(client, ids, items) {
   let changed = 0;
   let documentsPersisted = 0;
   let warnings = 0;
+  const documents = [];
 
   for (const [index, item] of items.entries()) {
     const document = normalizeScrapyDocument(item, index);
@@ -619,10 +734,12 @@ async function persistScrapyDocuments(client, ids, items) {
     if (document.contentHash) {
       await upsertDocumentContent(client, document);
     }
+    documents.push(document);
   }
 
   return {
     changed,
+    documents,
     documentsPersisted,
     warnings
   };
@@ -770,15 +887,20 @@ async function upsertDocumentContent(client, document) {
         raw_snapshot_id,
         storage_uri,
         binary_hash_sha256,
+        raw_text,
+        sanitized_text,
         sanitizer_version,
         extraction_ready,
         prompt_injection_isolated
       )
-      values ($1, $2, $3, $4, $5, 'raw-storage-v0', false, true)
-      on conflict (document_id, sanitizer_version, binary_hash_sha256) do update set
+      values ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
+      on conflict (document_content_id) do update set
         raw_snapshot_id = excluded.raw_snapshot_id,
         storage_uri = excluded.storage_uri,
-        extraction_ready = false,
+        raw_text = excluded.raw_text,
+        sanitized_text = excluded.sanitized_text,
+        sanitizer_version = excluded.sanitizer_version,
+        extraction_ready = true,
         prompt_injection_isolated = true
     `,
     [
@@ -786,7 +908,348 @@ async function upsertDocumentContent(client, document) {
       document.documentId,
       document.rawSnapshotId,
       document.storageUri,
-      document.contentHash
+      document.contentHash,
+      document.rawText,
+      document.sanitizedText,
+      SANITIZER_VERSION
+    ]
+  );
+}
+
+async function reconcileCurrentRunScope(client, ids, documents) {
+  const documentIds = Array.from(new Set(documents.map((document) => document.documentId)));
+  const factCleanup = await client.query(
+    `
+      delete from core.hkex_news_extracted_fact
+      where data_version = $1
+        and fact_namespace = 'hkex_news'
+        and review_state = 'pending'
+        and quality_state = 'HOLD'
+        and not (document_id = any($2::text[]))
+    `,
+    [ids.dataVersion, documentIds]
+  );
+  const linkCleanup = await client.query(
+    `
+      delete from core.ipo_source_document_link
+      where data_version = $1
+        and matched_by = any($2::text[])
+        and not (document_id = any($3::text[]))
+    `,
+    [ids.dataVersion, AUTO_IPO_LINK_MATCHED_BY, documentIds]
+  );
+  const extractionRunCleanup = await client.query(
+    `
+      delete from core.hkex_news_extraction_run run
+      where run.data_version = $1
+        and run.extractor_name = $3
+        and not (run.document_id = any($2::text[]))
+        and not exists (
+          select 1
+          from core.hkex_news_extracted_fact fact
+          where fact.extraction_run_id = run.extraction_run_id
+        )
+    `,
+    [ids.dataVersion, documentIds, EXTRACTOR_NAME]
+  );
+  const observationCleanup = await client.query(
+    `
+      delete from core.hkex_news_document_observation
+      where crawl_run_id = $1
+        and data_version = $2
+        and not (document_id = any($3::text[]))
+    `,
+    [ids.runId, ids.dataVersion, documentIds]
+  );
+
+  return {
+    currentDocumentCount: documentIds.length,
+    removedExtractionRuns: extractionRunCleanup.rowCount ?? 0,
+    removedFacts: factCleanup.rowCount ?? 0,
+    removedLinks: linkCleanup.rowCount ?? 0,
+    removedObservations: observationCleanup.rowCount ?? 0
+  };
+}
+
+async function runHeldFactPipeline(client, ids, documents, reconciliation) {
+  let factsExtracted = 0;
+  let linkedDocuments = 0;
+
+  for (const document of documents) {
+    const entityLink = await resolveIpoEntityLink(client, document);
+    if (entityLink.offeringId || entityLink.appCode) {
+      await upsertIpoSourceDocumentLink(client, ids, document, entityLink);
+      linkedDocuments += 1;
+    }
+
+    const extractionRunId = extractionRunIdFor(ids, document);
+    await upsertExtractionRun(client, ids, document, extractionRunId);
+
+    for (const fact of extractedFactsForDocument(ids, document, entityLink, extractionRunId)) {
+      await upsertExtractedFact(client, fact);
+      factsExtracted += 1;
+    }
+  }
+
+  await upsertTransformRun(client, ids, {
+    documentsExtracted: documents.length,
+    factsExtracted,
+    linkedDocuments,
+    reconciliation
+  });
+
+  return {
+    documentsExtracted: documents.length,
+    factsExtracted,
+    linkedDocuments
+  };
+}
+
+async function resolveIpoEntityLink(client, document) {
+  const normalizedCode = normalizeHkexCode(document.hkexCode);
+  if (!normalizedCode) {
+    return { appCode: null, confidence: null, matchedBy: null, offeringId: null };
+  }
+
+  const offering = await client.query(
+    `
+      select offering_id
+      from core.ipo_offering
+      where lpad(regexp_replace(hkex_code, '\\D', '', 'g'), 5, '0') = $1
+      order by listing_date desc, updated_at desc
+      limit 1
+    `,
+    [normalizedCode]
+  );
+  const offeringId = offering.rows[0]?.offering_id ?? null;
+
+  const application = await client.query(
+    `
+      select app_code, offering_id
+      from core.ipo_pipeline_application
+      where lpad(regexp_replace(coalesce(list_code, ''), '\\D', '', 'g'), 5, '0') = $1
+         or ($2::text is not null and offering_id = $2)
+      order by publish_date desc nulls last, phip_date desc nulls last, app_code
+      limit 1
+    `,
+    [normalizedCode, offeringId]
+  );
+
+  return {
+    appCode: application.rows[0]?.app_code ?? null,
+    confidence: entityLinkConfidence({
+      appCode: application.rows[0]?.app_code ?? null,
+      offeringId: offeringId ?? application.rows[0]?.offering_id ?? null
+    }),
+    matchedBy: entityLinkMatchedBy({
+      appCode: application.rows[0]?.app_code ?? null,
+      offeringId: offeringId ?? application.rows[0]?.offering_id ?? null
+    }),
+    offeringId: offeringId ?? application.rows[0]?.offering_id ?? null
+  };
+}
+
+async function upsertIpoSourceDocumentLink(client, ids, document, entityLink) {
+  const linkType = classifyDocumentLinkType(document);
+  await client.query(
+    `
+      delete from core.ipo_source_document_link
+      where document_id = $1
+        and data_version = $2
+        and link_type <> $3
+        and matched_by = any($4::text[])
+    `,
+    [document.documentId, ids.dataVersion, linkType, AUTO_IPO_LINK_MATCHED_BY]
+  );
+  await client.query(
+    `
+      insert into core.ipo_source_document_link (
+        ipo_source_document_link_id,
+        offering_id,
+        app_code,
+        document_id,
+        link_type,
+        confidence,
+        matched_by,
+        data_version
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8)
+      on conflict (document_id, link_type, data_version) do update set
+        offering_id = excluded.offering_id,
+        app_code = excluded.app_code,
+        confidence = excluded.confidence,
+        matched_by = excluded.matched_by
+    `,
+    [
+      `iposdl_${stableHash(`${document.documentId}:${linkType}:${ids.dataVersion}`).slice(0, 32)}`,
+      entityLink.offeringId,
+      entityLink.appCode,
+      document.documentId,
+      linkType,
+      entityLink.confidence,
+      entityLink.matchedBy,
+      ids.dataVersion
+    ]
+  );
+}
+
+async function upsertExtractionRun(client, ids, document, extractionRunId) {
+  await client.query(
+    `
+      insert into core.hkex_news_extraction_run (
+        extraction_run_id,
+        document_id,
+        document_content_id,
+        extractor_name,
+        extractor_version,
+        run_kind,
+        completed_at,
+        status,
+        data_version
+      )
+      values ($1, $2, $3, $4, $5, 'deterministic', now(), 'completed', $6)
+      on conflict (extraction_run_id) do update set
+        extractor_name = excluded.extractor_name,
+        extractor_version = excluded.extractor_version,
+        completed_at = now(),
+        status = 'completed',
+        error_summary = null,
+        data_version = excluded.data_version
+    `,
+    [
+      extractionRunId,
+      document.documentId,
+      document.contentId,
+      EXTRACTOR_NAME,
+      EXTRACTOR_VERSION,
+      ids.dataVersion
+    ]
+  );
+}
+
+async function upsertExtractedFact(client, fact) {
+  await client.query(
+    `
+      insert into core.hkex_news_extracted_fact (
+        extracted_fact_id,
+        extraction_run_id,
+        document_id,
+        offering_id,
+        app_code,
+        fact_namespace,
+        fact_key,
+        value_type,
+        value_text,
+        value_numeric,
+        value_date,
+        value_timestamptz,
+        value_boolean,
+        value_json,
+        unit,
+        currency,
+        lang,
+        locator,
+        locator_hash,
+        confidence,
+        review_state,
+        raw_snapshot_id,
+        data_version,
+        quality_state
+      )
+      values (
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9, $10, $11, $12, $13, $14::jsonb,
+        $15, $16, $17, $18::jsonb, $19, $20,
+        'pending', $21, $22, 'HOLD'
+      )
+      on conflict (document_id, fact_key, locator_hash, data_version) do update set
+        extraction_run_id = excluded.extraction_run_id,
+        offering_id = excluded.offering_id,
+        app_code = excluded.app_code,
+        value_type = excluded.value_type,
+        value_text = excluded.value_text,
+        value_numeric = excluded.value_numeric,
+        value_date = excluded.value_date,
+        value_timestamptz = excluded.value_timestamptz,
+        value_boolean = excluded.value_boolean,
+        value_json = excluded.value_json,
+        unit = excluded.unit,
+        currency = excluded.currency,
+        lang = excluded.lang,
+        locator = excluded.locator,
+        confidence = excluded.confidence,
+        review_state = 'pending',
+        raw_snapshot_id = excluded.raw_snapshot_id,
+        quality_state = 'HOLD'
+    `,
+    [
+      fact.extractedFactId,
+      fact.extractionRunId,
+      fact.documentId,
+      fact.offeringId,
+      fact.appCode,
+      fact.factNamespace,
+      fact.factKey,
+      fact.valueType,
+      fact.valueText,
+      fact.valueNumeric,
+      fact.valueDate,
+      fact.valueTimestamptz,
+      fact.valueBoolean,
+      JSON.stringify(fact.valueJson),
+      fact.unit,
+      fact.currency,
+      fact.lang,
+      JSON.stringify(fact.locator),
+      fact.locatorHash,
+      fact.confidence,
+      fact.rawSnapshotId,
+      fact.dataVersion
+    ]
+  );
+}
+
+async function upsertTransformRun(client, ids, summary) {
+  await client.query(
+    `
+      insert into core.hkex_news_transform_run (
+        transform_run_id,
+        source_name,
+        data_version,
+        completed_at,
+        status,
+        accepted_fact_count,
+        upserted_offering_count,
+        upserted_timetable_event_count,
+        upserted_allotment_summary_count,
+        validation_report
+      )
+      values ($1, $2, $3, now(), 'completed', 0, 0, 0, 0, $4::jsonb)
+      on conflict (transform_run_id) do update set
+        completed_at = now(),
+        status = 'completed',
+        accepted_fact_count = 0,
+        upserted_offering_count = 0,
+        upserted_timetable_event_count = 0,
+        upserted_allotment_summary_count = 0,
+        validation_report = excluded.validation_report
+    `,
+    [
+      transformRunIdFor(ids),
+      SOURCE_NAME,
+      ids.dataVersion,
+      JSON.stringify({
+        candidate_fact_count: summary.factsExtracted,
+        current_document_count: summary.reconciliation?.currentDocumentCount ?? summary.documentsExtracted,
+        document_count: summary.documentsExtracted,
+        extractor_version: EXTRACTOR_VERSION,
+        linked_document_count: summary.linkedDocuments,
+        reconciliation: summary.reconciliation ?? null,
+        release_state: "held",
+        review_state: "pending",
+        serving_projection: "not_released",
+        transform_version: TRANSFORM_VERSION
+      })
     ]
   );
 }
@@ -883,12 +1346,13 @@ function normalizeScrapyDocument(item, index) {
   }
 
   const sourceRecordId = nonEmptyString(item.source_record_id) ?? stableHash(canonicalUrl);
-  const sourceSurface = SOURCE_SURFACES.includes(item.source_surface) ? item.source_surface : "new_listing_information";
+  const sourceSurface = SOURCE_SURFACES.includes(item.source_surface) ? item.source_surface : "title_search";
   const documentId = `hkex_doc_${stableHash(`${SOURCE_NAME}:${sourceRecordId}`).slice(0, 32)}`;
   const contentHash = nonEmptyString(item.content_hash_sha256) ?? stableHash(JSON.stringify(item));
   const rawSnapshotId = `raw_hkex_news_${stableHash(`${sourceRecordId}:${item.data_version ?? ""}`).slice(0, 32)}`;
   const rawPayload = {
     canonical_url: canonicalUrl,
+    category: nonEmptyString(item.category),
     content_hash_sha256: contentHash,
     content_type: nonEmptyString(item.content_type) ?? "unknown",
     crawl_run_id: nonEmptyString(item.crawl_run_id),
@@ -903,6 +1367,7 @@ function normalizeScrapyDocument(item, index) {
     title_en: nonEmptyString(item.title_en),
     title_zh_hant: nonEmptyString(item.title_zh_hant)
   };
+  const rawText = metadataTextForDocument(rawPayload);
 
   return {
     accessPolicy: accessPolicyForSurface(sourceSurface),
@@ -919,7 +1384,9 @@ function normalizeScrapyDocument(item, index) {
     publishedAt: isoTimestampOrNull(item.published_at),
     rawPayload,
     rawSnapshotId,
+    rawText,
     resultRank: integerOrNull(item.result_rank) ?? index + 1,
+    sanitizedText: sanitizeMetadataText(rawText),
     sourcePageUrl: nonEmptyString(item.source_page_url) ?? canonicalUrl,
     sourceRecordId,
     sourceSurface,
@@ -933,6 +1400,144 @@ function accessPolicyForSurface(sourceSurface) {
   if (sourceSurface === "ap_phip") return "public_ap_phip_warning_gate";
   if (sourceSurface === "new_listing_information") return "public_new_listing";
   return "public_general";
+}
+
+function extractedFactsForDocument(ids, document, entityLink, extractionRunId) {
+  const facts = [];
+  const addFact = ({ confidence, field, lang = "unknown", value, valueType }) => {
+    if (value === null || value === undefined || value === "") return;
+    const factKey = `document.${field}`;
+    const locator = {
+      canonical_url: document.canonicalUrl,
+      document_id: document.documentId,
+      field,
+      result_rank: document.resultRank,
+      source_record_id: document.sourceRecordId,
+      source_surface: document.sourceSurface
+    };
+    const locatorHash = stableHash(JSON.stringify(locator));
+    facts.push({
+      appCode: entityLink.appCode,
+      confidence,
+      currency: null,
+      dataVersion: ids.dataVersion,
+      documentId: document.documentId,
+      extractedFactId: `hkef_${stableHash(`${document.documentId}:${factKey}:${locatorHash}:${ids.dataVersion}`).slice(0, 32)}`,
+      extractionRunId,
+      factKey,
+      factNamespace: "hkex_news",
+      lang,
+      locator,
+      locatorHash,
+      offeringId: entityLink.offeringId,
+      rawSnapshotId: document.rawSnapshotId,
+      unit: null,
+      valueBoolean: null,
+      valueDate: null,
+      valueJson: {
+        extraction_source: EXTRACTOR_NAME,
+        field,
+        value
+      },
+      valueNumeric: null,
+      valueText: valueType === "text" ? value : null,
+      valueTimestamptz: valueType === "timestamp" ? value : null,
+      valueType
+    });
+  };
+
+  addFact({ confidence: 0.9, field: "source_record_id", value: document.sourceRecordId, valueType: "text" });
+  addFact({ confidence: 0.82, field: "category", value: document.rawPayload.category, valueType: "text" });
+  addFact({ confidence: 0.86, field: "title_en", lang: "en", value: document.titleEn, valueType: "text" });
+  addFact({ confidence: 0.9, field: "hkex_code", value: document.hkexCode, valueType: "text" });
+  addFact({ confidence: 0.88, field: "published_at", value: document.publishedAt, valueType: "timestamp" });
+  addFact({ confidence: 0.95, field: "document_url", value: document.documentUrl, valueType: "text" });
+
+  return facts;
+}
+
+function metadataTextForDocument(rawPayload) {
+  return [
+    ["source_record_id", rawPayload.source_record_id],
+    ["category", rawPayload.category],
+    ["title_en", rawPayload.title_en],
+    ["hkex_code", rawPayload.hkex_code],
+    ["published_at", rawPayload.published_at],
+    ["document_url", rawPayload.document_url],
+    ["canonical_url", rawPayload.canonical_url],
+    ["content_type", rawPayload.content_type],
+    ["source_surface", rawPayload.source_surface]
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
+}
+
+function sanitizeMetadataText(value) {
+  return nonEmptyString(value?.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/gu, " ")) ?? "";
+}
+
+function normalizeHkexCode(value) {
+  const digits = nonEmptyString(value)?.replace(/\D/gu, "");
+  if (!digits) return null;
+  return digits.padStart(5, "0");
+}
+
+function classifyDocumentLinkType(document) {
+  const categoryLinkType = linkTypeForCategory(document.rawPayload.category);
+  if (categoryLinkType) return categoryLinkType;
+
+  const title = `${document.titleEn ?? ""} ${document.documentUrl ?? ""}`.toLowerCase();
+  if (title.includes("prospectus")) return "prospectus";
+  if (title.includes("phip")) return "phip";
+  if (/\ballotment\s+results?\b/u.test(title) || /\ballocation\s+results?\b/u.test(title)) {
+    return "allotment_result";
+  }
+  if (title.includes("listing approval")) return "listing_approval";
+  if (title.includes("progress report")) return "progress_report";
+  return "announcement";
+}
+
+function linkTypeForCategory(category) {
+  switch (category) {
+    case "allotment_results":
+      return "allotment_result";
+    case "application_proof":
+    case "phip":
+      return "phip";
+    case "formal_notice":
+    case "offer_subscription":
+    case "supplementary_listing_document":
+      return "prospectus";
+    case "oc_announcement":
+    case "supplemental_ipo":
+    case "transfer_gem_main":
+      return "announcement";
+    default:
+      return null;
+  }
+}
+
+function entityLinkConfidence({ appCode, offeringId }) {
+  if (appCode && offeringId) return 0.84;
+  if (offeringId) return 0.78;
+  if (appCode) return 0.72;
+  return null;
+}
+
+function entityLinkMatchedBy({ appCode, offeringId }) {
+  if (appCode && offeringId) return "hkex_code:offering_application";
+  if (offeringId) return "hkex_code:offering";
+  if (appCode) return "hkex_code:application";
+  return null;
+}
+
+function extractionRunIdFor(ids, document) {
+  return `hker_${stableHash(`${ids.dataVersion}:${document.documentId}:${document.contentHash}:${EXTRACTOR_VERSION}`).slice(0, 32)}`;
+}
+
+function transformRunIdFor(ids) {
+  return `hktr_${stableHash(`${ids.dataVersion}:${TRANSFORM_VERSION}`).slice(0, 32)}`;
 }
 
 function stableHash(value) {
@@ -968,9 +1573,10 @@ function localContractDailyResult(resolvedDate, command = DAILY_COMMAND) {
   };
 }
 
-function validationResult(dataVersion, pass) {
+function validationResult(dataVersion, pass, metrics = {}) {
   return {
     data_version: dataVersion,
+    metrics,
     release_state: "held",
     status: pass ? "completed" : "held_quality_failure",
     validation: {
@@ -1047,7 +1653,7 @@ function idsForBusinessDate(businessDate) {
     dataVersion: `dv_hkex_news_${compactDate}`,
     jobDir: resolve(runtimeRoot, "scrapy-jobs", runId),
     reportPath: resolve(runtimeRoot, "reports", runId, "documents.jsonl"),
-    requestFingerprint: `hkex-news-daily:${businessDate}:v0`,
+    requestFingerprint: `hkex-news-daily:${businessDate}:scope=ipo:v1`,
     runId,
     sourceBatchId: `rsb_hkex_news_${compactDate}`
   };

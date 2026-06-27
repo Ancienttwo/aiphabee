@@ -1,0 +1,698 @@
+{
+  "version": "2026-06-27.hk-ipo-public-sources.v0",
+  "status": "public_observation_contract",
+  "canonical_source": "hkex_news",
+  "purpose": "Track public HK IPO webpage sources that can supplement HKEX official ingest coverage without becoming canonical fact by default.",
+  "truth_contract": {
+    "third_party_observations_are_canonical": false,
+    "source_attribution_required": true,
+    "source_url_required": true,
+    "observed_at_required": true,
+    "provider_required": true,
+    "raw_snapshot_required_before_promotion": true,
+    "may_fill_missing_fields_after_reconciliation": true,
+    "never_overwrite_hkex_fact_without_conflict_record": true
+  },
+  "proposed_observation_record": {
+    "provider": "text",
+    "source_url": "text",
+    "observed_at": "timestamptz",
+    "source_record_id": "text",
+    "security_code": "text",
+    "field_name": "text",
+    "field_value": "jsonb",
+    "raw_snapshot_id": "text",
+    "reconciled_with_hkex": "boolean",
+    "conflict_status": "text"
+  },
+  "observation_adapter": {
+    "version": "2026-06-28.hk-ipo-public-observation-adapter.v0",
+    "script": "scripts/extract-hk-ipo-public-observations.mjs",
+    "fixture_path": "skills/hkex-news-crawl-qa/evals/public-source-observation-fixtures.json",
+    "package_script": "npm run check:hk-ipo-public-observations",
+    "output_kind": "third_party_ipo_observation",
+    "writes_database": false,
+    "writes_files": false,
+    "executes_source_script": false,
+    "stores_raw_html_in_repo": false,
+    "required_observation_fields": [
+      "observation_id",
+      "source_id",
+      "provider",
+      "source_url",
+      "observed_at",
+      "source_record_id",
+      "security_code",
+      "field_name",
+      "field_value",
+      "field_value_type",
+      "raw_snapshot_id",
+      "raw_snapshot_required",
+      "reconciled_with_hkex",
+      "conflict_status",
+      "locator"
+    ],
+    "required_live_fields_by_source": {
+      "aastocks_ipo_plus": [
+        "company_name",
+        "company_summary_url",
+        "industry",
+        "listing_date",
+        "lot_size"
+      ],
+      "vbkr_hk_ipo": [
+        "security_name",
+        "security_name_en",
+        "issue_low_price",
+        "issue_high_price",
+        "lot_size",
+        "apply_rate",
+        "apply_result_date",
+        "listed_date",
+        "prospectus_url"
+      ]
+    }
+  },
+  "reconciliation_dry_run": {
+    "version": "2026-06-28.hk-ipo-public-reconciliation-dry-run.v0",
+    "script": "scripts/reconcile-hk-ipo-public-observations.mjs",
+    "package_script": "npm run check:hk-ipo-public-reconciliation",
+    "input_script": "scripts/extract-hk-ipo-public-observations.mjs",
+    "writes_database": false,
+    "writes_files": false,
+    "promotes_facts": false,
+    "requires_hkex_url_host": "www1.hkexnews.hk",
+    "comparison_statuses": ["agreement", "conflict", "single_source"],
+    "compared_facts": ["lot_size", "listing_date", "issue_price_range"],
+    "required_summary_fields": [
+      "security_count",
+      "compared_field_count",
+      "agreement_count",
+      "conflict_count",
+      "single_source_count",
+      "hkex_url_evidence_count",
+      "supplement_candidate_count"
+    ]
+  },
+  "reconciliation_packet": {
+    "version": "2026-06-28.hk-ipo-public-reconciliation-packet.v0",
+    "script": "scripts/reconcile-hk-ipo-public-observations.mjs",
+    "package_script": "npm run check:hk-ipo-public-reconciliation-packet",
+    "input_script": "scripts/extract-hk-ipo-public-observations.mjs",
+    "output_mode_flag": "--packet",
+    "packet_kind": "hk_ipo_public_reconciliation_packet",
+    "source_report_version": "2026-06-28.hk-ipo-public-reconciliation-dry-run.v0",
+    "writes_database": false,
+    "writes_files": false,
+    "stores_raw_html_in_repo": false,
+    "promotes_facts": false,
+    "raw_snapshot_request_statuses": ["pending_snapshot"],
+    "reconciliation_row_statuses": ["agreement", "conflict", "single_source"],
+    "supplement_row_statuses": ["candidate"],
+    "required_sections": [
+      "raw_snapshot_requests",
+      "reconciliation_rows",
+      "supplement_candidate_rows",
+      "promotion_policy",
+      "summary"
+    ],
+    "required_summary_fields": [
+      "raw_snapshot_request_count",
+      "reconciliation_row_count",
+      "supplement_candidate_row_count"
+    ],
+    "promotion_policy": {
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "may_promote_statuses": ["agreement"],
+      "conflict_status": "conflict",
+      "single_source_status": "single_source",
+      "never_overwrite_hkex_fact_without_conflict_record": true,
+      "hkex_url_host_required": "www1.hkexnews.hk"
+    }
+  },
+  "schema_preflight": {
+    "version": "2026-06-28.hk-ipo-public-observation-preflight.v0",
+    "migration": "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
+    "checker": "scripts/check-hk-ipo-public-observation-schema.mjs",
+    "package_script": "npm run check:hk-ipo-public-observation-schema",
+    "database_contract": "deploy/database/migrations.contract.json",
+    "writes_database": false,
+    "applies_remote_database": false,
+    "loads_public_web_data": false,
+    "stores_raw_html_in_repo": false,
+    "promotes_facts": false,
+    "canonical_source": "hkex_news",
+    "persistent_tables": [
+      "core.hk_ipo_public_source_run",
+      "core.hk_ipo_public_observation",
+      "core.hk_ipo_public_reconciliation_row",
+      "core.hk_ipo_public_supplement_candidate",
+      "governance.hk_ipo_public_observation_contract"
+    ],
+    "raw_snapshot_record_kinds": [
+      "hk_ipo_public_source_record",
+      "hk_ipo_public_observation",
+      "hk_ipo_public_reconciliation_packet"
+    ],
+    "required_foreign_keys": [
+      "core.raw_source_batch(source_batch_id)",
+      "core.raw_snapshot(raw_snapshot_id)",
+      "core.data_version_batch(data_version)"
+    ],
+    "promotion_guards": {
+      "third_party_observations_are_canonical": false,
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "raw_snapshot_capture": {
+    "version": "2026-06-28.hk-ipo-public-raw-snapshot-capture.v0",
+    "script": "scripts/capture-hk-ipo-public-raw-snapshots.mjs",
+    "package_script": "npm run check:hk-ipo-public-raw-snapshot-capture",
+    "fixture_command": "npm run check:hk-ipo-public-raw-snapshot-capture",
+    "live_command": "node scripts/capture-hk-ipo-public-raw-snapshots.mjs --live --check",
+    "input_packet_script": "scripts/reconcile-hk-ipo-public-observations.mjs",
+    "fixture_path": "skills/hkex-news-crawl-qa/evals/public-source-observation-fixtures.json",
+    "writes_database": false,
+    "writes_files": false,
+    "stores_raw_html_in_repo": false,
+    "emits_payload_text": false,
+    "computes_payload_hash_sha256": true,
+    "target_table": "core.raw_snapshot",
+    "storage_target": "external_raw_snapshot_store",
+    "required_capture_fields": [
+      "raw_snapshot_capture_id",
+      "raw_snapshot_request_id",
+      "raw_snapshot_id",
+      "source_id",
+      "source_record_id",
+      "source_url",
+      "payload_hash_sha256",
+      "payload_bytes",
+      "http_status_code",
+      "payload_emitted",
+      "ready_for_external_snapshot_store",
+      "ready_for_sql_payload"
+    ],
+    "required_summary_fields": [
+      "raw_snapshot_request_count",
+      "capture_count",
+      "unique_fetch_count",
+      "successful_fetch_count",
+      "payload_hash_count",
+      "payloads_emitted_count",
+      "ready_for_external_snapshot_store_count",
+      "ready_for_sql_payload_count",
+      "missing_capture_count"
+    ],
+    "promotion_guards": {
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "raw_snapshot_storage": {
+    "version": "2026-06-28.hk-ipo-public-raw-snapshot-storage.v0",
+    "script": "scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs",
+    "package_script": "npm run check:hk-ipo-public-raw-snapshot-storage",
+    "fixture_command": "npm run check:hk-ipo-public-raw-snapshot-storage",
+    "live_command": "node scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs --live --check",
+    "input_capture_script": "scripts/capture-hk-ipo-public-raw-snapshots.mjs",
+    "target_table": "core.raw_snapshot",
+    "storage_target": "external_raw_snapshot_store",
+    "store_kind": "cloudflare_r2_artifact_binding",
+    "storage_binding": "AIPHABEE_ARTIFACTS",
+    "bucket_hint": "aiphabee-artifacts",
+    "writes_database": false,
+    "writes_files": false,
+    "writes_object_store": false,
+    "stores_raw_html_in_repo": false,
+    "emits_payload_text": false,
+    "promotes_facts": false,
+    "produces_payload_envelope": true,
+    "required_storage_ref_fields": [
+      "raw_snapshot_storage_ref_id",
+      "raw_snapshot_capture_id",
+      "raw_snapshot_request_id",
+      "raw_snapshot_id",
+      "storage_binding",
+      "object_key",
+      "object_key_hash",
+      "payload_envelope_hash_sha256",
+      "payload_hash_sha256",
+      "payload_bytes",
+      "payload_body_included",
+      "ready_for_sql_payload"
+    ],
+    "required_payload_envelope_fields": [
+      "storage_target",
+      "storage_binding",
+      "object_key",
+      "payload_hash_sha256",
+      "payload_bytes",
+      "content_type",
+      "source_url",
+      "payload_body_included"
+    ],
+    "required_summary_fields": [
+      "raw_snapshot_request_count",
+      "capture_count",
+      "payload_envelope_count",
+      "payload_envelope_hash_count",
+      "object_key_count",
+      "payload_bodies_emitted_count",
+      "ready_for_sql_payload_count",
+      "writes_object_store_count",
+      "missing_payload_envelope_count"
+    ],
+    "promotion_guards": {
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "raw_snapshot_r2_writer_smoke": {
+    "version": "2026-06-28.hk-ipo-public-raw-snapshot-r2-writer-smoke.v0",
+    "script": "scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs",
+    "package_script": "npm run check:hk-ipo-public-raw-snapshot-r2-writer",
+    "fixture_command": "npm run check:hk-ipo-public-raw-snapshot-r2-writer",
+    "live_command": "node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --check",
+    "remote_command": "node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --remote --check",
+    "input_storage_script": "scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs",
+    "storage_binding": "AIPHABEE_ARTIFACTS",
+    "bucket_hint": "aiphabee-artifacts",
+    "default_mode": "mock_r2_bucket_put_get_delete",
+    "remote_mode": "smoke_prefixed_wrangler_r2_object_put_get_delete",
+    "writes_database": false,
+    "writes_repo_files": false,
+    "default_remote_object_store_writes": false,
+    "remote_object_store_writes_requires_remote_flag": true,
+    "delete_after_readback": true,
+    "stores_raw_html_in_repo": false,
+    "emits_payload_text": false,
+    "promotes_facts": false,
+    "required_result_fields": [
+      "binding_name",
+      "surface",
+      "object_key_hash",
+      "value_hash",
+      "readback_hash",
+      "payload_hash_matched",
+      "payload_body_output",
+      "cleanup_status",
+      "writes_database",
+      "writes_repo_files"
+    ],
+    "required_summary_fields": [
+      "storage_ref_count",
+      "object_key_count",
+      "write_attempt_count",
+      "payload_hash_match_count",
+      "readback_count",
+      "cleanup_delete_count",
+      "mock_object_store_write_count",
+      "remote_object_store_write_count",
+      "payload_body_output_count",
+      "writes_database_count",
+      "writes_repo_file_count"
+    ],
+    "promotion_guards": {
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "apply_planner": {
+    "version": "2026-06-28.hk-ipo-public-observation-apply-plan.v0",
+    "script": "scripts/plan-hk-ipo-public-observation-apply.mjs",
+    "package_script": "npm run check:hk-ipo-public-apply-plan",
+    "fixture_command": "npm run check:hk-ipo-public-apply-plan",
+    "live_command": "node scripts/plan-hk-ipo-public-observation-apply.mjs --live --check",
+    "input_adapter_script": "scripts/extract-hk-ipo-public-observations.mjs",
+    "input_packet_script": "scripts/reconcile-hk-ipo-public-observations.mjs",
+    "input_capture_script": "scripts/capture-hk-ipo-public-raw-snapshots.mjs",
+    "input_storage_script": "scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs",
+    "schema_checker": "scripts/check-hk-ipo-public-observation-schema.mjs",
+    "writes_database": false,
+    "writes_files": false,
+    "executes_sql": false,
+    "emits_sql_text": false,
+    "parameterized_statements": true,
+    "applies_remote_database": false,
+    "stores_raw_html_in_repo": false,
+    "promotes_facts": false,
+    "target_tables": [
+      "core.raw_source_batch",
+      "core.data_version_batch",
+      "core.hk_ipo_public_source_run",
+      "core.raw_snapshot",
+      "core.hk_ipo_public_observation",
+      "core.hk_ipo_public_reconciliation_row",
+      "core.hk_ipo_public_supplement_candidate"
+    ],
+    "statement_ids": [
+      "upsert_core_raw_source_batch",
+      "upsert_core_data_version_batch",
+      "upsert_core_hk_ipo_public_source_run",
+      "upsert_core_raw_snapshot",
+      "upsert_core_hk_ipo_public_observation",
+      "upsert_core_hk_ipo_public_reconciliation_row",
+      "upsert_core_hk_ipo_public_supplement_candidate"
+    ],
+    "deferred_statement_ids": [],
+    "required_summary_fields": [
+      "source_batch_row_count",
+      "data_version_batch_row_count",
+      "source_run_row_count",
+      "deferred_raw_snapshot_count",
+      "external_raw_snapshot_ref_count",
+      "captured_raw_snapshot_hash_count",
+      "ready_raw_snapshot_payload_count",
+      "observation_row_count",
+      "reconciliation_row_count",
+      "supplement_candidate_row_count",
+      "unresolved_source_observation_count"
+    ],
+    "promotion_guards": {
+      "third_party_observations_are_canonical": false,
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "held_db_apply_packet": {
+    "version": "2026-06-28.hk-ipo-public-held-db-apply-packet.v0",
+    "script": "scripts/plan-hk-ipo-public-held-db-apply-packet.mjs",
+    "package_script": "npm run check:hk-ipo-public-held-db-apply-packet",
+    "fixture_command": "npm run check:hk-ipo-public-held-db-apply-packet",
+    "live_command": "node scripts/plan-hk-ipo-public-held-db-apply-packet.mjs --live --check",
+    "input_apply_plan_script": "scripts/plan-hk-ipo-public-observation-apply.mjs",
+    "provider": "planetscale_postgres",
+    "packet_kind": "hk_ipo_public_held_db_apply_packet",
+    "writes_database": false,
+    "writes_files": false,
+    "executes_sql": false,
+    "emits_sql_text": false,
+    "emits_payload_text": false,
+    "parameterized_statements": true,
+    "applies_remote_database": false,
+    "stores_raw_html_in_repo": false,
+    "promotes_facts": false,
+    "target_tables": [
+      "core.raw_source_batch",
+      "core.data_version_batch",
+      "core.hk_ipo_public_source_run",
+      "core.raw_snapshot",
+      "core.hk_ipo_public_observation",
+      "core.hk_ipo_public_reconciliation_row",
+      "core.hk_ipo_public_supplement_candidate"
+    ],
+    "statement_ids": [
+      "upsert_core_raw_source_batch",
+      "upsert_core_data_version_batch",
+      "upsert_core_hk_ipo_public_source_run",
+      "upsert_core_raw_snapshot",
+      "upsert_core_hk_ipo_public_observation",
+      "upsert_core_hk_ipo_public_reconciliation_row",
+      "upsert_core_hk_ipo_public_supplement_candidate"
+    ],
+    "required_summary_fields": [
+      "statement_count",
+      "ready_statement_count",
+      "target_table_count",
+      "total_row_count",
+      "raw_snapshot_row_count",
+      "ready_raw_snapshot_payload_count",
+      "payload_body_output_count",
+      "sql_text_output_count",
+      "remote_apply_count",
+      "writes_database_count",
+      "unresolved_source_observation_count"
+    ],
+    "safe_output_policy": {
+      "no_database_url": true,
+      "no_password": true,
+      "no_secret": true,
+      "no_sql_text": true,
+      "no_payload_body": true,
+      "counts_and_hashes_only": true
+    },
+    "promotion_guards": {
+      "third_party_observations_are_canonical": false,
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "held_db_apply_smoke": {
+    "version": "2026-06-28.hk-ipo-public-held-db-apply-smoke.v0",
+    "contract": "deploy/ingest/hk-ipo-public-held-db-apply-smoke.contract.json",
+    "checker": "scripts/check-hk-ipo-public-held-db-apply-smoke-contract.mjs",
+    "package_script": "npm run check:hk-ipo-public-held-db-apply-smoke",
+    "unit_test_command": "npm run test -- apps/worker/src/hk-ipo-public-held-db-apply-smoke.test.ts",
+    "aggregate_check_command": "npm run check:hk-ipo-public-sources",
+    "route": "POST /ingest/hk-ipo-public/held-db-apply-smoke",
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "test_file": "apps/worker/src/hk-ipo-public-held-db-apply-smoke.test.ts",
+    "input_apply_packet_script": "scripts/plan-hk-ipo-public-held-db-apply-packet.mjs",
+    "provider": "planetscale_postgres",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "smoke_token_binding": "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN",
+    "smoke_header": {
+      "name": "x-aiphabee-smoke",
+      "value": "hk-ipo-public-held-db-apply-v1"
+    },
+    "actual_hyperdrive_execution": true,
+    "single_transaction": true,
+    "insert_smoke": true,
+    "select_readback": true,
+    "delete_cleanup": true,
+    "synthetic_only": true,
+    "hash_only_response": true,
+    "target_tables": [
+      "core.raw_source_batch",
+      "core.data_version_batch",
+      "core.raw_snapshot",
+      "core.hk_ipo_public_source_run",
+      "core.hk_ipo_public_observation",
+      "core.hk_ipo_public_reconciliation_row",
+      "core.hk_ipo_public_supplement_candidate"
+    ],
+    "blocked_tables": [
+      "core.ipo_offering",
+      "core.ipo_timetable_event",
+      "core.ipo_narrative",
+      "core.ipo_cornerstone"
+    ],
+    "required_response_fields": [
+      "inserted_rows",
+      "selected_rows",
+      "deleted_rows",
+      "cleanup_verified",
+      "data_version_hash",
+      "source_run_id_hash",
+      "raw_snapshot_id_hash",
+      "readback_hash",
+      "query_hash"
+    ],
+    "production_observation_persistence": false,
+    "writes_serving_tables": false,
+    "promotes_facts": false,
+    "releases_data_version": false,
+    "third_party_observations_are_canonical": false,
+    "safe_output_policy": {
+      "no_database_url": true,
+      "no_password": true,
+      "no_secret": true,
+      "no_raw_payload": true,
+      "no_sql_text": true,
+      "counts_and_hashes_only": true
+    },
+    "promotion_guards": {
+      "third_party_observations_are_canonical": false,
+      "source_attribution_required": true,
+      "raw_snapshot_required_before_promotion": true,
+      "writes_serving_tables_allowed": false,
+      "automation_release_allowed": false,
+      "raw_html_repo_storage_allowed": false,
+      "export_allowed": false,
+      "mcp_redistribution_allowed": false
+    }
+  },
+  "sources": [
+    {
+      "id": "aastocks_ipo_plus",
+      "provider": "AASTOCKS",
+      "entry_url": "https://www.aastocks.com/en/stocks/market/ipo/mainpage.aspx",
+      "robots_url": "https://www.aastocks.com/robots.txt",
+      "mode": "public_html",
+      "source_status": "candidate",
+      "default_use": "supplemental_public_observation",
+      "fields_observed": [
+        "security_code",
+        "company_name",
+        "listing_date",
+        "listing_price",
+        "offer_price_or_range",
+        "lot_size",
+        "grey_market",
+        "sponsor_performance",
+        "ipo_news",
+        "ipo_calendar"
+      ],
+      "strengths": [
+        "listed IPO and upcoming IPO surfaces are linked from one public page",
+        "grey-market and sponsor-performance sections are discoverable",
+        "company summary pages are addressable by stock symbol"
+      ],
+      "live_probe": {
+        "enabled": true,
+        "required_status": 200,
+        "required_fragments": [
+          "IPO Plus - IPO Main Page",
+          "Listed IPO",
+          "Grey Market",
+          "Sponsor Performance",
+          "company-summary?symbol=",
+          "Listing Date",
+          "Listing Price"
+        ],
+        "robots_required_fragments": [
+          "Sitemap:"
+        ]
+      }
+    },
+    {
+      "id": "vbkr_hk_ipo",
+      "provider": "VBKR/Huasheng",
+      "entry_url": "https://www.vbkr.com/ipo/hk/v2/ipo-hk-index",
+      "robots_url": "https://www.vbkr.com/robots.txt",
+      "mode": "public_ssr_nuxt_html",
+      "source_status": "candidate",
+      "default_use": "supplemental_public_observation",
+      "fields_observed": [
+        "security_code",
+        "security_name",
+        "security_name_en",
+        "issue_low_price",
+        "issue_high_price",
+        "lot_size",
+        "lowest_fee",
+        "apply_rate",
+        "apply_start_date",
+        "apply_end_time",
+        "apply_result_date",
+        "listed_date",
+        "prospectus_path",
+        "sponsors",
+        "stock_status"
+      ],
+      "strengths": [
+        "SSR Nuxt payload exposes structured IPO lists",
+        "application, result, and listing dates appear in one payload",
+        "prospectus and sponsor fields are present for reconciliation"
+      ],
+      "live_probe": {
+        "enabled": true,
+        "required_status": 200,
+        "required_fragments": [
+          "新股認購列表",
+          "enableApplyList",
+          "prepareListed",
+          "deliveryList",
+          "prospectusPath",
+          "securityCode",
+          "applyRate",
+          "listedDate",
+          "捷利交易寶"
+        ],
+        "robots_required_fragments": [
+          "Allow: /"
+        ]
+      }
+    },
+    {
+      "id": "etnet_ipo",
+      "provider": "ETNet",
+      "entry_url": "https://www.etnet.com.hk/www/eng/stocks/ipo/",
+      "robots_url": "https://www.etnet.com.hk/robots.txt",
+      "mode": "robots_excluded",
+      "source_status": "do_not_crawl_by_default",
+      "default_use": "manual_research_only_unless_policy_changes",
+      "block_reason": "robots.txt excludes IPO paths, so this is not a default crawler source.",
+      "live_probe": {
+        "enabled": false,
+        "robots_only": true,
+        "robots_required_fragments": [
+          "Disallow: /IPO",
+          "Disallow: /IPO2"
+        ]
+      }
+    },
+    {
+      "id": "futu_moomoo_ipo",
+      "provider": "Futu/Moomoo",
+      "entry_url": "https://www.futunn.com/en/ipo/hk",
+      "alternate_url": "https://www.moomoo.com/hk/ipo",
+      "mode": "anti_bot_or_403_observed",
+      "source_status": "do_not_crawl_by_default",
+      "default_use": "manual_research_only_unless_partner_or_browser_flow_exists",
+      "block_reason": "public probe observed 403 or anti-automation response, so this is not a default crawler source.",
+      "live_probe": {
+        "enabled": false
+      }
+    }
+  ],
+  "verification": {
+    "static_command": "npm run check:hk-ipo-public-sources",
+    "live_command": "npm run check:hk-ipo-public-sources -- --live",
+    "adapter_fixture_command": "npm run check:hk-ipo-public-observations",
+    "adapter_live_command": "node scripts/extract-hk-ipo-public-observations.mjs --live --check",
+    "reconciliation_fixture_command": "npm run check:hk-ipo-public-reconciliation",
+    "reconciliation_live_command": "node scripts/reconcile-hk-ipo-public-observations.mjs --live --check",
+    "reconciliation_packet_fixture_command": "npm run check:hk-ipo-public-reconciliation-packet",
+    "reconciliation_packet_live_command": "node scripts/reconcile-hk-ipo-public-observations.mjs --live --packet --check",
+    "schema_preflight_command": "npm run check:hk-ipo-public-observation-schema",
+    "raw_snapshot_capture_fixture_command": "npm run check:hk-ipo-public-raw-snapshot-capture",
+    "raw_snapshot_capture_live_command": "node scripts/capture-hk-ipo-public-raw-snapshots.mjs --live --check",
+    "raw_snapshot_storage_fixture_command": "npm run check:hk-ipo-public-raw-snapshot-storage",
+    "raw_snapshot_storage_live_command": "node scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs --live --check",
+    "raw_snapshot_r2_writer_fixture_command": "npm run check:hk-ipo-public-raw-snapshot-r2-writer",
+    "raw_snapshot_r2_writer_live_command": "node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --check",
+    "raw_snapshot_r2_writer_remote_command": "node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --remote --check",
+    "apply_plan_fixture_command": "npm run check:hk-ipo-public-apply-plan",
+    "apply_plan_live_command": "node scripts/plan-hk-ipo-public-observation-apply.mjs --live --check",
+    "held_db_apply_packet_fixture_command": "npm run check:hk-ipo-public-held-db-apply-packet",
+    "held_db_apply_packet_live_command": "node scripts/plan-hk-ipo-public-held-db-apply-packet.mjs --live --check",
+    "held_db_apply_smoke_contract_command": "npm run check:hk-ipo-public-held-db-apply-smoke",
+    "held_db_apply_smoke_unit_test_command": "npm run test -- apps/worker/src/hk-ipo-public-held-db-apply-smoke.test.ts",
+    "live_network_writes": false,
+    "raw_html_committed_to_repo": false
+  }
+}

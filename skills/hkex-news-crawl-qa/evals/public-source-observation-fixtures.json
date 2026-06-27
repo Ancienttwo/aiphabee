@@ -1,0 +1,54 @@
+{
+  "version": "2026-06-28.hk-ipo-public-observation-fixtures.v0",
+  "adapter_version": "2026-06-28.hk-ipo-public-observation-adapter.v0",
+  "fixtures": [
+    {
+      "source_id": "aastocks_ipo_plus",
+      "source_url": "https://www.aastocks.com/en/stocks/market/ipo/mainpage.aspx",
+      "observed_at": "2026-06-28T00:00:00.000Z",
+      "html": "<html><body><div class=\"title\">Current IPOs</div><table><thead><tr><td>Name/Code</td><td>Industry</td><td>Offer Price</td><td>Lot Size</td><td>Entry Fee</td><td>Closing Date</td><td>Listing Date</td><td>Related Info</td></tr></thead><tbody><tr><td><a href=\"/en/stocks/market/ipo/upcomingipo/company-summary?symbol=02667#info\">Tong Ren Tang Care</a><br/><span class=\"cls\">02667.HK</span></td><td>Health Care Services</td><td>5.48-6.21</td><td>500</td><td>3,136.31</td><td>2026/07/02</td><td>2026/07/07</td><td><a href=\"/en/stocks/market/ipo/upcomingipo/company-news?symbol=02667#info\">News</a></td></tr></tbody></table></body></html>",
+      "expected": {
+        "min_records": 1,
+        "min_observations": 8,
+        "required_security_codes": ["02667.HK"],
+        "required_field_names": [
+          "company_name",
+          "company_summary_url",
+          "industry",
+          "offer_price_or_range",
+          "lot_size",
+          "entry_fee_hkd",
+          "closing_date",
+          "listing_date"
+        ]
+      }
+    },
+    {
+      "source_id": "vbkr_hk_ipo",
+      "source_url": "https://www.vbkr.com/ipo/hk/v2/ipo-hk-index",
+      "observed_at": "2026-06-28T00:00:00.000Z",
+      "html": "<html><body><script>window.__NUXT__=(function(a,b,c,d,e,f,g,h,i,j,k,l){return {layout:\"new-common\",data:[{enableApplyList:[{prospectusPath:\"https:\\u002F\\u002Fwww1.hkexnews.hk\\u002Flistedco\\u002Flistconews\\u002Fsehk\\u002F2026\\u002F0626\\u002F2026062600022_c.pdf\",securityName:\"同仁堂医养\",applyEndTime:\"2026-07-02 10:00:00\",applyStartDate:j,applyResultDate:\"2026-07-03\",lotSize:500,applyRate:\"25.18\",securityCode:\"02667.HK\",listedDate:\"2026-07-07\",securityNameTc:\"同仁堂醫養\",sponsorsHk:[k],sponsors:[l],stockStatus:4,securityNameEn:\"TONGRENTANGCARE\",issueLowPrice:5.48,lowestFee:3136.31,ipoId:4341,issueHighPrice:6.21}],prepareListed:[],deliveryList:[]}]}})(\"\",1,true,1000,\"0\",\"10\",void 0,3,\"2026-06-25\",\"2026-06-26\",\"中國國際金融香港證券有限公司\",\"中国国际金融香港证券有限公司\");</script></body></html>",
+      "expected": {
+        "min_records": 1,
+        "min_observations": 12,
+        "required_security_codes": ["02667.HK"],
+        "required_field_names": [
+          "security_name",
+          "security_name_en",
+          "security_name_zh_hant",
+          "issue_low_price",
+          "issue_high_price",
+          "lot_size",
+          "lowest_fee_hkd",
+          "apply_rate",
+          "apply_start_date",
+          "apply_end_time",
+          "apply_result_date",
+          "listed_date",
+          "prospectus_url",
+          "sponsors"
+        ]
+      }
+    }
+  ]
+}
