@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.phase0.mvp-product-boundary-copy.v0",
+  "version": "2026-06-27.phase0.mvp-product-boundary-copy.v1",
   "status": "local_contract",
   "package": "@aiphabee/public-ops",
   "review_source": "docs/researches/AiphaBee_PRD_v1.0.md#14.2",
@@ -18,17 +18,20 @@
     "apps/web/src/components/Disclaimer.tsx",
     "apps/web/src/components/Footer.tsx",
     "apps/web/src/components/MarketSentimentPanel.tsx",
-    "apps/web/src/data/ipos.ts",
-    "apps/web/src/lib/mock-api.ts",
+    "apps/web/src/data/ipos.fixtures.ts",
+    "apps/web/src/lib/api/endpoints.ts",
+    "apps/web/src/lib/api/ipo-mock.ts",
     "apps/web/src/routes/dashboard.tsx",
     "apps/web/src/routes/index.tsx",
     "apps/web/src/routes/ipos/$ipoId.tsx",
+    "apps/web/src/routes/ipos/calendar.tsx",
+    "apps/web/src/routes/ipos/compare.tsx",
     "apps/web/src/routes/ipos/index.tsx"
   ],
   "evidence_files": [
     "docs/governance/mvp-product-boundary-copy.md",
     "deploy/public-ops/compliance-ops-release-gate.contract.json",
-    "apps/web/src/lib/mock-api.test.ts"
+    "apps/web/src/lib/api/client.test.ts"
   ],
   "allowed_positioning_terms": [
     "research",

@@ -27,8 +27,12 @@ copy:
 - `docs/public/*.md`
 - `apps/web/src/components/Disclaimer.tsx`
 - `apps/web/src/components/MarketSentimentPanel.tsx`
-- `apps/web/src/data/ipos.ts`
-- `apps/web/src/routes/*`
+- `apps/web/src/data/ipos.fixtures.ts`
+- `apps/web/src/lib/api/endpoints.ts`
+- `apps/web/src/lib/api/ipo-mock.ts`
+- `apps/web/src/routes/dashboard.tsx`
+- `apps/web/src/routes/index.tsx`
+- `apps/web/src/routes/ipos/*`
 
 Reference design material under `docs/AiphaBee Design System/**` is not treated
 as current publication copy.

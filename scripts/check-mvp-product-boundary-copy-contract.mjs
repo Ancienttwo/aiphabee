@@ -39,17 +39,20 @@ const requiredPublishSurfaceFiles = [
   "apps/web/src/components/Disclaimer.tsx",
   "apps/web/src/components/Footer.tsx",
   "apps/web/src/components/MarketSentimentPanel.tsx",
-  "apps/web/src/data/ipos.ts",
-  "apps/web/src/lib/mock-api.ts",
+  "apps/web/src/data/ipos.fixtures.ts",
+  "apps/web/src/lib/api/endpoints.ts",
+  "apps/web/src/lib/api/ipo-mock.ts",
   "apps/web/src/routes/dashboard.tsx",
   "apps/web/src/routes/index.tsx",
   "apps/web/src/routes/ipos/$ipoId.tsx",
+  "apps/web/src/routes/ipos/calendar.tsx",
+  "apps/web/src/routes/ipos/compare.tsx",
   "apps/web/src/routes/ipos/index.tsx"
 ];
 const requiredEvidenceFiles = [
   "docs/governance/mvp-product-boundary-copy.md",
   "deploy/public-ops/compliance-ops-release-gate.contract.json",
-  "apps/web/src/lib/mock-api.test.ts"
+  "apps/web/src/lib/api/client.test.ts"
 ];
 const requiredBlockers = [
   "type4_written_opinion_missing",
@@ -120,7 +123,7 @@ function validateContract(value, packageValue) {
     return ["contract must be an object"];
   }
 
-  if (value.version !== "2026-06-22.phase0.mvp-product-boundary-copy.v0") {
+  if (value.version !== "2026-06-27.phase0.mvp-product-boundary-copy.v1") {
     errors.push("version must match MVP product boundary copy version");
   }
 
