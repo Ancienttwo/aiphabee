@@ -12,8 +12,7 @@ const forbiddenContractDefaults = [
   "OTLP_EXPORTER_OTLP_ENDPOINT",
   "OTLP_EXPORTER_OTLP_HEADERS",
   "GITHUB_REPOSITORY",
-  "GITHUB_ENVIRONMENT",
-  "SUPABASE_PROJECT_REF"
+  "GITHUB_ENVIRONMENT"
 ];
 const errors = [];
 

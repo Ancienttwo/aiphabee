@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { spawn } from "node:child_process";
 import {
   getLiveSmokeEnvValue,
@@ -23,8 +20,7 @@ const npxBin = process.platform === "win32" ? "npx.cmd" : "npx";
 const ghBin = process.platform === "win32" ? "gh.exe" : "gh";
 const requiredEnv = {
   cloudflare_workers: ["CLOUDFLARE_WORKER_NAME"],
-  github_actions: ["GITHUB_REPOSITORY", "GITHUB_ENVIRONMENT"],
-  supabase: ["SUPABASE_PROJECT_REF"]
+  github_actions: ["GITHUB_REPOSITORY", "GITHUB_ENVIRONMENT"]
 };
 const operations = [
   "set_synthetic_secret",
@@ -39,8 +35,7 @@ if (dryRun) {
     {
       auth_sources: {
         cloudflare_workers: "Wrangler authenticated session or CLOUDFLARE_API_TOKEN",
-        github_actions: "gh authenticated session or GITHUB_TOKEN",
-        supabase: "Supabase authenticated session or SUPABASE_ACCESS_TOKEN"
+        github_actions: "gh authenticated session or GITHUB_TOKEN"
       },
       forbidden_output_fields: [
         "authorization",
@@ -111,10 +106,6 @@ async function smokeProvider(provider, secretName) {
 
     if (provider === "github_actions") {
       return await smokeGitHubActions(secretName, firstValue, rotatedValue);
-    }
-
-    if (provider === "supabase") {
-      return await smokeSupabase(secretName, firstValue, rotatedValue);
     }
 
     return failedResult(provider, "unsupported_provider", "provider is not supported", secretName, 0);
@@ -236,83 +227,6 @@ async function smokeGitHubActions(secretName, firstValue, rotatedValue) {
   }
 }
 
-async function smokeSupabase(secretName, firstValue, rotatedValue) {
-  const projectRef = requiredEnvValue("SUPABASE_PROJECT_REF");
-  let operationCount = 0;
-
-  try {
-    await setSupabaseSecret(secretName, firstValue, projectRef);
-    operationCount += 1;
-
-    await expectSecretPresence("supabase", secretName, true, () => listSupabaseSecretNames(projectRef));
-    operationCount += 1;
-
-    await setSupabaseSecret(secretName, rotatedValue, projectRef);
-    operationCount += 1;
-
-    await expectCommand(
-      "supabase",
-      "delete_synthetic_secret",
-      runCommand(npxBin, [
-        "supabase",
-        "secrets",
-        "unset",
-        secretName,
-        "--project-ref",
-        projectRef,
-        "--yes"
-      ])
-    );
-    operationCount += 1;
-
-    await expectSecretPresence("supabase", secretName, false, () => listSupabaseSecretNames(projectRef));
-    operationCount += 1;
-
-    return passedResult("supabase", secretName, operationCount);
-  } catch (error) {
-    await runCommand(npxBin, [
-      "supabase",
-      "secrets",
-      "unset",
-      secretName,
-      "--project-ref",
-      projectRef,
-      "--yes"
-    ]).catch(() => undefined);
-    return failedResult(
-      "supabase",
-      "supabase_secret_smoke_failed",
-      error instanceof Error ? error.message : String(error),
-      secretName,
-      operationCount
-    );
-  }
-}
-
-async function setSupabaseSecret(secretName, value, projectRef) {
-  const directory = await mkdtemp(join(tmpdir(), "aiphabee-secret-smoke-"));
-  const envFile = join(directory, "smoke.env");
-
-  try {
-    await writeFile(envFile, `${secretName}=${value.toString("base64")}\n`, { mode: 0o600 });
-    await expectCommand(
-      "supabase",
-      "set_synthetic_secret",
-      runCommand(npxBin, [
-        "supabase",
-        "secrets",
-        "set",
-        "--env-file",
-        envFile,
-        "--project-ref",
-        projectRef
-      ])
-    );
-  } finally {
-    await rm(directory, { force: true, recursive: true }).catch(() => undefined);
-  }
-}
-
 async function listCloudflareWorkerSecretNames(workerName) {
   const result = await expectCommand(
     "cloudflare_workers",
@@ -344,15 +258,6 @@ async function listGitHubSecretNames(repository, environment) {
       "--json",
       "name,updatedAt"
     ])
-  );
-  return extractSecretNames(result.stdout);
-}
-
-async function listSupabaseSecretNames(projectRef) {
-  const result = await expectCommand(
-    "supabase",
-    "list_secret_metadata",
-    runCommand(npxBin, ["supabase", "secrets", "list", "--project-ref", projectRef, "--output", "json"])
   );
   return extractSecretNames(result.stdout);
 }

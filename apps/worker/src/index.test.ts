@@ -20727,8 +20727,7 @@ describe("worker runtime", () => {
     expect(body.data.store_contract).toBe("deploy/secrets/stores.contract.json");
     expect(body.data.provider_stores.map((store) => store.name)).toEqual([
       "cloudflare_workers",
-      "github_actions",
-      "supabase"
+      "github_actions"
     ]);
     expect(body.data.provider_stores.every((store) => store.status === "planned")).toBe(
       true

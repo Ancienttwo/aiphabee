@@ -100,8 +100,7 @@
       "linked_ledger_surface": "provider_secret_store_rotation",
       "blocking_conditions": [
         "cloudflare_workers_secret_set_rotate_delete",
-        "github_actions_secret_set_rotate_delete",
-        "supabase_secret_set_rotate_delete"
+        "github_actions_secret_set_rotate_delete"
       ]
     }
   ],

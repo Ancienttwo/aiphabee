@@ -31,8 +31,7 @@ const requiredNonInferableEnv = [
   "OTLP_EXPORTER_OTLP_ENDPOINT",
   "OTLP_EXPORTER_OTLP_HEADERS",
   "GITHUB_REPOSITORY",
-  "GITHUB_ENVIRONMENT",
-  "SUPABASE_PROJECT_REF"
+  "GITHUB_ENVIRONMENT"
 ];
 const requiredMissingEvidence = [
   "hyperdrive_select_1_smoke",
@@ -42,8 +41,7 @@ const requiredMissingEvidence = [
   "otlp_http_log_export",
   "eval_store_record_write_read_delete",
   "cloudflare_workers_secret_set_rotate_delete",
-  "github_actions_secret_set_rotate_delete",
-  "supabase_secret_set_rotate_delete"
+  "github_actions_secret_set_rotate_delete"
 ];
 const forbiddenTextPatterns = [
   /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,

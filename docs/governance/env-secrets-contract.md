@@ -1,7 +1,7 @@
 # Environment And Secrets Contract
 
 > **Status**: Verified repo-local contract
-> **Last Updated**: 2026-06-20 16:00 +08
+> **Last Updated**: 2026-06-26 17:15 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-env-secrets-contract.md`
 > **Task Contract**: `tasks/contracts/env-secrets-contract.contract.md`
@@ -26,7 +26,6 @@ staging, and prod. It does not provision provider secrets.
 The schema marks these variables as secret:
 
 - `CLOUDFLARE_API_TOKEN`
-- `SUPABASE_SERVICE_ROLE_KEY`
 - `HYPERDRIVE_DATABASE_URL`
 - `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE`
 - `OTLP_EXPORTER_OTLP_HEADERS`
@@ -45,7 +44,7 @@ Passed:
 
 ## Residual Gaps
 
-- Cloudflare/GitHub/Supabase live secret stores are not provisioned.
+- Cloudflare/GitHub live secret stores are not provisioned.
 - Rotation policy and emergency revocation runbook now exist in
   `docs/governance/provider-secret-stores-contract.md`; live rotation/revocation
   smoke remains unimplemented.

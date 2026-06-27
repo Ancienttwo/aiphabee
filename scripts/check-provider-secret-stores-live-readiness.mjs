@@ -7,7 +7,7 @@ const contractPath = "deploy/secrets/live-smoke-readiness.contract.json";
 const sourceContractPath = "deploy/secrets/stores.contract.json";
 const packagePath = "package.json";
 const smokeScriptPath = "scripts/smoke-provider-secret-stores-live.mjs";
-const requiredProviders = ["cloudflare_workers", "github_actions", "supabase"];
+const requiredProviders = ["cloudflare_workers", "github_actions"];
 const requiredOperations = [
   "set_synthetic_secret",
   "list_secret_metadata",
@@ -227,9 +227,6 @@ function validateSmokeScript(value) {
     "gh",
     "secret",
     "set",
-    "supabase",
-    "secrets",
-    "unset",
     "AIPHABEE_SECRET_STORE_SMOKE",
     "generated_in_memory_not_logged",
     "secret_value_hash",

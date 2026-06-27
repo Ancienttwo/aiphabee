@@ -7469,10 +7469,6 @@ app.get("/secrets/runtime", (c) => {
           {
             name: "github_actions",
             status: "planned"
-          },
-          {
-            name: "supabase",
-            status: "planned"
           }
         ],
         rotation_cadence_days: 90,

@@ -95,8 +95,7 @@ function buildCommandPreflights({ cloudflare, ledger, modelProvider, observabili
     provider_secret_store_rotation: {
       auth_sources: [
         "Wrangler authenticated session or CLOUDFLARE_API_TOKEN",
-        "gh authenticated session or GITHUB_TOKEN",
-        "Supabase authenticated session or SUPABASE_ACCESS_TOKEN"
+        "gh authenticated session or GITHUB_TOKEN"
       ],
       command: "npm run smoke:provider-secret-stores-live",
       provider_required_env: providerSecretRequiredEnv,

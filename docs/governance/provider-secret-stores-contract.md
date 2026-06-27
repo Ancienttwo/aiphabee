@@ -1,7 +1,7 @@
 # Provider Secret Stores Contract
 
 > **Status**: Verified no-secret contract
-> **Last Updated**: 2026-06-20 16:00 +08
+> **Last Updated**: 2026-06-26 17:15 +08
 > **Source Tracker**: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > **Plan**: `plans/plan-provider-secret-stores-contract.md`
 > **Task Contract**: `tasks/contracts/provider-secret-stores-contract.contract.md`
@@ -21,18 +21,20 @@ References checked:
 - [GitHub Actions secrets](https://docs.github.com/actions/security-guides/using-secrets-in-github-actions):
   repository, environment, and organization secrets can be managed through UI or
   `gh secret set/list`.
-- [Supabase CLI secrets](https://github.com/supabase/cli/blob/develop/apps/cli/docs/go-cli-reference.md):
-  `supabase secrets set/list/unset` manages project secrets.
+- Supabase project secrets are no longer an active provider-store target after
+  the PlanetScale migration. The old project is tracked by
+  `docs/governance/aiphabee-supabase-retirement.md` until cold backup and
+  deletion.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
-| Env secret names | `deploy/env/env.schema.json` | Five secret variables; templates remain blank |
-| Store contract | `deploy/secrets/stores.contract.json` | Cloudflare Workers, GitHub Actions, Supabase planned stores |
+| Env secret names | `deploy/env/env.schema.json` | Four active secret variables; templates remain blank |
+| Store contract | `deploy/secrets/stores.contract.json` | Cloudflare Workers and GitHub Actions planned stores |
 | Runbook | `deploy/runbooks/secret-rotation-emergency-revocation.md` | Operator path for normal rotation and emergency revocation |
 | Validator | `scripts/check-secret-stores-contract.mjs` | Ensures provider coverage, env-secret parity, cadence/SLA, and no secret-like values |
-| Live smoke readiness | `deploy/secrets/live-smoke-readiness.contract.json` / `scripts/smoke-provider-secret-stores-live.mjs` | Synthetic set/list/rotate/delete readiness for Cloudflare/GitHub/Supabase |
+| Live smoke readiness | `deploy/secrets/live-smoke-readiness.contract.json` / `scripts/smoke-provider-secret-stores-live.mjs` | Synthetic set/list/rotate/delete readiness for Cloudflare/GitHub |
 | Worker route | `GET /secrets/runtime` | Reports store contract, provider names, cadence, SLA, and `secret_values_available=false` |
 | Live providers | Absent | No provider mutation, no secret value, no provider ID, no secret listing output |
 
@@ -46,7 +48,7 @@ Contract validation trace:
    `deploy/env/env.schema.json`.
 3. It confirms:
    - contract secret names match env schema secret variables;
-   - Cloudflare Workers, GitHub Actions, and Supabase providers exist;
+   - Cloudflare Workers and GitHub Actions providers exist;
    - provider statuses remain `planned`;
    - rotation cadence is within policy;
    - emergency revocation SLA is no more than 30 minutes;
@@ -58,7 +60,7 @@ Runtime capability trace:
 
 1. `GET /secrets/runtime` enters the Hono Worker.
 2. Worker returns a standard success envelope with:
-   - `provider_stores=[cloudflare_workers, github_actions, supabase]`;
+   - `provider_stores=[cloudflare_workers, github_actions]`;
    - `rotation_cadence_days=90`;
    - `emergency_revocation_sla_minutes=30`;
    - `secret_values_available=false`;
@@ -92,7 +94,7 @@ Reason:
 Tradeoff:
 
 - This completes the Sprint 0.4 secret-store contract leaf.
-- It does not prove that Cloudflare, GitHub Actions, or Supabase stores are live
+- It does not prove that Cloudflare or GitHub Actions stores are live
   or that rotation has been smoke-tested.
 - The new live smoke harness narrows the remaining live task to an explicit
   synthetic provider mutation run, but this document still does not claim a live
@@ -118,8 +120,7 @@ Observed `/secrets/runtime` response fields:
   "emergency_revocation_sla_minutes": 30,
   "provider_stores": [
     { "name": "cloudflare_workers", "status": "planned" },
-    { "name": "github_actions", "status": "planned" },
-    { "name": "supabase", "status": "planned" }
+    { "name": "github_actions", "status": "planned" }
   ],
   "rotation_cadence_days": 90,
   "secret_values_available": false,
@@ -130,7 +131,7 @@ Observed `/secrets/runtime` response fields:
 ## Residual Gaps
 
 - Real provider secret stores are not provisioned.
-- No `wrangler secret`, `gh secret`, or `supabase secrets` live mutation smoke
-  has passed against a real account.
+- No `wrangler secret` or `gh secret` live mutation smoke has passed against a
+  real account.
 - OIDC replacement for long-lived deployment credentials remains unimplemented.
 - Production incident evidence storage is not implemented.

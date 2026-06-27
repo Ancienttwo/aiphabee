@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const contractPath = "deploy/secrets/stores.contract.json";
 const envSchemaPath = "deploy/env/env.schema.json";
-const requiredProviders = ["cloudflare_workers", "github_actions", "supabase"];
+const requiredProviders = ["cloudflare_workers", "github_actions"];
 const requiredProviderFields = [
   "name",
   "status",

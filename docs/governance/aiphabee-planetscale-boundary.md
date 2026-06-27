@@ -61,7 +61,8 @@ Authoritative repo surfaces:
 
 Out of scope:
 
-- Deleting the old Supabase project before cold-backup and connection audit.
+- Deleting the old Supabase project before the retirement packet's cold-backup
+  gate passes; see `docs/governance/aiphabee-supabase-retirement.md`.
 - Renaming the existing `supabase/migrations` directory.
 - Applying schema/data to PlanetScale without a direct connection secret.
 - Finalizing auth federation between products.

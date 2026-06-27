@@ -14,7 +14,6 @@ Required non-inferable env names:
 - `OTLP_EXPORTER_OTLP_HEADERS`
 - `GITHUB_REPOSITORY`
 - `GITHUB_ENVIRONMENT`
-- `SUPABASE_PROJECT_REF`
 
 Operator order:
 
@@ -37,4 +36,4 @@ Operator order:
 6. Run `npm run check:live-smoke-capture-packets`.
 
 The provider secret store template may set `cleanup_verified=true` only after
-the synthetic Cloudflare/GitHub/Supabase secret values are confirmed absent.
+the synthetic Cloudflare/GitHub secret values are confirmed absent.

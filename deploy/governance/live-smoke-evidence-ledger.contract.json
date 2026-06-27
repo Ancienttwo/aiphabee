@@ -104,8 +104,7 @@
     "OTLP_EXPORTER_OTLP_ENDPOINT",
     "OTLP_EXPORTER_OTLP_HEADERS",
     "GITHUB_REPOSITORY",
-    "GITHUB_ENVIRONMENT",
-    "SUPABASE_PROJECT_REF"
+    "GITHUB_ENVIRONMENT"
   ],
   "surfaces": [
     {
@@ -203,8 +202,7 @@
       "evidence_refs": [],
       "missing_evidence": [
         "cloudflare_workers_secret_set_rotate_delete",
-        "github_actions_secret_set_rotate_delete",
-        "supabase_secret_set_rotate_delete"
+        "github_actions_secret_set_rotate_delete"
       ],
       "blocks_sprint0_4_checkbox": true
     }

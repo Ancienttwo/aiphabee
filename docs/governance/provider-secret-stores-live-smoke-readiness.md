@@ -1,12 +1,13 @@
 # Provider Secret Stores Live Smoke Readiness
 
-Date: 2026-06-22
+Date: 2026-06-26
 
 ## Scope
 
-This slice adds the no-secret live smoke harness for Provider secret stores
-across Cloudflare Workers, GitHub Actions environment secrets, and Supabase
-project secrets. It does not claim that a live smoke has passed.
+This slice keeps the no-secret live smoke harness for active Provider secret
+stores across Cloudflare Workers and GitHub Actions environment secrets. Supabase
+project secrets were retired from the active provider set by the PlanetScale
+migration packet. This document does not claim that a live smoke has passed.
 
 ## P1 Architecture Map
 
@@ -24,8 +25,7 @@ project secrets. It does not claim that a live smoke has passed.
 2. Operator exports names-only target env:
    - `CLOUDFLARE_WORKER_NAME`;
    - `GITHUB_REPOSITORY`;
-   - `GITHUB_ENVIRONMENT`;
-   - `SUPABASE_PROJECT_REF`.
+   - `GITHUB_ENVIRONMENT`.
 3. `npm run smoke:provider-secret-stores-live -- --dry-run` reports required
    env, auth sources, operations, providers, and forbidden output fields without
    network access.
@@ -37,10 +37,7 @@ project secrets. It does not claim that a live smoke has passed.
 6. For GitHub Actions the script runs `gh secret set`, `gh secret list --json
    name,updatedAt`, a second `set` as rotation smoke, `gh secret delete`, and a
    final list to confirm absence.
-7. For Supabase the script writes a temporary local env file, runs `supabase
-   secrets set --env-file`, `supabase secrets list --output json`, a second
-   set as rotation smoke, `supabase secrets unset --yes`, then confirms absence.
-8. Output contains provider, status, operation counts, smoke secret name/hash,
+7. Output contains provider, status, operation counts, smoke secret name/hash,
    and command-output hashes only. Secret values, raw CLI output, env file
    contents, tokens, and authorization headers are never emitted.
 
@@ -52,10 +49,9 @@ three planned stores while keeping production credentials and provider ids out
 of git and out of smoke output.
 
 At 10x scale this fails first on provider auth scope drift: a token may list
-secrets but not set/delete them, or the target GitHub environment/Supabase
-project may be wrong. The smoke therefore treats each provider independently
-and exits non-zero unless every provider completes set, list, rotate, delete,
-and confirm-absent.
+secrets but not set/delete them, or the target GitHub environment may be wrong.
+The smoke therefore treats each provider independently and exits non-zero unless
+every active provider completes set, list, rotate, delete, and confirm-absent.
 
 ## Verification
 
@@ -68,5 +64,5 @@ and confirm-absent.
 ## Residual Gaps
 
 - No live provider auth/env is present in the current shell.
-- No real Cloudflare/GitHub/Supabase synthetic secret mutation was executed.
+- No real Cloudflare/GitHub synthetic secret mutation was executed.
 - Sprint 0.4 Provider secret stores live item remains unchecked.

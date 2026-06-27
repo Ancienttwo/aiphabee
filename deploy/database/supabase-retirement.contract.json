@@ -1,0 +1,159 @@
+{
+  "version": "2026-06-27.aiphabee-supabase-retirement.v1",
+  "status": "project_removed_without_cold_backup",
+  "delete_allowed": false,
+  "checker": "scripts/check-supabase-retirement-readiness.mjs",
+  "documentation": "docs/governance/aiphabee-supabase-retirement.md",
+  "supabase_project": {
+    "name": "aiphabee-prod",
+    "project_ref": "kuudopqqtddiqtnwdhuf",
+    "organization_id": "jxwkuwzqmnciklhsltic",
+    "region": "ap-southeast-1",
+    "latest_readback_status": "REMOVED_BY_SUPABASE_API_READBACK",
+    "latest_readback_command": "npx supabase projects list --output json; npx supabase projects api-keys --project-ref kuudopqqtddiqtnwdhuf --output json",
+    "latest_readback_observed_at": "2026-06-26T17:37:47Z"
+  },
+  "removal_readback": {
+    "status": "removed_or_inaccessible",
+    "observed_at": "2026-06-26T17:37:47Z",
+    "private_manifest": "_ops/backups/supabase-retirement/20260627-kuudopqqtddiqtnwdhuf-removal-readback.manifest.json",
+    "projects_list": {
+      "command": "npx supabase projects list --output json",
+      "visible_project_count": 3,
+      "visible_project_refs": [
+        "innqoumlqctqnryhyasw",
+        "typnmjypwxjdpmalsbyj",
+        "ewpljbzwyzazyyetxsci"
+      ],
+      "aiphabee_project_listed": false
+    },
+    "api_keys_readback": {
+      "command": "npx supabase projects api-keys --project-ref kuudopqqtddiqtnwdhuf --output json",
+      "status": "failed_resource_removed",
+      "safe_failure_reason": "resource_removed",
+      "stderr_sha256": "sha256:9e3ac566e6135dd29a4690a44ff6000777d50d242096f4cf0b97800ed754c103"
+    },
+    "dns_readback": {
+      "host": "db.kuudopqqtddiqtnwdhuf.supabase.co",
+      "status": "no_a_or_aaaa_records"
+    }
+  },
+  "current_runtime": {
+    "provider": "planetscale_postgres",
+    "connection_path": "cloudflare_hyperdrive",
+    "database_contract": "deploy/database/migrations.contract.json",
+    "worker_config": "apps/worker/wrangler.jsonc",
+    "production_hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "production_hyperdrive_config_id": "2ddc2108d072420c9263ff6923b4f2c3",
+    "production_hyperdrive_origin_host": "ap-southeast-2.pg.psdb.cloud",
+    "production_hyperdrive_origin_user": "aiphabee_runtime_rls.bpvsmvgwkutr",
+    "planet_scale_direct_select_1_status": "passed"
+  },
+  "cold_backup": {
+    "status": "not_obtained_project_removed",
+    "required_before_delete": true,
+    "artifact_directory": "_ops/backups/supabase-retirement",
+    "artifact_policy": "local_private_ignored_by_git",
+    "accepted_artifact_format": "pg_dump_custom_or_supabase_dashboard_backup_with_manifest",
+    "attempts": [
+      {
+        "method": "pg_dump_pooler_from_superseded_private_env",
+        "status": "failed",
+        "safe_failure_reason": "tenant_user_not_found",
+        "stderr_sha256": "sha256:558a853f5b1ba951ce557b615e902ae2b0506892511b100e20213b0da0226496"
+      },
+      {
+        "method": "pg_dump_direct_from_superseded_private_env",
+        "status": "failed",
+        "safe_failure_reason": "direct_host_nxdomain",
+        "stderr_sha256": "sha256:01f8d577de7f50b3e389f1b5e453294e3b6cde8ddb3b5b9ce27c6d4f6a4fc3b3"
+      },
+      {
+        "method": "supabase_cli_db_dump_dry_run",
+        "status": "discarded",
+        "safe_failure_reason": "cli_dry_run_prints_connection_env_to_stdout"
+      },
+      {
+        "method": "supabase_cli_db_dump_linked_with_password",
+        "status": "failed",
+        "safe_failure_reason": "timeout_without_artifact",
+        "stderr_sha256": "sha256:174dba068f1b5c0996aabb6c6fd1a091c7034de4cdc519df5376264f14dd833b"
+      },
+      {
+        "method": "psql_private_url_select_1",
+        "status": "failed",
+        "safe_failure_reason": "tenant_user_not_found_or_dns_unresolved",
+        "stderr_sha256_by_target": {
+          "DATABASE_URL": "sha256:69acd4ebd8daabc16059d92d1b1ea122efe6f7ba0c8329a7bbe2b4cfa4b228a2",
+          "PSQL_DATABASE_URL": "sha256:00a80964f5c7809495fd373db2bf265f2656195610d1f9ffd8d2274b24a0af5b",
+          "AIPHABEE_SUPABASE_POOLER_URL": "sha256:00a80964f5c7809495fd373db2bf265f2656195610d1f9ffd8d2274b24a0af5b",
+          "AIPHABEE_SUPABASE_POOLER_SESSION_URL": "sha256:6bb38088726c5ad8b978b9b8da8898a6c3c728ffdf88d57b435d8ef3d89dd5b5",
+          "AIPHABEE_SUPABASE_DIRECT_URL": "sha256:4ef05978c4711ce0ac5db7b0739a7d9309764f0991fc3b24945bbd3c933c6eea"
+        }
+      },
+      {
+        "method": "supabase_projects_api_keys",
+        "status": "failed",
+        "safe_failure_reason": "resource_removed",
+        "stderr_sha256": "sha256:9e3ac566e6135dd29a4690a44ff6000777d50d242096f4cf0b97800ed754c103"
+      }
+    ],
+    "forbidden_evidence": [
+      "raw_database_dump_in_git",
+      "raw_cli_dry_run_output_in_git",
+      "database_password_or_connection_url_in_repo"
+    ]
+  },
+  "connection_audit": {
+    "active_runtime_scan_roots": ["apps", "packages"],
+    "forbidden_active_tokens": ["@supabase", "SUPABASE_", "auth.uid("],
+    "active_runtime_supabase_refs": 0,
+    "allowed_remaining_surfaces": [
+      "supabase/migrations remains the historical Postgres-compatible SQL inventory until a later directory rename",
+      "docs/governance/aiphabee-independent-supabase-boundary.md remains the superseded decision record",
+      "_ops/env/superseded contains local private rollback metadata outside git"
+    ]
+  },
+  "secret_store_cleanup": {
+    "active_providers": ["cloudflare_workers", "github_actions"],
+    "retired_provider": "supabase",
+    "source_contract": "deploy/secrets/stores.contract.json",
+    "live_smoke_contract": "deploy/secrets/live-smoke-readiness.contract.json",
+    "env_schema": "deploy/env/env.schema.json"
+  },
+  "deletion_gates": [
+    {
+      "id": "production_runtime_moved_to_planetscale",
+      "status": "passed"
+    },
+    {
+      "id": "secret_store_contract_cleanup",
+      "status": "passed"
+    },
+    {
+      "id": "active_runtime_connection_audit",
+      "status": "passed"
+    },
+    {
+      "id": "cold_backup_manifest_present",
+      "status": "failed"
+    },
+    {
+      "id": "supabase_project_removed",
+      "status": "passed"
+    },
+    {
+      "id": "manual_supabase_project_delete",
+      "status": "externally_completed_or_removed"
+    }
+  ],
+  "claimed": [
+    "supabase_project_removed_or_inaccessible_by_api_readback"
+  ],
+  "not_claimed": [
+    "cold_backup_complete",
+    "restorable_supabase_backup_available",
+    "supabase_credentials_rotated_or_revoked",
+    "billing_stopped"
+  ]
+}
