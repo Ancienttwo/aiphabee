@@ -135,13 +135,11 @@
       "required_env": [
         "CLOUDFLARE_WORKER_NAME",
         "GITHUB_REPOSITORY",
-        "GITHUB_ENVIRONMENT",
-        "SUPABASE_PROJECT_REF"
+        "GITHUB_ENVIRONMENT"
       ],
       "auth_sources": [
         "Wrangler authenticated session or CLOUDFLARE_API_TOKEN",
-        "gh authenticated session or GITHUB_TOKEN",
-        "Supabase authenticated session or SUPABASE_ACCESS_TOKEN"
+        "gh authenticated session or GITHUB_TOKEN"
       ],
       "packet_template": "deploy/governance/live-smoke-capture-templates/provider_secret_store_rotation.capture.json",
       "packet_output": "deploy/governance/live-smoke-capture-packets/provider_secret_store_rotation.capture.json",

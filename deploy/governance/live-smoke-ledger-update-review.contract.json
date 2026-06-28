@@ -106,8 +106,7 @@
       "blocking_conditions": [
         "passed_capture_packet_missing",
         "cloudflare_workers_secret_set_rotate_delete",
-        "github_actions_secret_set_rotate_delete",
-        "supabase_secret_set_rotate_delete"
+        "github_actions_secret_set_rotate_delete"
       ]
     }
   ],
