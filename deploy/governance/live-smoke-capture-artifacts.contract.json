@@ -38,6 +38,7 @@
     "packet_fixture_checker_covers_invalid_packets": true,
     "operator_handoff_templates_validate_as_missing_env_packets": true,
     "operator_handoff_readme_lists_external_env_and_order": true,
+    "operator_handoff_readme_lists_run_plan_gate": true,
     "ledger_transition_still_owned_by_live_smoke_evidence_ledger": true,
     "passed_capture_alone_never_unlocks_sprint": true
   },

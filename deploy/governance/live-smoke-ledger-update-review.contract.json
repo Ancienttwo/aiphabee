@@ -1,0 +1,130 @@
+{
+  "version": "2026-06-23.goal.live-smoke-ledger-update-review.v0",
+  "status": "pending_ledger_update_review",
+  "checker": "scripts/check-live-smoke-ledger-update-review-contract.mjs",
+  "fixture_checker": "scripts/check-live-smoke-ledger-update-review-fixtures.mjs",
+  "capture_artifacts_contract": "deploy/governance/live-smoke-capture-artifacts.contract.json",
+  "ledger_contract": "deploy/governance/live-smoke-evidence-ledger.contract.json",
+  "capture_transition_review_contract": "deploy/governance/live-smoke-capture-transition-review.contract.json",
+  "capture_packet_directory": "deploy/governance/live-smoke-capture-packets",
+  "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",
+  "todos": "tasks/todos.md",
+  "release_transition_allowed": false,
+  "all_live_smokes_passed": false,
+  "sprint0_4_live_smoke_checkbox_complete": false,
+  "ledger_update_policy": {
+    "review_does_not_write_ledger": true,
+    "passed_capture_packet_required_before_ledger_surface_passed": true,
+    "ledger_surface_pass_requires_hash_only_evidence_refs": true,
+    "packets_alone_do_not_unlock_release": true,
+    "ledger_alone_without_packets_does_not_unlock_release": true,
+    "capture_transition_review_remains_final_gate": true
+  },
+  "required_capture_ids": [
+    "cloudflare_resource_inventory",
+    "cloudflare_bindings_functional",
+    "ai_gateway_model_execution",
+    "ai_gateway_observability",
+    "observability_otlp_eval_store",
+    "provider_secret_store_rotation"
+  ],
+  "ledger_update_reviews": [
+    {
+      "capture_id": "cloudflare_resource_inventory",
+      "packet_status": "missing",
+      "ledger_surface_status": "partial_external_provisioned",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ]
+    },
+    {
+      "capture_id": "cloudflare_bindings_functional",
+      "packet_status": "missing",
+      "ledger_surface_status": "partial_live_passed",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "hyperdrive_select_1_smoke",
+        "cron_natural_trigger_evidence"
+      ]
+    },
+    {
+      "capture_id": "ai_gateway_model_execution",
+      "packet_status": "missing",
+      "ledger_surface_status": "partial_live_passed",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "ai_gateway_logs_api_read_verified",
+        "ai_gateway_cost_log_verified",
+        "ai_gateway_rate_limit_cache_fallback_log_verified",
+        "fallback_log_verified",
+        "persistent_cost_log_verified"
+      ]
+    },
+    {
+      "capture_id": "ai_gateway_observability",
+      "packet_status": "missing",
+      "ledger_surface_status": "permission_denied",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "AI Gateway Read",
+        "Account Analytics Read",
+        "request_logs",
+        "cost_logs",
+        "rate_limit_cache_fallback_logs"
+      ]
+    },
+    {
+      "capture_id": "observability_otlp_eval_store",
+      "packet_status": "missing",
+      "ledger_surface_status": "readiness_not_run",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "otlp_http_log_export",
+        "eval_store_record_write_read_delete",
+        "production_otlp_retention",
+        "eval_store_dashboard_evidence"
+      ]
+    },
+    {
+      "capture_id": "provider_secret_store_rotation",
+      "packet_status": "missing",
+      "ledger_surface_status": "readiness_not_run",
+      "ready_for_ledger_update": false,
+      "completion_allowed": false,
+      "blocking_conditions": [
+        "passed_capture_packet_missing",
+        "cloudflare_workers_secret_set_rotate_delete",
+        "github_actions_secret_set_rotate_delete"
+      ]
+    }
+  ],
+  "required_tracker_fragments": [
+    "Live smoke ledger update review 已建立",
+    "| 2026-06-23 | 1.0iy | 完成 `live-smoke-ledger-update-review`"
+  ],
+  "required_todos_fragments": [
+    "Live smoke ledger update review",
+    "check:live-smoke-ledger-update-review",
+    "ready_for_ledger_update"
+  ],
+  "not_claimed": [
+    "live_smoke_outputs_captured",
+    "ledger_surfaces_updated_to_passed",
+    "all_live_smokes_passed",
+    "release_transition_allowed",
+    "sprint0_4_live_smoke_checkbox_complete",
+    "all_sprints_complete"
+  ]
+}

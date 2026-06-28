@@ -6,6 +6,9 @@
   "linked_capture_transition_reviews": [
     "deploy/governance/live-smoke-capture-transition-review.contract.json"
   ],
+  "linked_ledger_update_reviews": [
+    "deploy/governance/live-smoke-ledger-update-review.contract.json"
+  ],
   "all_live_smokes_passed": false,
   "release_transition_allowed": false,
   "evidence_policy": {
