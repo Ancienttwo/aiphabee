@@ -106,9 +106,9 @@
     "validation"
   ],
   "tables": [
-    "core.compliance_ops_release_gate",
-    "audit.compliance_ops_drill_event",
-    "governance.compliance_ops_release_gate_contract"
+    "aiphabee_core.compliance_ops_release_gate",
+    "aiphabee_audit.compliance_ops_drill_event",
+    "aiphabee_governance.compliance_ops_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_compliance_ops_validation",

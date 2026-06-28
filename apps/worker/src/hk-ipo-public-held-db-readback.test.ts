@@ -42,7 +42,7 @@ const pgMock = vi.hoisted(() => {
 
         if (
           normalized.startsWith(
-            "select (select count(*)::int from core.raw_source_batch"
+            "select (select count(*)::int from aiphabee_core.raw_source_batch"
           )
         ) {
           return {
@@ -215,8 +215,8 @@ describe("HK IPO public held DB readback", () => {
       surface: "hk_ipo_public_live_held_rows_readback",
       writes_serving_tables: false
     });
-    expect(normalizedQueries[0]).toContain("from core.hk_ipo_public_source_run");
-    expect(normalizedQueries[1]).toContain("from core.raw_source_batch");
+    expect(normalizedQueries[0]).toContain("from aiphabee_core.hk_ipo_public_source_run");
+    expect(normalizedQueries[1]).toContain("from aiphabee_core.raw_source_batch");
     expect(normalizedQueries[2]).toContain("select distinct payload->>'object_key'");
     expect(r2Head).toHaveBeenCalledWith(
       "hk-ipo-public/raw-snapshots/aastocks_ipo_plus/2026-06-28/hash.html"

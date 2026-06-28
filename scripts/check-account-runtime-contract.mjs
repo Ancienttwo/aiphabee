@@ -14,11 +14,11 @@ const requiredSessionActions = [
 ];
 const requiredPlanCodes = ["free", "plus", "pro", "developer", "team", "enterprise"];
 const requiredTables = [
-  "core.account",
-  "core.workspace",
-  "core.workspace_membership",
-  "core.subscription_plan",
-  "core.workspace_subscription"
+  "platform.account",
+  "platform.workspace",
+  "platform.workspace_membership",
+  "platform.subscription_plan",
+  "platform.workspace_subscription"
 ];
 const requiredRequestFields = ["account_id", "workspace_id", "email_hash"];
 const requiredOutputs = ["account", "workspace", "session", "device", "manual_plan", "validation"];

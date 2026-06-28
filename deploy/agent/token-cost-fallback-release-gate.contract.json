@@ -70,8 +70,8 @@
     ]
   },
   "tables": [
-    "core.agent_token_cost_fallback_release_gate",
-    "governance.agent_token_cost_fallback_release_gate_contract"
+    "aiphabee_core.agent_token_cost_fallback_release_gate",
+    "aiphabee_governance.agent_token_cost_fallback_release_gate_contract"
   ],
   "not_claimed": [
     "live_token_cost_fallback_log_writes",

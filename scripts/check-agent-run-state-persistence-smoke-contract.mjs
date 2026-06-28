@@ -16,7 +16,7 @@ const expectedRoute = "POST /agent/runs/state-persistence-smoke";
 const expectedToken = "AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN";
 const expectedHeader = "agent-run-state-persistence-v1";
 const expectedSurface = "agent_run_state_checkpoint_insert_select_update_delete";
-const expectedTables = ["core.agent_run_state", "core.agent_run_checkpoint"];
+const expectedTables = ["aiphabee_core.agent_run_state", "aiphabee_core.agent_run_checkpoint"];
 const errors = [];
 
 function readJson(path) {
@@ -193,11 +193,11 @@ function validateWorkerSource(source) {
     "missingAgentRunStatePersistenceSmokeEnv",
     "isAgentRunStatePersistenceSmokeAuthorized",
     "runAgentRunStatePersistenceSmoke",
-    "insert into core.agent_run_state",
-    "insert into core.agent_run_checkpoint",
-    "update core.agent_run_state",
-    "delete from core.agent_run_checkpoint",
-    "delete from core.agent_run_state",
+    "insert into aiphabee_core.agent_run_state",
+    "insert into aiphabee_core.agent_run_checkpoint",
+    "update aiphabee_core.agent_run_state",
+    "delete from aiphabee_core.agent_run_checkpoint",
+    "delete from aiphabee_core.agent_run_state",
     "resume_token_hash",
     "idempotency_key_hash",
     "agent_run_state_persistence_result",
@@ -216,11 +216,11 @@ function validateTestSource(source) {
     '"x-aiphabee-smoke": "agent-run-state-persistence-v1"',
     "AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN",
     "AIPHABEE_HYPERDRIVE",
-    "insert into core.agent_run_state",
-    "insert into core.agent_run_checkpoint",
-    "update core.agent_run_state",
-    "delete from core.agent_run_checkpoint",
-    "delete from core.agent_run_state",
+    "insert into aiphabee_core.agent_run_state",
+    "insert into aiphabee_core.agent_run_checkpoint",
+    "update aiphabee_core.agent_run_state",
+    "delete from aiphabee_core.agent_run_checkpoint",
+    "delete from aiphabee_core.agent_run_state",
     "cleanup_verified: true",
     "operation_count: 10",
     "production_persistence_enabled: false",
@@ -235,9 +235,9 @@ function validateMigration(source) {
   const lower = source.toLowerCase();
 
   for (const needle of [
-    "create table if not exists core.agent_run_state",
-    "create table if not exists core.agent_run_checkpoint",
-    "create table if not exists governance.agent_run_state_persistence_smoke_contract",
+    "create table if not exists aiphabee_core.agent_run_state",
+    "create table if not exists aiphabee_core.agent_run_checkpoint",
+    "create table if not exists aiphabee_governance.agent_run_state_persistence_smoke_contract",
     "run_state_id text primary key",
     "resume_token_hash text not null",
     "idempotency_key_hash text not null",
@@ -260,13 +260,13 @@ function validateDatabaseContract(databaseContract) {
     return;
   }
 
-  expectArrayEqual(entry.schemas, ["core", "governance"], "database entry schemas");
+  expectArrayEqual(entry.schemas, ["aiphabee_core", "aiphabee_governance"], "database entry schemas");
   expectArrayEqual(
     entry.tables,
     [
-      "core.agent_run_state",
-      "core.agent_run_checkpoint",
-      "governance.agent_run_state_persistence_smoke_contract"
+      "aiphabee_core.agent_run_state",
+      "aiphabee_core.agent_run_checkpoint",
+      "aiphabee_governance.agent_run_state_persistence_smoke_contract"
     ],
     "database entry tables"
   );

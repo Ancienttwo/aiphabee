@@ -79,8 +79,8 @@
     ]
   },
   "tables": [
-    "core.agent_user_tool_loop_execution_release_gate",
-    "governance.agent_user_tool_loop_execution_release_gate_contract"
+    "aiphabee_core.agent_user_tool_loop_execution_release_gate",
+    "aiphabee_governance.agent_user_tool_loop_execution_release_gate_contract"
   ],
   "not_claimed": [
     "arbitrary_user_tool_loop_execution",

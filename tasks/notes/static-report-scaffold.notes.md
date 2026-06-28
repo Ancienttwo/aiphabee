@@ -16,9 +16,9 @@ contract for allowed-scope static report publication.
 - Added `deploy/research/static-report.contract.json`.
 - Added `npm run check:static-report`.
 - Added empty DB scaffold tables:
-  - `core.static_report_artifact`
-  - `audit.static_report_event`
-  - `governance.static_report_contract`
+  - `aiphabee_core.static_report_artifact`
+  - `aiphabee_audit.static_report_event`
+  - `aiphabee_governance.static_report_contract`
 
 ## Verification Focus
 

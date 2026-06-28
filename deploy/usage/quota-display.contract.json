@@ -41,10 +41,10 @@
     "plan_code"
   ],
   "tables": [
-    "core.workspace_subscription",
-    "core.usage_event",
-    "core.usage_ledger_entry",
-    "core.usage_reconciliation_batch"
+    "platform.workspace_subscription",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry",
+    "aiphabee_core.usage_reconciliation_batch"
   ],
   "request_id_visible": true,
   "linked_contracts": [

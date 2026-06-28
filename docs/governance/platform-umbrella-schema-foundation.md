@@ -1,7 +1,7 @@
 # Platform Umbrella Schema Foundation
 
-> Status: verified repo-local migration scaffold; staging and production runtime Hyperdrive bindings read back through non-bypass runtime roles
-> Last Updated: 2026-06-26
+> Status: verified repo-local migration scaffold; staging and production runtime Hyperdrive bindings read back through non-bypass runtime roles; idempotent RLS policy guards are local-contract only
+> Last Updated: 2026-06-28
 > Source Tracker: `docs/AiphaBee_Sprint_Tracker_v1.0.md`
 > Design Plan: `docs/supabase-umbrella-schema-plan.md`
 > Active Boundary: `docs/governance/aiphabee-planetscale-boundary.md`
@@ -26,10 +26,10 @@ production database ownership decision.
 | Design plan | `docs/supabase-umbrella-schema-plan.md` | Historical shared platform/product-owned schema decision; superseded for live topology |
 | Active boundary | `docs/governance/aiphabee-planetscale-boundary.md` | Dedicated AiphaBee production database plus shared staging umbrella database behind Cloudflare Hyperdrive |
 | Staging Worker binding | `apps/worker/wrangler.jsonc` `env.staging.hyperdrive` | Uses AiphaBee runtime Hyperdrive config `755ab0a9b0404e10be1f8ab1c736358a`; keeps shared config `1e83eb563db44746a168175e065cc958` as `HYPERDRIVE` alias |
-| Migration | `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty platform tables, indexes, helper functions, RLS policies, and an AiphaBee registry seed row |
+| Migration | `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty platform tables, indexes, helper functions, idempotently guarded RLS policies, and a non-overwriting AiphaBee registry seed row |
 | Manifest | `deploy/database/migrations.contract.json` | Registers schemas, tables, indexes, and RLS tables for `npm run check:database` |
 | Checker | `scripts/check-database-migrations-contract.mjs` | Verifies migration coverage, declared `indexes`, `rls_tables`, and the `aiphabee.account_id` RLS session claim |
-| Product-owned schemas | Not created here | AiphaBee business tables stay outside this foundation slice; AIMPACT/Salesko are external systems |
+| Product-owned schemas | Not created here | AiphaBee business tables stay outside this foundation slice; selected existing AiphaBee identity/entitlement tables are RLS-hardened after their own scaffold migrations |
 | Staging live database | Applied | The shared staging DB now has `platform` / `platform_audit` through Hyperdrive config `1e83eb563db44746a168175e065cc958` |
 | Production live database | Bootstrapped and runtime-bound | Production remains dedicated to AiphaBee; Worker runtime now uses Hyperdrive config `2ddc2108d072420c9263ff6923b4f2c3` with `aiphabee_runtime_rls.bpvsmvgwkutr` |
 
@@ -45,6 +45,8 @@ Created tables:
 - `platform.account`
 - `platform.workspace`
 - `platform.workspace_membership`
+- `platform.subscription_plan`
+- `platform.workspace_subscription`
 - `platform.workspace_product_access`
 - `platform.entitlement_policy`
 - `platform.workspace_entitlement`
@@ -93,7 +95,9 @@ Reason:
 Tradeoff:
 
 - The platform registry migration still seeds only `aiphabee`; sibling-product
-  staging rows are owned by their own repos or operator apply packets.
+  staging rows are owned by their own repos or operator apply packets. The seed
+  uses `on conflict (product_code) do nothing` so replay does not reset live
+  AiphaBee product metadata.
 - No workspace/product access rows are seeded, so the migration creates the
   boundary but does not grant any user data access.
 
@@ -252,8 +256,38 @@ foundation migration declares both, so the database contract proves:
   non-bypass, non-owner, has no database/schema `CREATE`, and retains platform
   read privileges.
 
+## Replay/Apply Safety
+
+This branch keeps the migration additive under the current PlanetScale/Hyperdrive
+boundary:
+
+- **Policies are presence-guarded.** PostgreSQL has no `create policy if not
+  exists`, so each read policy is wrapped in a `pg_policies` presence check
+  before creation. The guard is non-destructive and avoids `drop policy` /
+  recreate churn during local dry-runs or operator apply validation. Four
+  security-sensitive policies (`workspace_membership_self_read`,
+  `workspace_membership_profile_self_read`, `data_entitlement_member_read`, and
+  `entitlement_policy_member_read`) also have idempotent `alter policy` blocks
+  so an existing policy is converged to the hardened predicate.
+- **Entitlement-policy reads are access-window bounded.** The
+  `entitlement_policy_member_read` predicate now requires an active
+  `platform.workspace_product_access` row whose `valid_from` has started and
+  whose `valid_to` has not expired.
+- **Product seed does not overwrite.** The migration still seeds only
+  `aiphabee`, and the seed uses `on conflict (product_code) do nothing`.
+  AIMPACT/Salesko rows are not inserted by this repo.
+- **No Supabase browser-role dependency.** The SQL stays on the
+  `aiphabee.account_id` transaction-local claim. It does not use `auth.uid()`,
+  `TO authenticated`, `supabase_*` identifiers, browser-role grants, or
+  service-role bypass policies.
+
 ## Residual Gaps
 
+- The idempotent RLS guard changes in this branch have not been live-applied or
+  live-read back; the live readbacks above are the last deployed baseline, not
+  proof that this branch has reached staging or production.
+- Product-owned table RLS hardening assumes earlier `aiphabee_core` /
+  `aiphabee_governance` scaffold migrations have already run in timestamp order.
 - Product-owned schemas such as `aiphabee_core` are not created in this slice.
 - Existing AiphaBee `core/governance/audit` scaffold migrations remain in place
   until a later compatibility or rename migration is explicitly planned.

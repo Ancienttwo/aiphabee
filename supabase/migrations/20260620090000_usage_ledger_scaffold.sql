@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.usage_meter_rule (
+create table if not exists aiphabee_core.usage_meter_rule (
   meter_rule_id text primary key,
   meter_name text not null,
   channel text not null check (channel in ('web', 'mcp', 'api', 'export')),
@@ -24,13 +24,13 @@ create table if not exists core.usage_meter_rule (
   check (effective_to is null or effective_to > effective_from)
 );
 
-create table if not exists core.usage_event (
+create table if not exists aiphabee_core.usage_event (
   usage_event_id text primary key,
   request_id text not null,
   run_id text,
-  workspace_id text not null references core.workspace(workspace_id),
-  account_id text references core.account(account_id),
-  membership_id text references core.workspace_membership(membership_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  account_id text references platform.account(account_id),
+  membership_id text references platform.workspace_membership(membership_id),
   channel text not null check (channel in ('web', 'mcp', 'api', 'export')),
   dataset text not null,
   tool_name text,
@@ -54,9 +54,9 @@ create table if not exists core.usage_event (
   unique (request_id, operation, dataset, occurred_at)
 );
 
-create table if not exists core.usage_reconciliation_batch (
+create table if not exists aiphabee_core.usage_reconciliation_batch (
   reconciliation_batch_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   period_start timestamptz not null,
   period_end timestamptz not null,
   target_delay_minutes integer not null default 5 check (
@@ -72,14 +72,14 @@ create table if not exists core.usage_reconciliation_batch (
   check (period_end > period_start)
 );
 
-create table if not exists core.usage_ledger_entry (
+create table if not exists aiphabee_core.usage_ledger_entry (
   ledger_entry_id text primary key,
-  usage_event_id text not null references core.usage_event(usage_event_id),
-  workspace_id text not null references core.workspace(workspace_id),
-  account_id text references core.account(account_id),
-  subscription_id text references core.workspace_subscription(subscription_id),
-  meter_rule_id text not null references core.usage_meter_rule(meter_rule_id),
-  reconciliation_batch_id text references core.usage_reconciliation_batch(reconciliation_batch_id),
+  usage_event_id text not null references aiphabee_core.usage_event(usage_event_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  account_id text references platform.account(account_id),
+  subscription_id text references platform.workspace_subscription(subscription_id),
+  meter_rule_id text not null references aiphabee_core.usage_meter_rule(meter_rule_id),
+  reconciliation_batch_id text references aiphabee_core.usage_reconciliation_batch(reconciliation_batch_id),
   credit_delta numeric not null check (credit_delta >= 0),
   billable_state text not null default 'preview' check (
     billable_state in ('preview', 'posted', 'waived', 'reversed', 'blocked')
@@ -91,7 +91,7 @@ create table if not exists core.usage_ledger_entry (
   unique (usage_event_id, meter_rule_id)
 );
 
-create table if not exists governance.usage_ledger_contract (
+create table if not exists aiphabee_governance.usage_ledger_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -101,7 +101,7 @@ create table if not exists governance.usage_ledger_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.usage_ledger_contract (
+insert into aiphabee_governance.usage_ledger_contract (
   contract_key,
   contract_version,
   status,

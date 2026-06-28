@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.agent_run_state (
+create table if not exists aiphabee_core.agent_run_state (
   run_state_id text primary key,
   run_id text not null unique,
   request_id text not null,
@@ -24,9 +24,9 @@ create table if not exists core.agent_run_state (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.agent_run_checkpoint (
+create table if not exists aiphabee_core.agent_run_checkpoint (
   checkpoint_id text primary key,
-  run_state_id text not null references core.agent_run_state(run_state_id),
+  run_state_id text not null references aiphabee_core.agent_run_state(run_state_id),
   step_id text not null,
   step_status text not null check (
     step_status in ('planned', 'running', 'completed', 'failed', 'skipped')
@@ -44,7 +44,7 @@ create table if not exists core.agent_run_checkpoint (
   unique (run_state_id, checkpoint_sequence)
 );
 
-create table if not exists governance.agent_run_state_persistence_smoke_contract (
+create table if not exists aiphabee_governance.agent_run_state_persistence_smoke_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -60,7 +60,7 @@ create table if not exists governance.agent_run_state_persistence_smoke_contract
   updated_at timestamptz not null default now()
 );
 
-insert into governance.agent_run_state_persistence_smoke_contract (
+insert into aiphabee_governance.agent_run_state_persistence_smoke_contract (
   contract_key,
   contract_version,
   status,

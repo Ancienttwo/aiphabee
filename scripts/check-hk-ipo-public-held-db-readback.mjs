@@ -149,7 +149,7 @@ function validateContract(value) {
   validationErrors.push(
     ...validateStringArray(
       value.blocked_tables,
-      ["core.ipo_offering", "core.ipo_timetable_event", "core.ipo_narrative", "core.ipo_cornerstone"],
+      ["aiphabee_core.ipo_offering", "aiphabee_core.ipo_timetable_event", "aiphabee_core.ipo_narrative", "aiphabee_core.ipo_cornerstone"],
       "blocked_tables"
     )
   );
@@ -329,13 +329,13 @@ function validateStringArray(value, expected, label) {
 
 function requiredTables() {
   return [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
 }
 

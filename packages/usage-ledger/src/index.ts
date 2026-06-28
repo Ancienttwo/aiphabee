@@ -59,9 +59,9 @@ export const BILLING_RULES_RELEASE_GATE_CHECKS = [
   "high_cost_pre_debit_and_failure_refund_planned"
 ] as const;
 export const BILLING_RULES_RELEASE_GATE_TABLES = [
-  "core.billing_rules_release_gate",
-  "audit.billing_rules_drill_event",
-  "governance.billing_rules_release_gate_contract"
+  "aiphabee_core.billing_rules_release_gate",
+  "aiphabee_audit.billing_rules_drill_event",
+  "aiphabee_governance.billing_rules_release_gate_contract"
 ] as const;
 export const PARTNER_SUPPORT_RELEASE_GATE_CHECKS = [
   "partner_report_generated",
@@ -81,9 +81,9 @@ export const PARTNER_SLA_RECONCILIATION_READINESS_CHECKS = [
   "sensitive_payloads_excluded"
 ] as const;
 export const PARTNER_SUPPORT_RELEASE_GATE_TABLES = [
-  "core.partner_support_release_gate",
-  "audit.partner_support_drill_event",
-  "governance.partner_support_release_gate_contract"
+  "aiphabee_core.partner_support_release_gate",
+  "aiphabee_audit.partner_support_drill_event",
+  "aiphabee_governance.partner_support_release_gate_contract"
 ] as const;
 
 export type UsageLedgerBillableState = "blocked" | "posted" | "preview" | "reversed" | "waived";
@@ -194,10 +194,10 @@ export interface UsageLedgerEventPlan {
   sqlEmitted: false;
   status: UsageLedgerWriterStatus;
   tables: readonly [
-    "core.usage_meter_rule",
-    "core.usage_event",
-    "core.usage_reconciliation_batch",
-    "core.usage_ledger_entry"
+    "aiphabee_core.usage_meter_rule",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_reconciliation_batch",
+    "aiphabee_core.usage_ledger_entry"
   ];
   version: typeof USAGE_LEDGER_EVENT_WRITER_VERSION;
   writeReady: false;
@@ -256,10 +256,10 @@ export interface UsageQuotaDisplayPlan {
   sql_emitted: false;
   status: UsageQuotaDisplayStatus;
   tables: readonly [
-    "core.workspace_subscription",
-    "core.usage_event",
-    "core.usage_ledger_entry",
-    "core.usage_reconciliation_batch"
+    "platform.workspace_subscription",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry",
+    "aiphabee_core.usage_reconciliation_batch"
   ];
   usage_snapshot_source: "synthetic_quota_snapshot";
   version: typeof USAGE_QUOTA_DISPLAY_VERSION;
@@ -306,14 +306,14 @@ export interface UsageBillingReconciliationPlan {
     amount_minor: number;
     invoice_id: string;
     source: "synthetic_billing_snapshot";
-    table: "core.subscription_invoice";
+    table: "aiphabee_core.subscription_invoice";
   };
   invoice_lines: Array<{
     credit_delta: number;
     invoice_line_id: string;
     ledger_entry_id: string;
     request_id: string;
-    table: "core.subscription_invoice_line";
+    table: "aiphabee_core.subscription_invoice_line";
     trace_status: UsageBillingTraceStatus;
     usage_event_id: string;
   }>;
@@ -329,12 +329,12 @@ export interface UsageBillingReconciliationPlan {
   status: UsageBillingReconciliationStatus;
   subscription_id: string;
   tables: readonly [
-    "core.workspace_subscription",
-    "core.usage_event",
-    "core.usage_ledger_entry",
-    "core.usage_reconciliation_batch",
-    "core.subscription_invoice",
-    "core.subscription_invoice_line"
+    "platform.workspace_subscription",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry",
+    "aiphabee_core.usage_reconciliation_batch",
+    "aiphabee_core.subscription_invoice",
+    "aiphabee_core.subscription_invoice_line"
   ];
   traceability: {
     required_fields: readonly [
@@ -382,7 +382,7 @@ export interface PartnerReconciliationReportPlan {
   audit: {
     audit_event: "usage.partner_reconciliation.plan";
     audit_event_id: string;
-    table: "audit.partner_reconciliation_event";
+    table: "aiphabee_audit.partner_reconciliation_event";
     write_status: "blocked_no_rows" | "planned_no_write";
   };
   billing_provider_calls: false;
@@ -429,7 +429,7 @@ export interface PartnerReconciliationReportPlan {
     group_by: typeof PARTNER_RECONCILIATION_REPORT_GROUP_BY;
     report_id: string;
     source: "usage_ledger_snapshot";
-    table: "core.partner_reconciliation_report";
+    table: "aiphabee_core.partner_reconciliation_report";
   };
   request_id: string;
   request_id_visible: true;
@@ -446,7 +446,7 @@ export interface PartnerReconciliationReportPlan {
     package_code: UsageQuotaPlanCode;
     request_ids: string[];
     sla_status: PartnerReconciliationSlaStatus;
-    table: "core.partner_reconciliation_report_line";
+    table: "aiphabee_core.partner_reconciliation_report_line";
     usage_count: number;
     usage_event_ids: string[];
     user_id: string;
@@ -476,13 +476,13 @@ export interface PartnerReconciliationReportPlan {
     user_count: number;
   };
   tables: readonly [
-    "core.workspace",
-    "core.usage_event",
-    "core.usage_ledger_entry",
-    "core.partner_reconciliation_report",
-    "core.partner_reconciliation_report_line",
-    "audit.partner_reconciliation_event",
-    "governance.partner_reconciliation_contract"
+    "platform.workspace",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry",
+    "aiphabee_core.partner_reconciliation_report",
+    "aiphabee_core.partner_reconciliation_report_line",
+    "aiphabee_audit.partner_reconciliation_event",
+    "aiphabee_governance.partner_reconciliation_contract"
   ];
   traceability: {
     required_fields: readonly [
@@ -526,7 +526,7 @@ export interface HighCostUsageReservationPlan {
     refund_credits: number;
     required: true;
     status: "not_triggered" | "planned_no_write";
-    table: "core.usage_ledger_entry";
+    table: "aiphabee_core.usage_ledger_entry";
   };
   live_ledger_writes: false;
   persistent_writes: false;
@@ -535,7 +535,7 @@ export interface HighCostUsageReservationPlan {
     pre_debit_credits: number;
     required: true;
     status: "awaiting_confirmation" | "blocked_missing_context" | "planned_no_write";
-    table: "core.usage_ledger_entry";
+    table: "aiphabee_core.usage_ledger_entry";
   };
   request_id: string;
   request_id_visible: true;
@@ -543,7 +543,7 @@ export interface HighCostUsageReservationPlan {
     reservation_id: string;
     status: "awaiting_confirmation" | "blocked_missing_context" | "planned_no_write";
     subscription_id: string;
-    table: "core.usage_credit_reservation";
+    table: "aiphabee_core.usage_credit_reservation";
     task_id: string;
     tool_name: string;
     workspace_id: string;
@@ -551,11 +551,11 @@ export interface HighCostUsageReservationPlan {
   sql_emitted: false;
   status: HighCostUsageReservationStatus;
   tables: readonly [
-    "core.workspace_subscription",
-    "core.usage_event",
-    "core.usage_ledger_entry",
-    "core.usage_reconciliation_batch",
-    "core.usage_credit_reservation"
+    "platform.workspace_subscription",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry",
+    "aiphabee_core.usage_reconciliation_batch",
+    "aiphabee_core.usage_credit_reservation"
   ];
   usage_ledger_link_required: true;
   user_confirmed: boolean;
@@ -852,22 +852,22 @@ export interface PartnerSlaReconciliationReadinessReport {
 }
 
 const USAGE_BILLING_RECONCILIATION_TABLES: UsageBillingReconciliationPlan["tables"] = [
-  "core.workspace_subscription",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.usage_reconciliation_batch",
-  "core.subscription_invoice",
-  "core.subscription_invoice_line"
+  "platform.workspace_subscription",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.usage_reconciliation_batch",
+  "aiphabee_core.subscription_invoice",
+  "aiphabee_core.subscription_invoice_line"
 ];
 
 const PARTNER_RECONCILIATION_REPORT_TABLES: PartnerReconciliationReportPlan["tables"] = [
-  "core.workspace",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.partner_reconciliation_report",
-  "core.partner_reconciliation_report_line",
-  "audit.partner_reconciliation_event",
-  "governance.partner_reconciliation_contract"
+  "platform.workspace",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.partner_reconciliation_report",
+  "aiphabee_core.partner_reconciliation_report_line",
+  "aiphabee_audit.partner_reconciliation_event",
+  "aiphabee_governance.partner_reconciliation_contract"
 ];
 
 const PARTNER_SLA_RECONCILIATION_READINESS_TABLES = [
@@ -876,11 +876,11 @@ const PARTNER_SLA_RECONCILIATION_READINESS_TABLES = [
 ] as const;
 
 const HIGH_COST_USAGE_RESERVATION_TABLES: HighCostUsageReservationPlan["tables"] = [
-  "core.workspace_subscription",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.usage_reconciliation_batch",
-  "core.usage_credit_reservation"
+  "platform.workspace_subscription",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.usage_reconciliation_batch",
+  "aiphabee_core.usage_credit_reservation"
 ];
 
 export function createUsageLedgerEventPlan(
@@ -939,10 +939,10 @@ export function createUsageLedgerEventPlan(
     sqlEmitted: false,
     status: schemaReady ? "write_planned" : "write_blocked",
     tables: [
-      "core.usage_meter_rule",
-      "core.usage_event",
-      "core.usage_reconciliation_batch",
-      "core.usage_ledger_entry"
+      "aiphabee_core.usage_meter_rule",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_reconciliation_batch",
+      "aiphabee_core.usage_ledger_entry"
     ],
     version: USAGE_LEDGER_EVENT_WRITER_VERSION,
     writeReady: false,
@@ -960,10 +960,10 @@ export function getUsageLedgerEventWriterCapabilities() {
     sql_emitted: false,
     status: "event_writer_scaffold" as const,
     tables: [
-      "core.usage_meter_rule",
-      "core.usage_event",
-      "core.usage_reconciliation_batch",
-      "core.usage_ledger_entry"
+      "aiphabee_core.usage_meter_rule",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_reconciliation_batch",
+      "aiphabee_core.usage_ledger_entry"
     ] as const,
     unit_names: ["call", "row", "field", "credit", "byte", "model_unit"] as const,
     usage_event_grain: "request_operation_dataset_occurred_at" as const,
@@ -998,10 +998,10 @@ export function getUsageQuotaDisplayCapabilities() {
     sql_emitted: false,
     status: "usage_quota_display_scaffold" as const,
     tables: [
-      "core.workspace_subscription",
-      "core.usage_event",
-      "core.usage_ledger_entry",
-      "core.usage_reconciliation_batch"
+      "platform.workspace_subscription",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_ledger_entry",
+      "aiphabee_core.usage_reconciliation_batch"
     ] as const,
     version: USAGE_QUOTA_DISPLAY_VERSION
   };
@@ -1924,10 +1924,10 @@ export function createUsageQuotaDisplayPlan(
         ? "planned_no_write"
         : "blocked_missing_workspace",
     tables: [
-      "core.workspace_subscription",
-      "core.usage_event",
-      "core.usage_ledger_entry",
-      "core.usage_reconciliation_batch"
+      "platform.workspace_subscription",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_ledger_entry",
+      "aiphabee_core.usage_reconciliation_batch"
     ],
     usage_snapshot_source: "synthetic_quota_snapshot",
     version: USAGE_QUOTA_DISPLAY_VERSION,
@@ -1986,7 +1986,7 @@ export function createHighCostUsageReservationPlan(
       refund_credits: refundTriggered ? estimatedCredits : 0,
       required: true,
       status: refundTriggered ? "planned_no_write" : "not_triggered",
-      table: "core.usage_ledger_entry"
+      table: "aiphabee_core.usage_ledger_entry"
     },
     live_ledger_writes: false,
     persistent_writes: false,
@@ -2000,7 +2000,7 @@ export function createHighCostUsageReservationPlan(
           : status === "confirmation_required"
             ? "awaiting_confirmation"
             : "blocked_missing_context",
-      table: "core.usage_ledger_entry"
+      table: "aiphabee_core.usage_ledger_entry"
     },
     request_id: input.requestId,
     request_id_visible: true,
@@ -2008,7 +2008,7 @@ export function createHighCostUsageReservationPlan(
       reservation_id: reservationId,
       status: reservationStatus,
       subscription_id: subscriptionId,
-      table: "core.usage_credit_reservation",
+      table: "aiphabee_core.usage_credit_reservation",
       task_id: taskId,
       tool_name: toolName,
       workspace_id: workspaceId
@@ -2069,7 +2069,7 @@ export function createUsageBillingReconciliationPlan(
       amount_minor: normalizeAmountMinor(input.invoiceAmountMinor),
       invoice_id: invoiceId,
       source: "synthetic_billing_snapshot",
-      table: "core.subscription_invoice"
+      table: "aiphabee_core.subscription_invoice"
     },
     invoice_lines: ledgerEntries.map((entry, index) => ({
       credit_delta: normalizeCreditCount(entry.creditDelta),
@@ -2078,7 +2078,7 @@ export function createUsageBillingReconciliationPlan(
       )}`,
       ledger_entry_id: entry.ledgerEntryId,
       request_id: entry.requestId,
-      table: "core.subscription_invoice_line",
+      table: "aiphabee_core.subscription_invoice_line",
       trace_status: isTraceableLedgerEntry(entry) ? "traceable" : "mismatch",
       usage_event_id: entry.usageEventId
     })),
@@ -2143,7 +2143,7 @@ export function createPartnerReconciliationReportPlan(
     audit: {
       audit_event: "usage.partner_reconciliation.plan",
       audit_event_id: `partner_reconciliation_audit_${sanitizeId(input.requestId)}`,
-      table: "audit.partner_reconciliation_event",
+      table: "aiphabee_audit.partner_reconciliation_event",
       write_status: status === "blocked_empty_usage" ? "blocked_no_rows" : "planned_no_write"
     },
     billing_provider_calls: false,
@@ -2190,7 +2190,7 @@ export function createPartnerReconciliationReportPlan(
       group_by: PARTNER_RECONCILIATION_REPORT_GROUP_BY,
       report_id: reportId,
       source: "usage_ledger_snapshot",
-      table: "core.partner_reconciliation_report"
+      table: "aiphabee_core.partner_reconciliation_report"
     },
     request_id: input.requestId,
     request_id_visible: true,
@@ -2344,7 +2344,7 @@ function aggregatePartnerReconciliationRows(
         request_ids: uniqueStrings([row.requestId]),
         sla_status:
           dataDelayMinutes > 0 || missingRows > 0 || errorCount > 0 ? "exception" : "ok",
-        table: "core.partner_reconciliation_report_line",
+        table: "aiphabee_core.partner_reconciliation_report_line",
         usage_count: usageCount,
         usage_event_ids: uniqueStrings([row.usageEventId]),
         user_id: userId

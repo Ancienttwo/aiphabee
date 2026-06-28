@@ -98,8 +98,8 @@ const requiredBlockers = [
   "live_target_client_e2e_missing"
 ];
 const requiredTables = [
-  "core.mcp_developer_console_request_log",
-  "governance.mcp_developer_console_contract"
+  "aiphabee_core.mcp_developer_console_request_log",
+  "aiphabee_governance.mcp_developer_console_contract"
 ];
 const requiredLinkedContracts = [
   "deploy/mcp/target-clients-console-release-gate.contract.json",
@@ -445,7 +445,7 @@ function validateDatabase(errors, databaseValue, migrationValue) {
     errors.push(`database contract must list ${migrationPath}`);
     return;
   }
-  expectArray(errors, migration.schemas, ["core", "governance"], "database migration schemas");
+  expectArray(errors, migration.schemas, ["aiphabee_core", "aiphabee_governance"], "database migration schemas");
   expectArray(errors, migration.tables, requiredTables, "database migration tables");
   expectEqual(errors, migration.market_data, false, "database migration market_data");
   expectEqual(

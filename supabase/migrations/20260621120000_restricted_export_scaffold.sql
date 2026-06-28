@@ -1,11 +1,11 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.restricted_export_request (
+create table if not exists aiphabee_core.restricted_export_request (
   export_request_ref text not null,
-  account_id text references core.account(account_id),
-  workspace_id text references core.workspace(workspace_id),
+  account_id text references platform.account(account_id),
+  workspace_id text references platform.workspace(workspace_id),
   request_id text not null,
   dataset text not null,
   export_format text not null check (export_format in ('csv', 'image', 'pdf')),
@@ -23,9 +23,9 @@ create table if not exists core.restricted_export_request (
   primary key (export_request_ref)
 );
 
-create table if not exists audit.restricted_export_event (
+create table if not exists aiphabee_audit.restricted_export_event (
   export_event_ref text not null,
-  export_request_ref text not null references core.restricted_export_request(export_request_ref),
+  export_request_ref text not null references aiphabee_core.restricted_export_request(export_request_ref),
   request_id text not null,
   event_kind text not null check (
     event_kind in ('planned', 'blocked_missing_scope', 'blocked_gateway_denied')
@@ -35,7 +35,7 @@ create table if not exists audit.restricted_export_event (
   primary key (export_event_ref)
 );
 
-create table if not exists governance.restricted_export_contract (
+create table if not exists aiphabee_governance.restricted_export_contract (
   contract_name text not null default 'restricted_exports',
   contract_version text not null default '2026-06-21.phase3.restricted-export-scaffold.v0',
   route text not null default 'POST /gateway/exports/plan',

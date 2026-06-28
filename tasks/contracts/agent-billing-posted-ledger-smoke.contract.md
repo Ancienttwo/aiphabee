@@ -12,11 +12,11 @@ Hyperdrive smoke.
 - Require `AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN`.
 - Require `AIPHABEE_HYPERDRIVE`.
 - Write, read, update, retry, and delete synthetic rows in:
-  - `core.account`
-  - `core.workspace`
-  - `core.usage_meter_rule`
-  - `core.usage_event`
-  - `core.usage_ledger_entry`
+  - `platform.account`
+  - `platform.workspace`
+  - `aiphabee_core.usage_meter_rule`
+  - `aiphabee_core.usage_event`
+  - `aiphabee_core.usage_ledger_entry`
 - Verify one `preview` ledger row transitions to `posted`.
 - Verify the second posted update skips to prevent double charge.
 - Return only hashes, row counts, table names, and non-claim flags.

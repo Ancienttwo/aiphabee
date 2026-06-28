@@ -417,13 +417,13 @@ function containsForbiddenOutput(value) {
 
 function expectedTargetTables() {
   return [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.hk_ipo_public_source_run",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
 }
 

@@ -30,8 +30,8 @@
   "arbitrary_user_tool_loop_execution": false,
   "frontend": false,
   "tables": [
-    "core.agent_run_state",
-    "core.agent_run_checkpoint"
+    "aiphabee_core.agent_run_state",
+    "aiphabee_core.agent_run_checkpoint"
   ],
   "not_claimed": [
     "production_agent_run_persistence",

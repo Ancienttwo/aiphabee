@@ -18,11 +18,11 @@ const expectedToken = "AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN";
 const expectedHeader = "agent-billing-posted-ledger-v1";
 const expectedSurface = "agent_billing_posted_ledger_preview_to_posted_idempotency";
 const expectedTables = [
-  "core.account",
-  "core.workspace",
-  "core.usage_meter_rule",
-  "core.usage_event",
-  "core.usage_ledger_entry"
+  "platform.account",
+  "platform.workspace",
+  "aiphabee_core.usage_meter_rule",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry"
 ];
 const forbiddenTextPatterns = [
   /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,
@@ -205,16 +205,16 @@ function validateWorkerSource(source) {
     "isAgentBillingPostedLedgerSmokeAuthorized",
     "runAgentBillingPostedLedgerSmoke",
     "createUsageLedgerEventPlan",
-    "insert into core.account",
-    "insert into core.workspace",
-    "insert into core.usage_meter_rule",
-    "insert into core.usage_event",
-    "insert into core.usage_ledger_entry",
+    "insert into platform.account",
+    "insert into platform.workspace",
+    "insert into aiphabee_core.usage_meter_rule",
+    "insert into aiphabee_core.usage_event",
+    "insert into aiphabee_core.usage_ledger_entry",
     "billable_state = 'preview'",
     "billable_state = 'posted'",
     "posted_at = $2::timestamptz",
-    "delete from core.usage_ledger_entry",
-    "delete from core.usage_event",
+    "delete from aiphabee_core.usage_ledger_entry",
+    "delete from aiphabee_core.usage_event",
     "idempotent_skipped_rows",
     "no_double_charge_verified",
     "billing_provider_calls: false",
@@ -232,12 +232,12 @@ function validateTestSource(source) {
     '"x-aiphabee-smoke": "agent-billing-posted-ledger-v1"',
     "AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN",
     "AIPHABEE_HYPERDRIVE",
-    "insert into core.usage_event",
-    "insert into core.usage_ledger_entry",
-    "update core.usage_ledger_entry",
+    "insert into aiphabee_core.usage_event",
+    "insert into aiphabee_core.usage_ledger_entry",
+    "update aiphabee_core.usage_ledger_entry",
     "billable_state = 'preview'",
     "billable_state = 'posted'",
-    "delete from core.usage_ledger_entry",
+    "delete from aiphabee_core.usage_ledger_entry",
     "idempotent_skipped_rows: 0",
     "no_double_charge_verified: true",
     "billing_provider_calls: false",
@@ -254,7 +254,7 @@ function validateMigration(source) {
   const lower = source.toLowerCase();
 
   for (const needle of [
-    "create table if not exists governance.agent_billing_posted_ledger_smoke_contract",
+    "create table if not exists aiphabee_governance.agent_billing_posted_ledger_smoke_contract",
     "guarded_smoke_only boolean not null default true",
     "synthetic_posted_transition boolean not null default true",
     "billing_provider_calls boolean not null default false",
@@ -275,10 +275,10 @@ function validateDatabaseContract(databaseContract) {
     return;
   }
 
-  expectArrayEqual(entry.schemas, ["governance"], "database entry schemas");
+  expectArrayEqual(entry.schemas, ["aiphabee_governance"], "database entry schemas");
   expectArrayEqual(
     entry.tables,
-    ["governance.agent_billing_posted_ledger_smoke_contract"],
+    ["aiphabee_governance.agent_billing_posted_ledger_smoke_contract"],
     "database entry tables"
   );
   expectBoolean(entry.market_data, false, "database entry market_data");
@@ -293,7 +293,7 @@ function validateLinkedContracts() {
   expectEqual(liveWrite.route, "POST /agent/runs/live-write-smoke", "live write route");
   expectBoolean(liveWrite.billing_posted, false, "live write billing_posted precondition");
 
-  for (const table of ["core.usage_event", "core.usage_ledger_entry"]) {
+  for (const table of ["aiphabee_core.usage_event", "aiphabee_core.usage_ledger_entry"]) {
     if (!usageQuota.tables?.includes(table)) {
       errors.push(`usage quota contract must include ${table}`);
     }

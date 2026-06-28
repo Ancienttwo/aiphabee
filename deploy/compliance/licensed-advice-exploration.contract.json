@@ -69,10 +69,10 @@
     "answer_evidence": "POST /agent/runs/validate-answer"
   },
   "tables": [
-    "core.licensed_advice_exploration",
-    "core.suitability_control_profile",
-    "audit.licensed_advice_review_event",
-    "governance.licensed_advice_exploration_contract"
+    "aiphabee_core.licensed_advice_exploration",
+    "aiphabee_core.suitability_control_profile",
+    "aiphabee_audit.licensed_advice_review_event",
+    "aiphabee_governance.licensed_advice_exploration_contract"
   ],
   "required_output_fields": [
     "advice_output_policy",

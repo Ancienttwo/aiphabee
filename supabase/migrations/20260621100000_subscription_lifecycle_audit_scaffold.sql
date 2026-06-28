@@ -1,11 +1,11 @@
-create schema if not exists audit;
+create schema if not exists aiphabee_audit;
 
-create table if not exists audit.subscription_lifecycle_event (
+create table if not exists aiphabee_audit.subscription_lifecycle_event (
   audit_event_id text primary key,
   request_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
-  account_id text not null references core.account(account_id),
-  subscription_id text not null references core.workspace_subscription(subscription_id),
+  workspace_id text not null references platform.workspace(workspace_id),
+  account_id text not null references platform.account(account_id),
+  subscription_id text not null references platform.workspace_subscription(subscription_id),
   action text not null check (
     action in (
       'upgrade',
@@ -16,8 +16,8 @@ create table if not exists audit.subscription_lifecycle_event (
       'exit_grace_period'
     )
   ),
-  current_plan_code text not null references core.subscription_plan(plan_code),
-  target_plan_code text not null references core.subscription_plan(plan_code),
+  current_plan_code text not null references platform.subscription_plan(plan_code),
+  target_plan_code text not null references platform.subscription_plan(plan_code),
   current_billing_state text not null check (
     current_billing_state in ('trialing', 'active', 'grace_period', 'paused', 'canceled')
   ),

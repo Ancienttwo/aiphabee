@@ -19,9 +19,9 @@ live database and does not enable live auth, billing, or entitlement execution.
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Data runtime route | `GET /data/runtime` | Reports schema capability, no live query |
 | Gateway runtime route | `GET /gateway/runtime` | Reports entitlement model capability, no live enforcement |
-| Account/workspace | `core.account`, `core.workspace`, `core.workspace_membership` | Multiple workspaces per account with role and validity windows |
-| Subscription | `core.subscription_plan`, `core.workspace_subscription` | Plan is separated from workspace subscription state |
-| Entitlement | `core.data_entitlement`, `core.workspace_entitlement` | Data rights default-deny and bind to workspace, not just user |
+| Account/workspace | `platform.account`, `platform.workspace`, `platform.workspace_membership` | Multiple workspaces per account with role and validity windows |
+| Subscription | `platform.subscription_plan`, `platform.workspace_subscription` | Plan is separated from workspace subscription state |
+| Entitlement | `aiphabee_governance.data_entitlement`, `aiphabee_governance.workspace_entitlement` | Data rights default-deny and bind to workspace, not just user |
 | Live enforcement | Absent | No identity provider, payment provider, account rows, or entitlement execution |
 
 ## P2 Concrete Trace

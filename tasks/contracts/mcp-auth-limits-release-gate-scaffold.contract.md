@@ -11,8 +11,8 @@
 - Worker exposes `POST /mcp/release-gates/auth-limits/plan`.
 - Contract checker is `npm run check:mcp-auth-limits-release-gate`.
 - Migration registers empty no-live tables:
-  - `core.mcp_auth_limits_release_gate`
-  - `governance.mcp_auth_limits_release_gate_contract`
+  - `aiphabee_core.mcp_auth_limits_release_gate`
+  - `aiphabee_governance.mcp_auth_limits_release_gate_contract`
 
 ## Required Checks
 

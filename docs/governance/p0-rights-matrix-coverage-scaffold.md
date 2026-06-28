@@ -19,7 +19,7 @@ default deny without loading a signed partner matrix or enabling live reads.
 | Runtime route | `GET /gateway/runtime` | Reports nested `p0_rights_matrix_coverage` readiness |
 | Coverage route | `GET /gateway/rights-matrix/p0/coverage` | Returns P0 tool/dataset/surface default-deny coverage |
 | Contract | `deploy/gateway/p0-rights-matrix-coverage.contract.json` | Guards P0 tool count, four authorization surfaces, release gate, no live reads, no writes, and no SQL |
-| Schema scaffold | `core.p0_rights_matrix_entry`, `governance.p0_rights_matrix_contract` | Empty future coverage/governance tables |
+| Schema scaffold | `aiphabee_core.p0_rights_matrix_entry`, `aiphabee_governance.p0_rights_matrix_contract` | Empty future coverage/governance tables |
 | External dependency | Partner/commercial/legal signoff | Explicitly absent; release gate remains blocked |
 
 ## P2 Concrete Trace

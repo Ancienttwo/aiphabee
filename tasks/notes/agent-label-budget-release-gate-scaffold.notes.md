@@ -23,8 +23,8 @@ and high-cost task budget confirmation.
 - The gate reuses `createHighCostUsageReservationPlan()` to show pre-debit is
   only planned after confirmation, with failure refund and idempotency still
   required.
-- `core.agent_label_budget_release_gate` and
-  `governance.agent_label_budget_release_gate_contract` exist as empty schema
+- `aiphabee_core.agent_label_budget_release_gate` and
+  `aiphabee_governance.agent_label_budget_release_gate_contract` exist as empty schema
   scaffolds for future persistence.
 - The local contract checker verifies claim labels, high-cost budget policy,
   linked contracts, no-live boundaries, package script registration, and

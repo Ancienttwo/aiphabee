@@ -18,7 +18,7 @@ back to current classifications, names, or constituent sets.
 | Security package | `@aiphabee/security-tools` | Owns synthetic historical name, industry, and index-constituent history |
 | Route | `POST /tools/get-security-history` | Returns point-in-time history through the standard response envelope |
 | Contract gate | `deploy/tools/security-history.contract.json` | Locks `as_of` requirement, history fields, and no-latest fallback policy |
-| Schema scaffold | `core.security_name_history`, `core.security_industry_history`, `core.index_constituent_history`, `governance.security_history_contract` | Empty future-live scaffolds only; current route does not read or write DB rows |
+| Schema scaffold | `aiphabee_core.security_name_history`, `aiphabee_core.security_industry_history`, `aiphabee_core.index_constituent_history`, `aiphabee_governance.security_history_contract` | Empty future-live scaffolds only; current route does not read or write DB rows |
 | Frontend / MCP | Out of scope | No Web UI and no MCP registration in this slice |
 
 ## P2 Concrete Trace

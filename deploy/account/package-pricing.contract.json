@@ -62,10 +62,10 @@
     "unit_economics_margin_review"
   ],
   "tables": [
-    "core.subscription_plan",
-    "core.plan_pricing_catalog",
-    "core.plan_entitlement_bundle",
-    "governance.package_pricing_contract"
+    "platform.subscription_plan",
+    "aiphabee_core.plan_pricing_catalog",
+    "aiphabee_core.plan_entitlement_bundle",
+    "aiphabee_governance.package_pricing_contract"
   ],
   "linked_contracts": [
     "deploy/database/migrations.contract.json",

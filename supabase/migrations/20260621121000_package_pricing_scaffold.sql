@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.plan_pricing_catalog (
+create table if not exists aiphabee_core.plan_pricing_catalog (
   pricing_catalog_ref text not null,
   plan_code text not null check (plan_code in ('pro', 'developer')),
   currency text not null default 'HKD',
@@ -17,9 +17,9 @@ create table if not exists core.plan_pricing_catalog (
   primary key (pricing_catalog_ref)
 );
 
-create table if not exists core.plan_entitlement_bundle (
+create table if not exists aiphabee_core.plan_entitlement_bundle (
   entitlement_bundle_ref text not null,
-  pricing_catalog_ref text not null references core.plan_pricing_catalog(pricing_catalog_ref),
+  pricing_catalog_ref text not null references aiphabee_core.plan_pricing_catalog(pricing_catalog_ref),
   plan_code text not null check (plan_code in ('pro', 'developer')),
   usage_channels text[] not null default array['web_agent', 'mcp'],
   web_entitlements text[] not null default '{}',
@@ -35,7 +35,7 @@ create table if not exists core.plan_entitlement_bundle (
   primary key (entitlement_bundle_ref)
 );
 
-create table if not exists governance.package_pricing_contract (
+create table if not exists aiphabee_governance.package_pricing_contract (
   contract_name text not null default 'package_pricing',
   contract_version text not null default '2026-06-21.phase3.package-pricing-scaffold.v0',
   route text not null default 'GET /account/package-pricing',

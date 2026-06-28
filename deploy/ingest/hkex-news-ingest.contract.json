@@ -133,8 +133,8 @@
     "release_requires_validate": true,
     "release_requires_held_state": true,
     "release_updates": [
-      "core.data_version_batch.release_state",
-      "core.data_version_batch.released_at"
+      "aiphabee_core.data_version_batch.release_state",
+      "aiphabee_core.data_version_batch.released_at"
     ],
     "serving_table_writes": false
   },
@@ -149,9 +149,9 @@
     "writes_database": false,
     "emits_approval_id": false,
     "target_tables": [
-      "core.data_version_batch",
-      "core.hkex_news_crawl_run",
-      "core.hkex_news_transform_run"
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hkex_news_crawl_run",
+      "aiphabee_core.hkex_news_transform_run"
     ]
   },
   "release_evidence_packet": {
@@ -176,7 +176,7 @@
     "data-ingest release",
     "psql",
     "manual SQL",
-    "direct core.ipo_* write",
+    "direct aiphabee_core.ipo_* write",
     "second run to compensate for failed run"
   ],
   "output_schema": "packages/data-ingest/schemas/daily-run-result.schema.json",

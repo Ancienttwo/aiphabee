@@ -7,7 +7,7 @@
 - Added `POST /agent/kill-switch/plan` in the Worker.
 - Extended `POST /agent/runs/plan` so `tool_kill_switch` returns `degraded_kill_switch` with one safe answer-contract step and no tool calls.
 - Added `deploy/agent/kill-switch.contract.json` and `npm run check:agent-kill-switch`.
-- Added empty `core.agent_kill_switch_state` and `governance.agent_kill_switch_contract` scaffolds.
+- Added empty `aiphabee_core.agent_kill_switch_state` and `aiphabee_governance.agent_kill_switch_contract` scaffolds.
 
 ## Boundaries
 

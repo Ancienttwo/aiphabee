@@ -18,8 +18,8 @@ load market data.
 | Migration | `supabase/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty `core` and governance tables |
 | Contract | `deploy/database/migrations.contract.json` | Lists both local migrations and keeps `market_data=false` |
 | Runtime route | `GET /data/runtime` | Reports schema capability, no live query |
-| Security master | `core.company`, `core.instrument`, `core.listing`, `core.identifier_history` | Entity/listing/identifier scaffold only |
-| Raw snapshots | `core.raw_source_batch`, `core.raw_snapshot`, `core.data_version_batch` | Immutable source snapshot and data version scaffold |
+| Security master | `aiphabee_core.company`, `aiphabee_core.instrument`, `aiphabee_core.listing`, `aiphabee_core.identifier_history` | Entity/listing/identifier scaffold only |
+| Raw snapshots | `aiphabee_core.raw_source_batch`, `aiphabee_core.raw_snapshot`, `aiphabee_core.data_version_batch` | Immutable source snapshot and data version scaffold |
 | Live data | Absent | No partner rows, no Hyperdrive query, no Serving Store read |
 
 ## P2 Concrete Trace
@@ -84,7 +84,7 @@ Observed `/data/runtime` fields:
   "raw_snapshots": {
     "immutable": true,
     "quality_default_state": "HOLD",
-    "table": "core.raw_snapshot"
+    "table": "aiphabee_core.raw_snapshot"
   }
 }
 ```

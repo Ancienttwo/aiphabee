@@ -18,7 +18,7 @@ live erasure, DB writes, SQL execution, or frontend UI.
 | Runtime route | `GET /account/runtime` | Reports nested `data_requests` readiness |
 | Planner route | `POST /account/data-requests/plan` | Normalizes download/delete request inputs and returns a no-write retention/audit plan |
 | Contract | `deploy/account/data-request.contract.json` | Guards request actions, scopes, retention holds, audit requirement, no frontend, no live export, no writes, and no SQL |
-| Schema scaffold | `core.account_data_request`, `core.account_data_request_item`, `audit.account_data_request_event`, `governance.account_data_request_contract` | Empty future request, item, audit, and governance tables |
+| Schema scaffold | `aiphabee_core.account_data_request`, `aiphabee_core.account_data_request_item`, `aiphabee_audit.account_data_request_event`, `aiphabee_governance.account_data_request_contract` | Empty future request, item, audit, and governance tables |
 | Adjacent contracts | `authorized_session_memory`, `subscription_lifecycle`, `usage_ledger` | Referenced as data scopes or retention-hold surfaces only |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 

@@ -24,8 +24,8 @@ const expectedChecks = [
   "live_token_cost_fallback_writes_blocked"
 ];
 const expectedTables = [
-  "core.agent_token_cost_fallback_release_gate",
-  "governance.agent_token_cost_fallback_release_gate_contract"
+  "aiphabee_core.agent_token_cost_fallback_release_gate",
+  "aiphabee_governance.agent_token_cost_fallback_release_gate_contract"
 ];
 const expectedLinkedContracts = [
   "deploy/agent/model-execution-audit-smoke.contract.json",
@@ -203,7 +203,7 @@ function validateDatabaseContract(value) {
     return;
   }
 
-  expectArrayEqual(migration.schemas, ["core", "governance"], "database migration schemas");
+  expectArrayEqual(migration.schemas, ["aiphabee_core", "aiphabee_governance"], "database migration schemas");
   expectArrayEqual(migration.tables, expectedTables, "database migration tables");
   expectBoolean(migration.market_data, false, "database migration market_data");
   expectEqual(
@@ -279,8 +279,8 @@ function validateMigration(source) {
   const lower = source.toLowerCase();
 
   for (const needle of [
-    "create table if not exists core.agent_token_cost_fallback_release_gate",
-    "create table if not exists governance.agent_token_cost_fallback_release_gate_contract",
+    "create table if not exists aiphabee_core.agent_token_cost_fallback_release_gate",
+    "create table if not exists aiphabee_governance.agent_token_cost_fallback_release_gate_contract",
     "model_execution_audit_smoke_linked boolean not null default true",
     "model_routing_audit_contract_linked boolean not null default true",
     "run_tool_audit_fields_contract_linked boolean not null default true",

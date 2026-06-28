@@ -1415,9 +1415,9 @@ export function getSavedScreeningCapabilities() {
     status: "saved_screening_schedule_scaffold" as const,
     supported_cadences: ["manual", "daily", "weekly"] as const,
     tables: [
-      "core.saved_screening",
-      "core.saved_screening_run_schedule",
-      "core.saved_screening_run"
+      "aiphabee_core.saved_screening",
+      "aiphabee_core.saved_screening_run_schedule",
+      "aiphabee_core.saved_screening_run"
     ] as const,
     tool_name: "plan_saved_screening" as const,
     version: SAVED_SCREENING_VERSION,
@@ -2154,9 +2154,9 @@ export function createSavedScreeningPlan(input: SavedScreeningInput): SavedScree
       live_db_writes: false,
       sql_emitted: false,
       tables: [
-        "core.saved_screening",
-        "core.saved_screening_run_schedule",
-        "core.saved_screening_run"
+        "aiphabee_core.saved_screening",
+        "aiphabee_core.saved_screening_run_schedule",
+        "aiphabee_core.saved_screening_run"
       ],
       write_status: "planned_no_write"
     },

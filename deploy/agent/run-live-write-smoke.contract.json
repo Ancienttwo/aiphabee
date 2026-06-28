@@ -30,14 +30,14 @@
   "frontend": false,
   "user_facing_streaming": false,
   "tables": [
-    "audit.agent_run_audit_event",
-    "core.evidence_record",
-    "core.evidence_source_ref",
-    "core.account",
-    "core.workspace",
-    "core.usage_meter_rule",
-    "core.usage_event",
-    "core.usage_ledger_entry"
+    "aiphabee_audit.agent_run_audit_event",
+    "aiphabee_core.evidence_record",
+    "aiphabee_core.evidence_source_ref",
+    "platform.account",
+    "platform.workspace",
+    "aiphabee_core.usage_meter_rule",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry"
   ],
   "not_claimed": [
     "production_agent_run_persistence",

@@ -28,23 +28,23 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("insert into audit.agent_run_audit_event") ||
-          normalized.startsWith("insert into core.evidence_record") ||
-          normalized.startsWith("insert into core.evidence_source_ref") ||
-          normalized.startsWith("insert into core.account") ||
-          normalized.startsWith("insert into core.workspace") ||
-          normalized.startsWith("insert into core.usage_meter_rule") ||
-          normalized.startsWith("insert into core.usage_event") ||
-          normalized.startsWith("insert into core.usage_ledger_entry")
+          normalized.startsWith("insert into aiphabee_audit.agent_run_audit_event") ||
+          normalized.startsWith("insert into aiphabee_core.evidence_record") ||
+          normalized.startsWith("insert into aiphabee_core.evidence_source_ref") ||
+          normalized.startsWith("insert into platform.account") ||
+          normalized.startsWith("insert into platform.workspace") ||
+          normalized.startsWith("insert into aiphabee_core.usage_meter_rule") ||
+          normalized.startsWith("insert into aiphabee_core.usage_event") ||
+          normalized.startsWith("insert into aiphabee_core.usage_ledger_entry")
         ) {
           return { rowCount: 1, rows: [] };
         }
 
         if (
-          normalized.startsWith("select count(*)::int as row_count from audit.agent_run_audit_event") ||
-          normalized.startsWith("select count(*)::int as row_count from core.evidence_record") ||
-          normalized.startsWith("select count(*)::int as row_count from core.usage_event") ||
-          normalized.startsWith("select count(*)::int as row_count from core.usage_ledger_entry")
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_audit.agent_run_audit_event") ||
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_core.evidence_record") ||
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_core.usage_event") ||
+          normalized.startsWith("select count(*)::int as row_count from aiphabee_core.usage_ledger_entry")
         ) {
           return {
             rowCount: 1,
@@ -53,14 +53,14 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("delete from core.usage_ledger_entry") ||
-          normalized.startsWith("delete from core.usage_event") ||
-          normalized.startsWith("delete from core.usage_meter_rule") ||
-          normalized.startsWith("delete from core.evidence_source_ref") ||
-          normalized.startsWith("delete from core.evidence_record") ||
-          normalized.startsWith("delete from core.workspace") ||
-          normalized.startsWith("delete from core.account") ||
-          normalized.startsWith("delete from audit.agent_run_audit_event")
+          normalized.startsWith("delete from aiphabee_core.usage_ledger_entry") ||
+          normalized.startsWith("delete from aiphabee_core.usage_event") ||
+          normalized.startsWith("delete from aiphabee_core.usage_meter_rule") ||
+          normalized.startsWith("delete from aiphabee_core.evidence_source_ref") ||
+          normalized.startsWith("delete from aiphabee_core.evidence_record") ||
+          normalized.startsWith("delete from platform.workspace") ||
+          normalized.startsWith("delete from platform.account") ||
+          normalized.startsWith("delete from aiphabee_audit.agent_run_audit_event")
         ) {
           return { rowCount: 1, rows: [] };
         }
@@ -236,25 +236,25 @@ describe("Agent run live write smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const auditInsert = client.queries.find((query) =>
-      query.text.includes("insert into audit.agent_run_audit_event")
+      query.text.includes("insert into aiphabee_audit.agent_run_audit_event")
     );
     const evidenceInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.evidence_record")
+      query.text.includes("insert into aiphabee_core.evidence_record")
     );
     const sourceRefInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.evidence_source_ref")
+      query.text.includes("insert into aiphabee_core.evidence_source_ref")
     );
     const accountInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.account")
+      query.text.includes("insert into platform.account")
     );
     const workspaceInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.workspace")
+      query.text.includes("insert into platform.workspace")
     );
     const usageEventInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.usage_event")
+      query.text.includes("insert into aiphabee_core.usage_event")
     );
     const ledgerInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.usage_ledger_entry")
+      query.text.includes("insert into aiphabee_core.usage_ledger_entry")
     );
 
     expect(response.status).toBe(200);
@@ -277,38 +277,38 @@ describe("Agent run live write smoke", () => {
     expect(body.agent_run_live_write_result?.usage_event_id_hash).toMatch(/^sha256:/u);
     expect(body.agent_run_live_write_result?.ledger_entry_id_hash).toMatch(/^sha256:/u);
     expect(body.agent_run_live_write_result?.tables).toEqual([
-      "audit.agent_run_audit_event",
-      "core.evidence_record",
-      "core.evidence_source_ref",
-      "core.account",
-      "core.workspace",
-      "core.usage_meter_rule",
-      "core.usage_event",
-      "core.usage_ledger_entry"
+      "aiphabee_audit.agent_run_audit_event",
+      "aiphabee_core.evidence_record",
+      "aiphabee_core.evidence_source_ref",
+      "platform.account",
+      "platform.workspace",
+      "aiphabee_core.usage_meter_rule",
+      "aiphabee_core.usage_event",
+      "aiphabee_core.usage_ledger_entry"
     ]);
     expect(pgMock.configs[0]?.connectionString).toBe("mock-agent-run-live-write-connection");
     expect(client.end).toHaveBeenCalledOnce();
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into audit.agent_run_audit_event");
-    expect(normalizedQueries[2]).toContain("insert into core.evidence_record");
-    expect(normalizedQueries[3]).toContain("insert into core.evidence_source_ref");
-    expect(normalizedQueries[4]).toContain("insert into core.account");
-    expect(normalizedQueries[5]).toContain("insert into core.workspace");
-    expect(normalizedQueries[6]).toContain("insert into core.usage_meter_rule");
-    expect(normalizedQueries[7]).toContain("insert into core.usage_event");
-    expect(normalizedQueries[8]).toContain("insert into core.usage_ledger_entry");
-    expect(normalizedQueries[9]).toContain("from audit.agent_run_audit_event");
-    expect(normalizedQueries[10]).toContain("from core.evidence_record");
-    expect(normalizedQueries[11]).toContain("from core.usage_event");
-    expect(normalizedQueries[12]).toContain("from core.usage_ledger_entry");
-    expect(normalizedQueries[13]).toContain("delete from core.usage_ledger_entry");
-    expect(normalizedQueries[14]).toContain("delete from core.usage_event");
-    expect(normalizedQueries[15]).toContain("delete from core.usage_meter_rule");
-    expect(normalizedQueries[16]).toContain("delete from core.evidence_source_ref");
-    expect(normalizedQueries[17]).toContain("delete from core.evidence_record");
-    expect(normalizedQueries[18]).toContain("delete from core.workspace");
-    expect(normalizedQueries[19]).toContain("delete from core.account");
-    expect(normalizedQueries[20]).toContain("delete from audit.agent_run_audit_event");
+    expect(normalizedQueries[1]).toContain("insert into aiphabee_audit.agent_run_audit_event");
+    expect(normalizedQueries[2]).toContain("insert into aiphabee_core.evidence_record");
+    expect(normalizedQueries[3]).toContain("insert into aiphabee_core.evidence_source_ref");
+    expect(normalizedQueries[4]).toContain("insert into platform.account");
+    expect(normalizedQueries[5]).toContain("insert into platform.workspace");
+    expect(normalizedQueries[6]).toContain("insert into aiphabee_core.usage_meter_rule");
+    expect(normalizedQueries[7]).toContain("insert into aiphabee_core.usage_event");
+    expect(normalizedQueries[8]).toContain("insert into aiphabee_core.usage_ledger_entry");
+    expect(normalizedQueries[9]).toContain("from aiphabee_audit.agent_run_audit_event");
+    expect(normalizedQueries[10]).toContain("from aiphabee_core.evidence_record");
+    expect(normalizedQueries[11]).toContain("from aiphabee_core.usage_event");
+    expect(normalizedQueries[12]).toContain("from aiphabee_core.usage_ledger_entry");
+    expect(normalizedQueries[13]).toContain("delete from aiphabee_core.usage_ledger_entry");
+    expect(normalizedQueries[14]).toContain("delete from aiphabee_core.usage_event");
+    expect(normalizedQueries[15]).toContain("delete from aiphabee_core.usage_meter_rule");
+    expect(normalizedQueries[16]).toContain("delete from aiphabee_core.evidence_source_ref");
+    expect(normalizedQueries[17]).toContain("delete from aiphabee_core.evidence_record");
+    expect(normalizedQueries[18]).toContain("delete from platform.workspace");
+    expect(normalizedQueries[19]).toContain("delete from platform.account");
+    expect(normalizedQueries[20]).toContain("delete from aiphabee_audit.agent_run_audit_event");
     expect(normalizedQueries[21]).toBe("commit");
     expect(serialized).not.toContain(String(auditInsert?.values?.[0]));
     expect(serialized).not.toContain(String(evidenceInsert?.values?.[0]));

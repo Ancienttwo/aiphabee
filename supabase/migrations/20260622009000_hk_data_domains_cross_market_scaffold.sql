@@ -1,10 +1,10 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.hk_data_domain_coverage (
+create table if not exists aiphabee_core.hk_data_domain_coverage (
   hk_data_domain_coverage_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   market text not null default 'HK' check (market = 'HK'),
   domain text not null check (
     domain in (
@@ -29,9 +29,9 @@ create table if not exists core.hk_data_domain_coverage (
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.cross_market_security_mapping (
+create table if not exists aiphabee_core.cross_market_security_mapping (
   cross_market_security_mapping_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   base_market text not null default 'HK' check (base_market = 'HK'),
   comparison_market text not null check (comparison_market in ('CN_A', 'US', 'SG')),
   mapping_type text not null check (
@@ -56,10 +56,10 @@ create table if not exists core.cross_market_security_mapping (
   created_at timestamptz not null default now()
 );
 
-create table if not exists audit.market_domain_coverage_event (
+create table if not exists aiphabee_audit.market_domain_coverage_event (
   market_domain_coverage_event_id text primary key,
   request_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   event_type text not null default 'market_data.domains.cross_market.plan' check (
     event_type in (
       'market_data.domains.cross_market.plan',
@@ -75,7 +75,7 @@ create table if not exists audit.market_domain_coverage_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.hk_data_domain_cross_market_contract (
+create table if not exists aiphabee_governance.hk_data_domain_cross_market_contract (
   contract_name text not null default 'hk_data_domains_cross_market',
   contract_version text not null default '2026-06-22.phase4.hk-data-domains-cross-market-scaffold.v0',
   runtime_route text not null default 'GET /market-data/domains/runtime',

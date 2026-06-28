@@ -1,13 +1,13 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.private_share_link (
+create table if not exists aiphabee_core.private_share_link (
   private_share_ref text not null,
-  creator_account_id text references core.account(account_id),
-  creator_workspace_id text references core.workspace(workspace_id),
-  recipient_account_id text references core.account(account_id),
-  recipient_workspace_id text references core.workspace(workspace_id),
+  creator_account_id text references platform.account(account_id),
+  creator_workspace_id text references platform.workspace(workspace_id),
+  recipient_account_id text references platform.account(account_id),
+  recipient_workspace_id text references platform.workspace(workspace_id),
   request_id text not null,
   dataset text not null,
   requested_fields text[] not null default '{}',
@@ -30,9 +30,9 @@ create table if not exists core.private_share_link (
   primary key (private_share_ref)
 );
 
-create table if not exists audit.private_share_event (
+create table if not exists aiphabee_audit.private_share_event (
   private_share_event_ref text not null,
-  private_share_ref text references core.private_share_link(private_share_ref),
+  private_share_ref text references aiphabee_core.private_share_link(private_share_ref),
   request_id text not null,
   event_kind text not null default 'planned',
   creator_gateway_status text not null default 'not_evaluated',
@@ -43,7 +43,7 @@ create table if not exists audit.private_share_event (
   primary key (private_share_event_ref)
 );
 
-create table if not exists governance.private_sharing_contract (
+create table if not exists aiphabee_governance.private_sharing_contract (
   contract_name text not null default 'private_sharing_links',
   contract_version text not null default '2026-06-21.phase3.private-share-link-scaffold.v0',
   route text not null default 'POST /sharing/private-links/plan',

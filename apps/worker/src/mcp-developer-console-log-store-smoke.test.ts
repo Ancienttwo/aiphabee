@@ -28,7 +28,7 @@ const pgMock = vi.hoisted(() => {
           return { rowCount: null, rows: [] };
         }
 
-        if (normalized.startsWith("insert into core.mcp_developer_console_request_log")) {
+        if (normalized.startsWith("insert into aiphabee_core.mcp_developer_console_request_log")) {
           requestLogs.set(String(values?.[0]), {
             credits: values?.[12],
             credits_remaining: values?.[13],
@@ -55,7 +55,7 @@ const pgMock = vi.hoisted(() => {
           };
         }
 
-        if (normalized.startsWith("delete from core.mcp_developer_console_request_log")) {
+        if (normalized.startsWith("delete from aiphabee_core.mcp_developer_console_request_log")) {
           const key = String(values?.[0]);
           const existed = requestLogs.delete(key);
 
@@ -246,7 +246,7 @@ describe("MCP Developer Console log-store smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const requestLogInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.mcp_developer_console_request_log")
+      query.text.includes("insert into aiphabee_core.mcp_developer_console_request_log")
     );
     const rawRequestLogId = String(requestLogInsert?.values?.[0]);
     const rawSourceRecordId = String(requestLogInsert?.values?.[17]);
@@ -273,7 +273,7 @@ describe("MCP Developer Console log-store smoke", () => {
       selected_rows: 1,
       status: "passed",
       surface: "mcp_developer_console_request_log_insert_select_delete",
-      tables: ["core.mcp_developer_console_request_log"]
+      tables: ["aiphabee_core.mcp_developer_console_request_log"]
     });
     expect(body.mcp_developer_console_log_store_result?.query_hash).toMatch(/^sha256:/u);
     expect(body.mcp_developer_console_log_store_result?.request_log_id_hash).toMatch(
@@ -288,11 +288,11 @@ describe("MCP Developer Console log-store smoke", () => {
     expect(client.end).toHaveBeenCalledOnce();
     expect(normalizedQueries[0]).toBe("begin");
     expect(normalizedQueries[1]).toContain(
-      "insert into core.mcp_developer_console_request_log"
+      "insert into aiphabee_core.mcp_developer_console_request_log"
     );
     expect(normalizedQueries[2]).toContain("select request_log_id, status");
     expect(normalizedQueries[3]).toContain(
-      "delete from core.mcp_developer_console_request_log"
+      "delete from aiphabee_core.mcp_developer_console_request_log"
     );
     expect(normalizedQueries[4]).toBe("commit");
     expect(serialized).not.toContain(rawRequestLogId);

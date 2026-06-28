@@ -199,8 +199,8 @@ function validateDatabaseTables(value) {
   const serialized = JSON.stringify(value);
 
   for (const table of [
-    "core.authorized_session_memory",
-    "governance.authorized_session_memory_contract"
+    "aiphabee_core.authorized_session_memory",
+    "aiphabee_governance.authorized_session_memory_contract"
   ]) {
     if (!serialized.includes(table)) {
       errors.push(`database contract must include ${table}`);

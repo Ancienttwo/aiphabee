@@ -19,7 +19,7 @@ must be backed by a tool result or deterministic calculation reference.
 | Preflight source | `POST /agent/runs/preflight` | Produces blocking clarification for ambiguous securities before tool planning |
 | Tool-loop source | `POST /agent/runs/plan` | Produces `numeric_source_guard` and `answer_evidence_contract` without model/tool execution |
 | Contract | `deploy/agent/product-agent-release-gate.contract.json` | Guards required checks, no-live boundaries, linked contracts, and release blockers |
-| Schema scaffold | `core.product_agent_release_gate`, `governance.product_agent_release_gate_contract` | Empty future persistence tables |
+| Schema scaffold | `aiphabee_core.product_agent_release_gate`, `aiphabee_governance.product_agent_release_gate_contract` | Empty future persistence tables |
 | Explicitly absent | Live post-generation numeric extraction, live evidence binding, frontend clarification UI | Remain blocked or delegated |
 
 ## P2 Concrete Trace

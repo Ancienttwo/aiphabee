@@ -18,8 +18,8 @@ persistence.
 
 - In scope:
   - `POST /evidence/records/live-db-smoke` header and token guard;
-  - Hyperdrive-backed insert/read/delete smoke for `core.evidence_record` and
-    `core.evidence_source_ref`;
+  - Hyperdrive-backed insert/read/delete smoke for `aiphabee_core.evidence_record` and
+    `aiphabee_core.evidence_source_ref`;
   - hash-only response shape;
   - focused Worker tests with mocked `pg`;
   - machine-checkable smoke contract and readiness-ledger integration;

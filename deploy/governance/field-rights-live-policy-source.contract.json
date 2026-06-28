@@ -74,9 +74,9 @@
     "deploy/gateway/access.contract.json"
   ],
   "tables": [
-    "core.data_entitlement",
-    "core.workspace_entitlement",
-    "core.workspace_subscription",
-    "core.p0_rights_matrix_entry"
+    "aiphabee_governance.data_entitlement",
+    "aiphabee_governance.workspace_entitlement",
+    "platform.workspace_subscription",
+    "aiphabee_core.p0_rights_matrix_entry"
   ]
 }

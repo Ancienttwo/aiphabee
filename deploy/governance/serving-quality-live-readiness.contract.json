@@ -43,10 +43,10 @@
     "smoke_scenarios": 4
   },
   "tables": [
-    "core.serving_dataset",
-    "core.serving_field",
-    "core.serving_snapshot",
-    "core.serving_record"
+    "aiphabee_core.serving_dataset",
+    "aiphabee_core.serving_field",
+    "aiphabee_core.serving_snapshot",
+    "aiphabee_core.serving_record"
   ],
   "linked_contracts": [
     "deploy/gateway/access.contract.json",

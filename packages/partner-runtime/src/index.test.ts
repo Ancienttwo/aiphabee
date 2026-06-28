@@ -59,10 +59,10 @@ describe("partner runtime scaffold", () => {
     ]);
     expect(capability.allowed_commercial_models).toContain("minimum_guarantee_overage");
     expect(capability.tables).toEqual([
-      "core.partner_program",
-      "core.partner_embed_surface",
-      "audit.partner_distribution_event",
-      "governance.partner_white_label_contract"
+      "aiphabee_core.partner_program",
+      "aiphabee_core.partner_embed_surface",
+      "aiphabee_audit.partner_distribution_event",
+      "aiphabee_governance.partner_white_label_contract"
     ]);
   });
 

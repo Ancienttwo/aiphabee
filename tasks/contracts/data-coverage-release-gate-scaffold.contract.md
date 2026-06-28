@@ -16,8 +16,8 @@ financial restatements, delistings, and identifier history.
   coverage domain rows.
 - Local contract checker: `npm run check:data-coverage-release-gate`.
 - Empty schema scaffold:
-  - `core.data_coverage_release_gate`
-  - `governance.data_coverage_release_gate_contract`
+  - `aiphabee_core.data_coverage_release_gate`
+  - `aiphabee_governance.data_coverage_release_gate_contract`
 
 ## Behavioral Contract
 

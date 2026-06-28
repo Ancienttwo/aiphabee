@@ -15,8 +15,8 @@ request_id-based support investigation planning.
   metadata-only investigation plan for a target `request_id`.
 - Sensitive content requests are blocked by default.
 - `docs/public/help-center.md` exists as a local help center publication draft.
-- `core.support_ticket`, `audit.support_investigation_event`, and
-  `governance.support_request_id_contract` exist as empty schema scaffolds.
+- `aiphabee_core.support_ticket`, `aiphabee_audit.support_investigation_event`, and
+  `aiphabee_governance.support_request_id_contract` exist as empty schema scaffolds.
 - The local contract checker verifies help topics, allowed lookup fields,
   forbidden sensitive fields, planned sources, required help center sections,
   no live log reads, no live billing provider reads, no SQL, no writes, and

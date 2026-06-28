@@ -83,8 +83,8 @@ const requiredBlockers = [
   "public_status_page_deploy_missing"
 ];
 const requiredTables = [
-  "core.mcp_target_clients_console_release_gate",
-  "governance.mcp_target_clients_console_release_gate_contract"
+  "aiphabee_core.mcp_target_clients_console_release_gate",
+  "aiphabee_governance.mcp_target_clients_console_release_gate_contract"
 ];
 const requiredCoveredItems = [
   "mcp_target_client_e2e",

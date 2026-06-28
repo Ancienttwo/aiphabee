@@ -12,8 +12,8 @@ usage-ledger reconciliation and request-level billing traceability.
 - Planner route: `POST /usage/billing/reconciliation/plan`
 - Contract: `deploy/usage/billing-reconciliation.contract.json`
 - Checker: `npm run check:usage-billing-reconciliation`
-- Invoice table scaffold: `core.subscription_invoice`
-- Invoice-line table scaffold: `core.subscription_invoice_line`
+- Invoice table scaffold: `aiphabee_core.subscription_invoice`
+- Invoice-line table scaffold: `aiphabee_core.subscription_invoice_line`
 
 ## Required Guarantees
 

@@ -36,11 +36,11 @@
     "missing_database_url"
   ],
   "target_tables": [
-    "core.data_version_batch",
-    "core.hkex_news_crawl_run",
-    "core.hkex_news_document_observation",
-    "core.hkex_news_extracted_fact",
-    "core.hkex_news_transform_run"
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hkex_news_crawl_run",
+    "aiphabee_core.hkex_news_document_observation",
+    "aiphabee_core.hkex_news_extracted_fact",
+    "aiphabee_core.hkex_news_transform_run"
   ],
   "response_fields": [
     "data_version_hash",

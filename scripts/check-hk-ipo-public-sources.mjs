@@ -428,11 +428,11 @@ function validateSchemaPreflight(value) {
     validationErrors.push("schema_preflight.canonical_source must be hkex_news");
   }
   for (const table of [
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate",
-    "governance.hk_ipo_public_observation_contract"
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate",
+    "aiphabee_governance.hk_ipo_public_observation_contract"
   ]) {
     if (!value.persistent_tables?.includes(table)) {
       validationErrors.push(`schema_preflight.persistent_tables missing ${table}`);
@@ -505,8 +505,8 @@ function validateRawSnapshotCapture(value) {
   if (value.computes_payload_hash_sha256 !== true) {
     validationErrors.push("raw_snapshot_capture.computes_payload_hash_sha256 must be true");
   }
-  if (value.target_table !== "core.raw_snapshot") {
-    validationErrors.push("raw_snapshot_capture.target_table must be core.raw_snapshot");
+  if (value.target_table !== "aiphabee_core.raw_snapshot") {
+    validationErrors.push("raw_snapshot_capture.target_table must be aiphabee_core.raw_snapshot");
   }
   if (value.storage_target !== "external_raw_snapshot_store") {
     validationErrors.push("raw_snapshot_capture.storage_target must be external_raw_snapshot_store");
@@ -590,8 +590,8 @@ function validateRawSnapshotStorage(value) {
   if (value.input_capture_script !== rawSnapshotCaptureScript) {
     validationErrors.push(`raw_snapshot_storage.input_capture_script must be ${rawSnapshotCaptureScript}`);
   }
-  if (value.target_table !== "core.raw_snapshot") {
-    validationErrors.push("raw_snapshot_storage.target_table must be core.raw_snapshot");
+  if (value.target_table !== "aiphabee_core.raw_snapshot") {
+    validationErrors.push("raw_snapshot_storage.target_table must be aiphabee_core.raw_snapshot");
   }
   if (value.storage_target !== "external_raw_snapshot_store") {
     validationErrors.push("raw_snapshot_storage.storage_target must be external_raw_snapshot_store");
@@ -850,13 +850,13 @@ function validateApplyPlanner(value) {
     validationErrors.push("apply_planner.parameterized_statements must be true");
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.hk_ipo_public_source_run",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`apply_planner.target_tables missing ${table}`);
@@ -969,13 +969,13 @@ function validateHeldDbApplyPacket(value) {
     validationErrors.push("held_db_apply_packet.parameterized_statements must be true");
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.hk_ipo_public_source_run",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_db_apply_packet.target_tables missing ${table}`);
@@ -1120,13 +1120,13 @@ function validateHeldDbApplyLive(value) {
     validationErrors.push("held_db_apply_live.release_state must be held");
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_db_apply_live.target_tables missing ${table}`);
@@ -1261,23 +1261,23 @@ function validateHeldDbApplySmoke(value) {
     }
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_db_apply_smoke.target_tables missing ${table}`);
     }
   }
   for (const table of [
-    "core.ipo_offering",
-    "core.ipo_timetable_event",
-    "core.ipo_narrative",
-    "core.ipo_cornerstone"
+    "aiphabee_core.ipo_offering",
+    "aiphabee_core.ipo_timetable_event",
+    "aiphabee_core.ipo_narrative",
+    "aiphabee_core.ipo_cornerstone"
   ]) {
     if (!value.blocked_tables?.includes(table)) {
       validationErrors.push(`held_db_apply_smoke.blocked_tables missing ${table}`);
@@ -1408,13 +1408,13 @@ function validateHeldDbReadback(value) {
     }
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_db_readback.target_tables missing ${table}`);
@@ -1511,23 +1511,23 @@ function validateHeldReviewPacket(value) {
     }
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.hk_ipo_public_source_run",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_review_packet.target_tables missing ${table}`);
     }
   }
   for (const table of [
-    "core.ipo_offering",
-    "core.ipo_timetable_event",
-    "core.ipo_narrative",
-    "core.ipo_cornerstone"
+    "aiphabee_core.ipo_offering",
+    "aiphabee_core.ipo_timetable_event",
+    "aiphabee_core.ipo_narrative",
+    "aiphabee_core.ipo_cornerstone"
   ]) {
     if (!value.blocked_tables?.includes(table)) {
       validationErrors.push(`held_review_packet.blocked_tables missing ${table}`);
@@ -1686,23 +1686,23 @@ function validateHeldPromotionPreflight(value) {
     }
   }
   for (const table of [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.hk_ipo_public_source_run",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ]) {
     if (!value.target_tables?.includes(table)) {
       validationErrors.push(`held_promotion_preflight.target_tables missing ${table}`);
     }
   }
   for (const table of [
-    "core.ipo_offering",
-    "core.ipo_timetable_event",
-    "core.ipo_narrative",
-    "core.ipo_cornerstone"
+    "aiphabee_core.ipo_offering",
+    "aiphabee_core.ipo_timetable_event",
+    "aiphabee_core.ipo_narrative",
+    "aiphabee_core.ipo_cornerstone"
   ]) {
     if (!value.blocked_tables?.includes(table)) {
       validationErrors.push(`held_promotion_preflight.blocked_tables missing ${table}`);

@@ -12,9 +12,9 @@
 - Extended `GET /public/runtime` with `compliance_ops_release_gate`.
 - Added contract checker `npm run check:compliance-ops-release-gate`.
 - Added empty DB scaffold tables:
-  - `core.compliance_ops_release_gate`
-  - `audit.compliance_ops_drill_event`
-  - `governance.compliance_ops_release_gate_contract`
+  - `aiphabee_core.compliance_ops_release_gate`
+  - `aiphabee_audit.compliance_ops_drill_event`
+  - `aiphabee_governance.compliance_ops_release_gate_contract`
 
 ## Evidence
 

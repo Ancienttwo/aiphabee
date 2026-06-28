@@ -18,8 +18,8 @@ be exercised together without mutating old reports or enabling live writes.
 | Drill route | `POST /research/golden-correction-rollback-drill/plan` | Returns synthetic fixture gate, correction notification plan, and rollback replay plan |
 | Golden fixture gate | `npm run test:golden` | Verifies 8 synthetic quality samples and 16 tool golden fixtures |
 | Contract | `deploy/research/golden-correction-rollback-drill.contract.json` | Guards sample counts, required steps, no-live boundaries, and linked manifests |
-| Schema scaffold | `core.golden_correction_rollback_drill`, `governance.golden_correction_rollback_drill_contract` | Empty future persistence tables |
-| Reused schema scaffolds | `core.data_correction_event`, `core.research_run_correction_impact` | Owned by the data-correction notification slice |
+| Schema scaffold | `aiphabee_core.golden_correction_rollback_drill`, `aiphabee_governance.golden_correction_rollback_drill_contract` | Empty future persistence tables |
+| Reused schema scaffolds | `aiphabee_core.data_correction_event`, `aiphabee_core.research_run_correction_impact` | Owned by the data-correction notification slice |
 | Explicitly absent | Production partner corpus, live correction writes, queue fanout, live rollback execution, frontend release UI | Remain blocked or delegated |
 
 ## P2 Concrete Trace

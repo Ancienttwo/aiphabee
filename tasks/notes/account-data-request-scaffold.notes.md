@@ -14,9 +14,9 @@ and deletion requests with retention policy controls and audit planning.
 - Download requests plan secure JSON delivery without live export.
 - Delete requests schedule erasure only for eligible scopes and retain billing,
   usage-ledger, and audit-log scopes under retention policy.
-- `core.account_data_request`, `core.account_data_request_item`,
-  `audit.account_data_request_event`, and
-  `governance.account_data_request_contract` exist as empty schema scaffolds.
+- `aiphabee_core.account_data_request`, `aiphabee_core.account_data_request_item`,
+  `aiphabee_audit.account_data_request_event`, and
+  `aiphabee_governance.account_data_request_contract` exist as empty schema scaffolds.
 - The local contract checker verifies retention-policy versioning, audit
   requirements, no live export, no writes, no SQL, privacy exclusions, and
   database contract linkage.

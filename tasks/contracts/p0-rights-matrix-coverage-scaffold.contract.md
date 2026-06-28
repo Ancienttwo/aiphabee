@@ -14,8 +14,8 @@ coverage across Web, MCP, export, and enterprise authorization surfaces.
   tools and core P0 dataset/field groups.
 - Local contract checker: `npm run check:p0-rights-matrix-coverage`.
 - Empty schema scaffold:
-  - `core.p0_rights_matrix_entry`
-  - `governance.p0_rights_matrix_contract`
+  - `aiphabee_core.p0_rights_matrix_entry`
+  - `aiphabee_governance.p0_rights_matrix_contract`
 
 ## Behavioral Contract
 

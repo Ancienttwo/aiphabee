@@ -17,13 +17,13 @@ data.
 ## Scope
 
 - In scope:
-  - `core.company`;
-  - `core.instrument`;
-  - `core.listing`;
-  - `core.identifier_history`;
-  - `core.raw_source_batch`;
-  - `core.raw_snapshot`;
-  - `core.data_version_batch`;
+  - `aiphabee_core.company`;
+  - `aiphabee_core.instrument`;
+  - `aiphabee_core.listing`;
+  - `aiphabee_core.identifier_history`;
+  - `aiphabee_core.raw_source_batch`;
+  - `aiphabee_core.raw_snapshot`;
+  - `aiphabee_core.data_version_batch`;
   - governance contract row;
   - database migration contract update;
   - Worker `/data/runtime` capability route;

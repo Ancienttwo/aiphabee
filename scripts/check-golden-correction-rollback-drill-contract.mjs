@@ -22,14 +22,14 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.golden_correction_rollback_drill",
-  "governance.golden_correction_rollback_drill_contract",
-  "core.data_correction_event",
-  "core.research_run_correction_impact"
+  "aiphabee_core.golden_correction_rollback_drill",
+  "aiphabee_governance.golden_correction_rollback_drill_contract",
+  "aiphabee_core.data_correction_event",
+  "aiphabee_core.research_run_correction_impact"
 ];
 const newMigrationTables = [
-  "core.golden_correction_rollback_drill",
-  "governance.golden_correction_rollback_drill_contract"
+  "aiphabee_core.golden_correction_rollback_drill",
+  "aiphabee_governance.golden_correction_rollback_drill_contract"
 ];
 const requiredCoveredItems = [
   "golden_samples_pass",

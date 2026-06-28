@@ -20,8 +20,8 @@
 - Due diligence:
   - P1 map: `@aiphabee/evidence-lineage`, Worker `/evidence/runtime`, Worker
     `/evidence/records/plan`, `deploy/evidence/service.contract.json`,
-    `core.evidence_record`, `core.evidence_source_ref`, and
-    `governance.evidence_lineage_service_contract`.
+    `aiphabee_core.evidence_record`, `aiphabee_core.evidence_source_ref`, and
+    `aiphabee_governance.evidence_lineage_service_contract`.
   - P2 trace: tool execution metadata and source records -> no-write evidence
     planner -> stable evidence record ID -> source ref plans -> user-visible
     citation -> standard response envelope.
@@ -50,9 +50,9 @@
   - `GET /evidence/runtime`
   - `POST /evidence/records/plan`
 - Add empty Supabase schema scaffolds:
-  - `core.evidence_record`
-  - `core.evidence_source_ref`
-  - `governance.evidence_lineage_service_contract`
+  - `aiphabee_core.evidence_record`
+  - `aiphabee_core.evidence_source_ref`
+  - `aiphabee_governance.evidence_lineage_service_contract`
 - Add `deploy/evidence/service.contract.json` and
   `npm run check:evidence-service`.
 - Keep `live_db_writes=false`, `sql_emitted=false`, and

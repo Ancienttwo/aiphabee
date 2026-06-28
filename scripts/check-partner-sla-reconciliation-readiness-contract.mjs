@@ -32,15 +32,15 @@ const requiredOutputFields = [
   "usage_fixture_rows"
 ];
 const requiredTables = [
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.partner_reconciliation_report",
-  "core.partner_reconciliation_report_line",
-  "audit.partner_reconciliation_event",
-  "governance.partner_reconciliation_contract",
-  "core.partner_support_release_gate",
-  "audit.partner_support_drill_event",
-  "governance.partner_support_release_gate_contract"
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.partner_reconciliation_report",
+  "aiphabee_core.partner_reconciliation_report_line",
+  "aiphabee_audit.partner_reconciliation_event",
+  "aiphabee_governance.partner_reconciliation_contract",
+  "aiphabee_core.partner_support_release_gate",
+  "aiphabee_audit.partner_support_drill_event",
+  "aiphabee_governance.partner_support_release_gate_contract"
 ];
 const requiredBlockers = [
   "live_usage_ledger_reads_missing",

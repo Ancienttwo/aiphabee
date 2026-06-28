@@ -1,7 +1,7 @@
-create schema if not exists audit;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_governance;
 
-create table if not exists audit.agent_run_audit_event (
+create table if not exists aiphabee_audit.agent_run_audit_event (
   audit_event_id text primary key,
   event_type text not null check (event_type = 'run.audit'),
   event_version text not null,
@@ -17,7 +17,7 @@ create table if not exists audit.agent_run_audit_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.agent_run_live_write_smoke_contract (
+create table if not exists aiphabee_governance.agent_run_live_write_smoke_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -30,7 +30,7 @@ create table if not exists governance.agent_run_live_write_smoke_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.agent_run_live_write_smoke_contract (
+insert into aiphabee_governance.agent_run_live_write_smoke_contract (
   contract_key,
   contract_version,
   status,

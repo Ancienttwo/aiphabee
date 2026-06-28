@@ -30,11 +30,11 @@ Ask rendering, or user-facing live model streaming.
 3. The route requires `AIPHABEE_HYPERDRIVE`; missing binding returns `424`
    before opening a DB connection.
 4. The smoke opens one transaction and writes synthetic rows in:
-   - `core.account`
-   - `core.workspace`
-   - `core.usage_meter_rule`
-   - `core.usage_event`
-   - `core.usage_ledger_entry`
+   - `platform.account`
+   - `platform.workspace`
+   - `aiphabee_core.usage_meter_rule`
+   - `aiphabee_core.usage_event`
+   - `aiphabee_core.usage_ledger_entry`
 5. It reads the `preview` ledger row, updates it to `posted`, repeats the same
    update to prove the retry skips, reads the posted credit delta, deletes the
    synthetic rows, then commits.

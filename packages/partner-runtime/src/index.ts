@@ -91,10 +91,10 @@ export interface WhiteLabelEmbedCapabilities {
   sql_emitted: false;
   status: "white_label_embed_scaffold";
   tables: readonly [
-    "core.partner_program",
-    "core.partner_embed_surface",
-    "audit.partner_distribution_event",
-    "governance.partner_white_label_contract"
+    "aiphabee_core.partner_program",
+    "aiphabee_core.partner_embed_surface",
+    "aiphabee_audit.partner_distribution_event",
+    "aiphabee_governance.partner_white_label_contract"
   ];
   version: typeof PARTNER_RUNTIME_VERSION;
 }
@@ -144,7 +144,7 @@ export interface WhiteLabelEmbedPlan {
     partner_id: string;
     partner_name: string;
     partner_type: PartnerType;
-    program_table: "core.partner_program";
+    program_table: "aiphabee_core.partner_program";
     workspace_id: string;
   };
   persistent_writes: false;
@@ -181,10 +181,10 @@ export interface WhiteLabelEmbedPlan {
 }
 
 const WHITE_LABEL_EMBED_TABLES: WhiteLabelEmbedCapabilities["tables"] = [
-  "core.partner_program",
-  "core.partner_embed_surface",
-  "audit.partner_distribution_event",
-  "governance.partner_white_label_contract"
+  "aiphabee_core.partner_program",
+  "aiphabee_core.partner_embed_surface",
+  "aiphabee_audit.partner_distribution_event",
+  "aiphabee_governance.partner_white_label_contract"
 ];
 
 export function getPartnerRuntimeCapabilities(): PartnerRuntimeCapabilities {
@@ -324,7 +324,7 @@ export function createWhiteLabelEmbedPlan(
       partner_id: normalizeIdentifier(input.partnerId, "partner_unresolved"),
       partner_name: normalizeIdentifier(input.partnerName, "partner_name_unresolved"),
       partner_type: partnerType,
-      program_table: "core.partner_program",
+      program_table: "aiphabee_core.partner_program",
       workspace_id: normalizeIdentifier(input.workspaceId, "workspace_unresolved")
     },
     persistent_writes: false,

@@ -45,9 +45,9 @@ const requiredSources = [
   "public_status_component"
 ];
 const requiredTables = [
-  "core.support_ticket",
-  "audit.support_investigation_event",
-  "governance.support_request_id_contract"
+  "aiphabee_core.support_ticket",
+  "aiphabee_audit.support_investigation_event",
+  "aiphabee_governance.support_request_id_contract"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

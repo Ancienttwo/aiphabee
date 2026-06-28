@@ -1,11 +1,11 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.partner_reconciliation_report (
+create table if not exists aiphabee_core.partner_reconciliation_report (
   report_id text primary key,
   partner_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   period_start timestamptz not null,
   period_end timestamptz not null,
   cadence text not null check (cadence in ('daily', 'weekly')),
@@ -32,9 +32,9 @@ create table if not exists core.partner_reconciliation_report (
   check (period_end > period_start)
 );
 
-create table if not exists core.partner_reconciliation_report_line (
+create table if not exists aiphabee_core.partner_reconciliation_report_line (
   line_id text primary key,
-  report_id text not null references core.partner_reconciliation_report(report_id),
+  report_id text not null references aiphabee_core.partner_reconciliation_report(report_id),
   partner_id text not null,
   dataset text not null,
   channel text not null check (channel in ('api', 'export', 'mcp', 'web')),
@@ -58,7 +58,7 @@ create table if not exists core.partner_reconciliation_report_line (
   unique (report_id, dataset, channel, package_code, user_id)
 );
 
-create table if not exists audit.partner_reconciliation_event (
+create table if not exists aiphabee_audit.partner_reconciliation_event (
   event_id text primary key,
   report_id text not null,
   partner_id text not null,
@@ -75,7 +75,7 @@ create table if not exists audit.partner_reconciliation_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.partner_reconciliation_contract (
+create table if not exists aiphabee_governance.partner_reconciliation_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -85,7 +85,7 @@ create table if not exists governance.partner_reconciliation_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.partner_reconciliation_contract (
+insert into aiphabee_governance.partner_reconciliation_contract (
   contract_key,
   contract_version,
   status,

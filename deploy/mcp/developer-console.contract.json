@@ -172,8 +172,8 @@
     ]
   },
   "tables": [
-    "core.mcp_developer_console_request_log",
-    "governance.mcp_developer_console_contract"
+    "aiphabee_core.mcp_developer_console_request_log",
+    "aiphabee_governance.mcp_developer_console_contract"
   ],
   "linked_contracts": [
     "deploy/mcp/target-clients-console-release-gate.contract.json",

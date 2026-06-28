@@ -17,10 +17,10 @@ usage writes or billing reconciliation.
 ## Scope
 
 - In scope:
-  - `core.usage_meter_rule`;
-  - `core.usage_event`;
-  - `core.usage_reconciliation_batch`;
-  - `core.usage_ledger_entry`;
+  - `aiphabee_core.usage_meter_rule`;
+  - `aiphabee_core.usage_event`;
+  - `aiphabee_core.usage_reconciliation_batch`;
+  - `aiphabee_core.usage_ledger_entry`;
   - governance contract row;
   - database migration contract update;
   - Worker `/gateway/runtime` capability route update;

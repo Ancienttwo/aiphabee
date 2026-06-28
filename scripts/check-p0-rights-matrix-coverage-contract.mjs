@@ -18,8 +18,8 @@ const requiredDatasetGroups = [
   "ipo_pipeline"
 ];
 const requiredTables = [
-  "core.p0_rights_matrix_entry",
-  "governance.p0_rights_matrix_contract"
+  "aiphabee_core.p0_rights_matrix_entry",
+  "aiphabee_governance.p0_rights_matrix_contract"
 ];
 const requiredOutputFields = [
   "tool_coverage",

@@ -1,8 +1,8 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.user_public_data_join_plan (
+create table if not exists aiphabee_core.user_public_data_join_plan (
   plan_id text primary key,
   request_id text not null,
   workspace_id text,
@@ -64,7 +64,7 @@ create table if not exists core.user_public_data_join_plan (
   created_at timestamptz not null default now()
 );
 
-create table if not exists audit.user_public_data_join_event (
+create table if not exists aiphabee_audit.user_public_data_join_event (
   event_id text primary key,
   request_id text not null,
   workspace_id text,
@@ -86,7 +86,7 @@ create table if not exists audit.user_public_data_join_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.user_public_data_join_privacy_contract (
+create table if not exists aiphabee_governance.user_public_data_join_privacy_contract (
   contract_name text not null default 'user_public_data_join_privacy',
   contract_version text not null default '2026-06-22.phase4.user-public-data-join-privacy-scaffold.v0',
   runtime_route text not null default 'GET /documents/runtime',

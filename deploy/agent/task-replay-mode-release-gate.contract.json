@@ -23,7 +23,7 @@
     "resume_handle_required": true,
     "resumable": true,
     "disconnect_safe": true,
-    "checkpoint_table": "core.workflow_task_checkpoint",
+    "checkpoint_table": "aiphabee_core.workflow_task_checkpoint",
     "completion_notification_planned": true
   },
   "saved_report_replay_policy": {
@@ -71,8 +71,8 @@
     ]
   },
   "tables": [
-    "core.task_replay_mode_release_gate",
-    "governance.task_replay_mode_release_gate_contract"
+    "aiphabee_core.task_replay_mode_release_gate",
+    "aiphabee_governance.task_replay_mode_release_gate_contract"
   ],
   "covered_sprint_3_3_items": [
     "long_task_resume",

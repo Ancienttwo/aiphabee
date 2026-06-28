@@ -1,12 +1,12 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.partner_program (
+create table if not exists aiphabee_core.partner_program (
   partner_program_id text primary key,
   partner_id text not null,
   partner_name text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   partner_type text not null check (
     partner_type in ('brokerage', 'media', 'wealth_platform', 'data_company')
   ),
@@ -32,9 +32,9 @@ create table if not exists core.partner_program (
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.partner_embed_surface (
+create table if not exists aiphabee_core.partner_embed_surface (
   partner_embed_surface_id text primary key,
-  partner_program_id text not null references core.partner_program(partner_program_id),
+  partner_program_id text not null references aiphabee_core.partner_program(partner_program_id),
   surface text not null check (
     surface in ('research_widget', 'report_viewer', 'watchlist_widget', 'mcp_api', 'data_api')
   ),
@@ -50,11 +50,11 @@ create table if not exists core.partner_embed_surface (
   created_at timestamptz not null default now()
 );
 
-create table if not exists audit.partner_distribution_event (
+create table if not exists aiphabee_audit.partner_distribution_event (
   partner_distribution_event_id text primary key,
   request_id text not null,
   partner_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   event_type text not null default 'partner.white_label_embed.plan' check (
     event_type in ('partner.white_label_embed.plan', 'partner.mcp_api.plan', 'partner.settlement.plan')
   ),
@@ -71,7 +71,7 @@ create table if not exists audit.partner_distribution_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.partner_white_label_contract (
+create table if not exists aiphabee_governance.partner_white_label_contract (
   contract_name text not null default 'partner_white_label_embed',
   contract_version text not null default '2026-06-22.phase4.partner-white-label-embed-scaffold.v0',
   runtime_route text not null default 'GET /partner/runtime',

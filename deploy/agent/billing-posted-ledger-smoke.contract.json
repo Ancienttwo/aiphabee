@@ -31,11 +31,11 @@
   "frontend": false,
   "user_facing_streaming": false,
   "tables": [
-    "core.account",
-    "core.workspace",
-    "core.usage_meter_rule",
-    "core.usage_event",
-    "core.usage_ledger_entry"
+    "platform.account",
+    "platform.workspace",
+    "aiphabee_core.usage_meter_rule",
+    "aiphabee_core.usage_event",
+    "aiphabee_core.usage_ledger_entry"
   ],
   "not_claimed": [
     "production_billing_posting",

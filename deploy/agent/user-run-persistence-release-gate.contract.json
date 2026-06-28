@@ -63,8 +63,8 @@
     ]
   },
   "tables": [
-    "core.agent_user_run_persistence_release_gate",
-    "governance.agent_user_run_persistence_release_gate_contract"
+    "aiphabee_core.agent_user_run_persistence_release_gate",
+    "aiphabee_governance.agent_user_run_persistence_release_gate_contract"
   ],
   "not_claimed": [
     "production_agent_run_persistence",

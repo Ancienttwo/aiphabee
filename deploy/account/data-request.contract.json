@@ -48,7 +48,7 @@
   "audit": {
     "required": true,
     "audit_event": "account.data_request.plan",
-    "event_table": "audit.account_data_request_event",
+    "event_table": "aiphabee_audit.account_data_request_event",
     "identity_verification_required": true,
     "policy_version_required": true
   },
@@ -75,10 +75,10 @@
     "unsupported_scopes_block_before_write": true
   },
   "tables": [
-    "core.account_data_request",
-    "core.account_data_request_item",
-    "audit.account_data_request_event",
-    "governance.account_data_request_contract"
+    "aiphabee_core.account_data_request",
+    "aiphabee_core.account_data_request_item",
+    "aiphabee_audit.account_data_request_event",
+    "aiphabee_governance.account_data_request_contract"
   ],
   "required_output_fields": [
     "account",

@@ -7,7 +7,7 @@
 - Added `POST /mcp/revocations/enforce/plan` in the Worker.
 - Extended `POST /mcp` planning so provided revoked/rotated credential context fails with `AUTH_REQUIRED` before tool execution planning.
 - Added `deploy/mcp/revocation-enforcement.contract.json` and `npm run check:mcp-revocation-enforcement`.
-- Added empty `core.mcp_credential_revocation` and `governance.mcp_revocation_enforcement_contract` scaffolds.
+- Added empty `aiphabee_core.mcp_credential_revocation` and `aiphabee_governance.mcp_revocation_enforcement_contract` scaffolds.
 
 ## Boundaries
 

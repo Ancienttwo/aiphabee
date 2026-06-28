@@ -1,9 +1,9 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.saved_screening (
+create table if not exists aiphabee_core.saved_screening (
   saved_screening_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   owner_user_id text not null,
   name text not null,
   screen_route text not null default 'POST /analytics/screen-securities' check (
@@ -28,9 +28,9 @@ create table if not exists core.saved_screening (
   unique (workspace_id, owner_user_id, query_hash)
 );
 
-create table if not exists core.saved_screening_run_schedule (
+create table if not exists aiphabee_core.saved_screening_run_schedule (
   schedule_id text primary key,
-  saved_screening_id text not null references core.saved_screening(saved_screening_id),
+  saved_screening_id text not null references aiphabee_core.saved_screening(saved_screening_id),
   cadence text not null default 'manual' check (cadence in ('manual', 'daily', 'weekly')),
   enabled boolean not null default false,
   next_run_at timestamptz,
@@ -57,9 +57,9 @@ create table if not exists core.saved_screening_run_schedule (
   unique (idempotency_key)
 );
 
-create table if not exists core.saved_screening_run (
+create table if not exists aiphabee_core.saved_screening_run (
   screening_run_id text primary key,
-  schedule_id text not null references core.saved_screening_run_schedule(schedule_id),
+  schedule_id text not null references aiphabee_core.saved_screening_run_schedule(schedule_id),
   request_id text not null,
   run_status text not null default 'planned' check (
     run_status in ('planned', 'blocked', 'ready_to_run', 'completed', 'failed')
@@ -77,7 +77,7 @@ create table if not exists core.saved_screening_run (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists governance.saved_screening_schedule_contract (
+create table if not exists aiphabee_governance.saved_screening_schedule_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -91,7 +91,7 @@ create table if not exists governance.saved_screening_schedule_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.saved_screening_schedule_contract (
+insert into aiphabee_governance.saved_screening_schedule_contract (
   contract_key,
   contract_version,
   status,

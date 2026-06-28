@@ -16,8 +16,8 @@ correction and rollback replay drill.
   `npm run check:golden-correction-rollback-drill`.
 - Golden fixture gate remains `npm run test:golden`.
 - Empty schema scaffold:
-  - `core.golden_correction_rollback_drill`
-  - `governance.golden_correction_rollback_drill_contract`
+  - `aiphabee_core.golden_correction_rollback_drill`
+  - `aiphabee_governance.golden_correction_rollback_drill_contract`
 
 ## Behavioral Contract
 

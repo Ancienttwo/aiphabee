@@ -18,9 +18,9 @@ storage, frontend Ask rendering, or user-facing model token streaming.
 |---|---|---|
 | Worker smoke route | `POST /agent/runs/live-write-smoke` | Guarded by `x-aiphabee-smoke` plus `AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN` |
 | Audit payload | `createAgentDryRunTelemetry()` | Creates prompt-free `run.audit` metadata from the existing observability contract |
-| Audit table | `audit.agent_run_audit_event` | Stores synthetic smoke audit JSON with default-deny contract metadata |
-| Evidence rows | `core.evidence_record` + `core.evidence_source_ref` | Reuses Evidence service plan fields and cleans up smoke rows |
-| Usage rows | `core.usage_event` + `core.usage_ledger_entry` | Reuses usage-ledger event plan fields with `billable_state=preview` and cleans up smoke rows |
+| Audit table | `aiphabee_audit.agent_run_audit_event` | Stores synthetic smoke audit JSON with default-deny contract metadata |
+| Evidence rows | `aiphabee_core.evidence_record` + `aiphabee_core.evidence_source_ref` | Reuses Evidence service plan fields and cleans up smoke rows |
+| Usage rows | `aiphabee_core.usage_event` + `aiphabee_core.usage_ledger_entry` | Reuses usage-ledger event plan fields with `billable_state=preview` and cleans up smoke rows |
 | Frontend | Out of scope | No `apps/web` changes |
 
 ## P2 Concrete Trace
@@ -30,10 +30,10 @@ storage, frontend Ask rendering, or user-facing model token streaming.
    opening Hyperdrive.
 3. Worker returns `missing_binding` when `AIPHABEE_HYPERDRIVE` is absent.
 4. Worker opens a transaction and inserts synthetic rows into:
-   `audit.agent_run_audit_event`, `core.evidence_record`,
-   `core.evidence_source_ref`, `core.account`, `core.workspace`,
-   `core.usage_meter_rule`, `core.usage_event`, and
-   `core.usage_ledger_entry`.
+   `aiphabee_audit.agent_run_audit_event`, `aiphabee_core.evidence_record`,
+   `aiphabee_core.evidence_source_ref`, `platform.account`, `platform.workspace`,
+   `aiphabee_core.usage_meter_rule`, `aiphabee_core.usage_event`, and
+   `aiphabee_core.usage_ledger_entry`.
 5. Worker reads back audit, evidence, usage event, and ledger entry presence.
 6. Worker deletes every synthetic row in dependency order and commits.
 7. Worker returns only status, counts, table names, and hashes.

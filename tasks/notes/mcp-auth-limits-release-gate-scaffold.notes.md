@@ -12,8 +12,8 @@ Date: 2026-06-21
 - Added `deploy/mcp/auth-limits-release-gate.contract.json`.
 - Added `scripts/check-mcp-auth-limits-release-gate-contract.mjs`.
 - Added empty no-live schema scaffolds:
-  - `core.mcp_auth_limits_release_gate`
-  - `governance.mcp_auth_limits_release_gate_contract`
+  - `aiphabee_core.mcp_auth_limits_release_gate`
+  - `aiphabee_governance.mcp_auth_limits_release_gate_contract`
 
 ## Verification Intent
 

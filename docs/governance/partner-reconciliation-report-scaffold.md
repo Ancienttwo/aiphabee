@@ -20,8 +20,8 @@ calls, SQL execution, or frontend screens.
 | Runtime route | `GET /usage/runtime` | Reports nested `partner_reconciliation_report` readiness |
 | Planner route | `POST /usage/partner-reconciliation/plan` | Normalizes usage rows and returns a standard no-write export plan |
 | Contract | `deploy/usage/partner-reconciliation-report.contract.json` | Guards group-by dimensions, SLA fields, trace fields, no live reads, no writes, no SQL, no frontend, and no sensitive payloads |
-| Schema scaffold | `core.partner_reconciliation_report`, `core.partner_reconciliation_report_line`, `audit.partner_reconciliation_event`, `governance.partner_reconciliation_contract` | Empty tables for future persisted report/export/audit flows |
-| Existing ledger schema | `core.usage_event`, `core.usage_ledger_entry` | Future source of usage truth; this scaffold accepts bounded snapshots instead of reading live rows |
+| Schema scaffold | `aiphabee_core.partner_reconciliation_report`, `aiphabee_core.partner_reconciliation_report_line`, `aiphabee_audit.partner_reconciliation_event`, `aiphabee_governance.partner_reconciliation_contract` | Empty tables for future persisted report/export/audit flows |
+| Existing ledger schema | `aiphabee_core.usage_event`, `aiphabee_core.usage_ledger_entry` | Future source of usage truth; this scaffold accepts bounded snapshots instead of reading live rows |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

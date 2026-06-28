@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.deep_report_snapshot (
+create table if not exists aiphabee_core.deep_report_snapshot (
   report_id text primary key,
-  task_id text not null references core.workflow_task(task_id),
-  workspace_id text not null references core.workspace(workspace_id),
+  task_id text not null references aiphabee_core.workflow_task(task_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   user_id text not null,
   question text not null,
   generated_at timestamptz not null,
@@ -22,9 +22,9 @@ create table if not exists core.deep_report_snapshot (
   unique (task_id)
 );
 
-create table if not exists core.deep_report_evidence_index (
+create table if not exists aiphabee_core.deep_report_evidence_index (
   evidence_index_id text primary key,
-  report_id text not null references core.deep_report_snapshot(report_id),
+  report_id text not null references aiphabee_core.deep_report_snapshot(report_id),
   evidence_record_id text not null,
   source_record_id text not null,
   section_id text not null,
@@ -43,7 +43,7 @@ create table if not exists core.deep_report_evidence_index (
   unique (report_id, section_id, source_record_id)
 );
 
-create table if not exists governance.deep_report_workflow_contract (
+create table if not exists aiphabee_governance.deep_report_workflow_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -53,7 +53,7 @@ create table if not exists governance.deep_report_workflow_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.deep_report_workflow_contract (
+insert into aiphabee_governance.deep_report_workflow_contract (
   contract_key,
   contract_version,
   status,

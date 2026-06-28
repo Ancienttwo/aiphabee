@@ -59,8 +59,8 @@
     "validation"
   ],
   "tables": [
-    "core.privacy_share_release_gate",
-    "governance.privacy_share_release_gate_contract"
+    "aiphabee_core.privacy_share_release_gate",
+    "aiphabee_governance.privacy_share_release_gate_contract"
   ],
   "release_gate": {
     "gate_status": "blocked_live_privacy_share_validation",

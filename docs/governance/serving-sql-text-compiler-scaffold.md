@@ -34,7 +34,7 @@ Allowed SQL text trace:
 2. Gateway calls `createServingSqlTextPlan()` with `servingSqlDescriptor`.
 3. Compiler accepts only
    `statementId=serving_record_projection_by_snapshot_v0`.
-4. Compiler emits fixed SQL text against `core.serving_record`.
+4. Compiler emits fixed SQL text against `aiphabee_core.serving_record`.
 5. Compiler records positional parameter order:
    `serving_snapshot_id`, `field_set`, `time_from`, `time_to`, `limit`.
 6. Compiler returns `status=sql_text_planned`,

@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.evidence_record (
+create table if not exists aiphabee_core.evidence_record (
   evidence_record_id text primary key,
   request_id text not null,
   tool_name text not null,
@@ -29,9 +29,9 @@ create table if not exists core.evidence_record (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.evidence_source_ref (
+create table if not exists aiphabee_core.evidence_source_ref (
   evidence_source_ref_id text primary key,
-  evidence_record_id text not null references core.evidence_record(evidence_record_id),
+  evidence_record_id text not null references aiphabee_core.evidence_record(evidence_record_id),
   source text not null,
   source_record_id text not null,
   data_version text not null,
@@ -43,7 +43,7 @@ create table if not exists core.evidence_source_ref (
   unique (evidence_record_id, source_record_id, data_version)
 );
 
-create table if not exists governance.evidence_lineage_service_contract (
+create table if not exists aiphabee_governance.evidence_lineage_service_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -56,7 +56,7 @@ create table if not exists governance.evidence_lineage_service_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.evidence_lineage_service_contract (
+insert into aiphabee_governance.evidence_lineage_service_contract (
   contract_key,
   contract_version,
   status,

@@ -72,7 +72,7 @@ describe("account runtime scaffold", () => {
       persistent_writes: false,
       route: "POST /account/authorized-memory/plan",
       status: "authorized_session_memory_scaffold",
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       user_visible_controls: ["view", "edit", "delete"],
       version: "2026-06-21.phase3.authorized-session-memory-scaffold.v0"
     });
@@ -115,12 +115,12 @@ describe("account runtime scaffold", () => {
       credential_material_stored: false,
       identity_provider_calls: false,
       protocols: ["saml", "oidc"],
-      table: "core.enterprise_sso_config"
+      table: "aiphabee_core.enterprise_sso_config"
     });
     expect(getEnterpriseControlsCapabilities().private_data_connector).toMatchObject({
       credential_material_stored: false,
       rights_gateway_required: true,
-      table: "core.private_data_connector"
+      table: "aiphabee_core.private_data_connector"
     });
   });
 
@@ -143,7 +143,7 @@ describe("account runtime scaffold", () => {
       source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05"
     });
     expect(getAccountDataRequestCapabilities().audit).toMatchObject({
-      event_table: "audit.account_data_request_event",
+      event_table: "aiphabee_audit.account_data_request_event",
       required: true,
       status: "planned_no_write"
     });
@@ -237,7 +237,7 @@ describe("account runtime scaffold", () => {
     expect(plan.account).toMatchObject({
       account_id: "acct_internal_001",
       email_hash_provided: true,
-      table: "core.account"
+      table: "platform.account"
     });
     expect(plan.session).toMatchObject({
       action: "login",
@@ -292,7 +292,7 @@ describe("account runtime scaffold", () => {
       allowed_keys: ["preferred_locale", "response_depth"],
       delete_status: "not_requested",
       read_status: "planned_no_live_read",
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       upsert_status: "not_requested"
     });
     expect(viewPlan.policy).toMatchObject({
@@ -339,7 +339,7 @@ describe("account runtime scaffold", () => {
       request_id: "req_account_data_download",
       request_status: "planned_no_write",
       scopes: ["account_profile", "authorized_memory", "usage_ledger"],
-      table: "core.account_data_request"
+      table: "aiphabee_core.account_data_request"
     });
     expect(plan.delivery).toMatchObject({
       download_format: "json",
@@ -350,7 +350,7 @@ describe("account runtime scaffold", () => {
     expect(plan.audit).toMatchObject({
       audit_event: "account.data_request.plan",
       policy_version: "retention-v1",
-      table: "audit.account_data_request_event",
+      table: "aiphabee_audit.account_data_request_event",
       verified_by: "support_agent_001",
       write_status: "planned_no_write"
     });
@@ -397,7 +397,7 @@ describe("account runtime scaffold", () => {
       pending_invite_count: 3,
       requested: true,
       seat_limit: 250,
-      table: "core.enterprise_seat_assignment",
+      table: "aiphabee_core.enterprise_seat_assignment",
       write_status: "planned_no_write"
     });
     expect(plan.controls.sso).toMatchObject({
@@ -409,7 +409,7 @@ describe("account runtime scaffold", () => {
       write_status: "planned_no_write"
     });
     expect(plan.controls.audit).toMatchObject({
-      event_table: "audit.enterprise_admin_event",
+      event_table: "aiphabee_audit.enterprise_admin_event",
       export_status: "planned_no_write",
       raw_payload_stored: false,
       retention_required: true
@@ -554,7 +554,7 @@ describe("account runtime scaffold", () => {
       "exit_grace_period"
     ]);
     expect(getSubscriptionLifecycleCapabilities().audit).toMatchObject({
-      event_table: "audit.subscription_lifecycle_event",
+      event_table: "aiphabee_audit.subscription_lifecycle_event",
       required: true,
       status: "planned_no_write"
     });
@@ -592,7 +592,7 @@ describe("account runtime scaffold", () => {
       audit_event: "account.subscription.lifecycle.plan",
       actor_account_id: "acct_internal_001",
       request_id: "req_subscription_upgrade",
-      table: "audit.subscription_lifecycle_event",
+      table: "aiphabee_audit.subscription_lifecycle_event",
       write_status: "planned_no_write"
     });
     expect(plan.billing_provider).toMatchObject({

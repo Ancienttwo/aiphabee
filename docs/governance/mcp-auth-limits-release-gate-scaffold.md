@@ -16,7 +16,7 @@ It does not enable live OAuth, token storage, API key secret generation, limiter
 | `POST /mcp/release-gates/auth-limits/plan` | Composes existing MCP planners into no-write release evidence |
 | `deploy/mcp/auth-limits-release-gate.contract.json` | Local contract for release-gate behavior and linked checks |
 | `npm run check:mcp-auth-limits-release-gate` | Verifies contract shape, migration registry, no-live flags, and no secret-like payloads |
-| `core.mcp_auth_limits_release_gate`, `governance.mcp_auth_limits_release_gate_contract` | Empty future persistence scaffolds with no-live defaults |
+| `aiphabee_core.mcp_auth_limits_release_gate`, `aiphabee_governance.mcp_auth_limits_release_gate_contract` | Empty future persistence scaffolds with no-live defaults |
 
 ## Evidence Gates
 

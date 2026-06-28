@@ -20,10 +20,10 @@ const requiredDisplayFields = [
 ];
 const requiredRequestFields = ["workspace_id", "channel", "plan_code"];
 const requiredTables = [
-  "core.workspace_subscription",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.usage_reconciliation_batch"
+  "platform.workspace_subscription",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.usage_reconciliation_batch"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

@@ -9751,7 +9751,7 @@ describe("worker runtime", () => {
     expect(body.data.audit).toMatchObject({
       audit_event: "support.request_id_investigation.plan",
       support_agent_id: "support_agent_001",
-      table: "audit.support_investigation_event",
+      table: "aiphabee_audit.support_investigation_event",
       write_status: "planned_no_write"
     });
     expect(body.data.investigation).toMatchObject({
@@ -10075,7 +10075,7 @@ describe("worker runtime", () => {
       route: "POST /account/authorized-memory/plan",
       status: "authorized_session_memory_scaffold",
       supported_actions: ["view", "upsert", "delete"],
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       user_visible_controls: ["view", "edit", "delete"]
     });
     expect(body.data.authorized_memory.allowed_keys).toContain("mcp_scope_consent");
@@ -10098,7 +10098,7 @@ describe("worker runtime", () => {
       source: "docs/researches/AiphaBee_PRD_v1.0.md#ACC-05"
     });
     expect(body.data.data_requests.audit).toMatchObject({
-      event_table: "audit.account_data_request_event",
+      event_table: "aiphabee_audit.account_data_request_event",
       required: true,
       status: "planned_no_write"
     });
@@ -10111,7 +10111,7 @@ describe("worker runtime", () => {
       status: "subscription_lifecycle_audit_scaffold"
     });
     expect(body.data.subscription_lifecycle.audit).toMatchObject({
-      event_table: "audit.subscription_lifecycle_event",
+      event_table: "aiphabee_audit.subscription_lifecycle_event",
       required: true,
       status: "planned_no_write"
     });
@@ -10468,7 +10468,7 @@ describe("worker runtime", () => {
       audit_event: "account.data_request.plan",
       policy_version: "retention-v1",
       request_id: "req-account-data-download",
-      table: "audit.account_data_request_event",
+      table: "aiphabee_audit.account_data_request_event",
       verified_by: "support_agent_001",
       write_status: "planned_no_write"
     });
@@ -10584,7 +10584,7 @@ describe("worker runtime", () => {
     expect(viewBody.data.memory).toMatchObject({
       allowed_keys: ["preferred_locale", "response_depth"],
       read_status: "planned_no_live_read",
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       upsert_status: "not_requested"
     });
     expect(viewBody.data.policy).toMatchObject({
@@ -10676,7 +10676,7 @@ describe("worker runtime", () => {
       audit_event: "account.subscription.lifecycle.plan",
       actor_account_id: "acct_internal_001",
       request_id: "req-subscription-lifecycle",
-      table: "audit.subscription_lifecycle_event",
+      table: "aiphabee_audit.subscription_lifecycle_event",
       write_status: "planned_no_write"
     });
     expect(body.data.billing_provider).toMatchObject({
@@ -10723,7 +10723,7 @@ describe("worker runtime", () => {
     expect(body.data.account).toMatchObject({
       account_id: "acct_internal_001",
       email_hash_provided: true,
-      table: "core.account"
+      table: "platform.account"
     });
     expect(body.data.session).toMatchObject({
       cookie_issued: false,
@@ -11239,7 +11239,7 @@ describe("worker runtime", () => {
       amount_minor: 68800,
       invoice_id: "inv_ws_internal_alpha_202606",
       source: "synthetic_billing_snapshot",
-      table: "core.subscription_invoice"
+      table: "aiphabee_core.subscription_invoice"
     });
     expect(body.data.invoice_lines).toHaveLength(2);
     expect(body.data.invoice_lines[0]).toMatchObject({
@@ -11339,7 +11339,7 @@ describe("worker runtime", () => {
       export_status: "planned_no_write",
       group_by: ["dataset", "channel", "package_code", "user_id"],
       source: "usage_ledger_snapshot",
-      table: "core.partner_reconciliation_report"
+      table: "aiphabee_core.partner_reconciliation_report"
     });
     expect(body.data.rows).toHaveLength(2);
     expect(body.data.rows[1]).toMatchObject({
@@ -11477,10 +11477,10 @@ describe("worker runtime", () => {
     expect(body.data.supported_alert_kinds).toEqual(["price", "announcement", "metric"]);
     expect(body.data.supported_frequencies).toEqual(["realtime", "daily", "weekly"]);
     expect(body.data.tables).toEqual([
-      "core.watchlist",
-      "core.watchlist_item",
-      "core.watchlist_alert_rule",
-      "core.watchlist_alert_event"
+      "aiphabee_core.watchlist",
+      "aiphabee_core.watchlist_item",
+      "aiphabee_core.watchlist_alert_rule",
+      "aiphabee_core.watchlist_alert_event"
     ]);
     expect(body.data.briefings).toMatchObject({
       evidence_required: true,
@@ -11496,8 +11496,8 @@ describe("worker runtime", () => {
     });
     expect(body.data.briefings.supported_cadences).toEqual(["daily", "weekly"]);
     expect(body.data.briefings.tables).toEqual([
-      "core.watchlist_briefing",
-      "core.watchlist_briefing_item"
+      "aiphabee_core.watchlist_briefing",
+      "aiphabee_core.watchlist_briefing_item"
     ]);
   });
 
@@ -11552,14 +11552,14 @@ describe("worker runtime", () => {
       explicit_confirmation: true,
       idempotency_key: "alert-idem-00700-daily",
       independent_scope: "alerts.write",
-      table: "core.watchlist_alert_rule",
+      table: "aiphabee_core.watchlist_alert_rule",
       write_status: "planned_no_write"
     });
     expect(body.data.watchlist).toMatchObject({
       instrument_id: "instrument_hk_00700",
       watchlist_id: "watchlist_alpha_hk",
-      watchlist_item_table: "core.watchlist_item",
-      watchlist_table: "core.watchlist",
+      watchlist_item_table: "aiphabee_core.watchlist_item",
+      watchlist_table: "aiphabee_core.watchlist",
       write_status: "planned_no_write"
     });
     expect(body.data.frequency).toEqual({
@@ -11612,10 +11612,10 @@ describe("worker runtime", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.watchlist",
-        "core.watchlist_item",
-        "core.watchlist_alert_rule",
-        "core.watchlist_alert_event"
+        "aiphabee_core.watchlist",
+        "aiphabee_core.watchlist_item",
+        "aiphabee_core.watchlist_alert_rule",
+        "aiphabee_core.watchlist_alert_event"
       ],
       write_status: "planned_no_write"
     });
@@ -11754,7 +11754,7 @@ describe("worker runtime", () => {
       max_items: 8,
       material_changes_only: true,
       status: "planned_no_write",
-      table: "core.watchlist_briefing",
+      table: "aiphabee_core.watchlist_briefing",
       watchlist_id: "watchlist_alpha_hk",
       write_status: "planned_no_write"
     });
@@ -11779,7 +11779,7 @@ describe("worker runtime", () => {
     });
     expect(body.data.evidence_index).toEqual({
       evidence_required: true,
-      item_table: "core.watchlist_briefing_item",
+      item_table: "aiphabee_core.watchlist_briefing_item",
       source_record_id_required: true
     });
     expect(body.data.notification).toEqual({
@@ -11792,7 +11792,7 @@ describe("worker runtime", () => {
       live_db_writes: false,
       queue_writes: false,
       sql_emitted: false,
-      tables: ["core.watchlist_briefing", "core.watchlist_briefing_item"],
+      tables: ["aiphabee_core.watchlist_briefing", "aiphabee_core.watchlist_briefing_item"],
       write_status: "planned_no_write"
     });
     expect(body.data.validation).toEqual({
@@ -12820,9 +12820,9 @@ describe("worker runtime", () => {
       live_db_writes: false,
       sql_emitted: false,
       tables: [
-        "core.saved_screening",
-        "core.saved_screening_run_schedule",
-        "core.saved_screening_run"
+        "aiphabee_core.saved_screening",
+        "aiphabee_core.saved_screening_run_schedule",
+        "aiphabee_core.saved_screening_run"
       ],
       write_status: "planned_no_write"
     });
@@ -15067,7 +15067,7 @@ describe("worker runtime", () => {
       version: "2026-06-21.phase3.task-replay-mode-release-gate-scaffold.v0"
     });
     expect(body.data.workflow_resume_gate).toMatchObject({
-      checkpoint_state_table: "core.workflow_task_checkpoint",
+      checkpoint_state_table: "aiphabee_core.workflow_task_checkpoint",
       disconnect_safe: true,
       resume: {
         resume_route: "GET /agent/workflows/tasks/:task_id",
@@ -16810,7 +16810,7 @@ describe("worker runtime", () => {
       tool_call_linking: true,
       user_visible_citations: true
     });
-    expect(body.data.tables).toEqual(["core.evidence_record", "core.evidence_source_ref"]);
+    expect(body.data.tables).toEqual(["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"]);
   });
 
   it("plans evidence records with source refs and user-visible citation metadata", async () => {
@@ -16922,10 +16922,10 @@ describe("worker runtime", () => {
       "parameters"
     ]);
     expect(body.data.tables).toEqual([
-      "core.research_run",
-      "core.research_run_tool_call",
-      "core.research_run_evidence_snapshot",
-      "core.research_run_model_snapshot"
+      "aiphabee_core.research_run",
+      "aiphabee_core.research_run_tool_call",
+      "aiphabee_core.research_run_evidence_snapshot",
+      "aiphabee_core.research_run_model_snapshot"
     ]);
     expect(body.data.deep_report_workflow).toMatchObject({
       citation_validation_required: true,
@@ -16969,9 +16969,9 @@ describe("worker runtime", () => {
       "email"
     ]);
     expect(body.data.data_correction_notifications.tables).toEqual([
-      "core.data_correction_event",
-      "core.research_run_correction_impact",
-      "core.user_notification"
+      "aiphabee_core.data_correction_event",
+      "aiphabee_core.research_run_correction_impact",
+      "aiphabee_core.user_notification"
     ]);
     expect(body.data.golden_correction_rollback_drill).toMatchObject({
       correction_route: "POST /research/data-corrections/plan",
@@ -16996,10 +16996,10 @@ describe("worker runtime", () => {
       "rollback_replay_plan"
     ]);
     expect(body.data.golden_correction_rollback_drill.tables).toEqual([
-      "core.golden_correction_rollback_drill",
-      "governance.golden_correction_rollback_drill_contract",
-      "core.data_correction_event",
-      "core.research_run_correction_impact"
+      "aiphabee_core.golden_correction_rollback_drill",
+      "aiphabee_governance.golden_correction_rollback_drill_contract",
+      "aiphabee_core.data_correction_event",
+      "aiphabee_core.research_run_correction_impact"
     ]);
     expect(body.data.static_report_artifact).toMatchObject({
       artifact_writes: false,
@@ -17129,7 +17129,7 @@ describe("worker runtime", () => {
       status: "planned_no_write",
       unsupported_claim_label: "unknown"
     });
-    expect(body.data.evidence_index.table).toBe("core.deep_report_evidence_index");
+    expect(body.data.evidence_index.table).toBe("aiphabee_core.deep_report_evidence_index");
     expect(body.data.evidence_index.records).toHaveLength(
       body.data.section_plan.sections.length
     );
@@ -17137,7 +17137,7 @@ describe("worker runtime", () => {
       data_delay_minutes: 15,
       immutable_report_snapshot: true,
       static_report_allowed: true,
-      table: "core.deep_report_snapshot"
+      table: "aiphabee_core.deep_report_snapshot"
     });
     expect(body.data.report_snapshot.disclaimer).toContain("not investment advice");
     expect(body.data.rerun).toEqual({
@@ -17154,10 +17154,10 @@ describe("worker runtime", () => {
       r2_writes: false,
       sql_emitted: false,
       tables: [
-        "core.deep_report_snapshot",
-        "core.deep_report_evidence_index",
-        "core.workflow_task",
-        "core.workflow_task_checkpoint"
+        "aiphabee_core.deep_report_snapshot",
+        "aiphabee_core.deep_report_evidence_index",
+        "aiphabee_core.workflow_task",
+        "aiphabee_core.workflow_task_checkpoint"
       ],
       write_status: "planned_no_write"
     });
@@ -17222,7 +17222,7 @@ describe("worker runtime", () => {
       report_id: "report_00700_static",
       source_run_id: "research_run_00700",
       static_report_allowed: true,
-      table: "core.static_report_artifact"
+      table: "aiphabee_core.static_report_artifact"
     });
     expect(body.data.artifact).toMatchObject({
       pdf: "planned_no_write",
@@ -17692,7 +17692,7 @@ describe("worker runtime", () => {
         reason: "partner_restatement",
         severity: "high",
         source_record_id: "src_00700_old",
-        table: "core.data_correction_event",
+        table: "aiphabee_core.data_correction_event",
         write_status: "planned_no_write"
       }
     ]);
@@ -17706,7 +17706,7 @@ describe("worker runtime", () => {
       notification_required: true,
       research_run_id: "run_00700_research",
       snapshot_id: saved.data.snapshot_id,
-      table: "core.research_run_correction_impact",
+      table: "aiphabee_core.research_run_correction_impact",
       user_id: "user_internal_alpha",
       workspace_id: "workspace_research",
       write_status: "planned_no_write"
@@ -17716,7 +17716,7 @@ describe("worker runtime", () => {
       event_queue: "AIPHABEE_EVENTS_QUEUE",
       fanout_status: "planned_no_write",
       notification_required: true,
-      table: "core.user_notification",
+      table: "aiphabee_core.user_notification",
       user_notification_count: 2
     });
     expect(body.data.notification_plan.notifications.map((item) => item.channel)).toEqual([
@@ -17728,9 +17728,9 @@ describe("worker runtime", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.data_correction_event",
-        "core.research_run_correction_impact",
-        "core.user_notification"
+        "aiphabee_core.data_correction_event",
+        "aiphabee_core.research_run_correction_impact",
+        "aiphabee_core.user_notification"
       ],
       write_status: "planned_no_write"
     });
@@ -17841,10 +17841,10 @@ describe("worker runtime", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.golden_correction_rollback_drill",
-        "governance.golden_correction_rollback_drill_contract",
-        "core.data_correction_event",
-        "core.research_run_correction_impact"
+        "aiphabee_core.golden_correction_rollback_drill",
+        "aiphabee_governance.golden_correction_rollback_drill_contract",
+        "aiphabee_core.data_correction_event",
+        "aiphabee_core.research_run_correction_impact"
       ],
       write_status: "planned_no_write"
     });
@@ -19622,13 +19622,13 @@ describe("worker runtime", () => {
       live_enforcement: false,
       status: "schema_scaffold",
       tables: [
-        "core.account",
-        "core.workspace",
-        "core.workspace_membership",
-        "core.subscription_plan",
-        "core.workspace_subscription",
-        "core.data_entitlement",
-        "core.workspace_entitlement"
+        "platform.account",
+        "platform.workspace",
+        "platform.workspace_membership",
+        "platform.subscription_plan",
+        "platform.workspace_subscription",
+        "aiphabee_governance.data_entitlement",
+        "aiphabee_governance.workspace_entitlement"
       ],
       workspace_isolation: true
     });
@@ -19843,10 +19843,10 @@ describe("worker runtime", () => {
       },
       status: "schema_scaffold",
       tables: [
-        "core.serving_dataset",
-        "core.serving_field",
-        "core.serving_snapshot",
-        "core.serving_record"
+        "aiphabee_core.serving_dataset",
+        "aiphabee_core.serving_field",
+        "aiphabee_core.serving_snapshot",
+        "aiphabee_core.serving_record"
       ],
       uses_quality_state: true,
       uses_versioned_snapshots: true
@@ -19865,10 +19865,10 @@ describe("worker runtime", () => {
       reconciliation_target_delay_minutes: 5,
       status: "schema_scaffold",
       tables: [
-        "core.usage_meter_rule",
-        "core.usage_event",
-        "core.usage_reconciliation_batch",
-        "core.usage_ledger_entry"
+        "aiphabee_core.usage_meter_rule",
+        "aiphabee_core.usage_event",
+        "aiphabee_core.usage_reconciliation_batch",
+        "aiphabee_core.usage_ledger_entry"
       ],
       weighted_credits: true
     });
@@ -20201,7 +20201,7 @@ describe("worker runtime", () => {
     expect(body.data.approval).toMatchObject({
       required: true,
       status: "approved",
-      table: "audit.field_authorization_approval",
+      table: "aiphabee_audit.field_authorization_approval",
       write_status: "planned_no_write"
     });
     expect(body.data.change).toMatchObject({
@@ -20213,7 +20213,7 @@ describe("worker runtime", () => {
       plan: "developer",
       policy_version: "rights-policy-20260622",
       target_status: "approved",
-      table: "core.field_authorization_change",
+      table: "aiphabee_core.field_authorization_change",
       workspace_id: "ws_developer_alpha",
       write_status: "planned_no_write"
     });
@@ -20226,11 +20226,11 @@ describe("worker runtime", () => {
         field_pattern: "quote.close",
         rights_policy_version: "rights-policy-20260622",
         status: "approved",
-        table: "core.data_entitlement"
+        table: "aiphabee_governance.data_entitlement"
       },
       versioned_cache_key_required: true,
       workspace_entitlement_row: {
-        table: "core.workspace_entitlement",
+        table: "aiphabee_governance.workspace_entitlement",
         valid_from: "2026-06-22T00:00:00.000Z",
         workspace_id: "ws_developer_alpha"
       }
@@ -20261,13 +20261,13 @@ describe("worker runtime", () => {
       live_enforcement: false,
       status: "schema_scaffold",
       tables: [
-        "core.account",
-        "core.workspace",
-        "core.workspace_membership",
-        "core.subscription_plan",
-        "core.workspace_subscription",
-        "core.data_entitlement",
-        "core.workspace_entitlement"
+        "platform.account",
+        "platform.workspace",
+        "platform.workspace_membership",
+        "platform.subscription_plan",
+        "platform.workspace_subscription",
+        "aiphabee_governance.data_entitlement",
+        "aiphabee_governance.workspace_entitlement"
       ],
       workspace_isolation: true
     });
@@ -20302,9 +20302,9 @@ describe("worker runtime", () => {
       quality_default_state: "HOLD",
       status: "schema_scaffold",
       tables: [
-        "core.corporate_action",
-        "core.adjustment_methodology",
-        "core.price_adjustment_factor"
+        "aiphabee_core.corporate_action",
+        "aiphabee_core.adjustment_methodology",
+        "aiphabee_core.price_adjustment_factor"
       ]
     });
     expect(body.data.default_rights_status).toBe("default_deny");
@@ -20325,24 +20325,24 @@ describe("worker runtime", () => {
       restatement_versions: true,
       status: "schema_scaffold",
       tables: [
-        "core.financial_statement",
-        "core.financial_fact",
-        "core.financial_restatement"
+        "aiphabee_core.financial_statement",
+        "aiphabee_core.financial_fact",
+        "aiphabee_core.financial_restatement"
       ]
     });
     expect(body.data.live_queries).toBe(false);
     expect(body.data.market_data_loaded).toBe(false);
     expect(body.data.security_master.status).toBe("schema_scaffold");
     expect(body.data.security_master.tables).toEqual([
-      "core.company",
-      "core.instrument",
-      "core.listing",
-      "core.identifier_history"
+      "aiphabee_core.company",
+      "aiphabee_core.instrument",
+      "aiphabee_core.listing",
+      "aiphabee_core.identifier_history"
     ]);
     expect(body.data.raw_snapshots).toMatchObject({
       immutable: true,
       quality_default_state: "HOLD",
-      table: "core.raw_snapshot"
+      table: "aiphabee_core.raw_snapshot"
     });
     expect(body.data.serving_store).toMatchObject({
       cache_key_material: [
@@ -20370,10 +20370,10 @@ describe("worker runtime", () => {
       release_state_default: "held",
       status: "schema_scaffold",
       tables: [
-        "core.serving_dataset",
-        "core.serving_field",
-        "core.serving_snapshot",
-        "core.serving_record"
+        "aiphabee_core.serving_dataset",
+        "aiphabee_core.serving_field",
+        "aiphabee_core.serving_snapshot",
+        "aiphabee_core.serving_record"
       ]
     });
     expect(body.data.source_batches.rights_default_state).toBe("default_deny");
@@ -20465,7 +20465,7 @@ describe("worker runtime", () => {
       point_in_time_required: true,
       rights_state: "default_deny",
       status: "planned_no_write",
-      table: "core.hk_ipo_pipeline_event"
+      table: "aiphabee_core.hk_ipo_pipeline_event"
     });
     expect(body.data.cross_market).toMatchObject({
       analytics_comparison_route: "POST /analytics/compare-securities",
@@ -22229,7 +22229,7 @@ describe("worker runtime", () => {
       request_id: "req-agent-workflow-task",
       run_id: "dry_req-agent-workflow-task",
       status: "planned_no_write",
-      table: "core.workflow_task",
+      table: "aiphabee_core.workflow_task",
       task_id: "workflow_task_req_agent_workflow_task_deep_report",
       task_kind: "deep_report",
       user_id: "user_internal_alpha",
@@ -22248,7 +22248,7 @@ describe("worker runtime", () => {
       resume_handle: "resume_workflow_task_req_agent_workflow_task_deep_report",
       resume_route: "GET /agent/workflows/tasks/:task_id",
       resumable: true,
-      state_table: "core.workflow_task_checkpoint"
+      state_table: "aiphabee_core.workflow_task_checkpoint"
     });
     expect(body.data.notification).toEqual({
       channels: ["in_app", "email"],

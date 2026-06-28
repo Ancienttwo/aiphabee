@@ -9,23 +9,23 @@ const lowerSql = sql.toLowerCase();
 const errors = [];
 
 const requiredTables = [
-  "core.vendor_code",
-  "core.ipo_offering",
-  "core.ipo_narrative",
-  "core.ipo_timetable_event",
-  "core.ipo_offer_statistic",
-  "core.ipo_cornerstone",
-  "core.ipo_pool",
-  "core.ipo_clawback_tier",
-  "core.ipo_allotment_result",
-  "core.ipo_allotment_summary",
-  "core.ipo_parties",
-  "core.ipo_corporate_info",
-  "core.ipo_lockup",
-  "core.ipo_application_share",
-  "core.ipo_pipeline_application",
-  "core.ipo_research_signal",
-  "governance.ipo_contract"
+  "aiphabee_core.vendor_code",
+  "aiphabee_core.ipo_offering",
+  "aiphabee_core.ipo_narrative",
+  "aiphabee_core.ipo_timetable_event",
+  "aiphabee_core.ipo_offer_statistic",
+  "aiphabee_core.ipo_cornerstone",
+  "aiphabee_core.ipo_pool",
+  "aiphabee_core.ipo_clawback_tier",
+  "aiphabee_core.ipo_allotment_result",
+  "aiphabee_core.ipo_allotment_summary",
+  "aiphabee_core.ipo_parties",
+  "aiphabee_core.ipo_corporate_info",
+  "aiphabee_core.ipo_lockup",
+  "aiphabee_core.ipo_application_share",
+  "aiphabee_core.ipo_pipeline_application",
+  "aiphabee_core.ipo_research_signal",
+  "aiphabee_governance.ipo_contract"
 ];
 const requiredRecordKinds = [
   "ipo_overview",

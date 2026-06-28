@@ -12,8 +12,8 @@ Hyperdrive smoke.
 - Require `AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN`.
 - Require `AIPHABEE_HYPERDRIVE`.
 - Write, read, update, and delete synthetic rows in:
-  - `core.agent_run_state`
-  - `core.agent_run_checkpoint`
+  - `aiphabee_core.agent_run_state`
+  - `aiphabee_core.agent_run_checkpoint`
 - Return only hashes, row counts, table names, and non-claim flags.
 - Add migration, deploy contract, checker, unit tests, and tracker/todo updates.
 

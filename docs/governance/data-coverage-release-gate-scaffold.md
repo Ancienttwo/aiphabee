@@ -19,7 +19,7 @@ data quality signoff.
 | Runtime route | `GET /gateway/runtime` | Reports nested `data_coverage_release_gate` readiness |
 | Release route | `GET /gateway/data-coverage/release-gate` | Returns freshness markers, coverage domains, validation, and blocker state |
 | Contract | `deploy/gateway/data-coverage-release-gate.contract.json` | Guards freshness tiers, coverage domains, no-live boundaries, and blockers |
-| Schema scaffold | `core.data_coverage_release_gate`, `governance.data_coverage_release_gate_contract` | Empty future release-gate persistence tables |
+| Schema scaffold | `aiphabee_core.data_coverage_release_gate`, `aiphabee_governance.data_coverage_release_gate_contract` | Empty future release-gate persistence tables |
 | Existing evidence surfaces | Quote/price, corporate action, financial facts, and security history tools | Remain no-live/synthetic or schema-backed scaffolds |
 | External dependency | Partner coverage files, live freshness policy, golden signoff | Explicitly absent; release gate remains blocked |
 

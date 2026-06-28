@@ -26,9 +26,9 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.billing_rules_release_gate",
-  "audit.billing_rules_drill_event",
-  "governance.billing_rules_release_gate_contract"
+  "aiphabee_core.billing_rules_release_gate",
+  "aiphabee_audit.billing_rules_drill_event",
+  "aiphabee_governance.billing_rules_release_gate_contract"
 ];
 const requiredLinkedContracts = [
   "deploy/account/package-pricing.contract.json",
@@ -327,7 +327,7 @@ function validateDatabaseTables(databaseValue) {
   const errors = [];
 
   errors.push(
-    ...validateStringArray(migration.schemas, ["audit", "core", "governance"], "migration.schemas")
+    ...validateStringArray(migration.schemas, ["aiphabee_audit", "aiphabee_core", "aiphabee_governance"], "migration.schemas")
   );
   errors.push(...validateStringArray(migration.tables, requiredTables, "migration.tables"));
 

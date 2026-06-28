@@ -23,8 +23,8 @@ const requiredOutputFields = [
   "validation"
 ];
 const requiredTables = [
-  "core.privacy_share_release_gate",
-  "governance.privacy_share_release_gate_contract"
+  "aiphabee_core.privacy_share_release_gate",
+  "aiphabee_governance.privacy_share_release_gate_contract"
 ];
 const requiredCoveredItems = [
   "personal_data_delivery_retention_compliance",

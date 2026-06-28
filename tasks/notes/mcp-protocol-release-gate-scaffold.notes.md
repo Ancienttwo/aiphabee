@@ -9,8 +9,8 @@
 - Added `deploy/mcp/protocol-release-gate.contract.json`.
 - Added `scripts/check-mcp-protocol-release-gate-contract.mjs`.
 - Added empty schema scaffold:
-  - `core.mcp_protocol_release_gate`
-  - `governance.mcp_protocol_release_gate_contract`
+  - `aiphabee_core.mcp_protocol_release_gate`
+  - `aiphabee_governance.mcp_protocol_release_gate_contract`
 
 ## Validation Boundary
 

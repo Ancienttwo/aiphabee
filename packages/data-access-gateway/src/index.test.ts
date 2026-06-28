@@ -216,7 +216,7 @@ describe("data access gateway", () => {
       status: "sql_text_planned"
     });
     expect(decision.servingSqlText.sqlText).toContain(
-      "from core.serving_record"
+      "from aiphabee_core.serving_record"
     );
     expect(decision.servingExecution).toMatchObject({
       adapter: "hyperdrive",
@@ -663,7 +663,7 @@ describe("data access gateway", () => {
     expect(pending.approval).toMatchObject({
       required: true,
       status: "pending",
-      table: "audit.field_authorization_approval",
+      table: "aiphabee_audit.field_authorization_approval",
       write_status: "planned_no_write"
     });
     expect(pending.change).toMatchObject({
@@ -675,7 +675,7 @@ describe("data access gateway", () => {
       plan: "developer",
       policy_version: "rights-policy-20260622",
       target_status: "approved",
-      table: "core.field_authorization_change",
+      table: "aiphabee_core.field_authorization_change",
       workspace_id: "ws_developer_alpha",
       write_status: "planned_no_write"
     });
@@ -690,13 +690,13 @@ describe("data access gateway", () => {
         field_pattern: "quote.close",
         rights_policy_version: "rights-policy-20260622",
         status: "approved",
-        table: "core.data_entitlement",
+        table: "aiphabee_governance.data_entitlement",
         time_range_days: 31
       },
       versioned_cache_key_required: true,
       workspace_entitlement_row: {
         status: "approved",
-        table: "core.workspace_entitlement",
+        table: "aiphabee_governance.workspace_entitlement",
         valid_from: "2026-06-22T00:00:00.000Z",
         workspace_id: "ws_developer_alpha"
       }

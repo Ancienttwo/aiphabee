@@ -1,9 +1,9 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.financial_statement (
+create table if not exists aiphabee_core.financial_statement (
   statement_id text primary key,
-  company_id text not null references core.company(company_id),
+  company_id text not null references aiphabee_core.company(company_id),
   period_start date not null,
   period_end date not null,
   fiscal_year integer,
@@ -19,7 +19,7 @@ create table if not exists core.financial_statement (
   accounting_standard text not null,
   published_at timestamptz not null,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   data_version text not null,
   methodology_version text not null,
   restatement_version integer not null default 0 check (restatement_version >= 0),
@@ -32,10 +32,10 @@ create table if not exists core.financial_statement (
   check (period_end >= period_start)
 );
 
-create table if not exists core.financial_fact (
+create table if not exists aiphabee_core.financial_fact (
   fact_id text primary key,
-  statement_id text not null references core.financial_statement(statement_id),
-  company_id text not null references core.company(company_id),
+  statement_id text not null references aiphabee_core.financial_statement(statement_id),
+  company_id text not null references aiphabee_core.company(company_id),
   metric_id text not null,
   metric_label text not null,
   fact_value numeric,
@@ -47,7 +47,7 @@ create table if not exists core.financial_fact (
   period_end date not null,
   published_at timestamptz not null,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   data_version text not null,
   methodology_version text not null,
   restatement_version integer not null default 0 check (restatement_version >= 0),
@@ -60,11 +60,11 @@ create table if not exists core.financial_fact (
   unique (statement_id, metric_id, data_version, restatement_version)
 );
 
-create table if not exists core.financial_restatement (
+create table if not exists aiphabee_core.financial_restatement (
   restatement_id text primary key,
-  company_id text not null references core.company(company_id),
-  original_statement_id text not null references core.financial_statement(statement_id),
-  restated_statement_id text not null references core.financial_statement(statement_id),
+  company_id text not null references aiphabee_core.company(company_id),
+  original_statement_id text not null references aiphabee_core.financial_statement(statement_id),
+  restated_statement_id text not null references aiphabee_core.financial_statement(statement_id),
   restated_at timestamptz not null,
   reason_category text not null check (
     reason_category in (
@@ -89,7 +89,7 @@ create table if not exists core.financial_restatement (
   check (original_statement_id <> restated_statement_id)
 );
 
-create table if not exists governance.financial_facts_contract (
+create table if not exists aiphabee_governance.financial_facts_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -99,7 +99,7 @@ create table if not exists governance.financial_facts_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.financial_facts_contract (
+insert into aiphabee_governance.financial_facts_contract (
   contract_key,
   contract_version,
   status,

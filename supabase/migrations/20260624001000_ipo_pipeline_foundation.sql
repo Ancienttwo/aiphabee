@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   drop constraint if exists raw_snapshot_record_kind_check;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   add constraint raw_snapshot_record_kind_check check (
     record_kind in (
       'company',
@@ -31,10 +31,10 @@ alter table core.raw_snapshot
     )
   );
 
-alter table core.serving_dataset
+alter table aiphabee_core.serving_dataset
   drop constraint if exists serving_dataset_domain_check;
 
-alter table core.serving_dataset
+alter table aiphabee_core.serving_dataset
   add constraint serving_dataset_domain_check check (
     domain in (
       'security_master',
@@ -47,10 +47,10 @@ alter table core.serving_dataset
     )
   );
 
-alter table core.serving_record
+alter table aiphabee_core.serving_record
   drop constraint if exists serving_record_entity_type_check;
 
-alter table core.serving_record
+alter table aiphabee_core.serving_record
   add constraint serving_record_entity_type_check check (
     entity_type in (
       'company',
@@ -64,7 +64,7 @@ alter table core.serving_record
     )
   );
 
-create table if not exists core.vendor_code (
+create table if not exists aiphabee_core.vendor_code (
   table_name text not null,
   code text not null,
   name_en text,
@@ -72,8 +72,8 @@ create table if not exists core.vendor_code (
   name_zh_hans text,
   extra jsonb not null default '{}'::jsonb,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
@@ -83,7 +83,7 @@ create table if not exists core.vendor_code (
   primary key (table_name, code, data_version)
 );
 
-create table if not exists core.ipo_offering (
+create table if not exists aiphabee_core.ipo_offering (
   offering_id text primary key,
   hkex_code text not null,
   listing_date date not null,
@@ -135,8 +135,8 @@ create table if not exists core.ipo_offering (
   eipo_url text,
   contact jsonb not null default '{}'::jsonb,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -147,9 +147,9 @@ create table if not exists core.ipo_offering (
   unique (hkex_code, listing_date, data_version)
 );
 
-create table if not exists core.ipo_narrative (
+create table if not exists aiphabee_core.ipo_narrative (
   ipo_narrative_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   section_key text not null check (
     section_key in (
       'business_overview',
@@ -166,8 +166,8 @@ create table if not exists core.ipo_narrative (
   content_text text,
   sanitizer_version text not null,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -178,9 +178,9 @@ create table if not exists core.ipo_narrative (
   unique (offering_id, section_key, lang, data_version)
 );
 
-create table if not exists core.ipo_timetable_event (
+create table if not exists aiphabee_core.ipo_timetable_event (
   ipo_timetable_event_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   event_code text not null,
   event_at timestamptz,
   event_date date,
@@ -190,8 +190,8 @@ create table if not exists core.ipo_timetable_event (
   title_zh_hant text,
   title_zh_hans text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -202,9 +202,9 @@ create table if not exists core.ipo_timetable_event (
   unique (offering_id, event_code, event_date, data_version)
 );
 
-create table if not exists core.ipo_offer_statistic (
+create table if not exists aiphabee_core.ipo_offer_statistic (
   ipo_offer_statistic_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   report_type text check (report_type in ('F', 'H', 'Unknown')),
   report_date date,
   metric_key text not null,
@@ -213,8 +213,8 @@ create table if not exists core.ipo_offer_statistic (
   value_zh_hans text,
   forward_looking boolean not null default false,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -225,9 +225,9 @@ create table if not exists core.ipo_offer_statistic (
   unique (offering_id, report_type, metric_key, data_version)
 );
 
-create table if not exists core.ipo_cornerstone (
+create table if not exists aiphabee_core.ipo_cornerstone (
   ipo_cornerstone_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   investor_name_en text,
   investor_name_zh_hant text,
   investor_name_zh_hans text,
@@ -242,8 +242,8 @@ create table if not exists core.ipo_cornerstone (
   profile_zh_hant text,
   profile_zh_hans text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -253,9 +253,9 @@ create table if not exists core.ipo_cornerstone (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_pool (
+create table if not exists aiphabee_core.ipo_pool (
   ipo_pool_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   pool_code text not null check (pool_code in ('A', 'B', 'N', 'Unknown')),
   shares_before_reallocation numeric,
   shares_after_reallocation numeric,
@@ -267,8 +267,8 @@ create table if not exists core.ipo_pool (
   min_application_shares numeric,
   max_application_shares numeric,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -279,17 +279,17 @@ create table if not exists core.ipo_pool (
   unique (offering_id, pool_code, data_version)
 );
 
-create table if not exists core.ipo_clawback_tier (
+create table if not exists aiphabee_core.ipo_clawback_tier (
   ipo_clawback_tier_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   tier_number integer not null check (tier_number between 1 and 6),
   min_subscription_multiple numeric,
   max_subscription_multiple numeric,
   reallocated_shares numeric,
   shares_after_clawback_pct numeric,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -300,9 +300,9 @@ create table if not exists core.ipo_clawback_tier (
   unique (offering_id, tier_number, data_version)
 );
 
-create table if not exists core.ipo_allotment_result (
+create table if not exists aiphabee_core.ipo_allotment_result (
   ipo_allotment_result_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   pool_code text check (pool_code in ('A', 'B', 'N', 'Unknown')),
   applied_shares numeric,
   valid_application_count integer check (valid_application_count is null or valid_application_count >= 0),
@@ -312,8 +312,8 @@ create table if not exists core.ipo_allotment_result (
   basis_zh_hant text,
   basis_zh_hans text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -323,8 +323,8 @@ create table if not exists core.ipo_allotment_result (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_allotment_summary (
-  offering_id text primary key references core.ipo_offering(offering_id),
+create table if not exists aiphabee_core.ipo_allotment_summary (
+  offering_id text primary key references aiphabee_core.ipo_offering(offering_id),
   final_offer_price_text_en text,
   final_offer_price_text_zh_hant text,
   final_offer_price_text_zh_hans text,
@@ -340,8 +340,8 @@ create table if not exists core.ipo_allotment_summary (
   cornerstone_total_text text,
   result_url text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -351,16 +351,16 @@ create table if not exists core.ipo_allotment_summary (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_parties (
+create table if not exists aiphabee_core.ipo_parties (
   ipo_party_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   seq integer not null check (seq >= 0),
   lang text not null check (lang in ('en', 'zh_hant', 'zh_hans')),
   title text,
   data text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -371,17 +371,17 @@ create table if not exists core.ipo_parties (
   unique (offering_id, seq, lang, data_version)
 );
 
-create table if not exists core.ipo_corporate_info (
+create table if not exists aiphabee_core.ipo_corporate_info (
   ipo_corporate_info_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   info_key text not null,
   lang text not null check (lang in ('en', 'zh_hant', 'zh_hans')),
   content_html text,
   content_text text,
   sanitizer_version text not null,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -392,9 +392,9 @@ create table if not exists core.ipo_corporate_info (
   unique (offering_id, info_key, lang, data_version)
 );
 
-create table if not exists core.ipo_lockup (
+create table if not exists aiphabee_core.ipo_lockup (
   ipo_lockup_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   share_type_code text,
   lockup_end_date_1 date,
   lockup_end_date_2 date,
@@ -403,8 +403,8 @@ create table if not exists core.ipo_lockup (
   locked_shares_pct_at_listing numeric,
   remaining_locked_shares_pct numeric,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -414,9 +414,9 @@ create table if not exists core.ipo_lockup (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_application_share (
+create table if not exists aiphabee_core.ipo_application_share (
   ipo_application_share_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   pool_code text check (pool_code in ('A', 'B', 'N', 'Unknown')),
   applied_shares numeric,
   payable_amount numeric,
@@ -424,8 +424,8 @@ create table if not exists core.ipo_application_share (
   application_note_zh_hant text,
   application_note_zh_hans text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -435,7 +435,7 @@ create table if not exists core.ipo_application_share (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_pipeline_application (
+create table if not exists aiphabee_core.ipo_pipeline_application (
   app_code text primary key,
   publish_date date,
   phip_date date,
@@ -456,10 +456,10 @@ create table if not exists core.ipo_pipeline_application (
   business_overview_zh_hans text,
   list_code text,
   list_date date,
-  offering_id text references core.ipo_offering(offering_id),
+  offering_id text references aiphabee_core.ipo_offering(offering_id),
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   methodology_version text not null,
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -469,9 +469,9 @@ create table if not exists core.ipo_pipeline_application (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.ipo_research_signal (
+create table if not exists aiphabee_core.ipo_research_signal (
   ipo_research_signal_id text primary key,
-  offering_id text not null references core.ipo_offering(offering_id),
+  offering_id text not null references aiphabee_core.ipo_offering(offering_id),
   methodology_version text not null,
   tier text check (tier in ('small', 'medium', 'large', 'unknown')),
   dims jsonb not null default '{}'::jsonb,
@@ -481,7 +481,7 @@ create table if not exists core.ipo_research_signal (
   confidence numeric check (confidence is null or (confidence >= 0 and confidence <= 100)),
   source text not null default 'aiphabee_research',
   source_record_id text not null,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   rights_policy_version text not null,
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
@@ -491,7 +491,7 @@ create table if not exists core.ipo_research_signal (
   unique (offering_id, methodology_version, data_version)
 );
 
-create table if not exists governance.ipo_contract (
+create table if not exists aiphabee_governance.ipo_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -508,25 +508,25 @@ create table if not exists governance.ipo_contract (
 );
 
 create index if not exists vendor_code_table_name_code_idx
-  on core.vendor_code(table_name, code);
+  on aiphabee_core.vendor_code(table_name, code);
 create index if not exists ipo_offering_listing_date_idx
-  on core.ipo_offering(listing_date);
+  on aiphabee_core.ipo_offering(listing_date);
 create index if not exists ipo_offering_status_board_idx
-  on core.ipo_offering(ipo_status, listing_board);
+  on aiphabee_core.ipo_offering(ipo_status, listing_board);
 create index if not exists ipo_offering_sector_idx
-  on core.ipo_offering(sector_code, industry_code);
+  on aiphabee_core.ipo_offering(sector_code, industry_code);
 create index if not exists ipo_narrative_offering_section_idx
-  on core.ipo_narrative(offering_id, section_key, lang);
+  on aiphabee_core.ipo_narrative(offering_id, section_key, lang);
 create index if not exists ipo_timetable_event_date_idx
-  on core.ipo_timetable_event(event_date, event_code);
+  on aiphabee_core.ipo_timetable_event(event_date, event_code);
 create index if not exists ipo_cornerstone_offering_idx
-  on core.ipo_cornerstone(offering_id);
+  on aiphabee_core.ipo_cornerstone(offering_id);
 create index if not exists ipo_allotment_result_offering_pool_idx
-  on core.ipo_allotment_result(offering_id, pool_code);
+  on aiphabee_core.ipo_allotment_result(offering_id, pool_code);
 create index if not exists ipo_pipeline_application_status_idx
-  on core.ipo_pipeline_application(pipeline_status, publish_date);
+  on aiphabee_core.ipo_pipeline_application(pipeline_status, publish_date);
 
-insert into governance.ipo_contract (
+insert into aiphabee_governance.ipo_contract (
   contract_key,
   contract_version,
   status,
@@ -565,7 +565,7 @@ on conflict (contract_key) do update set
   mcp_redistribution_allowed = excluded.mcp_redistribution_allowed,
   updated_at = now();
 
-insert into core.serving_dataset (
+insert into aiphabee_core.serving_dataset (
   serving_dataset_id,
   dataset,
   domain,
@@ -594,7 +594,7 @@ on conflict (dataset) do update set
   source_record_id = excluded.source_record_id,
   updated_at = now();
 
-insert into core.serving_field (
+insert into aiphabee_core.serving_field (
   serving_field_id,
   serving_dataset_id,
   field_path,

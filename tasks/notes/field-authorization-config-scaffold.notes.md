@@ -14,9 +14,9 @@ configurable field authorization.
 - `POST /gateway/field-authorizations/changes/plan` returns deterministic
   no-write plans with approval status, policy version, effective time, and
   future policy row effects.
-- `core.field_authorization_change`,
-  `audit.field_authorization_approval`, and
-  `governance.field_authorization_config_contract` exist as empty schema
+- `aiphabee_core.field_authorization_change`,
+  `aiphabee_audit.field_authorization_approval`, and
+  `aiphabee_governance.field_authorization_config_contract` exist as empty schema
   scaffolds.
 - The local contract checker verifies approval, policy version, effective time,
   default-deny preservation, no live reads, no writes, no SQL, and database

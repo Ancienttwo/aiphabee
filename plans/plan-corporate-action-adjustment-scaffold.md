@@ -39,8 +39,8 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty `core.corporate_action`,
-  `core.adjustment_methodology`, and `core.price_adjustment_factor` tables.
+- Add a Supabase-compatible migration for empty `aiphabee_core.corporate_action`,
+  `aiphabee_core.adjustment_methodology`, and `aiphabee_core.price_adjustment_factor` tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` to report corporate-action and adjustment schema
   capability without live actions, adjusted series, or database queries.

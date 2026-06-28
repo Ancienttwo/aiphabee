@@ -17,9 +17,9 @@ market data.
 ## Scope
 
 - In scope:
-  - `core.corporate_action`;
-  - `core.adjustment_methodology`;
-  - `core.price_adjustment_factor`;
+  - `aiphabee_core.corporate_action`;
+  - `aiphabee_core.adjustment_methodology`;
+  - `aiphabee_core.price_adjustment_factor`;
   - governance contract row;
   - database migration contract update;
   - Worker `/data/runtime` capability route update;

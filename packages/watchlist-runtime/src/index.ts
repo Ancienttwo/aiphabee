@@ -72,7 +72,7 @@ export interface WatchlistBriefingCapabilities {
   sql_emitted: false;
   status: "watchlist_briefings_scaffold";
   supported_cadences: readonly WatchlistBriefingCadence[];
-  tables: readonly ["core.watchlist_briefing", "core.watchlist_briefing_item"];
+  tables: readonly ["aiphabee_core.watchlist_briefing", "aiphabee_core.watchlist_briefing_item"];
   version: typeof WATCHLIST_BRIEFING_VERSION;
 }
 
@@ -99,10 +99,10 @@ export interface WatchlistAlertRuntimeCapabilities {
   supported_channels: readonly WatchlistAlertChannel[];
   supported_frequencies: readonly WatchlistAlertFrequency[];
   tables: readonly [
-    "core.watchlist",
-    "core.watchlist_item",
-    "core.watchlist_alert_rule",
-    "core.watchlist_alert_event"
+    "aiphabee_core.watchlist",
+    "aiphabee_core.watchlist_item",
+    "aiphabee_core.watchlist_alert_rule",
+    "aiphabee_core.watchlist_alert_event"
   ];
   version: typeof WATCHLIST_ALERTS_VERSION;
 }
@@ -144,7 +144,7 @@ export interface WatchlistAlertsPlan {
     idempotency_key: string;
     independent_scope: "alerts.write";
     rule_id: string;
-    table: "core.watchlist_alert_rule";
+    table: "aiphabee_core.watchlist_alert_rule";
     write_status: "blocked" | "planned_no_write";
   };
   channels: WatchlistAlertChannel[];
@@ -233,8 +233,8 @@ export interface WatchlistAlertsPlan {
     item_id: string;
     security_query?: string;
     watchlist_id: string;
-    watchlist_item_table: "core.watchlist_item";
-    watchlist_table: "core.watchlist";
+    watchlist_item_table: "aiphabee_core.watchlist_item";
+    watchlist_table: "aiphabee_core.watchlist";
     write_status: "blocked" | "planned_no_write";
   };
   workspace: {
@@ -266,7 +266,7 @@ export interface WatchlistBriefingPlan {
     max_items: number;
     material_changes_only: true;
     status: WatchlistBriefingPlanStatus;
-    table: "core.watchlist_briefing";
+    table: "aiphabee_core.watchlist_briefing";
     watchlist_id: string;
     write_status: "blocked" | "planned_no_write";
   };
@@ -274,7 +274,7 @@ export interface WatchlistBriefingPlan {
   data_version: typeof WATCHLIST_BRIEFING_VERSION;
   evidence_index: {
     evidence_required: true;
-    item_table: "core.watchlist_briefing_item";
+    item_table: "aiphabee_core.watchlist_briefing_item";
     source_record_id_required: true;
   };
   frontend: false;
@@ -340,14 +340,14 @@ export interface WatchlistBriefingPlan {
 }
 
 const WATCHLIST_ALERT_TABLES: WatchlistAlertRuntimeCapabilities["tables"] = [
-  "core.watchlist",
-  "core.watchlist_item",
-  "core.watchlist_alert_rule",
-  "core.watchlist_alert_event"
+  "aiphabee_core.watchlist",
+  "aiphabee_core.watchlist_item",
+  "aiphabee_core.watchlist_alert_rule",
+  "aiphabee_core.watchlist_alert_event"
 ];
 const WATCHLIST_BRIEFING_TABLES: WatchlistBriefingCapabilities["tables"] = [
-  "core.watchlist_briefing",
-  "core.watchlist_briefing_item"
+  "aiphabee_core.watchlist_briefing",
+  "aiphabee_core.watchlist_briefing_item"
 ];
 
 export function getWatchlistRuntimeCapabilities(): WatchlistAlertRuntimeCapabilities {
@@ -477,7 +477,7 @@ export function createWatchlistAlertsPlan(
       idempotency_key: idempotencyKey,
       independent_scope: "alerts.write",
       rule_id: ruleId,
-      table: "core.watchlist_alert_rule",
+      table: "aiphabee_core.watchlist_alert_rule",
       write_status: writeStatus
     },
     channels,
@@ -574,8 +574,8 @@ export function createWatchlistAlertsPlan(
       item_id: itemId,
       security_query: securityQuery,
       watchlist_id: watchlistId,
-      watchlist_item_table: "core.watchlist_item",
-      watchlist_table: "core.watchlist",
+      watchlist_item_table: "aiphabee_core.watchlist_item",
+      watchlist_table: "aiphabee_core.watchlist",
       write_status: writeStatus
     },
     workspace: {
@@ -646,7 +646,7 @@ export function createWatchlistBriefingPlan(
       max_items: maxItems,
       material_changes_only: true,
       status,
-      table: "core.watchlist_briefing",
+      table: "aiphabee_core.watchlist_briefing",
       watchlist_id: watchlistId,
       write_status: writeStatus
     },
@@ -654,7 +654,7 @@ export function createWatchlistBriefingPlan(
     data_version: WATCHLIST_BRIEFING_VERSION,
     evidence_index: {
       evidence_required: true,
-      item_table: "core.watchlist_briefing_item",
+      item_table: "aiphabee_core.watchlist_briefing_item",
       source_record_id_required: true
     },
     frontend: false,

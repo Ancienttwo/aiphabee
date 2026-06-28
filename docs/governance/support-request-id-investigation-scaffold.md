@@ -22,7 +22,7 @@ reads, support ticket writes, audit writes, or sensitive content release.
 | Planner route | `POST /support/request-id-investigation/plan` | Plans metadata-only investigation for a target `request_id` |
 | Help center draft | `docs/public/help-center.md` | Local publication draft with required support categories |
 | Contract | `deploy/support/request-id-investigation.contract.json` | Guards routes, lookup fields, forbidden sensitive fields, required sections, no live reads, no writes, and no SQL |
-| Schema scaffold | `core.support_ticket`, `audit.support_investigation_event`, `governance.support_request_id_contract` | Empty future persistence and audit surfaces |
+| Schema scaffold | `aiphabee_core.support_ticket`, `aiphabee_audit.support_investigation_event`, `aiphabee_governance.support_request_id_contract` | Empty future persistence and audit surfaces |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## P2 Concrete Trace

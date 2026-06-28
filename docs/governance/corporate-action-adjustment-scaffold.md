@@ -18,9 +18,9 @@ not apply to a live database and does not load market data.
 | Migration | `supabase/migrations/20260620084000_corporate_action_adjustment_scaffold.sql` | Creates empty `core` adjustment tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Runtime route | `GET /data/runtime` | Reports schema capability, no live query |
-| Corporate action | `core.corporate_action` | Action type, dates, ratio/cash terms, source, data version, methodology |
-| Adjustment methodology | `core.adjustment_methodology` | `raw`, `split_adjusted`, `total_return_adjusted`, direction, policy fields |
-| Adjustment factors | `core.price_adjustment_factor` | Closed-open factor intervals linked to methodology and source |
+| Corporate action | `aiphabee_core.corporate_action` | Action type, dates, ratio/cash terms, source, data version, methodology |
+| Adjustment methodology | `aiphabee_core.adjustment_methodology` | `raw`, `split_adjusted`, `total_return_adjusted`, direction, policy fields |
+| Adjustment factors | `aiphabee_core.price_adjustment_factor` | Closed-open factor intervals linked to methodology and source |
 | Engine scaffold | `packages/corporate-actions` | Synthetic deterministic engine exists, but no partner rows or adjusted series reads |
 | Live data | Absent | No partner rows, no Hyperdrive query, no adjusted series read |
 

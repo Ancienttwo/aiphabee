@@ -307,9 +307,9 @@ function validateMigration() {
   const sql = readText(migrationPath);
 
   for (const needle of [
-    "core.user_public_data_join_plan",
-    "audit.user_public_data_join_event",
-    "governance.user_public_data_join_privacy_contract",
+    "aiphabee_core.user_public_data_join_plan",
+    "aiphabee_audit.user_public_data_join_event",
+    "aiphabee_governance.user_public_data_join_privacy_contract",
     "raw_file_body_persisted boolean not null default false check",
     "public_data_live_read boolean not null default false check",
     "cross_workspace_join boolean not null default false check",

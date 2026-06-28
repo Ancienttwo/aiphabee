@@ -1,10 +1,10 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.licensed_advice_exploration (
+create table if not exists aiphabee_core.licensed_advice_exploration (
   licensed_advice_exploration_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   proposed_surface text not null check (
     proposed_surface in (
       'personalized_buy_sell_hold',
@@ -38,9 +38,9 @@ create table if not exists core.licensed_advice_exploration (
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.suitability_control_profile (
+create table if not exists aiphabee_core.suitability_control_profile (
   suitability_control_profile_id text primary key,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   suitability_profile_schema_id text not null,
   advice_record_retention_policy_id text not null,
   human_review_queue_id text not null,
@@ -56,10 +56,10 @@ create table if not exists core.suitability_control_profile (
   created_at timestamptz not null default now()
 );
 
-create table if not exists audit.licensed_advice_review_event (
+create table if not exists aiphabee_audit.licensed_advice_review_event (
   licensed_advice_review_event_id text primary key,
   request_id text not null,
-  workspace_id text not null references core.workspace(workspace_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   event_type text not null default 'licensed_advice.exploration.plan' check (
     event_type in (
       'licensed_advice.exploration.plan',
@@ -81,7 +81,7 @@ create table if not exists audit.licensed_advice_review_event (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.licensed_advice_exploration_contract (
+create table if not exists aiphabee_governance.licensed_advice_exploration_contract (
   contract_name text not null default 'licensed_advice_exploration',
   contract_version text not null default '2026-06-22.phase4.licensed-advice-exploration-scaffold.v0',
   runtime_route text not null default 'GET /compliance/licensed-advice/runtime',

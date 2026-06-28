@@ -15,7 +15,7 @@ briefing planning.
 - The plan covers daily and weekly cadence, material-change-only filtering,
   empty-briefing suppression, source evidence requirements, price/announcement/
   metric source planning, and planned notification fanout.
-- `core.watchlist_briefing` and `core.watchlist_briefing_item` exist as empty
+- `aiphabee_core.watchlist_briefing` and `aiphabee_core.watchlist_briefing_item` exist as empty
   schema scaffolds for future persistence.
 - The local contract checker verifies no live tool execution, no notification
   fanout, no persistent writes, material-change-only behavior, evidence

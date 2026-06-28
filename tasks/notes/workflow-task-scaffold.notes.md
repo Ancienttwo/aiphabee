@@ -11,7 +11,7 @@ Implemented the Sprint 2.4 AGT-09 backend scaffold for long-running Agent work.
 - `POST /agent/workflows/tasks/plan` returns a deterministic no-write Workflow
   task plan with `task_id`, resume metadata, notification plan, long-task
   boundary, and linked ToolLoopAgent plan.
-- `core.workflow_task` and `core.workflow_task_checkpoint` exist as empty schema
+- `aiphabee_core.workflow_task` and `aiphabee_core.workflow_task_checkpoint` exist as empty schema
   scaffolds for future persistence.
 - The local contract checker verifies binding names, no live Workflow execution,
   no writes, no SQL, task ID visibility, resume readiness, notification plan,

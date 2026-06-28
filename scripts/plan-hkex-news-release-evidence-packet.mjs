@@ -99,32 +99,32 @@ async function readReleaseState(client, dataVersion) {
           release_state,
           released_at,
           created_at
-        from core.data_version_batch
+        from aiphabee_core.data_version_batch
         ${targetWhere}
         order by released_at desc nulls last, created_at desc, data_version desc
         limit 1
       ),
       latest_crawl as (
         select status, error_count
-        from core.hkex_news_crawl_run
+        from aiphabee_core.hkex_news_crawl_run
         where data_version = (select data_version from target)
         order by completed_at desc nulls last, crawl_run_id desc
         limit 1
       ),
       observation_counts as (
         select count(distinct document_id)::int as document_count
-        from core.hkex_news_document_observation
+        from aiphabee_core.hkex_news_document_observation
         where data_version = (select data_version from target)
       ),
       fact_counts as (
         select count(distinct extracted_fact_id)::int as extracted_fact_count
-        from core.hkex_news_extracted_fact
+        from aiphabee_core.hkex_news_extracted_fact
         where data_version = (select data_version from target)
           and fact_namespace = 'hkex_news'
       ),
       latest_transform as (
         select status, validation_report
-        from core.hkex_news_transform_run
+        from aiphabee_core.hkex_news_transform_run
         where data_version = (select data_version from target)
         order by completed_at desc nulls last, transform_run_id desc
         limit 1
@@ -282,11 +282,11 @@ function validateContract(value) {
     ...validateStringArray(
       value.target_tables,
       [
-        "core.data_version_batch",
-        "core.hkex_news_crawl_run",
-        "core.hkex_news_document_observation",
-        "core.hkex_news_extracted_fact",
-        "core.hkex_news_transform_run"
+        "aiphabee_core.data_version_batch",
+        "aiphabee_core.hkex_news_crawl_run",
+        "aiphabee_core.hkex_news_document_observation",
+        "aiphabee_core.hkex_news_extracted_fact",
+        "aiphabee_core.hkex_news_transform_run"
       ],
       "target_tables"
     ),

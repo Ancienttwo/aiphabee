@@ -12,8 +12,8 @@ watchlist briefings that summarize only material changes with source evidence.
 - Planner route: `POST /watchlist/briefings/plan`
 - Contract: `deploy/watchlist/briefings.contract.json`
 - Checker: `npm run check:watchlist-briefings`
-- Briefing table scaffold: `core.watchlist_briefing`
-- Briefing item table scaffold: `core.watchlist_briefing_item`
+- Briefing table scaffold: `aiphabee_core.watchlist_briefing`
+- Briefing item table scaffold: `aiphabee_core.watchlist_briefing_item`
 
 ## Required Guarantees
 

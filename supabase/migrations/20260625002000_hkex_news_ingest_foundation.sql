@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   drop constraint if exists raw_snapshot_record_kind_check;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   add constraint raw_snapshot_record_kind_check check (
     record_kind in (
       'company',
@@ -35,10 +35,10 @@ alter table core.raw_snapshot
     )
   );
 
-alter table core.serving_dataset
+alter table aiphabee_core.serving_dataset
   drop constraint if exists serving_dataset_domain_check;
 
-alter table core.serving_dataset
+alter table aiphabee_core.serving_dataset
   add constraint serving_dataset_domain_check check (
     domain in (
       'security_master',
@@ -52,7 +52,7 @@ alter table core.serving_dataset
     )
   );
 
-create table if not exists core.hkex_news_crawl_run (
+create table if not exists aiphabee_core.hkex_news_crawl_run (
   crawl_run_id text primary key,
   source_name text not null default 'hkex_news',
   source_surface text not null check (
@@ -76,11 +76,11 @@ create table if not exists core.hkex_news_crawl_run (
   changed_count integer not null default 0 check (changed_count >= 0),
   error_count integer not null default 0 check (error_count >= 0),
   error_summary text,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.hkex_news_document (
+create table if not exists aiphabee_core.hkex_news_document (
   document_id text primary key,
   source_name text not null default 'hkex_news',
   source_record_id text not null,
@@ -119,12 +119,12 @@ create table if not exists core.hkex_news_document (
   unique (canonical_url)
 );
 
-create table if not exists core.hkex_news_document_observation (
+create table if not exists aiphabee_core.hkex_news_document_observation (
   document_observation_id text primary key,
-  document_id text not null references core.hkex_news_document(document_id),
-  crawl_run_id text not null references core.hkex_news_crawl_run(crawl_run_id),
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
+  crawl_run_id text not null references aiphabee_core.hkex_news_crawl_run(crawl_run_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   source_surface text not null check (
     source_surface in (
       'latest_list',
@@ -147,9 +147,9 @@ create table if not exists core.hkex_news_document_observation (
   unique (document_id, crawl_run_id, source_page_url)
 );
 
-create table if not exists core.hkex_news_document_headline (
+create table if not exists aiphabee_core.hkex_news_document_headline (
   document_headline_id text primary key,
-  document_id text not null references core.hkex_news_document(document_id),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
   market text not null check (market in ('MAIN', 'GEM', 'UNKNOWN')),
   tier_1 text not null,
   tier_2 text not null,
@@ -160,24 +160,24 @@ create table if not exists core.hkex_news_document_headline (
   unique (document_id, tier_1, tier_2, official_taxonomy_version)
 );
 
-create table if not exists core.hkex_news_document_relation (
+create table if not exists aiphabee_core.hkex_news_document_relation (
   document_relation_id text primary key,
-  from_document_id text not null references core.hkex_news_document(document_id),
-  to_document_id text not null references core.hkex_news_document(document_id),
+  from_document_id text not null references aiphabee_core.hkex_news_document(document_id),
+  to_document_id text not null references aiphabee_core.hkex_news_document(document_id),
   relation_type text not null check (
     relation_type in ('supersedes', 'clarifies', 'reissues', 'same_ipo_case', 'same_applicant')
   ),
   confidence numeric check (confidence is null or (confidence >= 0 and confidence <= 1)),
   matched_by text not null,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   created_at timestamptz not null default now(),
   unique (from_document_id, to_document_id, relation_type, data_version)
 );
 
-create table if not exists core.hkex_news_document_content (
+create table if not exists aiphabee_core.hkex_news_document_content (
   document_content_id text primary key,
-  document_id text not null references core.hkex_news_document(document_id),
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   storage_uri text,
   binary_hash_sha256 text not null,
   raw_text text,
@@ -190,11 +190,11 @@ create table if not exists core.hkex_news_document_content (
   unique (document_id, sanitizer_version, binary_hash_sha256)
 );
 
-create table if not exists core.ipo_source_document_link (
+create table if not exists aiphabee_core.ipo_source_document_link (
   ipo_source_document_link_id text primary key,
-  offering_id text references core.ipo_offering(offering_id),
-  app_code text references core.ipo_pipeline_application(app_code),
-  document_id text not null references core.hkex_news_document(document_id),
+  offering_id text references aiphabee_core.ipo_offering(offering_id),
+  app_code text references aiphabee_core.ipo_pipeline_application(app_code),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
   link_type text not null check (
     link_type in (
       'prospectus',
@@ -208,15 +208,15 @@ create table if not exists core.ipo_source_document_link (
   ),
   confidence numeric check (confidence is null or (confidence >= 0 and confidence <= 1)),
   matched_by text not null,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   created_at timestamptz not null default now(),
   unique (document_id, link_type, data_version)
 );
 
-create table if not exists core.hkex_news_extraction_run (
+create table if not exists aiphabee_core.hkex_news_extraction_run (
   extraction_run_id text primary key,
-  document_id text not null references core.hkex_news_document(document_id),
-  document_content_id text not null references core.hkex_news_document_content(document_content_id),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
+  document_content_id text not null references aiphabee_core.hkex_news_document_content(document_content_id),
   extractor_name text not null,
   extractor_version text not null,
   run_kind text not null check (run_kind in ('deterministic', 'llm', 'hybrid')),
@@ -226,16 +226,16 @@ create table if not exists core.hkex_news_extraction_run (
   completed_at timestamptz,
   status text not null check (status in ('running', 'completed', 'failed', 'cancelled')),
   error_summary text,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.hkex_news_extracted_fact (
+create table if not exists aiphabee_core.hkex_news_extracted_fact (
   extracted_fact_id text primary key,
-  extraction_run_id text not null references core.hkex_news_extraction_run(extraction_run_id),
-  document_id text not null references core.hkex_news_document(document_id),
-  offering_id text references core.ipo_offering(offering_id),
-  app_code text references core.ipo_pipeline_application(app_code),
+  extraction_run_id text not null references aiphabee_core.hkex_news_extraction_run(extraction_run_id),
+  document_id text not null references aiphabee_core.hkex_news_document(document_id),
+  offering_id text references aiphabee_core.ipo_offering(offering_id),
+  app_code text references aiphabee_core.ipo_pipeline_application(app_code),
   fact_namespace text not null default 'ipo',
   fact_key text not null,
   value_type text not null check (
@@ -256,8 +256,8 @@ create table if not exists core.hkex_news_extracted_fact (
   review_state text not null default 'pending' check (
     review_state in ('pending', 'accepted', 'rejected', 'superseded')
   ),
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
-  data_version text not null references core.data_version_batch(data_version),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
   ),
@@ -265,10 +265,10 @@ create table if not exists core.hkex_news_extracted_fact (
   unique (document_id, fact_key, locator_hash, data_version)
 );
 
-create table if not exists core.hkex_news_transform_run (
+create table if not exists aiphabee_core.hkex_news_transform_run (
   transform_run_id text primary key,
   source_name text not null default 'hkex_news',
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   status text not null check (status in ('running', 'completed', 'failed', 'cancelled')),
@@ -280,7 +280,7 @@ create table if not exists core.hkex_news_transform_run (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.hkex_news_ingest_contract (
+create table if not exists aiphabee_governance.hkex_news_ingest_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -300,33 +300,33 @@ create table if not exists governance.hkex_news_ingest_contract (
 );
 
 create index if not exists hkex_news_crawl_run_version_status_idx
-  on core.hkex_news_crawl_run(data_version, status);
+  on aiphabee_core.hkex_news_crawl_run(data_version, status);
 create index if not exists hkex_news_document_code_date_idx
-  on core.hkex_news_document(hkex_code, published_at desc);
+  on aiphabee_core.hkex_news_document(hkex_code, published_at desc);
 create index if not exists hkex_news_document_state_idx
-  on core.hkex_news_document(document_state, published_at desc);
+  on aiphabee_core.hkex_news_document(document_state, published_at desc);
 create index if not exists hkex_news_document_obs_version_idx
-  on core.hkex_news_document_observation(data_version, discovered_at desc);
+  on aiphabee_core.hkex_news_document_observation(data_version, discovered_at desc);
 create index if not exists hkex_news_document_headline_idx
-  on core.hkex_news_document_headline(tier_1, tier_2);
+  on aiphabee_core.hkex_news_document_headline(tier_1, tier_2);
 create index if not exists hkex_news_document_relation_to_idx
-  on core.hkex_news_document_relation(to_document_id, relation_type);
+  on aiphabee_core.hkex_news_document_relation(to_document_id, relation_type);
 create index if not exists hkex_news_document_content_hash_idx
-  on core.hkex_news_document_content(binary_hash_sha256);
+  on aiphabee_core.hkex_news_document_content(binary_hash_sha256);
 create index if not exists ipo_source_document_link_offering_idx
-  on core.ipo_source_document_link(offering_id, link_type);
+  on aiphabee_core.ipo_source_document_link(offering_id, link_type);
 create index if not exists hkex_news_extraction_run_document_idx
-  on core.hkex_news_extraction_run(document_id, data_version);
+  on aiphabee_core.hkex_news_extraction_run(document_id, data_version);
 create index if not exists hkex_news_extracted_fact_offering_idx
-  on core.hkex_news_extracted_fact(offering_id, fact_key, data_version);
+  on aiphabee_core.hkex_news_extracted_fact(offering_id, fact_key, data_version);
 create index if not exists hkex_news_extracted_fact_locator_gin
-  on core.hkex_news_extracted_fact using gin(locator);
+  on aiphabee_core.hkex_news_extracted_fact using gin(locator);
 create index if not exists hkex_news_extracted_fact_value_json_gin
-  on core.hkex_news_extracted_fact using gin(value_json);
+  on aiphabee_core.hkex_news_extracted_fact using gin(value_json);
 create index if not exists hkex_news_transform_run_version_status_idx
-  on core.hkex_news_transform_run(data_version, status);
+  on aiphabee_core.hkex_news_transform_run(data_version, status);
 
-insert into governance.hkex_news_ingest_contract (
+insert into aiphabee_governance.hkex_news_ingest_contract (
   contract_key,
   contract_version,
   status,
@@ -374,7 +374,7 @@ on conflict (contract_key) do update set
   source_surfaces = excluded.source_surfaces,
   updated_at = now();
 
-insert into governance.ipo_contract (
+insert into aiphabee_governance.ipo_contract (
   contract_key,
   contract_version,
   status,
@@ -413,7 +413,7 @@ on conflict (contract_key) do update set
   mcp_redistribution_allowed = excluded.mcp_redistribution_allowed,
   updated_at = now();
 
-insert into core.serving_dataset (
+insert into aiphabee_core.serving_dataset (
   serving_dataset_id,
   dataset,
   domain,
@@ -437,7 +437,7 @@ on conflict (dataset) do update set
   source_record_id = excluded.source_record_id,
   updated_at = now();
 
-insert into core.serving_field (
+insert into aiphabee_core.serving_field (
   serving_field_id,
   serving_dataset_id,
   field_path,

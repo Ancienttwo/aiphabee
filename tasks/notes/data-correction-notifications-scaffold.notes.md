@@ -16,8 +16,8 @@ and saved-report user notification planning.
   `old_report_mutation_allowed=false` and `silent_rewrite_allowed=false`.
 - The plan creates no-write user notification items for `in_app` and `email`
   channels through `AIPHABEE_EVENTS_QUEUE`.
-- `core.data_correction_event`, `core.research_run_correction_impact`, and
-  `core.user_notification` exist as empty schema scaffolds for future
+- `aiphabee_core.data_correction_event`, `aiphabee_core.research_run_correction_impact`, and
+  `aiphabee_core.user_notification` exist as empty schema scaffolds for future
   persistence.
 - The local contract checker verifies no live tool execution, no notification
   fanout, no persistent writes, source-record requirement, affected-report

@@ -33,11 +33,11 @@
     "canceled"
   ],
   "tables": [
-    "core.account",
-    "core.workspace",
-    "core.subscription_plan",
-    "core.workspace_subscription",
-    "audit.subscription_lifecycle_event"
+    "platform.account",
+    "platform.workspace",
+    "platform.subscription_plan",
+    "platform.workspace_subscription",
+    "aiphabee_audit.subscription_lifecycle_event"
   ],
   "required_request_fields": [
     "account_id",

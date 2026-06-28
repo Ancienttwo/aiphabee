@@ -47,10 +47,10 @@ const regulatorySourceUrls = [
   "https://www.sfc.hk/en/Rules-and-standards/Suitability-requirement"
 ];
 const requiredTables = [
-  "core.licensed_advice_exploration",
-  "core.suitability_control_profile",
-  "audit.licensed_advice_review_event",
-  "governance.licensed_advice_exploration_contract"
+  "aiphabee_core.licensed_advice_exploration",
+  "aiphabee_core.suitability_control_profile",
+  "aiphabee_audit.licensed_advice_review_event",
+  "aiphabee_governance.licensed_advice_exploration_contract"
 ];
 const requiredOutputFields = [
   "advice_output_policy",
@@ -307,10 +307,10 @@ function validateMigrationText(value) {
   const errors = [];
 
   for (const token of [
-    "create table if not exists core.licensed_advice_exploration",
-    "create table if not exists core.suitability_control_profile",
-    "create table if not exists audit.licensed_advice_review_event",
-    "create table if not exists governance.licensed_advice_exploration_contract",
+    "create table if not exists aiphabee_core.licensed_advice_exploration",
+    "create table if not exists aiphabee_core.suitability_control_profile",
+    "create table if not exists aiphabee_audit.licensed_advice_review_event",
+    "create table if not exists aiphabee_governance.licensed_advice_exploration_contract",
     "default 'default_deny'",
     "advice_generation_enabled boolean not null default false",
     "order_execution_enabled boolean not null default false",

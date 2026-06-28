@@ -17,7 +17,7 @@ taxonomy, or enable Serving Gateway responses.
 |---|---|---|
 | Engine package | `packages/financial-facts` | Deterministic restatement timeline, as-of selection, deltas, identity guard |
 | Worker runtime route | `GET /data/runtime` | Reports engine capability and golden case status |
-| Schema target | `core.financial_statement`, `core.financial_fact`, `core.financial_restatement` | Existing storage scaffold; not read by this slice |
+| Schema target | `aiphabee_core.financial_statement`, `aiphabee_core.financial_fact`, `aiphabee_core.financial_restatement` | Existing storage scaffold; not read by this slice |
 | Golden cases | package tests | Two synthetic restatement timelines plus identity-break rejection |
 | Live partner data | Absent | No partner taxonomy, source rows, raw filings, or Serving reads |
 

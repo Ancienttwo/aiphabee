@@ -89,7 +89,7 @@ Observed route fields:
 {
   "runtime": {
     "status": "evidence_lineage_service_scaffold",
-    "tables": ["core.evidence_record", "core.evidence_source_ref"],
+    "tables": ["aiphabee_core.evidence_record", "aiphabee_core.evidence_source_ref"],
     "liveDbWrites": false,
     "sourceRecordLinking": true
   },

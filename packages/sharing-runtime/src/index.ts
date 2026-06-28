@@ -28,9 +28,9 @@ export const PRIVATE_SHARE_WATERMARK_FIELDS = [
   "as_of"
 ] as const;
 export const PRIVATE_SHARE_TABLES = [
-  "core.private_share_link",
-  "audit.private_share_event",
-  "governance.private_sharing_contract"
+  "aiphabee_core.private_share_link",
+  "aiphabee_audit.private_share_event",
+  "aiphabee_governance.private_sharing_contract"
 ] as const;
 export const PRIVACY_SHARE_RELEASE_GATE_VERSION =
   "2026-06-22.phase3.privacy-share-release-gate-scaffold.v0";
@@ -43,8 +43,8 @@ export const PRIVACY_SHARE_RELEASE_GATE_CHECKS = [
   "private_link_has_expiry_watermark_and_no_public_index"
 ] as const;
 export const PRIVACY_SHARE_RELEASE_GATE_TABLES = [
-  "core.privacy_share_release_gate",
-  "governance.privacy_share_release_gate_contract"
+  "aiphabee_core.privacy_share_release_gate",
+  "aiphabee_governance.privacy_share_release_gate_contract"
 ] as const;
 
 export type PrivateShareLinkStatus =
@@ -107,7 +107,7 @@ export interface PrivateShareLinkPlan {
   };
   audit: {
     event_kind: "sharing.private_link.plan";
-    table: "audit.private_share_event";
+    table: "aiphabee_audit.private_share_event";
     write_status: "planned_no_write";
   };
   data_version: "private-sharing-scaffold-v0";
@@ -446,7 +446,7 @@ export function createPrivateShareLinkPlan(
     },
     audit: {
       event_kind: "sharing.private_link.plan",
-      table: "audit.private_share_event",
+      table: "aiphabee_audit.private_share_event",
       write_status: "planned_no_write"
     },
     data_version: "private-sharing-scaffold-v0",

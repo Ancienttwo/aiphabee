@@ -22,11 +22,11 @@ const requiredControls = ["seats", "sso", "audit", "private_data_connector"];
 const requiredSsoProtocols = ["saml", "oidc"];
 const requiredConnectorKinds = ["customer_warehouse", "managed_bucket", "private_api"];
 const requiredTables = [
-  "core.enterprise_seat_assignment",
-  "core.enterprise_sso_config",
-  "audit.enterprise_admin_event",
-  "core.private_data_connector",
-  "governance.enterprise_controls_contract"
+  "aiphabee_core.enterprise_seat_assignment",
+  "aiphabee_core.enterprise_sso_config",
+  "aiphabee_audit.enterprise_admin_event",
+  "aiphabee_core.private_data_connector",
+  "aiphabee_governance.enterprise_controls_contract"
 ];
 const requiredOutputFields = [
   "account",
@@ -213,8 +213,8 @@ function validateAudit(value) {
     errors.push("audit.audit_event must be account.enterprise_controls.plan");
   }
 
-  if (value.event_table !== "audit.enterprise_admin_event") {
-    errors.push("audit.event_table must be audit.enterprise_admin_event");
+  if (value.event_table !== "aiphabee_audit.enterprise_admin_event") {
+    errors.push("audit.event_table must be aiphabee_audit.enterprise_admin_event");
   }
 
   if (value.raw_payload_stored !== false) {

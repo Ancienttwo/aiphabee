@@ -270,7 +270,7 @@ export interface DeepReportWorkflowPlan {
   evidence_index: {
     evidence_index_id: string;
     records: DeepReportEvidenceIndexRecord[];
-    table: "core.deep_report_evidence_index";
+    table: "aiphabee_core.deep_report_evidence_index";
     version: typeof DEEP_REPORT_WORKFLOW_VERSION;
   };
   frontend_rendering: false;
@@ -284,10 +284,10 @@ export interface DeepReportWorkflowPlan {
     r2_writes: false;
     sql_emitted: false;
     tables: readonly [
-      "core.deep_report_snapshot",
-      "core.deep_report_evidence_index",
-      "core.workflow_task",
-      "core.workflow_task_checkpoint"
+      "aiphabee_core.deep_report_snapshot",
+      "aiphabee_core.deep_report_evidence_index",
+      "aiphabee_core.workflow_task",
+      "aiphabee_core.workflow_task_checkpoint"
     ];
     write_status: DeepReportWorkflowStatus;
   };
@@ -307,7 +307,7 @@ export interface DeepReportWorkflowPlan {
     report_id: string;
     snapshot_id: string;
     static_report_allowed: true;
-    table: "core.deep_report_snapshot";
+    table: "aiphabee_core.deep_report_snapshot";
     version: typeof DEEP_REPORT_WORKFLOW_VERSION;
   };
   request_id: string;
@@ -413,7 +413,7 @@ export interface StaticReportPlan {
     sections: string[];
     source_run_id: string;
     static_report_allowed: boolean;
-    table: "core.static_report_artifact";
+    table: "aiphabee_core.static_report_artifact";
     title: string;
   };
   request_id: string;
@@ -517,10 +517,10 @@ export interface ResearchRunSavePlan {
     old_report_mutation_allowed: false;
     sql_emitted: false;
     tables: readonly [
-      "core.research_run",
-      "core.research_run_tool_call",
-      "core.research_run_evidence_snapshot",
-      "core.research_run_model_snapshot"
+      "aiphabee_core.research_run",
+      "aiphabee_core.research_run_tool_call",
+      "aiphabee_core.research_run_evidence_snapshot",
+      "aiphabee_core.research_run_model_snapshot"
     ];
     write_status: "planned_no_write";
   };
@@ -695,9 +695,9 @@ export interface DataCorrectionNotificationCapabilities {
   status: "data_correction_notifications_scaffold";
   supported_notification_channels: readonly DataCorrectionNotificationChannel[];
   tables: readonly [
-    "core.data_correction_event",
-    "core.research_run_correction_impact",
-    "core.user_notification"
+    "aiphabee_core.data_correction_event",
+    "aiphabee_core.research_run_correction_impact",
+    "aiphabee_core.user_notification"
   ];
   tool_name: "plan_data_correction_notifications";
   version: typeof DATA_CORRECTION_NOTIFICATION_VERSION;
@@ -719,10 +719,10 @@ export interface GoldenCorrectionRollbackDrillCapabilities {
   sql_emitted: false;
   status: "golden_correction_rollback_drill_scaffold";
   tables: readonly [
-    "core.golden_correction_rollback_drill",
-    "governance.golden_correction_rollback_drill_contract",
-    "core.data_correction_event",
-    "core.research_run_correction_impact"
+    "aiphabee_core.golden_correction_rollback_drill",
+    "aiphabee_governance.golden_correction_rollback_drill_contract",
+    "aiphabee_core.data_correction_event",
+    "aiphabee_core.research_run_correction_impact"
   ];
   tool_golden_manifest_path: "tests/golden/tools/manifest.json";
   version: typeof GOLDEN_CORRECTION_ROLLBACK_DRILL_VERSION;
@@ -735,7 +735,7 @@ export interface DataCorrectionEventPlan {
   reason: string;
   severity: DataCorrectionSeverity;
   source_record_id: string;
-  table: "core.data_correction_event";
+  table: "aiphabee_core.data_correction_event";
   write_status: "blocked" | "planned_no_write";
 }
 
@@ -746,7 +746,7 @@ export interface DataCorrectionImpactPlan {
   notification_required: true;
   research_run_id: string;
   snapshot_id: string;
-  table: "core.research_run_correction_impact";
+  table: "aiphabee_core.research_run_correction_impact";
   user_id: string;
   workspace_id: string;
   write_status: "blocked" | "planned_no_write";
@@ -759,7 +759,7 @@ export interface DataCorrectionUserNotificationPlan {
   notification_event_id: string;
   research_run_id: string;
   snapshot_id: string;
-  table: "core.user_notification";
+  table: "aiphabee_core.user_notification";
   user_id: string;
   workspace_id: string;
 }
@@ -784,7 +784,7 @@ export interface DataCorrectionNotificationPlan {
     fanout_status: "planned_no_write";
     notification_required: true;
     notifications: DataCorrectionUserNotificationPlan[];
-    table: "core.user_notification";
+    table: "aiphabee_core.user_notification";
     user_notification_count: number;
   };
   persistence_plan: {
@@ -890,32 +890,32 @@ const REQUIRED_RESEARCH_RUN_FIELDS = [
   "prompt_version"
 ] as const;
 const RESEARCH_RUN_TABLES = [
-  "core.research_run",
-  "core.research_run_tool_call",
-  "core.research_run_evidence_snapshot",
-  "core.research_run_model_snapshot"
+  "aiphabee_core.research_run",
+  "aiphabee_core.research_run_tool_call",
+  "aiphabee_core.research_run_evidence_snapshot",
+  "aiphabee_core.research_run_model_snapshot"
 ] as const;
 const DEEP_REPORT_WORKFLOW_TABLES = [
-  "core.deep_report_snapshot",
-  "core.deep_report_evidence_index",
-  "core.workflow_task",
-  "core.workflow_task_checkpoint"
+  "aiphabee_core.deep_report_snapshot",
+  "aiphabee_core.deep_report_evidence_index",
+  "aiphabee_core.workflow_task",
+  "aiphabee_core.workflow_task_checkpoint"
 ] as const;
 const STATIC_REPORT_TABLES = [
-  "core.static_report_artifact",
-  "audit.static_report_event",
-  "governance.static_report_contract"
+  "aiphabee_core.static_report_artifact",
+  "aiphabee_audit.static_report_event",
+  "aiphabee_governance.static_report_contract"
 ] as const;
 const DATA_CORRECTION_NOTIFICATION_TABLES = [
-  "core.data_correction_event",
-  "core.research_run_correction_impact",
-  "core.user_notification"
+  "aiphabee_core.data_correction_event",
+  "aiphabee_core.research_run_correction_impact",
+  "aiphabee_core.user_notification"
 ] as const;
 const GOLDEN_CORRECTION_ROLLBACK_DRILL_TABLES = [
-  "core.golden_correction_rollback_drill",
-  "governance.golden_correction_rollback_drill_contract",
-  "core.data_correction_event",
-  "core.research_run_correction_impact"
+  "aiphabee_core.golden_correction_rollback_drill",
+  "aiphabee_governance.golden_correction_rollback_drill_contract",
+  "aiphabee_core.data_correction_event",
+  "aiphabee_core.research_run_correction_impact"
 ] as const;
 const DEFAULT_DEEP_REPORT_TOOLS = [
   "resolve_security",
@@ -1165,7 +1165,7 @@ export function createDataCorrectionNotificationPlan(
       fanout_status: "planned_no_write",
       notification_required: true,
       notifications: notificationPlans,
-      table: "core.user_notification",
+      table: "aiphabee_core.user_notification",
       user_notification_count: notificationPlans.length
     },
     persistence_plan: {
@@ -1542,7 +1542,7 @@ export function createDeepReportWorkflowPlan(
     evidence_index: {
       evidence_index_id: evidenceIndexId,
       records: evidenceRecords,
-      table: "core.deep_report_evidence_index",
+      table: "aiphabee_core.deep_report_evidence_index",
       version: DEEP_REPORT_WORKFLOW_VERSION
     },
     frontend_rendering: false,
@@ -1585,7 +1585,7 @@ export function createDeepReportWorkflowPlan(
       report_id: reportId,
       snapshot_id: snapshotId,
       static_report_allowed: true,
-      table: "core.deep_report_snapshot",
+      table: "aiphabee_core.deep_report_snapshot",
       version: DEEP_REPORT_WORKFLOW_VERSION
     },
     request_id: input.requestId,
@@ -1747,7 +1747,7 @@ export function createStaticReportPlan(input: CreateStaticReportPlanInput): Stat
       sections,
       source_run_id: sourceRunId ?? "source_run_missing",
       static_report_allowed: status === "planned_no_write",
-      table: "core.static_report_artifact",
+      table: "aiphabee_core.static_report_artifact",
       title: normalizeText(input.title) ?? "Static Research Report"
     },
     request_id: input.requestId,
@@ -2238,7 +2238,7 @@ function normalizeDataCorrectionEvents(
         reason,
         severity,
         source_record_id: sourceRecordId,
-        table: "core.data_correction_event" as const
+        table: "aiphabee_core.data_correction_event" as const
       };
     })
     .filter(
@@ -2289,7 +2289,7 @@ function createDataCorrectionImpacts(
         notification_required: true,
         research_run_id: run.run_id,
         snapshot_id: run.snapshot_id,
-        table: "core.research_run_correction_impact",
+        table: "aiphabee_core.research_run_correction_impact",
         user_id: userId,
         workspace_id: workspaceId
       };
@@ -2316,7 +2316,7 @@ function createDataCorrectionNotificationItems(
       })}`,
       research_run_id: impact.research_run_id,
       snapshot_id: impact.snapshot_id,
-      table: "core.user_notification" as const,
+      table: "aiphabee_core.user_notification" as const,
       user_id: impact.user_id,
       workspace_id: impact.workspace_id
     }))

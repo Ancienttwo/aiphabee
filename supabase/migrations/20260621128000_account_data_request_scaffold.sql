@@ -1,11 +1,11 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.account_data_request (
+create table if not exists aiphabee_core.account_data_request (
   data_request_id text not null,
-  account_id text not null references core.account(account_id),
-  workspace_id text not null references core.workspace(workspace_id),
+  account_id text not null references platform.account(account_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   request_action text not null check (request_action in ('download', 'erasure_request')),
   request_status text not null default 'planned_no_write' check (
     request_status in ('planned_no_write', 'blocked', 'completed', 'rejected')
@@ -24,9 +24,9 @@ create table if not exists core.account_data_request (
   primary key (data_request_id)
 );
 
-create table if not exists core.account_data_request_item (
+create table if not exists aiphabee_core.account_data_request_item (
   data_request_item_id text not null,
-  data_request_id text not null references core.account_data_request(data_request_id),
+  data_request_id text not null references aiphabee_core.account_data_request(data_request_id),
   request_scope text not null check (
     request_scope in (
       'account_profile',
@@ -51,7 +51,7 @@ create table if not exists core.account_data_request_item (
   primary key (data_request_item_id)
 );
 
-create table if not exists audit.account_data_request_event (
+create table if not exists aiphabee_audit.account_data_request_event (
   account_data_request_event_id text not null,
   data_request_id text not null,
   request_id text not null,
@@ -68,7 +68,7 @@ create table if not exists audit.account_data_request_event (
   primary key (account_data_request_event_id)
 );
 
-create table if not exists governance.account_data_request_contract (
+create table if not exists aiphabee_governance.account_data_request_contract (
   contract_name text not null default 'account_data_request',
   contract_version text not null default '2026-06-21.phase3.account-data-request-scaffold.v0',
   runtime_route text not null default 'GET /account/runtime',

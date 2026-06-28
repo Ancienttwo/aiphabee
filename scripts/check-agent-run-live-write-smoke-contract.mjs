@@ -14,14 +14,14 @@ const usageQuotaContractPath = "deploy/usage/quota-display.contract.json";
 const expectedVersion = "2026-06-22.phase1.agent-run-live-write-smoke.v0";
 const expectedScript = "node scripts/check-agent-run-live-write-smoke-contract.mjs";
 const requiredTables = [
-  "audit.agent_run_audit_event",
-  "core.evidence_record",
-  "core.evidence_source_ref",
-  "core.account",
-  "core.workspace",
-  "core.usage_meter_rule",
-  "core.usage_event",
-  "core.usage_ledger_entry"
+  "aiphabee_audit.agent_run_audit_event",
+  "aiphabee_core.evidence_record",
+  "aiphabee_core.evidence_source_ref",
+  "platform.account",
+  "platform.workspace",
+  "aiphabee_core.usage_meter_rule",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry"
 ];
 const forbiddenTextPatterns = [
   /(^|[^A-Za-z])sk-[A-Za-z0-9_-]{20,}/u,
@@ -224,12 +224,12 @@ function validateWorkerSource(source) {
     "createAgentDryRunTelemetry",
     "createEvidenceRecordPlan",
     "createUsageLedgerEventPlan",
-    "insert into audit.agent_run_audit_event",
-    "insert into core.evidence_record",
-    "insert into core.usage_event",
-    "insert into core.usage_ledger_entry",
-    "delete from core.usage_ledger_entry",
-    "delete from audit.agent_run_audit_event",
+    "insert into aiphabee_audit.agent_run_audit_event",
+    "insert into aiphabee_core.evidence_record",
+    "insert into aiphabee_core.usage_event",
+    "insert into aiphabee_core.usage_ledger_entry",
+    "delete from aiphabee_core.usage_ledger_entry",
+    "delete from aiphabee_audit.agent_run_audit_event",
     "production_persistence_enabled: false",
     "agent_run_audit_evidence_usage_insert_select_delete"
   ]) {
@@ -247,12 +247,12 @@ function validateTestSource(source) {
   for (const text of [
     "AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN",
     "agent-run-live-write-v1",
-    "insert into audit.agent_run_audit_event",
-    "insert into core.evidence_record",
-    "insert into core.usage_event",
-    "insert into core.usage_ledger_entry",
-    "delete from core.usage_ledger_entry",
-    "delete from audit.agent_run_audit_event",
+    "insert into aiphabee_audit.agent_run_audit_event",
+    "insert into aiphabee_core.evidence_record",
+    "insert into aiphabee_core.usage_event",
+    "insert into aiphabee_core.usage_ledger_entry",
+    "delete from aiphabee_core.usage_ledger_entry",
+    "delete from aiphabee_audit.agent_run_audit_event",
     "cleanup_verified: true",
     "production_persistence_enabled: false",
     "not.toContain(\"mock-agent-run-live-write-connection\")"
@@ -270,10 +270,10 @@ function validateMigration(source, databaseValue) {
   const lowerSource = source.toLowerCase();
 
   for (const text of [
-    "create schema if not exists audit",
-    "create schema if not exists governance",
-    "create table if not exists audit.agent_run_audit_event",
-    "create table if not exists governance.agent_run_live_write_smoke_contract",
+    "create schema if not exists aiphabee_audit",
+    "create schema if not exists aiphabee_governance",
+    "create table if not exists aiphabee_audit.agent_run_audit_event",
+    "create table if not exists aiphabee_governance.agent_run_live_write_smoke_contract",
     "default_deny",
     "production_persistence_enabled boolean not null default false",
     "guarded_smoke_only boolean not null default true"
@@ -298,11 +298,11 @@ function validateMigration(source, databaseValue) {
       errors.push("database migration entry default_rights_status must be default_deny");
     }
 
-    errors.push(...validateStringArray(entry.schemas, ["audit", "governance"], "migration.schemas"));
+    errors.push(...validateStringArray(entry.schemas, ["aiphabee_audit", "aiphabee_governance"], "migration.schemas"));
     errors.push(
       ...validateStringArray(
         entry.tables,
-        ["audit.agent_run_audit_event", "governance.agent_run_live_write_smoke_contract"],
+        ["aiphabee_audit.agent_run_audit_event", "aiphabee_governance.agent_run_live_write_smoke_contract"],
         "migration.tables"
       )
     );
@@ -333,7 +333,7 @@ function validateLinkedContracts(observabilityValue, evidenceValue, usageValue) 
   errors.push(
     ...validateStringArray(
       usageValue.tables,
-      ["core.usage_event", "core.usage_ledger_entry"],
+      ["aiphabee_core.usage_event", "aiphabee_core.usage_ledger_entry"],
       "usage_quota.tables"
     )
   );

@@ -1,8 +1,8 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.field_authorization_change (
+create table if not exists aiphabee_core.field_authorization_change (
   change_id text primary key,
   request_id text not null,
   operator_id text not null,
@@ -10,7 +10,7 @@ create table if not exists core.field_authorization_change (
   field_pattern text not null,
   channel text not null check (channel in ('api', 'export', 'mcp', 'web')),
   plan_code text not null,
-  workspace_id text references core.workspace(workspace_id),
+  workspace_id text references platform.workspace(workspace_id),
   target_status text not null check (target_status in ('approved', 'blocked', 'default_deny')),
   export_allowed boolean not null default false,
   max_window_days integer check (max_window_days is null or max_window_days > 0),
@@ -37,9 +37,9 @@ create table if not exists core.field_authorization_change (
   check (expires_at is null or expires_at > effective_at)
 );
 
-create table if not exists audit.field_authorization_approval (
+create table if not exists aiphabee_audit.field_authorization_approval (
   approval_id text primary key,
-  change_id text not null references core.field_authorization_change(change_id),
+  change_id text not null references aiphabee_core.field_authorization_change(change_id),
   request_id text not null,
   reviewer_id text,
   approval_status text not null check (approval_status in ('pending', 'approved', 'rejected')),
@@ -49,7 +49,7 @@ create table if not exists audit.field_authorization_approval (
   created_at timestamptz not null default now()
 );
 
-create table if not exists governance.field_authorization_config_contract (
+create table if not exists aiphabee_governance.field_authorization_config_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -59,7 +59,7 @@ create table if not exists governance.field_authorization_config_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.field_authorization_config_contract (
+insert into aiphabee_governance.field_authorization_config_contract (
   contract_key,
   contract_version,
   status,

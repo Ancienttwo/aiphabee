@@ -19,10 +19,10 @@ const requiredOutputs = [
   "validation"
 ];
 const requiredTables = [
-  "core.watchlist",
-  "core.watchlist_item",
-  "core.watchlist_alert_rule",
-  "core.watchlist_alert_event"
+  "aiphabee_core.watchlist",
+  "aiphabee_core.watchlist_item",
+  "aiphabee_core.watchlist_alert_rule",
+  "aiphabee_core.watchlist_alert_event"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

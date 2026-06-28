@@ -10,7 +10,7 @@ This scaffold closes ANA-05 for saved screening and periodic run planning withou
 - Workspace and owner context are required before a plan can return `planned_no_write`.
 - Periodic runs support `manual`, `daily`, and `weekly` cadence. Daily/weekly schedules require `next_run_at`.
 - Periodic runs link to the high-cost analytics queue route and Workflow binding as metadata only.
-- The planner does not write `core.saved_screening`, `core.saved_screening_run_schedule`, or `core.saved_screening_run` rows.
+- The planner does not write `aiphabee_core.saved_screening`, `aiphabee_core.saved_screening_run_schedule`, or `aiphabee_core.saved_screening_run` rows.
 
 ## Disabled Surfaces
 

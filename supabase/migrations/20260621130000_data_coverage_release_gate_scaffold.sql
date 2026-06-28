@@ -1,7 +1,7 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.data_coverage_release_gate (
+create table if not exists aiphabee_core.data_coverage_release_gate (
   coverage_gate_key text not null,
   entry_kind text not null check (entry_kind in ('freshness_marker', 'coverage_domain')),
   entry_name text not null,
@@ -18,7 +18,7 @@ create table if not exists core.data_coverage_release_gate (
   primary key (coverage_gate_key)
 );
 
-create table if not exists governance.data_coverage_release_gate_contract (
+create table if not exists aiphabee_governance.data_coverage_release_gate_contract (
   contract_name text not null default 'data_coverage_release_gate',
   contract_version text not null default '2026-06-21.phase3.data-coverage-release-gate-scaffold.v0',
   runtime_route text not null default 'GET /gateway/runtime',

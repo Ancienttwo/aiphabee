@@ -40,7 +40,7 @@ try {
   } else {
     await client.query(
       `
-        update core.data_version_batch
+        update aiphabee_core.data_version_batch
         set release_state = 'released',
             released_at = now()
         where data_version = $1
@@ -74,7 +74,7 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
   const batch = await client.query(
     `
       select data_version, release_state, released_at
-      from core.data_version_batch
+      from aiphabee_core.data_version_batch
       where data_version = $1
       for update
     `,
@@ -92,7 +92,7 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
   const released = await client.query(
     `
       select data_version
-      from core.data_version_batch
+      from aiphabee_core.data_version_batch
       where data_version like 'ipo-mdb-%'
         and release_state = 'released'
         and data_version <> $1
@@ -121,7 +121,7 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
         field_authorization_required,
         export_allowed,
         mcp_redistribution_allowed
-      from governance.ipo_contract
+      from aiphabee_governance.ipo_contract
       where contract_key = 'phase1.ipo_pipeline'
     `
   );
@@ -133,7 +133,7 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
     contract.rows[0].export_allowed !== false ||
     contract.rows[0].mcp_redistribution_allowed !== false
   ) {
-    fail("Refusing release because governance.ipo_contract is not default-deny/export-blocked/MCP-blocked.");
+    fail("Refusing release because aiphabee_governance.ipo_contract is not default-deny/export-blocked/MCP-blocked.");
   }
 
   const catalog = await client.query(
@@ -141,8 +141,8 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
       select
         count(*) filter (where dataset.domain = 'ipo_pipeline' and dataset.default_rights_status = 'default_deny')::int as default_deny_datasets,
         count(*) filter (where field.rights_status = 'blocked')::int as blocked_fields
-      from core.serving_dataset dataset
-      left join core.serving_field field
+      from aiphabee_core.serving_dataset dataset
+      left join aiphabee_core.serving_field field
         on field.serving_dataset_id = dataset.serving_dataset_id
       where dataset.domain = 'ipo_pipeline'
     `
@@ -174,15 +174,15 @@ async function buildReleasePlan(client, manifest, dataVersion, target) {
 async function readReleaseCounts(client, dataVersion) {
   const result = await client.query(
     `
-      select 'raw_snapshot' as name, count(*)::int as row_count from core.raw_snapshot where data_version = $1
-      union all select 'vendor_code', count(*)::int from core.vendor_code where data_version = $1
-      union all select 'ipo_offering', count(*)::int from core.ipo_offering where data_version = $1
-      union all select 'ipo_narrative', count(*)::int from core.ipo_narrative where data_version = $1
-      union all select 'ipo_timetable_event', count(*)::int from core.ipo_timetable_event where data_version = $1
-      union all select 'ipo_offer_statistic', count(*)::int from core.ipo_offer_statistic where data_version = $1
-      union all select 'ipo_cornerstone', count(*)::int from core.ipo_cornerstone where data_version = $1
-      union all select 'ipo_allotment_summary', count(*)::int from core.ipo_allotment_summary where data_version = $1
-      union all select 'ipo_pipeline_application', count(*)::int from core.ipo_pipeline_application where data_version = $1
+      select 'raw_snapshot' as name, count(*)::int as row_count from aiphabee_core.raw_snapshot where data_version = $1
+      union all select 'vendor_code', count(*)::int from aiphabee_core.vendor_code where data_version = $1
+      union all select 'ipo_offering', count(*)::int from aiphabee_core.ipo_offering where data_version = $1
+      union all select 'ipo_narrative', count(*)::int from aiphabee_core.ipo_narrative where data_version = $1
+      union all select 'ipo_timetable_event', count(*)::int from aiphabee_core.ipo_timetable_event where data_version = $1
+      union all select 'ipo_offer_statistic', count(*)::int from aiphabee_core.ipo_offer_statistic where data_version = $1
+      union all select 'ipo_cornerstone', count(*)::int from aiphabee_core.ipo_cornerstone where data_version = $1
+      union all select 'ipo_allotment_summary', count(*)::int from aiphabee_core.ipo_allotment_summary where data_version = $1
+      union all select 'ipo_pipeline_application', count(*)::int from aiphabee_core.ipo_pipeline_application where data_version = $1
     `,
     [dataVersion]
   );

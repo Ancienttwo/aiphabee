@@ -39,8 +39,8 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty `core.financial_statement`,
-  `core.financial_fact`, and `core.financial_restatement` tables.
+- Add a Supabase-compatible migration for empty `aiphabee_core.financial_statement`,
+  `aiphabee_core.financial_fact`, and `aiphabee_core.financial_restatement` tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` to report financial-fact schema capability without
   live facts or database queries.

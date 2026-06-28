@@ -82,13 +82,13 @@
       "id": "usage_event_live_write_passed",
       "status": "missing",
       "blocks": ["live_usage_writes"],
-      "required_evidence": ["core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"]
+      "required_evidence": ["aiphabee_core.usage_event_insert", "request_id_idempotency", "no_double_charge_probe"]
     },
     {
       "id": "usage_ledger_entry_live_write_passed",
       "status": "missing",
       "blocks": ["live_usage_writes"],
-      "required_evidence": ["core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"]
+      "required_evidence": ["aiphabee_core.usage_ledger_entry_insert", "weighted_credits", "workspace_subscription_context"]
     },
     {
       "id": "billing_reconciliation_live_read_passed",

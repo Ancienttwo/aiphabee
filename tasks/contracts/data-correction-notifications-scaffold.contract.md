@@ -12,9 +12,9 @@ saved reports affected by data corrections and planning user notifications.
 - Planner route: `POST /research/data-corrections/plan`
 - Contract: `deploy/research/data-correction-notifications.contract.json`
 - Checker: `npm run check:data-correction-notifications`
-- Data correction table scaffold: `core.data_correction_event`
-- Saved report impact table scaffold: `core.research_run_correction_impact`
-- User notification table scaffold: `core.user_notification`
+- Data correction table scaffold: `aiphabee_core.data_correction_event`
+- Saved report impact table scaffold: `aiphabee_core.research_run_correction_impact`
+- User notification table scaffold: `aiphabee_core.user_notification`
 
 ## Required Guarantees
 

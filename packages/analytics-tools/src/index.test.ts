@@ -331,9 +331,9 @@ describe("compare securities scaffold", () => {
       live_db_writes: false,
       sql_emitted: false,
       tables: [
-        "core.saved_screening",
-        "core.saved_screening_run_schedule",
-        "core.saved_screening_run"
+        "aiphabee_core.saved_screening",
+        "aiphabee_core.saved_screening_run_schedule",
+        "aiphabee_core.saved_screening_run"
       ],
       write_status: "planned_no_write"
     });

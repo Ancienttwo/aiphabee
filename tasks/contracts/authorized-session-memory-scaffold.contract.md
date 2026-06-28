@@ -24,7 +24,7 @@ edited, or deleted through explicit user-visible controls.
   - forbidden payload classes for prompts, generated answers, financial values,
     raw email, passwords, OAuth material, and session secrets;
   - unsupported-key blocking before planned writes;
-  - empty `core.authorized_session_memory` and governance table scaffold;
+  - empty `aiphabee_core.authorized_session_memory` and governance table scaffold;
   - `check:authorized-session-memory` and database contract update;
   - tracker, governance, and deferred-ledger updates.
 - Out of scope:
@@ -44,7 +44,7 @@ exit_criteria:
     - "Allowed memory keys are explicit and authorization/consent scoped"
     - "Unsupported memory keys block before planned writes"
     - "Policy marks raw prompts, generated answers, financial values, and credential material as not stored"
-    - "Schema scaffold includes core.authorized_session_memory and governance.authorized_session_memory_contract"
+    - "Schema scaffold includes aiphabee_core.authorized_session_memory and aiphabee_governance.authorized_session_memory_contract"
     - "No live memory reads, persistent writes, SQL execution, frontend changes, or credential storage are introduced"
   commands_succeed:
     - npm run typecheck --workspace @aiphabee/account-runtime

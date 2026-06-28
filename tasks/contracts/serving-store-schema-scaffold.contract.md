@@ -16,10 +16,10 @@ projections without enabling live Serving reads or loading partner market data.
 ## Scope
 
 - In scope:
-  - `core.serving_dataset`;
-  - `core.serving_field`;
-  - `core.serving_snapshot`;
-  - `core.serving_record`;
+  - `aiphabee_core.serving_dataset`;
+  - `aiphabee_core.serving_field`;
+  - `aiphabee_core.serving_snapshot`;
+  - `aiphabee_core.serving_record`;
   - governance contract row;
   - database migration contract update;
   - Worker `/data/runtime` capability route update;

@@ -12,9 +12,9 @@ configurable field authorization with approval, version, and effective time.
 - Planner route: `POST /gateway/field-authorizations/changes/plan`
 - Contract: `deploy/gateway/field-authorization-config.contract.json`
 - Checker: `npm run check:field-authorization-config`
-- Change table scaffold: `core.field_authorization_change`
-- Approval audit table scaffold: `audit.field_authorization_approval`
-- Governance table scaffold: `governance.field_authorization_config_contract`
+- Change table scaffold: `aiphabee_core.field_authorization_change`
+- Approval audit table scaffold: `aiphabee_audit.field_authorization_approval`
+- Governance table scaffold: `aiphabee_governance.field_authorization_config_contract`
 
 ## Required Guarantees
 
@@ -24,8 +24,8 @@ configurable field authorization with approval, version, and effective time.
 - Require policy version.
 - Require effective time.
 - Support target statuses `approved`, `blocked`, and `default_deny`.
-- Plan future `core.data_entitlement` and optional
-  `core.workspace_entitlement` row effects.
+- Plan future `aiphabee_governance.data_entitlement` and optional
+  `aiphabee_governance.workspace_entitlement` row effects.
 - Keep cache-key versioning tied to `rights_policy_version`.
 - Do not read live entitlement rows.
 - Do not write policy rows.

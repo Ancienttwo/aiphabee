@@ -12,10 +12,10 @@ reconciliation reports grouped by dataset, channel, package, user, and usage.
 - Planner route: `POST /usage/partner-reconciliation/plan`
 - Contract: `deploy/usage/partner-reconciliation-report.contract.json`
 - Checker: `npm run check:partner-reconciliation-report`
-- Report table scaffold: `core.partner_reconciliation_report`
-- Report-line table scaffold: `core.partner_reconciliation_report_line`
-- Audit table scaffold: `audit.partner_reconciliation_event`
-- Governance table scaffold: `governance.partner_reconciliation_contract`
+- Report table scaffold: `aiphabee_core.partner_reconciliation_report`
+- Report-line table scaffold: `aiphabee_core.partner_reconciliation_report_line`
+- Audit table scaffold: `aiphabee_audit.partner_reconciliation_event`
+- Governance table scaffold: `aiphabee_governance.partner_reconciliation_contract`
 
 ## Required Guarantees
 

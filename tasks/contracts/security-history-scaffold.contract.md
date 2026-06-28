@@ -24,8 +24,8 @@ as of the requested date without using current classifications as fallback.
   - explicit no-latest fallback policy for name, classification, and
     constituents;
   - standard envelope success and error behavior;
-  - empty `core.security_name_history`, `core.security_industry_history`,
-    `core.index_constituent_history`, and governance table scaffold;
+  - empty `aiphabee_core.security_name_history`, `aiphabee_core.security_industry_history`,
+    `aiphabee_core.index_constituent_history`, and governance table scaffold;
   - `check:security-history` and database contract update;
   - tracker, governance, and deferred-ledger updates.
 - Out of scope:

@@ -111,7 +111,7 @@ async function buildCapturePlan({ contract: value, fixtures: fixtureSet, packet:
       source_record_id: request.source_record_id,
       source_url: request.source_url,
       stores_raw_html_in_repo: false,
-      target_table: "core.raw_snapshot",
+      target_table: "aiphabee_core.raw_snapshot",
       writes_database: false,
       writes_files: false
     };

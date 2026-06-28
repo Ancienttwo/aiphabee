@@ -86,8 +86,8 @@
     ]
   },
   "tables": [
-    "core.mcp_client_maturity_assessment",
-    "governance.mcp_client_maturity_contract"
+    "aiphabee_core.mcp_client_maturity_assessment",
+    "aiphabee_governance.mcp_client_maturity_contract"
   ],
   "linked_contracts": [
     "deploy/mcp/target-clients-console-release-gate.contract.json",

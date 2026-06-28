@@ -35,10 +35,10 @@ describe("watchlist alerts scaffold", () => {
       "metric"
     ]);
     expect(getWatchlistRuntimeCapabilities().tables).toEqual([
-      "core.watchlist",
-      "core.watchlist_item",
-      "core.watchlist_alert_rule",
-      "core.watchlist_alert_event"
+      "aiphabee_core.watchlist",
+      "aiphabee_core.watchlist_item",
+      "aiphabee_core.watchlist_alert_rule",
+      "aiphabee_core.watchlist_alert_event"
     ]);
     expect(getWatchlistRuntimeCapabilities().briefings).toMatchObject({
       evidence_required: true,
@@ -73,8 +73,8 @@ describe("watchlist alerts scaffold", () => {
       "weekly"
     ]);
     expect(getWatchlistBriefingCapabilities().tables).toEqual([
-      "core.watchlist_briefing",
-      "core.watchlist_briefing_item"
+      "aiphabee_core.watchlist_briefing",
+      "aiphabee_core.watchlist_briefing_item"
     ]);
   });
 
@@ -144,14 +144,14 @@ describe("watchlist alerts scaffold", () => {
       explicit_confirmation: true,
       idempotency_key: "alert-idem-00700-daily",
       independent_scope: "alerts.write",
-      table: "core.watchlist_alert_rule",
+      table: "aiphabee_core.watchlist_alert_rule",
       write_status: "planned_no_write"
     });
     expect(plan.watchlist).toMatchObject({
       instrument_id: "instrument_hk_00700",
       watchlist_id: "watchlist_alpha_hk",
-      watchlist_item_table: "core.watchlist_item",
-      watchlist_table: "core.watchlist",
+      watchlist_item_table: "aiphabee_core.watchlist_item",
+      watchlist_table: "aiphabee_core.watchlist",
       write_status: "planned_no_write"
     });
     expect(plan.dedupe).toMatchObject({
@@ -204,10 +204,10 @@ describe("watchlist alerts scaffold", () => {
       queue_writes: false,
       sql_emitted: false,
       tables: [
-        "core.watchlist",
-        "core.watchlist_item",
-        "core.watchlist_alert_rule",
-        "core.watchlist_alert_event"
+        "aiphabee_core.watchlist",
+        "aiphabee_core.watchlist_item",
+        "aiphabee_core.watchlist_alert_rule",
+        "aiphabee_core.watchlist_alert_event"
       ],
       write_status: "planned_no_write"
     });
@@ -336,7 +336,7 @@ describe("watchlist alerts scaffold", () => {
       max_items: 8,
       material_changes_only: true,
       status: "planned_no_write",
-      table: "core.watchlist_briefing",
+      table: "aiphabee_core.watchlist_briefing",
       watchlist_id: "watchlist_alpha_hk",
       write_status: "planned_no_write"
     });
@@ -361,7 +361,7 @@ describe("watchlist alerts scaffold", () => {
     });
     expect(plan.evidence_index).toEqual({
       evidence_required: true,
-      item_table: "core.watchlist_briefing_item",
+      item_table: "aiphabee_core.watchlist_briefing_item",
       source_record_id_required: true
     });
     expect(plan.notification).toEqual({
@@ -374,7 +374,7 @@ describe("watchlist alerts scaffold", () => {
       live_db_writes: false,
       queue_writes: false,
       sql_emitted: false,
-      tables: ["core.watchlist_briefing", "core.watchlist_briefing_item"],
+      tables: ["aiphabee_core.watchlist_briefing", "aiphabee_core.watchlist_briefing_item"],
       write_status: "planned_no_write"
     });
     expect(plan.usage).toEqual({

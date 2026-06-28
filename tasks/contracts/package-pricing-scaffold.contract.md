@@ -13,8 +13,8 @@ package pricing, entitlements, quota linkage, and overage boundaries from PRD
 - Catalog route: `GET /account/package-pricing`
 - Contract: `deploy/account/package-pricing.contract.json`
 - Checker: `npm run check:package-pricing`
-- Schema scaffolds: `core.plan_pricing_catalog`,
-  `core.plan_entitlement_bundle`, `governance.package_pricing_contract`
+- Schema scaffolds: `aiphabee_core.plan_pricing_catalog`,
+  `aiphabee_core.plan_entitlement_bundle`, `aiphabee_governance.package_pricing_contract`
 
 ## Required Guarantees
 

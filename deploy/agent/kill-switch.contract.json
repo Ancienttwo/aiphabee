@@ -64,8 +64,8 @@
     "none"
   ],
   "tables": [
-    "core.agent_kill_switch_state",
-    "governance.agent_kill_switch_contract"
+    "aiphabee_core.agent_kill_switch_state",
+    "aiphabee_governance.agent_kill_switch_contract"
   ],
   "linked_contracts": [
     "deploy/database/migrations.contract.json",

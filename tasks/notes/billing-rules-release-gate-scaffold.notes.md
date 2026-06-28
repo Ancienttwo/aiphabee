@@ -13,9 +13,9 @@
 - Extended `GET /usage/runtime` with `billing_rules_release_gate`.
 - Added contract checker `npm run check:billing-rules-release-gate`.
 - Added empty DB scaffold tables:
-  - `core.billing_rules_release_gate`
-  - `audit.billing_rules_drill_event`
-  - `governance.billing_rules_release_gate_contract`
+  - `aiphabee_core.billing_rules_release_gate`
+  - `aiphabee_audit.billing_rules_drill_event`
+  - `aiphabee_governance.billing_rules_release_gate_contract`
 
 ## Evidence
 

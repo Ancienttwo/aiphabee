@@ -67,9 +67,9 @@
     "dividend"
   ],
   "tables": [
-    "core.corporate_action",
-    "core.adjustment_methodology",
-    "core.price_adjustment_factor",
-    "governance.corporate_action_adjustment_contract"
+    "aiphabee_core.corporate_action",
+    "aiphabee_core.adjustment_methodology",
+    "aiphabee_core.price_adjustment_factor",
+    "aiphabee_governance.corporate_action_adjustment_contract"
   ]
 }

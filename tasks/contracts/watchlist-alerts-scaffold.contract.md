@@ -13,10 +13,10 @@ quiet period, explicit confirmation, and source evidence requirements.
 - Planner route: `POST /watchlist/alerts/plan`
 - Contract: `deploy/watchlist/alerts.contract.json`
 - Checker: `npm run check:watchlist-alerts`
-- Watchlist table scaffold: `core.watchlist`
-- Watchlist item table scaffold: `core.watchlist_item`
-- Alert rule table scaffold: `core.watchlist_alert_rule`
-- Alert event table scaffold: `core.watchlist_alert_event`
+- Watchlist table scaffold: `aiphabee_core.watchlist`
+- Watchlist item table scaffold: `aiphabee_core.watchlist_item`
+- Alert rule table scaffold: `aiphabee_core.watchlist_alert_rule`
+- Alert event table scaffold: `aiphabee_core.watchlist_alert_event`
 
 ## Required Guarantees
 

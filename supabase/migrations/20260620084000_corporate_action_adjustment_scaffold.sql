@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.corporate_action (
+create table if not exists aiphabee_core.corporate_action (
   action_id text primary key,
-  instrument_id text not null references core.instrument(instrument_id),
-  listing_id text references core.listing(listing_id),
+  instrument_id text not null references aiphabee_core.instrument(instrument_id),
+  listing_id text references aiphabee_core.listing(listing_id),
   action_type text not null check (
     action_type in (
       'dividend',
@@ -29,7 +29,7 @@ create table if not exists core.corporate_action (
   withholding_assumption text,
   reinvestment_price_rule text,
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   data_version text not null,
   methodology_version text not null,
   quality_state text not null default 'HOLD' check (
@@ -39,7 +39,7 @@ create table if not exists core.corporate_action (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists core.adjustment_methodology (
+create table if not exists aiphabee_core.adjustment_methodology (
   methodology_version text primary key,
   adjustment_type text not null check (
     adjustment_type in ('raw', 'split_adjusted', 'total_return_adjusted')
@@ -54,11 +54,11 @@ create table if not exists core.adjustment_methodology (
   created_at timestamptz not null default now()
 );
 
-create table if not exists core.price_adjustment_factor (
+create table if not exists aiphabee_core.price_adjustment_factor (
   adjustment_factor_id text primary key,
-  instrument_id text not null references core.instrument(instrument_id),
-  listing_id text references core.listing(listing_id),
-  action_id text references core.corporate_action(action_id),
+  instrument_id text not null references aiphabee_core.instrument(instrument_id),
+  listing_id text references aiphabee_core.listing(listing_id),
+  action_id text references aiphabee_core.corporate_action(action_id),
   adjustment_type text not null check (
     adjustment_type in ('raw', 'split_adjusted', 'total_return_adjusted')
   ),
@@ -69,9 +69,9 @@ create table if not exists core.price_adjustment_factor (
   cash_reinvestment_price numeric check (
     cash_reinvestment_price is null or cash_reinvestment_price >= 0
   ),
-  methodology_version text not null references core.adjustment_methodology(methodology_version),
+  methodology_version text not null references aiphabee_core.adjustment_methodology(methodology_version),
   source_record_id text not null,
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   data_version text not null,
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
@@ -90,7 +90,7 @@ create table if not exists core.price_adjustment_factor (
   )
 );
 
-create table if not exists governance.corporate_action_adjustment_contract (
+create table if not exists aiphabee_governance.corporate_action_adjustment_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -100,7 +100,7 @@ create table if not exists governance.corporate_action_adjustment_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.corporate_action_adjustment_contract (
+insert into aiphabee_governance.corporate_action_adjustment_contract (
   contract_key,
   contract_version,
   status,

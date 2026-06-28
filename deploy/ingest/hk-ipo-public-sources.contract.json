@@ -144,11 +144,11 @@
     "promotes_facts": false,
     "canonical_source": "hkex_news",
     "persistent_tables": [
-      "core.hk_ipo_public_source_run",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate",
-      "governance.hk_ipo_public_observation_contract"
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate",
+      "aiphabee_governance.hk_ipo_public_observation_contract"
     ],
     "raw_snapshot_record_kinds": [
       "hk_ipo_public_source_record",
@@ -156,9 +156,9 @@
       "hk_ipo_public_reconciliation_packet"
     ],
     "required_foreign_keys": [
-      "core.raw_source_batch(source_batch_id)",
-      "core.raw_snapshot(raw_snapshot_id)",
-      "core.data_version_batch(data_version)"
+      "aiphabee_core.raw_source_batch(source_batch_id)",
+      "aiphabee_core.raw_snapshot(raw_snapshot_id)",
+      "aiphabee_core.data_version_batch(data_version)"
     ],
     "promotion_guards": {
       "third_party_observations_are_canonical": false,
@@ -184,7 +184,7 @@
     "stores_raw_html_in_repo": false,
     "emits_payload_text": false,
     "computes_payload_hash_sha256": true,
-    "target_table": "core.raw_snapshot",
+    "target_table": "aiphabee_core.raw_snapshot",
     "storage_target": "external_raw_snapshot_store",
     "required_capture_fields": [
       "raw_snapshot_capture_id",
@@ -228,7 +228,7 @@
     "fixture_command": "npm run check:hk-ipo-public-raw-snapshot-storage",
     "live_command": "node scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs --live --check",
     "input_capture_script": "scripts/capture-hk-ipo-public-raw-snapshots.mjs",
-    "target_table": "core.raw_snapshot",
+    "target_table": "aiphabee_core.raw_snapshot",
     "storage_target": "external_raw_snapshot_store",
     "store_kind": "cloudflare_r2_artifact_binding",
     "storage_binding": "AIPHABEE_ARTIFACTS",
@@ -360,13 +360,13 @@
     "stores_raw_html_in_repo": false,
     "promotes_facts": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.hk_ipo_public_source_run",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "statement_ids": [
       "upsert_core_raw_source_batch",
@@ -421,13 +421,13 @@
     "stores_raw_html_in_repo": false,
     "promotes_facts": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.hk_ipo_public_source_run",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "statement_ids": [
       "upsert_core_raw_source_batch",
@@ -498,13 +498,13 @@
     "emits_payload_text": false,
     "stores_raw_html_in_repo": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_source_run",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "required_remote_summary_fields": [
       "inserted_or_updated_rows",
@@ -558,19 +558,19 @@
     "synthetic_only": true,
     "hash_only_response": true,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_source_run",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "blocked_tables": [
-      "core.ipo_offering",
-      "core.ipo_timetable_event",
-      "core.ipo_narrative",
-      "core.ipo_cornerstone"
+      "aiphabee_core.ipo_offering",
+      "aiphabee_core.ipo_timetable_event",
+      "aiphabee_core.ipo_narrative",
+      "aiphabee_core.ipo_cornerstone"
     ],
     "required_response_fields": [
       "inserted_rows",
@@ -634,13 +634,13 @@
     "releases_data_version": false,
     "emits_raw_payload": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_source_run",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "promotion_guards": {
       "third_party_observations_are_canonical": false,
@@ -682,19 +682,19 @@
     "releases_data_version": false,
     "third_party_observations_are_canonical": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.hk_ipo_public_source_run",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "blocked_tables": [
-      "core.ipo_offering",
-      "core.ipo_timetable_event",
-      "core.ipo_narrative",
-      "core.ipo_cornerstone"
+      "aiphabee_core.ipo_offering",
+      "aiphabee_core.ipo_timetable_event",
+      "aiphabee_core.ipo_narrative",
+      "aiphabee_core.ipo_cornerstone"
     ],
     "required_review_gates": [
       "held_db_apply_packet_ready",
@@ -774,19 +774,19 @@
     "releases_data_version": false,
     "third_party_observations_are_canonical": false,
     "target_tables": [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.hk_ipo_public_source_run",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     "blocked_tables": [
-      "core.ipo_offering",
-      "core.ipo_timetable_event",
-      "core.ipo_narrative",
-      "core.ipo_cornerstone"
+      "aiphabee_core.ipo_offering",
+      "aiphabee_core.ipo_timetable_event",
+      "aiphabee_core.ipo_narrative",
+      "aiphabee_core.ipo_cornerstone"
     ],
     "required_preflight_gates": [
       "held_review_packet_ready",

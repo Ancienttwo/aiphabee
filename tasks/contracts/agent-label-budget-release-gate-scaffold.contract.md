@@ -13,8 +13,8 @@ effectiveness and high-cost task budget confirmation.
 - `POST /agent/release-gates/label-budget/plan` returns the gate plan.
 - Local contract checker: `npm run check:label-budget-release-gate`.
 - Empty schema scaffold:
-  - `core.agent_label_budget_release_gate`
-  - `governance.agent_label_budget_release_gate_contract`
+  - `aiphabee_core.agent_label_budget_release_gate`
+  - `aiphabee_governance.agent_label_budget_release_gate_contract`
 
 ## Behavioral Contract
 

@@ -77,10 +77,10 @@ export interface HkDataDomainsCrossMarketCapabilities {
   sql_emitted: false;
   status: "hk_data_domains_cross_market_scaffold";
   tables: readonly [
-    "core.hk_data_domain_coverage",
-    "core.cross_market_security_mapping",
-    "audit.market_domain_coverage_event",
-    "governance.hk_data_domain_cross_market_contract"
+    "aiphabee_core.hk_data_domain_coverage",
+    "aiphabee_core.cross_market_security_mapping",
+    "aiphabee_audit.market_domain_coverage_event",
+    "aiphabee_governance.hk_data_domain_cross_market_contract"
   ];
   version: typeof MARKET_DOMAIN_RUNTIME_VERSION;
 }
@@ -169,21 +169,21 @@ export interface HkDataDomainsCrossMarketPlan {
 }
 
 const HK_DATA_DOMAIN_TABLES: Record<HkDataDomain, string> = {
-  corporate_calendar: "core.hk_corporate_calendar_event",
-  dividend_calendar: "core.hk_dividend_calendar_event",
-  index_constituents: "core.hk_index_constituent",
-  ipo_pipeline: "core.hk_ipo_pipeline_event",
-  ownership_disclosure: "core.hk_ownership_disclosure",
-  sector_industry_classification: "core.hk_sector_industry_classification",
-  short_selling: "core.hk_short_selling_stat",
-  stock_connect_flow: "core.hk_stock_connect_flow",
-  warrants_cbbc: "core.hk_warrant_cbbc_profile"
+  corporate_calendar: "aiphabee_core.hk_corporate_calendar_event",
+  dividend_calendar: "aiphabee_core.hk_dividend_calendar_event",
+  index_constituents: "aiphabee_core.hk_index_constituent",
+  ipo_pipeline: "aiphabee_core.hk_ipo_pipeline_event",
+  ownership_disclosure: "aiphabee_core.hk_ownership_disclosure",
+  sector_industry_classification: "aiphabee_core.hk_sector_industry_classification",
+  short_selling: "aiphabee_core.hk_short_selling_stat",
+  stock_connect_flow: "aiphabee_core.hk_stock_connect_flow",
+  warrants_cbbc: "aiphabee_core.hk_warrant_cbbc_profile"
 };
 const HK_DATA_DOMAIN_TABLES_LIST: HkDataDomainsCrossMarketCapabilities["tables"] = [
-  "core.hk_data_domain_coverage",
-  "core.cross_market_security_mapping",
-  "audit.market_domain_coverage_event",
-  "governance.hk_data_domain_cross_market_contract"
+  "aiphabee_core.hk_data_domain_coverage",
+  "aiphabee_core.cross_market_security_mapping",
+  "aiphabee_audit.market_domain_coverage_event",
+  "aiphabee_governance.hk_data_domain_cross_market_contract"
 ];
 const DEFAULT_DOMAINS: HkDataDomain[] = [
   "ipo_pipeline",

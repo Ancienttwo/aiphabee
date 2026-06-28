@@ -43,8 +43,8 @@ Required evidence names by gate:
 - `hyperdrive_select_1_passed`: `hyperdrive_config`, `read_only_select_1`, `connection_redaction_proof`
 - `serving_sql_execution_enabled`: `row_limit_enforced`, `field_projection_enforced`, `cache_key_material_verified`
 - `quality_owner_cutover_approved`: `PASS_WARN_release_policy`, `HOLD_REJECT_RAW_isolation`, `quality_owner_signoff`
-- `usage_event_live_write_passed`: `core.usage_event_insert`, `request_id_idempotency`, `no_double_charge_probe`
-- `usage_ledger_entry_live_write_passed`: `core.usage_ledger_entry_insert`, `weighted_credits`, `workspace_subscription_context`
+- `usage_event_live_write_passed`: `aiphabee_core.usage_event_insert`, `request_id_idempotency`, `no_double_charge_probe`
+- `usage_ledger_entry_live_write_passed`: `aiphabee_core.usage_ledger_entry_insert`, `weighted_credits`, `workspace_subscription_context`
 - `billing_reconciliation_live_read_passed`: `invoice_line_trace`, `usage_to_invoice_consistency`, `freshness_under_5_minutes`
 
 Do not paste raw partner rows, raw DB values, SQL connection strings, database

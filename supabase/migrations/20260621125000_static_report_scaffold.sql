@@ -1,13 +1,13 @@
-create schema if not exists audit;
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_audit;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.static_report_artifact (
+create table if not exists aiphabee_core.static_report_artifact (
   static_report_ref text not null,
   report_id text not null,
   source_run_id text not null,
-  workspace_id text references core.workspace(workspace_id),
-  user_id text references core.account(account_id),
+  workspace_id text references platform.workspace(workspace_id),
+  user_id text references platform.account(account_id),
   format text not null check (format in ('html', 'pdf', 'image')),
   generated_at timestamptz not null,
   as_of timestamptz not null,
@@ -26,9 +26,9 @@ create table if not exists core.static_report_artifact (
   primary key (static_report_ref)
 );
 
-create table if not exists audit.static_report_event (
+create table if not exists aiphabee_audit.static_report_event (
   static_report_event_ref text not null,
-  static_report_ref text references core.static_report_artifact(static_report_ref),
+  static_report_ref text references aiphabee_core.static_report_artifact(static_report_ref),
   request_id text not null,
   event_kind text not null default 'planned',
   metadata_complete boolean not null default false,
@@ -38,7 +38,7 @@ create table if not exists audit.static_report_event (
   primary key (static_report_event_ref)
 );
 
-create table if not exists governance.static_report_contract (
+create table if not exists aiphabee_governance.static_report_contract (
   contract_name text not null default 'static_report_artifact',
   contract_version text not null default '2026-06-21.phase3.static-report-metadata-scaffold.v0',
   route text not null default 'POST /research/reports/static/plan',

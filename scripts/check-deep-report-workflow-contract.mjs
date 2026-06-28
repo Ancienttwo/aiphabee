@@ -44,10 +44,10 @@ const requiredStaticReportMetadata = [
   "disclaimer"
 ];
 const requiredTables = [
-  "core.deep_report_snapshot",
-  "core.deep_report_evidence_index",
-  "core.workflow_task",
-  "core.workflow_task_checkpoint"
+  "aiphabee_core.deep_report_snapshot",
+  "aiphabee_core.deep_report_evidence_index",
+  "aiphabee_core.workflow_task",
+  "aiphabee_core.workflow_task_checkpoint"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

@@ -25,7 +25,7 @@ const requiredSourceTools = [
   "search_announcements",
   "get_financial_ratios"
 ];
-const requiredTables = ["core.watchlist_briefing", "core.watchlist_briefing_item"];
+const requiredTables = ["aiphabee_core.watchlist_briefing", "aiphabee_core.watchlist_briefing_item"];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,
   /postgres(?:ql)?:\/\//iu,

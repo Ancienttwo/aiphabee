@@ -12,7 +12,7 @@ Hyperdrive without enabling production Agent persistence.
 - Require `x-aiphabee-smoke=agent-run-live-write-v1`.
 - Require `AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN`.
 - Require `AIPHABEE_HYPERDRIVE` after auth passes.
-- Create `audit.agent_run_audit_event` schema scaffold.
+- Create `aiphabee_audit.agent_run_audit_event` schema scaffold.
 - Use `createAgentDryRunTelemetry()` for a prompt-free `run.audit` payload.
 - Use `createEvidenceRecordPlan()` for evidence row identifiers.
 - Use `createUsageLedgerEventPlan()` for usage event and ledger entry ids.

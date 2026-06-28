@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-create table if not exists core.watchlist_briefing (
+create table if not exists aiphabee_core.watchlist_briefing (
   briefing_id text primary key,
-  watchlist_id text not null references core.watchlist(watchlist_id),
-  workspace_id text not null references core.workspace(workspace_id),
+  watchlist_id text not null references aiphabee_core.watchlist(watchlist_id),
+  workspace_id text not null references platform.workspace(workspace_id),
   user_id text not null,
   cadence text not null check (cadence in ('daily', 'weekly')),
   as_of timestamptz not null,
@@ -24,10 +24,10 @@ create table if not exists core.watchlist_briefing (
   unique (watchlist_id, cadence, as_of)
 );
 
-create table if not exists core.watchlist_briefing_item (
+create table if not exists aiphabee_core.watchlist_briefing_item (
   briefing_item_id text primary key,
-  briefing_id text not null references core.watchlist_briefing(briefing_id),
-  watchlist_item_id text not null references core.watchlist_item(watchlist_item_id),
+  briefing_id text not null references aiphabee_core.watchlist_briefing(briefing_id),
+  watchlist_item_id text not null references aiphabee_core.watchlist_item(watchlist_item_id),
   change_kind text not null check (change_kind in ('price', 'announcement', 'metric')),
   materiality_score numeric not null check (
     materiality_score >= 0 and materiality_score <= 1
@@ -45,7 +45,7 @@ create table if not exists core.watchlist_briefing_item (
   unique (briefing_id, watchlist_item_id, change_kind, source_record_id)
 );
 
-create table if not exists governance.watchlist_briefings_contract (
+create table if not exists aiphabee_governance.watchlist_briefings_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -55,7 +55,7 @@ create table if not exists governance.watchlist_briefings_contract (
   updated_at timestamptz not null default now()
 );
 
-insert into governance.watchlist_briefings_contract (
+insert into aiphabee_governance.watchlist_briefings_contract (
   contract_key,
   contract_version,
   status,

@@ -12,8 +12,8 @@
   "covered_sprint_3_1_items": ["AGT-10", "authorized_session_memory"],
   "supported_actions": ["view", "upsert", "delete"],
   "user_visible_controls": ["view", "edit", "delete"],
-  "table": "core.authorized_session_memory",
-  "governance_table": "governance.authorized_session_memory_contract",
+  "table": "aiphabee_core.authorized_session_memory",
+  "governance_table": "aiphabee_governance.authorized_session_memory_contract",
   "allowed_memory_keys": [
     "authorized_tool_scopes",
     "data_retention_acknowledgement",

@@ -25,12 +25,12 @@ or enable Gateway live Serving reads/writes.
 | Quality release planner | `packages/serving-store` | Maps quality states to `held`, `released`, or `withdrawn`, no SQL emitted |
 | Query planner | `packages/serving-store` | Plans released snapshot queries against the schema shape, no SQL emitted |
 | SQL descriptor planner | `packages/serving-store` | Plans statement id and parameter bindings against the schema shape, no SQL text emitted |
-| SQL text compiler | `packages/serving-store` | Compiles fixed SQL text against `core.serving_record`, no execution |
+| SQL text compiler | `packages/serving-store` | Compiles fixed SQL text against `aiphabee_core.serving_record`, no execution |
 | Execution adapter | `packages/serving-store` | Defers execution against the schema shape, no rows returned |
-| Dataset registry | `core.serving_dataset` | Dataset/domain/default quality/default rights metadata |
-| Field registry | `core.serving_field` | Field path/type/right/quality metadata |
-| Snapshots | `core.serving_snapshot` | Versioned, as-of, quality-gated dataset releases |
-| Records | `core.serving_record` | Entity payload projection with field set and source record |
+| Dataset registry | `aiphabee_core.serving_dataset` | Dataset/domain/default quality/default rights metadata |
+| Field registry | `aiphabee_core.serving_field` | Field path/type/right/quality metadata |
+| Snapshots | `aiphabee_core.serving_snapshot` | Versioned, as-of, quality-gated dataset releases |
+| Records | `aiphabee_core.serving_record` | Entity payload projection with field set and source record |
 | Live reads/writes | Absent | Read/release planners exist, but no Serving Store SQL, partner rows, or market data surfaces |
 
 ## P2 Concrete Trace

@@ -17,8 +17,8 @@ data-correction and rollback replay drill.
   notification, and plans a rollback replay diff.
 - The replay path preserves saved report immutability with
   `old_report_mutation_allowed=false` and `silent_rewrite_allowed=false`.
-- `core.golden_correction_rollback_drill` and
-  `governance.golden_correction_rollback_drill_contract` exist as empty schema
+- `aiphabee_core.golden_correction_rollback_drill` and
+  `aiphabee_governance.golden_correction_rollback_drill_contract` exist as empty schema
   scaffolds for future persistence.
 - The local contract checker verifies sample counts, fixture manifest linkage,
   required drill steps, no-live boundaries, and database contract coverage.

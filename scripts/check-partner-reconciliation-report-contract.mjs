@@ -45,13 +45,13 @@ const requiredForbiddenPayloads = [
   "generated_answer"
 ];
 const requiredTables = [
-  "core.workspace",
-  "core.usage_event",
-  "core.usage_ledger_entry",
-  "core.partner_reconciliation_report",
-  "core.partner_reconciliation_report_line",
-  "audit.partner_reconciliation_event",
-  "governance.partner_reconciliation_contract"
+  "platform.workspace",
+  "aiphabee_core.usage_event",
+  "aiphabee_core.usage_ledger_entry",
+  "aiphabee_core.partner_reconciliation_report",
+  "aiphabee_core.partner_reconciliation_report_line",
+  "aiphabee_audit.partner_reconciliation_event",
+  "aiphabee_governance.partner_reconciliation_contract"
 ];
 const forbiddenTextPatterns = [
   /sk-[A-Za-z0-9_-]{10,}/u,

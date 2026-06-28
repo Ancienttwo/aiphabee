@@ -191,7 +191,7 @@ export interface AccountRuntimeCapabilities {
     route: "POST /account/authorized-memory/plan";
     status: "authorized_session_memory_scaffold";
     supported_actions: typeof AUTHORIZED_SESSION_MEMORY_ACTIONS;
-    table: "core.authorized_session_memory";
+    table: "aiphabee_core.authorized_session_memory";
     user_visible_controls: readonly ["view", "edit", "delete"];
     version: typeof AUTHORIZED_SESSION_MEMORY_VERSION;
   };
@@ -228,11 +228,11 @@ export interface AccountRuntimeCapabilities {
   };
   status: "internal_account_session_manual_plan_scaffold";
   tables: readonly [
-    "core.account",
-    "core.workspace",
-    "core.workspace_membership",
-    "core.subscription_plan",
-    "core.workspace_subscription"
+    "platform.account",
+    "platform.workspace",
+    "platform.workspace_membership",
+    "platform.subscription_plan",
+    "platform.workspace_subscription"
   ];
   version: typeof ACCOUNT_RUNTIME_VERSION;
 }
@@ -240,7 +240,7 @@ export interface AccountRuntimeCapabilities {
 export interface AccountDataRequestCapabilities {
   audit: {
     audit_event: "account.data_request.plan";
-    event_table: "audit.account_data_request_event";
+    event_table: "aiphabee_audit.account_data_request_event";
     required: true;
     status: "planned_no_write";
   };
@@ -252,7 +252,7 @@ export interface AccountDataRequestCapabilities {
   deletion: {
     audit_log_retention: true;
     hard_delete_requires_policy_clearance: true;
-    retained_for_audit_table: "audit.account_data_request_event";
+    retained_for_audit_table: "aiphabee_audit.account_data_request_event";
     status: "retention_policy_scaffold";
   };
   frontend: false;
@@ -278,10 +278,10 @@ export interface AccountDataRequestCapabilities {
   sql_emitted: false;
   status: "account_data_request_scaffold";
   tables: readonly [
-    "core.account_data_request",
-    "core.account_data_request_item",
-    "audit.account_data_request_event",
-    "governance.account_data_request_contract"
+    "aiphabee_core.account_data_request",
+    "aiphabee_core.account_data_request_item",
+    "aiphabee_audit.account_data_request_event",
+    "aiphabee_governance.account_data_request_contract"
   ];
   user_visible_controls: readonly ["download", "delete_request", "status"];
   version: typeof ACCOUNT_DATA_REQUEST_VERSION;
@@ -290,7 +290,7 @@ export interface AccountDataRequestCapabilities {
 export interface EnterpriseControlsCapabilities {
   audit: {
     audit_event: "account.enterprise_controls.plan";
-    event_table: "audit.enterprise_admin_event";
+    event_table: "aiphabee_audit.enterprise_admin_event";
     export_status: "planned_no_write";
     raw_payload_stored: false;
     required: true;
@@ -306,30 +306,30 @@ export interface EnterpriseControlsCapabilities {
     connector_kinds: typeof PRIVATE_DATA_CONNECTOR_KINDS;
     credential_material_stored: false;
     rights_gateway_required: true;
-    table: "core.private_data_connector";
+    table: "aiphabee_core.private_data_connector";
   };
   route: "POST /account/enterprise-controls/plan";
   runtime_route: "GET /account/runtime";
   seats: {
     directory_sync_status: "planned_no_live";
     max_planned_seats: 5000;
-    table: "core.enterprise_seat_assignment";
+    table: "aiphabee_core.enterprise_seat_assignment";
   };
   sql_emitted: false;
   sso: {
     credential_material_stored: false;
     identity_provider_calls: false;
     protocols: typeof ENTERPRISE_SSO_PROTOCOLS;
-    table: "core.enterprise_sso_config";
+    table: "aiphabee_core.enterprise_sso_config";
   };
   status: "enterprise_controls_scaffold";
   supported_controls: typeof ENTERPRISE_CONTROL_MODULES;
   tables: readonly [
-    "core.enterprise_seat_assignment",
-    "core.enterprise_sso_config",
-    "audit.enterprise_admin_event",
-    "core.private_data_connector",
-    "governance.enterprise_controls_contract"
+    "aiphabee_core.enterprise_seat_assignment",
+    "aiphabee_core.enterprise_sso_config",
+    "aiphabee_audit.enterprise_admin_event",
+    "aiphabee_core.private_data_connector",
+    "aiphabee_governance.enterprise_controls_contract"
   ];
   version: typeof ENTERPRISE_CONTROLS_VERSION;
 }
@@ -348,10 +348,10 @@ export interface PackagePricingCapabilities {
   sql_emitted: false;
   status: "package_pricing_scaffold";
   tables: readonly [
-    "core.subscription_plan",
-    "core.plan_pricing_catalog",
-    "core.plan_entitlement_bundle",
-    "governance.package_pricing_contract"
+    "platform.subscription_plan",
+    "aiphabee_core.plan_pricing_catalog",
+    "aiphabee_core.plan_entitlement_bundle",
+    "aiphabee_governance.package_pricing_contract"
   ];
   usage_channels: typeof PACKAGE_PRICING_USAGE_CHANNELS;
   validation_required_after: readonly [
@@ -426,7 +426,7 @@ export interface PackagePricingCatalog {
 export interface SubscriptionLifecycleCapabilities {
   audit: {
     audit_event: "account.subscription.lifecycle.plan";
-    event_table: "audit.subscription_lifecycle_event";
+    event_table: "aiphabee_audit.subscription_lifecycle_event";
     required: true;
     status: "planned_no_write";
   };
@@ -446,11 +446,11 @@ export interface SubscriptionLifecycleCapabilities {
   status: "subscription_lifecycle_audit_scaffold";
   supported_actions: readonly SubscriptionLifecycleAction[];
   tables: readonly [
-    "core.account",
-    "core.workspace",
-    "core.subscription_plan",
-    "core.workspace_subscription",
-    "audit.subscription_lifecycle_event"
+    "platform.account",
+    "platform.workspace",
+    "platform.subscription_plan",
+    "platform.workspace_subscription",
+    "aiphabee_audit.subscription_lifecycle_event"
   ];
   version: typeof SUBSCRIPTION_LIFECYCLE_VERSION;
 }
@@ -460,7 +460,7 @@ export interface AccountSessionPlan {
     account_id: string;
     email_hash_provided: boolean;
     status: "active" | "unresolved";
-    table: "core.account";
+    table: "platform.account";
   };
   auth_provider_calls: false;
   device: {
@@ -475,7 +475,7 @@ export interface AccountSessionPlan {
     billing_state: "active";
     plan_code?: AccountPlanCode;
     subscription_id?: string;
-    table: "core.workspace_subscription";
+    table: "platform.workspace_subscription";
   };
   persistent_writes: false;
   session: {
@@ -498,7 +498,7 @@ export interface AccountSessionPlan {
   workspace: {
     membership_id: string;
     role: AccountRole;
-    table: "core.workspace_membership";
+    table: "platform.workspace_membership";
     workspace_id: string;
     workspace_status: "active" | "unresolved";
   };
@@ -522,7 +522,7 @@ export interface SubscriptionLifecyclePlanInput {
 export interface SubscriptionLifecyclePlan {
   account: {
     account_id: string;
-    table: "core.account";
+    table: "platform.account";
   };
   audit: {
     action: SubscriptionLifecycleAction;
@@ -532,7 +532,7 @@ export interface SubscriptionLifecyclePlan {
     reason?: string;
     request_id: string;
     source_record_id: "subscription-lifecycle-plan";
-    table: "audit.subscription_lifecycle_event";
+    table: "aiphabee_audit.subscription_lifecycle_event";
     write_status: "planned_no_write";
   };
   billing_provider: {
@@ -553,7 +553,7 @@ export interface SubscriptionLifecyclePlan {
     lifecycle_status: "planned_no_write";
     renewal_period_end?: string;
     subscription_id: string;
-    table: "core.workspace_subscription";
+    table: "platform.workspace_subscription";
     target_billing_state: SubscriptionBillingState;
     target_plan_code: AccountPlanCode;
   };
@@ -566,7 +566,7 @@ export interface SubscriptionLifecyclePlan {
   };
   version: typeof SUBSCRIPTION_LIFECYCLE_VERSION;
   workspace: {
-    table: "core.workspace";
+    table: "platform.workspace";
     workspace_id: string;
   };
 }
@@ -574,7 +574,7 @@ export interface SubscriptionLifecyclePlan {
 export interface AuthorizedSessionMemoryPlan {
   account: {
     account_id: string;
-    table: "core.account";
+    table: "platform.account";
   };
   action: AuthorizedSessionMemoryAction;
   audit: {
@@ -589,7 +589,7 @@ export interface AuthorizedSessionMemoryPlan {
     delete_status: "not_requested" | "planned_no_write";
     memory_refs: string[];
     read_status: "not_requested" | "planned_no_live_read";
-    table: "core.authorized_session_memory";
+    table: "aiphabee_core.authorized_session_memory";
     unsupported_keys: string[];
     upsert_status: "not_requested" | "planned_no_write";
   };
@@ -607,10 +607,10 @@ export interface AuthorizedSessionMemoryPlan {
   sql_emitted: false;
   status: AuthorizedSessionMemoryPlanStatus;
   tables: readonly [
-    "core.account",
-    "core.workspace",
-    "core.workspace_membership",
-    "core.authorized_session_memory"
+    "platform.account",
+    "platform.workspace",
+    "platform.workspace_membership",
+    "aiphabee_core.authorized_session_memory"
   ];
   validation: {
     allowed_memory_keys: typeof AUTHORIZED_SESSION_MEMORY_KEYS;
@@ -619,7 +619,7 @@ export interface AuthorizedSessionMemoryPlan {
   };
   version: typeof AUTHORIZED_SESSION_MEMORY_VERSION;
   workspace: {
-    table: "core.workspace";
+    table: "platform.workspace";
     workspace_id: string;
   };
 }
@@ -627,7 +627,7 @@ export interface AuthorizedSessionMemoryPlan {
 export interface AccountDataRequestPlan {
   account: {
     account_id: string;
-    table: "core.account";
+    table: "platform.account";
   };
   action: AccountDataRequestAction;
   audit: {
@@ -635,7 +635,7 @@ export interface AccountDataRequestPlan {
     audit_event_id: string;
     policy_version: string;
     request_id: string;
-    table: "audit.account_data_request_event";
+    table: "aiphabee_audit.account_data_request_event";
     verified_by: string;
     write_status: "planned_no_write";
   };
@@ -662,7 +662,7 @@ export interface AccountDataRequestPlan {
     request_id: string;
     request_status: "blocked" | "planned_no_write";
     scopes: AccountDataRequestScope[];
-    table: "core.account_data_request";
+    table: "aiphabee_core.account_data_request";
     unsupported_scopes: string[];
   };
   retention_policy: {
@@ -684,7 +684,7 @@ export interface AccountDataRequestPlan {
   };
   version: typeof ACCOUNT_DATA_REQUEST_VERSION;
   workspace: {
-    table: "core.workspace";
+    table: "platform.workspace";
     workspace_id: string;
   };
 }
@@ -692,7 +692,7 @@ export interface AccountDataRequestPlan {
 export interface EnterpriseControlsPlan {
   account: {
     account_id: string;
-    table: "core.account";
+    table: "platform.account";
   };
   audit: {
     actor_account_id: string;
@@ -700,12 +700,12 @@ export interface EnterpriseControlsPlan {
     audit_event_id: string;
     raw_payload_stored: false;
     request_id: string;
-    table: "audit.enterprise_admin_event";
+    table: "aiphabee_audit.enterprise_admin_event";
     write_status: "planned_no_write";
   };
   controls: {
     audit: {
-      event_table: "audit.enterprise_admin_event";
+      event_table: "aiphabee_audit.enterprise_admin_event";
       export_status: "planned_no_write" | "not_requested";
       raw_payload_stored: false;
       requested: boolean;
@@ -718,7 +718,7 @@ export interface EnterpriseControlsPlan {
       credential_material_stored: false;
       requested: boolean;
       rights_gateway_required: true;
-      table: "core.private_data_connector";
+      table: "aiphabee_core.private_data_connector";
       write_status: "not_requested" | "planned_no_write";
     };
     seats: {
@@ -726,7 +726,7 @@ export interface EnterpriseControlsPlan {
       pending_invite_count: number;
       requested: boolean;
       seat_limit: number;
-      table: "core.enterprise_seat_assignment";
+      table: "aiphabee_core.enterprise_seat_assignment";
       write_status: "not_requested" | "planned_no_write";
     };
     sso: {
@@ -736,7 +736,7 @@ export interface EnterpriseControlsPlan {
       metadata_validation_status: "not_requested" | "planned_no_live";
       protocol: EnterpriseSsoProtocol;
       requested: boolean;
-      table: "core.enterprise_sso_config";
+      table: "aiphabee_core.enterprise_sso_config";
       write_status: "not_requested" | "planned_no_write";
     };
   };
@@ -766,50 +766,50 @@ export interface EnterpriseControlsPlan {
   };
   version: typeof ENTERPRISE_CONTROLS_VERSION;
   workspace: {
-    table: "core.workspace";
+    table: "platform.workspace";
     workspace_id: string;
   };
 }
 
 const ACCOUNT_TABLES: AccountRuntimeCapabilities["tables"] = [
-  "core.account",
-  "core.workspace",
-  "core.workspace_membership",
-  "core.subscription_plan",
-  "core.workspace_subscription"
+  "platform.account",
+  "platform.workspace",
+  "platform.workspace_membership",
+  "platform.subscription_plan",
+  "platform.workspace_subscription"
 ];
 
 const SUBSCRIPTION_LIFECYCLE_TABLES: SubscriptionLifecycleCapabilities["tables"] = [
-  "core.account",
-  "core.workspace",
-  "core.subscription_plan",
-  "core.workspace_subscription",
-  "audit.subscription_lifecycle_event"
+  "platform.account",
+  "platform.workspace",
+  "platform.subscription_plan",
+  "platform.workspace_subscription",
+  "aiphabee_audit.subscription_lifecycle_event"
 ];
 const AUTHORIZED_SESSION_MEMORY_TABLES: AuthorizedSessionMemoryPlan["tables"] = [
-  "core.account",
-  "core.workspace",
-  "core.workspace_membership",
-  "core.authorized_session_memory"
+  "platform.account",
+  "platform.workspace",
+  "platform.workspace_membership",
+  "aiphabee_core.authorized_session_memory"
 ];
 const ACCOUNT_DATA_REQUEST_TABLES: AccountDataRequestCapabilities["tables"] = [
-  "core.account_data_request",
-  "core.account_data_request_item",
-  "audit.account_data_request_event",
-  "governance.account_data_request_contract"
+  "aiphabee_core.account_data_request",
+  "aiphabee_core.account_data_request_item",
+  "aiphabee_audit.account_data_request_event",
+  "aiphabee_governance.account_data_request_contract"
 ];
 const ENTERPRISE_CONTROLS_TABLES: EnterpriseControlsCapabilities["tables"] = [
-  "core.enterprise_seat_assignment",
-  "core.enterprise_sso_config",
-  "audit.enterprise_admin_event",
-  "core.private_data_connector",
-  "governance.enterprise_controls_contract"
+  "aiphabee_core.enterprise_seat_assignment",
+  "aiphabee_core.enterprise_sso_config",
+  "aiphabee_audit.enterprise_admin_event",
+  "aiphabee_core.private_data_connector",
+  "aiphabee_governance.enterprise_controls_contract"
 ];
 const PACKAGE_PRICING_TABLES: PackagePricingCapabilities["tables"] = [
-  "core.subscription_plan",
-  "core.plan_pricing_catalog",
-  "core.plan_entitlement_bundle",
-  "governance.package_pricing_contract"
+  "platform.subscription_plan",
+  "aiphabee_core.plan_pricing_catalog",
+  "aiphabee_core.plan_entitlement_bundle",
+  "aiphabee_governance.package_pricing_contract"
 ];
 
 const SUBSCRIPTION_BILLING_STATES: SubscriptionLifecycleCapabilities["billing_states"] = [
@@ -871,7 +871,7 @@ export function getAccountRuntimeCapabilities(): AccountRuntimeCapabilities {
       route: "POST /account/authorized-memory/plan",
       status: "authorized_session_memory_scaffold",
       supported_actions: AUTHORIZED_SESSION_MEMORY_ACTIONS,
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       user_visible_controls: ["view", "edit", "delete"],
       version: AUTHORIZED_SESSION_MEMORY_VERSION
     },
@@ -910,7 +910,7 @@ export function getEnterpriseControlsCapabilities(): EnterpriseControlsCapabilit
   return {
     audit: {
       audit_event: "account.enterprise_controls.plan",
-      event_table: "audit.enterprise_admin_event",
+      event_table: "aiphabee_audit.enterprise_admin_event",
       export_status: "planned_no_write",
       raw_payload_stored: false,
       required: true
@@ -926,21 +926,21 @@ export function getEnterpriseControlsCapabilities(): EnterpriseControlsCapabilit
       connector_kinds: PRIVATE_DATA_CONNECTOR_KINDS,
       credential_material_stored: false,
       rights_gateway_required: true,
-      table: "core.private_data_connector"
+      table: "aiphabee_core.private_data_connector"
     },
     route: "POST /account/enterprise-controls/plan",
     runtime_route: "GET /account/runtime",
     seats: {
       directory_sync_status: "planned_no_live",
       max_planned_seats: 5000,
-      table: "core.enterprise_seat_assignment"
+      table: "aiphabee_core.enterprise_seat_assignment"
     },
     sql_emitted: false,
     sso: {
       credential_material_stored: false,
       identity_provider_calls: false,
       protocols: ENTERPRISE_SSO_PROTOCOLS,
-      table: "core.enterprise_sso_config"
+      table: "aiphabee_core.enterprise_sso_config"
     },
     status: "enterprise_controls_scaffold",
     supported_controls: ENTERPRISE_CONTROL_MODULES,
@@ -953,7 +953,7 @@ export function getAccountDataRequestCapabilities(): AccountDataRequestCapabilit
   return {
     audit: {
       audit_event: "account.data_request.plan",
-      event_table: "audit.account_data_request_event",
+      event_table: "aiphabee_audit.account_data_request_event",
       required: true,
       status: "planned_no_write"
     },
@@ -965,7 +965,7 @@ export function getAccountDataRequestCapabilities(): AccountDataRequestCapabilit
     deletion: {
       audit_log_retention: true,
       hard_delete_requires_policy_clearance: true,
-      retained_for_audit_table: "audit.account_data_request_event",
+      retained_for_audit_table: "aiphabee_audit.account_data_request_event",
       status: "retention_policy_scaffold"
     },
     frontend: false,
@@ -1129,7 +1129,7 @@ export function getSubscriptionLifecycleCapabilities(): SubscriptionLifecycleCap
   return {
     audit: {
       audit_event: "account.subscription.lifecycle.plan",
-      event_table: "audit.subscription_lifecycle_event",
+      event_table: "aiphabee_audit.subscription_lifecycle_event",
       required: true,
       status: "planned_no_write"
     },
@@ -1180,7 +1180,7 @@ export function createAccountSessionPlan(
       account_id: accountId,
       email_hash_provided: input.emailHash !== undefined && input.emailHash.length > 0,
       status: requiredContextPresent ? "active" : "unresolved",
-      table: "core.account"
+      table: "platform.account"
     },
     auth_provider_calls: false,
     device: {
@@ -1198,7 +1198,7 @@ export function createAccountSessionPlan(
         input.planCode === undefined
           ? undefined
           : `sub_${sanitizeForId(workspaceId)}_${input.planCode}`,
-      table: "core.workspace_subscription"
+      table: "platform.workspace_subscription"
     },
     persistent_writes: false,
     session: {
@@ -1221,7 +1221,7 @@ export function createAccountSessionPlan(
     workspace: {
       membership_id: `membership_${sanitizeForId(accountId)}_${sanitizeForId(workspaceId)}`,
       role,
-      table: "core.workspace_membership",
+      table: "platform.workspace_membership",
       workspace_id: workspaceId,
       workspace_status: requiredContextPresent ? "active" : "unresolved"
     }
@@ -1260,7 +1260,7 @@ export function createSubscriptionLifecyclePlan(
   return {
     account: {
       account_id: accountId,
-      table: "core.account"
+      table: "platform.account"
     },
     audit: {
       action,
@@ -1270,7 +1270,7 @@ export function createSubscriptionLifecyclePlan(
       reason: input.reason,
       request_id: input.requestId,
       source_record_id: "subscription-lifecycle-plan",
-      table: "audit.subscription_lifecycle_event",
+      table: "aiphabee_audit.subscription_lifecycle_event",
       write_status: "planned_no_write"
     },
     billing_provider: {
@@ -1291,7 +1291,7 @@ export function createSubscriptionLifecyclePlan(
       lifecycle_status: "planned_no_write",
       renewal_period_end: input.renewalPeriodEnd,
       subscription_id: subscriptionId,
-      table: "core.workspace_subscription",
+      table: "platform.workspace_subscription",
       target_billing_state: targetBillingState,
       target_plan_code: targetPlanCode
     },
@@ -1304,7 +1304,7 @@ export function createSubscriptionLifecyclePlan(
     },
     version: SUBSCRIPTION_LIFECYCLE_VERSION,
     workspace: {
-      table: "core.workspace",
+      table: "platform.workspace",
       workspace_id: workspaceId
     }
   };
@@ -1346,7 +1346,7 @@ export function createEnterpriseControlsPlan(
   return {
     account: {
       account_id: accountId,
-      table: "core.account"
+      table: "platform.account"
     },
     audit: {
       actor_account_id: accountId,
@@ -1354,12 +1354,12 @@ export function createEnterpriseControlsPlan(
       audit_event_id: `audit_enterprise_controls_${sanitizeForId(input.requestId)}`,
       raw_payload_stored: false,
       request_id: input.requestId,
-      table: "audit.enterprise_admin_event",
+      table: "aiphabee_audit.enterprise_admin_event",
       write_status: "planned_no_write"
     },
     controls: {
       audit: {
-        event_table: "audit.enterprise_admin_event",
+        event_table: "aiphabee_audit.enterprise_admin_event",
         export_status: requested.has("audit") && planned ? "planned_no_write" : "not_requested",
         raw_payload_stored: false,
         requested: requested.has("audit"),
@@ -1373,7 +1373,7 @@ export function createEnterpriseControlsPlan(
         credential_material_stored: false,
         requested: requested.has("private_data_connector"),
         rights_gateway_required: true,
-        table: "core.private_data_connector",
+        table: "aiphabee_core.private_data_connector",
         write_status:
           requested.has("private_data_connector") && planned ? "planned_no_write" : "not_requested"
       },
@@ -1382,7 +1382,7 @@ export function createEnterpriseControlsPlan(
         pending_invite_count: requested.has("seats") && planned ? Math.min(3, seatLimit) : 0,
         requested: requested.has("seats"),
         seat_limit: seatLimit,
-        table: "core.enterprise_seat_assignment",
+        table: "aiphabee_core.enterprise_seat_assignment",
         write_status: requested.has("seats") && planned ? "planned_no_write" : "not_requested"
       },
       sso: {
@@ -1393,7 +1393,7 @@ export function createEnterpriseControlsPlan(
         metadata_validation_status: requested.has("sso") && planned ? "planned_no_live" : "not_requested",
         protocol: ssoProtocol,
         requested: requested.has("sso"),
-        table: "core.enterprise_sso_config",
+        table: "aiphabee_core.enterprise_sso_config",
         write_status: requested.has("sso") && planned ? "planned_no_write" : "not_requested"
       }
     },
@@ -1423,7 +1423,7 @@ export function createEnterpriseControlsPlan(
     },
     version: ENTERPRISE_CONTROLS_VERSION,
     workspace: {
-      table: "core.workspace",
+      table: "platform.workspace",
       workspace_id: workspaceId
     }
   };
@@ -1459,7 +1459,7 @@ export function createAuthorizedSessionMemoryPlan(
   return {
     account: {
       account_id: accountId,
-      table: "core.account"
+      table: "platform.account"
     },
     action,
     audit: {
@@ -1476,7 +1476,7 @@ export function createAuthorizedSessionMemoryPlan(
       delete_status: action === "delete" && status === "planned_no_write" ? "planned_no_write" : "not_requested",
       memory_refs: memoryRefs,
       read_status: action === "view" && status === "planned_no_write" ? "planned_no_live_read" : "not_requested",
-      table: "core.authorized_session_memory",
+      table: "aiphabee_core.authorized_session_memory",
       unsupported_keys: unsupportedKeys,
       upsert_status: action === "upsert" && status === "planned_no_write" ? "planned_no_write" : "not_requested"
     },
@@ -1501,7 +1501,7 @@ export function createAuthorizedSessionMemoryPlan(
     },
     version: AUTHORIZED_SESSION_MEMORY_VERSION,
     workspace: {
-      table: "core.workspace",
+      table: "platform.workspace",
       workspace_id: workspaceId
     }
   };
@@ -1541,7 +1541,7 @@ export function createAccountDataRequestPlan(
   return {
     account: {
       account_id: accountId,
-      table: "core.account"
+      table: "platform.account"
     },
     action,
     audit: {
@@ -1551,7 +1551,7 @@ export function createAccountDataRequestPlan(
       )}`,
       policy_version: retentionPolicyVersion,
       request_id: input.requestId,
-      table: "audit.account_data_request_event",
+      table: "aiphabee_audit.account_data_request_event",
       verified_by: normalizeIdentifier(input.verifiedBy, "verification_pending"),
       write_status: "planned_no_write"
     },
@@ -1564,7 +1564,7 @@ export function createAccountDataRequestPlan(
       action: resolveDataRequestExecutionStep(action, scope),
       reason: getDataRequestExecutionReason(action, scope),
       scope,
-      table: "core.account_data_request_item"
+      table: "aiphabee_core.account_data_request_item"
     })),
     persistent_writes: false,
     privacy: {
@@ -1578,7 +1578,7 @@ export function createAccountDataRequestPlan(
       request_id: input.requestId,
       request_status: status === "planned_no_write" ? "planned_no_write" : "blocked",
       scopes,
-      table: "core.account_data_request",
+      table: "aiphabee_core.account_data_request",
       unsupported_scopes: unsupportedScopes
     },
     retention_policy: {
@@ -1601,7 +1601,7 @@ export function createAccountDataRequestPlan(
     },
     version: ACCOUNT_DATA_REQUEST_VERSION,
     workspace: {
-      table: "core.workspace",
+      table: "platform.workspace",
       workspace_id: workspaceId
     }
   };

@@ -17,9 +17,9 @@ partner rights matrices, or enable live Serving reads.
 | Surface | State | Boundary |
 |---|---|---|
 | Policy source compiler | `packages/data-access-gateway` | Converts entitlement row snapshots into `DataAccessPolicy` |
-| Data entitlement rows | `core.data_entitlement` | Dataset/channel/field/time/export/right policy contract |
-| Workspace entitlement rows | `core.workspace_entitlement` | Workspace binding and active validity interval |
-| Subscription rows | `core.workspace_subscription` | Plan code and billing-state filter |
+| Data entitlement rows | `aiphabee_governance.data_entitlement` | Dataset/channel/field/time/export/right policy contract |
+| Workspace entitlement rows | `aiphabee_governance.workspace_entitlement` | Workspace binding and active validity interval |
+| Subscription rows | `platform.workspace_subscription` | Plan code and billing-state filter |
 | Worker runtime route | `GET /gateway/runtime` | Reports policy-source capability, no live DB reads |
 | Real policy source | Absent | No Hyperdrive query, partner matrix ingestion, or signed external rights |
 

@@ -10,11 +10,11 @@ const migrationPath = "supabase/migrations/20260628001000_hk_ipo_public_observat
 const packetCommand = ["scripts/reconcile-hk-ipo-public-observations.mjs", "--fixtures", "--packet", "--check"];
 const expectedVersion = "2026-06-28.hk-ipo-public-observation-preflight.v0";
 const expectedTables = [
-  "core.hk_ipo_public_source_run",
-  "core.hk_ipo_public_observation",
-  "core.hk_ipo_public_reconciliation_row",
-  "core.hk_ipo_public_supplement_candidate",
-  "governance.hk_ipo_public_observation_contract"
+  "aiphabee_core.hk_ipo_public_source_run",
+  "aiphabee_core.hk_ipo_public_observation",
+  "aiphabee_core.hk_ipo_public_reconciliation_row",
+  "aiphabee_core.hk_ipo_public_supplement_candidate",
+  "aiphabee_governance.hk_ipo_public_observation_contract"
 ];
 const expectedIndexes = [
   "hk_ipo_public_source_run_version_status_idx",
@@ -110,9 +110,9 @@ function validateContract(value) {
     }
   }
   for (const foreignKey of [
-    "core.raw_source_batch(source_batch_id)",
-    "core.raw_snapshot(raw_snapshot_id)",
-    "core.data_version_batch(data_version)"
+    "aiphabee_core.raw_source_batch(source_batch_id)",
+    "aiphabee_core.raw_snapshot(raw_snapshot_id)",
+    "aiphabee_core.data_version_batch(data_version)"
   ]) {
     if (!value.required_foreign_keys?.includes(foreignKey)) {
       errors.push(`schema_preflight.required_foreign_keys missing ${foreignKey}`);
@@ -185,7 +185,7 @@ function validatePackage(value) {
 }
 
 function validateSql(rawSql, sqlText) {
-  for (const schema of ["core", "governance"]) {
+  for (const schema of ["aiphabee_core", "aiphabee_governance"]) {
     if (!sqlText.includes(`create schema if not exists ${schema}`)) {
       errors.push(`migration must create schema ${schema}`);
     }
@@ -206,9 +206,9 @@ function validateSql(rawSql, sqlText) {
     }
   }
   for (const fragment of [
-    "source_batch_id text not null references core.raw_source_batch(source_batch_id)",
-    "raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id)",
-    "data_version text not null references core.data_version_batch(data_version)",
+    "source_batch_id text not null references aiphabee_core.raw_source_batch(source_batch_id)",
+    "raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id)",
+    "data_version text not null references aiphabee_core.data_version_batch(data_version)",
     "third_party_observations_are_canonical boolean not null default false check",
     "source_attribution_required boolean not null default true check",
     "raw_snapshot_required_before_promotion boolean not null default true check",
