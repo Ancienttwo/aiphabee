@@ -98,7 +98,7 @@ function buildStoragePlan({ capturePlan: plan, contract: value }) {
       storage_binding: storageBinding,
       storage_target: "external_raw_snapshot_store",
       store_kind: "cloudflare_r2_artifact_binding",
-      target_table: "core.raw_snapshot",
+      target_table: "aiphabee_core.raw_snapshot",
       writes_database: false,
       writes_files: false,
       writes_object_store: false
@@ -134,7 +134,7 @@ function buildStoragePlan({ capturePlan: plan, contract: value }) {
       raw_html_included_count: rawSnapshotStorageRefs.filter((row) => row.raw_html_included).length,
       writes_object_store_count: rawSnapshotStorageRefs.filter((row) => row.writes_object_store).length
     },
-    target_table: "core.raw_snapshot",
+    target_table: "aiphabee_core.raw_snapshot",
     version: STORAGE_VERSION,
     writes_database: false,
     writes_files: false,
@@ -198,7 +198,7 @@ function validateStoragePlan(plan, capturePlan, value) {
   }
   if (plan.version !== STORAGE_VERSION) validationErrors.push("storage plan version mismatch");
   if (plan.canonical_source !== "hkex_news") validationErrors.push("storage plan canonical_source must be hkex_news");
-  if (plan.target_table !== "core.raw_snapshot") validationErrors.push("storage plan target_table must be core.raw_snapshot");
+  if (plan.target_table !== "aiphabee_core.raw_snapshot") validationErrors.push("storage plan target_table must be aiphabee_core.raw_snapshot");
   if (plan.summary.capture_count !== captures.length) validationErrors.push("storage capture count mismatch");
   if (plan.summary.raw_snapshot_request_count !== captures.length) validationErrors.push("storage request count mismatch");
   if (plan.summary.payload_envelope_count !== captures.length) validationErrors.push("storage envelope count mismatch");

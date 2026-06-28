@@ -28,20 +28,20 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("insert into core.raw_source_batch") ||
-          normalized.startsWith("insert into core.data_version_batch") ||
-          normalized.startsWith("insert into core.raw_snapshot") ||
-          normalized.startsWith("insert into core.hk_ipo_public_source_run") ||
-          normalized.startsWith("insert into core.hk_ipo_public_observation") ||
-          normalized.startsWith("insert into core.hk_ipo_public_reconciliation_row") ||
-          normalized.startsWith("insert into core.hk_ipo_public_supplement_candidate")
+          normalized.startsWith("insert into aiphabee_core.raw_source_batch") ||
+          normalized.startsWith("insert into aiphabee_core.data_version_batch") ||
+          normalized.startsWith("insert into aiphabee_core.raw_snapshot") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_source_run") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_observation") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_reconciliation_row") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_supplement_candidate")
         ) {
           return { rowCount: 1, rows: [] };
         }
 
         if (
           normalized.startsWith(
-            "select (select count(*)::int from core.raw_source_batch"
+            "select (select count(*)::int from aiphabee_core.raw_source_batch"
           )
         ) {
           return {
@@ -61,13 +61,13 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("delete from core.hk_ipo_public_supplement_candidate") ||
-          normalized.startsWith("delete from core.hk_ipo_public_reconciliation_row") ||
-          normalized.startsWith("delete from core.hk_ipo_public_observation") ||
-          normalized.startsWith("delete from core.hk_ipo_public_source_run") ||
-          normalized.startsWith("delete from core.raw_snapshot") ||
-          normalized.startsWith("delete from core.data_version_batch") ||
-          normalized.startsWith("delete from core.raw_source_batch")
+          normalized.startsWith("delete from aiphabee_core.hk_ipo_public_supplement_candidate") ||
+          normalized.startsWith("delete from aiphabee_core.hk_ipo_public_reconciliation_row") ||
+          normalized.startsWith("delete from aiphabee_core.hk_ipo_public_observation") ||
+          normalized.startsWith("delete from aiphabee_core.hk_ipo_public_source_run") ||
+          normalized.startsWith("delete from aiphabee_core.raw_snapshot") ||
+          normalized.startsWith("delete from aiphabee_core.data_version_batch") ||
+          normalized.startsWith("delete from aiphabee_core.raw_source_batch")
         ) {
           return { rowCount: 1, rows: [] };
         }
@@ -246,13 +246,13 @@ describe("HK IPO public held DB apply smoke", () => {
       query.text.trim().replace(/\s+/gu, " ").toLowerCase()
     );
     const sourceRunInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.hk_ipo_public_source_run")
+      query.text.includes("insert into aiphabee_core.hk_ipo_public_source_run")
     );
     const rawSnapshotInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.raw_snapshot")
+      query.text.includes("insert into aiphabee_core.raw_snapshot")
     );
     const observationInsert = client.queries.find((query) =>
-      query.text.includes("insert into core.hk_ipo_public_observation")
+      query.text.includes("insert into aiphabee_core.hk_ipo_public_observation")
     );
     const rawSourceBatchId = String(client.queries[1]?.values?.[0]);
     const rawSourceRecordId = String(rawSnapshotInsert?.values?.[2]);
@@ -280,35 +280,35 @@ describe("HK IPO public held DB apply smoke", () => {
     expect(body.held_db_apply_result?.readback_hash).toMatch(/^sha256:/u);
     expect(body.held_db_apply_result?.source_run_id_hash).toMatch(/^sha256:/u);
     expect(body.held_db_apply_result?.tables).toEqual([
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_source_run",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ]);
-    expect(body.held_db_apply_result?.tables?.some((table) => table.startsWith("core.ipo_"))).toBe(
+    expect(body.held_db_apply_result?.tables?.some((table) => table.startsWith("aiphabee_core.ipo_"))).toBe(
       false
     );
     expect(pgMock.configs[0]?.connectionString).toBe("mock-hk-ipo-held-db-connection");
     expect(client.end).toHaveBeenCalledOnce();
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into core.raw_source_batch");
-    expect(normalizedQueries[2]).toContain("insert into core.data_version_batch");
-    expect(normalizedQueries[3]).toContain("insert into core.raw_snapshot");
-    expect(normalizedQueries[4]).toContain("insert into core.hk_ipo_public_source_run");
-    expect(normalizedQueries[5]).toContain("insert into core.hk_ipo_public_observation");
-    expect(normalizedQueries[6]).toContain("insert into core.hk_ipo_public_reconciliation_row");
-    expect(normalizedQueries[7]).toContain("insert into core.hk_ipo_public_supplement_candidate");
-    expect(normalizedQueries[8]).toContain("select (select count(*)::int from core.raw_source_batch");
-    expect(normalizedQueries[9]).toContain("delete from core.hk_ipo_public_supplement_candidate");
-    expect(normalizedQueries[10]).toContain("delete from core.hk_ipo_public_reconciliation_row");
-    expect(normalizedQueries[11]).toContain("delete from core.hk_ipo_public_observation");
-    expect(normalizedQueries[12]).toContain("delete from core.hk_ipo_public_source_run");
-    expect(normalizedQueries[13]).toContain("delete from core.raw_snapshot");
-    expect(normalizedQueries[14]).toContain("delete from core.data_version_batch");
-    expect(normalizedQueries[15]).toContain("delete from core.raw_source_batch");
+    expect(normalizedQueries[1]).toContain("insert into aiphabee_core.raw_source_batch");
+    expect(normalizedQueries[2]).toContain("insert into aiphabee_core.data_version_batch");
+    expect(normalizedQueries[3]).toContain("insert into aiphabee_core.raw_snapshot");
+    expect(normalizedQueries[4]).toContain("insert into aiphabee_core.hk_ipo_public_source_run");
+    expect(normalizedQueries[5]).toContain("insert into aiphabee_core.hk_ipo_public_observation");
+    expect(normalizedQueries[6]).toContain("insert into aiphabee_core.hk_ipo_public_reconciliation_row");
+    expect(normalizedQueries[7]).toContain("insert into aiphabee_core.hk_ipo_public_supplement_candidate");
+    expect(normalizedQueries[8]).toContain("select (select count(*)::int from aiphabee_core.raw_source_batch");
+    expect(normalizedQueries[9]).toContain("delete from aiphabee_core.hk_ipo_public_supplement_candidate");
+    expect(normalizedQueries[10]).toContain("delete from aiphabee_core.hk_ipo_public_reconciliation_row");
+    expect(normalizedQueries[11]).toContain("delete from aiphabee_core.hk_ipo_public_observation");
+    expect(normalizedQueries[12]).toContain("delete from aiphabee_core.hk_ipo_public_source_run");
+    expect(normalizedQueries[13]).toContain("delete from aiphabee_core.raw_snapshot");
+    expect(normalizedQueries[14]).toContain("delete from aiphabee_core.data_version_batch");
+    expect(normalizedQueries[15]).toContain("delete from aiphabee_core.raw_source_batch");
     expect(normalizedQueries[16]).toBe("commit");
     expect(serialized).not.toContain(rawSourceBatchId);
     expect(serialized).not.toContain(rawSourceRecordId);

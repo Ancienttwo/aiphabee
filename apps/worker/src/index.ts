@@ -802,13 +802,13 @@ interface HkIpoPublicHeldDbApplySmokeResult {
   status: CloudflareBindingSmokeStatus;
   surface: "hk_ipo_public_held_rows_insert_select_delete";
   tables?: [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
   writes_serving_tables?: false;
 }
@@ -834,13 +834,13 @@ interface HkIpoPublicHeldDbApplyResult {
   status: CloudflareBindingSmokeStatus;
   surface: "hk_ipo_public_live_held_rows_upsert_readback";
   tables?: [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
   writes_serving_tables: false;
 }
@@ -871,13 +871,13 @@ interface HkIpoPublicHeldDbReadbackResult {
   surface: "hk_ipo_public_live_held_rows_readback";
   table_counts?: Record<string, number>;
   tables?: [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
   writes_serving_tables: false;
 }
@@ -13532,7 +13532,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
 
     failureStage = "insert_raw_source_batch";
     const rawSourceBatchInsert = await client.query(
-      `insert into core.raw_source_batch (
+      `insert into aiphabee_core.raw_source_batch (
         source_batch_id,
         source_name,
         source_dataset,
@@ -13553,7 +13553,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_data_version_batch";
     const dataVersionInsert = await client.query(
-      `insert into core.data_version_batch (
+      `insert into aiphabee_core.data_version_batch (
         data_version,
         source_batch_id,
         methodology_version,
@@ -13570,7 +13570,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_raw_snapshot";
     const rawSnapshotInsert = await client.query(
-      `insert into core.raw_snapshot (
+      `insert into aiphabee_core.raw_snapshot (
         raw_snapshot_id,
         source_batch_id,
         source_record_id,
@@ -13605,7 +13605,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_hk_ipo_public_source_run";
     const sourceRunInsert = await client.query(
-      `insert into core.hk_ipo_public_source_run (
+      `insert into aiphabee_core.hk_ipo_public_source_run (
         source_run_id,
         source_batch_id,
         data_version,
@@ -13640,7 +13640,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_hk_ipo_public_observation";
     const observationInsert = await client.query(
-      `insert into core.hk_ipo_public_observation (
+      `insert into aiphabee_core.hk_ipo_public_observation (
         observation_id,
         source_run_id,
         source_id,
@@ -13695,7 +13695,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_hk_ipo_public_reconciliation_row";
     const reconciliationInsert = await client.query(
-      `insert into core.hk_ipo_public_reconciliation_row (
+      `insert into aiphabee_core.hk_ipo_public_reconciliation_row (
         reconciliation_row_id,
         source_run_id,
         security_code,
@@ -13745,7 +13745,7 @@ async function runHkIpoPublicHeldDbApplySmoke(
     );
     failureStage = "insert_hk_ipo_public_supplement_candidate";
     const supplementInsert = await client.query(
-      `insert into core.hk_ipo_public_supplement_candidate (
+      `insert into aiphabee_core.hk_ipo_public_supplement_candidate (
         supplement_candidate_id,
         source_run_id,
         source_observation_id,
@@ -13789,13 +13789,13 @@ async function runHkIpoPublicHeldDbApplySmoke(
       supplement_candidate_count: number | string;
     }>(
       `select
-        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
-        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
-        (select count(*)::int from core.raw_snapshot where raw_snapshot_id = $3 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
-        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $4 and status = 'held' and live_network_writes = false and writes_serving_tables = false) as source_run_count,
-        (select count(*)::int from core.hk_ipo_public_observation where observation_id = $5 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
-        (select count(*)::int from core.hk_ipo_public_reconciliation_row where reconciliation_row_id = $6 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
-        (select count(*)::int from core.hk_ipo_public_supplement_candidate where supplement_candidate_id = $7 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
+        (select count(*)::int from aiphabee_core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from aiphabee_core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from aiphabee_core.raw_snapshot where raw_snapshot_id = $3 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_source_run where source_run_id = $4 and status = 'held' and live_network_writes = false and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_observation where observation_id = $5 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_reconciliation_row where reconciliation_row_id = $6 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_supplement_candidate where supplement_candidate_id = $7 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
       [
         sourceBatchId,
         dataVersion,
@@ -13823,43 +13823,43 @@ async function runHkIpoPublicHeldDbApplySmoke(
 
     failureStage = "delete_hk_ipo_public_supplement_candidate";
     const supplementDelete = await client.query(
-      `delete from core.hk_ipo_public_supplement_candidate
+      `delete from aiphabee_core.hk_ipo_public_supplement_candidate
       where supplement_candidate_id = $1`,
       [supplementCandidateId]
     );
     failureStage = "delete_hk_ipo_public_reconciliation_row";
     const reconciliationDelete = await client.query(
-      `delete from core.hk_ipo_public_reconciliation_row
+      `delete from aiphabee_core.hk_ipo_public_reconciliation_row
       where reconciliation_row_id = $1`,
       [reconciliationRowId]
     );
     failureStage = "delete_hk_ipo_public_observation";
     const observationDelete = await client.query(
-      `delete from core.hk_ipo_public_observation
+      `delete from aiphabee_core.hk_ipo_public_observation
       where observation_id = $1`,
       [observationId]
     );
     failureStage = "delete_hk_ipo_public_source_run";
     const sourceRunDelete = await client.query(
-      `delete from core.hk_ipo_public_source_run
+      `delete from aiphabee_core.hk_ipo_public_source_run
       where source_run_id = $1`,
       [sourceRunId]
     );
     failureStage = "delete_raw_snapshot";
     const rawSnapshotDelete = await client.query(
-      `delete from core.raw_snapshot
+      `delete from aiphabee_core.raw_snapshot
       where raw_snapshot_id = $1`,
       [rawSnapshotId]
     );
     failureStage = "delete_data_version_batch";
     const dataVersionDelete = await client.query(
-      `delete from core.data_version_batch
+      `delete from aiphabee_core.data_version_batch
       where data_version = $1`,
       [dataVersion]
     );
     failureStage = "delete_raw_source_batch";
     const rawSourceBatchDelete = await client.query(
-      `delete from core.raw_source_batch
+      `delete from aiphabee_core.raw_source_batch
       where source_batch_id = $1`,
       [sourceBatchId]
     );
@@ -13901,13 +13901,13 @@ async function runHkIpoPublicHeldDbApplySmoke(
       status: "passed",
       surface: "hk_ipo_public_held_rows_insert_select_delete",
       tables: [
-        "core.raw_source_batch",
-        "core.data_version_batch",
-        "core.raw_snapshot",
-        "core.hk_ipo_public_source_run",
-        "core.hk_ipo_public_observation",
-        "core.hk_ipo_public_reconciliation_row",
-        "core.hk_ipo_public_supplement_candidate"
+        "aiphabee_core.raw_source_batch",
+        "aiphabee_core.data_version_batch",
+        "aiphabee_core.raw_snapshot",
+        "aiphabee_core.hk_ipo_public_source_run",
+        "aiphabee_core.hk_ipo_public_observation",
+        "aiphabee_core.hk_ipo_public_reconciliation_row",
+        "aiphabee_core.hk_ipo_public_supplement_candidate"
       ],
       writes_serving_tables: false
     };
@@ -13956,7 +13956,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_raw_source_batch";
     const rawSourceBatch = await client.query(
-      `insert into core.raw_source_batch (
+      `insert into aiphabee_core.raw_source_batch (
         source_batch_id,
         source_name,
         source_dataset,
@@ -13994,7 +13994,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_data_version_batch";
     const dataVersionBatch = await client.query(
-      `insert into core.data_version_batch (
+      `insert into aiphabee_core.data_version_batch (
         data_version,
         source_batch_id,
         methodology_version,
@@ -14024,7 +14024,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_hk_ipo_public_source_run";
     const sourceRun = await client.query(
-      `insert into core.hk_ipo_public_source_run (
+      `insert into aiphabee_core.hk_ipo_public_source_run (
         source_run_id,
         source_batch_id,
         data_version,
@@ -14090,7 +14090,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_raw_snapshot";
     const rawSnapshot = await client.query(
-      `insert into core.raw_snapshot (
+      `insert into aiphabee_core.raw_snapshot (
         raw_snapshot_id,
         source_batch_id,
         source_record_id,
@@ -14140,7 +14140,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_hk_ipo_public_observation";
     const observation = await client.query(
-      `insert into core.hk_ipo_public_observation (
+      `insert into aiphabee_core.hk_ipo_public_observation (
         observation_id,
         source_run_id,
         source_id,
@@ -14230,7 +14230,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_hk_ipo_public_reconciliation_row";
     const reconciliation = await client.query(
-      `insert into core.hk_ipo_public_reconciliation_row (
+      `insert into aiphabee_core.hk_ipo_public_reconciliation_row (
         reconciliation_row_id,
         source_run_id,
         security_code,
@@ -14308,7 +14308,7 @@ async function runHkIpoPublicHeldDbApply(
 
     failureStage = "upsert_hk_ipo_public_supplement_candidate";
     const supplement = await client.query(
-      `insert into core.hk_ipo_public_supplement_candidate (
+      `insert into aiphabee_core.hk_ipo_public_supplement_candidate (
         supplement_candidate_id,
         source_run_id,
         source_observation_id,
@@ -14383,13 +14383,13 @@ async function runHkIpoPublicHeldDbApply(
       supplement_candidate_count: number | string;
     }>(
       `select
-        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
-        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
-        (select count(*)::int from core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
-        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
-        (select count(*)::int from core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
-        (select count(*)::int from core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
-        (select count(*)::int from core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
+        (select count(*)::int from aiphabee_core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from aiphabee_core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from aiphabee_core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
       [payload.source_batch_id, payload.data_version, payload.source_run_id]
     );
     const readbackRow = readback.rows[0];
@@ -14504,7 +14504,7 @@ async function runHkIpoPublicHeldDbReadback(
             observation_count,
             reconciliation_row_count,
             supplement_candidate_count
-          from core.hk_ipo_public_source_run
+          from aiphabee_core.hk_ipo_public_source_run
           where source_run_id = $1
             and source_batch_id = $2
             and data_version = $3
@@ -14531,7 +14531,7 @@ async function runHkIpoPublicHeldDbReadback(
             observation_count,
             reconciliation_row_count,
             supplement_candidate_count
-          from core.hk_ipo_public_source_run
+          from aiphabee_core.hk_ipo_public_source_run
           where source_mode = 'live'
             and status = 'held'
             and writes_serving_tables = false
@@ -14562,16 +14562,16 @@ async function runHkIpoPublicHeldDbReadback(
       supplement_candidate_count: number | string;
     }>(
       `select
-        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
-        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
-        (select count(*)::int from core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
-        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
-        (select count(*)::int from core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
-        (select count(*)::int from core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
-        (select count(*)::int from core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count,
+        (select count(*)::int from aiphabee_core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from aiphabee_core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from aiphabee_core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from aiphabee_core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count,
         (
           select count(*)::int
-          from core.raw_snapshot
+          from aiphabee_core.raw_snapshot
           where data_version = $2
             and record_kind = 'hk_ipo_public_source_record'
             and quality_state = 'HOLD'
@@ -14583,7 +14583,7 @@ async function runHkIpoPublicHeldDbReadback(
         ) as payload_envelope_count,
         (
           select count(distinct payload->>'object_key')::int
-          from core.raw_snapshot
+          from aiphabee_core.raw_snapshot
           where data_version = $2
             and record_kind = 'hk_ipo_public_source_record'
             and quality_state = 'HOLD'
@@ -14591,7 +14591,7 @@ async function runHkIpoPublicHeldDbReadback(
         ) as object_key_count,
         (
           select count(*)::int
-          from core.raw_snapshot
+          from aiphabee_core.raw_snapshot
           where data_version = $2
             and record_kind = 'hk_ipo_public_source_record'
             and quality_state = 'HOLD'
@@ -14628,7 +14628,7 @@ async function runHkIpoPublicHeldDbReadback(
     failureStage = "select_object_keys";
     const objectKeys = await client.query<{ object_key: string }>(
       `select distinct payload->>'object_key' as object_key
-      from core.raw_snapshot
+      from aiphabee_core.raw_snapshot
       where data_version = $1
         and record_kind = 'hk_ipo_public_source_record'
         and quality_state = 'HOLD'
@@ -15020,13 +15020,13 @@ function hkIpoPublicHeldDbApplyExpectedRows(payload: HkIpoPublicHeldDbApplyPaylo
 
 function hkIpoPublicHeldDbApplyTables(): HkIpoPublicHeldDbApplyResult["tables"] {
   return [
-    "core.raw_source_batch",
-    "core.data_version_batch",
-    "core.raw_snapshot",
-    "core.hk_ipo_public_source_run",
-    "core.hk_ipo_public_observation",
-    "core.hk_ipo_public_reconciliation_row",
-    "core.hk_ipo_public_supplement_candidate"
+    "aiphabee_core.raw_source_batch",
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.raw_snapshot",
+    "aiphabee_core.hk_ipo_public_source_run",
+    "aiphabee_core.hk_ipo_public_observation",
+    "aiphabee_core.hk_ipo_public_reconciliation_row",
+    "aiphabee_core.hk_ipo_public_supplement_candidate"
   ];
 }
 
@@ -17884,11 +17884,11 @@ async function getLatestReleasedIpoDataVersion(
   const result = await client.query<{ data_version: string }>(
     `
       select batch.data_version
-      from core.data_version_batch batch
+      from aiphabee_core.data_version_batch batch
       where batch.release_state = 'released'
         and exists (
           select 1
-          from core.ipo_offering offering
+          from aiphabee_core.ipo_offering offering
           where offering.data_version = batch.data_version
         )
       order by coalesce(batch.released_at, batch.created_at) desc, batch.data_version desc
@@ -17959,7 +17959,7 @@ async function readReleasedIpoCalendar(
           event.event_date,
           event.title_en,
           event.title_zh_hant
-        from core.ipo_timetable_event event
+        from aiphabee_core.ipo_timetable_event event
         where event.data_version = $1
           and event.event_date is not null
         order by event.event_date asc, event.offering_id asc, event.event_code asc
@@ -18137,13 +18137,13 @@ async function readIpoOfferingRows(
         offering.*,
         exists (
           select 1
-          from core.ipo_cornerstone cornerstone
+          from aiphabee_core.ipo_cornerstone cornerstone
           where cornerstone.offering_id = offering.offering_id
             and cornerstone.data_version = offering.data_version
         ) as has_cornerstone,
         (
           select narrative.content_text
-          from core.ipo_narrative narrative
+          from aiphabee_core.ipo_narrative narrative
           where narrative.offering_id = offering.offering_id
             and narrative.data_version = offering.data_version
             and narrative.lang = 'zh_hant'
@@ -18151,7 +18151,7 @@ async function readIpoOfferingRows(
           order by narrative.created_at asc
           limit 1
         ) as business_overview_text
-      from core.ipo_offering offering
+      from aiphabee_core.ipo_offering offering
       where offering.data_version = $1
       order by offering.listing_date desc, offering.hkex_code asc
     `,
@@ -18175,13 +18175,13 @@ async function readIpoOfferingRow(
           offering.*,
           exists (
             select 1
-            from core.ipo_cornerstone cornerstone
+            from aiphabee_core.ipo_cornerstone cornerstone
             where cornerstone.offering_id = offering.offering_id
               and cornerstone.data_version = offering.data_version
           ) as has_cornerstone,
           (
             select narrative.content_text
-            from core.ipo_narrative narrative
+            from aiphabee_core.ipo_narrative narrative
             where narrative.offering_id = offering.offering_id
               and narrative.data_version = offering.data_version
               and narrative.lang = 'zh_hant'
@@ -18189,7 +18189,7 @@ async function readIpoOfferingRow(
             order by narrative.created_at asc
             limit 1
           ) as business_overview_text
-        from core.ipo_offering offering
+        from aiphabee_core.ipo_offering offering
         where offering.data_version = $1
         order by offering.listing_date desc, offering.hkex_code asc
         limit 1
@@ -18206,13 +18206,13 @@ async function readIpoOfferingRow(
         offering.*,
         exists (
           select 1
-          from core.ipo_cornerstone cornerstone
+          from aiphabee_core.ipo_cornerstone cornerstone
           where cornerstone.offering_id = offering.offering_id
             and cornerstone.data_version = offering.data_version
         ) as has_cornerstone,
         (
           select narrative.content_text
-          from core.ipo_narrative narrative
+          from aiphabee_core.ipo_narrative narrative
           where narrative.offering_id = offering.offering_id
             and narrative.data_version = offering.data_version
             and narrative.lang = 'zh_hant'
@@ -18220,7 +18220,7 @@ async function readIpoOfferingRow(
           order by narrative.created_at asc
           limit 1
         ) as business_overview_text
-      from core.ipo_offering offering
+      from aiphabee_core.ipo_offering offering
       where offering.data_version = $1
         and (
           lower(offering.offering_id) = lower($2)
@@ -18245,7 +18245,7 @@ async function readIpoNarratives(
   const result = await client.query<IpoServingNarrativeRow>(
     `
       select section_key, lang, content_html, content_text
-      from core.ipo_narrative
+      from aiphabee_core.ipo_narrative
       where offering_id = $1
         and data_version = $2
         and lang = 'zh_hant'
@@ -18288,7 +18288,7 @@ async function readIpoTimetable(
   const result = await client.query<IpoServingTimetableRow>(
     `
       select offering_id, event_code, event_type, event_date, title_en, title_zh_hant
-      from core.ipo_timetable_event
+      from aiphabee_core.ipo_timetable_event
       where offering_id = $1
         and data_version = $2
         and event_date is not null
@@ -18318,7 +18318,7 @@ async function readIpoCornerstones(
         offer_share_pct,
         issued_share_pct,
         lockup_period_text
-      from core.ipo_cornerstone
+      from aiphabee_core.ipo_cornerstone
       where offering_id = $1
         and data_version = $2
       order by investor_name_zh_hant asc nulls last, investor_name_en asc nulls last

@@ -30,17 +30,17 @@ const lowerMigration = migration.toLowerCase();
 const errors = [];
 
 const requiredTables = [
-  "core.hkex_news_crawl_run",
-  "core.hkex_news_document",
-  "core.hkex_news_document_observation",
-  "core.hkex_news_document_headline",
-  "core.hkex_news_document_relation",
-  "core.hkex_news_document_content",
-  "core.ipo_source_document_link",
-  "core.hkex_news_extraction_run",
-  "core.hkex_news_extracted_fact",
-  "core.hkex_news_transform_run",
-  "governance.hkex_news_ingest_contract"
+  "aiphabee_core.hkex_news_crawl_run",
+  "aiphabee_core.hkex_news_document",
+  "aiphabee_core.hkex_news_document_observation",
+  "aiphabee_core.hkex_news_document_headline",
+  "aiphabee_core.hkex_news_document_relation",
+  "aiphabee_core.hkex_news_document_content",
+  "aiphabee_core.ipo_source_document_link",
+  "aiphabee_core.hkex_news_extraction_run",
+  "aiphabee_core.hkex_news_extracted_fact",
+  "aiphabee_core.hkex_news_transform_run",
+  "aiphabee_governance.hkex_news_ingest_contract"
 ];
 const requiredIndexes = [
   "hkex_news_document_code_date_idx",
@@ -78,18 +78,18 @@ expectIncludes("'public_ap_phip_warning_gate'", "AP/PHIP access policy");
 expectIncludes("'supersedes'", "document supersession relation");
 expectIncludes("'clarifies'", "document clarification relation");
 
-const documentBlock = tableBlock("core.hkex_news_document");
+const documentBlock = tableBlock("aiphabee_core.hkex_news_document");
 if (/\bdata_version\b/iu.test(documentBlock)) {
-  errors.push("core.hkex_news_document must remain canonical and must not carry data_version");
+  errors.push("aiphabee_core.hkex_news_document must remain canonical and must not carry data_version");
 }
-const observationBlock = tableBlock("core.hkex_news_document_observation");
+const observationBlock = tableBlock("aiphabee_core.hkex_news_document_observation");
 for (const fragment of [
-  "crawl_run_id text not null references core.hkex_news_crawl_run",
-  "raw_snapshot_id text references core.raw_snapshot",
-  "data_version text not null references core.data_version_batch"
+  "crawl_run_id text not null references aiphabee_core.hkex_news_crawl_run",
+  "raw_snapshot_id text references aiphabee_core.raw_snapshot",
+  "data_version text not null references aiphabee_core.data_version_batch"
 ]) {
   if (!observationBlock.toLowerCase().includes(fragment.toLowerCase())) {
-    errors.push(`core.hkex_news_document_observation missing ${fragment}`);
+    errors.push(`aiphabee_core.hkex_news_document_observation missing ${fragment}`);
   }
 }
 
@@ -181,7 +181,7 @@ if (runtimeContract.release_readback?.writes_database !== false) {
 if (runtimeContract.release_readback?.emits_approval_id !== false) {
   errors.push("runtime contract release_readback must not emit approval id");
 }
-for (const table of ["core.data_version_batch", "core.hkex_news_crawl_run", "core.hkex_news_transform_run"]) {
+for (const table of ["aiphabee_core.data_version_batch", "aiphabee_core.hkex_news_crawl_run", "aiphabee_core.hkex_news_transform_run"]) {
   if (!runtimeContract.release_readback?.target_tables?.includes(table)) {
     errors.push(`runtime contract release_readback missing target table ${table}`);
   }
@@ -371,17 +371,17 @@ if (productionPreflight.status === 0) {
 const cliSource = readText(cliPath);
 for (const fragment of [
   "pg_try_advisory_lock",
-  "core.raw_source_batch",
-  "core.raw_snapshot",
-  "core.data_version_batch",
-  "core.hkex_news_crawl_run",
-  "core.hkex_news_document",
-  "core.hkex_news_document_observation",
-  "core.hkex_news_document_content",
-  "core.hkex_news_extraction_run",
-  "core.hkex_news_extracted_fact",
-  "core.hkex_news_transform_run",
-  "core.ipo_source_document_link",
+  "aiphabee_core.raw_source_batch",
+  "aiphabee_core.raw_snapshot",
+  "aiphabee_core.data_version_batch",
+  "aiphabee_core.hkex_news_crawl_run",
+  "aiphabee_core.hkex_news_document",
+  "aiphabee_core.hkex_news_document_observation",
+  "aiphabee_core.hkex_news_document_content",
+  "aiphabee_core.hkex_news_extraction_run",
+  "aiphabee_core.hkex_news_extracted_fact",
+  "aiphabee_core.hkex_news_transform_run",
+  "aiphabee_core.ipo_source_document_link",
   "SANITIZER_VERSION",
   "EXTRACTOR_VERSION",
   "TRANSFORM_VERSION",
@@ -392,8 +392,8 @@ for (const fragment of [
   "runHeldFactPipeline",
   "Stale running HKEX News ingest recovered before rerun",
   "started_at = case when excluded.status = 'running' then now()",
-  "delete from core.hkex_news_extracted_fact",
-  "delete from core.hkex_news_document_observation",
+  "delete from aiphabee_core.hkex_news_extracted_fact",
+  "delete from aiphabee_core.hkex_news_document_observation",
   "upsertRawSnapshot",
   "upsertDocumentObservation",
   "counts_match_transform",
@@ -425,7 +425,7 @@ for (const fragment of [
   "automation_release_allowed",
   "writes_database",
   "release_state = 'released'",
-  "core.data_version_batch.release_state = 'held'"
+  "aiphabee_core.data_version_batch.release_state = 'held'"
 ]) {
   if (!cliSource.includes(fragment)) {
     errors.push(`CLI runtime missing fragment: ${fragment}`);

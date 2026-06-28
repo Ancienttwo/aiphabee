@@ -28,13 +28,13 @@ const pgMock = vi.hoisted(() => {
         }
 
         if (
-          normalized.startsWith("insert into core.raw_source_batch") ||
-          normalized.startsWith("insert into core.data_version_batch") ||
-          normalized.startsWith("insert into core.raw_snapshot") ||
-          normalized.startsWith("insert into core.hk_ipo_public_source_run") ||
-          normalized.startsWith("insert into core.hk_ipo_public_observation") ||
-          normalized.startsWith("insert into core.hk_ipo_public_reconciliation_row") ||
-          normalized.startsWith("insert into core.hk_ipo_public_supplement_candidate")
+          normalized.startsWith("insert into aiphabee_core.raw_source_batch") ||
+          normalized.startsWith("insert into aiphabee_core.data_version_batch") ||
+          normalized.startsWith("insert into aiphabee_core.raw_snapshot") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_source_run") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_observation") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_reconciliation_row") ||
+          normalized.startsWith("insert into aiphabee_core.hk_ipo_public_supplement_candidate")
         ) {
           const rows = JSON.parse(String(values?.[0] ?? "[]")) as unknown[];
           return { rowCount: rows.length, rows: [] };
@@ -42,7 +42,7 @@ const pgMock = vi.hoisted(() => {
 
         if (
           normalized.startsWith(
-            "select (select count(*)::int from core.raw_source_batch"
+            "select (select count(*)::int from aiphabee_core.raw_source_batch"
           )
         ) {
           return {
@@ -225,14 +225,14 @@ describe("HK IPO public held DB live apply", () => {
     expect(body.held_db_apply_result?.source_batch_id_hash).toMatch(/^sha256:/u);
     expect(body.held_db_apply_result?.source_run_id_hash).toMatch(/^sha256:/u);
     expect(normalizedQueries[0]).toBe("begin");
-    expect(normalizedQueries[1]).toContain("insert into core.raw_source_batch");
-    expect(normalizedQueries[2]).toContain("insert into core.data_version_batch");
-    expect(normalizedQueries[3]).toContain("insert into core.hk_ipo_public_source_run");
-    expect(normalizedQueries[4]).toContain("insert into core.raw_snapshot");
-    expect(normalizedQueries[5]).toContain("insert into core.hk_ipo_public_observation");
-    expect(normalizedQueries[6]).toContain("insert into core.hk_ipo_public_reconciliation_row");
-    expect(normalizedQueries[7]).toContain("insert into core.hk_ipo_public_supplement_candidate");
-    expect(normalizedQueries[8]).toContain("select (select count(*)::int from core.raw_source_batch");
+    expect(normalizedQueries[1]).toContain("insert into aiphabee_core.raw_source_batch");
+    expect(normalizedQueries[2]).toContain("insert into aiphabee_core.data_version_batch");
+    expect(normalizedQueries[3]).toContain("insert into aiphabee_core.hk_ipo_public_source_run");
+    expect(normalizedQueries[4]).toContain("insert into aiphabee_core.raw_snapshot");
+    expect(normalizedQueries[5]).toContain("insert into aiphabee_core.hk_ipo_public_observation");
+    expect(normalizedQueries[6]).toContain("insert into aiphabee_core.hk_ipo_public_reconciliation_row");
+    expect(normalizedQueries[7]).toContain("insert into aiphabee_core.hk_ipo_public_supplement_candidate");
+    expect(normalizedQueries[8]).toContain("select (select count(*)::int from aiphabee_core.raw_source_batch");
     expect(normalizedQueries[9]).toBe("commit");
     expect(serialized).not.toContain("mock-hk-ipo-held-live-connection");
     expect(serialized).not.toContain("https://www.aastocks.com");

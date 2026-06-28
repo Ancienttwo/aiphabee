@@ -109,7 +109,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       source_record_id: request.source_record_id,
       storage_binding: storageRef?.storage_binding ?? null,
       storage_ref_id: storageRef?.raw_snapshot_storage_ref_id ?? null,
-      target_table: "core.raw_snapshot"
+      target_table: "aiphabee_core.raw_snapshot"
     };
   });
   const observationRows = observations.map((observation) => ({
@@ -127,7 +127,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
     security_code: observation.security_code,
     source_id: observation.source_id,
     source_record_id: observation.source_record_id,
-    target_table: "core.hk_ipo_public_observation"
+    target_table: "aiphabee_core.hk_ipo_public_observation"
   }));
   const reconciliationRows = (packet.reconciliation_rows ?? []).map((row) => ({
     fact_name: row.fact_name,
@@ -141,7 +141,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
     security_code: row.security_code,
     source_observation_count: row.source_observation_ids.length,
     status: row.status,
-    target_table: "core.hk_ipo_public_reconciliation_row"
+    target_table: "aiphabee_core.hk_ipo_public_reconciliation_row"
   }));
   const supplementRows = (packet.supplement_candidate_rows ?? []).map((row) => ({
     field_name: row.field_name,
@@ -155,7 +155,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
     source_observation_id: row.source_observation_id,
     status: row.status,
     supplement_candidate_id: row.row_id,
-    target_table: "core.hk_ipo_public_supplement_candidate"
+    target_table: "aiphabee_core.hk_ipo_public_supplement_candidate"
   }));
 
   return {
@@ -174,7 +174,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
     promotes_facts: false,
     row_groups: {
       data_version_batch: [
-        redactedRow("core.data_version_batch", {
+        redactedRow("aiphabee_core.data_version_batch", {
           data_version: dataVersion,
           methodology_version: packet.packet_version,
           release_state: "held",
@@ -185,7 +185,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       hk_ipo_public_observation: observationRows,
       hk_ipo_public_reconciliation_row: reconciliationRows,
       hk_ipo_public_source_run: [
-        redactedRow("core.hk_ipo_public_source_run", {
+        redactedRow("aiphabee_core.hk_ipo_public_source_run", {
           adapter_version: adapterPayload.adapter_version,
           data_version: dataVersion,
           packet_version: packet.packet_version,
@@ -198,7 +198,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       hk_ipo_public_supplement_candidate: supplementRows,
       raw_snapshot: rawSnapshotRows,
       raw_source_batch: [
-        redactedRow("core.raw_source_batch", {
+        redactedRow("aiphabee_core.raw_source_batch", {
           checksum_sha256: prefixedHash("sha256", {
             packet_summary: packet.summary,
             source_record_ids: sourceRecordIds
@@ -215,7 +215,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
     source_batch_id: sourceBatchId,
     source_run_id: sourceRunId,
     statement_plan: [
-      statement("upsert_core_raw_source_batch", "core.raw_source_batch", "upsert", 1, true, [
+      statement("upsert_core_raw_source_batch", "aiphabee_core.raw_source_batch", "upsert", 1, true, [
         "source_batch_id",
         "source_name",
         "source_dataset",
@@ -224,14 +224,14 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
         "checksum_sha256",
         "row_count"
       ]),
-      statement("upsert_core_data_version_batch", "core.data_version_batch", "upsert", 1, true, [
+      statement("upsert_core_data_version_batch", "aiphabee_core.data_version_batch", "upsert", 1, true, [
         "data_version",
         "source_batch_id",
         "methodology_version",
         "rights_policy_version",
         "release_state"
       ]),
-      statement("upsert_core_hk_ipo_public_source_run", "core.hk_ipo_public_source_run", "upsert", 1, true, [
+      statement("upsert_core_hk_ipo_public_source_run", "aiphabee_core.hk_ipo_public_source_run", "upsert", 1, true, [
         "source_run_id",
         "source_batch_id",
         "data_version",
@@ -249,7 +249,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       ]),
       statement(
         "upsert_core_raw_snapshot",
-        "core.raw_snapshot",
+        "aiphabee_core.raw_snapshot",
         "upsert",
         rawSnapshotRows.length,
         rawSnapshotRows.every((row) => row.ready_for_sql),
@@ -269,7 +269,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       ),
       statement(
         "upsert_core_hk_ipo_public_observation",
-        "core.hk_ipo_public_observation",
+        "aiphabee_core.hk_ipo_public_observation",
         "upsert",
         observationRows.length,
         true,
@@ -298,7 +298,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       ),
       statement(
         "upsert_core_hk_ipo_public_reconciliation_row",
-        "core.hk_ipo_public_reconciliation_row",
+        "aiphabee_core.hk_ipo_public_reconciliation_row",
         "upsert",
         reconciliationRows.length,
         true,
@@ -324,7 +324,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       ),
       statement(
         "upsert_core_hk_ipo_public_supplement_candidate",
-        "core.hk_ipo_public_supplement_candidate",
+        "aiphabee_core.hk_ipo_public_supplement_candidate",
         "upsert",
         supplementRows.length,
         true,
@@ -363,13 +363,13 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
       unresolved_source_observation_count: countUnresolvedReferences(packet, observationIds)
     },
     target_tables: [
-      "core.raw_source_batch",
-      "core.data_version_batch",
-      "core.hk_ipo_public_source_run",
-      "core.raw_snapshot",
-      "core.hk_ipo_public_observation",
-      "core.hk_ipo_public_reconciliation_row",
-      "core.hk_ipo_public_supplement_candidate"
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.hk_ipo_public_source_run",
+      "aiphabee_core.raw_snapshot",
+      "aiphabee_core.hk_ipo_public_observation",
+      "aiphabee_core.hk_ipo_public_reconciliation_row",
+      "aiphabee_core.hk_ipo_public_supplement_candidate"
     ],
     version: APPLY_PLAN_VERSION,
     writes_database: false,

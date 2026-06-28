@@ -51,6 +51,7 @@ function validateContract(value) {
   expectEqual(errors, value.checker, "scripts/check-mainline-publication-readiness-contract.mjs", "checker");
   expectEqual(errors, value.source_branch, "origin/feat/web-frontend", "source_branch");
   expectEqual(errors, value.fallback_source_branch, "feat/web-frontend", "fallback_source_branch");
+  expectEqual(errors, value.source_branch_retention_required, false, "source_branch_retention_required");
   expectEqual(errors, value.target_branch, "main", "target_branch");
   expectEqual(errors, value.remote_main_branch, "origin/main", "remote_main_branch");
   expectEqual(errors, value.tracker, "docs/AiphaBee_Sprint_Tracker_v1.0.md", "tracker");
@@ -130,15 +131,16 @@ function validateGitEvidence(value, evidence) {
   }
 
   if (!evidence.source_ref) {
-    errors.push(`neither ${value.source_branch} nor ${value.fallback_source_branch} is available`);
-    return errors;
-  }
-
-  if (evidence.frontend_source_is_ancestor_of_target !== true) {
+    if (evidence.source_ref_required) {
+      errors.push(`neither ${value.source_branch} nor ${value.fallback_source_branch} is available`);
+    } else if (evidence.merged_frontend_prs_recorded !== true) {
+      errors.push("source branch ref is absent, so merged frontend PR records must be present");
+    }
+  } else if (evidence.frontend_source_is_ancestor_of_target !== true) {
     errors.push(`${evidence.source_ref} must be an ancestor of ${value.target_branch}`);
   }
 
-  if (evidence.source_unmerged_commit_count !== 0) {
+  if (evidence.source_ref && evidence.source_unmerged_commit_count !== 0) {
     errors.push(`${evidence.source_ref} has ${evidence.source_unmerged_commit_count} commits not merged into ${value.target_branch}`);
   }
 
@@ -159,6 +161,11 @@ function collectGitEvidence(value) {
   const sourceRef = firstExistingRef([value.source_branch, value.fallback_source_branch]);
   const remoteMainAvailable = refExists(value.remote_main_branch);
   const targetBranch = value.target_branch;
+  const mergedFrontendPrsRecorded =
+    Array.isArray(value.observed_external_prs) &&
+    value.observed_external_prs.length >= 2 &&
+    value.observed_external_prs.every((pr) => pr.state === "MERGED" && typeof pr.merged_at === "string");
+  const sourceRefRequired = value.source_branch_retention_required !== false;
 
   if (!runGit(["rev-parse", "--is-inside-work-tree"]).ok) {
     return { git_available: false };
@@ -171,12 +178,15 @@ function collectGitEvidence(value) {
   return {
     frontend_source_is_ancestor_of_target: sourceRef
       ? runGit(["merge-base", "--is-ancestor", sourceRef, targetBranch]).ok
-      : false,
+      : null,
     git_available: true,
+    merged_frontend_prs_recorded: mergedFrontendPrsRecorded,
     remote_main_available: remoteMainAvailable,
     remote_main_head: remoteMainHead,
+    source_branch_deleted_after_merge: !sourceRef && !sourceRefRequired && mergedFrontendPrsRecorded,
     source_head: sourceHead,
     source_ref: sourceRef,
+    source_ref_required: sourceRefRequired,
     source_unmerged_commit_count: sourceRef
       ? Number(gitOutput(["rev-list", "--count", `${targetBranch}..${sourceRef}`]))
       : null,

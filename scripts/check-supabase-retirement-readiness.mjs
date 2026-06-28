@@ -325,7 +325,11 @@ function scanDirectory(directory, refs) {
       continue;
     }
 
-    if (!entry.isFile() || !/\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$/u.test(entry.name)) {
+    if (
+      !entry.isFile() ||
+      isTestFile(entry.name) ||
+      !/\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$/u.test(entry.name)
+    ) {
       continue;
     }
 
@@ -336,6 +340,10 @@ function scanDirectory(directory, refs) {
       }
     }
   }
+}
+
+function isTestFile(name) {
+  return /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(name);
 }
 
 function expectExactArray(value, expected, label) {

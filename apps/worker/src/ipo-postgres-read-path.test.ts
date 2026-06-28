@@ -22,14 +22,14 @@ vi.mock("pg", () => ({
     async query(text: string, values: unknown[] = []) {
       pgState.queries.push({ text, values });
 
-      if (text.includes("from core.data_version_batch batch")) {
+      if (text.includes("from aiphabee_core.data_version_batch batch")) {
         return {
           rowCount: pgState.dataVersions.length,
           rows: pgState.dataVersions
         };
       }
 
-      if (text.includes("from core.ipo_offering offering")) {
+      if (text.includes("from aiphabee_core.ipo_offering offering")) {
         const requestedId = values[1];
         const requestedCode = values[2];
         const rows =
@@ -48,21 +48,21 @@ vi.mock("pg", () => ({
         };
       }
 
-      if (text.includes("from core.ipo_narrative")) {
+      if (text.includes("from aiphabee_core.ipo_narrative")) {
         return {
           rowCount: pgState.narratives.length,
           rows: pgState.narratives
         };
       }
 
-      if (text.includes("from core.ipo_timetable_event")) {
+      if (text.includes("from aiphabee_core.ipo_timetable_event")) {
         return {
           rowCount: pgState.timetable.length,
           rows: pgState.timetable
         };
       }
 
-      if (text.includes("from core.ipo_cornerstone")) {
+      if (text.includes("from aiphabee_core.ipo_cornerstone")) {
         return {
           rowCount: pgState.cornerstones.length,
           rows: pgState.cornerstones

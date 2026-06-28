@@ -123,21 +123,21 @@ async function readReleaseReadback(client, dataVersion) {
           release_state,
           released_at,
           created_at
-        from core.data_version_batch
+        from aiphabee_core.data_version_batch
         ${targetWhere}
         order by released_at desc nulls last, created_at desc, data_version desc
         limit 1
       ),
       latest_crawl as (
         select status, error_count
-        from core.hkex_news_crawl_run
+        from aiphabee_core.hkex_news_crawl_run
         where data_version = (select data_version from target)
         order by completed_at desc nulls last, crawl_run_id desc
         limit 1
       ),
       latest_transform as (
         select status, validation_report
-        from core.hkex_news_transform_run
+        from aiphabee_core.hkex_news_transform_run
         where data_version = (select data_version from target)
         order by completed_at desc nulls last, transform_run_id desc
         limit 1
@@ -224,14 +224,14 @@ function validateContract(value) {
   validationErrors.push(
     ...validateStringArray(
       value.target_tables,
-      ["core.data_version_batch", "core.hkex_news_crawl_run", "core.hkex_news_transform_run"],
+      ["aiphabee_core.data_version_batch", "aiphabee_core.hkex_news_crawl_run", "aiphabee_core.hkex_news_transform_run"],
       "target_tables"
     )
   );
   validationErrors.push(
     ...validateStringArray(
       value.blocked_tables,
-      ["core.ipo_offering", "core.ipo_timetable_event", "core.ipo_narrative", "core.ipo_cornerstone"],
+      ["aiphabee_core.ipo_offering", "aiphabee_core.ipo_timetable_event", "aiphabee_core.ipo_narrative", "aiphabee_core.ipo_cornerstone"],
       "blocked_tables"
     )
   );
@@ -316,7 +316,7 @@ function validateSourceContract(value) {
   validationErrors.push(
     ...validateStringArray(
       readback.target_tables,
-      ["core.data_version_batch", "core.hkex_news_crawl_run", "core.hkex_news_transform_run"],
+      ["aiphabee_core.data_version_batch", "aiphabee_core.hkex_news_crawl_run", "aiphabee_core.hkex_news_transform_run"],
       "source contract release_readback.target_tables"
     )
   );

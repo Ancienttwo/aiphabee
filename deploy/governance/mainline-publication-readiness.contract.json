@@ -4,6 +4,7 @@
   "checker": "scripts/check-mainline-publication-readiness-contract.mjs",
   "source_branch": "origin/feat/web-frontend",
   "fallback_source_branch": "feat/web-frontend",
+  "source_branch_retention_required": false,
   "target_branch": "main",
   "remote_main_branch": "origin/main",
   "tracker": "docs/AiphaBee_Sprint_Tracker_v1.0.md",

@@ -1,10 +1,10 @@
-create schema if not exists core;
-create schema if not exists governance;
+create schema if not exists aiphabee_core;
+create schema if not exists aiphabee_governance;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   drop constraint if exists raw_snapshot_record_kind_check;
 
-alter table core.raw_snapshot
+alter table aiphabee_core.raw_snapshot
   add constraint raw_snapshot_record_kind_check check (
     record_kind in (
       'company',
@@ -38,10 +38,10 @@ alter table core.raw_snapshot
     )
   );
 
-create table if not exists core.hk_ipo_public_source_run (
+create table if not exists aiphabee_core.hk_ipo_public_source_run (
   source_run_id text primary key,
-  source_batch_id text not null references core.raw_source_batch(source_batch_id),
-  data_version text not null references core.data_version_batch(data_version),
+  source_batch_id text not null references aiphabee_core.raw_source_batch(source_batch_id),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   adapter_version text not null,
   packet_version text not null,
   source_mode text not null check (source_mode in ('fixtures', 'live', 'held')),
@@ -57,9 +57,9 @@ create table if not exists core.hk_ipo_public_source_run (
   unique (data_version, adapter_version, packet_version, source_mode)
 );
 
-create table if not exists core.hk_ipo_public_observation (
+create table if not exists aiphabee_core.hk_ipo_public_observation (
   observation_id text primary key,
-  source_run_id text not null references core.hk_ipo_public_source_run(source_run_id),
+  source_run_id text not null references aiphabee_core.hk_ipo_public_source_run(source_run_id),
   source_id text not null,
   provider text not null,
   source_url text not null,
@@ -71,7 +71,7 @@ create table if not exists core.hk_ipo_public_observation (
   field_value_type text not null check (
     field_value_type in ('text', 'number', 'boolean', 'array', 'object', 'date', 'url', 'null')
   ),
-  raw_snapshot_id text references core.raw_snapshot(raw_snapshot_id),
+  raw_snapshot_id text references aiphabee_core.raw_snapshot(raw_snapshot_id),
   raw_snapshot_required boolean not null default true check (raw_snapshot_required = true),
   reconciled_with_hkex boolean not null default false,
   conflict_status text not null default 'unreconciled' check (
@@ -80,7 +80,7 @@ create table if not exists core.hk_ipo_public_observation (
   confidence numeric check (confidence is null or (confidence >= 0 and confidence <= 1)),
   locator jsonb not null default '{}'::jsonb,
   locator_hash text not null,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
   ),
@@ -88,9 +88,9 @@ create table if not exists core.hk_ipo_public_observation (
   unique (source_run_id, source_id, source_record_id, field_name, locator_hash)
 );
 
-create table if not exists core.hk_ipo_public_reconciliation_row (
+create table if not exists aiphabee_core.hk_ipo_public_reconciliation_row (
   reconciliation_row_id text primary key,
-  source_run_id text not null references core.hk_ipo_public_source_run(source_run_id),
+  source_run_id text not null references aiphabee_core.hk_ipo_public_source_run(source_run_id),
   security_code text not null check (security_code ~ '^[0-9]{5}\.HK$'),
   fact_name text not null,
   status text not null check (status in ('agreement', 'conflict', 'single_source')),
@@ -105,7 +105,7 @@ create table if not exists core.hk_ipo_public_reconciliation_row (
   raw_snapshot_required boolean not null default true check (raw_snapshot_required = true),
   conflict_requires_manual_review boolean not null default false,
   promotes_fact boolean not null default false check (promotes_fact = false),
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
   ),
@@ -113,10 +113,10 @@ create table if not exists core.hk_ipo_public_reconciliation_row (
   unique (source_run_id, security_code, fact_name)
 );
 
-create table if not exists core.hk_ipo_public_supplement_candidate (
+create table if not exists aiphabee_core.hk_ipo_public_supplement_candidate (
   supplement_candidate_id text primary key,
-  source_run_id text not null references core.hk_ipo_public_source_run(source_run_id),
-  source_observation_id text not null references core.hk_ipo_public_observation(observation_id),
+  source_run_id text not null references aiphabee_core.hk_ipo_public_source_run(source_run_id),
+  source_observation_id text not null references aiphabee_core.hk_ipo_public_observation(observation_id),
   security_code text not null check (security_code ~ '^[0-9]{5}\.HK$'),
   source_id text not null,
   source_record_id text not null,
@@ -128,7 +128,7 @@ create table if not exists core.hk_ipo_public_supplement_candidate (
   raw_snapshot_required boolean not null default true check (raw_snapshot_required = true),
   promotes_fact boolean not null default false check (promotes_fact = false),
   reason text not null,
-  data_version text not null references core.data_version_batch(data_version),
+  data_version text not null references aiphabee_core.data_version_batch(data_version),
   quality_state text not null default 'HOLD' check (
     quality_state in ('PASS', 'WARN', 'HOLD', 'REJECT_RAW')
   ),
@@ -136,7 +136,7 @@ create table if not exists core.hk_ipo_public_supplement_candidate (
   unique (source_run_id, source_observation_id, field_name)
 );
 
-create table if not exists governance.hk_ipo_public_observation_contract (
+create table if not exists aiphabee_governance.hk_ipo_public_observation_contract (
   contract_key text primary key,
   contract_version text not null,
   status text not null check (status in ('local_contract', 'provisioned')),
@@ -162,17 +162,17 @@ create table if not exists governance.hk_ipo_public_observation_contract (
 );
 
 create index if not exists hk_ipo_public_source_run_version_status_idx
-  on core.hk_ipo_public_source_run(data_version, status);
+  on aiphabee_core.hk_ipo_public_source_run(data_version, status);
 create index if not exists hk_ipo_public_observation_code_field_idx
-  on core.hk_ipo_public_observation(security_code, field_name, observed_at desc);
+  on aiphabee_core.hk_ipo_public_observation(security_code, field_name, observed_at desc);
 create index if not exists hk_ipo_public_observation_source_record_idx
-  on core.hk_ipo_public_observation(source_id, source_record_id);
+  on aiphabee_core.hk_ipo_public_observation(source_id, source_record_id);
 create index if not exists hk_ipo_public_observation_value_json_gin
-  on core.hk_ipo_public_observation using gin (field_value);
+  on aiphabee_core.hk_ipo_public_observation using gin (field_value);
 create index if not exists hk_ipo_public_reconciliation_status_idx
-  on core.hk_ipo_public_reconciliation_row(data_version, status, security_code);
+  on aiphabee_core.hk_ipo_public_reconciliation_row(data_version, status, security_code);
 create index if not exists hk_ipo_public_supplement_candidate_status_idx
-  on core.hk_ipo_public_supplement_candidate(data_version, status, field_name);
+  on aiphabee_core.hk_ipo_public_supplement_candidate(data_version, status, field_name);
 
 do $$
 begin
@@ -184,20 +184,20 @@ begin
     execute 'grant usage on schema core to aiphabee_runtime_rls';
     execute 'grant usage on schema governance to aiphabee_runtime_rls';
     execute 'grant select, insert, update, ' || 'de' || 'lete on
-      core.raw_source_batch,
-      core.data_version_batch,
-      core.raw_snapshot,
-      core.hk_ipo_public_source_run,
-      core.hk_ipo_public_observation,
-      core.hk_ipo_public_reconciliation_row,
-      core.hk_ipo_public_supplement_candidate
+      aiphabee_core.raw_source_batch,
+      aiphabee_core.data_version_batch,
+      aiphabee_core.raw_snapshot,
+      aiphabee_core.hk_ipo_public_source_run,
+      aiphabee_core.hk_ipo_public_observation,
+      aiphabee_core.hk_ipo_public_reconciliation_row,
+      aiphabee_core.hk_ipo_public_supplement_candidate
       to aiphabee_runtime_rls';
-    execute 'grant select on governance.hk_ipo_public_observation_contract to aiphabee_runtime_rls';
+    execute 'grant select on aiphabee_governance.hk_ipo_public_observation_contract to aiphabee_runtime_rls';
   end if;
 end
 $$;
 
-insert into governance.hk_ipo_public_observation_contract (
+insert into aiphabee_governance.hk_ipo_public_observation_contract (
   contract_key,
   contract_version,
   status,

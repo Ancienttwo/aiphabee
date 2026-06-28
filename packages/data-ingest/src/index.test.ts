@@ -105,17 +105,17 @@ describe("data-ingest HKEX News contract", () => {
 
   it("tracks canonical documents, observations, headlines, lifecycle and extracted facts", () => {
     expect(HKEX_NEWS_SCHEMA_TABLES).toEqual([
-      "core.hkex_news_crawl_run",
-      "core.hkex_news_document",
-      "core.hkex_news_document_observation",
-      "core.hkex_news_document_headline",
-      "core.hkex_news_document_relation",
-      "core.hkex_news_document_content",
-      "core.ipo_source_document_link",
-      "core.hkex_news_extraction_run",
-      "core.hkex_news_extracted_fact",
-      "core.hkex_news_transform_run",
-      "governance.hkex_news_ingest_contract"
+      "aiphabee_core.hkex_news_crawl_run",
+      "aiphabee_core.hkex_news_document",
+      "aiphabee_core.hkex_news_document_observation",
+      "aiphabee_core.hkex_news_document_headline",
+      "aiphabee_core.hkex_news_document_relation",
+      "aiphabee_core.hkex_news_document_content",
+      "aiphabee_core.ipo_source_document_link",
+      "aiphabee_core.hkex_news_extraction_run",
+      "aiphabee_core.hkex_news_extracted_fact",
+      "aiphabee_core.hkex_news_transform_run",
+      "aiphabee_governance.hkex_news_ingest_contract"
     ]);
   });
 

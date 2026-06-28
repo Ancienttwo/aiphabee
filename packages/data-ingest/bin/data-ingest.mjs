@@ -330,7 +330,7 @@ async function emitRunStatus(parsedFlags) {
     const result = await client.query(
       `
         select crawl_run_id, data_version, status, completed_at, error_count, error_summary
-        from core.hkex_news_crawl_run
+        from aiphabee_core.hkex_news_crawl_run
         where crawl_run_id = $1
       `,
       [runId]
@@ -611,7 +611,7 @@ async function emitRelease(parsedFlags) {
 
     const update = await client.query(
       `
-        update core.data_version_batch
+        update aiphabee_core.data_version_batch
         set release_state = 'released',
             released_at = now()
         where data_version = $1
@@ -669,7 +669,7 @@ async function emitRelease(parsedFlags) {
 
 async function readDataVersionReleaseState(client, dataVersion) {
   const result = await client.query(
-    "select release_state from core.data_version_batch where data_version = $1",
+    "select release_state from aiphabee_core.data_version_batch where data_version = $1",
     [dataVersion]
   );
   return typeof result.rows[0]?.release_state === "string" ? result.rows[0].release_state : null;
@@ -680,25 +680,25 @@ async function readValidationState(client, dataVersion) {
     `
       with latest_crawl as (
         select status, error_count
-        from core.hkex_news_crawl_run
+        from aiphabee_core.hkex_news_crawl_run
         where data_version = $1
         order by completed_at desc nulls last, crawl_run_id desc
         limit 1
       ),
       observation_counts as (
         select count(distinct document_id)::int as document_count
-        from core.hkex_news_document_observation
+        from aiphabee_core.hkex_news_document_observation
         where data_version = $1
       ),
       fact_counts as (
         select count(distinct extracted_fact_id)::int as extracted_fact_count
-        from core.hkex_news_extracted_fact
+        from aiphabee_core.hkex_news_extracted_fact
         where data_version = $1
           and fact_namespace = 'hkex_news'
       ),
       latest_transform as (
         select status, validation_report
-        from core.hkex_news_transform_run
+        from aiphabee_core.hkex_news_transform_run
         where data_version = $1
         order by completed_at desc nulls last, transform_run_id desc
         limit 1
@@ -712,7 +712,7 @@ async function readValidationState(client, dataVersion) {
         coalesce(fact.extracted_fact_count, 0)::int as extracted_fact_count,
         tx.status = 'completed' as transform_completed,
         tx.validation_report
-      from core.data_version_batch dv
+      from aiphabee_core.data_version_batch dv
       left join latest_crawl cr on true
       left join observation_counts obs on true
       left join fact_counts fact on true
@@ -771,7 +771,7 @@ async function configureSession(client) {
 async function upsertSourceBatch(client, ids, businessDate) {
   await client.query(
     `
-      insert into core.raw_source_batch (
+      insert into aiphabee_core.raw_source_batch (
         source_batch_id,
         source_name,
         source_dataset,
@@ -799,7 +799,7 @@ async function upsertSourceBatch(client, ids, businessDate) {
 async function upsertDataVersion(client, ids) {
   await client.query(
     `
-      insert into core.data_version_batch (
+      insert into aiphabee_core.data_version_batch (
         data_version,
         source_batch_id,
         methodology_version,
@@ -812,12 +812,12 @@ async function upsertDataVersion(client, ids) {
         methodology_version = excluded.methodology_version,
         rights_policy_version = excluded.rights_policy_version,
         release_state = case
-          when core.data_version_batch.release_state = 'held' then 'held'
-          else core.data_version_batch.release_state
+          when aiphabee_core.data_version_batch.release_state = 'held' then 'held'
+          else aiphabee_core.data_version_batch.release_state
         end,
         released_at = case
-          when core.data_version_batch.release_state = 'held' then null
-          else core.data_version_batch.released_at
+          when aiphabee_core.data_version_batch.release_state = 'held' then null
+          else aiphabee_core.data_version_batch.released_at
         end
     `,
     [ids.dataVersion, ids.sourceBatchId, METHODOLOGY_VERSION, RIGHTS_POLICY_VERSION]
@@ -827,7 +827,7 @@ async function upsertDataVersion(client, ids) {
 async function upsertCrawlRun(client, ids, businessDate, status, counts) {
   await client.query(
     `
-      insert into core.hkex_news_crawl_run (
+      insert into aiphabee_core.hkex_news_crawl_run (
         crawl_run_id,
         source_surface,
         target_url,
@@ -847,17 +847,17 @@ async function upsertCrawlRun(client, ids, businessDate, status, counts) {
         crawl_scope = excluded.crawl_scope,
         status = excluded.status,
         request_fingerprint = excluded.request_fingerprint,
-        started_at = case when excluded.status = 'running' then now() else core.hkex_news_crawl_run.started_at end,
+        started_at = case when excluded.status = 'running' then now() else aiphabee_core.hkex_news_crawl_run.started_at end,
         discovered_count = excluded.discovered_count,
         fetched_count = excluded.fetched_count,
         changed_count = excluded.changed_count,
         error_count = excluded.error_count,
-        error_summary = case when excluded.status in ('running', 'completed') then null else core.hkex_news_crawl_run.error_summary end,
+        error_summary = case when excluded.status in ('running', 'completed') then null else aiphabee_core.hkex_news_crawl_run.error_summary end,
         data_version = excluded.data_version,
         completed_at = case
           when excluded.status = 'completed' then now()
           when excluded.status = 'running' then null
-          else core.hkex_news_crawl_run.completed_at
+          else aiphabee_core.hkex_news_crawl_run.completed_at
         end
     `,
     [
@@ -877,7 +877,7 @@ async function upsertCrawlRun(client, ids, businessDate, status, counts) {
 async function markStaleRunningRunFailed(client, ids) {
   await client.query(
     `
-      update core.hkex_news_crawl_run
+      update aiphabee_core.hkex_news_crawl_run
       set status = 'failed',
           completed_at = now(),
           error_count = error_count + 1,
@@ -899,7 +899,7 @@ async function markStaleRunningRunFailed(client, ids) {
 async function markCrawlFailed(client, ids, scrapy) {
   await client.query(
     `
-      update core.hkex_news_crawl_run
+      update aiphabee_core.hkex_news_crawl_run
       set status = 'failed',
           completed_at = now(),
           error_count = error_count + 1,
@@ -913,7 +913,7 @@ async function markCrawlFailed(client, ids, scrapy) {
 async function updateSourceBatchRowCount(client, ids, rowCount) {
   await client.query(
     `
-      update core.raw_source_batch
+      update aiphabee_core.raw_source_batch
       set row_count = $2
       where source_batch_id = $1
     `,
@@ -937,7 +937,7 @@ async function persistScrapyDocuments(client, ids, items) {
     const previous = await client.query(
       `
         select latest_content_hash_sha256
-        from core.hkex_news_document
+        from aiphabee_core.hkex_news_document
         where source_name = $1 and source_record_id = $2
         limit 1
       `,
@@ -971,7 +971,7 @@ async function persistScrapyDocuments(client, ids, items) {
 async function upsertRawSnapshot(client, ids, document) {
   await client.query(
     `
-      insert into core.raw_snapshot (
+      insert into aiphabee_core.raw_snapshot (
         raw_snapshot_id,
         source_batch_id,
         source_record_id,
@@ -1007,7 +1007,7 @@ async function upsertRawSnapshot(client, ids, document) {
 async function upsertDocument(client, document) {
   await client.query(
     `
-      insert into core.hkex_news_document (
+      insert into aiphabee_core.hkex_news_document (
         document_id,
         source_name,
         source_record_id,
@@ -1062,7 +1062,7 @@ async function upsertDocument(client, document) {
 async function upsertDocumentObservation(client, ids, document, isChanged) {
   await client.query(
     `
-      insert into core.hkex_news_document_observation (
+      insert into aiphabee_core.hkex_news_document_observation (
         document_observation_id,
         document_id,
         crawl_run_id,
@@ -1104,7 +1104,7 @@ async function upsertDocumentObservation(client, ids, document, isChanged) {
 async function upsertDocumentContent(client, document) {
   await client.query(
     `
-      insert into core.hkex_news_document_content (
+      insert into aiphabee_core.hkex_news_document_content (
         document_content_id,
         document_id,
         raw_snapshot_id,
@@ -1143,7 +1143,7 @@ async function reconcileCurrentRunScope(client, ids, documents) {
   const documentIds = Array.from(new Set(documents.map((document) => document.documentId)));
   const factCleanup = await client.query(
     `
-      delete from core.hkex_news_extracted_fact
+      delete from aiphabee_core.hkex_news_extracted_fact
       where data_version = $1
         and fact_namespace = 'hkex_news'
         and review_state = 'pending'
@@ -1154,7 +1154,7 @@ async function reconcileCurrentRunScope(client, ids, documents) {
   );
   const linkCleanup = await client.query(
     `
-      delete from core.ipo_source_document_link
+      delete from aiphabee_core.ipo_source_document_link
       where data_version = $1
         and matched_by = any($2::text[])
         and not (document_id = any($3::text[]))
@@ -1163,13 +1163,13 @@ async function reconcileCurrentRunScope(client, ids, documents) {
   );
   const extractionRunCleanup = await client.query(
     `
-      delete from core.hkex_news_extraction_run run
+      delete from aiphabee_core.hkex_news_extraction_run run
       where run.data_version = $1
         and run.extractor_name = $3
         and not (run.document_id = any($2::text[]))
         and not exists (
           select 1
-          from core.hkex_news_extracted_fact fact
+          from aiphabee_core.hkex_news_extracted_fact fact
           where fact.extraction_run_id = run.extraction_run_id
         )
     `,
@@ -1177,7 +1177,7 @@ async function reconcileCurrentRunScope(client, ids, documents) {
   );
   const observationCleanup = await client.query(
     `
-      delete from core.hkex_news_document_observation
+      delete from aiphabee_core.hkex_news_document_observation
       where crawl_run_id = $1
         and data_version = $2
         and not (document_id = any($3::text[]))
@@ -1237,7 +1237,7 @@ async function resolveIpoEntityLink(client, document) {
   const offering = await client.query(
     `
       select offering_id
-      from core.ipo_offering
+      from aiphabee_core.ipo_offering
       where lpad(regexp_replace(hkex_code, '\\D', '', 'g'), 5, '0') = $1
       order by listing_date desc, updated_at desc
       limit 1
@@ -1249,7 +1249,7 @@ async function resolveIpoEntityLink(client, document) {
   const application = await client.query(
     `
       select app_code, offering_id
-      from core.ipo_pipeline_application
+      from aiphabee_core.ipo_pipeline_application
       where lpad(regexp_replace(coalesce(list_code, ''), '\\D', '', 'g'), 5, '0') = $1
          or ($2::text is not null and offering_id = $2)
       order by publish_date desc nulls last, phip_date desc nulls last, app_code
@@ -1276,7 +1276,7 @@ async function upsertIpoSourceDocumentLink(client, ids, document, entityLink) {
   const linkType = classifyDocumentLinkType(document);
   await client.query(
     `
-      delete from core.ipo_source_document_link
+      delete from aiphabee_core.ipo_source_document_link
       where document_id = $1
         and data_version = $2
         and link_type <> $3
@@ -1286,7 +1286,7 @@ async function upsertIpoSourceDocumentLink(client, ids, document, entityLink) {
   );
   await client.query(
     `
-      insert into core.ipo_source_document_link (
+      insert into aiphabee_core.ipo_source_document_link (
         ipo_source_document_link_id,
         offering_id,
         app_code,
@@ -1319,7 +1319,7 @@ async function upsertIpoSourceDocumentLink(client, ids, document, entityLink) {
 async function upsertExtractionRun(client, ids, document, extractionRunId) {
   await client.query(
     `
-      insert into core.hkex_news_extraction_run (
+      insert into aiphabee_core.hkex_news_extraction_run (
         extraction_run_id,
         document_id,
         document_content_id,
@@ -1353,7 +1353,7 @@ async function upsertExtractionRun(client, ids, document, extractionRunId) {
 async function upsertExtractedFact(client, fact) {
   await client.query(
     `
-      insert into core.hkex_news_extracted_fact (
+      insert into aiphabee_core.hkex_news_extracted_fact (
         extracted_fact_id,
         extraction_run_id,
         document_id,
@@ -1435,7 +1435,7 @@ async function upsertExtractedFact(client, fact) {
 async function upsertTransformRun(client, ids, summary) {
   await client.query(
     `
-      insert into core.hkex_news_transform_run (
+      insert into aiphabee_core.hkex_news_transform_run (
         transform_run_id,
         source_name,
         data_version,

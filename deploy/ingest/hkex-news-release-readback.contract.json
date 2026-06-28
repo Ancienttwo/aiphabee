@@ -23,15 +23,15 @@
   "emits_approval_id": false,
   "emits_raw_payload": false,
   "target_tables": [
-    "core.data_version_batch",
-    "core.hkex_news_crawl_run",
-    "core.hkex_news_transform_run"
+    "aiphabee_core.data_version_batch",
+    "aiphabee_core.hkex_news_crawl_run",
+    "aiphabee_core.hkex_news_transform_run"
   ],
   "blocked_tables": [
-    "core.ipo_offering",
-    "core.ipo_timetable_event",
-    "core.ipo_narrative",
-    "core.ipo_cornerstone"
+    "aiphabee_core.ipo_offering",
+    "aiphabee_core.ipo_timetable_event",
+    "aiphabee_core.ipo_narrative",
+    "aiphabee_core.ipo_cornerstone"
   ],
   "response_fields": [
     "data_version_hash",

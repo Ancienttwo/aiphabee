@@ -194,19 +194,19 @@ function buildManifest(root, isDryRun) {
     },
     write_plan: {
       data_version_release_state: "held",
-      first_write_target: "core.raw_source_batch",
+      first_write_target: "aiphabee_core.raw_source_batch",
       remote_held_ingest_requires_explicit_target: true,
       production_write_allowed: false,
-      raw_target: "core.raw_snapshot",
+      raw_target: "aiphabee_core.raw_snapshot",
       runtime_source_of_truth: "postgres",
       serving_targets: [
-        "core.ipo_offering",
-        "core.ipo_narrative",
-        "core.ipo_timetable_event",
-        "core.ipo_offer_statistic",
-        "core.ipo_cornerstone",
-        "core.ipo_allotment_summary",
-        "core.ipo_pipeline_application"
+        "aiphabee_core.ipo_offering",
+        "aiphabee_core.ipo_narrative",
+        "aiphabee_core.ipo_timetable_event",
+        "aiphabee_core.ipo_offer_statistic",
+        "aiphabee_core.ipo_cornerstone",
+        "aiphabee_core.ipo_allotment_summary",
+        "aiphabee_core.ipo_pipeline_application"
       ],
       supplier_inflow: "mdb"
     }
@@ -333,7 +333,7 @@ async function ingestToLocalPostgres(manifest) {
 async function upsertSourceBatch(client, { checksum, rowCount, sourceAsOf, sourceBatchId }) {
   await client.query(
     `
-      insert into core.raw_source_batch (
+      insert into aiphabee_core.raw_source_batch (
         source_batch_id,
         source_name,
         source_dataset,
@@ -356,7 +356,7 @@ async function upsertSourceBatch(client, { checksum, rowCount, sourceAsOf, sourc
 async function upsertDataVersion(client, { dataVersion, sourceBatchId }) {
   await client.query(
     `
-      insert into core.data_version_batch (
+      insert into aiphabee_core.data_version_batch (
         data_version,
         source_batch_id,
         methodology_version,
@@ -379,7 +379,7 @@ async function insertRawSnapshots(client, rows) {
   for (const chunk of chunkRows(rows, 500)) {
     await client.query(
       `
-        insert into core.raw_snapshot (
+        insert into aiphabee_core.raw_snapshot (
           raw_snapshot_id,
           source_batch_id,
           source_record_id,
@@ -453,7 +453,7 @@ async function upsertVendorCodes(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.vendor_code (
+      insert into aiphabee_core.vendor_code (
         table_name, code, name_en, name_zh_hant, name_zh_hans, extra,
         source_record_id, raw_snapshot_id, data_version, methodology_version, quality_state
       )
@@ -502,7 +502,7 @@ async function upsertOfferings(client, tableRows, dataVersion) {
     const sourceRecordId = sourceRecordIdFor(tableSpec("CompanySummary"), row, index);
     await client.query(
       `
-        insert into core.ipo_offering (
+        insert into aiphabee_core.ipo_offering (
           offering_id, hkex_code, listing_date, ipo_status, listing_board, listing_type,
           listing_method_en, listing_method_zh_hant, listing_method_zh_hans,
           name_en, name_zh_hant, name_zh_hans, security_type, currency_code,
@@ -684,7 +684,7 @@ async function upsertNarratives(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.ipo_narrative (
+      insert into aiphabee_core.ipo_narrative (
         ipo_narrative_id, offering_id, section_key, lang, content_html, content_text,
         sanitizer_version, source_record_id, raw_snapshot_id, data_version,
         methodology_version, rights_policy_version, quality_state
@@ -761,7 +761,7 @@ async function upsertTimetableEvents(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.ipo_timetable_event (
+      insert into aiphabee_core.ipo_timetable_event (
         ipo_timetable_event_id, offering_id, event_code, event_at, event_date, has_time,
         event_type, title_en, title_zh_hant, title_zh_hans, source_record_id,
         raw_snapshot_id, data_version, methodology_version, rights_policy_version, quality_state
@@ -839,7 +839,7 @@ async function upsertOfferStatistics(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.ipo_offer_statistic (
+      insert into aiphabee_core.ipo_offer_statistic (
         ipo_offer_statistic_id, offering_id, report_type, report_date, metric_key,
         value_en, value_zh_hant, value_zh_hans, forward_looking, source_record_id,
         raw_snapshot_id, data_version, methodology_version, rights_policy_version, quality_state
@@ -916,7 +916,7 @@ async function upsertCornerstones(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.ipo_cornerstone (
+      insert into aiphabee_core.ipo_cornerstone (
         ipo_cornerstone_id, offering_id, investor_name_en, investor_name_zh_hant,
         investor_name_zh_hans, invest_currency_code, invest_amount, max_subscribed_shares,
         final_subscribed_shares, offer_share_pct, issued_share_pct, lockup_period_text,
@@ -988,7 +988,7 @@ async function upsertAllotmentSummaries(client, tableRows, dataVersion) {
     const sourceRecordId = sourceRecordIdFor(tableSpec("AllotmentSummary"), row, rowIndex);
     await client.query(
       `
-        insert into core.ipo_allotment_summary (
+        insert into aiphabee_core.ipo_allotment_summary (
           offering_id, final_offer_price_text_en, final_offer_price_text_zh_hant,
           final_offer_price_text_zh_hans, valid_application_count, applied_shares,
           applied_amount_text_en, applied_amount_text_zh_hant, applied_amount_text_zh_hans,
@@ -1091,7 +1091,7 @@ async function upsertPipelineApplications(client, tableRows, dataVersion) {
   await queryJsonbRecordsetChunks(
     client,
     `
-      insert into core.ipo_pipeline_application (
+      insert into aiphabee_core.ipo_pipeline_application (
         app_code, publish_date, phip_date, market, pipeline_status, name_en,
         name_zh_hant, name_zh_hans, sector_code, industry_code, sponsor_en,
         sponsor_zh_hant, sponsor_zh_hans, business_overview_en,
@@ -1593,7 +1593,7 @@ async function assertRemoteHeldIngestPreconditions(client, dataVersion) {
   const released = await client.query(
     `
       select data_version
-      from core.data_version_batch
+      from aiphabee_core.data_version_batch
       where data_version like 'ipo-mdb-%'
         and release_state = 'released'
       order by data_version
@@ -1609,16 +1609,16 @@ async function assertRemoteHeldIngestPreconditions(client, dataVersion) {
     `
       select table_name, count(*)::int as row_count
       from (
-        select 'core.ipo_offering' as table_name
-        from core.ipo_offering
+        select 'aiphabee_core.ipo_offering' as table_name
+        from aiphabee_core.ipo_offering
         where data_version <> $1
         union all
-        select 'core.ipo_allotment_summary' as table_name
-        from core.ipo_allotment_summary
+        select 'aiphabee_core.ipo_allotment_summary' as table_name
+        from aiphabee_core.ipo_allotment_summary
         where data_version <> $1
         union all
-        select 'core.ipo_pipeline_application' as table_name
-        from core.ipo_pipeline_application
+        select 'aiphabee_core.ipo_pipeline_application' as table_name
+        from aiphabee_core.ipo_pipeline_application
         where data_version <> $1
       ) conflicts
       group by table_name
@@ -1634,7 +1634,7 @@ async function assertRemoteHeldIngestPreconditions(client, dataVersion) {
   const existing = await client.query(
     `
       select release_state, count(*)::int as row_count
-      from core.data_version_batch
+      from aiphabee_core.data_version_batch
       where data_version like 'ipo-mdb-%'
       group by release_state
       order by release_state
