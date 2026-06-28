@@ -11,8 +11,8 @@
   "migration_count": 67,
   "first_file": "supabase/migrations/20260620071000_phase0_foundation.sql",
   "last_file": "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
-  "total_size_bytes": 304364,
-  "packet_hash": "sha256:ab142760d74abba47ce98e67b040130e10824f605ef8d6a61a2f252f4db26d73",
+  "total_size_bytes": 305079,
+  "packet_hash": "sha256:edcd160d6c1dd1007d2531e8fe0ee51583a3b2dd4b17f48432bb7b4e463b2687",
   "packet_material": [
     "migration file path",
     "migration file sha256",

@@ -1,0 +1,64 @@
+{
+  "version": "2026-06-28.hkex-news-release-readback.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-ingest",
+  "source_contract": "deploy/ingest/hkex-news-ingest.contract.json",
+  "checker": "scripts/check-hkex-news-release-readback.mjs",
+  "package_script": "npm run check:hkex-news-release-readback",
+  "provider": "postgres",
+  "database_url_env": [
+    "DATA_INGEST_DATABASE_URL",
+    "IPO_DATABASE_URL",
+    "DATABASE_URL"
+  ],
+  "read_only_database": true,
+  "latest_released_default": true,
+  "specific_data_version_supported": true,
+  "hash_only_response": true,
+  "writes_database": false,
+  "writes_object_store": false,
+  "writes_serving_tables": false,
+  "promotes_facts": false,
+  "releases_data_version": false,
+  "emits_approval_id": false,
+  "emits_raw_payload": false,
+  "target_tables": [
+    "core.data_version_batch",
+    "core.hkex_news_crawl_run",
+    "core.hkex_news_transform_run"
+  ],
+  "blocked_tables": [
+    "core.ipo_offering",
+    "core.ipo_timetable_event",
+    "core.ipo_narrative",
+    "core.ipo_cornerstone"
+  ],
+  "response_fields": [
+    "data_version_hash",
+    "source_batch_id_hash",
+    "release_state",
+    "release_state_after",
+    "released_at_present",
+    "released_at_hash",
+    "crawl_status",
+    "crawl_error_count",
+    "transform_status",
+    "validation_report_hash",
+    "readback_hash"
+  ],
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret": true,
+    "no_raw_payload": true,
+    "no_raw_html": true,
+    "no_source_url": true,
+    "no_security_code": true,
+    "no_approval_id": true,
+    "counts_and_hashes_only": true
+  },
+  "verification": {
+    "contract_check": "npm run check:hkex-news-release-readback",
+    "live_readback": "DATA_INGEST_DATABASE_URL=<database_url> node scripts/check-hkex-news-release-readback.mjs --live --data-version <data_version>"
+  }
+}

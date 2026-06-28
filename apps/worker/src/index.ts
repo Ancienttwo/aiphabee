@@ -397,6 +397,8 @@ interface WorkerBindings {
   AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
+  AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN?: string;
+  AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN?: string;
   AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN?: string;
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
@@ -424,6 +426,7 @@ interface RuntimeKvNamespace {
 interface RuntimeR2Bucket {
   delete(key: string): Promise<void>;
   get(key: string): Promise<{ text(): Promise<string> } | null>;
+  head?(key: string): Promise<unknown | null>;
   put(key: string, value: string): Promise<unknown>;
 }
 
@@ -777,6 +780,137 @@ interface EvidenceLiveDbWriteSmokeResult {
   status: CloudflareBindingSmokeStatus;
   surface: "evidence_record_source_ref_insert_select_delete";
   tables?: ["core.evidence_record", "core.evidence_source_ref"];
+}
+
+interface HkIpoPublicHeldDbApplySmokeResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  cleanup_verified?: boolean;
+  data_version_hash?: string;
+  deleted_rows?: number;
+  detail_hash?: string;
+  error_code?: string;
+  failure_code?: string;
+  failure_stage?: string;
+  inserted_rows?: number;
+  operation_count?: number;
+  production_promotion_enabled?: false;
+  query_hash?: string;
+  raw_snapshot_id_hash?: string;
+  readback_hash?: string;
+  selected_rows?: number;
+  source_run_id_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "hk_ipo_public_held_rows_insert_select_delete";
+  tables?: [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ];
+  writes_serving_tables?: false;
+}
+
+interface HkIpoPublicHeldDbApplyResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  data_version_hash?: string;
+  detail_hash?: string;
+  error_code?: string;
+  failure_code?: string;
+  failure_stage?: string;
+  inserted_or_updated_rows?: number;
+  object_store_write_count?: number;
+  operation_count?: number;
+  packet_hash?: string;
+  production_promotion_enabled: false;
+  query_hash?: string;
+  readback_hash?: string;
+  release_state?: "held";
+  selected_rows?: number;
+  source_batch_id_hash?: string;
+  source_run_id_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "hk_ipo_public_live_held_rows_upsert_readback";
+  tables?: [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ];
+  writes_serving_tables: false;
+}
+
+interface HkIpoPublicHeldDbReadbackResult {
+  binding_name: "AIPHABEE_HYPERDRIVE";
+  data_version_hash?: string;
+  detail_hash?: string;
+  error_code?: string;
+  failure_code?: string;
+  failure_stage?: string;
+  object_key_count?: number;
+  object_key_hash?: string;
+  object_store_binding_name?: "AIPHABEE_ARTIFACTS";
+  object_store_missing_count?: number;
+  object_store_readback_count?: number;
+  operation_count?: number;
+  payload_envelope_count?: number;
+  production_promotion_enabled: false;
+  query_hash?: string;
+  raw_snapshot_payload_leak_count?: number;
+  readback_hash?: string;
+  release_state?: "held";
+  selected_rows?: number;
+  source_batch_id_hash?: string;
+  source_run_id_hash?: string;
+  status: CloudflareBindingSmokeStatus;
+  surface: "hk_ipo_public_live_held_rows_readback";
+  table_counts?: Record<string, number>;
+  tables?: [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ];
+  writes_serving_tables: false;
+}
+
+type HkIpoPublicHeldDbApplyRow = Record<string, unknown>;
+
+interface HkIpoPublicHeldDbApplyPayload {
+  apply_plan_id: string;
+  data_version: string;
+  mode: "live";
+  object_store_write_summary: Record<string, unknown>;
+  packet_hash: string;
+  packet_kind: "hk_ipo_public_held_db_apply_packet";
+  row_groups: {
+    data_version_batch: HkIpoPublicHeldDbApplyRow[];
+    hk_ipo_public_observation: HkIpoPublicHeldDbApplyRow[];
+    hk_ipo_public_reconciliation_row: HkIpoPublicHeldDbApplyRow[];
+    hk_ipo_public_source_run: HkIpoPublicHeldDbApplyRow[];
+    hk_ipo_public_supplement_candidate: HkIpoPublicHeldDbApplyRow[];
+    raw_snapshot: HkIpoPublicHeldDbApplyRow[];
+    raw_source_batch: HkIpoPublicHeldDbApplyRow[];
+  };
+  source_batch_id: string;
+  source_run_id: string;
+  version: string;
+}
+
+interface HkIpoPublicHeldDbReadbackPayload {
+  data_version?: string;
+  mode?: "latest" | "specific";
+  object_store_readback?: boolean;
+  source_batch_id?: string;
+  source_run_id?: string;
 }
 
 interface AgentRunLiveWriteSmokeResult {
@@ -1276,6 +1410,26 @@ const AGENT_TOOL_EXECUTION_SMOKE_TOKEN_BINDING = "AIPHABEE_AGENT_TOOL_EXECUTION_
 const EVIDENCE_LIVE_DB_SMOKE_ROUTE = "/evidence/records/live-db-smoke";
 const EVIDENCE_LIVE_DB_SMOKE_HEADER_VALUE = "evidence-lineage-live-db-v1";
 const EVIDENCE_LIVE_DB_SMOKE_TOKEN_BINDING = "AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE = "/ingest/hk-ipo-public/held-db-apply";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_HEADER_VALUE = "hk-ipo-public-held-db-apply-live-v1";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN_BINDING =
+  "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_VERSION =
+  "2026-06-28.hk-ipo-public-held-db-apply-live.v0";
+const HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE =
+  "/ingest/hk-ipo-public/held-db-readback";
+const HK_IPO_PUBLIC_HELD_DB_READBACK_HEADER_VALUE =
+  "hk-ipo-public-held-db-readback-v1";
+const HK_IPO_PUBLIC_HELD_DB_READBACK_VERSION =
+  "2026-06-28.hk-ipo-public-held-db-readback.v0";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE =
+  "/ingest/hk-ipo-public/held-db-apply-smoke";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_HEADER_VALUE =
+  "hk-ipo-public-held-db-apply-v1";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN";
+const HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_VERSION =
+  "2026-06-28.hk-ipo-public-held-db-apply-smoke.v0";
 const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_ROUTE =
   "/mcp/developer-console/log-store-smoke";
 const MCP_DEVELOPER_CONSOLE_LOG_STORE_SMOKE_HEADER_VALUE =
@@ -1838,6 +1992,280 @@ app.post(EVIDENCE_LIVE_DB_SMOKE_ROUTE, async (c) => {
       response_hash: responseHash
     },
     evidenceLiveDbWriteResult.status === "passed" ? 200 : 424
+  );
+});
+
+app.post(HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    HK_IPO_PUBLIC_HELD_DB_APPLY_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingHkIpoPublicHeldDbApplyEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE}`,
+      status: "missing_env",
+      version: HK_IPO_PUBLIC_HELD_DB_APPLY_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isHkIpoPublicHeldDbApplyAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN_BINDING}`,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const payload = await c.req.json().catch(() => undefined);
+  const validation = validateHkIpoPublicHeldDbApplyPayload(payload);
+
+  if (validation.status !== "ok") {
+    const bodyWithoutHash = {
+      error_count: validation.errors.length,
+      error_hash: await hashRuntimeSmokeString(validation.errors.join("\n")),
+      request_id: requestId,
+      route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE}`,
+      status: "invalid_payload",
+      version: HK_IPO_PUBLIC_HELD_DB_APPLY_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      400
+    );
+  }
+
+  const result = await runHkIpoPublicHeldDbApply(c.env ?? {}, validation.payload);
+  const bodyWithoutHash = {
+    held_db_apply_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: HK_IPO_PUBLIC_HELD_DB_APPLY_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
+});
+
+app.post(HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    HK_IPO_PUBLIC_HELD_DB_READBACK_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingHkIpoPublicHeldDbApplyEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE}`,
+      status: "missing_env",
+      version: HK_IPO_PUBLIC_HELD_DB_READBACK_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isHkIpoPublicHeldDbApplyAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN_BINDING}`,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const rawBody = await c.req.text().catch(() => "");
+  const payload = rawBody.trim().length > 0 ? parseJsonObject(rawBody) : {};
+  const validation = validateHkIpoPublicHeldDbReadbackPayload(payload);
+
+  if (validation.status !== "ok") {
+    const bodyWithoutHash = {
+      error_count: validation.errors.length,
+      error_hash: await hashRuntimeSmokeString(validation.errors.join("\n")),
+      request_id: requestId,
+      route: `POST ${HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE}`,
+      status: "invalid_payload",
+      version: HK_IPO_PUBLIC_HELD_DB_READBACK_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      400
+    );
+  }
+
+  const result = await runHkIpoPublicHeldDbReadback(c.env ?? {}, validation.payload);
+  const missingBindings =
+    result.status === "missing_binding"
+      ? [
+          result.failure_code === "missing_r2_artifacts_binding"
+            ? "AIPHABEE_ARTIFACTS"
+            : "AIPHABEE_HYPERDRIVE"
+        ]
+      : [];
+  const bodyWithoutHash = {
+    held_db_readback_result: result,
+    missing_bindings: missingBindings,
+    request_id: requestId,
+    route: `POST ${HK_IPO_PUBLIC_HELD_DB_READBACK_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: HK_IPO_PUBLIC_HELD_DB_READBACK_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
+  );
+});
+
+app.post(HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !==
+    HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingHkIpoPublicHeldDbApplySmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isHkIpoPublicHeldDbApplySmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const result = await runHkIpoPublicHeldDbApplySmoke(c.env ?? {}, requestId);
+  const bodyWithoutHash = {
+    held_db_apply_result: result,
+    missing_bindings: result.status === "missing_binding" ? ["AIPHABEE_HYPERDRIVE"] : [],
+    request_id: requestId,
+    route: `POST ${HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_ROUTE}`,
+    status: result.status === "passed" ? "ok" : "failed",
+    version: HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_VERSION
+  };
+  const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+  return c.json(
+    {
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    },
+    result.status === "passed" ? 200 : result.status === "missing_binding" ? 424 : 502
   );
 });
 
@@ -13054,6 +13482,1554 @@ async function runEvidenceLiveDbWriteSmoke(
   }
 }
 
+async function runHkIpoPublicHeldDbApplySmoke(
+  env: WorkerBindings,
+  requestId: string
+): Promise<HkIpoPublicHeldDbApplySmokeResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingHkIpoPublicHeldDbApplySmokeResult("missing_hyperdrive_binding");
+  }
+
+  const safeRequestId = requestId.replace(/[^A-Za-z0-9_]/gu, "_").slice(0, 80);
+  const suffix = crypto.randomUUID().replace(/-/gu, "").slice(0, 12);
+  const smokeId = `hk_ipo_public_held_db_apply_smoke_${safeRequestId}_${suffix}`;
+  const sourceBatchId = `rsb_${smokeId}`;
+  const dataVersion = `dv_${smokeId}`;
+  const rawSnapshotId = `raw_${smokeId}`;
+  const sourceRunId = `sr_${smokeId}`;
+  const sourceRecordId = `source:${smokeId}`;
+  const observationId = `obs_${smokeId}`;
+  const reconciliationRowId = `recon_${smokeId}`;
+  const supplementCandidateId = `supp_${smokeId}`;
+  const payloadEnvelope = {
+    object_key_hash: await hashRuntimeSmokeString(`object:${smokeId}`),
+    payload_body_included: false,
+    smoke: true,
+    storage_binding: "AIPHABEE_ARTIFACTS",
+    storage_target: "external_raw_snapshot_store"
+  };
+  const sourceIds = JSON.stringify(["aastocks_ipo_plus"]);
+  const sourceObservationIds = JSON.stringify([observationId]);
+  const rawSnapshotRequestIds = JSON.stringify([`request:${smokeId}`]);
+  const hkexEvidenceIds = JSON.stringify(["https://www1.hkexnews.hk"]);
+  const methodologyVersion = HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_VERSION;
+  const queryLabel = "hk-ipo-public-held-db-apply-smoke:v0:held-row-insert-select-delete";
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  let failureStage = "connect";
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    failureStage = "connect";
+    await client.connect();
+    failureStage = "begin_transaction";
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    failureStage = "insert_raw_source_batch";
+    const rawSourceBatchInsert = await client.query(
+      `insert into core.raw_source_batch (
+        source_batch_id,
+        source_name,
+        source_dataset,
+        received_at,
+        source_rights_status,
+        checksum_sha256,
+        row_count
+      )
+      values ($1, 'hk_ipo_public_sources', 'hk_ipo_public_observation', now(), 'default_deny', $2, 1)
+      on conflict (source_batch_id) do update set
+        source_name = excluded.source_name,
+        source_dataset = excluded.source_dataset,
+        received_at = excluded.received_at,
+        source_rights_status = excluded.source_rights_status,
+        checksum_sha256 = excluded.checksum_sha256,
+        row_count = excluded.row_count`,
+      [sourceBatchId, await hashRuntimeSmokeString(sourceRecordId)]
+    );
+    failureStage = "insert_data_version_batch";
+    const dataVersionInsert = await client.query(
+      `insert into core.data_version_batch (
+        data_version,
+        source_batch_id,
+        methodology_version,
+        rights_policy_version,
+        release_state
+      )
+      values ($1, $2, $3, 'default_deny', 'held')
+      on conflict (data_version) do update set
+        source_batch_id = excluded.source_batch_id,
+        methodology_version = excluded.methodology_version,
+        rights_policy_version = excluded.rights_policy_version,
+        release_state = excluded.release_state`,
+      [dataVersion, sourceBatchId, methodologyVersion]
+    );
+    failureStage = "insert_raw_snapshot";
+    const rawSnapshotInsert = await client.query(
+      `insert into core.raw_snapshot (
+        raw_snapshot_id,
+        source_batch_id,
+        source_record_id,
+        record_kind,
+        payload,
+        payload_hash_sha256,
+        received_at,
+        quality_state,
+        data_version,
+        methodology_version
+      )
+      values ($1, $2, $3, 'hk_ipo_public_source_record', $4::jsonb, $5, now(), 'HOLD', $6, $7)
+      on conflict (raw_snapshot_id) do update set
+        source_batch_id = excluded.source_batch_id,
+        source_record_id = excluded.source_record_id,
+        record_kind = excluded.record_kind,
+        payload = excluded.payload,
+        payload_hash_sha256 = excluded.payload_hash_sha256,
+        received_at = excluded.received_at,
+        quality_state = excluded.quality_state,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version`,
+      [
+        rawSnapshotId,
+        sourceBatchId,
+        sourceRecordId,
+        JSON.stringify(payloadEnvelope),
+        await hashRuntimeSmokeString(JSON.stringify(payloadEnvelope)),
+        dataVersion,
+        methodologyVersion
+      ]
+    );
+    failureStage = "insert_hk_ipo_public_source_run";
+    const sourceRunInsert = await client.query(
+      `insert into core.hk_ipo_public_source_run (
+        source_run_id,
+        source_batch_id,
+        data_version,
+        adapter_version,
+        packet_version,
+        source_mode,
+        status,
+        source_ids,
+        security_count,
+        observation_count,
+        reconciliation_row_count,
+        supplement_candidate_count,
+        live_network_writes,
+        writes_serving_tables
+      )
+      values ($1, $2, $3, 'hk-ipo-public-held-db-apply-smoke', $4, 'held', 'held', $5::jsonb, 1, 1, 1, 1, false, false)
+      on conflict (source_run_id) do update set
+        source_batch_id = excluded.source_batch_id,
+        data_version = excluded.data_version,
+        adapter_version = excluded.adapter_version,
+        packet_version = excluded.packet_version,
+        source_mode = excluded.source_mode,
+        status = excluded.status,
+        source_ids = excluded.source_ids,
+        security_count = excluded.security_count,
+        observation_count = excluded.observation_count,
+        reconciliation_row_count = excluded.reconciliation_row_count,
+        supplement_candidate_count = excluded.supplement_candidate_count,
+        live_network_writes = excluded.live_network_writes,
+        writes_serving_tables = excluded.writes_serving_tables`,
+      [sourceRunId, sourceBatchId, dataVersion, methodologyVersion, sourceIds]
+    );
+    failureStage = "insert_hk_ipo_public_observation";
+    const observationInsert = await client.query(
+      `insert into core.hk_ipo_public_observation (
+        observation_id,
+        source_run_id,
+        source_id,
+        provider,
+        source_url,
+        observed_at,
+        source_record_id,
+        security_code,
+        field_name,
+        field_value,
+        field_value_type,
+        raw_snapshot_id,
+        raw_snapshot_required,
+        reconciled_with_hkex,
+        conflict_status,
+        locator,
+        locator_hash,
+        data_version,
+        quality_state
+      )
+      values ($1, $2, 'aastocks_ipo_plus', 'AASTOCKS', $3, now(), $4, '09999.HK', 'lot_size', $5::jsonb, 'number', $6, true, false, 'unreconciled', $7::jsonb, $8, $9, 'HOLD')
+      on conflict (observation_id) do update set
+        source_run_id = excluded.source_run_id,
+        source_id = excluded.source_id,
+        provider = excluded.provider,
+        source_url = excluded.source_url,
+        observed_at = excluded.observed_at,
+        source_record_id = excluded.source_record_id,
+        security_code = excluded.security_code,
+        field_name = excluded.field_name,
+        field_value = excluded.field_value,
+        field_value_type = excluded.field_value_type,
+        raw_snapshot_id = excluded.raw_snapshot_id,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        reconciled_with_hkex = excluded.reconciled_with_hkex,
+        conflict_status = excluded.conflict_status,
+        locator = excluded.locator,
+        locator_hash = excluded.locator_hash,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [
+        observationId,
+        sourceRunId,
+        "https://www.aastocks.com/en/stocks/market/ipo/mainpage.aspx",
+        sourceRecordId,
+        JSON.stringify(1000),
+        rawSnapshotId,
+        JSON.stringify({ row: 1, smoke: true }),
+        await hashRuntimeSmokeString(`locator:${smokeId}`),
+        dataVersion
+      ]
+    );
+    failureStage = "insert_hk_ipo_public_reconciliation_row";
+    const reconciliationInsert = await client.query(
+      `insert into core.hk_ipo_public_reconciliation_row (
+        reconciliation_row_id,
+        source_run_id,
+        security_code,
+        fact_name,
+        status,
+        canonical_candidate,
+        source_observation_ids,
+        source_ids,
+        raw_snapshot_request_ids,
+        hkex_evidence_ids,
+        confidence,
+        reason,
+        raw_snapshot_required,
+        conflict_requires_manual_review,
+        promotes_fact,
+        data_version,
+        quality_state
+      )
+      values ($1, $2, '09999.HK', 'lot_size', 'single_source', $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, 'low', 'synthetic held DB apply smoke', true, false, false, $8, 'HOLD')
+      on conflict (reconciliation_row_id) do update set
+        source_run_id = excluded.source_run_id,
+        security_code = excluded.security_code,
+        fact_name = excluded.fact_name,
+        status = excluded.status,
+        canonical_candidate = excluded.canonical_candidate,
+        source_observation_ids = excluded.source_observation_ids,
+        source_ids = excluded.source_ids,
+        raw_snapshot_request_ids = excluded.raw_snapshot_request_ids,
+        hkex_evidence_ids = excluded.hkex_evidence_ids,
+        confidence = excluded.confidence,
+        reason = excluded.reason,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        conflict_requires_manual_review = excluded.conflict_requires_manual_review,
+        promotes_fact = excluded.promotes_fact,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [
+        reconciliationRowId,
+        sourceRunId,
+        JSON.stringify({ field_name: "lot_size", value_hash: await hashRuntimeSmokeString("1000") }),
+        sourceObservationIds,
+        sourceIds,
+        rawSnapshotRequestIds,
+        hkexEvidenceIds,
+        dataVersion
+      ]
+    );
+    failureStage = "insert_hk_ipo_public_supplement_candidate";
+    const supplementInsert = await client.query(
+      `insert into core.hk_ipo_public_supplement_candidate (
+        supplement_candidate_id,
+        source_run_id,
+        source_observation_id,
+        security_code,
+        source_id,
+        source_record_id,
+        field_name,
+        field_value_type,
+        status,
+        raw_snapshot_required,
+        promotes_fact,
+        reason,
+        data_version,
+        quality_state
+      )
+      values ($1, $2, $3, '09999.HK', 'aastocks_ipo_plus', $4, 'lot_size', 'number', 'candidate', true, false, 'synthetic held DB apply smoke', $5, 'HOLD')
+      on conflict (supplement_candidate_id) do update set
+        source_run_id = excluded.source_run_id,
+        source_observation_id = excluded.source_observation_id,
+        security_code = excluded.security_code,
+        source_id = excluded.source_id,
+        source_record_id = excluded.source_record_id,
+        field_name = excluded.field_name,
+        field_value_type = excluded.field_value_type,
+        status = excluded.status,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        promotes_fact = excluded.promotes_fact,
+        reason = excluded.reason,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [supplementCandidateId, sourceRunId, observationId, sourceRecordId, dataVersion]
+    );
+    failureStage = "select_readback";
+    const readback = await client.query<{
+      data_version_batch_count: number | string;
+      observation_count: number | string;
+      raw_snapshot_count: number | string;
+      raw_source_batch_count: number | string;
+      reconciliation_row_count: number | string;
+      source_run_count: number | string;
+      supplement_candidate_count: number | string;
+    }>(
+      `select
+        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from core.raw_snapshot where raw_snapshot_id = $3 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $4 and status = 'held' and live_network_writes = false and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from core.hk_ipo_public_observation where observation_id = $5 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from core.hk_ipo_public_reconciliation_row where reconciliation_row_id = $6 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from core.hk_ipo_public_supplement_candidate where supplement_candidate_id = $7 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
+      [
+        sourceBatchId,
+        dataVersion,
+        rawSnapshotId,
+        sourceRunId,
+        observationId,
+        reconciliationRowId,
+        supplementCandidateId
+      ]
+    );
+    const readbackRow = readback.rows[0];
+    const selectedRows =
+      Number(readbackRow?.raw_source_batch_count ?? 0) +
+      Number(readbackRow?.data_version_batch_count ?? 0) +
+      Number(readbackRow?.raw_snapshot_count ?? 0) +
+      Number(readbackRow?.source_run_count ?? 0) +
+      Number(readbackRow?.observation_count ?? 0) +
+      Number(readbackRow?.reconciliation_row_count ?? 0) +
+      Number(readbackRow?.supplement_candidate_count ?? 0);
+
+    if (selectedRows !== 7) {
+      failureStage = "validate_readback";
+      throw new Error("HK IPO public held DB apply smoke readback mismatch");
+    }
+
+    failureStage = "delete_hk_ipo_public_supplement_candidate";
+    const supplementDelete = await client.query(
+      `delete from core.hk_ipo_public_supplement_candidate
+      where supplement_candidate_id = $1`,
+      [supplementCandidateId]
+    );
+    failureStage = "delete_hk_ipo_public_reconciliation_row";
+    const reconciliationDelete = await client.query(
+      `delete from core.hk_ipo_public_reconciliation_row
+      where reconciliation_row_id = $1`,
+      [reconciliationRowId]
+    );
+    failureStage = "delete_hk_ipo_public_observation";
+    const observationDelete = await client.query(
+      `delete from core.hk_ipo_public_observation
+      where observation_id = $1`,
+      [observationId]
+    );
+    failureStage = "delete_hk_ipo_public_source_run";
+    const sourceRunDelete = await client.query(
+      `delete from core.hk_ipo_public_source_run
+      where source_run_id = $1`,
+      [sourceRunId]
+    );
+    failureStage = "delete_raw_snapshot";
+    const rawSnapshotDelete = await client.query(
+      `delete from core.raw_snapshot
+      where raw_snapshot_id = $1`,
+      [rawSnapshotId]
+    );
+    failureStage = "delete_data_version_batch";
+    const dataVersionDelete = await client.query(
+      `delete from core.data_version_batch
+      where data_version = $1`,
+      [dataVersion]
+    );
+    failureStage = "delete_raw_source_batch";
+    const rawSourceBatchDelete = await client.query(
+      `delete from core.raw_source_batch
+      where source_batch_id = $1`,
+      [sourceBatchId]
+    );
+
+    failureStage = "commit";
+    await client.query("COMMIT");
+    committed = true;
+
+    const insertedRows =
+      (rawSourceBatchInsert.rowCount ?? 0) +
+      (dataVersionInsert.rowCount ?? 0) +
+      (rawSnapshotInsert.rowCount ?? 0) +
+      (sourceRunInsert.rowCount ?? 0) +
+      (observationInsert.rowCount ?? 0) +
+      (reconciliationInsert.rowCount ?? 0) +
+      (supplementInsert.rowCount ?? 0);
+    const deletedRows =
+      (supplementDelete.rowCount ?? 0) +
+      (reconciliationDelete.rowCount ?? 0) +
+      (observationDelete.rowCount ?? 0) +
+      (sourceRunDelete.rowCount ?? 0) +
+      (rawSnapshotDelete.rowCount ?? 0) +
+      (dataVersionDelete.rowCount ?? 0) +
+      (rawSourceBatchDelete.rowCount ?? 0);
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      cleanup_verified: deletedRows === insertedRows,
+      data_version_hash: await hashRuntimeSmokeString(dataVersion),
+      deleted_rows: deletedRows,
+      inserted_rows: insertedRows,
+      operation_count: 17,
+      production_promotion_enabled: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      raw_snapshot_id_hash: await hashRuntimeSmokeString(rawSnapshotId),
+      readback_hash: await hashRuntimeSmokeString(JSON.stringify(readbackRow ?? {})),
+      selected_rows: selectedRows,
+      source_run_id_hash: await hashRuntimeSmokeString(sourceRunId),
+      status: "passed",
+      surface: "hk_ipo_public_held_rows_insert_select_delete",
+      tables: [
+        "core.raw_source_batch",
+        "core.data_version_batch",
+        "core.raw_snapshot",
+        "core.hk_ipo_public_source_run",
+        "core.hk_ipo_public_observation",
+        "core.hk_ipo_public_reconciliation_row",
+        "core.hk_ipo_public_supplement_candidate"
+      ],
+      writes_serving_tables: false
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedHkIpoPublicHeldDbApplySmokeResult({
+      detail: error instanceof Error ? error.message : String(error),
+      errorCode:
+        isPlainRecord(error) && typeof error.code === "string" ? error.code : undefined,
+      failureCode: "hk_ipo_public_held_db_apply_failed",
+      failureStage,
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function runHkIpoPublicHeldDbApply(
+  env: WorkerBindings,
+  payload: HkIpoPublicHeldDbApplyPayload
+): Promise<HkIpoPublicHeldDbApplyResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingHkIpoPublicHeldDbApplyResult("missing_hyperdrive_binding");
+  }
+
+  const queryLabel = "hk-ipo-public-held-db-apply-live:v0:bulk-upsert-readback";
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  let failureStage = "connect";
+  let transactionStarted = false;
+  let committed = false;
+
+  try {
+    failureStage = "connect";
+    await client.connect();
+    failureStage = "begin_transaction";
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    failureStage = "upsert_raw_source_batch";
+    const rawSourceBatch = await client.query(
+      `insert into core.raw_source_batch (
+        source_batch_id,
+        source_name,
+        source_dataset,
+        received_at,
+        source_rights_status,
+        checksum_sha256,
+        row_count
+      )
+      select
+        row.source_batch_id,
+        row.source_name,
+        row.source_dataset,
+        row.received_at,
+        row.source_rights_status,
+        row.checksum_sha256,
+        row.row_count
+      from jsonb_to_recordset($1::jsonb) as row(
+        source_batch_id text,
+        source_name text,
+        source_dataset text,
+        received_at timestamptz,
+        source_rights_status text,
+        checksum_sha256 text,
+        row_count integer
+      )
+      on conflict (source_batch_id) do update set
+        source_name = excluded.source_name,
+        source_dataset = excluded.source_dataset,
+        received_at = excluded.received_at,
+        source_rights_status = excluded.source_rights_status,
+        checksum_sha256 = excluded.checksum_sha256,
+        row_count = excluded.row_count`,
+      [JSON.stringify(payload.row_groups.raw_source_batch)]
+    );
+
+    failureStage = "upsert_data_version_batch";
+    const dataVersionBatch = await client.query(
+      `insert into core.data_version_batch (
+        data_version,
+        source_batch_id,
+        methodology_version,
+        rights_policy_version,
+        release_state
+      )
+      select
+        row.data_version,
+        row.source_batch_id,
+        row.methodology_version,
+        row.rights_policy_version,
+        row.release_state
+      from jsonb_to_recordset($1::jsonb) as row(
+        data_version text,
+        source_batch_id text,
+        methodology_version text,
+        rights_policy_version text,
+        release_state text
+      )
+      on conflict (data_version) do update set
+        source_batch_id = excluded.source_batch_id,
+        methodology_version = excluded.methodology_version,
+        rights_policy_version = excluded.rights_policy_version,
+        release_state = excluded.release_state`,
+      [JSON.stringify(payload.row_groups.data_version_batch)]
+    );
+
+    failureStage = "upsert_hk_ipo_public_source_run";
+    const sourceRun = await client.query(
+      `insert into core.hk_ipo_public_source_run (
+        source_run_id,
+        source_batch_id,
+        data_version,
+        adapter_version,
+        packet_version,
+        source_mode,
+        status,
+        source_ids,
+        security_count,
+        observation_count,
+        reconciliation_row_count,
+        supplement_candidate_count,
+        live_network_writes,
+        writes_serving_tables
+      )
+      select
+        row.source_run_id,
+        row.source_batch_id,
+        row.data_version,
+        row.adapter_version,
+        row.packet_version,
+        row.source_mode,
+        row.status,
+        row.source_ids,
+        row.security_count,
+        row.observation_count,
+        row.reconciliation_row_count,
+        row.supplement_candidate_count,
+        row.live_network_writes,
+        row.writes_serving_tables
+      from jsonb_to_recordset($1::jsonb) as row(
+        source_run_id text,
+        source_batch_id text,
+        data_version text,
+        adapter_version text,
+        packet_version text,
+        source_mode text,
+        status text,
+        source_ids jsonb,
+        security_count integer,
+        observation_count integer,
+        reconciliation_row_count integer,
+        supplement_candidate_count integer,
+        live_network_writes boolean,
+        writes_serving_tables boolean
+      )
+      on conflict (source_run_id) do update set
+        source_batch_id = excluded.source_batch_id,
+        data_version = excluded.data_version,
+        adapter_version = excluded.adapter_version,
+        packet_version = excluded.packet_version,
+        source_mode = excluded.source_mode,
+        status = excluded.status,
+        source_ids = excluded.source_ids,
+        security_count = excluded.security_count,
+        observation_count = excluded.observation_count,
+        reconciliation_row_count = excluded.reconciliation_row_count,
+        supplement_candidate_count = excluded.supplement_candidate_count,
+        live_network_writes = excluded.live_network_writes,
+        writes_serving_tables = excluded.writes_serving_tables`,
+      [JSON.stringify(payload.row_groups.hk_ipo_public_source_run)]
+    );
+
+    failureStage = "upsert_raw_snapshot";
+    const rawSnapshot = await client.query(
+      `insert into core.raw_snapshot (
+        raw_snapshot_id,
+        source_batch_id,
+        source_record_id,
+        record_kind,
+        payload,
+        payload_hash_sha256,
+        received_at,
+        quality_state,
+        data_version,
+        methodology_version
+      )
+      select
+        row.raw_snapshot_id,
+        row.source_batch_id,
+        row.source_record_id,
+        row.record_kind,
+        row.payload,
+        row.payload_hash_sha256,
+        row.received_at,
+        row.quality_state,
+        row.data_version,
+        row.methodology_version
+      from jsonb_to_recordset($1::jsonb) as row(
+        raw_snapshot_id text,
+        source_batch_id text,
+        source_record_id text,
+        record_kind text,
+        payload jsonb,
+        payload_hash_sha256 text,
+        received_at timestamptz,
+        quality_state text,
+        data_version text,
+        methodology_version text
+      )
+      on conflict (raw_snapshot_id) do update set
+        source_batch_id = excluded.source_batch_id,
+        source_record_id = excluded.source_record_id,
+        record_kind = excluded.record_kind,
+        payload = excluded.payload,
+        payload_hash_sha256 = excluded.payload_hash_sha256,
+        received_at = excluded.received_at,
+        quality_state = excluded.quality_state,
+        data_version = excluded.data_version,
+        methodology_version = excluded.methodology_version`,
+      [JSON.stringify(payload.row_groups.raw_snapshot)]
+    );
+
+    failureStage = "upsert_hk_ipo_public_observation";
+    const observation = await client.query(
+      `insert into core.hk_ipo_public_observation (
+        observation_id,
+        source_run_id,
+        source_id,
+        provider,
+        source_url,
+        observed_at,
+        source_record_id,
+        security_code,
+        field_name,
+        field_value,
+        field_value_type,
+        raw_snapshot_id,
+        raw_snapshot_required,
+        reconciled_with_hkex,
+        conflict_status,
+        confidence,
+        locator,
+        locator_hash,
+        data_version,
+        quality_state
+      )
+      select
+        row.observation_id,
+        row.source_run_id,
+        row.source_id,
+        row.provider,
+        row.source_url,
+        row.observed_at,
+        row.source_record_id,
+        row.security_code,
+        row.field_name,
+        row.field_value,
+        row.field_value_type,
+        row.raw_snapshot_id,
+        row.raw_snapshot_required,
+        row.reconciled_with_hkex,
+        row.conflict_status,
+        row.confidence,
+        row.locator,
+        row.locator_hash,
+        row.data_version,
+        row.quality_state
+      from jsonb_to_recordset($1::jsonb) as row(
+        observation_id text,
+        source_run_id text,
+        source_id text,
+        provider text,
+        source_url text,
+        observed_at timestamptz,
+        source_record_id text,
+        security_code text,
+        field_name text,
+        field_value jsonb,
+        field_value_type text,
+        raw_snapshot_id text,
+        raw_snapshot_required boolean,
+        reconciled_with_hkex boolean,
+        conflict_status text,
+        confidence numeric,
+        locator jsonb,
+        locator_hash text,
+        data_version text,
+        quality_state text
+      )
+      on conflict (observation_id) do update set
+        source_run_id = excluded.source_run_id,
+        source_id = excluded.source_id,
+        provider = excluded.provider,
+        source_url = excluded.source_url,
+        observed_at = excluded.observed_at,
+        source_record_id = excluded.source_record_id,
+        security_code = excluded.security_code,
+        field_name = excluded.field_name,
+        field_value = excluded.field_value,
+        field_value_type = excluded.field_value_type,
+        raw_snapshot_id = excluded.raw_snapshot_id,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        reconciled_with_hkex = excluded.reconciled_with_hkex,
+        conflict_status = excluded.conflict_status,
+        confidence = excluded.confidence,
+        locator = excluded.locator,
+        locator_hash = excluded.locator_hash,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [JSON.stringify(payload.row_groups.hk_ipo_public_observation)]
+    );
+
+    failureStage = "upsert_hk_ipo_public_reconciliation_row";
+    const reconciliation = await client.query(
+      `insert into core.hk_ipo_public_reconciliation_row (
+        reconciliation_row_id,
+        source_run_id,
+        security_code,
+        fact_name,
+        status,
+        canonical_candidate,
+        source_observation_ids,
+        source_ids,
+        raw_snapshot_request_ids,
+        hkex_evidence_ids,
+        confidence,
+        reason,
+        raw_snapshot_required,
+        conflict_requires_manual_review,
+        promotes_fact,
+        data_version,
+        quality_state
+      )
+      select
+        row.reconciliation_row_id,
+        row.source_run_id,
+        row.security_code,
+        row.fact_name,
+        row.status,
+        row.canonical_candidate,
+        row.source_observation_ids,
+        row.source_ids,
+        row.raw_snapshot_request_ids,
+        row.hkex_evidence_ids,
+        row.confidence,
+        row.reason,
+        row.raw_snapshot_required,
+        row.conflict_requires_manual_review,
+        row.promotes_fact,
+        row.data_version,
+        row.quality_state
+      from jsonb_to_recordset($1::jsonb) as row(
+        reconciliation_row_id text,
+        source_run_id text,
+        security_code text,
+        fact_name text,
+        status text,
+        canonical_candidate jsonb,
+        source_observation_ids jsonb,
+        source_ids jsonb,
+        raw_snapshot_request_ids jsonb,
+        hkex_evidence_ids jsonb,
+        confidence text,
+        reason text,
+        raw_snapshot_required boolean,
+        conflict_requires_manual_review boolean,
+        promotes_fact boolean,
+        data_version text,
+        quality_state text
+      )
+      on conflict (reconciliation_row_id) do update set
+        source_run_id = excluded.source_run_id,
+        security_code = excluded.security_code,
+        fact_name = excluded.fact_name,
+        status = excluded.status,
+        canonical_candidate = excluded.canonical_candidate,
+        source_observation_ids = excluded.source_observation_ids,
+        source_ids = excluded.source_ids,
+        raw_snapshot_request_ids = excluded.raw_snapshot_request_ids,
+        hkex_evidence_ids = excluded.hkex_evidence_ids,
+        confidence = excluded.confidence,
+        reason = excluded.reason,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        conflict_requires_manual_review = excluded.conflict_requires_manual_review,
+        promotes_fact = excluded.promotes_fact,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [JSON.stringify(payload.row_groups.hk_ipo_public_reconciliation_row)]
+    );
+
+    failureStage = "upsert_hk_ipo_public_supplement_candidate";
+    const supplement = await client.query(
+      `insert into core.hk_ipo_public_supplement_candidate (
+        supplement_candidate_id,
+        source_run_id,
+        source_observation_id,
+        security_code,
+        source_id,
+        source_record_id,
+        field_name,
+        field_value_type,
+        status,
+        raw_snapshot_required,
+        promotes_fact,
+        reason,
+        data_version,
+        quality_state
+      )
+      select
+        row.supplement_candidate_id,
+        row.source_run_id,
+        row.source_observation_id,
+        row.security_code,
+        row.source_id,
+        row.source_record_id,
+        row.field_name,
+        row.field_value_type,
+        row.status,
+        row.raw_snapshot_required,
+        row.promotes_fact,
+        row.reason,
+        row.data_version,
+        row.quality_state
+      from jsonb_to_recordset($1::jsonb) as row(
+        supplement_candidate_id text,
+        source_run_id text,
+        source_observation_id text,
+        security_code text,
+        source_id text,
+        source_record_id text,
+        field_name text,
+        field_value_type text,
+        status text,
+        raw_snapshot_required boolean,
+        promotes_fact boolean,
+        reason text,
+        data_version text,
+        quality_state text
+      )
+      on conflict (supplement_candidate_id) do update set
+        source_run_id = excluded.source_run_id,
+        source_observation_id = excluded.source_observation_id,
+        security_code = excluded.security_code,
+        source_id = excluded.source_id,
+        source_record_id = excluded.source_record_id,
+        field_name = excluded.field_name,
+        field_value_type = excluded.field_value_type,
+        status = excluded.status,
+        raw_snapshot_required = excluded.raw_snapshot_required,
+        promotes_fact = excluded.promotes_fact,
+        reason = excluded.reason,
+        data_version = excluded.data_version,
+        quality_state = excluded.quality_state`,
+      [JSON.stringify(payload.row_groups.hk_ipo_public_supplement_candidate)]
+    );
+
+    failureStage = "select_readback";
+    const readback = await client.query<{
+      data_version_batch_count: number | string;
+      observation_count: number | string;
+      raw_snapshot_count: number | string;
+      raw_source_batch_count: number | string;
+      reconciliation_row_count: number | string;
+      source_run_count: number | string;
+      supplement_candidate_count: number | string;
+    }>(
+      `select
+        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count`,
+      [payload.source_batch_id, payload.data_version, payload.source_run_id]
+    );
+    const readbackRow = readback.rows[0];
+    const selectedRows =
+      Number(readbackRow?.raw_source_batch_count ?? 0) +
+      Number(readbackRow?.data_version_batch_count ?? 0) +
+      Number(readbackRow?.raw_snapshot_count ?? 0) +
+      Number(readbackRow?.source_run_count ?? 0) +
+      Number(readbackRow?.observation_count ?? 0) +
+      Number(readbackRow?.reconciliation_row_count ?? 0) +
+      Number(readbackRow?.supplement_candidate_count ?? 0);
+    const expectedRows = hkIpoPublicHeldDbApplyExpectedRows(payload);
+
+    if (selectedRows !== expectedRows) {
+      failureStage = "validate_readback";
+      throw new Error("HK IPO public held DB apply live readback mismatch");
+    }
+
+    failureStage = "commit";
+    await client.query("COMMIT");
+    committed = true;
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      data_version_hash: await hashRuntimeSmokeString(payload.data_version),
+      inserted_or_updated_rows:
+        (rawSourceBatch.rowCount ?? 0) +
+        (dataVersionBatch.rowCount ?? 0) +
+        (sourceRun.rowCount ?? 0) +
+        (rawSnapshot.rowCount ?? 0) +
+        (observation.rowCount ?? 0) +
+        (reconciliation.rowCount ?? 0) +
+        (supplement.rowCount ?? 0),
+      object_store_write_count: Number(
+        payload.object_store_write_summary.remote_object_store_write_count ?? 0
+      ),
+      operation_count: 10,
+      packet_hash: payload.packet_hash,
+      production_promotion_enabled: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      readback_hash: await hashRuntimeSmokeString(JSON.stringify(readbackRow ?? {})),
+      release_state: "held",
+      selected_rows: selectedRows,
+      source_batch_id_hash: await hashRuntimeSmokeString(payload.source_batch_id),
+      source_run_id_hash: await hashRuntimeSmokeString(payload.source_run_id),
+      status: "passed",
+      surface: "hk_ipo_public_live_held_rows_upsert_readback",
+      tables: hkIpoPublicHeldDbApplyTables(),
+      writes_serving_tables: false
+    };
+  } catch (error) {
+    if (transactionStarted && !committed) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+
+    return failedHkIpoPublicHeldDbApplyResult({
+      detail: error instanceof Error ? error.message : String(error),
+      errorCode:
+        isPlainRecord(error) && typeof error.code === "string" ? error.code : undefined,
+      failureCode: "hk_ipo_public_held_db_apply_failed",
+      failureStage,
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function runHkIpoPublicHeldDbReadback(
+  env: WorkerBindings,
+  payload: HkIpoPublicHeldDbReadbackPayload
+): Promise<HkIpoPublicHeldDbReadbackResult> {
+  const hyperdrive = env.AIPHABEE_HYPERDRIVE;
+
+  if (!isRuntimeHyperdrive(hyperdrive)) {
+    return missingHkIpoPublicHeldDbReadbackResult("missing_hyperdrive_binding");
+  }
+
+  const shouldReadObjectStore = payload.object_store_readback !== false;
+  const artifacts = env.AIPHABEE_ARTIFACTS;
+  if (shouldReadObjectStore && !isRuntimeR2Bucket(artifacts)) {
+    return missingHkIpoPublicHeldDbReadbackResult("missing_r2_artifacts_binding");
+  }
+
+  const queryLabel = "hk-ipo-public-held-db-readback:v0:latest-held-row-and-r2-envelope";
+  const client = new Client({
+    connectionString: hyperdrive.connectionString
+  });
+  let failureStage = "connect";
+
+  try {
+    failureStage = "connect";
+    await client.connect();
+
+    failureStage = "select_source_run";
+    const specific = payload.mode === "specific";
+    const sourceRun = specific
+      ? await client.query<{
+          data_version: string;
+          observation_count: number | string;
+          reconciliation_row_count: number | string;
+          security_count: number | string;
+          source_batch_id: string;
+          source_run_id: string;
+          supplement_candidate_count: number | string;
+        }>(
+          `select
+            source_run_id,
+            source_batch_id,
+            data_version,
+            security_count,
+            observation_count,
+            reconciliation_row_count,
+            supplement_candidate_count
+          from core.hk_ipo_public_source_run
+          where source_run_id = $1
+            and source_batch_id = $2
+            and data_version = $3
+            and source_mode = 'live'
+            and status = 'held'
+            and writes_serving_tables = false
+          limit 1`,
+          [payload.source_run_id, payload.source_batch_id, payload.data_version]
+        )
+      : await client.query<{
+          data_version: string;
+          observation_count: number | string;
+          reconciliation_row_count: number | string;
+          security_count: number | string;
+          source_batch_id: string;
+          source_run_id: string;
+          supplement_candidate_count: number | string;
+        }>(
+          `select
+            source_run_id,
+            source_batch_id,
+            data_version,
+            security_count,
+            observation_count,
+            reconciliation_row_count,
+            supplement_candidate_count
+          from core.hk_ipo_public_source_run
+          where source_mode = 'live'
+            and status = 'held'
+            and writes_serving_tables = false
+          order by created_at desc, source_run_id desc
+          limit 1`
+        );
+    const runRow = sourceRun.rows[0];
+    if (!runRow) {
+      return failedHkIpoPublicHeldDbReadbackResult({
+        detail: "no live held source run found",
+        failureCode: "hk_ipo_public_held_db_readback_no_source_run",
+        failureStage,
+        queryLabel
+      });
+    }
+
+    failureStage = "select_table_counts";
+    const readback = await client.query<{
+      data_version_batch_count: number | string;
+      observation_count: number | string;
+      object_key_count: number | string;
+      payload_envelope_count: number | string;
+      raw_snapshot_count: number | string;
+      raw_snapshot_payload_leak_count: number | string;
+      raw_source_batch_count: number | string;
+      reconciliation_row_count: number | string;
+      source_run_count: number | string;
+      supplement_candidate_count: number | string;
+    }>(
+      `select
+        (select count(*)::int from core.raw_source_batch where source_batch_id = $1) as raw_source_batch_count,
+        (select count(*)::int from core.data_version_batch where data_version = $2 and release_state = 'held') as data_version_batch_count,
+        (select count(*)::int from core.raw_snapshot where data_version = $2 and record_kind = 'hk_ipo_public_source_record' and quality_state = 'HOLD') as raw_snapshot_count,
+        (select count(*)::int from core.hk_ipo_public_source_run where source_run_id = $3 and status = 'held' and source_mode = 'live' and writes_serving_tables = false) as source_run_count,
+        (select count(*)::int from core.hk_ipo_public_observation where source_run_id = $3 and raw_snapshot_required = true and reconciled_with_hkex = false and quality_state = 'HOLD') as observation_count,
+        (select count(*)::int from core.hk_ipo_public_reconciliation_row where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as reconciliation_row_count,
+        (select count(*)::int from core.hk_ipo_public_supplement_candidate where source_run_id = $3 and raw_snapshot_required = true and promotes_fact = false and quality_state = 'HOLD') as supplement_candidate_count,
+        (
+          select count(*)::int
+          from core.raw_snapshot
+          where data_version = $2
+            and record_kind = 'hk_ipo_public_source_record'
+            and quality_state = 'HOLD'
+            and payload->>'storage_target' = 'external_raw_snapshot_store'
+            and payload->>'payload_body_included' = 'false'
+            and payload->>'raw_html_included' = 'false'
+            and payload ? 'object_key'
+            and payload ? 'payload_hash_sha256'
+        ) as payload_envelope_count,
+        (
+          select count(distinct payload->>'object_key')::int
+          from core.raw_snapshot
+          where data_version = $2
+            and record_kind = 'hk_ipo_public_source_record'
+            and quality_state = 'HOLD'
+            and payload ? 'object_key'
+        ) as object_key_count,
+        (
+          select count(*)::int
+          from core.raw_snapshot
+          where data_version = $2
+            and record_kind = 'hk_ipo_public_source_record'
+            and quality_state = 'HOLD'
+            and (
+              payload ? 'payload_body'
+              or payload ? 'raw_html'
+              or coalesce(payload->>'payload_body_included', '') <> 'false'
+              or coalesce(payload->>'raw_html_included', '') <> 'false'
+            )
+        ) as raw_snapshot_payload_leak_count`,
+      [runRow.source_batch_id, runRow.data_version, runRow.source_run_id]
+    );
+    const readbackRow = readback.rows[0] ?? {};
+    const tableCounts = {
+      data_version_batch: Number(readbackRow.data_version_batch_count ?? 0),
+      hk_ipo_public_observation: Number(readbackRow.observation_count ?? 0),
+      hk_ipo_public_reconciliation_row: Number(readbackRow.reconciliation_row_count ?? 0),
+      hk_ipo_public_source_run: Number(readbackRow.source_run_count ?? 0),
+      hk_ipo_public_supplement_candidate: Number(readbackRow.supplement_candidate_count ?? 0),
+      raw_snapshot: Number(readbackRow.raw_snapshot_count ?? 0),
+      raw_source_batch: Number(readbackRow.raw_source_batch_count ?? 0)
+    };
+    const selectedRows = Object.values(tableCounts).reduce((sum, count) => sum + count, 0);
+    const payloadEnvelopeCount = Number(readbackRow.payload_envelope_count ?? 0);
+    const rawSnapshotPayloadLeakCount = Number(readbackRow.raw_snapshot_payload_leak_count ?? 0);
+    const objectKeyCount = Number(readbackRow.object_key_count ?? 0);
+    const expectedRows =
+      3 +
+      tableCounts.raw_snapshot +
+      Number(runRow.observation_count ?? 0) +
+      Number(runRow.reconciliation_row_count ?? 0) +
+      Number(runRow.supplement_candidate_count ?? 0);
+
+    failureStage = "select_object_keys";
+    const objectKeys = await client.query<{ object_key: string }>(
+      `select distinct payload->>'object_key' as object_key
+      from core.raw_snapshot
+      where data_version = $1
+        and record_kind = 'hk_ipo_public_source_record'
+        and quality_state = 'HOLD'
+        and payload ? 'object_key'
+      order by object_key
+      limit 100`,
+      [runRow.data_version]
+    );
+    const objectKeyValues = objectKeys.rows
+      .map((row) => row.object_key)
+      .filter((key): key is string => typeof key === "string" && key.length > 0);
+    let objectStoreReadbackCount = 0;
+    let objectStoreMissingCount = 0;
+
+    if (shouldReadObjectStore && isRuntimeR2Bucket(artifacts)) {
+      failureStage = "readback_r2_objects";
+      for (const objectKey of objectKeyValues) {
+        if (await runtimeR2ObjectExists(artifacts, objectKey)) {
+          objectStoreReadbackCount += 1;
+        } else {
+          objectStoreMissingCount += 1;
+        }
+      }
+    }
+
+    const invariantFailures = [
+      selectedRows !== expectedRows ? "selected_row_count_mismatch" : null,
+      tableCounts.hk_ipo_public_observation !== Number(runRow.observation_count ?? 0)
+        ? "observation_count_mismatch"
+        : null,
+      tableCounts.hk_ipo_public_reconciliation_row !== Number(runRow.reconciliation_row_count ?? 0)
+        ? "reconciliation_count_mismatch"
+        : null,
+      tableCounts.hk_ipo_public_supplement_candidate !== Number(runRow.supplement_candidate_count ?? 0)
+        ? "supplement_count_mismatch"
+        : null,
+      tableCounts.raw_snapshot !== payloadEnvelopeCount ? "raw_snapshot_envelope_mismatch" : null,
+      rawSnapshotPayloadLeakCount !== 0 ? "raw_snapshot_payload_leak" : null,
+      objectKeyValues.length !== objectKeyCount ? "object_key_count_mismatch" : null,
+      shouldReadObjectStore && objectStoreMissingCount !== 0 ? "object_store_missing" : null
+    ].filter((failure): failure is string => Boolean(failure));
+
+    return {
+      binding_name: "AIPHABEE_HYPERDRIVE",
+      data_version_hash: await hashRuntimeSmokeString(runRow.data_version),
+      ...(invariantFailures.length > 0
+        ? {
+            detail_hash: await hashRuntimeSmokeString(invariantFailures.join("\n")),
+            failure_code: "hk_ipo_public_held_db_readback_invariant_failed",
+            failure_stage: "validate_readback"
+          }
+        : {}),
+      object_key_count: objectKeyCount,
+      object_key_hash: await hashRuntimeSmokeString(JSON.stringify(objectKeyValues)),
+      object_store_binding_name: "AIPHABEE_ARTIFACTS",
+      object_store_missing_count: objectStoreMissingCount,
+      object_store_readback_count: objectStoreReadbackCount,
+      operation_count: 3 + (shouldReadObjectStore ? objectKeyValues.length : 0),
+      payload_envelope_count: payloadEnvelopeCount,
+      production_promotion_enabled: false,
+      query_hash: await hashRuntimeSmokeString(queryLabel),
+      raw_snapshot_payload_leak_count: rawSnapshotPayloadLeakCount,
+      readback_hash: await hashRuntimeSmokeString(JSON.stringify({ readbackRow, tableCounts })),
+      release_state: "held",
+      selected_rows: selectedRows,
+      source_batch_id_hash: await hashRuntimeSmokeString(runRow.source_batch_id),
+      source_run_id_hash: await hashRuntimeSmokeString(runRow.source_run_id),
+      status: invariantFailures.length === 0 ? "passed" : "failed",
+      surface: "hk_ipo_public_live_held_rows_readback",
+      table_counts: tableCounts,
+      tables: hkIpoPublicHeldDbApplyTables(),
+      writes_serving_tables: false
+    };
+  } catch (error) {
+    return failedHkIpoPublicHeldDbReadbackResult({
+      detail: error instanceof Error ? error.message : String(error),
+      errorCode:
+        isPlainRecord(error) && typeof error.code === "string" ? error.code : undefined,
+      failureCode: "hk_ipo_public_held_db_readback_failed",
+      failureStage,
+      queryLabel
+    });
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+function validateHkIpoPublicHeldDbApplyPayload(
+  value: unknown
+):
+  | { status: "ok"; payload: HkIpoPublicHeldDbApplyPayload }
+  | { errors: string[]; status: "invalid" } {
+  const errors: string[] = [];
+
+  if (!isPlainRecord(value)) {
+    return { errors: ["payload must be an object"], status: "invalid" };
+  }
+
+  const rowGroups = value.row_groups;
+  if (!isPlainRecord(rowGroups)) {
+    errors.push("row_groups must be an object");
+  }
+
+  const payload = value as unknown as HkIpoPublicHeldDbApplyPayload;
+  const groups = isPlainRecord(rowGroups) ? rowGroups : {};
+  const requiredGroups = [
+    "raw_source_batch",
+    "data_version_batch",
+    "hk_ipo_public_source_run",
+    "raw_snapshot",
+    "hk_ipo_public_observation",
+    "hk_ipo_public_reconciliation_row",
+    "hk_ipo_public_supplement_candidate"
+  ];
+
+  if (value.version !== HK_IPO_PUBLIC_HELD_DB_APPLY_VERSION) {
+    errors.push("version mismatch");
+  }
+  if (value.packet_kind !== "hk_ipo_public_held_db_apply_packet") {
+    errors.push("packet_kind mismatch");
+  }
+  if (value.mode !== "live") {
+    errors.push("mode must be live");
+  }
+  if (!/^packet:[a-f0-9]{64}$/u.test(String(value.packet_hash ?? ""))) {
+    errors.push("packet_hash must be packet-prefixed sha256 material");
+  }
+  if (!/^rsb_hk_ipo_public_[a-f0-9]{24}$/u.test(String(value.source_batch_id ?? ""))) {
+    errors.push("source_batch_id must be a HK IPO public batch id");
+  }
+  if (!/^dv_hk_ipo_public_[a-f0-9]{24}$/u.test(String(value.data_version ?? ""))) {
+    errors.push("data_version must be a HK IPO public held data version");
+  }
+  if (!/^sr_hk_ipo_public_[a-f0-9]{24}$/u.test(String(value.source_run_id ?? ""))) {
+    errors.push("source_run_id must be a HK IPO public source run id");
+  }
+
+  for (const group of requiredGroups) {
+    const rows = groups[group];
+    if (!Array.isArray(rows) || rows.length === 0) {
+      errors.push(`row_groups.${group} must be a non-empty array`);
+    }
+  }
+
+  const totalRows = requiredGroups.reduce((sum, group) => {
+    const rows = groups[group];
+    return sum + (Array.isArray(rows) ? rows.length : 0);
+  }, 0);
+  if (totalRows <= 0 || totalRows > 5000) {
+    errors.push("total row count must be between 1 and 5000");
+  }
+
+  if ((groups.raw_source_batch as unknown[])?.length !== 1) {
+    errors.push("raw_source_batch must contain exactly one row");
+  }
+  if ((groups.data_version_batch as unknown[])?.length !== 1) {
+    errors.push("data_version_batch must contain exactly one row");
+  }
+  if ((groups.hk_ipo_public_source_run as unknown[])?.length !== 1) {
+    errors.push("hk_ipo_public_source_run must contain exactly one row");
+  }
+
+  const dataVersionRow = firstRecord(groups.data_version_batch);
+  if (dataVersionRow?.release_state !== "held") {
+    errors.push("data_version_batch.release_state must be held");
+  }
+  if (dataVersionRow?.data_version !== value.data_version) {
+    errors.push("data_version_batch must match payload data_version");
+  }
+
+  const sourceRunRow = firstRecord(groups.hk_ipo_public_source_run);
+  if (sourceRunRow?.source_run_id !== value.source_run_id) {
+    errors.push("source_run must match payload source_run_id");
+  }
+  if (sourceRunRow?.source_mode !== "live" || sourceRunRow?.status !== "held") {
+    errors.push("source_run must remain live held");
+  }
+  if (
+    sourceRunRow?.live_network_writes !== false ||
+    sourceRunRow?.writes_serving_tables !== false
+  ) {
+    errors.push("source_run must not claim network writes or serving table writes");
+  }
+
+  const objectStoreSummary = value.object_store_write_summary;
+  if (!isPlainRecord(objectStoreSummary)) {
+    errors.push("object_store_write_summary must be an object");
+  } else {
+    if (Number(objectStoreSummary.remote_object_store_write_count ?? 0) <= 0) {
+      errors.push("object_store_write_summary must include remote object writes");
+    }
+    if (Number(objectStoreSummary.payload_body_output_count ?? 0) !== 0) {
+      errors.push("object_store_write_summary must not output payload bodies");
+    }
+    if (Number(objectStoreSummary.writes_database_count ?? 0) !== 0) {
+      errors.push("object_store_write_summary must not write database");
+    }
+  }
+
+  const serialized = JSON.stringify(value);
+  if (/<html|<body|__NUXT__|<script|<\/script>/iu.test(serialized)) {
+    errors.push("payload must not include raw HTML or script text");
+  }
+  if (/postgres(?:ql)?:\/\/|Bearer\s+[A-Za-z0-9._-]{20,}|sk-[A-Za-z0-9_-]{20,}/iu.test(serialized)) {
+    errors.push("payload must not include secrets or database URLs");
+  }
+
+  if (requiredGroups.every((group) => Array.isArray(groups[group]))) {
+    validateHkIpoPublicRows(payload, errors);
+  }
+
+  return errors.length > 0
+    ? { errors, status: "invalid" }
+    : { payload, status: "ok" };
+}
+
+function parseJsonObject(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function validateHkIpoPublicHeldDbReadbackPayload(
+  value: unknown
+):
+  | { status: "ok"; payload: HkIpoPublicHeldDbReadbackPayload }
+  | { errors: string[]; status: "invalid" } {
+  const errors: string[] = [];
+
+  if (!isPlainRecord(value)) {
+    return { errors: ["payload must be an object"], status: "invalid" };
+  }
+
+  const mode = value.mode === "specific" ? "specific" : "latest";
+  const payload: HkIpoPublicHeldDbReadbackPayload = {
+    mode,
+    object_store_readback: value.object_store_readback !== false
+  };
+
+  if (mode === "specific") {
+    payload.source_run_id = String(value.source_run_id ?? "");
+    payload.source_batch_id = String(value.source_batch_id ?? "");
+    payload.data_version = String(value.data_version ?? "");
+  } else {
+    for (const field of ["source_run_id", "source_batch_id", "data_version"]) {
+      if (typeof value[field] === "string" && value[field].length > 0) {
+        errors.push(`${field} requires mode specific`);
+      }
+    }
+  }
+
+  if (mode === "specific") {
+    if (!/^sr_hk_ipo_public_[a-f0-9]{24}$/u.test(String(payload.source_run_id ?? ""))) {
+      errors.push("source_run_id must be a HK IPO public source run id");
+    }
+    if (!/^rsb_hk_ipo_public_[a-f0-9]{24}$/u.test(String(payload.source_batch_id ?? ""))) {
+      errors.push("source_batch_id must be a HK IPO public batch id");
+    }
+    if (!/^dv_hk_ipo_public_[a-f0-9]{24}$/u.test(String(payload.data_version ?? ""))) {
+      errors.push("data_version must be a HK IPO public held data version");
+    }
+  }
+
+  return errors.length > 0
+    ? { errors, status: "invalid" }
+    : { payload, status: "ok" };
+}
+
+function validateHkIpoPublicRows(
+  payload: HkIpoPublicHeldDbApplyPayload,
+  errors: string[]
+): void {
+  for (const row of payload.row_groups.raw_snapshot) {
+    if (!isPlainRecord(row)) {
+      errors.push("raw_snapshot rows must be objects");
+      continue;
+    }
+    if (row.data_version !== payload.data_version || row.source_batch_id !== payload.source_batch_id) {
+      errors.push("raw_snapshot row must match payload data_version and source_batch_id");
+    }
+    if (row.record_kind !== "hk_ipo_public_source_record" || row.quality_state !== "HOLD") {
+      errors.push("raw_snapshot row must stay HK IPO public HOLD");
+    }
+    if (!isPlainRecord(row.payload)) {
+      errors.push("raw_snapshot row must use a payload envelope object");
+    } else if (
+      row.payload.payload_body_included !== false ||
+      row.payload.raw_html_included !== false ||
+      row.payload.storage_target !== "external_raw_snapshot_store"
+    ) {
+      errors.push("raw_snapshot payload envelope must not include raw payload text");
+    }
+  }
+
+  for (const row of payload.row_groups.hk_ipo_public_observation) {
+    if (!isPlainRecord(row)) {
+      errors.push("observation rows must be objects");
+      continue;
+    }
+    if (
+      row.source_run_id !== payload.source_run_id ||
+      row.data_version !== payload.data_version ||
+      row.raw_snapshot_required !== true ||
+      row.reconciled_with_hkex !== false ||
+      row.quality_state !== "HOLD"
+    ) {
+      errors.push("observation rows must stay held and unreconciled");
+    }
+    if (!/^[0-9]{5}\.HK$/u.test(String(row.security_code ?? ""))) {
+      errors.push("observation row security_code must be HK code");
+    }
+    if (!["aastocks_ipo_plus", "vbkr_hk_ipo"].includes(String(row.source_id ?? ""))) {
+      errors.push("observation row source_id must be an approved candidate source");
+    }
+  }
+
+  for (const row of payload.row_groups.hk_ipo_public_reconciliation_row) {
+    if (!isPlainRecord(row)) {
+      errors.push("reconciliation rows must be objects");
+      continue;
+    }
+    if (
+      row.source_run_id !== payload.source_run_id ||
+      row.data_version !== payload.data_version ||
+      row.raw_snapshot_required !== true ||
+      row.promotes_fact !== false ||
+      row.quality_state !== "HOLD"
+    ) {
+      errors.push("reconciliation rows must stay held and non-promoting");
+    }
+    if (!["low", "medium", "high"].includes(String(row.confidence ?? ""))) {
+      errors.push("reconciliation row confidence must be low, medium, or high");
+    }
+    if (typeof row.reason !== "string" || row.reason.trim().length === 0) {
+      errors.push("reconciliation row reason must be present");
+    }
+    if (!Array.isArray(row.source_ids) || row.source_ids.length === 0) {
+      errors.push("reconciliation row source_ids must be present");
+    }
+    if (!Array.isArray(row.source_observation_ids) || row.source_observation_ids.length === 0) {
+      errors.push("reconciliation row source_observation_ids must be present");
+    }
+    if (!Array.isArray(row.raw_snapshot_request_ids)) {
+      errors.push("reconciliation row raw_snapshot_request_ids must be an array");
+    }
+    if (!Array.isArray(row.hkex_evidence_ids)) {
+      errors.push("reconciliation row hkex_evidence_ids must be an array");
+    }
+  }
+
+  for (const row of payload.row_groups.hk_ipo_public_supplement_candidate) {
+    if (!isPlainRecord(row)) {
+      errors.push("supplement rows must be objects");
+      continue;
+    }
+    if (
+      row.source_run_id !== payload.source_run_id ||
+      row.data_version !== payload.data_version ||
+      row.raw_snapshot_required !== true ||
+      row.promotes_fact !== false ||
+      row.quality_state !== "HOLD" ||
+      row.status !== "candidate"
+    ) {
+      errors.push("supplement rows must stay held candidates");
+    }
+    if (typeof row.reason !== "string" || row.reason.trim().length === 0) {
+      errors.push("supplement row reason must be present");
+    }
+  }
+}
+
+function firstRecord(value: unknown): Record<string, unknown> | undefined {
+  return Array.isArray(value) && isPlainRecord(value[0]) ? value[0] : undefined;
+}
+
+function hkIpoPublicHeldDbApplyExpectedRows(payload: HkIpoPublicHeldDbApplyPayload): number {
+  return (
+    payload.row_groups.raw_source_batch.length +
+    payload.row_groups.data_version_batch.length +
+    payload.row_groups.hk_ipo_public_source_run.length +
+    payload.row_groups.raw_snapshot.length +
+    payload.row_groups.hk_ipo_public_observation.length +
+    payload.row_groups.hk_ipo_public_reconciliation_row.length +
+    payload.row_groups.hk_ipo_public_supplement_candidate.length
+  );
+}
+
+function hkIpoPublicHeldDbApplyTables(): HkIpoPublicHeldDbApplyResult["tables"] {
+  return [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ];
+}
+
 async function runMcpDeveloperConsoleLogStoreSmoke(
   env: WorkerBindings,
   requestId: string
@@ -14582,6 +16558,45 @@ function missingEvidenceLiveDbWriteSmokeResult(
   };
 }
 
+function missingHkIpoPublicHeldDbApplySmokeResult(
+  failureCode: string
+): HkIpoPublicHeldDbApplySmokeResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    production_promotion_enabled: false,
+    status: "missing_binding",
+    surface: "hk_ipo_public_held_rows_insert_select_delete",
+    writes_serving_tables: false
+  };
+}
+
+function missingHkIpoPublicHeldDbApplyResult(
+  failureCode: string
+): HkIpoPublicHeldDbApplyResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    production_promotion_enabled: false,
+    status: "missing_binding",
+    surface: "hk_ipo_public_live_held_rows_upsert_readback",
+    writes_serving_tables: false
+  };
+}
+
+function missingHkIpoPublicHeldDbReadbackResult(
+  failureCode: string
+): HkIpoPublicHeldDbReadbackResult {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    failure_code: failureCode,
+    production_promotion_enabled: false,
+    status: "missing_binding",
+    surface: "hk_ipo_public_live_held_rows_readback",
+    writes_serving_tables: false
+  };
+}
+
 function missingMcpDeveloperConsoleLogStoreSmokeResult(
   failureCode: string
 ): McpDeveloperConsoleLogStoreSmokeResult {
@@ -14753,6 +16768,26 @@ function missingEvidenceLiveDbWriteSmokeEnv(env: WorkerBindings): string[] {
 
 function getEvidenceLiveDbWriteSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function missingHkIpoPublicHeldDbApplyEnv(env: WorkerBindings): string[] {
+  return getHkIpoPublicHeldDbApplyToken(env).length >= 16
+    ? []
+    : [HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN_BINDING];
+}
+
+function getHkIpoPublicHeldDbApplyToken(env: WorkerBindings): string {
+  return env.AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN?.trim() ?? "";
+}
+
+function missingHkIpoPublicHeldDbApplySmokeEnv(env: WorkerBindings): string[] {
+  return getHkIpoPublicHeldDbApplySmokeToken(env).length >= 16
+    ? []
+    : [HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN_BINDING];
+}
+
+function getHkIpoPublicHeldDbApplySmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN?.trim() ?? "";
 }
 
 function missingMcpDeveloperConsoleLogStoreSmokeEnv(env: WorkerBindings): string[] {
@@ -14959,6 +16994,87 @@ async function failedEvidenceLiveDbWriteSmokeResult({
   };
 }
 
+async function failedHkIpoPublicHeldDbApplySmokeResult({
+  detail,
+  errorCode,
+  failureCode,
+  failureStage,
+  queryLabel
+}: {
+  detail: string;
+  errorCode?: string;
+  failureCode: string;
+  failureStage: string;
+  queryLabel: string;
+}): Promise<HkIpoPublicHeldDbApplySmokeResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    ...(errorCode ? { error_code: errorCode } : {}),
+    failure_code: failureCode,
+    failure_stage: failureStage,
+    production_promotion_enabled: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "hk_ipo_public_held_rows_insert_select_delete",
+    writes_serving_tables: false
+  };
+}
+
+async function failedHkIpoPublicHeldDbApplyResult({
+  detail,
+  errorCode,
+  failureCode,
+  failureStage,
+  queryLabel
+}: {
+  detail: string;
+  errorCode?: string;
+  failureCode: string;
+  failureStage: string;
+  queryLabel: string;
+}): Promise<HkIpoPublicHeldDbApplyResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    ...(errorCode ? { error_code: errorCode } : {}),
+    failure_code: failureCode,
+    failure_stage: failureStage,
+    production_promotion_enabled: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "hk_ipo_public_live_held_rows_upsert_readback",
+    writes_serving_tables: false
+  };
+}
+
+async function failedHkIpoPublicHeldDbReadbackResult({
+  detail,
+  errorCode,
+  failureCode,
+  failureStage,
+  queryLabel
+}: {
+  detail: string;
+  errorCode?: string;
+  failureCode: string;
+  failureStage: string;
+  queryLabel: string;
+}): Promise<HkIpoPublicHeldDbReadbackResult> {
+  return {
+    binding_name: "AIPHABEE_HYPERDRIVE",
+    detail_hash: await hashRuntimeSmokeString(sanitizeRuntimeSmokeDetail(detail)),
+    ...(errorCode ? { error_code: errorCode } : {}),
+    failure_code: failureCode,
+    failure_stage: failureStage,
+    production_promotion_enabled: false,
+    query_hash: await hashRuntimeSmokeString(queryLabel),
+    status: "failed",
+    surface: "hk_ipo_public_live_held_rows_readback",
+    writes_serving_tables: false
+  };
+}
+
 async function failedMcpDeveloperConsoleLogStoreSmokeResult({
   detail,
   failureCode,
@@ -15136,6 +17252,14 @@ function isRuntimeR2Bucket(value: unknown): value is RuntimeR2Bucket {
     typeof value.get === "function" &&
     typeof value.put === "function"
   );
+}
+
+async function runtimeR2ObjectExists(bucket: RuntimeR2Bucket, key: string): Promise<boolean> {
+  if (typeof bucket.head === "function") {
+    return (await bucket.head(key)) !== null;
+  }
+
+  return (await bucket.get(key)) !== null;
 }
 
 function isRuntimeD1Database(value: unknown): value is RuntimeD1Database {
@@ -16685,6 +18809,30 @@ function isEvidenceLiveDbWriteSmokeAuthorized(
   c: Context<{ Bindings: WorkerBindings }>
 ): boolean {
   const token = getEvidenceLiveDbWriteSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isHkIpoPublicHeldDbApplySmokeAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getHkIpoPublicHeldDbApplySmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isHkIpoPublicHeldDbApplyAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = getHkIpoPublicHeldDbApplyToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;

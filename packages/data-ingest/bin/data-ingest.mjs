@@ -17,6 +17,7 @@ const EXTRACTOR_NAME = "hkex-news-metadata-extractor";
 const EXTRACTOR_VERSION = "2026-06-27.metadata-facts.v0";
 const TRANSFORM_VERSION = "2026-06-27.pending-fact-transform.v0";
 const STALE_RUNNING_RUN_MINUTES = 15;
+const RELEASE_ENABLE_ENV = "DATA_INGEST_ENABLE_RELEASE";
 const DAILY_COMMAND = [
   "data-ingest",
   "hkex",
@@ -190,6 +191,21 @@ async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
         ...baseRunResult(resolvedDate, ids, "skipped_locked", command),
         last_completed_stage: "lock"
       }, EXIT_CODES.skippedLocked);
+    }
+
+    const existingReleaseState = await readDataVersionReleaseState(client, ids.dataVersion);
+    if (existingReleaseState && existingReleaseState !== "held") {
+      emit(
+        failureResult({
+          command,
+          dataVersion: ids.dataVersion,
+          errorCode: "DATA_VERSION_NOT_MUTABLE",
+          failedStage: "data_version",
+          runId: ids.runId,
+          summary: `Daily HKEX News ingest cannot mutate ${ids.dataVersion} because release_state=${existingReleaseState}.`
+        }),
+        EXIT_CODES.invariantViolation
+      );
     }
 
     await client.query("begin");
@@ -429,52 +445,8 @@ async function emitValidate(parsedFlags) {
   const client = new Client({ connectionString: databaseUrl });
   await client.connect();
   try {
-    const result = await client.query(
-      `
-        with latest_crawl as (
-          select status, error_count
-          from core.hkex_news_crawl_run
-          where data_version = $1
-          order by completed_at desc nulls last, crawl_run_id desc
-          limit 1
-        ),
-        observation_counts as (
-          select count(distinct document_id)::int as document_count
-          from core.hkex_news_document_observation
-          where data_version = $1
-        ),
-        fact_counts as (
-          select count(distinct extracted_fact_id)::int as extracted_fact_count
-          from core.hkex_news_extracted_fact
-          where data_version = $1
-            and fact_namespace = 'hkex_news'
-        ),
-        latest_transform as (
-          select status, validation_report
-          from core.hkex_news_transform_run
-          where data_version = $1
-          order by completed_at desc nulls last, transform_run_id desc
-          limit 1
-        )
-        select
-          dv.data_version,
-          dv.release_state,
-          cr.status,
-          cr.error_count,
-          coalesce(obs.document_count, 0)::int as document_count,
-          coalesce(fact.extracted_fact_count, 0)::int as extracted_fact_count,
-          tx.status = 'completed' as transform_completed,
-          tx.validation_report
-        from core.data_version_batch dv
-        left join latest_crawl cr on true
-        left join observation_counts obs on true
-        left join fact_counts fact on true
-        left join latest_transform tx on true
-        where dv.data_version = $1
-      `,
-      [dataVersion]
-    );
-    if (result.rows.length === 0) {
+    const validation = await readValidationState(client, dataVersion);
+    if (!validation.exists) {
       emit(
         failureResult({
           command: ["data-ingest", "validate"],
@@ -486,33 +458,9 @@ async function emitValidate(parsedFlags) {
         EXIT_CODES.configurationFailure
       );
     }
-    const row = result.rows[0];
-    const documentCount = Number(row.document_count ?? 0);
-    const extractedFactCount = Number(row.extracted_fact_count ?? 0);
-    const transformCompleted = row.transform_completed === true;
-    const validationReport = isRecord(row.validation_report) ? row.validation_report : {};
-    const expectedDocumentCount = integerOrNull(validationReport.document_count);
-    const expectedFactCount = integerOrNull(validationReport.candidate_fact_count);
-    const countsMatchTransform = (expectedDocumentCount === null || documentCount === expectedDocumentCount)
-      && (expectedFactCount === null || extractedFactCount === expectedFactCount);
-    const pass = row.release_state === "held"
-      && row.status === "completed"
-      && Number(row.error_count ?? 0) === 0
-      && (documentCount === 0 || extractedFactCount > 0)
-      && transformCompleted
-      && countsMatchTransform;
     emit(
-      validationResult(dataVersion, pass, {
-        counts_match_transform: countsMatchTransform,
-        document_count: documentCount,
-        expected_document_count: expectedDocumentCount,
-        expected_fact_count: expectedFactCount,
-        extracted_fact_count: extractedFactCount,
-        linked_document_count: integerOrNull(validationReport.linked_document_count),
-        reconciliation: isRecord(validationReport.reconciliation) ? validationReport.reconciliation : null,
-        transform_completed: transformCompleted
-      }),
-      pass ? EXIT_CODES.completed : EXIT_CODES.heldQualityFailure
+      validationResult(dataVersion, validation.pass, validation.metrics, validation.releaseState ?? "held"),
+      validation.pass ? EXIT_CODES.completed : EXIT_CODES.heldQualityFailure
     );
   } finally {
     await client.end().catch(() => undefined);
@@ -522,6 +470,7 @@ async function emitValidate(parsedFlags) {
 async function emitRelease(parsedFlags) {
   const dataVersion = stringFlag(parsedFlags, "data-version");
   const approvalId = stringFlag(parsedFlags, "approval-id");
+  const output = stringFlag(parsedFlags, "output");
   if (!dataVersion || !approvalId) {
     emit(
       failureResult({
@@ -534,16 +483,284 @@ async function emitRelease(parsedFlags) {
       EXIT_CODES.configurationFailure
     );
   }
-  emit(
-    failureResult({
-      command: ["data-ingest", "release"],
-      dataVersion,
-      errorCode: "RELEASE_REQUIRES_SEPARATE_IMPLEMENTATION",
-      failedStage: "preflight",
-      summary: "Daily HKEX News automation cannot release data. Release remains a separate approval-gated implementation slice."
-    }),
-    EXIT_CODES.configurationFailure
+  if (output !== "json") {
+    emit(
+      failureResult({
+        command: releaseCommand(dataVersion),
+        dataVersion,
+        errorCode: "INVALID_RELEASE_ARGUMENTS",
+        failedStage: "preflight",
+        summary: "release requires --output json."
+      }),
+      EXIT_CODES.configurationFailure
+    );
+  }
+
+  if (localContractMode(parsedFlags)) {
+    emit(
+      releaseResult({
+        approvalId,
+        dataVersion,
+        mode: "local_contract",
+        releasedAt: null,
+        validationMetrics: {
+          counts_match_transform: true,
+          transform_completed: true
+        },
+        writesDatabase: false
+      }),
+      EXIT_CODES.completed
+    );
+  }
+
+  const releaseBusinessDate = businessDateFromDataVersion(dataVersion);
+  if (!releaseBusinessDate) {
+    emit(
+      failureResult({
+        command: releaseCommand(dataVersion),
+        dataVersion,
+        errorCode: "INVALID_DATA_VERSION",
+        failedStage: "preflight",
+        summary: "release requires data_version shaped as dv_hkex_news_YYYYMMDD."
+      }),
+      EXIT_CODES.configurationFailure
+    );
+  }
+
+  const databaseUrl = databaseUrlFromEnv();
+  if (!databaseUrl || process.env[RELEASE_ENABLE_ENV] !== "1") {
+    emit(
+      failureResult({
+        command: releaseCommand(dataVersion),
+        dataVersion,
+        errorCode: "LIVE_RELEASE_NOT_CONFIGURED",
+        failedStage: "preflight",
+        summary: `release requires ${RELEASE_ENABLE_ENV}=1 and DATA_INGEST_DATABASE_URL/IPO_DATABASE_URL/DATABASE_URL.`
+      }),
+      EXIT_CODES.configurationFailure
+    );
+  }
+
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  let lockAcquired = false;
+  try {
+    await configureSession(client);
+    const lock = await client.query("select pg_try_advisory_lock(hashtext($1)) as locked", [
+      `aiphabee:${SOURCE_NAME}:${releaseBusinessDate}`
+    ]);
+    lockAcquired = lock.rows[0]?.locked === true;
+    if (!lockAcquired) {
+      emit(
+        failureResult({
+          command: releaseCommand(dataVersion),
+          dataVersion,
+          errorCode: "DATA_VERSION_LOCKED",
+          failedStage: "lock",
+          retryable: true,
+          summary: `release skipped because ${dataVersion} is locked by an active HKEX News ingest.`
+        }),
+        EXIT_CODES.skippedLocked
+      );
+    }
+
+    await client.query("begin");
+    const validation = await readValidationState(client, dataVersion);
+    if (!validation.exists) {
+      await client.query("rollback");
+      emit(
+        failureResult({
+          command: releaseCommand(dataVersion),
+          dataVersion,
+          errorCode: "DATA_VERSION_NOT_FOUND",
+          failedStage: "validate",
+          summary: `No data_version found for ${dataVersion}.`
+        }),
+        EXIT_CODES.configurationFailure
+      );
+    }
+    if (validation.releaseState !== "held") {
+      await client.query("rollback");
+      emit(
+        failureResult({
+          command: releaseCommand(dataVersion),
+          dataVersion,
+          errorCode: "DATA_VERSION_NOT_HELD",
+          failedStage: "validate",
+          summary: `release requires held data_version; ${dataVersion} is ${validation.releaseState}.`
+        }),
+        EXIT_CODES.invariantViolation
+      );
+    }
+    if (!validation.pass) {
+      await client.query("rollback");
+      emit(
+        {
+          ...failureResult({
+            command: releaseCommand(dataVersion),
+            dataVersion,
+            errorCode: "RELEASE_VALIDATION_FAILED",
+            failedStage: "validate",
+            summary: `release validation failed for ${dataVersion}.`
+          }),
+          metrics: validation.metrics
+        },
+        EXIT_CODES.heldQualityFailure
+      );
+    }
+
+    const update = await client.query(
+      `
+        update core.data_version_batch
+        set release_state = 'released',
+            released_at = now()
+        where data_version = $1
+          and release_state = 'held'
+        returning released_at
+      `,
+      [dataVersion]
+    );
+    if (update.rows.length !== 1) {
+      await client.query("rollback");
+      emit(
+        failureResult({
+          command: releaseCommand(dataVersion),
+          dataVersion,
+          errorCode: "RELEASE_STATE_UPDATE_CONFLICT",
+          failedStage: "release",
+          summary: `release_state update did not affect exactly one held data_version for ${dataVersion}.`
+        }),
+        EXIT_CODES.invariantViolation
+      );
+    }
+    await client.query("commit");
+    emit(
+      releaseResult({
+        approvalId,
+        dataVersion,
+        mode: "live",
+        releasedAt: update.rows[0]?.released_at ? new Date(update.rows[0].released_at).toISOString() : null,
+        validationMetrics: validation.metrics,
+        writesDatabase: true
+      }),
+      EXIT_CODES.completed
+    );
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    emit(
+      failureResult({
+        command: releaseCommand(dataVersion),
+        dataVersion,
+        errorCode: "DATABASE_OR_STORAGE_FAILURE",
+        failedStage: "release",
+        summary: error instanceof Error ? error.message : String(error)
+      }),
+      EXIT_CODES.databaseOrStorageFailure
+    );
+  } finally {
+    if (lockAcquired) {
+      await client.query("select pg_advisory_unlock(hashtext($1))", [
+        `aiphabee:${SOURCE_NAME}:${releaseBusinessDate}`
+      ]).catch(() => undefined);
+    }
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function readDataVersionReleaseState(client, dataVersion) {
+  const result = await client.query(
+    "select release_state from core.data_version_batch where data_version = $1",
+    [dataVersion]
   );
+  return typeof result.rows[0]?.release_state === "string" ? result.rows[0].release_state : null;
+}
+
+async function readValidationState(client, dataVersion) {
+  const result = await client.query(
+    `
+      with latest_crawl as (
+        select status, error_count
+        from core.hkex_news_crawl_run
+        where data_version = $1
+        order by completed_at desc nulls last, crawl_run_id desc
+        limit 1
+      ),
+      observation_counts as (
+        select count(distinct document_id)::int as document_count
+        from core.hkex_news_document_observation
+        where data_version = $1
+      ),
+      fact_counts as (
+        select count(distinct extracted_fact_id)::int as extracted_fact_count
+        from core.hkex_news_extracted_fact
+        where data_version = $1
+          and fact_namespace = 'hkex_news'
+      ),
+      latest_transform as (
+        select status, validation_report
+        from core.hkex_news_transform_run
+        where data_version = $1
+        order by completed_at desc nulls last, transform_run_id desc
+        limit 1
+      )
+      select
+        dv.data_version,
+        dv.release_state,
+        cr.status,
+        cr.error_count,
+        coalesce(obs.document_count, 0)::int as document_count,
+        coalesce(fact.extracted_fact_count, 0)::int as extracted_fact_count,
+        tx.status = 'completed' as transform_completed,
+        tx.validation_report
+      from core.data_version_batch dv
+      left join latest_crawl cr on true
+      left join observation_counts obs on true
+      left join fact_counts fact on true
+      left join latest_transform tx on true
+      where dv.data_version = $1
+    `,
+    [dataVersion]
+  );
+  if (result.rows.length === 0) {
+    return {
+      exists: false,
+      metrics: {},
+      pass: false,
+      releaseState: null
+    };
+  }
+
+  const row = result.rows[0];
+  const documentCount = Number(row.document_count ?? 0);
+  const extractedFactCount = Number(row.extracted_fact_count ?? 0);
+  const transformCompleted = row.transform_completed === true;
+  const validationReport = isRecord(row.validation_report) ? row.validation_report : {};
+  const expectedDocumentCount = integerOrNull(validationReport.document_count);
+  const expectedFactCount = integerOrNull(validationReport.candidate_fact_count);
+  const countsMatchTransform = (expectedDocumentCount === null || documentCount === expectedDocumentCount)
+    && (expectedFactCount === null || extractedFactCount === expectedFactCount);
+  const pass = row.release_state === "held"
+    && row.status === "completed"
+    && Number(row.error_count ?? 0) === 0
+    && (documentCount === 0 || extractedFactCount > 0)
+    && transformCompleted
+    && countsMatchTransform;
+
+  return {
+    exists: true,
+    metrics: {
+      counts_match_transform: countsMatchTransform,
+      document_count: documentCount,
+      expected_document_count: expectedDocumentCount,
+      expected_fact_count: expectedFactCount,
+      extracted_fact_count: extractedFactCount,
+      linked_document_count: integerOrNull(validationReport.linked_document_count),
+      reconciliation: isRecord(validationReport.reconciliation) ? validationReport.reconciliation : null,
+      transform_completed: transformCompleted
+    },
+    pass,
+    releaseState: typeof row.release_state === "string" ? row.release_state : null
+  };
 }
 
 async function configureSession(client) {
@@ -594,8 +811,14 @@ async function upsertDataVersion(client, ids) {
         source_batch_id = excluded.source_batch_id,
         methodology_version = excluded.methodology_version,
         rights_policy_version = excluded.rights_policy_version,
-        release_state = 'held',
-        released_at = null
+        release_state = case
+          when core.data_version_batch.release_state = 'held' then 'held'
+          else core.data_version_batch.release_state
+        end,
+        released_at = case
+          when core.data_version_batch.release_state = 'held' then null
+          else core.data_version_batch.released_at
+        end
     `,
     [ids.dataVersion, ids.sourceBatchId, METHODOLOGY_VERSION, RIGHTS_POLICY_VERSION]
   );
@@ -1573,11 +1796,11 @@ function localContractDailyResult(resolvedDate, command = DAILY_COMMAND) {
   };
 }
 
-function validationResult(dataVersion, pass, metrics = {}) {
+function validationResult(dataVersion, pass, metrics = {}, releaseState = "held") {
   return {
     data_version: dataVersion,
     metrics,
-    release_state: "held",
+    release_state: releaseState,
     status: pass ? "completed" : "held_quality_failure",
     validation: {
       content_integrity: pass,
@@ -1592,6 +1815,53 @@ function validationResult(dataVersion, pass, metrics = {}) {
     },
     version: DATA_INGEST_VERSION
   };
+}
+
+function releaseResult({
+  approvalId,
+  dataVersion,
+  mode,
+  releasedAt,
+  validationMetrics,
+  writesDatabase
+}) {
+  return {
+    approval_id_hash: `approval:${stableHash(approvalId).slice(0, 24)}`,
+    automation_release_allowed: false,
+    command: releaseCommand(dataVersion),
+    data_version: dataVersion,
+    governance: {
+      default_data_rights_status: "default_deny",
+      export_allowed: false,
+      field_authorization_required: true,
+      mcp_redistribution_allowed: false
+    },
+    mode,
+    release_state: "released",
+    release_state_after: "released",
+    release_state_before: "held",
+    released_at: releasedAt,
+    status: "released",
+    validation: {
+      metrics: validationMetrics,
+      passed: true
+    },
+    version: DATA_INGEST_VERSION,
+    writes_database: writesDatabase
+  };
+}
+
+function releaseCommand(dataVersion) {
+  return [
+    "data-ingest",
+    "release",
+    "--data-version",
+    dataVersion,
+    "--approval-id",
+    "<redacted>",
+    "--output",
+    "json"
+  ];
 }
 
 function baseRunResult(businessDate, ids, status, command = DAILY_COMMAND) {
@@ -1661,6 +1931,12 @@ function idsForBusinessDate(businessDate) {
 
 function businessDateFromRunId(runId) {
   const match = /^cr_hkex_news_(\d{4})(\d{2})(\d{2})$/u.exec(runId);
+  if (!match) return null;
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+function businessDateFromDataVersion(dataVersion) {
+  const match = /^dv_hkex_news_(\d{4})(\d{2})(\d{2})(?:_local_contract)?$/u.exec(dataVersion);
   if (!match) return null;
   return `${match[1]}-${match[2]}-${match[3]}`;
 }

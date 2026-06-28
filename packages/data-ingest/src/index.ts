@@ -31,6 +31,27 @@ export const HKEX_NEWS_REPO_DAILY_COMMAND = [
   ...HKEX_NEWS_DAILY_COMMAND.slice(1)
 ] as const;
 
+export const HKEX_NEWS_RELEASE_COMMAND = [
+  "data-ingest",
+  "release",
+  "--data-version",
+  "<data_version>",
+  "--approval-id",
+  "<approval_id>",
+  "--output",
+  "json"
+] as const;
+
+export const HKEX_NEWS_REPO_RELEASE_COMMAND = [
+  "npm",
+  "run",
+  "data-ingest",
+  "--",
+  ...HKEX_NEWS_RELEASE_COMMAND.slice(1)
+] as const;
+
+export const HKEX_NEWS_RELEASE_REQUIRES_ENV = "DATA_INGEST_ENABLE_RELEASE=1";
+
 export const HKEX_NEWS_SOURCE_SURFACES = [
   "latest_list",
   "title_search",
@@ -147,6 +168,7 @@ export interface HkexNewsRuntimeConfig {
   database_write_requires_env: "DATA_INGEST_ENABLE_DB_WRITE=1";
   database_url_env: readonly ["DATA_INGEST_DATABASE_URL", "IPO_DATABASE_URL", "DATABASE_URL"];
   jobdir_template: typeof HKEX_NEWS_JOBDIR_TEMPLATE;
+  release_requires_env: typeof HKEX_NEWS_RELEASE_REQUIRES_ENV;
   report_template: typeof HKEX_NEWS_REPORT_TEMPLATE;
   runtime_dir_env: "DATA_INGEST_RUNTIME_DIR";
   scrapy_engine: true;
@@ -158,6 +180,7 @@ export const HKEX_NEWS_RUNTIME_CONFIG: HkexNewsRuntimeConfig = {
   database_write_requires_env: "DATA_INGEST_ENABLE_DB_WRITE=1",
   database_url_env: ["DATA_INGEST_DATABASE_URL", "IPO_DATABASE_URL", "DATABASE_URL"],
   jobdir_template: HKEX_NEWS_JOBDIR_TEMPLATE,
+  release_requires_env: HKEX_NEWS_RELEASE_REQUIRES_ENV,
   report_template: HKEX_NEWS_REPORT_TEMPLATE,
   runtime_dir_env: "DATA_INGEST_RUNTIME_DIR",
   scrapy_engine: true,

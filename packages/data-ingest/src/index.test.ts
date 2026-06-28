@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   DATA_INGEST_EXIT_CODES,
   HKEX_NEWS_DAILY_COMMAND,
+  HKEX_NEWS_RELEASE_COMMAND,
+  HKEX_NEWS_RELEASE_REQUIRES_ENV,
   HKEX_NEWS_REPO_DAILY_COMMAND,
+  HKEX_NEWS_REPO_RELEASE_COMMAND,
   HKEX_NEWS_RUNTIME_CONFIG,
   HKEX_NEWS_SCRAPY_SPIDER,
   HKEX_NEWS_SCHEMA_TABLES,
@@ -44,6 +47,30 @@ describe("data-ingest HKEX News contract", () => {
       "--output",
       "json"
     ]);
+    expect(HKEX_NEWS_RELEASE_COMMAND).toEqual([
+      "data-ingest",
+      "release",
+      "--data-version",
+      "<data_version>",
+      "--approval-id",
+      "<approval_id>",
+      "--output",
+      "json"
+    ]);
+    expect(HKEX_NEWS_REPO_RELEASE_COMMAND).toEqual([
+      "npm",
+      "run",
+      "data-ingest",
+      "--",
+      "release",
+      "--data-version",
+      "<data_version>",
+      "--approval-id",
+      "<approval_id>",
+      "--output",
+      "json"
+    ]);
+    expect(HKEX_NEWS_RELEASE_REQUIRES_ENV).toBe("DATA_INGEST_ENABLE_RELEASE=1");
   });
 
   it("models HKEX News as multi-surface public inflow with Postgres as source of truth", () => {
@@ -62,6 +89,7 @@ describe("data-ingest HKEX News contract", () => {
     expect(HKEX_NEWS_RUNTIME_CONFIG).toMatchObject({
       database_write_requires_env: "DATA_INGEST_ENABLE_DB_WRITE=1",
       jobdir_template: "runtime/scrapy-jobs/<run_id>",
+      release_requires_env: "DATA_INGEST_ENABLE_RELEASE=1",
       report_template: "runtime/reports/<run_id>/documents.jsonl",
       runtime_dir_env: "DATA_INGEST_RUNTIME_DIR",
       scrapy_engine: true,

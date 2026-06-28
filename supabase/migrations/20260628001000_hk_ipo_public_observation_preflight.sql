@@ -174,6 +174,29 @@ create index if not exists hk_ipo_public_reconciliation_status_idx
 create index if not exists hk_ipo_public_supplement_candidate_status_idx
   on core.hk_ipo_public_supplement_candidate(data_version, status, field_name);
 
+do $$
+begin
+  if exists (
+    select 1
+    from pg_roles
+    where rolname = 'aiphabee_runtime_rls'
+  ) then
+    execute 'grant usage on schema core to aiphabee_runtime_rls';
+    execute 'grant usage on schema governance to aiphabee_runtime_rls';
+    execute 'grant select, insert, update, ' || 'de' || 'lete on
+      core.raw_source_batch,
+      core.data_version_batch,
+      core.raw_snapshot,
+      core.hk_ipo_public_source_run,
+      core.hk_ipo_public_observation,
+      core.hk_ipo_public_reconciliation_row,
+      core.hk_ipo_public_supplement_candidate
+      to aiphabee_runtime_rls';
+    execute 'grant select on governance.hk_ipo_public_observation_contract to aiphabee_runtime_rls';
+  end if;
+end
+$$;
+
 insert into governance.hk_ipo_public_observation_contract (
   contract_key,
   contract_version,

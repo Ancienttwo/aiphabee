@@ -238,7 +238,14 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
         "adapter_version",
         "packet_version",
         "source_mode",
-        "status"
+        "status",
+        "source_ids",
+        "security_count",
+        "observation_count",
+        "reconciliation_row_count",
+        "supplement_candidate_count",
+        "live_network_writes",
+        "writes_serving_tables"
       ]),
       statement(
         "upsert_core_raw_snapshot",
@@ -254,6 +261,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
           "payload",
           "payload_hash_sha256",
           "received_at",
+          "quality_state",
           "data_version",
           "methodology_version"
         ],
@@ -277,7 +285,12 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
           "field_name",
           "field_value",
           "field_value_type",
+          "raw_snapshot_id",
           "raw_snapshot_required",
+          "reconciled_with_hkex",
+          "conflict_status",
+          "confidence",
+          "locator",
           "locator_hash",
           "data_version",
           "quality_state"
@@ -295,10 +308,15 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
           "security_code",
           "fact_name",
           "status",
+          "canonical_candidate",
           "source_observation_ids",
+          "source_ids",
           "raw_snapshot_request_ids",
           "hkex_evidence_ids",
+          "confidence",
+          "reason",
           "raw_snapshot_required",
+          "conflict_requires_manual_review",
           "promotes_fact",
           "data_version",
           "quality_state"
@@ -322,6 +340,7 @@ function buildApplyPlan({ adapterPayload, capturePlan, packet, storagePlan }) {
           "status",
           "raw_snapshot_required",
           "promotes_fact",
+          "reason",
           "data_version",
           "quality_state"
         ]

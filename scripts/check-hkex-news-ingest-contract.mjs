@@ -136,6 +136,86 @@ if (runtimeContract.runtime?.hkex_title_search_defaults?.row_range !== 20) {
 if (runtimeContract.cli?.automation_may_call_release !== false) {
   errors.push("runtime contract must prohibit automation release");
 }
+if (runtimeContract.cli?.release_requires_env !== "DATA_INGEST_ENABLE_RELEASE=1") {
+  errors.push("runtime contract must require DATA_INGEST_ENABLE_RELEASE=1 for release");
+}
+if (runtimeContract.release_safety?.manual_approval_required !== true) {
+  errors.push("runtime contract must require manual approval for release");
+}
+if (runtimeContract.release_safety?.approval_id_output !== "hash_only") {
+  errors.push("runtime contract must only expose approval_id as a hash");
+}
+if (runtimeContract.release_safety?.automation_may_call_release !== false) {
+  errors.push("runtime contract release_safety must prohibit automation release");
+}
+if (runtimeContract.release_safety?.release_requires_validate !== true) {
+  errors.push("runtime contract release_safety must require validate before release");
+}
+if (runtimeContract.release_safety?.release_requires_held_state !== true) {
+  errors.push("runtime contract release_safety must require held state before release");
+}
+if (runtimeContract.release_safety?.serving_table_writes !== false) {
+  errors.push("runtime contract release_safety must not write serving tables");
+}
+if (runtimeContract.release_readback?.version !== "2026-06-28.hkex-news-release-readback.v0") {
+  errors.push("runtime contract must declare HKEX News release readback version");
+}
+if (runtimeContract.release_readback?.contract !== "deploy/ingest/hkex-news-release-readback.contract.json") {
+  errors.push("runtime contract release_readback contract path mismatch");
+}
+if (runtimeContract.release_readback?.checker !== "scripts/check-hkex-news-release-readback.mjs") {
+  errors.push("runtime contract release_readback checker mismatch");
+}
+if (runtimeContract.release_readback?.package_script !== "npm run check:hkex-news-release-readback") {
+  errors.push("runtime contract release_readback package_script mismatch");
+}
+if (runtimeContract.release_readback?.read_only_database !== true) {
+  errors.push("runtime contract release_readback must be read-only");
+}
+if (runtimeContract.release_readback?.hash_only_response !== true) {
+  errors.push("runtime contract release_readback must be hash-only");
+}
+if (runtimeContract.release_readback?.writes_database !== false) {
+  errors.push("runtime contract release_readback must not write database");
+}
+if (runtimeContract.release_readback?.emits_approval_id !== false) {
+  errors.push("runtime contract release_readback must not emit approval id");
+}
+for (const table of ["core.data_version_batch", "core.hkex_news_crawl_run", "core.hkex_news_transform_run"]) {
+  if (!runtimeContract.release_readback?.target_tables?.includes(table)) {
+    errors.push(`runtime contract release_readback missing target table ${table}`);
+  }
+}
+if (runtimeContract.release_evidence_packet?.version !== "2026-06-28.hkex-news-release-evidence-packet.v0") {
+  errors.push("runtime contract must declare HKEX News release evidence packet version");
+}
+if (runtimeContract.release_evidence_packet?.contract !== "deploy/ingest/hkex-news-release-evidence-packet.contract.json") {
+  errors.push("runtime contract release_evidence_packet contract path mismatch");
+}
+if (runtimeContract.release_evidence_packet?.checker !== "scripts/plan-hkex-news-release-evidence-packet.mjs") {
+  errors.push("runtime contract release_evidence_packet checker mismatch");
+}
+if (runtimeContract.release_evidence_packet?.package_script !== "npm run check:hkex-news-release-evidence-packet") {
+  errors.push("runtime contract release_evidence_packet package_script mismatch");
+}
+if (runtimeContract.release_evidence_packet?.manual_approval_required !== true) {
+  errors.push("runtime contract release_evidence_packet must require manual approval");
+}
+if (runtimeContract.release_evidence_packet?.hash_only_response !== true) {
+  errors.push("runtime contract release_evidence_packet must be hash-only");
+}
+if (runtimeContract.release_evidence_packet?.read_only_database !== true) {
+  errors.push("runtime contract release_evidence_packet must be read-only");
+}
+if (runtimeContract.release_evidence_packet?.writes_database !== false) {
+  errors.push("runtime contract release_evidence_packet must not write database");
+}
+if (runtimeContract.release_evidence_packet?.releases_data_version !== false) {
+  errors.push("runtime contract release_evidence_packet must not release data_version");
+}
+if (runtimeContract.release_evidence_packet?.emits_approval_id !== false) {
+  errors.push("runtime contract release_evidence_packet must not emit approval id");
+}
 if (runtimeContract.cli?.repo_script !== "npm run data-ingest --") {
   errors.push("runtime contract must declare npm run data-ingest -- as the monorepo script");
 }
@@ -217,6 +297,18 @@ for (const field of ["run_id", "data_version", "business_date", "status", "count
 const rootPackage = readJson(rootPackagePath);
 if (rootPackage.scripts?.["check:hkex-news-ingest"] !== "node scripts/check-hkex-news-ingest-contract.mjs") {
   errors.push("root package.json must expose check:hkex-news-ingest");
+}
+if (rootPackage.scripts?.["check:hkex-news-release-readback"] !== "node scripts/check-hkex-news-release-readback.mjs --check") {
+  errors.push("root package.json must expose check:hkex-news-release-readback");
+}
+if (!rootPackage.scripts?.check?.includes("npm run check:hkex-news-release-readback")) {
+  errors.push("root package.json check must include check:hkex-news-release-readback");
+}
+if (rootPackage.scripts?.["check:hkex-news-release-evidence-packet"] !== "node scripts/plan-hkex-news-release-evidence-packet.mjs --check") {
+  errors.push("root package.json must expose check:hkex-news-release-evidence-packet");
+}
+if (!rootPackage.scripts?.check?.includes("npm run check:hkex-news-release-evidence-packet")) {
+  errors.push("root package.json check must include check:hkex-news-release-evidence-packet");
 }
 if (rootPackage.scripts?.["check:hkex-news-crawl-goldset"] !== "node scripts/check-hkex-news-crawl-goldset.mjs") {
   errors.push("root package.json must expose check:hkex-news-crawl-goldset");
@@ -320,7 +412,20 @@ for (const fragment of [
   "JOBDIR=",
   "DATA_INGEST_SCRAPY_START_URL",
   "DATA_INGEST_RUNTIME_DIR",
-  "DATA_INGEST_ENABLE_DB_WRITE"
+  "DATA_INGEST_ENABLE_DB_WRITE",
+  "DATA_INGEST_ENABLE_RELEASE",
+  "DATA_VERSION_NOT_MUTABLE",
+  "DATA_VERSION_LOCKED",
+  "LIVE_RELEASE_NOT_CONFIGURED",
+  "RELEASE_VALIDATION_FAILED",
+  "businessDateFromDataVersion",
+  "approval_id_hash",
+  "release_state_before",
+  "release_state_after",
+  "automation_release_allowed",
+  "writes_database",
+  "release_state = 'released'",
+  "core.data_version_batch.release_state = 'held'"
 ]) {
   if (!cliSource.includes(fragment)) {
     errors.push(`CLI runtime missing fragment: ${fragment}`);
@@ -373,15 +478,47 @@ const release = runCli([
   "json"
 ], { DATA_INGEST_LOCAL_CONTRACT_MODE: "1" });
 
-if (release.status === 0) {
-  errors.push("data-ingest release must not succeed in this local HKEX News contract");
+if (release.status !== 0) {
+  errors.push(`data-ingest release local contract exited ${release.status}: ${release.stderr || release.stdout}`);
 } else {
   const payload = parseJson(release.stdout, "release cli output");
   if (payload?.data_version !== "dv_hkex_news_20260625_local_contract") {
-    errors.push("release refusal must preserve the requested data_version");
+    errors.push("release output must preserve the requested data_version");
   }
-  if (payload?.release_state !== "held") errors.push("release refusal must preserve release_state=held");
-  if (payload?.status !== "failed") errors.push("release refusal must return status=failed");
+  if (payload?.release_state !== "released") errors.push("release output must move release_state to released");
+  if (payload?.release_state_before !== "held") errors.push("release output must expose release_state_before=held");
+  if (payload?.release_state_after !== "released") errors.push("release output must expose release_state_after=released");
+  if (payload?.status !== "released") errors.push("release output must return status=released");
+  if (payload?.automation_release_allowed !== false) errors.push("release output must keep automation_release_allowed=false");
+  if (payload?.writes_database !== false) errors.push("local contract release must not write database");
+  if (typeof payload?.approval_id_hash !== "string" || !payload.approval_id_hash.startsWith("approval:")) {
+    errors.push("release output must expose hashed approval id");
+  }
+  if (release.stdout.includes("approval_local_contract")) {
+    errors.push("release output must not echo the raw approval id");
+  }
+}
+
+const releasePreflight = runCli([
+  "release",
+  "--data-version",
+  "dv_hkex_news_20260625_local_contract",
+  "--approval-id",
+  "approval_local_contract",
+  "--output",
+  "json"
+], {});
+
+if (releasePreflight.status === 0) {
+  errors.push("production-form release command must not silently succeed without release env and DB configuration");
+} else {
+  const payload = parseJson(releasePreflight.stdout, "release production preflight cli output");
+  if (payload?.error_code !== "LIVE_RELEASE_NOT_CONFIGURED") {
+    errors.push("release production preflight must fail with LIVE_RELEASE_NOT_CONFIGURED when env is missing");
+  }
+  if (payload?.release_state !== "held") {
+    errors.push("release production preflight must preserve release_state=held");
+  }
 }
 
 const skill = readText(skillPath);

@@ -1,0 +1,79 @@
+{
+  "version": "2026-06-28.hk-ipo-public-held-db-readback.v0",
+  "status": "local_contract",
+  "provider": "planetscale_postgres",
+  "route": "POST /ingest/hk-ipo-public/held-db-readback",
+  "worker_entrypoint": "apps/worker/src/index.ts",
+  "checker": "scripts/check-hk-ipo-public-held-db-readback.mjs",
+  "package_script": "npm run check:hk-ipo-public-held-db-readback",
+  "source_contract": "deploy/ingest/hk-ipo-public-sources.contract.json",
+  "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+  "object_store_binding": "AIPHABEE_ARTIFACTS",
+  "token_binding": "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN",
+  "smoke_header": {
+    "name": "x-aiphabee-smoke",
+    "value": "hk-ipo-public-held-db-readback-v1"
+  },
+  "read_only_database": true,
+  "latest_live_held_default": true,
+  "specific_run_supported": true,
+  "r2_object_existence_readback": true,
+  "hash_only_response": true,
+  "writes_database": false,
+  "writes_object_store": false,
+  "writes_serving_tables": false,
+  "promotes_facts": false,
+  "releases_data_version": false,
+  "emits_raw_payload": false,
+  "target_tables": [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ],
+  "blocked_tables": [
+    "core.ipo_offering",
+    "core.ipo_timetable_event",
+    "core.ipo_narrative",
+    "core.ipo_cornerstone"
+  ],
+  "response_fields": [
+    "selected_rows",
+    "table_counts",
+    "payload_envelope_count",
+    "raw_snapshot_payload_leak_count",
+    "object_key_count",
+    "object_store_readback_count",
+    "object_store_missing_count",
+    "data_version_hash",
+    "source_batch_id_hash",
+    "source_run_id_hash",
+    "readback_hash",
+    "query_hash"
+  ],
+  "not_claimed": [
+    "serving_table_writes",
+    "fact_promotion",
+    "data_version_release",
+    "third_party_canonical_truth",
+    "raw_payload_export"
+  ],
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret": true,
+    "no_raw_payload": true,
+    "no_raw_html": true,
+    "no_source_url": true,
+    "no_security_code": true,
+    "counts_and_hashes_only": true
+  },
+  "verification": {
+    "contract_check": "npm run check:hk-ipo-public-held-db-readback",
+    "unit_test": "npm run test -- apps/worker/src/hk-ipo-public-held-db-readback.test.ts",
+    "remote_readback": "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> AIPHABEE_HK_IPO_PUBLIC_HELD_DB_READBACK_ENDPOINT=http://127.0.0.1:8798 node scripts/check-hk-ipo-public-held-db-readback.mjs --remote"
+  }
+}

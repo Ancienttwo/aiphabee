@@ -70,7 +70,8 @@
       "--output",
       "json"
     ],
-    "automation_may_call_release": false
+    "automation_may_call_release": false,
+    "release_requires_env": "DATA_INGEST_ENABLE_RELEASE=1"
   },
   "runtime": {
     "source_of_truth": "postgres",
@@ -123,6 +124,48 @@
     "held_quality_failure"
   ],
   "release_state": "held",
+  "release_safety": {
+    "manual_approval_required": true,
+    "approval_id_required": true,
+    "approval_id_output": "hash_only",
+    "automation_may_call_release": false,
+    "release_requires_env": "DATA_INGEST_ENABLE_RELEASE=1",
+    "release_requires_validate": true,
+    "release_requires_held_state": true,
+    "release_updates": [
+      "core.data_version_batch.release_state",
+      "core.data_version_batch.released_at"
+    ],
+    "serving_table_writes": false
+  },
+  "release_readback": {
+    "version": "2026-06-28.hkex-news-release-readback.v0",
+    "contract": "deploy/ingest/hkex-news-release-readback.contract.json",
+    "checker": "scripts/check-hkex-news-release-readback.mjs",
+    "package_script": "npm run check:hkex-news-release-readback",
+    "provider": "postgres",
+    "read_only_database": true,
+    "hash_only_response": true,
+    "writes_database": false,
+    "emits_approval_id": false,
+    "target_tables": [
+      "core.data_version_batch",
+      "core.hkex_news_crawl_run",
+      "core.hkex_news_transform_run"
+    ]
+  },
+  "release_evidence_packet": {
+    "version": "2026-06-28.hkex-news-release-evidence-packet.v0",
+    "contract": "deploy/ingest/hkex-news-release-evidence-packet.contract.json",
+    "checker": "scripts/plan-hkex-news-release-evidence-packet.mjs",
+    "package_script": "npm run check:hkex-news-release-evidence-packet",
+    "manual_approval_required": true,
+    "hash_only_response": true,
+    "read_only_database": true,
+    "writes_database": false,
+    "releases_data_version": false,
+    "emits_approval_id": false
+  },
   "rights": {
     "default_data_rights_status": "default_deny",
     "field_authorization_required": true,

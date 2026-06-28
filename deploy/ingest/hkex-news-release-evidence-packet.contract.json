@@ -1,0 +1,70 @@
+{
+  "version": "2026-06-28.hkex-news-release-evidence-packet.v0",
+  "status": "local_contract",
+  "package": "@aiphabee/data-ingest",
+  "source_contract": "deploy/ingest/hkex-news-ingest.contract.json",
+  "release_readback_contract": "deploy/ingest/hkex-news-release-readback.contract.json",
+  "checker": "scripts/plan-hkex-news-release-evidence-packet.mjs",
+  "package_script": "npm run check:hkex-news-release-evidence-packet",
+  "provider": "postgres",
+  "database_url_env": [
+    "DATA_INGEST_DATABASE_URL",
+    "IPO_DATABASE_URL",
+    "DATABASE_URL"
+  ],
+  "live_command": "DATA_INGEST_DATABASE_URL=<database_url> node scripts/plan-hkex-news-release-evidence-packet.mjs --live --check",
+  "packet_kind": "hkex_news_release_evidence_packet",
+  "manual_approval_required": true,
+  "approval_id_required_for_release": true,
+  "approval_id_output": "not_accepted_or_emitted",
+  "read_only_database": true,
+  "hash_only_response": true,
+  "writes_database": false,
+  "writes_object_store": false,
+  "writes_serving_tables": false,
+  "promotes_facts": false,
+  "releases_data_version": false,
+  "accepted_packet_statuses": [
+    "ready_for_manual_release_approval",
+    "released_readback_passed"
+  ],
+  "blocking_packet_statuses": [
+    "blocked_no_hkex_data_version",
+    "blocked_release_validation_failed",
+    "blocked_release_readback_failed",
+    "blocked_unexpected_release_state",
+    "missing_database_url"
+  ],
+  "target_tables": [
+    "core.data_version_batch",
+    "core.hkex_news_crawl_run",
+    "core.hkex_news_document_observation",
+    "core.hkex_news_extracted_fact",
+    "core.hkex_news_transform_run"
+  ],
+  "response_fields": [
+    "data_version_hash",
+    "release_state",
+    "release_validation_pass",
+    "release_readback_pass",
+    "manual_approval_required",
+    "approval_id_required_for_release",
+    "writes_database",
+    "packet_hash"
+  ],
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret": true,
+    "no_raw_payload": true,
+    "no_raw_html": true,
+    "no_source_url": true,
+    "no_security_code": true,
+    "no_approval_id": true,
+    "counts_and_hashes_only": true
+  },
+  "verification": {
+    "contract_check": "npm run check:hkex-news-release-evidence-packet",
+    "live_packet": "DATA_INGEST_DATABASE_URL=<database_url> node scripts/plan-hkex-news-release-evidence-packet.mjs --live --check"
+  }
+}

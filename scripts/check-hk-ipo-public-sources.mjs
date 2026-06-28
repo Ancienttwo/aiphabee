@@ -14,7 +14,11 @@ const rawSnapshotStorageScript = "scripts/plan-hk-ipo-public-raw-snapshot-storag
 const rawSnapshotR2WriterScript = "scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs";
 const applyPlannerScript = "scripts/plan-hk-ipo-public-observation-apply.mjs";
 const heldDbApplyPacketScript = "scripts/plan-hk-ipo-public-held-db-apply-packet.mjs";
+const heldDbApplyLiveScript = "scripts/apply-hk-ipo-public-held-db-live.mjs";
 const heldDbApplySmokeContractScript = "scripts/check-hk-ipo-public-held-db-apply-smoke-contract.mjs";
+const heldDbReadbackScript = "scripts/check-hk-ipo-public-held-db-readback.mjs";
+const heldReviewPacketScript = "scripts/plan-hk-ipo-public-held-review-packet.mjs";
+const heldPromotionPreflightScript = "scripts/plan-hk-ipo-public-held-promotion-preflight.mjs";
 const live = process.argv.includes("--live");
 
 const contract = readJson(contractPath);
@@ -32,6 +36,9 @@ const rawSnapshotR2WriterChecks = [runRawSnapshotR2WriterCheck(["--fixtures", "-
 const applyPlanChecks = [runApplyPlanCheck(["--fixtures", "--check"])];
 const heldDbApplyPacketChecks = [runHeldDbApplyPacketCheck(["--fixtures", "--check"])];
 const heldDbApplySmokeChecks = [runHeldDbApplySmokeContractCheck()];
+const heldDbReadbackChecks = [runHeldDbReadbackCheck()];
+const heldReviewPacketChecks = [runHeldReviewPacketCheck(["--fixtures", "--check"])];
+const heldPromotionPreflightChecks = [runHeldPromotionPreflightCheck(["--fixtures", "--check"])];
 errors.push(...adapterChecks[0].errors);
 errors.push(...reconciliationChecks[0].errors);
 errors.push(...packetChecks[0].errors);
@@ -42,6 +49,9 @@ errors.push(...rawSnapshotR2WriterChecks[0].errors);
 errors.push(...applyPlanChecks[0].errors);
 errors.push(...heldDbApplyPacketChecks[0].errors);
 errors.push(...heldDbApplySmokeChecks[0].errors);
+errors.push(...heldDbReadbackChecks[0].errors);
+errors.push(...heldReviewPacketChecks[0].errors);
+errors.push(...heldPromotionPreflightChecks[0].errors);
 
 if (errors.length === 0 && live) {
   liveChecks.push(...(await runLiveChecks(contract)));
@@ -53,6 +63,8 @@ if (errors.length === 0 && live) {
   rawSnapshotR2WriterChecks.push(runRawSnapshotR2WriterCheck(["--live", "--check"]));
   applyPlanChecks.push(runApplyPlanCheck(["--live", "--check"]));
   heldDbApplyPacketChecks.push(runHeldDbApplyPacketCheck(["--live", "--check"]));
+  heldReviewPacketChecks.push(runHeldReviewPacketCheck(["--live", "--check"]));
+  heldPromotionPreflightChecks.push(runHeldPromotionPreflightCheck(["--live", "--check"]));
 }
 
 const liveErrors = [
@@ -64,7 +76,9 @@ const liveErrors = [
   ...rawSnapshotStorageChecks.slice(1).flatMap((check) => check.errors),
   ...rawSnapshotR2WriterChecks.slice(1).flatMap((check) => check.errors),
   ...applyPlanChecks.slice(1).flatMap((check) => check.errors),
-  ...heldDbApplyPacketChecks.slice(1).flatMap((check) => check.errors)
+  ...heldDbApplyPacketChecks.slice(1).flatMap((check) => check.errors),
+  ...heldReviewPacketChecks.slice(1).flatMap((check) => check.errors),
+  ...heldPromotionPreflightChecks.slice(1).flatMap((check) => check.errors)
 ];
 if (errors.length > 0 || liveErrors.length > 0) {
   emit(
@@ -75,6 +89,9 @@ if (errors.length > 0 || liveErrors.length > 0) {
       errors: [...errors, ...liveErrors],
       held_db_apply_packet_checks: heldDbApplyPacketChecks,
       held_db_apply_smoke_checks: heldDbApplySmokeChecks,
+      held_db_readback_checks: heldDbReadbackChecks,
+      held_review_packet_checks: heldReviewPacketChecks,
+      held_promotion_preflight_checks: heldPromotionPreflightChecks,
       live_checked: live,
       live_checks: liveChecks,
       packet_checks: packetChecks,
@@ -97,6 +114,9 @@ emit(
     contract: contractPath,
     held_db_apply_packet_checks: heldDbApplyPacketChecks,
     held_db_apply_smoke_checks: heldDbApplySmokeChecks,
+    held_db_readback_checks: heldDbReadbackChecks,
+    held_review_packet_checks: heldReviewPacketChecks,
+    held_promotion_preflight_checks: heldPromotionPreflightChecks,
     live_checked: live,
     live_checks: liveChecks,
     packet_checks: packetChecks,
@@ -139,7 +159,11 @@ function validateStatic(value, researchText, pkg) {
   validationErrors.push(...validateRawSnapshotR2Writer(value.raw_snapshot_r2_writer_smoke));
   validationErrors.push(...validateApplyPlanner(value.apply_planner));
   validationErrors.push(...validateHeldDbApplyPacket(value.held_db_apply_packet));
+  validationErrors.push(...validateHeldDbApplyLive(value.held_db_apply_live));
   validationErrors.push(...validateHeldDbApplySmoke(value.held_db_apply_smoke));
+  validationErrors.push(...validateHeldDbReadback(value.held_db_readback));
+  validationErrors.push(...validateHeldReviewPacket(value.held_review_packet));
+  validationErrors.push(...validateHeldPromotionPreflight(value.held_promotion_preflight));
   validationErrors.push(...validateSources(value.sources));
   validationErrors.push(...validateVerification(value.verification));
 
@@ -189,10 +213,34 @@ function validateStatic(value, researchText, pkg) {
     validationErrors.push("root package.json must expose check:hk-ipo-public-held-db-apply-packet");
   }
   if (
+    pkg.scripts?.["check:hk-ipo-public-held-db-apply-live"] !==
+    `node ${heldDbApplyLiveScript} --check`
+  ) {
+    validationErrors.push("root package.json must expose check:hk-ipo-public-held-db-apply-live");
+  }
+  if (
     pkg.scripts?.["check:hk-ipo-public-held-db-apply-smoke"] !==
     `node ${heldDbApplySmokeContractScript}`
   ) {
     validationErrors.push("root package.json must expose check:hk-ipo-public-held-db-apply-smoke");
+  }
+  if (
+    pkg.scripts?.["check:hk-ipo-public-held-db-readback"] !==
+    `node ${heldDbReadbackScript} --check`
+  ) {
+    validationErrors.push("root package.json must expose check:hk-ipo-public-held-db-readback");
+  }
+  if (
+    pkg.scripts?.["check:hk-ipo-public-held-review-packet"] !==
+    `node ${heldReviewPacketScript} --fixtures --check`
+  ) {
+    validationErrors.push("root package.json must expose check:hk-ipo-public-held-review-packet");
+  }
+  if (
+    pkg.scripts?.["check:hk-ipo-public-held-promotion-preflight"] !==
+    `node ${heldPromotionPreflightScript} --fixtures --check`
+  ) {
+    validationErrors.push("root package.json must expose check:hk-ipo-public-held-promotion-preflight");
   }
 
   for (const fragment of [
@@ -217,9 +265,17 @@ function validateStatic(value, researchText, pkg) {
     "scripts/plan-hk-ipo-public-observation-apply.mjs",
     "Held DB apply packet smoke",
     "scripts/plan-hk-ipo-public-held-db-apply-packet.mjs",
+    "Live held DB apply",
+    "scripts/apply-hk-ipo-public-held-db-live.mjs",
+    "POST /ingest/hk-ipo-public/held-db-apply",
     "Held DB apply/readback smoke",
     "scripts/check-hk-ipo-public-held-db-apply-smoke-contract.mjs",
     "POST /ingest/hk-ipo-public/held-db-apply-smoke",
+    "POST /ingest/hk-ipo-public/held-db-readback",
+    "Held review packet",
+    "scripts/plan-hk-ipo-public-held-review-packet.mjs",
+    "Held promotion preflight",
+    "scripts/plan-hk-ipo-public-held-promotion-preflight.mjs",
     "npm run check:hk-ipo-public-sources -- --live",
     "npm run check:hk-ipo-public-reconciliation-packet",
     "npm run check:hk-ipo-public-observation-schema",
@@ -228,7 +284,11 @@ function validateStatic(value, researchText, pkg) {
     "npm run check:hk-ipo-public-raw-snapshot-r2-writer",
     "npm run check:hk-ipo-public-apply-plan",
     "npm run check:hk-ipo-public-held-db-apply-packet",
+    "npm run check:hk-ipo-public-held-db-apply-live",
     "npm run check:hk-ipo-public-held-db-apply-smoke",
+    "npm run check:hk-ipo-public-held-db-readback",
+    "npm run check:hk-ipo-public-held-review-packet",
+    "npm run check:hk-ipo-public-held-promotion-preflight",
     "ETNet and Futu/Moomoo stay out of default automation",
     "provider",
     "source_url",
@@ -985,6 +1045,138 @@ function validateHeldDbApplyPacket(value) {
   return validationErrors;
 }
 
+function validateHeldDbApplyLive(value) {
+  const validationErrors = [];
+  if (!isRecord(value)) {
+    return ["held_db_apply_live must be an object"];
+  }
+  if (value.version !== "2026-06-28.hk-ipo-public-held-db-apply-live.v0") {
+    validationErrors.push("held_db_apply_live.version mismatch");
+  }
+  if (value.script !== heldDbApplyLiveScript) {
+    validationErrors.push(`held_db_apply_live.script must be ${heldDbApplyLiveScript}`);
+  }
+  if (value.package_script !== "npm run check:hk-ipo-public-held-db-apply-live") {
+    validationErrors.push("held_db_apply_live.package_script mismatch");
+  }
+  if (value.check_command !== "npm run check:hk-ipo-public-held-db-apply-live") {
+    validationErrors.push("held_db_apply_live.check_command mismatch");
+  }
+  if (
+    value.remote_command !==
+    "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_ENDPOINT=<endpoint> node scripts/apply-hk-ipo-public-held-db-live.mjs --remote --check"
+  ) {
+    validationErrors.push("held_db_apply_live.remote_command mismatch");
+  }
+  if (value.route !== "POST /ingest/hk-ipo-public/held-db-apply") {
+    validationErrors.push("held_db_apply_live.route mismatch");
+  }
+  if (value.worker_entrypoint !== "apps/worker/src/index.ts") {
+    validationErrors.push("held_db_apply_live.worker_entrypoint mismatch");
+  }
+  if (value.provider !== "planetscale_postgres") {
+    validationErrors.push("held_db_apply_live.provider must be planetscale_postgres");
+  }
+  if (value.hyperdrive_binding !== "AIPHABEE_HYPERDRIVE") {
+    validationErrors.push("held_db_apply_live.hyperdrive_binding must be AIPHABEE_HYPERDRIVE");
+  }
+  if (value.object_store_binding !== "AIPHABEE_ARTIFACTS") {
+    validationErrors.push("held_db_apply_live.object_store_binding must be AIPHABEE_ARTIFACTS");
+  }
+  if (value.token_binding !== "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN") {
+    validationErrors.push("held_db_apply_live.token_binding mismatch");
+  }
+  if (!isRecord(value.smoke_header)) {
+    validationErrors.push("held_db_apply_live.smoke_header must be an object");
+  } else {
+    if (value.smoke_header.name !== "x-aiphabee-smoke") {
+      validationErrors.push("held_db_apply_live.smoke_header.name must be x-aiphabee-smoke");
+    }
+    if (value.smoke_header.value !== "hk-ipo-public-held-db-apply-live-v1") {
+      validationErrors.push("held_db_apply_live.smoke_header.value mismatch");
+    }
+  }
+  if (value.default_check_writes_database !== false) {
+    validationErrors.push("held_db_apply_live.default_check_writes_database must be false");
+  }
+  for (const field of ["remote_writes_database", "remote_writes_object_store", "hash_only_response"]) {
+    if (value[field] !== true) {
+      validationErrors.push(`held_db_apply_live.${field} must be true`);
+    }
+  }
+  for (const field of [
+    "writes_serving_tables",
+    "promotes_facts",
+    "releases_data_version",
+    "emits_sql_text",
+    "emits_payload_text",
+    "stores_raw_html_in_repo"
+  ]) {
+    if (value[field] !== false) {
+      validationErrors.push(`held_db_apply_live.${field} must be false`);
+    }
+  }
+  if (value.release_state !== "held") {
+    validationErrors.push("held_db_apply_live.release_state must be held");
+  }
+  for (const table of [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ]) {
+    if (!value.target_tables?.includes(table)) {
+      validationErrors.push(`held_db_apply_live.target_tables missing ${table}`);
+    }
+  }
+  for (const field of [
+    "inserted_or_updated_rows",
+    "object_store_write_count",
+    "selected_rows",
+    "release_state",
+    "writes_serving_tables"
+  ]) {
+    if (!value.required_remote_summary_fields?.includes(field)) {
+      validationErrors.push(`held_db_apply_live.required_remote_summary_fields missing ${field}`);
+    }
+  }
+  const policy = value.safe_output_policy;
+  if (!isRecord(policy)) {
+    validationErrors.push("held_db_apply_live.safe_output_policy must be an object");
+  } else {
+    for (const field of ["no_database_url", "no_password", "no_secret", "no_sql_text", "no_payload_body", "counts_and_hashes_only"]) {
+      if (policy[field] !== true) {
+        validationErrors.push(`held_db_apply_live.safe_output_policy.${field} must be true`);
+      }
+    }
+  }
+  const guards = value.promotion_guards;
+  if (!isRecord(guards)) {
+    return [...validationErrors, "held_db_apply_live.promotion_guards must be an object"];
+  }
+  for (const field of [
+    "third_party_observations_are_canonical",
+    "writes_serving_tables_allowed",
+    "automation_release_allowed",
+    "raw_html_repo_storage_allowed",
+    "export_allowed",
+    "mcp_redistribution_allowed"
+  ]) {
+    if (guards[field] !== false) {
+      validationErrors.push(`held_db_apply_live.promotion_guards.${field} must be false`);
+    }
+  }
+  for (const field of ["source_attribution_required", "raw_snapshot_required_before_promotion"]) {
+    if (guards[field] !== true) {
+      validationErrors.push(`held_db_apply_live.promotion_guards.${field} must be true`);
+    }
+  }
+  return validationErrors;
+}
+
 function validateHeldDbApplySmoke(value) {
   const validationErrors = [];
   if (!isRecord(value)) {
@@ -1142,6 +1334,451 @@ function validateHeldDbApplySmoke(value) {
   for (const field of ["source_attribution_required", "raw_snapshot_required_before_promotion"]) {
     if (guards[field] !== true) {
       validationErrors.push(`held_db_apply_smoke.promotion_guards.${field} must be true`);
+    }
+  }
+  return validationErrors;
+}
+
+function validateHeldDbReadback(value) {
+  const validationErrors = [];
+  if (!isRecord(value)) {
+    return ["held_db_readback must be an object"];
+  }
+  if (value.version !== "2026-06-28.hk-ipo-public-held-db-readback.v0") {
+    validationErrors.push("held_db_readback.version mismatch");
+  }
+  if (value.contract !== "deploy/ingest/hk-ipo-public-held-db-readback.contract.json") {
+    validationErrors.push("held_db_readback.contract mismatch");
+  }
+  if (value.checker !== heldDbReadbackScript) {
+    validationErrors.push(`held_db_readback.checker must be ${heldDbReadbackScript}`);
+  }
+  if (value.package_script !== "npm run check:hk-ipo-public-held-db-readback") {
+    validationErrors.push("held_db_readback.package_script mismatch");
+  }
+  if (value.route !== "POST /ingest/hk-ipo-public/held-db-readback") {
+    validationErrors.push("held_db_readback.route mismatch");
+  }
+  if (value.worker_entrypoint !== "apps/worker/src/index.ts") {
+    validationErrors.push("held_db_readback.worker_entrypoint mismatch");
+  }
+  if (value.provider !== "planetscale_postgres") {
+    validationErrors.push("held_db_readback.provider must be planetscale_postgres");
+  }
+  if (value.hyperdrive_binding !== "AIPHABEE_HYPERDRIVE") {
+    validationErrors.push("held_db_readback.hyperdrive_binding must be AIPHABEE_HYPERDRIVE");
+  }
+  if (value.object_store_binding !== "AIPHABEE_ARTIFACTS") {
+    validationErrors.push("held_db_readback.object_store_binding must be AIPHABEE_ARTIFACTS");
+  }
+  if (value.token_binding !== "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN") {
+    validationErrors.push("held_db_readback.token_binding mismatch");
+  }
+  if (!isRecord(value.smoke_header)) {
+    validationErrors.push("held_db_readback.smoke_header must be an object");
+  } else {
+    if (value.smoke_header.name !== "x-aiphabee-smoke") {
+      validationErrors.push("held_db_readback.smoke_header.name must be x-aiphabee-smoke");
+    }
+    if (value.smoke_header.value !== "hk-ipo-public-held-db-readback-v1") {
+      validationErrors.push("held_db_readback.smoke_header.value mismatch");
+    }
+  }
+  for (const field of [
+    "read_only_database",
+    "latest_live_held_default",
+    "specific_run_supported",
+    "r2_object_existence_readback",
+    "hash_only_response"
+  ]) {
+    if (value[field] !== true) {
+      validationErrors.push(`held_db_readback.${field} must be true`);
+    }
+  }
+  for (const field of [
+    "writes_database",
+    "writes_object_store",
+    "writes_serving_tables",
+    "promotes_facts",
+    "releases_data_version",
+    "emits_raw_payload"
+  ]) {
+    if (value[field] !== false) {
+      validationErrors.push(`held_db_readback.${field} must be false`);
+    }
+  }
+  for (const table of [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_source_run",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ]) {
+    if (!value.target_tables?.includes(table)) {
+      validationErrors.push(`held_db_readback.target_tables missing ${table}`);
+    }
+  }
+  const guards = value.promotion_guards;
+  if (!isRecord(guards)) {
+    return [...validationErrors, "held_db_readback.promotion_guards must be an object"];
+  }
+  for (const field of [
+    "third_party_observations_are_canonical",
+    "writes_serving_tables_allowed",
+    "automation_release_allowed",
+    "raw_html_repo_storage_allowed",
+    "export_allowed",
+    "mcp_redistribution_allowed"
+  ]) {
+    if (guards[field] !== false) {
+      validationErrors.push(`held_db_readback.promotion_guards.${field} must be false`);
+    }
+  }
+  for (const field of ["source_attribution_required", "raw_snapshot_required_before_promotion"]) {
+    if (guards[field] !== true) {
+      validationErrors.push(`held_db_readback.promotion_guards.${field} must be true`);
+    }
+  }
+  return validationErrors;
+}
+
+function validateHeldReviewPacket(value) {
+  const validationErrors = [];
+  if (!isRecord(value)) {
+    return ["held_review_packet must be an object"];
+  }
+  if (value.version !== "2026-06-28.hk-ipo-public-held-review-packet.v0") {
+    validationErrors.push("held_review_packet.version mismatch");
+  }
+  if (value.script !== heldReviewPacketScript) {
+    validationErrors.push(`held_review_packet.script must be ${heldReviewPacketScript}`);
+  }
+  if (value.package_script !== "npm run check:hk-ipo-public-held-review-packet") {
+    validationErrors.push("held_review_packet.package_script mismatch");
+  }
+  if (value.fixture_command !== "npm run check:hk-ipo-public-held-review-packet") {
+    validationErrors.push("held_review_packet.fixture_command mismatch");
+  }
+  if (value.live_command !== "node scripts/plan-hk-ipo-public-held-review-packet.mjs --live --check") {
+    validationErrors.push("held_review_packet.live_command mismatch");
+  }
+  if (value.input_apply_plan_script !== applyPlannerScript) {
+    validationErrors.push(`held_review_packet.input_apply_plan_script must be ${applyPlannerScript}`);
+  }
+  if (value.input_apply_packet_script !== heldDbApplyPacketScript) {
+    validationErrors.push(`held_review_packet.input_apply_packet_script must be ${heldDbApplyPacketScript}`);
+  }
+  if (value.provider !== "planetscale_postgres") {
+    validationErrors.push("held_review_packet.provider must be planetscale_postgres");
+  }
+  if (value.packet_kind !== "hk_ipo_public_held_review_packet") {
+    validationErrors.push("held_review_packet.packet_kind mismatch");
+  }
+  if (value.review_status !== "ready_for_manual_review") {
+    validationErrors.push("held_review_packet.review_status mismatch");
+  }
+  if (value.promotion_status !== "blocked_pending_manual_review") {
+    validationErrors.push("held_review_packet.promotion_status mismatch");
+  }
+  for (const field of [
+    "manual_review_required",
+    "requires_db_readback",
+    "requires_object_store_readback",
+    "counts_and_hashes_only"
+  ]) {
+    if (value[field] !== true) {
+      validationErrors.push(`held_review_packet.${field} must be true`);
+    }
+  }
+  for (const field of [
+    "automation_release_allowed",
+    "writes_database",
+    "writes_files",
+    "writes_object_store",
+    "writes_serving_tables",
+    "executes_sql",
+    "emits_sql_text",
+    "emits_payload_text",
+    "stores_raw_html_in_repo",
+    "promotes_facts",
+    "releases_data_version",
+    "third_party_observations_are_canonical"
+  ]) {
+    if (value[field] !== false) {
+      validationErrors.push(`held_review_packet.${field} must be false`);
+    }
+  }
+  for (const table of [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.hk_ipo_public_source_run",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ]) {
+    if (!value.target_tables?.includes(table)) {
+      validationErrors.push(`held_review_packet.target_tables missing ${table}`);
+    }
+  }
+  for (const table of [
+    "core.ipo_offering",
+    "core.ipo_timetable_event",
+    "core.ipo_narrative",
+    "core.ipo_cornerstone"
+  ]) {
+    if (!value.blocked_tables?.includes(table)) {
+      validationErrors.push(`held_review_packet.blocked_tables missing ${table}`);
+    }
+  }
+  for (const gateId of [
+    "held_db_apply_packet_ready",
+    "raw_snapshot_payload_envelopes_ready",
+    "held_db_readback_required",
+    "manual_reviewer_required",
+    "serving_promotion_blocked"
+  ]) {
+    if (!value.required_review_gates?.includes(gateId)) {
+      validationErrors.push(`held_review_packet.required_review_gates missing ${gateId}`);
+    }
+  }
+  for (const field of [
+    "total_row_count",
+    "raw_snapshot_row_count",
+    "ready_raw_snapshot_payload_count",
+    "observation_row_count",
+    "reconciliation_row_count",
+    "supplement_candidate_row_count",
+    "review_gate_count",
+    "pass_gate_count",
+    "manual_gate_count",
+    "blocked_promotion_gate_count",
+    "payload_body_output_count",
+    "sql_text_output_count",
+    "writes_database_count",
+    "writes_object_store_count",
+    "writes_serving_table_count",
+    "unresolved_source_observation_count"
+  ]) {
+    if (!value.required_summary_fields?.includes(field)) {
+      validationErrors.push(`held_review_packet.required_summary_fields missing ${field}`);
+    }
+  }
+  const policy = value.safe_output_policy;
+  if (!isRecord(policy)) {
+    validationErrors.push("held_review_packet.safe_output_policy must be an object");
+  } else {
+    for (const field of [
+      "no_database_url",
+      "no_password",
+      "no_secret",
+      "no_source_url",
+      "no_security_code",
+      "no_raw_payload",
+      "no_sql_text",
+      "counts_and_hashes_only"
+    ]) {
+      if (policy[field] !== true) {
+        validationErrors.push(`held_review_packet.safe_output_policy.${field} must be true`);
+      }
+    }
+  }
+  const guards = value.promotion_guards;
+  if (!isRecord(guards)) {
+    return [...validationErrors, "held_review_packet.promotion_guards must be an object"];
+  }
+  for (const field of [
+    "third_party_observations_are_canonical",
+    "writes_serving_tables_allowed",
+    "automation_release_allowed",
+    "raw_html_repo_storage_allowed",
+    "export_allowed",
+    "mcp_redistribution_allowed"
+  ]) {
+    if (guards[field] !== false) {
+      validationErrors.push(`held_review_packet.promotion_guards.${field} must be false`);
+    }
+  }
+  for (const field of ["source_attribution_required", "raw_snapshot_required_before_promotion"]) {
+    if (guards[field] !== true) {
+      validationErrors.push(`held_review_packet.promotion_guards.${field} must be true`);
+    }
+  }
+  return validationErrors;
+}
+
+function validateHeldPromotionPreflight(value) {
+  const validationErrors = [];
+  if (!isRecord(value)) {
+    return ["held_promotion_preflight must be an object"];
+  }
+  if (value.version !== "2026-06-28.hk-ipo-public-held-promotion-preflight.v0") {
+    validationErrors.push("held_promotion_preflight.version mismatch");
+  }
+  if (value.script !== heldPromotionPreflightScript) {
+    validationErrors.push(`held_promotion_preflight.script must be ${heldPromotionPreflightScript}`);
+  }
+  if (value.package_script !== "npm run check:hk-ipo-public-held-promotion-preflight") {
+    validationErrors.push("held_promotion_preflight.package_script mismatch");
+  }
+  if (value.fixture_command !== "npm run check:hk-ipo-public-held-promotion-preflight") {
+    validationErrors.push("held_promotion_preflight.fixture_command mismatch");
+  }
+  if (value.live_command !== "node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs --live --check") {
+    validationErrors.push("held_promotion_preflight.live_command mismatch");
+  }
+  if (
+    value.live_with_readback_command !==
+    "node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs --live --review-file <review_json> --readback-file <readback_json> --check"
+  ) {
+    validationErrors.push("held_promotion_preflight.live_with_readback_command mismatch");
+  }
+  if (value.review_file_supported !== true) {
+    validationErrors.push("held_promotion_preflight.review_file_supported must be true");
+  }
+  if (value.input_review_packet_script !== heldReviewPacketScript) {
+    validationErrors.push(`held_promotion_preflight.input_review_packet_script must be ${heldReviewPacketScript}`);
+  }
+  if (value.input_readback_script !== heldDbReadbackScript) {
+    validationErrors.push(`held_promotion_preflight.input_readback_script must be ${heldDbReadbackScript}`);
+  }
+  if (value.provider !== "planetscale_postgres") {
+    validationErrors.push("held_promotion_preflight.provider must be planetscale_postgres");
+  }
+  if (value.packet_kind !== "hk_ipo_public_held_promotion_preflight") {
+    validationErrors.push("held_promotion_preflight.packet_kind mismatch");
+  }
+  if (value.review_status !== "ready_for_manual_review") {
+    validationErrors.push("held_promotion_preflight.review_status mismatch");
+  }
+  if (value.promotion_status !== "blocked_pending_manual_review") {
+    validationErrors.push("held_promotion_preflight.promotion_status mismatch");
+  }
+  for (const field of [
+    "manual_review_required",
+    "manual_review_acceptance_required",
+    "readback_required",
+    "counts_and_hashes_only"
+  ]) {
+    if (value[field] !== true) {
+      validationErrors.push(`held_promotion_preflight.${field} must be true`);
+    }
+  }
+  for (const field of [
+    "automation_release_allowed",
+    "writes_database",
+    "writes_files",
+    "writes_object_store",
+    "writes_serving_tables",
+    "executes_sql",
+    "emits_sql_text",
+    "emits_payload_text",
+    "stores_raw_html_in_repo",
+    "promotes_facts",
+    "promotion_execution_allowed",
+    "releases_data_version",
+    "third_party_observations_are_canonical"
+  ]) {
+    if (value[field] !== false) {
+      validationErrors.push(`held_promotion_preflight.${field} must be false`);
+    }
+  }
+  for (const table of [
+    "core.raw_source_batch",
+    "core.data_version_batch",
+    "core.hk_ipo_public_source_run",
+    "core.raw_snapshot",
+    "core.hk_ipo_public_observation",
+    "core.hk_ipo_public_reconciliation_row",
+    "core.hk_ipo_public_supplement_candidate"
+  ]) {
+    if (!value.target_tables?.includes(table)) {
+      validationErrors.push(`held_promotion_preflight.target_tables missing ${table}`);
+    }
+  }
+  for (const table of [
+    "core.ipo_offering",
+    "core.ipo_timetable_event",
+    "core.ipo_narrative",
+    "core.ipo_cornerstone"
+  ]) {
+    if (!value.blocked_tables?.includes(table)) {
+      validationErrors.push(`held_promotion_preflight.blocked_tables missing ${table}`);
+    }
+  }
+  for (const gateId of [
+    "held_review_packet_ready",
+    "held_db_readback_verified",
+    "manual_review_acceptance_required",
+    "serving_promotion_blocked"
+  ]) {
+    if (!value.required_preflight_gates?.includes(gateId)) {
+      validationErrors.push(`held_promotion_preflight.required_preflight_gates missing ${gateId}`);
+    }
+  }
+  for (const field of [
+    "promotion_gate_count",
+    "pass_gate_count",
+    "manual_gate_count",
+    "blocked_gate_count",
+    "held_db_readback_verified",
+    "review_total_row_count",
+    "readback_selected_rows",
+    "object_store_missing_count",
+    "object_store_readback_count",
+    "raw_snapshot_payload_leak_count",
+    "writes_database_count",
+    "writes_object_store_count",
+    "writes_serving_table_count"
+  ]) {
+    if (!value.required_summary_fields?.includes(field)) {
+      validationErrors.push(`held_promotion_preflight.required_summary_fields missing ${field}`);
+    }
+  }
+  const policy = value.safe_output_policy;
+  if (!isRecord(policy)) {
+    validationErrors.push("held_promotion_preflight.safe_output_policy must be an object");
+  } else {
+    for (const field of [
+      "no_database_url",
+      "no_password",
+      "no_secret",
+      "no_source_url",
+      "no_security_code",
+      "no_raw_payload",
+      "no_sql_text",
+      "counts_and_hashes_only"
+    ]) {
+      if (policy[field] !== true) {
+        validationErrors.push(`held_promotion_preflight.safe_output_policy.${field} must be true`);
+      }
+    }
+  }
+  const guards = value.promotion_guards;
+  if (!isRecord(guards)) {
+    return [...validationErrors, "held_promotion_preflight.promotion_guards must be an object"];
+  }
+  for (const field of [
+    "third_party_observations_are_canonical",
+    "writes_serving_tables_allowed",
+    "automation_release_allowed",
+    "raw_html_repo_storage_allowed",
+    "export_allowed",
+    "mcp_redistribution_allowed"
+  ]) {
+    if (guards[field] !== false) {
+      validationErrors.push(`held_promotion_preflight.promotion_guards.${field} must be false`);
+    }
+  }
+  for (const field of [
+    "manual_review_acceptance_required",
+    "source_attribution_required",
+    "raw_snapshot_required_before_promotion"
+  ]) {
+    if (guards[field] !== true) {
+      validationErrors.push(`held_promotion_preflight.promotion_guards.${field} must be true`);
     }
   }
   return validationErrors;
@@ -1511,6 +2148,15 @@ function validateVerification(value) {
   ) {
     validationErrors.push("verification.held_db_apply_packet_live_command mismatch");
   }
+  if (value.held_db_apply_live_check_command !== "npm run check:hk-ipo-public-held-db-apply-live") {
+    validationErrors.push("verification.held_db_apply_live_check_command mismatch");
+  }
+  if (
+    value.held_db_apply_live_remote_command !==
+    "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_ENDPOINT=<endpoint> node scripts/apply-hk-ipo-public-held-db-live.mjs --remote --check"
+  ) {
+    validationErrors.push("verification.held_db_apply_live_remote_command mismatch");
+  }
   if (value.held_db_apply_smoke_contract_command !== "npm run check:hk-ipo-public-held-db-apply-smoke") {
     validationErrors.push(
       "verification.held_db_apply_smoke_contract_command must be npm run check:hk-ipo-public-held-db-apply-smoke"
@@ -1521,6 +2167,51 @@ function validateVerification(value) {
     "npm run test -- apps/worker/src/hk-ipo-public-held-db-apply-smoke.test.ts"
   ) {
     validationErrors.push("verification.held_db_apply_smoke_unit_test_command mismatch");
+  }
+  if (value.held_db_readback_contract_command !== "npm run check:hk-ipo-public-held-db-readback") {
+    validationErrors.push(
+      "verification.held_db_readback_contract_command must be npm run check:hk-ipo-public-held-db-readback"
+    );
+  }
+  if (
+    value.held_db_readback_unit_test_command !==
+    "npm run test -- apps/worker/src/hk-ipo-public-held-db-readback.test.ts"
+  ) {
+    validationErrors.push("verification.held_db_readback_unit_test_command mismatch");
+  }
+  if (
+    value.held_db_readback_remote_command !==
+    "AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> AIPHABEE_HK_IPO_PUBLIC_HELD_DB_READBACK_ENDPOINT=http://127.0.0.1:8798 node scripts/check-hk-ipo-public-held-db-readback.mjs --remote"
+  ) {
+    validationErrors.push("verification.held_db_readback_remote_command mismatch");
+  }
+  if (value.held_review_packet_fixture_command !== "npm run check:hk-ipo-public-held-review-packet") {
+    validationErrors.push(
+      "verification.held_review_packet_fixture_command must be npm run check:hk-ipo-public-held-review-packet"
+    );
+  }
+  if (
+    value.held_review_packet_live_command !==
+    "node scripts/plan-hk-ipo-public-held-review-packet.mjs --live --check"
+  ) {
+    validationErrors.push("verification.held_review_packet_live_command mismatch");
+  }
+  if (value.held_promotion_preflight_fixture_command !== "npm run check:hk-ipo-public-held-promotion-preflight") {
+    validationErrors.push(
+      "verification.held_promotion_preflight_fixture_command must be npm run check:hk-ipo-public-held-promotion-preflight"
+    );
+  }
+  if (
+    value.held_promotion_preflight_live_command !==
+    "node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs --live --check"
+  ) {
+    validationErrors.push("verification.held_promotion_preflight_live_command mismatch");
+  }
+  if (
+    value.held_promotion_preflight_live_with_readback_command !==
+    "node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs --live --review-file <review_json> --readback-file <readback_json> --check"
+  ) {
+    validationErrors.push("verification.held_promotion_preflight_live_with_readback_command mismatch");
   }
   if (value.live_network_writes !== false) {
     validationErrors.push("verification.live_network_writes must be false");
@@ -1853,6 +2544,111 @@ function runHeldDbApplySmokeContractCheck() {
   check.tables = parsed.tables ?? null;
   if (result.status !== 0 || parsed.status !== "ok") {
     check.errors.push("held DB apply smoke contract check failed");
+    for (const error of parsed.errors ?? []) check.errors.push(error);
+  }
+  return check;
+}
+
+function runHeldDbReadbackCheck() {
+  const command = `${process.execPath} ${heldDbReadbackScript} --check`;
+  const result = spawnSync(process.execPath, [heldDbReadbackScript, "--check"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024
+  });
+  const check = {
+    command,
+    errors: [],
+    route: null,
+    status: result.status === 0 ? "ok" : "failed",
+    version: null
+  };
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    check.errors.push("held DB readback check did not emit JSON");
+    if (result.stdout) check.stdout = result.stdout.slice(0, 1000);
+    if (result.stderr) check.stderr = result.stderr.slice(0, 1000);
+    return check;
+  }
+  check.status = parsed.status;
+  check.route = parsed.route ?? null;
+  check.version = parsed.version ?? null;
+  if (result.status !== 0 || parsed.status !== "ok") {
+    check.errors.push("held DB readback check failed");
+    for (const error of parsed.errors ?? []) check.errors.push(error);
+  }
+  return check;
+}
+
+function runHeldReviewPacketCheck(packetArgs) {
+  const command = `${process.execPath} ${heldReviewPacketScript} ${packetArgs.join(" ")}`;
+  const result = spawnSync(process.execPath, [heldReviewPacketScript, ...packetArgs], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024
+  });
+  const check = {
+    command,
+    errors: [],
+    mode: packetArgs.includes("--live") ? "live" : "fixtures",
+    promotion_status: null,
+    review_status: null,
+    status: result.status === 0 ? "ok" : "failed",
+    summary: null
+  };
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    check.errors.push(`held review packet did not emit JSON for ${check.mode}`);
+    if (result.stdout) check.stdout = result.stdout.slice(0, 1000);
+    if (result.stderr) check.stderr = result.stderr.slice(0, 1000);
+    return check;
+  }
+  check.status = parsed.status;
+  check.review_status = parsed.review_status ?? null;
+  check.promotion_status = parsed.promotion_status ?? null;
+  check.summary = parsed.summary ?? null;
+  if (result.status !== 0 || parsed.status !== "ok") {
+    check.errors.push(`held review packet ${check.mode} check failed`);
+    for (const error of parsed.errors ?? []) check.errors.push(error);
+  }
+  return check;
+}
+
+function runHeldPromotionPreflightCheck(preflightArgs) {
+  const command = `${process.execPath} ${heldPromotionPreflightScript} ${preflightArgs.join(" ")}`;
+  const result = spawnSync(process.execPath, [heldPromotionPreflightScript, ...preflightArgs], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024
+  });
+  const check = {
+    command,
+    errors: [],
+    held_db_readback_status: null,
+    mode: preflightArgs.includes("--live") ? "live" : "fixtures",
+    promotion_status: null,
+    status: result.status === 0 ? "ok" : "failed",
+    summary: null
+  };
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    check.errors.push(`held promotion preflight did not emit JSON for ${check.mode}`);
+    if (result.stdout) check.stdout = result.stdout.slice(0, 1000);
+    if (result.stderr) check.stderr = result.stderr.slice(0, 1000);
+    return check;
+  }
+  check.status = parsed.status;
+  check.held_db_readback_status = parsed.held_db_readback_status ?? null;
+  check.promotion_status = parsed.promotion_status ?? null;
+  check.summary = parsed.summary ?? null;
+  if (result.status !== 0 || !["blocked_missing_held_db_readback", "blocked_pending_manual_review"].includes(parsed.status)) {
+    check.errors.push(`held promotion preflight ${check.mode} check failed`);
     for (const error of parsed.errors ?? []) check.errors.push(error);
   }
   return check;

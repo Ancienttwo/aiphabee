@@ -38,8 +38,10 @@ New public-source readiness surface:
 - Raw snapshot R2 writer smoke: `scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs`
 - Apply planner dry-run: `scripts/plan-hk-ipo-public-observation-apply.mjs`
 - Held DB apply packet smoke: `scripts/plan-hk-ipo-public-held-db-apply-packet.mjs`
+- Held review packet: `scripts/plan-hk-ipo-public-held-review-packet.mjs`
 - Held DB apply/readback smoke contract: `scripts/check-hk-ipo-public-held-db-apply-smoke-contract.mjs`
-- Held DB apply/readback Worker route: `POST /ingest/hk-ipo-public/held-db-apply-smoke`
+- Live held DB apply helper: `scripts/apply-hk-ipo-public-held-db-live.mjs`
+- Held DB apply/readback Worker routes: `POST /ingest/hk-ipo-public/held-db-apply`, `POST /ingest/hk-ipo-public/held-db-apply-smoke`, `POST /ingest/hk-ipo-public/held-db-readback`
 - Observation fixture: `skills/hkex-news-crawl-qa/evals/public-source-observation-fixtures.json`
 - Package entrypoint: `npm run check:hk-ipo-public-sources`
 
@@ -51,7 +53,7 @@ Ownership boundary:
 
 Out of scope for this slice:
 
-- Writing any third-party source into Postgres.
+- Promoting third-party source rows into canonical IPO serving facts.
 - Promoting third-party observations into IPO serving tables.
 - Building browser automation around anti-automation pages.
 
@@ -74,7 +76,10 @@ Concrete route for a public source:
 13. The apply planner dry-run turns the adapter observations, reconciliation packet, raw snapshot capture hashes, and storage envelopes into held-layer statement descriptors and row hashes.
 14. The held DB apply packet smoke seals those statement descriptors into a local apply packet for PlanetScale Postgres, with counts and hashes only.
 15. The held DB apply/readback smoke exposes a guarded Worker route that can insert, select, and delete one synthetic held row set through Hyperdrive in a single transaction.
-16. The checker emits JSON status only; it does not persist HTML, emit SQL text, write remote R2 objects by default, or write database rows in default verification.
+16. The live held DB apply helper writes public-source observations only into held-layer tables through the guarded Worker route, after remote R2 object storage succeeds.
+17. The held DB readback route verifies held-layer table counts and remote R2 object existence with hashes and counts only.
+18. The held review packet combines the apply packet counts/hashes with explicit manual-review, DB readback, object-store readback, and serving-promotion-blocked gates.
+19. The checker emits JSON status only; it does not persist HTML, emit SQL text, write remote R2 objects by default, or write database rows in default verification.
 
 Observation adapter contract:
 
@@ -148,6 +153,14 @@ Held DB apply packet smoke:
 - Output: statement packet ids, target tables, row counts, parameter hashes, row-group hashes, and packet hash.
 - Guard: no remote apply, no DB write, no SQL text, no raw payload body, no secrets or database URL in output.
 
+Held review packet:
+
+- Script: `scripts/plan-hk-ipo-public-held-review-packet.mjs`
+- Package check: `npm run check:hk-ipo-public-held-review-packet`
+- Inputs: apply planner summary and held DB apply packet counts/hashes.
+- Output: review gates, held table row counts, row-group hashes, blocked serving tables, and packet hash.
+- Guard: manual review required, held DB readback required, object-store readback required, no source URL/security code output, no DB/R2 write, no SQL text, no raw payload body, no serving table writes, no fact promotion, no data-version release.
+
 Held DB apply/readback smoke:
 
 - Contract checker: `scripts/check-hk-ipo-public-held-db-apply-smoke-contract.mjs`
@@ -158,6 +171,25 @@ Held DB apply/readback smoke:
 - Target tables: `core.raw_source_batch`, `core.data_version_batch`, `core.raw_snapshot`, `core.hk_ipo_public_source_run`, `core.hk_ipo_public_observation`, `core.hk_ipo_public_reconciliation_row`, `core.hk_ipo_public_supplement_candidate`
 - Blocked serving tables: `core.ipo_offering`, `core.ipo_timetable_event`, `core.ipo_narrative`, `core.ipo_cornerstone`
 - Guard: synthetic held rows only, single transaction, insert/select/delete cleanup, hash/count-only response, no fact promotion, no data-version release, no serving table writes.
+
+Live held DB apply/readback:
+
+- Script: `scripts/apply-hk-ipo-public-held-db-live.mjs`
+- Package check: `npm run check:hk-ipo-public-held-db-apply-live`
+- Remote route: `POST /ingest/hk-ipo-public/held-db-apply`
+- Readback route: `POST /ingest/hk-ipo-public/held-db-readback`
+- Required guard: `x-aiphabee-smoke: hk-ipo-public-held-db-apply-live-v1` plus `AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN`.
+- Production evidence on 2026-06-28 HKT: 617 held-layer rows inserted or updated, 2 remote R2 raw snapshot objects written, 2 R2 objects read back, 38 raw snapshot envelope rows, 303 public observation rows, 27 reconciliation rows, 246 supplement candidate rows.
+- Hash-only evidence: data version hash `sha256:7c62703a93ac32da46302151a049e1adcdad024ea696d026961436ebd64cb75a`, apply response hash `sha256:b417a079b82431f4af115830e085940ec530c8e34e2d32391a2016f2aff2227a`, readback hash `sha256:6b2346447f4799a9956a4635cfcce7ea19d1d142d5dabd1e9b859afe0f36b9f3`.
+- Guard: release state remains `held`; no serving table writes, no fact promotion, no data-version release, no raw payload body in JSON response.
+
+Held promotion preflight:
+
+- Script: `scripts/plan-hk-ipo-public-held-promotion-preflight.mjs`
+- Package check: `npm run check:hk-ipo-public-held-promotion-preflight`
+- Inputs: the held review packet used for apply plus optional held DB readback JSON from `scripts/check-hk-ipo-public-held-db-readback.mjs --remote`.
+- Output: promotion preflight gates, readback verification status, manual-review requirement, blocked serving tables, and hash-only packet evidence.
+- Guard: validates row counts, `release_state=held`, zero raw snapshot payload leaks, zero missing R2 objects, and `writes_serving_tables=false`; still keeps `promotion_execution_allowed=false` until manual review acceptance exists.
 
 Future ingest route:
 
@@ -171,7 +203,7 @@ Future ingest route:
 
 The current HKEX design exists to keep official documents, raw observations, extraction runs, and serving facts separated. That invariant should stay. Third-party public pages are better modeled as observations, not as a second canonical source, because their most useful fields are coverage accelerators and reconciliation hints.
 
-At 10x source count, the first failure mode is not storage volume; it is provenance drift and field conflict. The smallest coherent change is therefore a source contract plus a read-only live probe. It proves which sources are reachable and what fields are visible before adding any database write path.
+At 10x source count, the first failure mode is not storage volume; it is provenance drift and field conflict. The smallest coherent change is therefore a source contract, a read-only live probe, and a guarded held-layer apply/readback path. It proves which sources are reachable, what fields are visible, which rows were captured, and whether raw snapshot object references can be read back before any serving promotion is allowed.
 
 ## Source Matrix
 
@@ -202,7 +234,11 @@ npm run check:hk-ipo-public-raw-snapshot-storage
 npm run check:hk-ipo-public-raw-snapshot-r2-writer
 npm run check:hk-ipo-public-apply-plan
 npm run check:hk-ipo-public-held-db-apply-packet
+npm run check:hk-ipo-public-held-db-apply-live
 npm run check:hk-ipo-public-held-db-apply-smoke
+npm run check:hk-ipo-public-held-db-readback
+npm run check:hk-ipo-public-held-review-packet
+npm run check:hk-ipo-public-held-promotion-preflight
 npm run test -- apps/worker/src/hk-ipo-public-held-db-apply-smoke.test.ts
 ```
 
@@ -216,6 +252,8 @@ node scripts/plan-hk-ipo-public-raw-snapshot-storage.mjs --live --check
 node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --check
 node scripts/plan-hk-ipo-public-observation-apply.mjs --live --check
 node scripts/plan-hk-ipo-public-held-db-apply-packet.mjs --live --check
+node scripts/plan-hk-ipo-public-held-review-packet.mjs --live --check
+node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs --live --check
 ```
 
 Explicit remote R2 writer smoke:
@@ -224,4 +262,22 @@ Explicit remote R2 writer smoke:
 node scripts/smoke-hk-ipo-public-raw-snapshot-r2-writer.mjs --live --remote --check
 ```
 
-The default live probe is intentionally read-only. It checks page availability and expected fragments, then discards response bodies. The explicit remote R2 writer smoke is a bounded put/get/delete against smoke-prefixed keys only.
+Explicit live held DB apply/readback:
+
+```bash
+AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> \
+AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_ENDPOINT=<endpoint> \
+node scripts/apply-hk-ipo-public-held-db-live.mjs --remote --check
+
+AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN=<token> \
+AIPHABEE_HK_IPO_PUBLIC_HELD_DB_READBACK_ENDPOINT=<endpoint> \
+node scripts/check-hk-ipo-public-held-db-readback.mjs --remote
+
+node scripts/plan-hk-ipo-public-held-promotion-preflight.mjs \
+  --live \
+  --review-file <review_json> \
+  --readback-file <readback_json> \
+  --check
+```
+
+The default live probe is intentionally read-only. It checks page availability and expected fragments, then discards response bodies. The explicit remote R2 writer smoke is a bounded put/get/delete against smoke-prefixed keys only. The explicit live held DB apply writes only held-layer public observation rows and raw snapshot envelopes; it does not release data versions or write serving tables. The promotion preflight only consumes counts and hashes, so a verified readback can unblock the technical readback gate without unblocking manual review or serving promotion.
