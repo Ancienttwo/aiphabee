@@ -17,7 +17,7 @@ Reduce Sprint 0.4 live-smoke friction without storing or inferring secrets.
   only and are never sourced or executed.
 - Added `_ops/env/aiphabee-live-smoke-private.env` as the local ignored,
   mode-600 entrypoint for Cloudflare API token, AI smoke model, OTLP,
-  GitHub, and Supabase live-smoke inputs.
+  and GitHub live-smoke inputs.
 - Added `scripts/check-live-smoke-defaults.mjs` and `npm run check:live-smoke-defaults`.
 - Updated live smoke scripts to infer:
   - `CLOUDFLARE_WORKER_NAME`
@@ -43,7 +43,6 @@ process environment or ignored local ops env files:
 - `OTLP_EXPORTER_OTLP_HEADERS`
 - `GITHUB_REPOSITORY`
 - `GITHUB_ENVIRONMENT`
-- `SUPABASE_PROJECT_REF`
 
 ## Current Local Evidence
 
@@ -57,4 +56,4 @@ process environment or ignored local ops env files:
   `CLOUDFLARE_API_TOKEN` and `AI_GATEWAY_SMOKE_MODEL` missing after the local
   ops env file is present.
 - `npm run smoke:observability-live` now reports only `OTLP_EXPORTER_OTLP_ENDPOINT` and `OTLP_EXPORTER_OTLP_HEADERS` missing.
-- `npm run smoke:provider-secret-stores-live` now reports only GitHub/Supabase project identifiers missing; Cloudflare Worker name is inferred.
+- `npm run smoke:provider-secret-stores-live` now reports only GitHub project identifiers missing; Cloudflare Worker name is inferred.

@@ -12,7 +12,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible schema scaffold for Sprint 1.1 ACC-02.
+- Selected route: Postgres-compatible schema scaffold for Sprint 1.1 ACC-02.
 - Routing reason: data schemas and default-deny Gateway now exist, but account,
   workspace, subscription, and entitlement records need a shared system-of-record
   model before field rights or usage ledger can be enforced per workspace.
@@ -40,7 +40,7 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty account, workspace, membership,
+- Add a Postgres-compatible migration for empty account, workspace, membership,
   subscription, entitlement, and workspace-entitlement tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` and `/gateway/runtime` to report schema capability

@@ -262,7 +262,7 @@ function validateDatabaseMigration(value) {
   }
 
   const migration = value.migrations.find(
-    (item) => isRecord(item) && item.file === "supabase/migrations/20260622007000_enterprise_controls_scaffold.sql"
+    (item) => isRecord(item) && item.file === "deploy/database/migrations/20260622007000_enterprise_controls_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

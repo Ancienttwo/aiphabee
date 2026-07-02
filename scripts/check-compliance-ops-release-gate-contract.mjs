@@ -6,7 +6,7 @@ const contractPath = "deploy/public-ops/compliance-ops-release-gate.contract.jso
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql";
 const requiredChecks = [
   "type4_research_boundary_copy_reviewed",
   "marketing_copy_forbidden_advice_claims_absent",

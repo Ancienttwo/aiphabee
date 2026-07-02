@@ -328,7 +328,7 @@ Not completed:
 
 Completed:
 
-- `supabase/migrations/20260620071000_phase0_foundation.sql` added with
+- `deploy/database/migrations/20260620071000_phase0_foundation.sql` added with
   non-market-data `audit`, `core`, and `governance` schemas.
 - Default-deny governance tables added for Phase 0 rights posture.
 - `deploy/database/migrations.contract.json` defines Supabase Postgres via

@@ -12,7 +12,7 @@
 ## Scope
 
 PR #17 is a large "converge core schema namespaces" PR. This acceptance review is scoped to the **platform umbrella schema RLS foundation** slice — 3 files:
-- `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
+- `deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
 - `apps/worker/src/platform-umbrella-rls-isolation.test.ts`
 - `docs/governance/platform-umbrella-schema-foundation.md`
 

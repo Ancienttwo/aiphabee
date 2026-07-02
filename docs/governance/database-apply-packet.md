@@ -28,7 +28,7 @@ Out of scope:
 ## P2 Concrete Trace
 
 1. The checker reads `deploy/database/migrations.contract.json`.
-2. It confirms the migration list is sorted and matches `supabase/migrations`.
+2. It confirms the migration list is sorted and matches `deploy/database/migrations`.
 3. It hashes each SQL file as `{ file, sha256, size_bytes }`.
 4. It joins those JSON rows with newline separators and hashes the packet.
 5. It compares the count, first file, last file, total bytes, and aggregate hash
@@ -38,8 +38,8 @@ Current packet:
 
 ```json
 {
-  "first_file": "supabase/migrations/20260620071000_phase0_foundation.sql",
-  "last_file": "supabase/migrations/20260625002000_hkex_news_ingest_foundation.sql",
+  "first_file": "deploy/database/migrations/20260620071000_phase0_foundation.sql",
+  "last_file": "deploy/database/migrations/20260625002000_hkex_news_ingest_foundation.sql",
   "migration_count": 66,
   "packet_hash": "sha256:12962e56e3d436227adf4d857c77e62a22730e62407323b3adb417e352ee1523",
   "total_size_bytes": 294237

@@ -15,7 +15,7 @@ live database and does not enable live auth, billing, or entitlement execution.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration | `supabase/migrations/20260620085000_account_workspace_entitlement_scaffold.sql` | Creates empty `core` account/entitlement tables and governance contract |
+| Migration | `deploy/database/migrations/20260620085000_account_workspace_entitlement_scaffold.sql` | Creates empty `core` account/entitlement tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Data runtime route | `GET /data/runtime` | Reports schema capability, no live query |
 | Gateway runtime route | `GET /gateway/runtime` | Reports entitlement model capability, no live enforcement |
@@ -29,7 +29,7 @@ live database and does not enable live auth, billing, or entitlement execution.
 Migration validation trace:
 
 1. `npm run check:database` reads `deploy/database/migrations.contract.json`.
-2. The checker verifies every listed SQL file exists in `supabase/migrations`.
+2. The checker verifies every listed SQL file exists in `deploy/database/migrations`.
 3. It rejects destructive SQL, provider secrets, database URLs, and missing table
    coverage.
 4. It validates the new scaffold migration creates:

@@ -19557,7 +19557,7 @@ describe("worker runtime", () => {
     expect(body.data.hyperdrive.binding_name).toBe("AIPHABEE_HYPERDRIVE");
     expect(body.data.hyperdrive.binding_configured).toBe(false);
     expect(body.data.hyperdrive.status).toBe("planned");
-    expect(body.data.migration_directory).toBe("supabase/migrations");
+    expect(body.data.migration_directory).toBe("deploy/database/migrations");
     expect(body.data.live_queries).toBe(false);
     expect(body.data.live_readiness).toMatchObject({
       requested: false,

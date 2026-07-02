@@ -12,7 +12,7 @@ resources, MCP prompts, embedded widgets, or interactive Apps.
 - Plan route: `POST /mcp/client-maturity/plan`
 - Runtime metadata: `GET /mcp/runtime`
 - Contract: `deploy/mcp/client-maturity.contract.json`
-- Migration scaffold: `supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622011000_mcp_client_maturity_scaffold.sql`
 - Gate: `npm run check:mcp-client-maturity`
 
 ## Current Protocol Context

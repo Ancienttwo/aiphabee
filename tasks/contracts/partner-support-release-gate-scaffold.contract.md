@@ -8,7 +8,7 @@ Prove the Sprint 3.3 §19.5 partner/support release gate without claiming live p
 
 - `deploy/usage/partner-support-release-gate.contract.json`
 - `scripts/check-partner-support-release-gate-contract.mjs`
-- `supabase/migrations/20260622003000_partner_support_release_gate_scaffold.sql`
+- `deploy/database/migrations/20260622003000_partner_support_release_gate_scaffold.sql`
 - `docs/governance/partner-support-release-gate-scaffold.md`
 - Worker route `POST /usage/release-gates/partner-support/plan`
 - Usage runtime readiness under `GET /usage/runtime`

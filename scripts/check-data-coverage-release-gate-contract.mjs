@@ -180,7 +180,7 @@ function validateDatabaseTables(databaseValue) {
   const migration = migrations.find(
     (entry) =>
       isRecord(entry) &&
-      entry.file === "supabase/migrations/20260621130000_data_coverage_release_gate_scaffold.sql"
+      entry.file === "deploy/database/migrations/20260621130000_data_coverage_release_gate_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

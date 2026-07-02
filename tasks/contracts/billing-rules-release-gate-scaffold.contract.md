@@ -10,7 +10,7 @@ Complete Sprint 3.3 §19.5 item: `套餐/credits/退款/超额规则清楚；账
 - `apps/worker/src/index.ts`
 - `deploy/usage/billing-rules-release-gate.contract.json`
 - `scripts/check-billing-rules-release-gate-contract.mjs`
-- `supabase/migrations/20260622002000_billing_rules_release_gate_scaffold.sql`
+- `deploy/database/migrations/20260622002000_billing_rules_release_gate_scaffold.sql`
 - `docs/governance/billing-rules-release-gate-scaffold.md`
 
 ## Contract

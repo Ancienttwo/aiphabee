@@ -18,7 +18,7 @@ frontend Ask rendering, or user-facing live model streaming.
 | Runtime contract | `packages/agent-runtime/src/index.ts` | Exposes capability and pure no-write release gate plan |
 | Worker route | `apps/worker/src/index.ts` | Serves `POST /agent/release-gates/ai-gateway-observability/plan` in the standard envelope |
 | Contract | `deploy/agent/ai-gateway-observability-release-gate.contract.json` | Machine-readable linked evidence, blockers, permissions, and non-claims |
-| Migration | `supabase/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql` | No-write gate and governance contract scaffolds |
+| Migration | `deploy/database/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql` | No-write gate and governance contract scaffolds |
 | Checker | `scripts/check-agent-ai-gateway-observability-release-gate-contract.mjs` | Verifies runtime, Worker, tests, migration, package wiring, and non-claims |
 
 ## P2: Concrete Trace

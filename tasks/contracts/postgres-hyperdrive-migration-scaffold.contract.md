@@ -10,23 +10,24 @@
 
 ## Goal
 
-Create a verified repo-local Postgres/Supabase migration scaffold for the future
+Create a verified repo-local Postgres/Hyperdrive migration scaffold for the future
 Cloudflare Hyperdrive connection path without configuring live resources or
 running remote DDL.
 
 ## Scope
 
 - In scope:
-  - Supabase-compatible SQL migration file naming;
+  - Postgres-compatible SQL migration file naming;
   - database migration manifest;
   - no-secret checker for migration files and commands;
   - names-only Hyperdrive local development connection env var;
   - Worker database capability route;
   - tracker/governance updates.
 - Out of scope:
-  - provisioning Supabase project or Cloudflare Hyperdrive resource;
+  - provisioning a retired Supabase project;
+  - provisioning Cloudflare Hyperdrive resource;
   - committing Hyperdrive `id`, local connection string, or database URL;
-  - running `supabase db push` against a remote database;
+  - running retired Supabase CLI apply commands against a remote database;
   - running `SELECT 1` through Hyperdrive;
   - market-data tables, ingestion jobs, and data gateway behavior.
 
@@ -59,7 +60,7 @@ exit_criteria:
   files_exist:
     - deploy/database/migrations.contract.json
     - scripts/check-database-migrations-contract.mjs
-    - supabase/migrations/20260620071000_phase0_foundation.sql
+    - deploy/database/migrations/20260620071000_phase0_foundation.sql
     - docs/governance/postgres-hyperdrive-migration-scaffold.md
   content_checks:
     - "Migration manifest provider is supabase_postgres"

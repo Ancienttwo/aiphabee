@@ -11,7 +11,7 @@ item as a backend-only partner-runtime planner.
 - Runtime capability: `GET /partner/runtime`
 - Route: `POST /partner/white-label-embeds/plan`
 - Contract: `deploy/partner/white-label-embeds.contract.json`
-- Migration scaffold: `supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622008000_partner_white_label_embed_scaffold.sql`
 - Gate: `npm run check:white-label-embeds`
 
 ## Invariants

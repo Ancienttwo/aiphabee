@@ -42,7 +42,7 @@ Historical design goal:
 
 Authoritative surfaces:
 
-- AiphaBee 当前迁移使用 `supabase/migrations/*`，主要 schema 是 `core`、`governance`、`audit`。
+- AiphaBee 当前迁移使用 `deploy/database/migrations/*`，主要 schema 是 `core`、`governance`、`audit`。
 - AiphaBee 已有账号/workspace/entitlement scaffold：`platform.account`、`platform.workspace`、`platform.workspace_membership`、`platform.subscription_plan`、`platform.workspace_subscription`、`aiphabee_governance.data_entitlement`、`aiphabee_governance.workspace_entitlement`。
 - Salesko 当前产品边界是 multi-tenant SaaS，业务数据通过 `tenant_id` 和 product-specific Supabase tables 隔离。
 - AIMPACT 历史 docs 同时提到 Supabase 和 Cloudflare-native storage；共享 Supabase 只应该承接身份、产品访问、entitlement 和明确选择迁入的 relational state，不应强行替换已有 Cloudflare R2/D1/Vectorize 方案。
@@ -336,7 +336,7 @@ Before applying this to live Supabase:
 ## First Migration Candidate
 
 Repo-local status: implemented in
-`supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
+`deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
 and registered in `deploy/database/migrations.contract.json`. It has passed
 `npm run check:database`; no remote dry-run or live apply has been executed.
 

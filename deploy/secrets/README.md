@@ -14,7 +14,6 @@ npm run check:secrets
 
 - Cloudflare Workers secrets / Secrets Store for runtime Worker secrets.
 - GitHub Actions environment secrets for CI/CD deployment credentials.
-- Supabase project secrets for Supabase-side runtime configuration.
 
 Prefer short-lived or OIDC-based authentication where provider support exists.
 Long-lived secrets must have a rotation cadence and emergency revocation path.

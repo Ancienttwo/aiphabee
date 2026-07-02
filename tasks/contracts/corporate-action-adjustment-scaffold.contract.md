@@ -49,7 +49,7 @@ allowed_paths:
   - plans/plan-corporate-action-adjustment-scaffold.md
   - plans/plan-financial-facts-restatement-scaffold.md
   - plans/plan-security-master-raw-snapshot-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/corporate-action-adjustment-scaffold.contract.md
   - tasks/notes/corporate-action-adjustment-scaffold.notes.md
   - tasks/notes/financial-facts-restatement-scaffold.notes.md
@@ -63,7 +63,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620084000_corporate_action_adjustment_scaffold.sql
+    - deploy/database/migrations/20260620084000_corporate_action_adjustment_scaffold.sql
     - docs/governance/corporate-action-adjustment-scaffold.md
   content_checks:
     - "Migration creates corporate_action/adjustment_methodology/price_adjustment_factor tables"

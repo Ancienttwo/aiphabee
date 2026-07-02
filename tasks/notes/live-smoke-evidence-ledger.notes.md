@@ -27,6 +27,6 @@ Date: 2026-06-22
 - AI Gateway logs/cost/rate-limit/cache/fallback evidence with required read
   permissions.
 - OTLP export + eval-store write/read/delete live evidence.
-- Cloudflare/GitHub/Supabase provider-secret set/list/rotate/delete smoke.
+- Cloudflare/GitHub provider-secret set/list/rotate/delete smoke.
 
 No Sprint 0.4 live smoke checkbox was marked complete.

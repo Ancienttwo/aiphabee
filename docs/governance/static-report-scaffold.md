@@ -16,7 +16,7 @@ or expose a frontend surface.
 | Static report planner | `packages/research-runtime` | Builds metadata-complete no-write artifact plans |
 | Worker route | `apps/worker` | Wraps the plan in the shared response envelope |
 | Contract gate | `deploy/research/static-report.contract.json` | Locks metadata, status, scope, no-write, and DB table requirements |
-| Database scaffold | `supabase/migrations/20260621125000_static_report_scaffold.sql` | Empty report artifact, audit, and governance tables |
+| Database scaffold | `deploy/database/migrations/20260621125000_static_report_scaffold.sql` | Empty report artifact, audit, and governance tables |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## Trace

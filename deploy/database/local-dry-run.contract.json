@@ -3,7 +3,7 @@
   "status": "local_tooling_check",
   "provider": "planetscale_postgres",
   "database_contract": "deploy/database/migrations.contract.json",
-  "migration_directory": "supabase/migrations",
+  "migration_directory": "deploy/database/migrations",
   "checker": "scripts/check-database-local-dry-run.mjs",
   "package_script": "check:database-local-dry-run",
   "command": "npm run check:database-local-dry-run",

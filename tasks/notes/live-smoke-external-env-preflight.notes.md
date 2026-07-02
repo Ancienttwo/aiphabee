@@ -24,7 +24,6 @@ Missing env names:
 - `GITHUB_REPOSITORY`
 - `OTLP_EXPORTER_OTLP_ENDPOINT`
 - `OTLP_EXPORTER_OTLP_HEADERS`
-- `SUPABASE_PROJECT_REF`
 
 Defaulted non-secret names:
 
@@ -41,6 +40,6 @@ Defaulted non-secret names:
 ## Boundary
 
 The preflight is non-networked and prints no env values. It does not validate
-Cloudflare token permissions, OTLP endpoint acceptance, GitHub auth, Supabase
-auth, Hyperdrive origin reachability, or provider secret mutation behavior.
+Cloudflare token permissions, OTLP endpoint acceptance, GitHub auth, Hyperdrive
+origin reachability, or provider secret mutation behavior.
 No Sprint 0.4 live smoke checkbox was marked complete.

@@ -18,7 +18,7 @@ sharing UI is enabled.
 | Data rights gate | `@aiphabee/data-access-gateway` | Re-evaluates the recipient through `channel=export` |
 | Worker route | `apps/worker` | Wraps runtime and plan responses in the shared envelope |
 | Contract gate | `deploy/sharing/private-share-link.contract.json` | Locks no-expansion, expiry, watermark, and DB table requirements |
-| Database scaffold | `supabase/migrations/20260621124000_private_share_link_scaffold.sql` | Empty private share, audit, and governance tables |
+| Database scaffold | `deploy/database/migrations/20260621124000_private_share_link_scaffold.sql` | Empty private share, audit, and governance tables |
 | Frontend | Out of scope | User delegated frontend work to Claude |
 
 ## Trace

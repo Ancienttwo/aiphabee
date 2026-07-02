@@ -268,7 +268,7 @@ function validateDatabaseTables(value) {
     (entry) =>
       isRecord(entry) &&
       entry.file ===
-        "supabase/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql"
+        "deploy/database/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql"
   );
   const errors = [];
 

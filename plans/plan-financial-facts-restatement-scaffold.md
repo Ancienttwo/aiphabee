@@ -12,7 +12,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible schema scaffold for Sprint 1.1 DAT-03.
+- Selected route: Postgres-compatible schema scaffold for Sprint 1.1 DAT-03.
 - Routing reason: security master and raw snapshots now exist, but financial
   statements need their own period, currency, unit, methodology, and restatement
   version structures before Serving can expose sourced financial facts.
@@ -39,7 +39,7 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty `aiphabee_core.financial_statement`,
+- Add a Postgres-compatible migration for empty `aiphabee_core.financial_statement`,
   `aiphabee_core.financial_fact`, and `aiphabee_core.financial_restatement` tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` to report financial-fact schema capability without

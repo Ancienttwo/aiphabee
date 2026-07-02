@@ -29,7 +29,7 @@ preview Worker because the Cloudflare-managed Hyperdrive origin credential had
 Out of scope:
 
 - Loading source market data.
-- Renaming `supabase/migrations`.
+- Renaming `deploy/database/migrations`.
 - Writing direct passwords or database URLs to repo files.
 
 ## P2 Concrete Trace

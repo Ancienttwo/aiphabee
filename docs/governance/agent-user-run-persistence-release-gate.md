@@ -18,7 +18,7 @@ invoice writing.
 | Runtime contract | `packages/agent-runtime/src/index.ts` | Exposes capability and pure no-write release gate plan |
 | Worker route | `apps/worker/src/index.ts` | Serves `POST /agent/release-gates/user-run-persistence/plan` in the standard envelope |
 | Contract | `deploy/agent/user-run-persistence-release-gate.contract.json` | Machine-readable route, smoke links, blockers, and non-claims |
-| Migration | `supabase/migrations/20260622018000_agent_user_run_persistence_release_gate.sql` | No-write gate and governance contract scaffolds |
+| Migration | `deploy/database/migrations/20260622018000_agent_user_run_persistence_release_gate.sql` | No-write gate and governance contract scaffolds |
 | Checker | `scripts/check-agent-user-run-persistence-release-gate-contract.mjs` | Verifies runtime, Worker, tests, migration, package wiring, and non-claims |
 
 ## P2: Concrete Trace

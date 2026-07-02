@@ -6,7 +6,7 @@ const contractPath = "deploy/mcp/auth-limits-release-gate.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationPath =
-  "supabase/migrations/20260621136000_mcp_auth_limits_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260621136000_mcp_auth_limits_release_gate_scaffold.sql";
 const requiredRuntimeCapabilityFields = [
   "mcp_auth_limits_release_gate_ready",
   "mcp_auth_limits_release_gate_route",

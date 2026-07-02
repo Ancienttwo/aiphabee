@@ -23,7 +23,7 @@
 ## What Was Not Claimed
 
 - No live provider auth/env exists in the current shell.
-- No Cloudflare/GitHub/Supabase synthetic secret was set, rotated, deleted, or
+- No Cloudflare/GitHub synthetic secret was set, rotated, deleted, or
   confirmed absent in a live provider.
 - The Sprint 0.4 Provider secret stores live checkbox remains incomplete.
 

@@ -8,7 +8,7 @@ const runtimeTestPath = "packages/agent-runtime/src/index.test.ts";
 const workerPath = "apps/worker/src/index.ts";
 const workerTestPath = "apps/worker/src/index.test.ts";
 const migrationPath =
-  "supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql";
+  "deploy/database/migrations/20260622020000_agent_live_model_streaming_release_gate.sql";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const expectedVersion = "2026-06-22.phase1.agent-live-model-streaming-release-gate.v0";
 const expectedRoute = "POST /agent/release-gates/live-model-streaming/plan";

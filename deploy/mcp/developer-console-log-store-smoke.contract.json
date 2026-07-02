@@ -8,7 +8,7 @@
   "developer_console_contract": "deploy/mcp/developer-console.contract.json",
   "target_clients_console_gate_contract": "deploy/mcp/target-clients-console-release-gate.contract.json",
   "database_contract": "deploy/database/migrations.contract.json",
-  "migration": "supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql",
+  "migration": "deploy/database/migrations/20260622014000_mcp_developer_console_scaffold.sql",
   "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
   "smoke_token_binding": "AIPHABEE_MCP_DEVELOPER_CONSOLE_LOG_SMOKE_TOKEN",
   "smoke_header": {

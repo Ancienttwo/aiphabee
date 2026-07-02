@@ -373,7 +373,7 @@ function validateDatabaseTables(value) {
   const migration = migrations.find(
     (entry) =>
       isRecord(entry) &&
-      entry.file === "supabase/migrations/20260621135000_mcp_protocol_release_gate_scaffold.sql"
+      entry.file === "deploy/database/migrations/20260621135000_mcp_protocol_release_gate_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

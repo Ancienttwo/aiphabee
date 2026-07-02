@@ -11,8 +11,8 @@
 ## Goal
 
 Create a verified provider secret stores, rotation, and emergency revocation
-contract for Cloudflare, GitHub Actions, and Supabase without storing or
-mutating real secrets.
+contract for Cloudflare and GitHub Actions without storing or mutating real
+secrets.
 
 ## Scope
 
@@ -26,8 +26,7 @@ mutating real secrets.
 - Out of scope:
   - writing real provider secrets;
   - listing or downloading existing provider secrets;
-  - running `wrangler secret`, `gh secret`, or `supabase secrets` against live
-    accounts;
+  - running `wrangler secret` or `gh secret` against live accounts;
   - production cutover;
   - secret scanning SaaS integration.
 
@@ -64,7 +63,7 @@ exit_criteria:
     - scripts/check-secret-stores-contract.mjs
     - docs/governance/provider-secret-stores-contract.md
   content_checks:
-    - "Contract covers Cloudflare Workers, GitHub Actions, and Supabase"
+    - "Contract covers Cloudflare Workers and GitHub Actions"
     - "Contract secret_names match secret variables in env schema"
     - "Rotation cadence is <= 180 days"
     - "Emergency revocation SLA is <= 30 minutes"

@@ -6,7 +6,7 @@ const contractPath = "deploy/public-ops/publication-economics-release-gate.contr
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622004000_publication_economics_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622004000_publication_economics_release_gate_scaffold.sql";
 const requiredChecks = [
   "public_status_page_scaffold_published",
   "help_center_manifest_published",

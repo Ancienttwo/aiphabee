@@ -8,7 +8,7 @@ This scaffold covers the Sprint 3.3 release gate item for core API availability,
 - Runtime route: `GET /observability/runtime`
 - Gate route: `POST /observability/release-gates/performance-availability/plan`
 - Contract: `deploy/observability/performance-availability-release-gate.contract.json`
-- Migration: `supabase/migrations/20260622005000_performance_availability_release_gate_scaffold.sql`
+- Migration: `deploy/database/migrations/20260622005000_performance_availability_release_gate_scaffold.sql`
 - Checker: `npm run check:performance-availability-release-gate`
 
 ## What This Proves

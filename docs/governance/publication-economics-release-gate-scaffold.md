@@ -9,7 +9,7 @@ This scaffold covers the Sprint 3.3 release gate item for public status/help/pri
 - Gate route: `POST /public/release-gates/publication-economics/plan`
 - Linked evidence routes: `GET /public/status`, `GET /public/docs`, `GET /support/help-center`, `GET /account/package-pricing`
 - Contract: `deploy/public-ops/publication-economics-release-gate.contract.json`
-- Migration: `supabase/migrations/20260622004000_publication_economics_release_gate_scaffold.sql`
+- Migration: `deploy/database/migrations/20260622004000_publication_economics_release_gate_scaffold.sql`
 - Checker: `npm run check:publication-economics-release-gate`
 
 ## What This Proves

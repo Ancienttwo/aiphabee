@@ -15,7 +15,7 @@ not apply to a live database and does not load market data.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration | `supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql` | Creates empty `core` financial tables and governance contract |
+| Migration | `deploy/database/migrations/20260620083000_financial_facts_restatement_scaffold.sql` | Creates empty `core` financial tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Runtime route | `GET /data/runtime` | Reports schema capability, no live query |
 | Financial statement | `aiphabee_core.financial_statement` | Period, statement type, currency/unit/scale, accounting standard, source, versions |
@@ -29,7 +29,7 @@ not apply to a live database and does not load market data.
 Migration validation trace:
 
 1. `npm run check:database` reads `deploy/database/migrations.contract.json`.
-2. The checker verifies every listed SQL file exists in `supabase/migrations`.
+2. The checker verifies every listed SQL file exists in `deploy/database/migrations`.
 3. It rejects destructive SQL, provider secrets, database URLs, and missing table
    coverage.
 4. It validates the new scaffold migration creates:

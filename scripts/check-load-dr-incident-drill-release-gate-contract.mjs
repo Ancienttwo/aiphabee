@@ -6,7 +6,7 @@ const contractPath = "deploy/observability/load-dr-incident-drill-release-gate.c
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql";
 const requiredChecks = [
   "load_test_artifact_present",
   "load_test_targets_met",

@@ -5,7 +5,7 @@
   "checker": "scripts/check-agent-run-live-write-smoke-contract.mjs",
   "test_file": "apps/worker/src/agent-run-live-write-smoke.test.ts",
   "worker_entrypoint": "apps/worker/src/index.ts",
-  "migration": "supabase/migrations/20260622015000_agent_run_live_write_smoke.sql",
+  "migration": "deploy/database/migrations/20260622015000_agent_run_live_write_smoke.sql",
   "database_contract": "deploy/database/migrations.contract.json",
   "observability_event_contract": "deploy/observability/events.contract.json",
   "evidence_live_db_write_contract": "deploy/evidence/live-db-write-smoke.contract.json",

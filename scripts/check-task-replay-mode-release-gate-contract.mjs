@@ -331,7 +331,7 @@ function validateDatabaseTables(value) {
     (entry) =>
       isRecord(entry) &&
       entry.file ===
-        "supabase/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql"
+        "deploy/database/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

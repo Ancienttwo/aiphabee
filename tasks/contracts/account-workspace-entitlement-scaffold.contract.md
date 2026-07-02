@@ -50,7 +50,7 @@ allowed_paths:
   - docs/governance/postgres-hyperdrive-migration-scaffold.md
   - docs/governance/golden-quality-commercial-baseline.md
   - plans/plan-account-workspace-entitlement-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/account-workspace-entitlement-scaffold.contract.md
   - tasks/notes/account-workspace-entitlement-scaffold.notes.md
   - tasks/notes/data-access-gateway-default-deny-scaffold.notes.md
@@ -63,7 +63,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620085000_account_workspace_entitlement_scaffold.sql
+    - deploy/database/migrations/20260620085000_account_workspace_entitlement_scaffold.sql
     - docs/governance/account-workspace-entitlement-scaffold.md
   content_checks:
     - "Migration creates account/workspace/membership tables"

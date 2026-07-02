@@ -10,7 +10,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible Serving Store schema scaffold for Sprint
+- Selected route: Postgres-compatible Serving Store schema scaffold for Sprint
   1.1.
 - Routing reason: Gateway default-deny, quality hold, entitlement evaluator, and
   usage ledger schemas exist, but there is no versioned Serving Store projection
@@ -37,7 +37,7 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for Serving Store dataset, field,
+- Add a Postgres-compatible migration for Serving Store dataset, field,
   snapshot, and record projection tables.
 - Keep `default_deny`, `HOLD`, `held`, and `live_serving_reads=false` as the
   default posture.

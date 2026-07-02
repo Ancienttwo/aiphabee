@@ -12,7 +12,7 @@ Added the local no-write release gate scaffold for PRD §19.4 prompt-injection t
 - `apps/worker/src/index.ts`
 - `deploy/agent/prompt-injection-tool-denial-release-gate.contract.json`
 - `scripts/check-prompt-injection-tool-denial-release-gate-contract.mjs`
-- `supabase/migrations/20260621138000_prompt_injection_tool_denial_release_gate_scaffold.sql`
+- `deploy/database/migrations/20260621138000_prompt_injection_tool_denial_release_gate_scaffold.sql`
 - `docs/governance/prompt-injection-tool-denial-release-gate-scaffold.md`
 - `tasks/contracts/prompt-injection-tool-denial-release-gate-scaffold.contract.md`
 

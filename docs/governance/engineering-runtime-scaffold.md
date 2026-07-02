@@ -129,7 +129,7 @@ Observed `/health` response:
 - Cloudflare binding contract now exists in
   `docs/governance/cloudflare-bindings-contract.md`; real resources and smoke
   tests remain unimplemented.
-- Postgres/Supabase/Hyperdrive migration tooling now exists in
+- Postgres/Hyperdrive/Hyperdrive migration tooling now exists in
   `docs/governance/postgres-hyperdrive-migration-scaffold.md`; live Hyperdrive
   binding and `SELECT 1` smoke remain unimplemented.
 - Local observability/eval event wiring now exists in

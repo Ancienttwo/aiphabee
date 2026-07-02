@@ -51,7 +51,7 @@ allowed_paths:
   - packages/evidence-lineage/**
   - plans/plan-evidence-lineage-service-scaffold.md
   - scripts/check-evidence-service-contract.mjs
-  - supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql
+  - deploy/database/migrations/20260621024500_evidence_lineage_service_scaffold.sql
   - tasks/contracts/evidence-lineage-service-scaffold.contract.md
   - tasks/notes/evidence-lineage-service-scaffold.notes.md
   - tasks/todos.md

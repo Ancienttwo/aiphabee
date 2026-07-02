@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const contractPath = "deploy/partner/white-label-embeds.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
-const migrationPath = "supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql";
+const migrationPath = "deploy/database/migrations/20260622008000_partner_white_label_embed_scaffold.sql";
 const packageJsonPath = "package.json";
 const partnerSourcePath = "packages/partner-runtime/src/index.ts";
 const partnerTestPath = "packages/partner-runtime/src/index.test.ts";
@@ -292,7 +292,7 @@ function validateDatabaseMigration(value) {
   const migration = value.migrations.find(
     (item) =>
       isRecord(item) &&
-      item.file === "supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql"
+      item.file === "deploy/database/migrations/20260622008000_partner_white_label_embed_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

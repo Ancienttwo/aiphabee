@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
-const migrationPath = "supabase/migrations/20260625002000_hkex_news_ingest_foundation.sql";
+const migrationPath = "deploy/database/migrations/20260625002000_hkex_news_ingest_foundation.sql";
 const packagePath = "packages/data-ingest/package.json";
 const cliPath = "packages/data-ingest/bin/data-ingest.mjs";
 const runtimeContractPath = "deploy/ingest/hkex-news-ingest.contract.json";

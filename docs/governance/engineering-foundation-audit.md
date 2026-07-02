@@ -56,7 +56,7 @@ Observed state:
 | Initialize monorepo and package management | Missing | Not complete |
 | Agent Runtime skeleton on Cloudflare Workers | Missing | Not complete |
 | Cloudflare binding plan and minimum usable bindings | Missing config; binding list known from PRD | Not complete |
-| Postgres/Supabase via Hyperdrive and migration tooling | Missing | Not complete |
+| Postgres/Hyperdrive via Hyperdrive and migration tooling | Missing | Not complete |
 | CI lint/typecheck/test/golden regression hook | Missing `.github` and package scripts | Not complete |
 | OTel, logs, eval store wiring | Missing | Not complete |
 | Secrets/env management | Only deploy tracking rules exist | Not complete |

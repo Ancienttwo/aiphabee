@@ -13,7 +13,7 @@ SQL inventory in order, reports counts, then removes the cluster.
 | Surface | Authority | Boundary |
 |---|---|---|
 | Migration contract | `deploy/database/migrations.contract.json` | Lists the 66 SQL files and active PlanetScale provider boundary |
-| SQL inventory | `supabase/migrations/*` | Historical directory name retained; files are Postgres SQL inventory |
+| SQL inventory | `deploy/database/migrations/*` | Historical directory name retained; files are Postgres SQL inventory |
 | Local dry-run contract | `deploy/database/local-dry-run.contract.json` | Declares temp-cluster behavior and pass conditions |
 | Checker | `scripts/check-database-local-dry-run.mjs` | Owns temp Postgres lifecycle, migration apply order, cleanup, and count output |
 | Package script | `npm run check:database-local-dry-run` | Explicit local check; not part of root `npm run check` because it requires local Postgres server binaries |
@@ -24,12 +24,12 @@ Out of scope:
 - Remote schema apply or data migration.
 - Proving PlanetScale-specific behavior beyond ordinary Postgres syntax/apply
   compatibility.
-- Renaming `supabase/migrations`.
+- Renaming `deploy/database/migrations`.
 
 ## P2 Concrete Trace
 
 1. The checker reads `deploy/database/migrations.contract.json`.
-2. It confirms the listed files match `supabase/migrations/*.sql`.
+2. It confirms the listed files match `deploy/database/migrations/*.sql`.
 3. It creates a temp directory under `/tmp`.
 4. It runs `initdb` with trust auth and starts `postgres` through `pg_ctl` with
    Unix-socket-only local access.

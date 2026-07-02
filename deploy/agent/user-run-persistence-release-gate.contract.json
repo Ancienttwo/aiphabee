@@ -10,7 +10,7 @@
     "packages/agent-runtime/src/index.test.ts",
     "apps/worker/src/index.test.ts"
   ],
-  "migration": "supabase/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
+  "migration": "deploy/database/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
   "database_contract": "deploy/database/migrations.contract.json",
   "linked_smoke_contracts": [
     "deploy/agent/run-live-write-smoke.contract.json",

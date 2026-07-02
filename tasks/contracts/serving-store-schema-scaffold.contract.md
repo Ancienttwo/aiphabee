@@ -47,7 +47,7 @@ allowed_paths:
   - docs/governance/serving-store-schema-scaffold.md
   - docs/governance/usage-ledger-scaffold.md
   - plans/plan-serving-store-schema-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/serving-store-schema-scaffold.contract.md
   - tasks/notes/data-access-gateway-default-deny-scaffold.notes.md
   - tasks/notes/field-entitlement-enforcement-scaffold.notes.md
@@ -62,7 +62,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620091000_serving_store_scaffold.sql
+    - deploy/database/migrations/20260620091000_serving_store_scaffold.sql
     - docs/governance/serving-store-schema-scaffold.md
   content_checks:
     - "Migration creates serving_dataset/serving_field/serving_snapshot/serving_record tables"

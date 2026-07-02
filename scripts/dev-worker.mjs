@@ -14,7 +14,8 @@ const defaultEnvFiles = [
   resolve(workerDir, ".dev.vars"),
   resolve(workerDir, ".env"),
   resolve(repoRoot, ".env"),
-  resolve(repoRoot, "_ops/env/aiphabee-supabase-prod.private.env"),
+  resolve(repoRoot, "_ops/env/aiphabee-planetscale-prod.private.env"),
+  resolve(repoRoot, "_ops/env/aiphabee-live-smoke-private.env"),
 ];
 
 const envFiles = process.env.AIPHABEE_WORKER_DEV_ENV_FILE

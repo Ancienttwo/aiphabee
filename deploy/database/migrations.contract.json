@@ -3,7 +3,7 @@
   "status": "local_contract",
   "provider": "planetscale_postgres",
   "connection_path": "cloudflare_hyperdrive",
-  "migration_directory": "supabase/migrations",
+  "migration_directory": "deploy/database/migrations",
   "database_boundary": {
     "scope": "aiphabee_dedicated_planetscale_database",
     "organization": "chris_fung_planetscale_organization",
@@ -30,7 +30,7 @@
   "commands": [
     {
       "name": "create_migration",
-      "command": "create timestamped SQL file in supabase/migrations",
+      "command": "create timestamped SQL file in deploy/database/migrations",
       "effect": "local_file"
     },
     {
@@ -51,7 +51,7 @@
   ],
   "migrations": [
     {
-      "file": "supabase/migrations/20260620071000_phase0_foundation.sql",
+      "file": "deploy/database/migrations/20260620071000_phase0_foundation.sql",
       "purpose": "Create non-market-data schemas and default-deny governance controls used by later data-access slices.",
       "schemas": [
         "aiphabee_audit",
@@ -66,7 +66,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "file": "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
       "purpose": "Create empty security master and immutable raw snapshot scaffolds for Sprint 1.1 without loading partner or market data.",
       "schemas": [
         "aiphabee_core",
@@ -86,7 +86,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql",
+      "file": "deploy/database/migrations/20260620083000_financial_facts_restatement_scaffold.sql",
       "purpose": "Create empty financial facts and restatement scaffolds for Sprint 1.1 without loading partner or market data.",
       "schemas": [
         "aiphabee_core",
@@ -102,7 +102,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620084000_corporate_action_adjustment_scaffold.sql",
+      "file": "deploy/database/migrations/20260620084000_corporate_action_adjustment_scaffold.sql",
       "purpose": "Create empty corporate action and price adjustment scaffolds for Sprint 1.1 without loading partner or market data.",
       "schemas": [
         "aiphabee_core",
@@ -118,7 +118,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620085000_account_workspace_entitlement_scaffold.sql",
+      "file": "deploy/database/migrations/20260620085000_account_workspace_entitlement_scaffold.sql",
       "purpose": "Create empty account, workspace, subscription, and entitlement scaffolds for Sprint 1.1 without loading partner or market data.",
       "schemas": [
         "aiphabee_core",
@@ -142,7 +142,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620090000_usage_ledger_scaffold.sql",
+      "file": "deploy/database/migrations/20260620090000_usage_ledger_scaffold.sql",
       "purpose": "Create empty usage event, credit meter, ledger, and reconciliation scaffolds for Sprint 1.1 without loading partner or market data.",
       "schemas": [
         "aiphabee_core",
@@ -159,7 +159,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260620091000_serving_store_scaffold.sql",
+      "file": "deploy/database/migrations/20260620091000_serving_store_scaffold.sql",
       "purpose": "Create empty Serving Store projection scaffolds for Sprint 1.1 without enabling live Serving reads or loading partner market data.",
       "schemas": [
         "aiphabee_core",
@@ -176,7 +176,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql",
+      "file": "deploy/database/migrations/20260621024500_evidence_lineage_service_scaffold.sql",
       "purpose": "Create empty Evidence and Lineage service scaffolds for Sprint 1.2 without enabling live DB writes or loading partner source records.",
       "schemas": [
         "aiphabee_core",
@@ -191,7 +191,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621100000_subscription_lifecycle_audit_scaffold.sql",
+      "file": "deploy/database/migrations/20260621100000_subscription_lifecycle_audit_scaffold.sql",
       "purpose": "Create an empty subscription lifecycle audit event scaffold for Sprint 2.4 without enabling billing provider calls or live writes.",
       "schemas": [
         "aiphabee_audit"
@@ -203,7 +203,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621101000_usage_billing_reconciliation_scaffold.sql",
+      "file": "deploy/database/migrations/20260621101000_usage_billing_reconciliation_scaffold.sql",
       "purpose": "Create empty subscription invoice and invoice-line scaffolds that trace billing rows to usage ledger entries and request IDs without enabling live billing provider reads or writes.",
       "schemas": [
         "aiphabee_core",
@@ -218,7 +218,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621102000_high_cost_usage_reservation_scaffold.sql",
+      "file": "deploy/database/migrations/20260621102000_high_cost_usage_reservation_scaffold.sql",
       "purpose": "Create an empty high-cost usage credit reservation scaffold that links estimates, pre-debit entries, failure refunds, and request IDs without enabling live ledger writes.",
       "schemas": [
         "aiphabee_core",
@@ -232,7 +232,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621103000_workflow_task_scaffold.sql",
+      "file": "deploy/database/migrations/20260621103000_workflow_task_scaffold.sql",
       "purpose": "Create empty Workflow task and checkpoint scaffolds for resumable long-running Agent tasks without enabling live Workflows execution or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -247,7 +247,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621104000_deep_report_workflow_scaffold.sql",
+      "file": "deploy/database/migrations/20260621104000_deep_report_workflow_scaffold.sql",
       "purpose": "Create empty deep report snapshot and evidence index scaffolds linked to Workflow tasks without enabling live Workflows execution, R2 writes, or persistent report writes.",
       "schemas": [
         "aiphabee_core",
@@ -262,7 +262,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621105000_watchlist_alerts_scaffold.sql",
+      "file": "deploy/database/migrations/20260621105000_watchlist_alerts_scaffold.sql",
       "purpose": "Create empty watchlist and alert rule/event scaffolds for price, announcement, and metric reminders without enabling live notification fanout or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -279,7 +279,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621110000_watchlist_briefings_scaffold.sql",
+      "file": "deploy/database/migrations/20260621110000_watchlist_briefings_scaffold.sql",
       "purpose": "Create empty watchlist briefing and briefing-item scaffolds for daily and weekly summaries without enabling live notification fanout or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -294,7 +294,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621111000_data_correction_notifications_scaffold.sql",
+      "file": "deploy/database/migrations/20260621111000_data_correction_notifications_scaffold.sql",
       "purpose": "Create empty data correction event, saved-report impact, and user notification scaffolds without enabling live notification fanout or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -310,7 +310,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621112000_mcp_revocation_enforcement_scaffold.sql",
+      "file": "deploy/database/migrations/20260621112000_mcp_revocation_enforcement_scaffold.sql",
       "purpose": "Create empty MCP credential revocation enforcement scaffolds without enabling live auth enforcement or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -324,7 +324,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621113000_agent_kill_switch_scaffold.sql",
+      "file": "deploy/database/migrations/20260621113000_agent_kill_switch_scaffold.sql",
       "purpose": "Create empty Agent kill switch state and governance scaffolds without enabling live flag reads or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -338,7 +338,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621114000_authorized_session_memory_scaffold.sql",
+      "file": "deploy/database/migrations/20260621114000_authorized_session_memory_scaffold.sql",
       "purpose": "Create empty authorized session memory scaffolds for user-visible view, edit, and remove planning without enabling live reads or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -352,7 +352,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621115000_security_history_scaffold.sql",
+      "file": "deploy/database/migrations/20260621115000_security_history_scaffold.sql",
       "purpose": "Create empty security name, industry, and index constituent history scaffolds for point-in-time lookup without enabling live data access.",
       "schemas": [
         "aiphabee_core",
@@ -368,7 +368,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621120000_restricted_export_scaffold.sql",
+      "file": "deploy/database/migrations/20260621120000_restricted_export_scaffold.sql",
       "purpose": "Create empty restricted export request, audit event, and governance scaffolds for CSV, image, and PDF planning without enabling live artifact writes.",
       "schemas": [
         "aiphabee_audit",
@@ -384,7 +384,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621121000_package_pricing_scaffold.sql",
+      "file": "deploy/database/migrations/20260621121000_package_pricing_scaffold.sql",
       "purpose": "Create empty Pro and Developer package pricing catalog, entitlement bundle, and governance scaffolds without enabling live pricing or billing provider calls.",
       "schemas": [
         "aiphabee_core",
@@ -399,7 +399,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621122000_public_operations_scaffold.sql",
+      "file": "deploy/database/migrations/20260621122000_public_operations_scaffold.sql",
       "purpose": "Create empty public status component, public document publication, and governance scaffolds without enabling live incident feeds or live publication writes.",
       "schemas": [
         "aiphabee_core",
@@ -414,7 +414,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621123000_support_request_id_investigation_scaffold.sql",
+      "file": "deploy/database/migrations/20260621123000_support_request_id_investigation_scaffold.sql",
       "purpose": "Create empty support ticket, support investigation audit, and governance scaffolds for request ID investigation without enabling live log or billing provider reads.",
       "schemas": [
         "aiphabee_audit",
@@ -430,7 +430,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621124000_private_share_link_scaffold.sql",
+      "file": "deploy/database/migrations/20260621124000_private_share_link_scaffold.sql",
       "purpose": "Create empty private share link, audit event, and governance scaffolds without expanding recipient data rights or enabling live link materialization.",
       "schemas": [
         "aiphabee_audit",
@@ -446,7 +446,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621125000_static_report_scaffold.sql",
+      "file": "deploy/database/migrations/20260621125000_static_report_scaffold.sql",
       "purpose": "Create empty static report artifact, audit event, and governance scaffolds for allowed-scope report metadata without enabling artifact writes.",
       "schemas": [
         "aiphabee_audit",
@@ -462,7 +462,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621126000_partner_reconciliation_report_scaffold.sql",
+      "file": "deploy/database/migrations/20260621126000_partner_reconciliation_report_scaffold.sql",
       "purpose": "Create empty partner reconciliation report, report line, audit event, and governance scaffolds for dataset/channel/package/user usage export planning without enabling live ledger reads or writes.",
       "schemas": [
         "aiphabee_audit",
@@ -479,7 +479,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621127000_field_authorization_config_scaffold.sql",
+      "file": "deploy/database/migrations/20260621127000_field_authorization_config_scaffold.sql",
       "purpose": "Create empty operational field authorization change, approval audit, and governance scaffolds with policy version and effective-time controls without enabling live policy writes.",
       "schemas": [
         "aiphabee_audit",
@@ -495,7 +495,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621128000_account_data_request_scaffold.sql",
+      "file": "deploy/database/migrations/20260621128000_account_data_request_scaffold.sql",
       "purpose": "Create empty account data download/delete request, request item, audit event, and governance scaffolds with retention-policy controls without enabling live export, live erasure, or persistent writes.",
       "schemas": [
         "aiphabee_audit",
@@ -512,7 +512,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql",
+      "file": "deploy/database/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql",
       "purpose": "Create empty P0 rights matrix coverage entry and governance scaffolds for Web/MCP/export/enterprise default-deny release gate coverage without loading a signed partner matrix.",
       "schemas": [
         "aiphabee_core",
@@ -526,7 +526,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621130000_data_coverage_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621130000_data_coverage_release_gate_scaffold.sql",
       "purpose": "Create empty data freshness and coverage release gate scaffolds for realtime/delayed/EOD labels, company actions, restatements, delistings, and identifier history without loading live partner rows.",
       "schemas": [
         "aiphabee_core",
@@ -540,7 +540,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql",
+      "file": "deploy/database/migrations/20260621131000_golden_correction_rollback_drill_scaffold.sql",
       "purpose": "Create empty golden correction rollback drill and governance scaffolds for fixture-gated correction and replay planning without enabling live rollback execution or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -554,7 +554,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621132000_product_agent_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621132000_product_agent_release_gate_scaffold.sql",
       "purpose": "Create empty product Agent release gate and governance scaffolds for ambiguous security blocking and evidence-bound numeric claims without enabling live post-generation validation or frontend rendering.",
       "schemas": [
         "aiphabee_core",
@@ -568,7 +568,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql",
       "purpose": "Create empty Agent label budget release gate and governance scaffolds for claim-label enforcement and high-cost budget confirmation without enabling live queue execution or ledger writes.",
       "schemas": [
         "aiphabee_core",
@@ -582,7 +582,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621134000_task_replay_mode_release_gate_scaffold.sql",
       "purpose": "Create empty task replay mode release gate and governance scaffolds for resumable long tasks, saved-report replay, and response-depth invariants without enabling live workflow or replay execution.",
       "schemas": [
         "aiphabee_core",
@@ -596,7 +596,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621135000_mcp_protocol_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621135000_mcp_protocol_release_gate_scaffold.sql",
       "purpose": "Create empty MCP protocol release gate and governance scaffolds for Streamable HTTP, Origin, auth pre-execution, and input/output schema compatibility checks without enabling live OAuth, client e2e, or tool execution.",
       "schemas": [
         "aiphabee_core",
@@ -610,7 +610,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621136000_mcp_auth_limits_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621136000_mcp_auth_limits_release_gate_scaffold.sql",
       "purpose": "Create empty MCP auth, key lifecycle, cursor, quota, limit, and stable error release gate governance scaffolds without enabling live OAuth, API key generation, limiter enforcement, ledger writes, or tool execution.",
       "schemas": [
         "aiphabee_core",
@@ -624,7 +624,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql",
       "purpose": "Create empty MCP target-client e2e and Developer Console reconciliation release gate scaffolds without enabling live client smoke, Console UI, log-store reads, ledger reads, or tool execution.",
       "schemas": [
         "aiphabee_core",
@@ -638,7 +638,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260621138000_prompt_injection_tool_denial_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260621138000_prompt_injection_tool_denial_release_gate_scaffold.sql",
       "purpose": "Create empty prompt injection and arbitrary SQL/URL/unregistered tool denial release gate scaffolds without enabling live document fetch, tool execution, DB writes, or frontend rendering.",
       "schemas": [
         "aiphabee_core",
@@ -652,7 +652,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622000000_privacy_share_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622000000_privacy_share_release_gate_scaffold.sql",
       "purpose": "Create empty privacy/share release gate scaffolds for personal data delivery, retention holds, and private sharing no-expansion checks without enabling live export, share generation, DB writes, or frontend rendering.",
       "schemas": [
         "aiphabee_core",
@@ -666,7 +666,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql",
       "purpose": "Create empty compliance/ops release gate scaffolds for Type 4 research-boundary review, kill-switch drill, incident response trace, and audit export drill without enabling live signoff, incident feeds, audit stores, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -682,7 +682,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622002000_billing_rules_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622002000_billing_rules_release_gate_scaffold.sql",
       "purpose": "Create empty billing rules release gate scaffolds for package credits, overage, refund/proration preview blocking, invoice-to-ledger consistency, and high-cost pre-debit/refund drills without enabling live billing provider, ledger reads, invoice writes, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -698,7 +698,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622003000_partner_support_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622003000_partner_support_release_gate_scaffold.sql",
       "purpose": "Create empty partner/support release gate scaffolds for partner reconciliation report generation, request_id support investigation drill-down, SLA counters, and sensitive-payload exclusion without enabling live ledger reads, partner artifact store, support log reads, partner portal delivery, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -714,7 +714,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622004000_publication_economics_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622004000_publication_economics_release_gate_scaffold.sql",
       "purpose": "Create empty public publication and unit economics release gate scaffolds for status/help/privacy/terms publication and positive expected-usage contribution margin without enabling live deployment, legal approval, finance signoff, pricing provider, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -730,7 +730,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622005000_performance_availability_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622005000_performance_availability_release_gate_scaffold.sql",
       "purpose": "Create empty performance and availability release gate scaffolds for core API availability, MCP tool P95, Web first token P95, simple research P95, and tool success-rate SLO checks without enabling live APM reads, probe scheduling, SLO store writes, load-test artifacts, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -746,7 +746,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql",
+      "file": "deploy/database/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql",
       "purpose": "Create empty load, disaster recovery, and incident drill release gate scaffolds for load-test artifacts, restore RTO/RPO, failover/rollback, incident response, and status communications without enabling live load runners, restore execution, incident paging, status writes, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -762,7 +762,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622007000_enterprise_controls_scaffold.sql",
+      "file": "deploy/database/migrations/20260622007000_enterprise_controls_scaffold.sql",
       "purpose": "Create empty Team and Enterprise seats, SSO, audit, and private data connector scaffolds without enabling live identity-provider calls, directory sync, private connector calls, persistent writes, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -780,7 +780,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql",
+      "file": "deploy/database/migrations/20260622008000_partner_white_label_embed_scaffold.sql",
       "purpose": "Create empty partner white-label and embedded component scaffolds for B2B2C distribution, MCP/API surfaces, data gateway rights, and settlement planning without enabling live API execution, embed rendering, persistent writes, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -797,7 +797,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql",
+      "file": "deploy/database/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql",
       "purpose": "Create empty HK data domain coverage and cross-market mapping scaffolds for expanded Hong Kong datasets, point-in-time methodology, and HK-to-CN/US/SG comparison planning without enabling live data access, external redistribution, persistent writes, SQL execution, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -814,7 +814,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql",
+      "file": "deploy/database/migrations/20260622010000_licensed_advice_exploration_scaffold.sql",
       "purpose": "Create empty licensed advice exploration scaffolds for Route 2 licensed-path assessment, suitability controls, supervised review records, and forbidden unlicensed advice output policy without enabling advice generation, live model execution, order execution, persistent writes, SQL execution, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -831,7 +831,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql",
+      "file": "deploy/database/migrations/20260622011000_mcp_client_maturity_scaffold.sql",
       "purpose": "Create empty MCP client maturity assessment scaffolds for resources, prompts, and interactive Apps evaluation without enabling live resources, live prompts, interactive apps, component widgets, live tool execution, persistent writes, SQL execution, or frontend rendering.",
       "schemas": [
         "aiphabee_core",
@@ -845,7 +845,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql",
+      "file": "deploy/database/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql",
       "purpose": "Create empty user uploaded file and public data join privacy scaffolds for DOC-05 and STK-08 custom layout metadata without enabling upload storage, public data live reads, join execution, persistent writes, SQL execution, or frontend rendering.",
       "schemas": [
         "aiphabee_audit",
@@ -861,7 +861,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622013000_saved_screening_schedule_scaffold.sql",
+      "file": "deploy/database/migrations/20260622013000_saved_screening_schedule_scaffold.sql",
       "purpose": "Create empty saved screening and periodic run schedule scaffolds for ANA-05 without enabling live execution, workflow execution, queue writes, persistent writes, SQL execution, or frontend rendering.",
       "schemas": [
         "aiphabee_core",
@@ -877,7 +877,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql",
+      "file": "deploy/database/migrations/20260622014000_mcp_developer_console_scaffold.sql",
       "purpose": "Create empty MCP Developer Console request-log and contract scaffolds for MCP-09 without enabling frontend rendering, live Console log storage, live usage ledger reads, live credential material generation, live OAuth provider calls, live tool execution, persistent writes, or SQL execution.",
       "schemas": [
         "aiphabee_core",
@@ -891,7 +891,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622015000_agent_run_live_write_smoke.sql",
+      "file": "deploy/database/migrations/20260622015000_agent_run_live_write_smoke.sql",
       "purpose": "Create a guarded Agent run audit event table and smoke contract for Sprint 1.3 live write validation without enabling product run persistence, frontend rendering, or unguarded SQL execution.",
       "schemas": [
         "aiphabee_audit",
@@ -905,7 +905,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
+      "file": "deploy/database/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
       "purpose": "Create guarded Agent run state and checkpoint persistence smoke tables for Sprint 1.3 durable state validation without enabling production run persistence, user-facing resume, frontend rendering, or unguarded SQL execution.",
       "schemas": [
         "aiphabee_core",
@@ -920,7 +920,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
+      "file": "deploy/database/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
       "purpose": "Create guarded Agent billing posted ledger smoke contract for Sprint 1.3 preview-to-posted idempotency validation without enabling provider billing, invoice writes, frontend rendering, or production billing posting.",
       "schemas": [
         "aiphabee_governance"
@@ -932,7 +932,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
+      "file": "deploy/database/migrations/20260622018000_agent_user_run_persistence_release_gate.sql",
       "purpose": "Create no-write Agent user-run persistence release gate scaffolds that link the live-write, state-persistence, and billing-posted smoke contracts without enabling production user-run persistence, frontend rendering, or unguarded SQL execution.",
       "schemas": [
         "aiphabee_core",
@@ -946,7 +946,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql",
+      "file": "deploy/database/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql",
       "purpose": "Create no-write Agent AI Gateway observability release gate scaffolds that link model audit, AI Gateway observability, capture-packet, and evidence-ledger contracts without enabling live AI Gateway reads, model execution, frontend rendering, or unguarded SQL execution.",
       "schemas": [
         "aiphabee_core",
@@ -960,7 +960,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
+      "file": "deploy/database/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
       "purpose": "Create no-write Agent live model streaming release gate scaffolds that link backend SSE progress, guarded streamText smokes, generated-answer evidence binding, and AI Gateway observability gates without enabling user-facing model token streaming, frontend rendering, model calls, or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -974,7 +974,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622021000_agent_user_tool_loop_execution_release_gate.sql",
+      "file": "deploy/database/migrations/20260622021000_agent_user_tool_loop_execution_release_gate.sql",
       "purpose": "Create no-write Agent user ToolLoop execution release gate scaffolds that link planner, preflight, tool-enforcement, budget, failure-recovery, fixed tool execution, fixed ToolLoop, and user-run persistence gates without enabling arbitrary user ToolLoop execution, model calls, frontend rendering, or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -988,7 +988,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622022000_agent_model_output_corpus_release_gate.sql",
+      "file": "deploy/database/migrations/20260622022000_agent_model_output_corpus_release_gate.sql",
       "purpose": "Create no-write Agent model output corpus release gate scaffolds that link unsourced numeric sampling, generated-answer evidence, model audit, live model streaming, eval v1, and live-smoke evidence ledger contracts without enabling live corpus ingestion, production sampling, model calls, frontend rendering, or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -1002,7 +1002,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260622023000_agent_token_cost_fallback_release_gate.sql",
+      "file": "deploy/database/migrations/20260622023000_agent_token_cost_fallback_release_gate.sql",
       "purpose": "Create no-write Agent token/cost/fallback release gate scaffolds that link model execution audit, model-routing fallback audit, run/tool audit fields, AI Gateway observability, billing posted ledger, and user-run persistence contracts without enabling live token-cost-fallback writes, production cost ledger writes, model calls, frontend rendering, or persistent writes.",
       "schemas": [
         "aiphabee_core",
@@ -1016,7 +1016,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql",
+      "file": "deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql",
       "purpose": "Create the AiphaBee-local platform schema foundation for product registry, workspace membership, subscription plan, product access, entitlement policy, access audit, and product-specific identity/entitlement RLS hardening without seeding sibling-product rows, moving product-owned data, or enabling live migration apply.",
       "schemas": [
         "platform",
@@ -1073,7 +1073,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260624001000_ipo_pipeline_foundation.sql",
+      "file": "deploy/database/migrations/20260624001000_ipo_pipeline_foundation.sql",
       "purpose": "Create empty HK IPO raw-ingest compatibility, serving tables, field catalog, and governance contract without loading MDB source data, enabling live serving reads, external redistribution, persistent release, or frontend-only rights bypass.",
       "schemas": [
         "aiphabee_core",
@@ -1113,7 +1113,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260625002000_hkex_news_ingest_foundation.sql",
+      "file": "deploy/database/migrations/20260625002000_hkex_news_ingest_foundation.sql",
       "purpose": "Create empty HKEX News ingest scaffolds for crawl runs, canonical documents, per-run observations, multi-valued headlines, document lifecycle, sanitized content, extracted facts, deterministic transform runs, and held-only governance without loading public HKEX data or enabling redistribution.",
       "schemas": [
         "aiphabee_core",
@@ -1151,7 +1151,7 @@
       "default_rights_status": "default_deny"
     },
     {
-      "file": "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
+      "file": "deploy/database/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
       "purpose": "Create empty HK IPO public observation and reconciliation preflight tables for AASTOCKS and VBKR source-attributed observations without loading public web data, storing raw HTML in repo, writing serving tables, or promoting third-party facts.",
       "schemas": [
         "aiphabee_core",

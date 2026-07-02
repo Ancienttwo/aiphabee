@@ -47,7 +47,7 @@ allowed_paths:
   - docs/governance/postgres-hyperdrive-migration-scaffold.md
   - docs/governance/security-master-raw-snapshot-scaffold.md
   - plans/plan-security-master-raw-snapshot-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/security-master-raw-snapshot-scaffold.contract.md
   - tasks/notes/security-master-raw-snapshot-scaffold.notes.md
   - tasks/todos.md
@@ -58,7 +58,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql
+    - deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql
     - docs/governance/security-master-raw-snapshot-scaffold.md
   content_checks:
     - "Migration creates company/instrument/listing/identifier_history tables"

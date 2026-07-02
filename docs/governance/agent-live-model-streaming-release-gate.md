@@ -18,7 +18,7 @@ cutover, live AI Gateway log reading, or raw model output return.
 | Runtime contract | `packages/agent-runtime/src/index.ts` | Exposes capability and pure no-write release gate plan |
 | Worker route | `apps/worker/src/index.ts` | Serves `POST /agent/release-gates/live-model-streaming/plan` in the standard envelope |
 | Contract | `deploy/agent/live-model-streaming-release-gate.contract.json` | Machine-readable linked evidence, blockers, flags, tables, and non-claims |
-| Migration | `supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql` | No-write gate and governance contract scaffolds |
+| Migration | `deploy/database/migrations/20260622020000_agent_live_model_streaming_release_gate.sql` | No-write gate and governance contract scaffolds |
 | Checker | `scripts/check-agent-live-model-streaming-release-gate-contract.mjs` | Verifies runtime, Worker, tests, migration, package wiring, linked contracts, and non-claims |
 
 ## P2: Concrete Trace

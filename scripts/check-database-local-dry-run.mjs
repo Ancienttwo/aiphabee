@@ -8,7 +8,7 @@ import { spawn } from "node:child_process";
 const root = process.cwd();
 const contractPath = "deploy/database/local-dry-run.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
-const migrationDirectory = "supabase/migrations";
+const migrationDirectory = "deploy/database/migrations";
 const packageScript = "check:database-local-dry-run";
 const requiredTools = ["initdb", "pg_ctl", "createdb", "psql"];
 const port = "55432";

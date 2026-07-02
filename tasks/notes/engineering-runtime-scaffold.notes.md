@@ -43,7 +43,7 @@
 - Frontend scaffold and design-system integration are delegated to Claude.
 - AI SDK v7 Agent Runtime is not started.
 - Full Cloudflare bindings and smoke tests are not started.
-- Postgres/Supabase/Hyperdrive migration toolchain is not started.
+- Postgres/Hyperdrive/Hyperdrive migration toolchain is not started.
 - Golden sample regression remains design-only.
 - OTel/log/eval store wiring is missing.
 - Secrets management is names-only, not per-environment operational config.

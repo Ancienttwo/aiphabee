@@ -46,7 +46,7 @@ allowed_paths:
   - docs/governance/postgres-hyperdrive-migration-scaffold.md
   - docs/governance/usage-ledger-scaffold.md
   - plans/plan-usage-ledger-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/usage-ledger-scaffold.contract.md
   - tasks/notes/account-workspace-entitlement-scaffold.notes.md
   - tasks/notes/data-access-gateway-default-deny-scaffold.notes.md
@@ -60,7 +60,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620090000_usage_ledger_scaffold.sql
+    - deploy/database/migrations/20260620090000_usage_ledger_scaffold.sql
     - docs/governance/usage-ledger-scaffold.md
   content_checks:
     - "Migration creates usage_meter_rule/usage_event/usage_reconciliation_batch/usage_ledger_entry tables"

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const contractPath = "deploy/mcp/client-maturity.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
-const migrationPath = "supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql";
+const migrationPath = "deploy/database/migrations/20260622011000_mcp_client_maturity_scaffold.sql";
 const runtimeSourcePath = "packages/mcp-runtime/src/index.ts";
 const runtimeTestPath = "packages/mcp-runtime/src/index.test.ts";
 const workerSourcePath = "apps/worker/src/index.ts";

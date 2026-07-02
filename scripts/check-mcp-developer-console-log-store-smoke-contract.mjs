@@ -10,7 +10,7 @@ const developerConsoleContractPath = "deploy/mcp/developer-console.contract.json
 const targetClientsConsoleGateContractPath =
   "deploy/mcp/target-clients-console-release-gate.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
-const migrationPath = "supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql";
+const migrationPath = "deploy/database/migrations/20260622014000_mcp_developer_console_scaffold.sql";
 const expectedVersion = "2026-06-22.phase2.mcp-developer-console-log-store-smoke.v0";
 const expectedScript =
   "node scripts/check-mcp-developer-console-log-store-smoke-contract.mjs";

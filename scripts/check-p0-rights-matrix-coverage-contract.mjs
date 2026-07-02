@@ -188,7 +188,7 @@ function validateDatabaseTables(databaseValue) {
   const migration = migrations.find(
     (entry) =>
       isRecord(entry) &&
-      entry.file === "supabase/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql"
+      entry.file === "deploy/database/migrations/20260621129000_p0_rights_matrix_coverage_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

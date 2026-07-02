@@ -11,7 +11,7 @@ Close the Sprint 3.3 load/disaster-recovery/incident-drill tracker item with a n
 - Worker exposes `GET /observability/runtime` readiness under `load_dr_incident_drill_release_gate`.
 - Worker exposes `POST /observability/release-gates/load-dr-incident-drill/plan`.
 - Contract checker: `npm run check:load-dr-incident-drill-release-gate`.
-- DB contract includes `supabase/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql`.
+- DB contract includes `deploy/database/migrations/20260622006000_load_dr_incident_drill_release_gate_scaffold.sql`.
 
 ## Required Checks
 
