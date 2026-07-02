@@ -73,6 +73,8 @@ describe("createParseChartImageExecutor", () => {
     expect(outcome.model_call_count).toBe(1);
     expect(outcome.repair_applied).toBe(false);
     expect(outcome.error_code).toBeNull();
+    expect(outcome.calibration_run_id).toBeNull();
+    expect(outcome.route_decision).toBe("user_confirm");
     expect(safeParseChartParseResult(outcome.result).success).toBe(true);
     expect(outcome.result).toEqual(CLEAR_SAMPLE_RESULT);
 
@@ -96,6 +98,64 @@ describe("createParseChartImageExecutor", () => {
       (value) => value instanceof Uint8Array || value instanceof ArrayBuffer
     );
     expect(binaryValues).toHaveLength(0);
+  });
+
+  it("passes tenant context into fetchImage before any model call", async () => {
+    const model = makeVisionModelMockFromTexts([JSON.stringify(CLEAR_SAMPLE_RESULT)]);
+    const fetchedContexts: Array<{ imageRef: string; tenant_id: string }> = [];
+    const { deps } = makeHarness(model, {
+      fetchImage: async (imageRef, context) => {
+        fetchedContexts.push({ imageRef, tenant_id: context.tenant_id });
+        return FETCHED_IMAGE;
+      }
+    });
+
+    await createParseChartImageExecutor(deps)(REQUEST);
+
+    expect(fetchedContexts).toEqual([
+      {
+        imageRef: CLEAR_SAMPLE_IMAGE_REF,
+        tenant_id: "tenant-a"
+      }
+    ]);
+  });
+
+  it("stores calibration_run_id only when a ready matching calibration drives routing", async () => {
+    const model = makeVisionModelMockFromTexts([JSON.stringify(CLEAR_SAMPLE_RESULT)]);
+    const { deps, sink } = makeHarness(model, {
+      calibrationLookup: {
+        findCalibration: async (input) => ({
+          id: "cal-ready",
+          model_version: input.model_version,
+          prompt_version: input.prompt_version,
+          sample_count: 50,
+          schema_version: input.schema_version,
+          status: "ready",
+          thresholds: {
+            tiers: {
+              p0: {
+                auto_match_min_confidence: 0.9,
+                confirm_min_confidence: 0.6
+              },
+              p1: {
+                auto_match_min_confidence: 0.8,
+                confirm_min_confidence: 0.55
+              },
+              p2: {
+                auto_match_min_confidence: 0.7,
+                confirm_min_confidence: 0.5
+              }
+            }
+          }
+        })
+      }
+    });
+
+    const outcome = await createParseChartImageExecutor(deps)(REQUEST);
+
+    expect(outcome.calibration_run_id).toBe("cal-ready");
+    expect(outcome.route_decision).toBe("auto_match");
+    expect(sink.rows[0].calibration_run_id).toBe("cal-ready");
   });
 
   it("sends the frozen contract prompt and the image bytes to the vision model", async () => {

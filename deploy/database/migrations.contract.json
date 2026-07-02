@@ -1208,6 +1208,23 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260703005000_chart_image_uploads.sql",
+      "purpose": "Create tenant-scoped chart image upload metadata table (chart_images) for PRD parse-chart-image Module 5; rows store R2 keys, media metadata, content hashes, retention policy, and active/removed state while screenshot bytes remain in object storage.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [
+        "aiphabee_core.chart_images"
+      ],
+      "indexes": [
+        "chart_images_tenant_created_idx",
+        "chart_images_tenant_active_key_idx",
+        "chart_images_tenant_active_id_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -67,11 +67,25 @@ import {
   type ValidatePostGenerationEvidenceBindingInput
 } from "@aiphabee/agent-runtime";
 import {
+  CHART_IMAGE_MAX_BYTES,
+  ChartImageUploadError,
   createChartVisionModel,
   createInMemoryChartParseResultSink,
   createParseChartImageExecutor,
+  createStoredChartImageFetchImage,
   DEFAULT_CHART_VISION_MODEL_ID,
+  isSafeChartImageSegment,
   PARSE_CHART_IMAGE_TOOL_VERSION,
+  removeChartImage,
+  uploadChartImage,
+  type CalibrationLookup,
+  type CalibrationRunForRouting,
+  type CalibrationThresholds,
+  type ChartImageContentType,
+  type ChartImageMetadataStore,
+  type ChartImageObject,
+  type ChartImageObjectStore,
+  type ChartImageRecord,
   type FetchedChartImage
 } from "@aiphabee/agent-runtime/parse-chart-image";
 import {
@@ -404,6 +418,9 @@ interface WorkerBindings {
   AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?: string;
+  AIPHABEE_CALIBRATION_LOOKUP?: CalibrationLookup;
+  AIPHABEE_CHART_IMAGE_METADATA_STORE?: ChartImageMetadataStore;
+  AIPHABEE_CHART_IMAGE_SMOKE_TOKEN?: string;
   AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN?: string;
   AIPHABEE_CHART_VISION_MODEL?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
@@ -437,7 +454,11 @@ interface RuntimeR2Bucket {
   delete(key: string): Promise<void>;
   get(key: string): Promise<RuntimeR2BucketObject | null>;
   head?(key: string): Promise<unknown | null>;
-  put(key: string, value: string): Promise<unknown>;
+  put(
+    key: string,
+    value: ArrayBuffer | string | Uint8Array,
+    options?: { httpMetadata?: { contentType?: string } }
+  ): Promise<unknown>;
 }
 
 interface RuntimeR2BucketObject {
@@ -1507,6 +1528,12 @@ const PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN_BINDING =
   "AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN";
 const PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION =
   "2026-07-03.phase1.parse-chart-image-live-smoke.v0";
+const CHART_IMAGE_ROUTE = "/agent/chart-images";
+const CHART_IMAGE_ROUTE_HEADER_VALUE = "chart-image-upload-v1";
+const CHART_IMAGE_SMOKE_TOKEN_BINDING = "AIPHABEE_CHART_IMAGE_SMOKE_TOKEN";
+const CHART_IMAGE_ROUTE_VERSION = "2026-07-03.phase1.chart-image-upload-routing.v0";
+const CHART_IMAGE_TENANT_HEADER = "x-aiphabee-tenant-id";
+const CHART_IMAGE_USER_HEADER = "x-aiphabee-user-id";
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -2376,6 +2403,321 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
   }
 });
 
+// Smoke-only tenant context: this is not a production auth boundary.
+app.post(CHART_IMAGE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CHART_IMAGE_ROUTE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${CHART_IMAGE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingChartImageRouteEnv(c.env ?? {});
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${CHART_IMAGE_ROUTE}`,
+      status: "missing_env",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isChartImageRouteAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${CHART_IMAGE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${CHART_IMAGE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const context = normalizeChartImageRouteContext(c, { requireUser: true });
+  if (context === null) {
+    const bodyWithoutHash = {
+      accepted_headers: [CHART_IMAGE_TENANT_HEADER, CHART_IMAGE_USER_HEADER],
+      request_id: requestId,
+      route: `POST ${CHART_IMAGE_ROUTE}`,
+      status: "invalid_request",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      400
+    );
+  }
+
+  const metadataStore = getChartImageMetadataStore(c.env ?? {});
+  const objectStore = getChartImageObjectStore(c.env ?? {});
+  if (metadataStore === null || objectStore === null) {
+    const bodyWithoutHash = {
+      missing_env: ["AIPHABEE_ARTIFACTS", "AIPHABEE_HYPERDRIVE"],
+      request_id: requestId,
+      route: `POST ${CHART_IMAGE_ROUTE}`,
+      status: "missing_env",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  try {
+    if (isChartImageContentLengthTooLarge(c.req.header("content-length"))) {
+      throw new ChartImageUploadError("image_too_large", "chart image exceeds max byte size");
+    }
+
+    const bytes = new Uint8Array(await c.req.arrayBuffer());
+    const result = await uploadChartImage({
+      bytes,
+      contentType: normalizeRequestContentType(c.req.header("content-type")),
+      generateId: () => crypto.randomUUID(),
+      hashBytes: hashChartImageBytes,
+      metadataStore,
+      nowIso: () => new Date().toISOString(),
+      objectStore,
+      tenant_id: context.tenantId,
+      user_id: context.userId
+    });
+
+    const bodyWithoutHash = {
+      chart_image: {
+        byte_size: result.record.byte_size,
+        content_hash_sha256: result.record.content_hash_sha256,
+        content_type: result.record.content_type,
+        id: result.record.id,
+        image_ref: result.image_ref,
+        retention_policy: result.record.retention_policy
+      },
+      request_id: requestId,
+      route: `POST ${CHART_IMAGE_ROUTE}`,
+      status: "ok",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      201
+    );
+  } catch (error) {
+    if (error instanceof ChartImageUploadError) {
+      const bodyWithoutHash = {
+        error_code: error.code,
+        request_id: requestId,
+        route: `POST ${CHART_IMAGE_ROUTE}`,
+        status: "invalid_request",
+        version: CHART_IMAGE_ROUTE_VERSION
+      };
+      const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+      return c.json(
+        {
+          ...bodyWithoutHash,
+          response_hash: responseHash
+        },
+        error.code === "image_too_large" ? 413 : 400
+      );
+    }
+
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code: "CHART_IMAGE_UPLOAD_FAILED",
+      request_id: requestId,
+      route: `POST ${CHART_IMAGE_ROUTE}`,
+      status: "failed",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
+// Smoke-only tenant context: this is not a production auth boundary.
+app.delete(`${CHART_IMAGE_ROUTE}/:image_id`, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== CHART_IMAGE_ROUTE_HEADER_VALUE) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingChartImageRouteEnv(c.env ?? {});
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+      status: "missing_env",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isChartImageRouteAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${CHART_IMAGE_SMOKE_TOKEN_BINDING}`,
+        route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const context = normalizeChartImageRouteContext(c, { requireUser: false });
+  const imageId = c.req.param("image_id")?.trim() ?? "";
+  if (context === null || !isSafeChartImageSegment(imageId)) {
+    const bodyWithoutHash = {
+      accepted_headers: [CHART_IMAGE_TENANT_HEADER],
+      request_id: requestId,
+      route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+      status: "invalid_request",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      400
+    );
+  }
+
+  const metadataStore = getChartImageMetadataStore(c.env ?? {});
+  const objectStore = getChartImageObjectStore(c.env ?? {});
+  if (metadataStore === null || objectStore === null) {
+    const bodyWithoutHash = {
+      missing_env: ["AIPHABEE_ARTIFACTS", "AIPHABEE_HYPERDRIVE"],
+      request_id: requestId,
+      route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+      status: "missing_env",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  try {
+    const result = await removeChartImage({
+      id: imageId,
+      metadataStore,
+      nowIso: () => new Date().toISOString(),
+      objectStore,
+      tenant_id: context.tenantId
+    });
+
+    const bodyWithoutHash = {
+      chart_image: {
+        id: imageId,
+        image_ref: result.image_ref,
+        removal_status: result.status
+      },
+      request_id: requestId,
+      route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+      status: "ok",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json({
+      ...bodyWithoutHash,
+      response_hash: responseHash
+    });
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code: "CHART_IMAGE_REMOVAL_FAILED",
+      request_id: requestId,
+      route: `DELETE ${CHART_IMAGE_ROUTE}/:image_id`,
+      status: "failed",
+      version: CHART_IMAGE_ROUTE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
 app.post(PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE, async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -2434,7 +2776,10 @@ app.post(PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE, async (c) => {
   } catch {
     rawBody = null;
   }
-  const smokeInput = normalizeParseChartImageSmokeInput(rawBody);
+  const smokeInput = normalizeParseChartImageSmokeInput(
+    rawBody,
+    c.req.header(CHART_IMAGE_TENANT_HEADER)
+  );
 
   if (smokeInput === null) {
     const bodyWithoutHash = {
@@ -2456,10 +2801,33 @@ app.post(PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE, async (c) => {
     );
   }
 
+  const storedImageMissingEnv = missingParseChartImageLiveSmokeEnv(c.env ?? {}, {
+    requiresStoredImage: smokeInput.usesStoredImage
+  });
+  if (storedImageMissingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: storedImageMissingEnv,
+      request_id: requestId,
+      route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
   try {
     const modelId = getChartVisionModelId(c.env ?? {});
     const sink = createInMemoryChartParseResultSink();
     const executeParseChartImage = createParseChartImageExecutor({
+      calibrationLookup: getOptionalCalibrationLookup(c.env ?? {}),
       fetchImage: createParseChartImageSmokeFetchImage(c.env ?? {}, smokeInput),
       generateId: () => crypto.randomUUID(),
       model: createChartVisionModel({
@@ -2492,11 +2860,13 @@ app.post(PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE, async (c) => {
         status: row?.status ?? ""
       },
       parse_outcome: {
+        calibration_run_id: outcome.calibration_run_id,
         error_code: outcome.error_code,
         latency_ms: outcome.latency_ms,
         model_call_count: outcome.model_call_count,
         repair_applied: outcome.repair_applied,
         result: outcome.result,
+        route_decision: outcome.route_decision,
         status: outcome.status,
         usage: outcome.usage
       },
@@ -16894,7 +17264,404 @@ function getAgentLiveToolLoopSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?.trim() ?? "";
 }
 
-function missingParseChartImageLiveSmokeEnv(env: WorkerBindings): string[] {
+interface ChartImageRouteContext {
+  tenantId: string;
+  userId: string;
+}
+
+function missingChartImageRouteEnv(env: WorkerBindings): string[] {
+  const missing: string[] = [];
+
+  if (getChartImageRouteToken(env).length < 16) {
+    missing.push(CHART_IMAGE_SMOKE_TOKEN_BINDING);
+  }
+
+  if (!isRuntimeR2Bucket(env.AIPHABEE_ARTIFACTS)) {
+    missing.push("AIPHABEE_ARTIFACTS");
+  }
+
+  if (!hasChartImageMetadataStore(env)) {
+    missing.push("AIPHABEE_HYPERDRIVE");
+  }
+
+  return missing;
+}
+
+function getChartImageRouteToken(env: WorkerBindings): string {
+  return env.AIPHABEE_CHART_IMAGE_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function isChartImageRouteAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const authorization = c.req.header("authorization") ?? "";
+  return authorization === `Bearer ${getChartImageRouteToken(c.env ?? {})}`;
+}
+
+function normalizeChartImageRouteContext(
+  c: Context<{ Bindings: WorkerBindings }>,
+  options: { requireUser: boolean }
+): ChartImageRouteContext | null {
+  const tenantId = c.req.header(CHART_IMAGE_TENANT_HEADER)?.trim() ?? "";
+  const userId = c.req.header(CHART_IMAGE_USER_HEADER)?.trim() ?? "";
+
+  if (!isSafeChartImageSegment(tenantId)) {
+    return null;
+  }
+
+  if (options.requireUser && !isSafeChartImageSegment(userId)) {
+    return null;
+  }
+
+  return { tenantId, userId };
+}
+
+function normalizeRequestContentType(value: string | undefined): string {
+  return value?.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+function isChartImageContentLengthTooLarge(value: string | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
+  const contentLength = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(contentLength) && contentLength > CHART_IMAGE_MAX_BYTES;
+}
+
+async function hashChartImageBytes(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+
+  return `sha256:${[...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function hasChartImageMetadataStore(env: WorkerBindings): boolean {
+  return (
+    isChartImageMetadataStore(env.AIPHABEE_CHART_IMAGE_METADATA_STORE) ||
+    getRuntimeHyperdriveConnectionString(env) !== undefined
+  );
+}
+
+function getChartImageMetadataStore(env: WorkerBindings): ChartImageMetadataStore | null {
+  if (isChartImageMetadataStore(env.AIPHABEE_CHART_IMAGE_METADATA_STORE)) {
+    return env.AIPHABEE_CHART_IMAGE_METADATA_STORE;
+  }
+
+  return getRuntimeHyperdriveConnectionString(env) === undefined
+    ? null
+    : createHyperdriveChartImageMetadataStore(env);
+}
+
+function getChartImageObjectStore(env: WorkerBindings): ChartImageObjectStore | null {
+  return isRuntimeR2Bucket(env.AIPHABEE_ARTIFACTS)
+    ? createRuntimeR2ChartImageObjectStore(env.AIPHABEE_ARTIFACTS)
+    : null;
+}
+
+function createRuntimeR2ChartImageObjectStore(bucket: RuntimeR2Bucket): ChartImageObjectStore {
+  return {
+    get: async (key): Promise<ChartImageObject | null> => {
+      const object = await bucket.get(key);
+      if (!object || typeof object.arrayBuffer !== "function") {
+        return null;
+      }
+
+      return {
+        arrayBuffer: () => object.arrayBuffer!(),
+        mediaType: object.httpMetadata?.contentType ?? null
+      };
+    },
+    put: async (key, bytes, options) => {
+      await bucket.put(key, bytes, { httpMetadata: { contentType: options.contentType } });
+    },
+    remove: async (key) => {
+      await bucket.delete(key);
+    }
+  };
+}
+
+function createHyperdriveChartImageMetadataStore(env: WorkerBindings): ChartImageMetadataStore {
+  const withClient = async <T>(callback: (client: Client) => Promise<T>): Promise<T> => {
+    const result = await withHyperdrivePostgresClient(env, callback);
+    if (result === undefined) {
+      throw new Error("AIPHABEE_HYPERDRIVE is required for chart image metadata");
+    }
+    return result;
+  };
+
+  return {
+    findActiveById: async ({ id, tenant_id }) =>
+      withClient(async (client) => {
+        const result = await client.query<ChartImagePgRow>(
+          `
+            select
+              byte_size,
+              content_hash_sha256,
+              content_type,
+              created_at,
+              deleted_at,
+              id,
+              r2_key,
+              retention_policy,
+              tenant_id,
+              user_id
+            from aiphabee_core.chart_images
+            where tenant_id = $1
+              and id = $2
+              and deleted_at is null
+            limit 1
+          `,
+          [tenant_id, id]
+        );
+
+        return result.rows[0] ? toChartImageRecord(result.rows[0]) : null;
+      }),
+    findActiveByKey: async ({ r2_key, tenant_id }) =>
+      withClient(async (client) => {
+        const result = await client.query<ChartImagePgRow>(
+          `
+            select
+              byte_size,
+              content_hash_sha256,
+              content_type,
+              created_at,
+              deleted_at,
+              id,
+              r2_key,
+              retention_policy,
+              tenant_id,
+              user_id
+            from aiphabee_core.chart_images
+            where tenant_id = $1
+              and r2_key = $2
+              and deleted_at is null
+            limit 1
+          `,
+          [tenant_id, r2_key]
+        );
+
+        return result.rows[0] ? toChartImageRecord(result.rows[0]) : null;
+      }),
+    insert: async (record) =>
+      withClient(async (client) => {
+        await client.query(
+          `
+            insert into aiphabee_core.chart_images (
+              id,
+              tenant_id,
+              user_id,
+              r2_key,
+              content_type,
+              byte_size,
+              content_hash_sha256,
+              retention_policy,
+              deleted_at,
+              created_at
+            )
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `,
+          [
+            record.id,
+            record.tenant_id,
+            record.user_id,
+            record.r2_key,
+            record.content_type,
+            record.byte_size,
+            record.content_hash_sha256,
+            record.retention_policy,
+            record.deleted_at,
+            record.created_at
+          ]
+        );
+      }),
+    markRemoved: async ({ id, removed_at, tenant_id }) =>
+      withClient(async (client) => {
+        const result = await client.query<ChartImagePgRow>(
+          `
+            update aiphabee_core.chart_images
+            set deleted_at = $3
+            where tenant_id = $1
+              and id = $2
+              and deleted_at is null
+            returning
+              byte_size,
+              content_hash_sha256,
+              content_type,
+              created_at,
+              deleted_at,
+              id,
+              r2_key,
+              retention_policy,
+              tenant_id,
+              user_id
+          `,
+          [tenant_id, id, removed_at]
+        );
+
+        return result.rows[0] ? toChartImageRecord(result.rows[0]) : null;
+      })
+  };
+}
+
+interface ChartImagePgRow {
+  byte_size: number | string;
+  content_hash_sha256: string;
+  content_type: string;
+  created_at: Date | string;
+  deleted_at: Date | string | null;
+  id: string;
+  r2_key: string;
+  retention_policy: string;
+  tenant_id: string;
+  user_id: string;
+}
+
+function toChartImageRecord(row: ChartImagePgRow): ChartImageRecord {
+  return {
+    byte_size: Number(row.byte_size),
+    content_hash_sha256: row.content_hash_sha256,
+    content_type: row.content_type as ChartImageContentType,
+    created_at: normalizePgTimestamp(row.created_at),
+    deleted_at: row.deleted_at === null ? null : normalizePgTimestamp(row.deleted_at),
+    id: row.id,
+    r2_key: row.r2_key,
+    retention_policy: row.retention_policy as ChartImageRecord["retention_policy"],
+    tenant_id: row.tenant_id,
+    user_id: row.user_id
+  };
+}
+
+function normalizePgTimestamp(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function isChartImageMetadataStore(value: unknown): value is ChartImageMetadataStore {
+  return (
+    isPlainRecord(value) &&
+    typeof value.findActiveById === "function" &&
+    typeof value.findActiveByKey === "function" &&
+    typeof value.insert === "function" &&
+    typeof value.markRemoved === "function"
+  );
+}
+
+function getOptionalCalibrationLookup(env: WorkerBindings): CalibrationLookup | undefined {
+  if (isCalibrationLookup(env.AIPHABEE_CALIBRATION_LOOKUP)) {
+    return env.AIPHABEE_CALIBRATION_LOOKUP;
+  }
+
+  return getRuntimeHyperdriveConnectionString(env) === undefined
+    ? undefined
+    : createHyperdriveCalibrationLookup(env);
+}
+
+function createHyperdriveCalibrationLookup(env: WorkerBindings): CalibrationLookup {
+  return {
+    findCalibration: async (input) => {
+      const result = await withHyperdrivePostgresClient(env, async (client) =>
+        client.query<CalibrationRunPgRow>(
+          `
+            select
+              id,
+              model_version,
+              prompt_version,
+              sample_count,
+              schema_version,
+              status,
+              thresholds
+            from aiphabee_core.calibration_runs
+            where schema_version = $1
+              and prompt_version = $2
+              and model_version = $3
+              and status = 'ready'
+            order by activated_at desc nulls last, created_at desc
+            limit 1
+          `,
+          [input.schema_version, input.prompt_version, input.model_version]
+        )
+      );
+      const row = result?.rows[0];
+
+      return row ? toCalibrationRunForRouting(row) : null;
+    }
+  };
+}
+
+interface CalibrationRunPgRow {
+  id: string;
+  model_version: string;
+  prompt_version: string;
+  sample_count: number | string;
+  schema_version: string;
+  status: string;
+  thresholds: unknown;
+}
+
+function toCalibrationRunForRouting(row: CalibrationRunPgRow): CalibrationRunForRouting {
+  return {
+    id: row.id,
+    model_version: row.model_version,
+    prompt_version: row.prompt_version,
+    sample_count: Number(row.sample_count),
+    schema_version: row.schema_version,
+    status: row.status as CalibrationRunForRouting["status"],
+    thresholds: normalizeCalibrationThresholds(row.thresholds)
+  };
+}
+
+function normalizeCalibrationThresholds(value: unknown): CalibrationThresholds | null {
+  const parsed = typeof value === "string" ? safeJsonParse(value) : value;
+  if (!isPlainRecord(parsed) || !isPlainRecord(parsed.tiers)) {
+    return null;
+  }
+
+  const p0 = normalizeCalibrationTierThreshold(parsed.tiers.p0);
+  const p1 = normalizeCalibrationTierThreshold(parsed.tiers.p1);
+  const p2 = normalizeCalibrationTierThreshold(parsed.tiers.p2);
+  return p0 && p1 && p2 ? { tiers: { p0, p1, p2 } } : null;
+}
+
+function normalizeCalibrationTierThreshold(value: unknown): {
+  auto_match_min_confidence: number | null;
+  confirm_min_confidence: number | null;
+} | null {
+  if (!isPlainRecord(value)) {
+    return null;
+  }
+
+  const autoMatch = normalizeNullableNumber(value.auto_match_min_confidence);
+  const confirm = normalizeNullableNumber(value.confirm_min_confidence);
+  return autoMatch === undefined || confirm === undefined
+    ? null
+    : {
+        auto_match_min_confidence: autoMatch,
+        confirm_min_confidence: confirm
+      };
+}
+
+function normalizeNullableNumber(value: unknown): number | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function isCalibrationLookup(value: unknown): value is CalibrationLookup {
+  return isPlainRecord(value) && typeof value.findCalibration === "function";
+}
+
+function missingParseChartImageLiveSmokeEnv(
+  env: WorkerBindings,
+  options: { requiresStoredImage?: boolean } = {}
+): string[] {
   const requiredEnv: Array<[string, string | undefined]> = [
     ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
     ["AI_GATEWAY_NAME", env.AI_GATEWAY_NAME]
@@ -16909,6 +17676,15 @@ function missingParseChartImageLiveSmokeEnv(env: WorkerBindings): string[] {
 
   if (getParseChartImageLiveSmokeToken(env).length < 16) {
     return [PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN_BINDING, ...missing];
+  }
+
+  if (options.requiresStoredImage === true) {
+    if (!isRuntimeR2Bucket(env.AIPHABEE_ARTIFACTS)) {
+      missing.push("AIPHABEE_ARTIFACTS");
+    }
+    if (!hasChartImageMetadataStore(env)) {
+      missing.push("AIPHABEE_HYPERDRIVE");
+    }
   }
 
   return missing;
@@ -16927,9 +17703,13 @@ interface ParseChartImageSmokeInput {
   imageRef: string;
   mediaType: string;
   tenantId: string;
+  usesStoredImage: boolean;
 }
 
-function normalizeParseChartImageSmokeInput(raw: unknown): ParseChartImageSmokeInput | null {
+function normalizeParseChartImageSmokeInput(
+  raw: unknown,
+  tenantIdOverride?: string
+): ParseChartImageSmokeInput | null {
   if (!isPlainRecord(raw)) {
     return null;
   }
@@ -16947,6 +17727,23 @@ function normalizeParseChartImageSmokeInput(raw: unknown): ParseChartImageSmokeI
     return null;
   }
 
+  const usesStoredImage = imageBase64 === null;
+  const trimmedTenantIdOverride = tenantIdOverride?.trim() ?? "";
+  if (trimmedTenantIdOverride.length > 0 && !isSafeChartImageSegment(trimmedTenantIdOverride)) {
+    return null;
+  }
+  if (usesStoredImage && trimmedTenantIdOverride.length === 0) {
+    return null;
+  }
+  const rawTenantIdValue = typeof raw.tenant_id === "string" ? raw.tenant_id.trim() : "";
+  if (rawTenantIdValue.length > 0 && !isSafeChartImageSegment(rawTenantIdValue)) {
+    return null;
+  }
+  const rawTenantId =
+    rawTenantIdValue.length > 0 && isSafeChartImageSegment(rawTenantIdValue)
+      ? rawTenantIdValue
+      : null;
+
   return {
     imageBase64,
     imageRef: imageRef ?? "smoke/inline-image",
@@ -16955,9 +17752,8 @@ function normalizeParseChartImageSmokeInput(raw: unknown): ParseChartImageSmokeI
         ? raw.media_type.trim()
         : "image/png",
     tenantId:
-      typeof raw.tenant_id === "string" && raw.tenant_id.trim().length > 0
-        ? raw.tenant_id.trim()
-        : "smoke-tenant"
+      trimmedTenantIdOverride.length > 0 ? trimmedTenantIdOverride : rawTenantId ?? "smoke-tenant",
+    usesStoredImage
   };
 }
 
@@ -16977,28 +17773,21 @@ function decodeParseChartImageSmokeBase64(value: string): Uint8Array | null {
 function createParseChartImageSmokeFetchImage(
   env: WorkerBindings,
   input: ParseChartImageSmokeInput
-): (imageRef: string) => Promise<FetchedChartImage | null> {
-  return async (imageRef) => {
+): (imageRef: string, context: { tenant_id: string }) => Promise<FetchedChartImage | null> {
+  return async (imageRef, context) => {
     if (input.imageBase64 !== null) {
       const bytes = decodeParseChartImageSmokeBase64(input.imageBase64);
       return bytes === null ? null : { bytes, mediaType: input.mediaType };
     }
 
     const bucket = env.AIPHABEE_ARTIFACTS;
-    if (!bucket) {
+    const metadataStore = getChartImageMetadataStore(env);
+    const objectStore = getChartImageObjectStore(env);
+    if (!bucket || metadataStore === null || objectStore === null) {
       return null;
     }
 
-    const object = await bucket.get(imageRef);
-    if (!object || typeof object.arrayBuffer !== "function") {
-      return null;
-    }
-
-    const buffer = await object.arrayBuffer();
-    return {
-      bytes: new Uint8Array(buffer),
-      mediaType: object.httpMetadata?.contentType?.trim() || input.mediaType
-    };
+    return createStoredChartImageFetchImage({ metadataStore, objectStore })(imageRef, context);
   };
 }
 
