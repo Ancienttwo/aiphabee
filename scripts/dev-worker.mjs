@@ -2,13 +2,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
 const workerDir = resolve(repoRoot, "apps/worker");
+const directPreflightContractPath = resolve(
+  repoRoot,
+  "deploy/database/planetscale-direct-preflight.contract.json"
+);
 const requiredHyperdriveEnv =
   "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_HYPERDRIVE";
+const wranglerEnvName = resolveWranglerEnvName(process.argv.slice(2));
 
 const defaultEnvFiles = [
   resolve(workerDir, ".dev.vars"),
@@ -36,12 +41,15 @@ for (const file of envFiles) {
   loadedEnvFiles.push(relative(repoRoot, file));
 }
 
+const hyperdriveEnvResolution = resolveLocalHyperdriveEnv(childEnv);
+
 if (!hasValue(childEnv[requiredHyperdriveEnv])) {
   const checked = loadedEnvFiles.length > 0 ? loadedEnvFiles.join(", ") : "none";
   console.error(
     [
       `Missing ${requiredHyperdriveEnv}.`,
       `Checked env files: ${checked}.`,
+      `Keychain fallback: ${hyperdriveEnvResolution.status}.`,
       "Set it in the shell, apps/worker/.dev.vars, or AIPHABEE_WORKER_DEV_ENV_FILE."
     ].join("\n")
   );
@@ -122,4 +130,126 @@ function resolveMaybeRelative(file) {
 
 function hasValue(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function resolveLocalHyperdriveEnv(env) {
+  if (hasValue(env[requiredHyperdriveEnv])) {
+    return { status: "present" };
+  }
+
+  for (const fallbackEnv of ["HYPERDRIVE_DATABASE_URL", "PLANETSCALE_DATABASE_URL"]) {
+    if (hasValue(env[fallbackEnv])) {
+      env[requiredHyperdriveEnv] = env[fallbackEnv];
+      return { status: `derived_from_${fallbackEnv}` };
+    }
+  }
+
+  if (process.platform !== "darwin") {
+    return { status: "skipped_non_darwin" };
+  }
+
+  if (env.AIPHABEE_WORKER_DEV_DISABLE_KEYCHAIN === "1") {
+    return { status: "disabled_by_AIPHABEE_WORKER_DEV_DISABLE_KEYCHAIN" };
+  }
+
+  if (wranglerEnvName !== undefined) {
+    return { status: `skipped_keychain_for_wrangler_env_${formatStatusValue(wranglerEnvName)}` };
+  }
+
+  const connectionString = buildPlanetScaleConnectionStringFromKeychain();
+
+  if (!hasValue(connectionString)) {
+    return { status: "missing_planetscale_keychain_password" };
+  }
+
+  env[requiredHyperdriveEnv] = connectionString;
+  return { status: "derived_from_planetscale_keychain" };
+}
+
+function buildPlanetScaleConnectionStringFromKeychain() {
+  let contract;
+
+  try {
+    contract = JSON.parse(readFileSync(directPreflightContractPath, "utf8"));
+  } catch {
+    return undefined;
+  }
+
+  const target = contract.target;
+  const keychainSource = Array.isArray(contract.credential_sources)
+    ? contract.credential_sources.find((source) => source?.source === "macos_keychain")
+    : undefined;
+
+  if (
+    contract.provider !== "planetscale_postgres" ||
+    !isRecord(target) ||
+    !isRecord(keychainSource) ||
+    !hasValue(target.host) ||
+    !Number.isInteger(target.port) ||
+    !hasValue(target.dbname) ||
+    !hasValue(target.user) ||
+    !hasValue(target.sslmode) ||
+    !hasValue(keychainSource.service) ||
+    !hasValue(keychainSource.account) ||
+    keychainSource.account !== target.user
+  ) {
+    return undefined;
+  }
+
+  const passwordResult = spawnSync(
+    "security",
+    [
+      "find-generic-password",
+      "-s",
+      keychainSource.service,
+      "-a",
+      keychainSource.account,
+      "-w"
+    ],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }
+  );
+
+  const password = passwordResult.stdout?.trim();
+
+  if (passwordResult.status !== 0 || !hasValue(password)) {
+    return undefined;
+  }
+
+  const connectionString = new URL("postgresql://localhost");
+  connectionString.hostname = target.host;
+  connectionString.port = String(target.port);
+  connectionString.username = target.user;
+  connectionString.password = password;
+  connectionString.pathname = `/${target.dbname}`;
+  connectionString.searchParams.set("sslmode", target.sslmode);
+
+  return connectionString.toString();
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function resolveWranglerEnvName(args) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if ((arg === "--env" || arg === "-e") && hasValue(args[index + 1])) {
+      return args[index + 1].trim();
+    }
+
+    if (arg.startsWith("--env=")) {
+      const [, value = ""] = arg.split("=", 2);
+      return hasValue(value) ? value.trim() : undefined;
+    }
+  }
+
+  return undefined;
+}
+
+function formatStatusValue(value) {
+  return value.replaceAll(/[^A-Za-z0-9_]+/gu, "_").replaceAll(/^_+|_+$/gu, "") || "unknown";
 }

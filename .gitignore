@@ -116,3 +116,9 @@ scripts/prepare-codex-handoff.sh
 scripts/codex-handoff-resume.sh
 scripts/repo-harness/
 # END: claude-runtime-temp
+
+# Local data-ingest run state (Scrapy jobdirs, reports, logs) - never commit
+runtime/
+
+# Local skill autoresearch experiment output
+skills/autoresearch-*/

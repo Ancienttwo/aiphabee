@@ -176,8 +176,7 @@ async function runHkexDaily(resolvedDate, command = DAILY_COMMAND) {
   }
 
   const ids = idsForBusinessDate(resolvedDate);
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await connectDataIngestClient(databaseUrl);
   let lockAcquired = false;
 
   try {
@@ -324,8 +323,7 @@ async function emitRunStatus(parsedFlags) {
     );
   }
 
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await connectDataIngestClient(databaseUrl);
   try {
     const result = await client.query(
       `
@@ -442,8 +440,7 @@ async function emitValidate(parsedFlags) {
     );
   }
 
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await connectDataIngestClient(databaseUrl);
   try {
     const validation = await readValidationState(client, dataVersion);
     if (!validation.exists) {
@@ -541,8 +538,7 @@ async function emitRelease(parsedFlags) {
     );
   }
 
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await connectDataIngestClient(databaseUrl);
   let lockAcquired = false;
   try {
     await configureSession(client);
@@ -766,6 +762,59 @@ async function readValidationState(client, dataVersion) {
 async function configureSession(client) {
   await client.query("set application_name = 'aiphabee-data-ingest-hkex-news'");
   await client.query("set statement_timeout = '10min'");
+}
+
+async function connectDataIngestClient(connectionString) {
+  const client = new Client({ connectionString });
+  await client.connect();
+  await installSchemaCompatibility(client);
+  return client;
+}
+
+async function installSchemaCompatibility(client) {
+  const originalQuery = client.query.bind(client);
+  const result = await originalQuery(`
+    select
+      to_regnamespace('aiphabee_core') is not null as aiphabee_core,
+      to_regnamespace('core') is not null as core,
+      to_regnamespace('aiphabee_governance') is not null as aiphabee_governance,
+      to_regnamespace('governance') is not null as governance,
+      to_regnamespace('aiphabee_audit') is not null as aiphabee_audit,
+      to_regnamespace('audit') is not null as audit
+  `);
+  const row = result.rows[0] ?? {};
+  const schemaMap = {
+    aiphabee_audit: row.aiphabee_audit ? "aiphabee_audit" : row.audit ? "audit" : "aiphabee_audit",
+    aiphabee_core: row.aiphabee_core ? "aiphabee_core" : row.core ? "core" : "aiphabee_core",
+    aiphabee_governance: row.aiphabee_governance
+      ? "aiphabee_governance"
+      : row.governance
+        ? "governance"
+        : "aiphabee_governance"
+  };
+
+  client.query = (queryConfig, ...args) => {
+    if (typeof queryConfig === "string") {
+      return originalQuery(rewriteSchemaNames(queryConfig, schemaMap), ...args);
+    }
+    if (queryConfig && typeof queryConfig === "object" && typeof queryConfig.text === "string") {
+      return originalQuery(
+        {
+          ...queryConfig,
+          text: rewriteSchemaNames(queryConfig.text, schemaMap)
+        },
+        ...args
+      );
+    }
+    return originalQuery(queryConfig, ...args);
+  };
+}
+
+function rewriteSchemaNames(sql, schemaMap) {
+  return sql
+    .replaceAll("aiphabee_governance.", `${schemaMap.aiphabee_governance}.`)
+    .replaceAll("aiphabee_core.", `${schemaMap.aiphabee_core}.`)
+    .replaceAll("aiphabee_audit.", `${schemaMap.aiphabee_audit}.`);
 }
 
 async function upsertSourceBatch(client, ids, businessDate) {
