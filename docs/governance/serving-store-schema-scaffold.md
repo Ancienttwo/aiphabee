@@ -17,7 +17,7 @@ or enable Gateway live Serving reads/writes.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration | `supabase/migrations/20260620091000_serving_store_scaffold.sql` | Creates empty `core` Serving Store tables and governance contract |
+| Migration | `deploy/database/migrations/20260620091000_serving_store_scaffold.sql` | Creates empty `core` Serving Store tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists local migrations and keeps `market_data=false` |
 | Data runtime route | `GET /data/runtime` | Reports Serving Store schema capability, no live queries |
 | Gateway runtime route | `GET /gateway/runtime` | Reports Gateway can target Serving Store later, no live reads |
@@ -38,7 +38,7 @@ or enable Gateway live Serving reads/writes.
 Migration validation trace:
 
 1. `npm run check:database` reads `deploy/database/migrations.contract.json`.
-2. The checker verifies every listed SQL file exists in `supabase/migrations`.
+2. The checker verifies every listed SQL file exists in `deploy/database/migrations`.
 3. It rejects destructive SQL, provider secrets, database URLs, and missing table
    coverage.
 4. It validates the new scaffold migration creates:

@@ -6,7 +6,7 @@
 
 ## Decisions
 
-- Used Supabase migration naming under `supabase/migrations/`.
+- Used Supabase migration naming under `deploy/database/migrations/`.
 - Added a repo-local migration manifest instead of provisioning a Supabase or
   Hyperdrive resource.
 - Added only non-market-data schemas and default-deny governance tables.

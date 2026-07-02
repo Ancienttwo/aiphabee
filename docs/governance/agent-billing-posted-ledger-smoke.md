@@ -17,7 +17,7 @@ Ask rendering, or user-facing live model streaming.
 |---|---|---|
 | Worker route | `apps/worker/src/index.ts` | Guarded smoke route and transaction runner |
 | Contract | `deploy/agent/billing-posted-ledger-smoke.contract.json` | Machine-readable route/schema/non-claim contract |
-| Migration | `supabase/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql` | Governance contract for the smoke boundary |
+| Migration | `deploy/database/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql` | Governance contract for the smoke boundary |
 | Checker | `scripts/check-agent-billing-posted-ledger-smoke-contract.mjs` | Verifies route, package wiring, migration, tests, and non-claims |
 | Tests | `apps/worker/src/agent-billing-posted-ledger-smoke.test.ts` | Guard/auth/missing-binding/success-path coverage |
 

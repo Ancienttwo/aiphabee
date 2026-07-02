@@ -19,7 +19,7 @@ production persistence cutover.
 | Runtime contract | `packages/agent-runtime/src/index.ts` | Exposes capability and pure no-write release gate plan |
 | Worker route | `apps/worker/src/index.ts` | Serves `POST /agent/release-gates/user-tool-loop-execution/plan` in the standard envelope |
 | Contract | `deploy/agent/user-tool-loop-execution-release-gate.contract.json` | Machine-readable linked evidence, blockers, flags, tables, and non-claims |
-| Migration | `supabase/migrations/20260622021000_agent_user_tool_loop_execution_release_gate.sql` | No-write gate and governance contract scaffolds |
+| Migration | `deploy/database/migrations/20260622021000_agent_user_tool_loop_execution_release_gate.sql` | No-write gate and governance contract scaffolds |
 | Checker | `scripts/check-agent-user-tool-loop-execution-release-gate-contract.mjs` | Verifies runtime, Worker, tests, migration, package wiring, linked contracts, and non-claims |
 
 ## P2: Concrete Trace

@@ -12,7 +12,7 @@ without enabling those surfaces live.
 - Plan route: `POST /mcp/client-maturity/plan`
 - Contract: `deploy/mcp/client-maturity.contract.json`
 - Checker: `npm run check:mcp-client-maturity`
-- Migration scaffold: `supabase/migrations/20260622011000_mcp_client_maturity_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622011000_mcp_client_maturity_scaffold.sql`
 
 ## Required Guarantees
 

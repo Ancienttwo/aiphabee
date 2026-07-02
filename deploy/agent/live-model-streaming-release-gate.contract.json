@@ -10,7 +10,7 @@
     "packages/agent-runtime/src/index.test.ts",
     "apps/worker/src/index.test.ts"
   ],
-  "migration": "supabase/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
+  "migration": "deploy/database/migrations/20260622020000_agent_live_model_streaming_release_gate.sql",
   "database_contract": "deploy/database/migrations.contract.json",
   "linked_contracts": [
     "deploy/agent/tool-loop-planner.contract.json",

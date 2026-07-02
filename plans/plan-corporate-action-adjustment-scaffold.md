@@ -12,7 +12,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible schema scaffold for Sprint 1.1 DAT-04.
+- Selected route: Postgres-compatible schema scaffold for Sprint 1.1 DAT-04.
 - Routing reason: security master, raw snapshots, and financial facts now have
   empty storage, but corporate actions and adjustment factors need their own
   method-versioned structures before price history can expose adjusted series.
@@ -39,7 +39,7 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty `aiphabee_core.corporate_action`,
+- Add a Postgres-compatible migration for empty `aiphabee_core.corporate_action`,
   `aiphabee_core.adjustment_methodology`, and `aiphabee_core.price_adjustment_factor` tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/data/runtime` to report corporate-action and adjustment schema

@@ -23,7 +23,7 @@ without committing any real secret values.
   - tracker/todo/governance updates.
 - Out of scope:
   - provider secret creation;
-  - Cloudflare/GitHub/Supabase environment mutation;
+  - Cloudflare/GitHub environment mutation;
   - rotation automation;
   - production deployment.
 

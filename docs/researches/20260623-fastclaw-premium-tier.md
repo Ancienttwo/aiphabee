@@ -206,7 +206,7 @@ shipany 的 working 实现可作**移植参考**(非依赖,因架构错配:shipa
 
 ## 12. 证据地图 / 来源(2026-06-23 核实)
 
-- **aiphabee 现状**: `packages/agent-runtime/src/index.ts`(AI SDK v7,~256KB,model calls 关)、`packages/account-runtime`、`packages/usage-ledger`、`packages/mcp-runtime`(均 planner/`planned_no_write`)、`apps/worker/src/index.ts`(Hono)、`supabase/migrations/`(63 个)、`deploy/cloudflare/bindings.contract.json`。
+- **aiphabee 现状**: `packages/agent-runtime/src/index.ts`(AI SDK v7,~256KB,model calls 关)、`packages/account-runtime`、`packages/usage-ledger`、`packages/mcp-runtime`(均 planner/`planned_no_write`)、`apps/worker/src/index.ts`(Hono)、`deploy/database/migrations/`(63 个)、`deploy/cloudflare/bindings.contract.json`。
 - **既有决定**: `docs/researches/20260620-agent-runtime-fastclaw-cloudflare.md`(§0 不采用 fastclaw;§3 回看条件)。
 - **fastclaw**(`Ancienttwo/fastclaw`,branch `dev`): `README.md`(`/v1/users`、`forkFrom`、`X-Fastclaw-End-User`、apikey tiers、sandbox docker/e2b)、`internal/api/server.go`(`/v1/*` 路由)、`deploy/{docker,multi-pod,k8s,helm}/`(并发与部署)、`internal/sandbox/pool.go`、`internal/provider/provider.go:11-25`(卡死注释)、`LICENSE`(FastClaw Community License = Apache 2.0 + 多租户/品牌附加条款)。
 - **shipany**(`Ancienttwo/shipany-tanstack`,branch `main`): `apps/api/src/core/payment/{stripe,alipay,paypal,wechat,creem}.ts`、`core/auth/{index,rbac}.ts`、`modules/{credits,subscriptions,apikeys,invite-codes}/service.ts`、`routes/payment/{checkout,callback,notify/$provider}.ts`;部署 = 单 Docker 容器 或 Cloudflare Workers(`deploy-cloudflare` skill,D1/Hyperdrive),**无 k8s**。

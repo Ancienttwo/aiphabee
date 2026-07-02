@@ -1,11 +1,11 @@
 # Task Contract: provider-secret-stores-live-smoke-readiness
 
-Tracker item: Sprint 0.4 `Provider secret stores provisioned + rotation/revocation smoke（Cloudflare/GitHub/Supabase）`
+Tracker item: Sprint 0.4 `Provider secret stores provisioned + rotation/revocation smoke（Cloudflare/GitHub）`
 
 ## Scope
 
-- Add a no-secret live smoke readiness contract for Cloudflare Workers, GitHub
-  Actions environment secrets, and Supabase project secrets.
+- Add a no-secret live smoke readiness contract for Cloudflare Workers and
+  GitHub Actions environment secrets.
 - Add a live smoke script that performs synthetic set/list/rotate/delete and
   confirm-absent operations when explicit provider env/auth is present.
 - Add a no-network checker and include it in `npm run check`.

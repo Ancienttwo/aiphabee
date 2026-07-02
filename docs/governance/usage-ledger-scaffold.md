@@ -16,7 +16,7 @@ reconciliation.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration | `supabase/migrations/20260620090000_usage_ledger_scaffold.sql` | Creates empty `core` usage tables and governance contract |
+| Migration | `deploy/database/migrations/20260620090000_usage_ledger_scaffold.sql` | Creates empty `core` usage tables and governance contract |
 | Contract | `deploy/database/migrations.contract.json` | Lists all local migrations and keeps `market_data=false` |
 | Gateway runtime route | `GET /gateway/runtime` | Reports usage-ledger capability, no live writes |
 | Event writer | `packages/usage-ledger` | Plans usage events and ledger entries, no SQL emitted |
@@ -31,7 +31,7 @@ reconciliation.
 Migration validation trace:
 
 1. `npm run check:database` reads `deploy/database/migrations.contract.json`.
-2. The checker verifies every listed SQL file exists in `supabase/migrations`.
+2. The checker verifies every listed SQL file exists in `deploy/database/migrations`.
 3. It rejects destructive SQL, provider secrets, database URLs, and missing table
    coverage.
 4. It validates the new scaffold migration creates:

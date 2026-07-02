@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql"
+  "../../../deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql"
 );
 const sql = readFileSync(migrationPath, "utf8");
 

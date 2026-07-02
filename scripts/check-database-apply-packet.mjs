@@ -7,7 +7,7 @@ const root = process.cwd();
 const contractPath = "deploy/database/apply-packet.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const localDryRunContractPath = "deploy/database/local-dry-run.contract.json";
-const migrationDirectory = "supabase/migrations";
+const migrationDirectory = "deploy/database/migrations";
 const packageScript = "check:database-apply-packet";
 
 const contract = readJson(contractPath);

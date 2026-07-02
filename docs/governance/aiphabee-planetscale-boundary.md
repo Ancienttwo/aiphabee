@@ -43,7 +43,7 @@ testing while preserving production isolation.
 | Local schema dry-run | `npm run check:database-local-dry-run` | Applies all SQL migrations to a temporary local Postgres cluster before direct PlanetScale apply |
 | Apply packet | `npm run check:database-apply-packet` | Locks the exact SQL packet hash before remote apply |
 | Remote apply | `_ops/hyperdrive-apply-worker` via `wrangler dev --remote` | One-time guarded schema apply through Hyperdrive origin credential |
-| Migration inventory | `supabase/migrations/*` | Existing Postgres-compatible SQL inventory retained until a later directory rename |
+| Migration inventory | `deploy/database/migrations/*` | Existing Postgres-compatible SQL inventory retained until a later directory rename |
 | Raw large objects | R2 | Raw documents, MDB dumps, PDFs, large HTML/JSON blobs stay outside Postgres where practical |
 | AIMPACT/Salesko | External systems | Production integration happens through APIs or explicit federation; staging may use the shared umbrella database |
 
@@ -56,14 +56,14 @@ Authoritative repo surfaces:
 - `deploy/database/planetscale-remote-apply.contract.json`
 - `apps/worker/wrangler.jsonc`
 - `_ops/env/aiphabee-planetscale-prod.env`
-- `supabase/migrations/*`
+- `deploy/database/migrations/*`
 - `docs/governance/postgres-hyperdrive-migration-scaffold.md`
 
 Out of scope:
 
 - Deleting the old Supabase project before the retirement packet's cold-backup
   gate passes; see `docs/governance/aiphabee-supabase-retirement.md`.
-- Renaming the existing `supabase/migrations` directory.
+- Renaming the existing `deploy/database/migrations` directory.
 - Applying schema/data to PlanetScale without a direct connection secret.
 - Finalizing auth federation between products.
 
@@ -233,7 +233,7 @@ Staging path:
    sibling-owned `public.*` and `drizzle.*` schemas, so the production
    empty-database apply path was intentionally not used.
 10. A temporary `_ops/hyperdrive-apply-worker` staging preview applied only
-    `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
+    `deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
     through Hyperdrive, preserving existing sibling tables.
 11. The migration contract now uses PostgreSQL's actual 63-byte index
     identifiers for the two long umbrella indexes, so repo-local verification

@@ -13,7 +13,7 @@ execution, or external redistribution.
 - White-label embed route: `POST /partner/white-label-embeds/plan`
 - Contract: `deploy/partner/white-label-embeds.contract.json`
 - Checker: `npm run check:white-label-embeds`
-- Migration scaffold: `supabase/migrations/20260622008000_partner_white_label_embed_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622008000_partner_white_label_embed_scaffold.sql`
 
 ## Required Guarantees
 

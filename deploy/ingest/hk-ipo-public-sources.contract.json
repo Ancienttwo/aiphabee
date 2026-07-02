@@ -133,7 +133,7 @@
   },
   "schema_preflight": {
     "version": "2026-06-28.hk-ipo-public-observation-preflight.v0",
-    "migration": "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
+    "migration": "deploy/database/migrations/20260628001000_hk_ipo_public_observation_preflight.sql",
     "checker": "scripts/check-hk-ipo-public-observation-schema.mjs",
     "package_script": "npm run check:hk-ipo-public-observation-schema",
     "database_contract": "deploy/database/migrations.contract.json",

@@ -24,7 +24,7 @@ created.
 Out of scope:
 
 - Authorizing deletion of the Supabase project.
-- Treating `supabase/migrations/*` as a live Supabase dependency. It remains the
+- Treating `deploy/database/migrations/*` as a live Supabase dependency. It remains the
   historical Postgres-compatible SQL inventory until a later directory rename.
 - Storing DB dumps, connection URLs, passwords, CLI dry-run output, or raw
   provider output in git.

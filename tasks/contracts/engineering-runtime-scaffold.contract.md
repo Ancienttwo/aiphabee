@@ -30,7 +30,7 @@ Gate 0 rights constraints intact.
   - AI SDK v7 agent loop;
   - live market data, MCP redistribution, or provider connectors;
   - production Cloudflare deployment;
-  - Postgres/Supabase/Hyperdrive migrations;
+  - Postgres/Hyperdrive/Hyperdrive migrations;
   - OTel/log/eval store wiring;
   - real secrets.
 

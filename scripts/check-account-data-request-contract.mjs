@@ -287,7 +287,7 @@ function validateDatabaseTables(databaseValue) {
   const migration = migrations.find(
     (entry) =>
       isRecord(entry) &&
-      entry.file === "supabase/migrations/20260621128000_account_data_request_scaffold.sql"
+      entry.file === "deploy/database/migrations/20260621128000_account_data_request_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

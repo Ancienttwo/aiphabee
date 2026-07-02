@@ -13,11 +13,12 @@
 - Selected route: no-secret provider store, rotation, and emergency revocation
   contract.
 - Routing reason: Sprint 0.4 needs provider secret stores and rotation policy,
-  but real Cloudflare/GitHub/Supabase credentials and approved provider mutation
+  but real Cloudflare/GitHub credentials and approved provider mutation
   are not available in repo-local state.
 - Due diligence:
   - P1 map: env secret schema, Cloudflare Worker secret store, GitHub Actions
-    environment secrets, Supabase project secrets, runbook, CI checker.
+    environment secrets, retired database-provider secret boundary, runbook,
+    CI checker.
   - P2 trace: env secret names -> provider store manifest -> rotation/revocation
     runbook -> `/secrets/runtime` no-secret capability route.
   - P3 decision rationale: make secret names, stores, commands, cadence, and

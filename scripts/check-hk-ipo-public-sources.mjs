@@ -401,7 +401,7 @@ function validateSchemaPreflight(value) {
   if (value.version !== "2026-06-28.hk-ipo-public-observation-preflight.v0") {
     validationErrors.push("schema_preflight.version mismatch");
   }
-  if (value.migration !== "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql") {
+  if (value.migration !== "deploy/database/migrations/20260628001000_hk_ipo_public_observation_preflight.sql") {
     validationErrors.push("schema_preflight.migration mismatch");
   }
   if (value.checker !== schemaCheckerScript) {

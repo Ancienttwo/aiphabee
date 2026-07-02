@@ -26,7 +26,7 @@ production database ownership decision.
 | Design plan | `docs/supabase-umbrella-schema-plan.md` | Historical shared platform/product-owned schema decision; superseded for live topology |
 | Active boundary | `docs/governance/aiphabee-planetscale-boundary.md` | Dedicated AiphaBee production database plus shared staging umbrella database behind Cloudflare Hyperdrive |
 | Staging Worker binding | `apps/worker/wrangler.jsonc` `env.staging.hyperdrive` | Uses AiphaBee runtime Hyperdrive config `755ab0a9b0404e10be1f8ab1c736358a`; keeps shared config `1e83eb563db44746a168175e065cc958` as `HYPERDRIVE` alias |
-| Migration | `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty platform tables, indexes, helper functions, idempotently guarded RLS policies, and a non-overwriting AiphaBee registry seed row |
+| Migration | `deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql` | Creates empty platform tables, indexes, helper functions, idempotently guarded RLS policies, and a non-overwriting AiphaBee registry seed row |
 | Manifest | `deploy/database/migrations.contract.json` | Registers schemas, tables, indexes, and RLS tables for `npm run check:database` |
 | Checker | `scripts/check-database-migrations-contract.mjs` | Verifies migration coverage, declared `indexes`, `rls_tables`, and the `aiphabee.account_id` RLS session claim |
 | Product-owned schemas | Not created here | AiphaBee business tables stay outside this foundation slice; selected existing AiphaBee identity/entitlement tables are RLS-hardened after their own scaffold migrations |

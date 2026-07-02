@@ -4,14 +4,14 @@ import { resolve } from "node:path";
 
 const contractPath = "deploy/compliance/licensed-advice-exploration.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
-const migrationPath = "supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql";
+const migrationPath = "deploy/database/migrations/20260622010000_licensed_advice_exploration_scaffold.sql";
 const packageJsonPath = "package.json";
 const runtimeSourcePath = "packages/licensed-advice-runtime/src/index.ts";
 const runtimeTestPath = "packages/licensed-advice-runtime/src/index.test.ts";
 const workerSourcePath = "apps/worker/src/index.ts";
 const workerTestPath = "apps/worker/src/index.test.ts";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
-const migrationFile = "supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql";
+const migrationFile = "deploy/database/migrations/20260622010000_licensed_advice_exploration_scaffold.sql";
 const requiredPhase4Items = [
   "持牌路径确认",
   "个性化建议探索",

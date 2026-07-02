@@ -109,7 +109,7 @@
     "forbidden_active_tokens": ["@supabase", "SUPABASE_", "auth.uid("],
     "active_runtime_supabase_refs": 0,
     "allowed_remaining_surfaces": [
-      "supabase/migrations remains the historical Postgres-compatible SQL inventory until a later directory rename",
+      "deploy/database/migrations remains the historical Postgres-compatible SQL inventory until a later directory rename",
       "docs/governance/aiphabee-independent-supabase-boundary.md remains the superseded decision record",
       "_ops/env/superseded contains local private rollback metadata outside git"
     ]

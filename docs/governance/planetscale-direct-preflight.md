@@ -18,14 +18,14 @@ default, apply migrations, or print a database URL.
 | Direct apply user | `pscale_api_yn66uahpa46b.bpvsmvgwkutr` | Local direct credential used for `SELECT 1` and schema apply |
 | Hyperdrive origin user | `pscale_api_9jnxj6nh3nb8.bpvsmvgwkutr` | Cloudflare origin credential; not used by the direct apply preflight |
 | Direct secret | `PLANETSCALE_DATABASE_URL` or macOS Keychain | Required only for direct `SELECT 1` and schema apply |
-| Schema inventory | `supabase/migrations/*` | Existing Postgres-compatible SQL inventory retained until later directory rename |
+| Schema inventory | `deploy/database/migrations/*` | Existing Postgres-compatible SQL inventory retained until later directory rename |
 
 Out of scope:
 
 - Running schema apply against PlanetScale.
 - Writing or committing the PlanetScale password.
 - Replacing Hyperdrive smoke evidence.
-- Renaming `supabase/migrations`.
+- Renaming `deploy/database/migrations`.
 
 ## P2 Concrete Trace
 

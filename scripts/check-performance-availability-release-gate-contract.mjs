@@ -6,7 +6,7 @@ const contractPath = "deploy/observability/performance-availability-release-gate
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622005000_performance_availability_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622005000_performance_availability_release_gate_scaffold.sql";
 const requiredChecks = [
   "core_api_availability_target_met",
   "mcp_tool_p95_targets_met",

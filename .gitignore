@@ -26,10 +26,6 @@ _ops/
 # Language/runtime caches
 __pycache__/
 *.py[cod]
-# Supabase local CLI state
-supabase/.branches/
-supabase/.temp/
-
 # BEGIN: claude-runtime-temp (managed by repo-harness)
 .claude/settings.local.json
 .claude/.atomic_pending

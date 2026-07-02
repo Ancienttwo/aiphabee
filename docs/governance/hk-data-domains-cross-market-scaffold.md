@@ -11,7 +11,7 @@ domains and cross-market comparison as a backend-only coverage planner.
 - Runtime capability: `GET /market-data/domains/runtime`
 - Plan route: `POST /market-data/domains/cross-market/plan`
 - Contract: `deploy/market-data/hk-data-domains-cross-market.contract.json`
-- Migration scaffold: `supabase/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql`
 - Gate: `npm run check:hk-data-domains-cross-market`
 
 ## Invariants

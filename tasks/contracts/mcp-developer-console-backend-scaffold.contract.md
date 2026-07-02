@@ -12,7 +12,7 @@ surfaces.
 - Plan route: `POST /mcp/developer-console/plan`
 - Contract: `deploy/mcp/developer-console.contract.json`
 - Checker: `npm run check:mcp-developer-console`
-- Migration scaffold: `supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622014000_mcp_developer_console_scaffold.sql`
 
 ## Required Guarantees
 

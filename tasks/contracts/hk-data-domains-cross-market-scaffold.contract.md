@@ -13,7 +13,7 @@ external redistribution, or frontend work.
 - Plan route: `POST /market-data/domains/cross-market/plan`
 - Contract: `deploy/market-data/hk-data-domains-cross-market.contract.json`
 - Checker: `npm run check:hk-data-domains-cross-market`
-- Migration scaffold: `supabase/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622009000_hk_data_domains_cross_market_scaffold.sql`
 
 ## Required Guarantees
 

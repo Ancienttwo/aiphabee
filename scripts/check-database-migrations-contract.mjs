@@ -4,7 +4,7 @@ import { basename, join, resolve } from "node:path";
 
 const root = process.cwd();
 const contractPath = "deploy/database/migrations.contract.json";
-const migrationDirectory = "supabase/migrations";
+const migrationDirectory = "deploy/database/migrations";
 const requiredCommands = [
   "create_migration",
   "apply_local",
@@ -239,7 +239,7 @@ function validateMigrations(value) {
     .sort();
 
   if (listedFiles.slice().sort().join("\n") !== actualFiles.join("\n")) {
-    errors.push("migrations list must match SQL files in supabase/migrations");
+    errors.push("migrations list must match SQL files in deploy/database/migrations");
   }
 
   value.forEach((migration, index) => {
@@ -250,9 +250,9 @@ function validateMigrations(value) {
 
     if (
       typeof migration.file !== "string" ||
-      !/^supabase\/migrations\/\d{14}_[a-z0-9_]+\.sql$/u.test(migration.file)
+      !/^deploy\/database\/migrations\/\d{14}_[a-z0-9_]+\.sql$/u.test(migration.file)
     ) {
-      errors.push(`migrations[${index}].file must use Supabase timestamp naming`);
+      errors.push(`migrations[${index}].file must use timestamped SQL inventory naming`);
       return;
     }
 

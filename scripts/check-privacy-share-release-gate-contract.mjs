@@ -6,7 +6,7 @@ const contractPath = "deploy/sharing/privacy-share-release-gate.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622000000_privacy_share_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622000000_privacy_share_release_gate_scaffold.sql";
 const requiredChecks = [
   "personal_data_download_delivery_is_scoped_and_no_write",
   "personal_data_delete_respects_retention_holds",

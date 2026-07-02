@@ -15,7 +15,7 @@ load market data.
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration | `supabase/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty `core` and governance tables |
+| Migration | `deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty `core` and governance tables |
 | Contract | `deploy/database/migrations.contract.json` | Lists both local migrations and keeps `market_data=false` |
 | Runtime route | `GET /data/runtime` | Reports schema capability, no live query |
 | Security master | `aiphabee_core.company`, `aiphabee_core.instrument`, `aiphabee_core.listing`, `aiphabee_core.identifier_history` | Entity/listing/identifier scaffold only |
@@ -27,7 +27,7 @@ load market data.
 Migration validation trace:
 
 1. `npm run check:database` reads `deploy/database/migrations.contract.json`.
-2. The checker verifies every listed SQL file exists in `supabase/migrations`.
+2. The checker verifies every listed SQL file exists in `deploy/database/migrations`.
 3. It rejects destructive SQL, provider secrets, database URLs, and missing table
    coverage.
 4. It validates the new scaffold migration creates:

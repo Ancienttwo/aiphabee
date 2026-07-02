@@ -675,7 +675,7 @@ function validateTrackerSync(value) {
     errors.push("tracker Cloudflare resources live item must remain unchecked");
   }
 
-  if (!/^- \[x\] Hyperdrive-backed Postgres\/Supabase live connection smoke/mu.test(value)) {
+  if (!/^- \[x\] Hyperdrive-backed Postgres\/Hyperdrive live connection smoke/mu.test(value)) {
     errors.push("tracker Hyperdrive live smoke item must be checked after PlanetScale production readback");
   }
 

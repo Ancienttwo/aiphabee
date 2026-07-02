@@ -12,7 +12,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible schema scaffold for Sprint 1.1 data
+- Selected route: Postgres-compatible schema scaffold for Sprint 1.1 data
   foundations.
 - Routing reason: Data Access Gateway can now reject unsafe access, but Sprint
   1.1 still needs security master and raw snapshot tables before Serving can
@@ -38,7 +38,7 @@
 
 ### Strategy
 
-- Add a second Supabase-compatible migration with empty security master and raw
+- Add a second Postgres-compatible migration with empty security master and raw
   snapshot tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Add `/data/runtime` to report schema capability without live queries.

@@ -105,6 +105,6 @@
     "model_training_on_user_file"
   ],
   "migrations": [
-    "supabase/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql"
+    "deploy/database/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql"
   ]
 }

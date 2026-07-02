@@ -6,7 +6,7 @@ const contractPath = "deploy/mcp/target-clients-console-release-gate.contract.js
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationPath =
-  "supabase/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql";
 const requiredRuntimeCapabilityFields = [
   "mcp_target_clients_console_release_gate_ready",
   "mcp_target_clients_console_release_gate_route",

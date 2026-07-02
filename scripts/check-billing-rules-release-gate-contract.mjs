@@ -6,7 +6,7 @@ const contractPath = "deploy/usage/billing-rules-release-gate.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622002000_billing_rules_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622002000_billing_rules_release_gate_scaffold.sql";
 const requiredChecks = [
   "package_credit_overage_rules_documented",
   "weighted_credit_model_referenced",

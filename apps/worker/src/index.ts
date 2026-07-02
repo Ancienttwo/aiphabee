@@ -3848,7 +3848,7 @@ app.get("/database/runtime", async (c) => {
         market_data_surfaces: false,
         mcp_redistribution_surfaces: false,
         migration_contract: "deploy/database/migrations.contract.json",
-        migration_directory: "supabase/migrations",
+        migration_directory: "deploy/database/migrations",
         provider: "planetscale_postgres"
       },
       {

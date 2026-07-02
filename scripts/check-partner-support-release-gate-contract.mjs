@@ -6,7 +6,7 @@ const contractPath = "deploy/usage/partner-support-release-gate.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const migrationFile =
-  "supabase/migrations/20260622003000_partner_support_release_gate_scaffold.sql";
+  "deploy/database/migrations/20260622003000_partner_support_release_gate_scaffold.sql";
 const requiredChecks = [
   "partner_report_generated",
   "partner_report_trace_links_request_id_and_usage_event",

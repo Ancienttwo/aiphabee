@@ -25,15 +25,15 @@ References checked:
 - [Cloudflare Hyperdrive local development update](https://developers.cloudflare.com/changelog/post/2025-12-04-hyperdrive-remote-database-local-dev/):
   local dev can use `localConnectionString` or
   `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING_NAME>`.
-- [Supabase CLI migrations](https://github.com/supabase/cli/blob/develop/README.md):
-  `supabase migration new`, `supabase migration up`, and
-  `supabase db push --dry-run --db-url` are the relevant migration commands.
+- The repo-local migration inventory is plain Postgres SQL under
+  `deploy/database/migrations`; remote apply is guarded by the PlanetScale
+  packet and direct-preflight contracts.
 
 ## P1 Architecture Map
 
 | Surface | State | Boundary |
 |---|---|---|
-| Migration directory | `supabase/migrations` | Supabase-compatible SQL file naming; no live project link |
+| Migration directory | `deploy/database/migrations` | Postgres-compatible SQL file naming; no live Supabase project link |
 | First migration | `20260620071000_phase0_foundation.sql` | Creates `audit`, `core`, `governance` schemas and default-deny governance tables only |
 | Security master scaffold | `20260620082000_security_master_raw_snapshot_scaffold.sql` | Creates empty security master, raw snapshot, and data-version tables without loading market data |
 | Financial facts scaffold | `20260620083000_financial_facts_restatement_scaffold.sql` | Creates empty financial statement, fact, and restatement tables without loading market data |
@@ -59,7 +59,7 @@ Migration validation trace:
    - provider is `supabase_postgres`;
    - connection path is `cloudflare_hyperdrive`;
    - Hyperdrive binding is `AIPHABEE_HYPERDRIVE`;
-   - migration files listed in the manifest match `supabase/migrations/*.sql`;
+   - migration files listed in the manifest match `deploy/database/migrations/*.sql`;
    - SQL contains required schemas/tables and `default_deny`;
    - SQL and manifest do not include database URLs, passwords, tokens, secret
      values, or destructive statements.
@@ -75,7 +75,7 @@ Runtime capability trace:
    - `hyperdrive.status=planned`;
    - `live_queries=false`;
    - `market_data_surfaces=false`;
-   - `migration_directory=supabase/migrations`.
+   - `migration_directory=deploy/database/migrations`.
 3. No database query is executed by this product runtime route; the `pg` driver
    is only wired behind guarded `POST /cloudflare/hyperdrive/smoke`.
 
@@ -124,20 +124,19 @@ Observed `/database/runtime` response fields:
   },
   "live_queries": false,
   "market_data_surfaces": false,
-  "migration_directory": "supabase/migrations",
+  "migration_directory": "deploy/database/migrations",
   "provider": "supabase_postgres"
 }
 ```
 
 ## Residual Gaps
 
-- Real Supabase project and Cloudflare Hyperdrive resource are not provisioned.
-- Product Wrangler `hyperdrive` binding is not attached because no real `id`
-  exists; the live smoke harness can attach a temporary binding once a config is
-  present.
-- Remote `supabase db push --dry-run` and apply were not executed.
-- Hyperdrive guarded route/harness exists, but `SELECT 1` live pass remains
-  pending.
+- Supabase project provisioning is retired; the active runtime uses PlanetScale
+  Postgres through Cloudflare Hyperdrive.
+- Remote apply is guarded by `npm run check:planetscale-remote-apply` and
+  `npm run database:planetscale:apply`.
+- Hyperdrive guarded route/harness exists, and the live pass is tracked through
+  PlanetScale/Hyperdrive evidence.
 - Partner data loading, Serving Gateway live reads, field entitlement live DB
   policy source, and live usage writes remain future Sprint 1.1 work; data,
   account/workspace entitlement, usage-ledger, and Serving Store schemas are

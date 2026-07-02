@@ -12,7 +12,7 @@ Added the local no-write release gate scaffold for PRD §19.3 target-client e2e 
 - `apps/worker/src/index.ts`
 - `deploy/mcp/target-clients-console-release-gate.contract.json`
 - `scripts/check-mcp-target-clients-console-release-gate-contract.mjs`
-- `supabase/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql`
+- `deploy/database/migrations/20260621137000_mcp_target_clients_console_release_gate_scaffold.sql`
 - `docs/governance/mcp-target-clients-console-release-gate-scaffold.md`
 - `tasks/contracts/mcp-target-clients-console-release-gate-scaffold.contract.md`
 

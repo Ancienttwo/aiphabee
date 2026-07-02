@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const contractPath = "deploy/documents/user-public-data-join-privacy.contract.json";
 const migrationPath =
-  "supabase/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql";
+  "deploy/database/migrations/20260622012000_user_public_data_join_privacy_scaffold.sql";
 const requiredItems = ["DOC-05", "STK-08"];
 const requiredTools = [
   "search_documents",

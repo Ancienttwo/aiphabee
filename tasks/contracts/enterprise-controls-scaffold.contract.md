@@ -13,7 +13,7 @@ execution.
 - Enterprise controls route: `POST /account/enterprise-controls/plan`
 - Contract: `deploy/account/enterprise-controls.contract.json`
 - Checker: `npm run check:enterprise-controls`
-- Migration scaffold: `supabase/migrations/20260622007000_enterprise_controls_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622007000_enterprise_controls_scaffold.sql`
 
 ## Required Guarantees
 

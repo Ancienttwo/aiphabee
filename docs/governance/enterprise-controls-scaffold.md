@@ -11,7 +11,7 @@ audit, and private data connectors as a backend-only account-runtime planner.
 - Runtime capability: `GET /account/runtime`
 - Route: `POST /account/enterprise-controls/plan`
 - Contract: `deploy/account/enterprise-controls.contract.json`
-- Migration scaffold: `supabase/migrations/20260622007000_enterprise_controls_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622007000_enterprise_controls_scaffold.sql`
 - Gate: `npm run check:enterprise-controls`
 
 ## Invariants

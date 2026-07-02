@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const publicSourcesContractPath = "deploy/ingest/hk-ipo-public-sources.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const packagePath = "package.json";
-const migrationPath = "supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql";
+const migrationPath = "deploy/database/migrations/20260628001000_hk_ipo_public_observation_preflight.sql";
 const packetCommand = ["scripts/reconcile-hk-ipo-public-observations.mjs", "--fixtures", "--packet", "--check"];
 const expectedVersion = "2026-06-28.hk-ipo-public-observation-preflight.v0";
 const expectedTables = [

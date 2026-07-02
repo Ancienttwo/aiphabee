@@ -45,7 +45,7 @@ allowed_paths:
   - docs/governance/p0-traceability-ledger.md
   - tasks/notes/postgres-hyperdrive-migration-scaffold.notes.md
   - plans/plan-financial-facts-restatement-scaffold.md
-  - supabase/migrations/**
+  - deploy/database/migrations/**
   - tasks/contracts/financial-facts-restatement-scaffold.contract.md
   - tasks/notes/financial-facts-restatement-scaffold.notes.md
   - tasks/todos.md
@@ -56,7 +56,7 @@ allowed_paths:
 ```yaml
 exit_criteria:
   files_exist:
-    - supabase/migrations/20260620083000_financial_facts_restatement_scaffold.sql
+    - deploy/database/migrations/20260620083000_financial_facts_restatement_scaffold.sql
     - docs/governance/financial-facts-restatement-scaffold.md
   content_checks:
     - "Migration creates financial_statement/financial_fact/financial_restatement tables"

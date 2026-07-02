@@ -12,7 +12,7 @@
 
 - Selected route: repo-local Supabase migration scaffold plus Hyperdrive
   capability contract.
-- Routing reason: Sprint 0.4 needs Postgres/Supabase via Hyperdrive, but real
+- Routing reason: Sprint 0.4 needs Postgres/Hyperdrive via Hyperdrive, but real
   database credentials, Hyperdrive binding IDs, and provider smoke tests are not
   available in the repo.
 - Due diligence:
@@ -25,7 +25,7 @@
 
 ## Task Breakdown
 
-- [x] Add Supabase-compatible migration directory and README.
+- [x] Add Postgres-compatible migration directory and README.
 - [x] Add Phase 0 foundation SQL migration with non-market-data governance
       schemas and default-deny channel status.
 - [x] Add database migration manifest for Supabase Postgres through Cloudflare

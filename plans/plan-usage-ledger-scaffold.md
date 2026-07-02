@@ -10,7 +10,7 @@
 
 ## Agentic Routing
 
-- Selected route: Supabase-compatible schema scaffold for Sprint 1.1 ACC-04.
+- Selected route: Postgres-compatible schema scaffold for Sprint 1.1 ACC-04.
 - Routing reason: account/workspace entitlement schemas now exist, but Gateway
   usage previews need persistent event, credit-meter, ledger, and reconciliation
   structures before billing reconciliation can be implemented.
@@ -34,7 +34,7 @@
 
 ### Strategy
 
-- Add a Supabase-compatible migration for empty usage meter rule, usage event,
+- Add a Postgres-compatible migration for empty usage meter rule, usage event,
   reconciliation batch, and ledger entry tables.
 - Preserve default-deny and no-market-data guarantees in the database contract.
 - Extend `/gateway/runtime` to report usage-ledger schema capability without

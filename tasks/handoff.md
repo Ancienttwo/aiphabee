@@ -25,7 +25,7 @@ are all verified against a disposable postgres:17. Remaining: the **live remote 
 
 ## What's DONE (PR #17, all pushed)
 
-Migration `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`:
+Migration `deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql`:
 
 - `79dfe41` **P1 fix**: `valid_from <= now()` lower bound in the membership/entitlement
   temporal predicate (`is_workspace_member` + 2 self-read policies + `data_entitlement`) —
@@ -76,7 +76,7 @@ Owner-run; needs live creds (not present locally — no `_ops/` env / `SUPABASE_
 ```bash
 UMBRELLA_DRYRUN_EXPECTED_REF=innqoumlqctqnryhyasw \
   ./scripts/dryrun-umbrella-migration.sh --dry-run \
-    --migration-sql <aiphabee>/supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql \
+    --migration-sql <aiphabee>/deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql \
     --env-file <env-with-SUPABASE_URL+DATABASE_PASSWORD>
 ```
 
@@ -128,7 +128,7 @@ Move to a `finmodel_*` schema in a maintenance migration.
 
 ## Key files
 
-- Migration + provisioning fn: aiphabee `supabase/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
+- Migration + provisioning fn: aiphabee `deploy/database/migrations/20260623010000_platform_umbrella_schema_foundation.sql`
 - Regression test: aiphabee `apps/worker/src/platform-umbrella-rls-isolation.test.ts`
 - Governance doc: aiphabee `docs/governance/platform-umbrella-schema-foundation.md`
 - External review: aiphabee `tasks/reviews/core-platform-convergence-draft.review.md`

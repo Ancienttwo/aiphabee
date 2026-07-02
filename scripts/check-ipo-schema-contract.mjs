@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
-const migrationPath = "supabase/migrations/20260624001000_ipo_pipeline_foundation.sql";
+const migrationPath = "deploy/database/migrations/20260624001000_ipo_pipeline_foundation.sql";
 const sql = readFileSync(resolve(root, migrationPath), "utf8");
 const lowerSql = sql.toLowerCase();
 const errors = [];

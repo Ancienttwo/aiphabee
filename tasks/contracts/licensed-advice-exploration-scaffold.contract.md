@@ -14,7 +14,7 @@ frontend work.
 - Plan route: `POST /compliance/licensed-advice/exploration/plan`
 - Contract: `deploy/compliance/licensed-advice-exploration.contract.json`
 - Checker: `npm run check:licensed-advice-exploration`
-- Migration scaffold: `supabase/migrations/20260622010000_licensed_advice_exploration_scaffold.sql`
+- Migration scaffold: `deploy/database/migrations/20260622010000_licensed_advice_exploration_scaffold.sql`
 
 ## Required Guarantees
 

@@ -5,7 +5,7 @@
   "checker": "scripts/check-agent-billing-posted-ledger-smoke-contract.mjs",
   "test_file": "apps/worker/src/agent-billing-posted-ledger-smoke.test.ts",
   "worker_entrypoint": "apps/worker/src/index.ts",
-  "migration": "supabase/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
+  "migration": "deploy/database/migrations/20260622017000_agent_billing_posted_ledger_smoke.sql",
   "database_contract": "deploy/database/migrations.contract.json",
   "agent_live_write_contract": "deploy/agent/run-live-write-smoke.contract.json",
   "usage_ledger_contract": "deploy/usage/quota-display.contract.json",

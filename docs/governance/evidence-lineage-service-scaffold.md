@@ -22,7 +22,7 @@ live tool routes, or touch frontend code.
 | Worker runtime | `GET /evidence/runtime` | Reports service capabilities and live-write disabled state |
 | Worker planner | `POST /evidence/records/plan` | Converts tool/source metadata into standard no-write response envelope |
 | Evidence contract | `deploy/evidence/service.contract.json` | Requires routes, tables, citation fields, and no-live booleans |
-| Database schema | `supabase/migrations/20260621024500_evidence_lineage_service_scaffold.sql` | Creates empty evidence/source-ref/governance tables only |
+| Database schema | `deploy/database/migrations/20260621024500_evidence_lineage_service_scaffold.sql` | Creates empty evidence/source-ref/governance tables only |
 | Database contract | `deploy/database/migrations.contract.json` | Registers the migration as local contract state |
 | Frontend | Out of scope | No `apps/web` files changed |
 

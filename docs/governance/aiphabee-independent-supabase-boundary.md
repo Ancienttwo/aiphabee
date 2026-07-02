@@ -13,7 +13,7 @@ Hyperdrive origin with AIMPACT, Salesko, or any other sibling product.
 | Surface | Decision | Boundary |
 |---|---|---|
 | Supabase organization | Dedicated AiphaBee organization preferred | Billing, IAM, audit, upgrade plan, and migration blast radius stay product-owned |
-| Supabase project | Dedicated AiphaBee project required | `supabase/migrations` apply only to AiphaBee runtime data |
+| Supabase project | Dedicated AiphaBee project required | `deploy/database/migrations` apply only to AiphaBee runtime data |
 | Cloudflare binding | `AIPHABEE_HYPERDRIVE` | Points only to the AiphaBee database origin |
 | Worker runtime | `GET /database/runtime` | Continues to report `supabase_postgres` via `cloudflare_hyperdrive` |
 | Data domains | AiphaBee-owned | IPO, HK F10, security master, financial facts, serving store, lineage, usage ledger |
@@ -24,7 +24,7 @@ Authoritative repo surfaces:
 
 - `deploy/database/migrations.contract.json`
 - `supabase/README.md`
-- `supabase/migrations/*`
+- `deploy/database/migrations/*`
 - `docs/governance/postgres-hyperdrive-migration-scaffold.md`
 - `docs/governance/serving-store-schema-scaffold.md`
 

@@ -10,7 +10,7 @@ Complete Sprint 3.3 §19.4 item: `合规边界与营销文案审阅；Kill switc
 - `apps/worker/src/index.ts`
 - `deploy/public-ops/compliance-ops-release-gate.contract.json`
 - `scripts/check-compliance-ops-release-gate-contract.mjs`
-- `supabase/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql`
+- `deploy/database/migrations/20260622001000_compliance_ops_release_gate_scaffold.sql`
 - `docs/governance/compliance-ops-release-gate-scaffold.md`
 
 ## Contract

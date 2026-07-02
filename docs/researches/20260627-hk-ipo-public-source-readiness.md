@@ -104,7 +104,7 @@ Reconciliation packet contract:
 
 Schema preflight contract:
 
-- Migration: `supabase/migrations/20260628001000_hk_ipo_public_observation_preflight.sql`
+- Migration: `deploy/database/migrations/20260628001000_hk_ipo_public_observation_preflight.sql`
 - Persistent tables: `core.hk_ipo_public_source_run`, `core.hk_ipo_public_observation`, `core.hk_ipo_public_reconciliation_row`, `core.hk_ipo_public_supplement_candidate`
 - Governance table: `governance.hk_ipo_public_observation_contract`
 - Raw snapshot record kinds: `hk_ipo_public_source_record`, `hk_ipo_public_observation`, `hk_ipo_public_reconciliation_packet`

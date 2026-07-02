@@ -7,7 +7,7 @@ const databaseContractPath = "deploy/database/migrations.contract.json";
 const packageJsonPath = "package.json";
 const runtimePath = "packages/mcp-runtime/src/index.ts";
 const workerPath = "apps/worker/src/index.ts";
-const migrationPath = "supabase/migrations/20260622014000_mcp_developer_console_scaffold.sql";
+const migrationPath = "deploy/database/migrations/20260622014000_mcp_developer_console_scaffold.sql";
 
 const requiredRuntimeCapabilityFields = [
   "mcp_developer_console_backend_ready",

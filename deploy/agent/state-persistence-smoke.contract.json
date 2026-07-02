@@ -5,7 +5,7 @@
   "checker": "scripts/check-agent-run-state-persistence-smoke-contract.mjs",
   "test_file": "apps/worker/src/agent-run-state-persistence-smoke.test.ts",
   "worker_entrypoint": "apps/worker/src/index.ts",
-  "migration": "supabase/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
+  "migration": "deploy/database/migrations/20260622016000_agent_run_state_persistence_smoke.sql",
   "database_contract": "deploy/database/migrations.contract.json",
   "failure_recovery_contract": "deploy/agent/failure-recovery-policy.contract.json",
   "agent_live_write_contract": "deploy/agent/run-live-write-smoke.contract.json",

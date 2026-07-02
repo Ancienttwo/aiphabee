@@ -295,7 +295,7 @@ function validateDatabaseTables(value) {
     (entry) =>
       isRecord(entry) &&
       entry.file ===
-        "supabase/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql"
+        "deploy/database/migrations/20260621133000_agent_label_budget_release_gate_scaffold.sql"
   );
 
   if (!isRecord(migration)) {

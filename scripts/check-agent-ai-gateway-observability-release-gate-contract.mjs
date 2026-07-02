@@ -8,7 +8,7 @@ const runtimeTestPath = "packages/agent-runtime/src/index.test.ts";
 const workerPath = "apps/worker/src/index.ts";
 const workerTestPath = "apps/worker/src/index.test.ts";
 const migrationPath =
-  "supabase/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql";
+  "deploy/database/migrations/20260622019000_agent_ai_gateway_observability_release_gate.sql";
 const databaseContractPath = "deploy/database/migrations.contract.json";
 const expectedVersion =
   "2026-06-22.phase1.agent-ai-gateway-observability-release-gate.v0";
