@@ -1174,6 +1174,24 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260703001000_chart_parse_eval_foundation.sql",
+      "purpose": "Create chart-parse evaluation evidence tables (eval_runs, eval_sample_results) and confidence calibration artifact table (calibration_runs) for PRD parse-chart-image Module 3; golden set samples stay referenced by manifest sample id without a golden_set_samples table.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [
+        "aiphabee_core.eval_runs",
+        "aiphabee_core.eval_sample_results",
+        "aiphabee_core.calibration_runs"
+      ],
+      "indexes": [
+        "eval_sample_results_eval_run_id_idx",
+        "calibration_runs_version_status_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

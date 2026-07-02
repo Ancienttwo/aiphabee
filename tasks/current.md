@@ -1,13 +1,13 @@
 # Current Status Snapshot
 
 <!-- generated-by: repo-harness refresh-current-status v1 -->
-<!-- updated_at: 2026-07-02T22:08:24+0800 -->
+<!-- updated_at: 2026-07-02T23:41:56+0800 -->
 <!-- stale_after: 24h -->
 
 > **Status**: Idle
-> **Updated At**: 2026-07-02T22:08:24+0800
-> **Source Branch**: codex/chart-golden-set
-> **Source Commit**: a83d0df
+> **Updated At**: 2026-07-02T23:41:56+0800
+> **Source Branch**: codex/chart-parse-eval
+> **Source Commit**: 402e547
 > **Target Branch**: main
 > **Stale After**: 24h
 > **Reason**: archive-workflow
@@ -40,7 +40,7 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 - (none)
 ## Handoff
 
-- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: `contract-worktree finish` 合回 + 回填 sprint backlog 行 2
+- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: 全 workspace vitest + typecheck 绿;`/check` 自审 + codex-review 外审闭环,review 按机器格式落盘
 
 ## Checks
 
@@ -48,19 +48,20 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 
 ## Git Status
 
-- Summary: 10 changed/untracked path(s)
+- Summary: 11 changed/untracked path(s)
 
 ```
- M .gitignore
+ M deploy/database/migrations.contract.json
  M package-lock.json
  M package.json
-?? packages/chart-golden-set/
-?? plans/archive/plan-20260702-2047-chart-golden-set.md
-?? tasks/archive/contract-20260702-2208-chart-golden-set.md
-?? tasks/archive/notes-20260702-2208-chart-golden-set.md
-?? tasks/archive/review-20260702-2208-chart-golden-set.md
-?? tasks/archive/todo-20260702-2208-chart-golden-set.md
-?? tests/golden/chart-parse/
+ M tasks/todos.md
+?? deploy/database/migrations/20260703001000_chart_parse_eval_foundation.sql
+?? packages/chart-parse-eval/
+?? plans/archive/plan-20260702-2305-chart-parse-eval.md
+?? tasks/archive/contract-20260702-2341-chart-parse-eval.md
+?? tasks/archive/notes-20260702-2341-chart-parse-eval.md
+?? tasks/archive/review-20260702-2341-chart-parse-eval.md
+?? tasks/archive/todo-20260702-2341-chart-parse-eval.md
 ```
 
 ## Source Artifacts
