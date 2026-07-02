@@ -11,6 +11,10 @@
     "./chart-parse": {
       "types": "./src/chart-parse/index.ts",
       "default": "./src/chart-parse/index.ts"
+    },
+    "./parse-chart-image": {
+      "types": "./src/parse-chart-image/index.ts",
+      "default": "./src/parse-chart-image/index.ts"
     }
   },
   "scripts": {
@@ -23,6 +27,7 @@
     "@aiphabee/document-tools": "file:../document-tools",
     "@aiphabee/tool-registry": "file:../tool-registry",
     "ai": "7.0.0-beta.182",
+    "jsonrepair": "^3.14.1",
     "zod": "^4.4.3"
   }
 }

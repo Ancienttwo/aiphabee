@@ -1192,6 +1192,22 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260703003000_parse_chart_image_runtime.sql",
+      "purpose": "Create production chart-parse evidence table (chart_parse_results) for PRD parse-chart-image Module 4; rows store image_ref key strings only (never image bytes) and keep calibration_run_id null until a matching ready calibration exists, forcing human confirmation routing.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [
+        "aiphabee_core.chart_parse_results"
+      ],
+      "indexes": [
+        "chart_parse_results_tenant_created_idx",
+        "chart_parse_results_versions_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

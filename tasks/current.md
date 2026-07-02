@@ -1,13 +1,13 @@
 # Current Status Snapshot
 
 <!-- generated-by: repo-harness refresh-current-status v1 -->
-<!-- updated_at: 2026-07-02T23:41:56+0800 -->
+<!-- updated_at: 2026-07-03T00:51:56+0800 -->
 <!-- stale_after: 24h -->
 
 > **Status**: Idle
-> **Updated At**: 2026-07-02T23:41:56+0800
-> **Source Branch**: codex/chart-parse-eval
-> **Source Commit**: 402e547
+> **Updated At**: 2026-07-03T00:51:56+0800
+> **Source Branch**: codex/chart-parse-tool
+> **Source Commit**: 1412927
 > **Target Branch**: main
 > **Stale After**: 24h
 > **Reason**: archive-workflow
@@ -40,7 +40,7 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 - (none)
 ## Handoff
 
-- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: 全 workspace vitest + typecheck 绿;`/check` 自审 + codex-review 外审闭环,review 按机器格式落盘
+- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: 全 workspace vitest + typecheck 绿;三条验收命令绿(vitest 路径过滤 + `grep -rn "supportsStructuredOutputs" packages/agent-runtime/src` + `npm run check:database`);`/check` 自审 + codex-review 外审闭环,review 按机器格式落盘
 
 ## Checks
 
@@ -48,20 +48,21 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 
 ## Git Status
 
-- Summary: 11 changed/untracked path(s)
+- Summary: 12 changed/untracked path(s)
 
 ```
+ M apps/worker/src/index.test.ts
+ M apps/worker/src/index.ts
  M deploy/database/migrations.contract.json
  M package-lock.json
- M package.json
- M tasks/todos.md
-?? deploy/database/migrations/20260703001000_chart_parse_eval_foundation.sql
-?? packages/chart-parse-eval/
-?? plans/archive/plan-20260702-2305-chart-parse-eval.md
-?? tasks/archive/contract-20260702-2341-chart-parse-eval.md
-?? tasks/archive/notes-20260702-2341-chart-parse-eval.md
-?? tasks/archive/review-20260702-2341-chart-parse-eval.md
-?? tasks/archive/todo-20260702-2341-chart-parse-eval.md
+ M packages/agent-runtime/package.json
+?? deploy/database/migrations/20260703003000_parse_chart_image_runtime.sql
+?? packages/agent-runtime/src/parse-chart-image/
+?? plans/archive/plan-20260703-0018-chart-parse-tool.md
+?? tasks/archive/contract-20260703-0051-chart-parse-tool.md
+?? tasks/archive/notes-20260703-0051-chart-parse-tool.md
+?? tasks/archive/review-20260703-0051-chart-parse-tool.md
+?? tasks/archive/todo-20260703-0051-chart-parse-tool.md
 ```
 
 ## Source Artifacts
