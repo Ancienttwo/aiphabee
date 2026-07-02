@@ -1,7 +1,13 @@
+> **Archived**: 2026-07-02 20:26
+> **Related Plan**: plans/archive/plan-20260702-1947-chart-parse-contract.md
+> **Outcome**: Completed
+> **Source Plan**: (none)
+> **Parent Run ID**: run-20260702-2026
+
 # Deferred Goal Ledger
 
 > **Status**: Backlog
-> **Updated**: (archive-workflow)
+> **Updated**: 2026-06-23
 > **Scope**: Medium/long-term goals deferred from active plan execution
 
 Current plan tasks live in the active plan's `## Task Breakdown`.

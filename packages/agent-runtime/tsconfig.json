@@ -5,6 +5,7 @@
       "ES2022"
     ],
     "types": [
+      "node",
       "vitest"
     ]
   },
