@@ -26,6 +26,9 @@ _ops/
 # Language/runtime caches
 __pycache__/
 *.py[cod]
+# Generated chart golden-set images (manifest is committed; images rebuild via the generator)
+/runtime/
+
 # BEGIN: claude-runtime-temp (managed by repo-harness)
 .claude/settings.local.json
 .claude/.atomic_pending

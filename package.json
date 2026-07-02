@@ -57,6 +57,7 @@
     "check:authorized-session-memory": "node scripts/check-authorized-session-memory-contract.mjs",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
     "check:budget-stop-policy": "node scripts/check-budget-stop-policy-contract.mjs",
+    "check:chart-golden-set": "bash packages/chart-golden-set/scripts/check-golden-set.sh",
     "check:cloudflare-resource-live-readiness": "node scripts/check-cloudflare-resource-live-readiness.mjs",
     "check:live-smoke-defaults": "node scripts/check-live-smoke-defaults.mjs",
     "check:live-smoke-external-env-preflight": "node scripts/check-live-smoke-external-env-preflight.mjs",

@@ -1,13 +1,13 @@
 # Current Status Snapshot
 
 <!-- generated-by: repo-harness refresh-current-status v1 -->
-<!-- updated_at: 2026-07-02T20:26:38+0800 -->
+<!-- updated_at: 2026-07-02T22:08:24+0800 -->
 <!-- stale_after: 24h -->
 
 > **Status**: Idle
-> **Updated At**: 2026-07-02T20:26:38+0800
-> **Source Branch**: codex/chart-parse-contract
-> **Source Commit**: cc1ad0e
+> **Updated At**: 2026-07-02T22:08:24+0800
+> **Source Branch**: codex/chart-golden-set
+> **Source Commit**: a83d0df
 > **Target Branch**: main
 > **Stale After**: 24h
 > **Reason**: archive-workflow
@@ -40,7 +40,7 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 - (none)
 ## Handoff
 
-- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: 声明依赖与导出面:`packages/agent-runtime/package.json` 加 `"zod": "^4.4.3"` 与 `"./chart-parse"` 子路径导出,`npm install` 刷新 lockfile
+- Exact Next Step: If a major module was just completed, stage its coherent diff first; then continue the next Task Breakdown item: `contract-worktree finish` 合回 + 回填 sprint backlog 行 2
 
 ## Checks
 
@@ -48,16 +48,19 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 
 ## Git Status
 
-- Summary: 7 changed/untracked path(s)
+- Summary: 10 changed/untracked path(s)
 
 ```
+ M .gitignore
  M package-lock.json
- M packages/agent-runtime/package.json
- M packages/agent-runtime/tsconfig.json
- M tasks/todos.md
-?? packages/agent-runtime/src/chart-parse/
-?? plans/archive/
-?? tasks/archive/
+ M package.json
+?? packages/chart-golden-set/
+?? plans/archive/plan-20260702-2047-chart-golden-set.md
+?? tasks/archive/contract-20260702-2208-chart-golden-set.md
+?? tasks/archive/notes-20260702-2208-chart-golden-set.md
+?? tasks/archive/review-20260702-2208-chart-golden-set.md
+?? tasks/archive/todo-20260702-2208-chart-golden-set.md
+?? tests/golden/chart-parse/
 ```
 
 ## Source Artifacts
