@@ -1,0 +1,4936 @@
+{
+  "generator_version": "20260702.chart-golden-set-generator.v1",
+  "render_engine": {
+    "echarts": "6.1.0",
+    "napi_canvas": "1.0.2",
+    "resvg": "2.6.2"
+  },
+  "sample_count": 100,
+  "samples": [
+    {
+      "id": "cgs-000",
+      "image_path": "runtime/chart-golden-set/cgs-000.png",
+      "image_sha256": "af7ca9a0bb8a29f865605e6f0fde0122e0990852c87270a24683326cf31aac34",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3891,
+                "y": 0.3045
+              },
+              {
+                "x": 0.8665,
+                "y": 0.1639
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-001",
+      "image_path": "runtime/chart-golden-set/cgs-001.png",
+      "image_sha256": "d067f5ea6f2985ee175ef89d538c8ab551baf126aa4b86822b9b7ce3b5197a25",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4321,
+                "y": 0.922
+              },
+              {
+                "x": 0.917,
+                "y": 0.5587
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "SZSE",
+        "indicators": [],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-002",
+      "image_path": "runtime/chart-golden-set/cgs-002.png",
+      "image_sha256": "d4e8a492351627919b7bd7aa3471cf3878dc8c47ebbed5837161d2c7749a73a4",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0373,
+                "y": 0.1906
+              },
+              {
+                "x": 0.9211,
+                "y": 0.1906
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-003",
+      "image_path": "runtime/chart-golden-set/cgs-003.png",
+      "image_sha256": "732ee7959c5ee7835efd6a91aa7fc9b89c9a093ccddf624fea41f03d0efb7fd6",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0819,
+                "y": 0.2053
+              },
+              {
+                "x": 0.9598,
+                "y": 0.2053
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": "30m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-004",
+      "image_path": "runtime/chart-golden-set/cgs-004.png",
+      "image_sha256": "ef9e70047a8c2f1334d26483c64d1f1569014649a1fb1d3ba243bbde22951465",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3902,
+                "y": 0.4042
+              },
+              {
+                "x": 0.8664,
+                "y": 0.5245
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "HKEX",
+        "indicators": [],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "0005.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-005",
+      "image_path": "runtime/chart-golden-set/cgs-005.png",
+      "image_sha256": "703e6225c6a135f28ba07a0f41c77ed8a58eba0233416a12f90b442a478bae0f",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3823,
+                "y": 0.7435
+              },
+              {
+                "x": 0.9245,
+                "y": 0.1772
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 14:30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-006",
+      "image_path": "runtime/chart-golden-set/cgs-006.png",
+      "image_sha256": "435d1fa11cb88126bde1efd9fc94642e8f9d8805070fa8945c5ecdd1020a317b",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3461,
+                "y": 0.6725
+              },
+              {
+                "x": 0.8518,
+                "y": 0.4238
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-007",
+      "image_path": "runtime/chart-golden-set/cgs-007.png",
+      "image_sha256": "eb3d57162caf841392868e01a17d3233a9caa565e97d67cbe89a6310a4e8a702",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3488,
+                "y": 0.3594
+              },
+              {
+                "x": 0.8621,
+                "y": 0.5079
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-008",
+      "image_path": "runtime/chart-golden-set/cgs-008.png",
+      "image_sha256": "2a2ff007c2e3fa2ac03d20946e61539481eaac9ad46f79797b1a8711406cee28",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3924,
+                "y": 0.6214
+              },
+              {
+                "x": 0.8658,
+                "y": 0.6082
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-009",
+      "image_path": "runtime/chart-golden-set/cgs-009.png",
+      "image_sha256": "0ef453cdccb9f0c18ab7532efd83c1e8918f3ca6f2fb0c3023553f82ac6d7e4c",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "TSM",
+        "timeframe": "1h"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-010",
+      "image_path": "runtime/chart-golden-set/cgs-010.png",
+      "image_sha256": "21e93b1897363bf4d4d6e9f2c7ed46f57996921496e6b33d31a77909bada5411",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-011",
+      "image_path": "runtime/chart-golden-set/cgs-011.png",
+      "image_sha256": "a657e175739a259a9c588ac99da1ef3aa4c1d66d38acb3e29da311e59ba058c0",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-012",
+      "image_path": "runtime/chart-golden-set/cgs-012.png",
+      "image_sha256": "f09c5199145194f982aeb69d0a270e7b2ba9aa4219b95b4dc859c8680917ff1c",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3893,
+                "y": 0.8646
+              },
+              {
+                "x": 0.8838,
+                "y": 0.6367
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-013",
+      "image_path": "runtime/chart-golden-set/cgs-013.png",
+      "image_sha256": "a7a37aa67a78ce96b185ede49311e51d6809098310482f62dc6086612d1500e6",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3484,
+                "y": 0.4488
+              },
+              {
+                "x": 0.8596,
+                "y": 0.5432
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-014",
+      "image_path": "runtime/chart-golden-set/cgs-014.png",
+      "image_sha256": "880f8fb5ae2bdbb0877d7d8a552a4f99a82ce8beefcaa3ca973fcd2909a6d771",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0404,
+                "y": 0.1221
+              },
+              {
+                "x": 0.9179,
+                "y": 0.1221
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-015",
+      "image_path": "runtime/chart-golden-set/cgs-015.png",
+      "image_sha256": "625d39f9e7a84f0ed0a5a0ba81080639d2cf40bc038eb140dade31af36d731c6",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0388,
+                "y": 0.129
+              },
+              {
+                "x": 0.9195,
+                "y": 0.129
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "downscale",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-016",
+      "image_path": "runtime/chart-golden-set/cgs-016.png",
+      "image_sha256": "30bb09f6b8ac45029ea873b7eae412efc189900c10eda7b86e8a45fe32bd0113",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3854,
+                "y": 0.2662
+              },
+              {
+                "x": 0.9046,
+                "y": 0.7332
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0005.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-017",
+      "image_path": "runtime/chart-golden-set/cgs-017.png",
+      "image_sha256": "b5dd217722b0ec3efebd1818c3252a6ec2abd2314b74d57fcb125d0b5d10cd09",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4327,
+                "y": 0.4999
+              },
+              {
+                "x": 0.8993,
+                "y": 0.5938
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "NYSE",
+        "indicators": [],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "TSM",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-018",
+      "image_path": "runtime/chart-golden-set/cgs-018.png",
+      "image_sha256": "d56e3cc63e7b39845894ee853902968b67c006896de6d550f4894cc08a62ac83",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "AAPL",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-019",
+      "image_path": "runtime/chart-golden-set/cgs-019.png",
+      "image_sha256": "a18d26c505b616091fb40daeea3ed140ddefa2a8b58b563f073d532407eabdfc",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4274,
+                "y": 0.2321
+              },
+              {
+                "x": 0.8876,
+                "y": 0.2426
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-020",
+      "image_path": "runtime/chart-golden-set/cgs-020.png",
+      "image_sha256": "1f66b71e73218ad9d58566e3a7039442ba9438e0797a4537a9fb6f2bb962b00d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3945,
+                "y": 0.557
+              },
+              {
+                "x": 0.876,
+                "y": 0.3245
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-021",
+      "image_path": "runtime/chart-golden-set/cgs-021.png",
+      "image_sha256": "d914101451566efa9e7593d6b27dea2882686fb7ca3cd9a8a966e65e45c63de4",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-022",
+      "image_path": "runtime/chart-golden-set/cgs-022.png",
+      "image_sha256": "723224da78d30f4b6c1368f5edd5715549db7e1ab9816c50fc6e9db676ba6076",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0405,
+                "y": 0.1485
+              },
+              {
+                "x": 0.9178,
+                "y": 0.1485
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "TSM",
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-023",
+      "image_path": "runtime/chart-golden-set/cgs-023.png",
+      "image_sha256": "3a7fa393d2b36ee36c0fb25c2d787f9c1f14be9aa16fd190ec49e4efe368b038",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0799,
+                "y": 0.4182
+              },
+              {
+                "x": 0.9618,
+                "y": 0.4182
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-024",
+      "image_path": "runtime/chart-golden-set/cgs-024.png",
+      "image_sha256": "3ffdf28c08936aa4fa9556aba91cdae61f67b31bc80e6f8cc67db5cdf3959f75",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3437,
+                "y": 0.6038
+              },
+              {
+                "x": 0.8769,
+                "y": 0.1557
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-025",
+      "image_path": "runtime/chart-golden-set/cgs-025.png",
+      "image_sha256": "fa614e8bbe77de8badedbe225f98139afa7e1fea2541aa2a051ac911aed900ba",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4325,
+                "y": 0.4209
+              },
+              {
+                "x": 0.9064,
+                "y": 0.4537
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-026",
+      "image_path": "runtime/chart-golden-set/cgs-026.png",
+      "image_sha256": "b6058be31c1248afb27ac7c61cf91f3290f1b3f72aa6ec748c2ce16592f19230",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3884,
+                "y": 0.5705
+              },
+              {
+                "x": 0.9181,
+                "y": 0.1213
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "600519.SS",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-027",
+      "image_path": "runtime/chart-golden-set/cgs-027.png",
+      "image_sha256": "92d907d210aa408d526d73ddd2df569238ca2fc9f97bc06b225baa43517d98ba",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "1m"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-028",
+      "image_path": "runtime/chart-golden-set/cgs-028.png",
+      "image_sha256": "84524b126b8912b9b23da5d4c37434701735ac0ac81b85c99685015e2ee122e4",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0402,
+                "y": 0.1484
+              },
+              {
+                "x": 0.9181,
+                "y": 0.1484
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-029",
+      "image_path": "runtime/chart-golden-set/cgs-029.png",
+      "image_sha256": "72975ed88252738bf72a3eef8bb69a0a0cfdfb1bd63789a0677a56f2eb0d4270",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0388,
+                "y": 0.1996
+              },
+              {
+                "x": 0.9195,
+                "y": 0.1996
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "AAPL",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-030",
+      "image_path": "runtime/chart-golden-set/cgs-030.png",
+      "image_sha256": "4024e14e407239523324b77e757652a3fcb225b29bfa77425619f868ac94d1c6",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3461,
+                "y": 0.2166
+              },
+              {
+                "x": 0.8518,
+                "y": 0.2656
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-031",
+      "image_path": "runtime/chart-golden-set/cgs-031.png",
+      "image_sha256": "f8317e893c471c55bd5207db41b92926a4573c7dca1ac9db46c6d97b73a345db",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0374,
+                "y": 0.1307
+              },
+              {
+                "x": 0.9209,
+                "y": 0.1307
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-032",
+      "image_path": "runtime/chart-golden-set/cgs-032.png",
+      "image_sha256": "d68eaea9825f07817af4989dcbb23669f57b2655c3e0f4d750210a86e99712fb",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "4h"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-033",
+      "image_path": "runtime/chart-golden-set/cgs-033.png",
+      "image_sha256": "e9a66922849fbef2bfb726c562d19280bfeaf233efecbbd7f5f4f8fa3da7f476",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0384,
+                "y": 0.208
+              },
+              {
+                "x": 0.9199,
+                "y": 0.208
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-034",
+      "image_path": "runtime/chart-golden-set/cgs-034.png",
+      "image_sha256": "7c60cc1fe4443200f6750ac7d02fb11d5ac8fd235942e38edad3e9d20ba58545",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0406,
+                "y": 0.2106
+              },
+              {
+                "x": 0.9177,
+                "y": 0.2106
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-035",
+      "image_path": "runtime/chart-golden-set/cgs-035.png",
+      "image_sha256": "1f15430d6e988d78b5cb2142b770524c1eed7c93a44510ab09de2bfb34fb9acd",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0398,
+                "y": 0.1564
+              },
+              {
+                "x": 0.9185,
+                "y": 0.1564
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "TSM",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-036",
+      "image_path": "runtime/chart-golden-set/cgs-036.png",
+      "image_sha256": "f73bc3ba79bc1bd41d6f1cefb4ef378696abcdf686b9385a2ea83ce651f32aec",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-037",
+      "image_path": "runtime/chart-golden-set/cgs-037.png",
+      "image_sha256": "28c9c2d591f061fae52f0b2e04d12b3c9bcc40772932d1499d366d6c94871104",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3442,
+                "y": 0.5023
+              },
+              {
+                "x": 0.8839,
+                "y": 0.2723
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-038",
+      "image_path": "runtime/chart-golden-set/cgs-038.png",
+      "image_sha256": "166bc32de52deb35b0d4d48c7814e5bd3121928ca54b5946b07d0492e1d34577",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0376,
+                "y": 0.291
+              },
+              {
+                "x": 0.9208,
+                "y": 0.291
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-039",
+      "image_path": "runtime/chart-golden-set/cgs-039.png",
+      "image_sha256": "28dc184d52aaf6620c554c27274dc1402d1d6ec9d7ca27a6acbba0b0f0e2f251",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-040",
+      "image_path": "runtime/chart-golden-set/cgs-040.png",
+      "image_sha256": "86437336f30561fb2b24cc670b1ba7cd21dbbd26d84464bb5274a28de403ad58",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-041",
+      "image_path": "runtime/chart-golden-set/cgs-041.png",
+      "image_sha256": "3feb65d8d7c9ab7ce6cf87958db9403ac1d11dc2917a751f4ea86135d7f6084e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0402,
+                "y": 0.1668
+              },
+              {
+                "x": 0.9181,
+                "y": 0.1668
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-042",
+      "image_path": "runtime/chart-golden-set/cgs-042.png",
+      "image_sha256": "baecfd1583a068a832dace9dcebb23dbd503bfd60eaa704e883d22d5f18abef5",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3891,
+                "y": 0.5219
+              },
+              {
+                "x": 0.8633,
+                "y": 0.5603
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-043",
+      "image_path": "runtime/chart-golden-set/cgs-043.png",
+      "image_sha256": "8453a0529e108eb3c4198b6eab198e1323bc075e40386c6dac1ed73efd2cfc6d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4305,
+                "y": 0.4081
+              },
+              {
+                "x": 0.9004,
+                "y": 0.4179
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "0005.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-044",
+      "image_path": "runtime/chart-golden-set/cgs-044.png",
+      "image_sha256": "055b6cb1a4781823d96be87a88fa1c3880ea33e8f1fc6f22d952ee61a3aa2883",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4305,
+                "y": 0.4623
+              },
+              {
+                "x": 0.9272,
+                "y": 0.3019
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-045",
+      "image_path": "runtime/chart-golden-set/cgs-045.png",
+      "image_sha256": "1c756cfca09faec6b746c6ceb4ddee48a250c6c18b15d1f985d096ffa9589d68",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.342,
+                "y": 0.5379
+              },
+              {
+                "x": 0.877,
+                "y": 0.1179
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-046",
+      "image_path": "runtime/chart-golden-set/cgs-046.png",
+      "image_sha256": "70489fde6544e242bfe34fd82db980e309e5ae26150fe7fdbc5dc459160c584e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3449,
+                "y": 0.2848
+              },
+              {
+                "x": 0.8627,
+                "y": 0.1982
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-047",
+      "image_path": "runtime/chart-golden-set/cgs-047.png",
+      "image_sha256": "05f0e50b923657ee35738160ed80ef159f98757c1e08bfcec249b9c85bf4c0f7",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4353,
+                "y": 0.5476
+              },
+              {
+                "x": 0.9239,
+                "y": 0.2097
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-048",
+      "image_path": "runtime/chart-golden-set/cgs-048.png",
+      "image_sha256": "64bb07119cdb47d4fff35c761d29247bc8d4fd1184846e3dd3d5a666e4a434c0",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0815,
+                "y": 0.4993
+              },
+              {
+                "x": 0.9602,
+                "y": 0.4993
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "NYSE",
+        "indicators": [],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "TSM",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-049",
+      "image_path": "runtime/chart-golden-set/cgs-049.png",
+      "image_sha256": "b38e5094aad8d86b0238a075c40522622d66fefe75cd1ebfef59f8cd28420bcf",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3939,
+                "y": 0.7515
+              },
+              {
+                "x": 0.8529,
+                "y": 0.7538
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "0700.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-050",
+      "image_path": "runtime/chart-golden-set/cgs-050.png",
+      "image_sha256": "a44df1e25581997d0ed1f1a1b327dfc69062d617333e0cd97c06431924758345",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3842,
+                "y": 0.5855
+              },
+              {
+                "x": 0.8876,
+                "y": 0.5164
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 14:30",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "AAPL",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-051",
+      "image_path": "runtime/chart-golden-set/cgs-051.png",
+      "image_sha256": "e29af62f1a819720544636fddd4b2e3c4f518f48c58a696ac292f11e6771b38d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0809,
+                "y": 0.1699
+              },
+              {
+                "x": 0.9607,
+                "y": 0.1699
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": "30m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-052",
+      "image_path": "runtime/chart-golden-set/cgs-052.png",
+      "image_sha256": "96321110949141ee705bb5e175417a587e8cf796093581d3ce0f1c161ca3959f",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3499,
+                "y": 0.8335
+              },
+              {
+                "x": 0.8798,
+                "y": 0.2208
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "TSM",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-053",
+      "image_path": "runtime/chart-golden-set/cgs-053.png",
+      "image_sha256": "89e53d770e0a7f487fa54cfca42cac82212d3196982e7f9325913d90f91fe58e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0404,
+                "y": 0.2503
+              },
+              {
+                "x": 0.9179,
+                "y": 0.2503
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": null,
+        "timeframe": "30m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-054",
+      "image_path": "runtime/chart-golden-set/cgs-054.png",
+      "image_sha256": "477ea8cc8f6c6df6093266ab0aeaa709eb2793ce716feef0f4ada4a1c5350895",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3937,
+                "y": 0.2587
+              },
+              {
+                "x": 0.8767,
+                "y": 0.108
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-055",
+      "image_path": "runtime/chart-golden-set/cgs-055.png",
+      "image_sha256": "83d2520058ae13f5eaaf2f85c8ab880149ee55e8a632759cb7142c9d28312dae",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4326,
+                "y": 0.405
+              },
+              {
+                "x": 0.903,
+                "y": 0.4248
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": "4h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-056",
+      "image_path": "runtime/chart-golden-set/cgs-056.png",
+      "image_sha256": "b307856795f541ac30b935832b855d6b048df486b846998fed665cb2d4899b99",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0823,
+                "y": 0.1678
+              },
+              {
+                "x": 0.9594,
+                "y": 0.1678
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-057",
+      "image_path": "runtime/chart-golden-set/cgs-057.png",
+      "image_sha256": "1a276a619efbe9b79f757430d5c7e34b8804790b728d1805f4f59624e2a555fa",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3491,
+                "y": 0.5733
+              },
+              {
+                "x": 0.8817,
+                "y": 0.2652
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "TSM",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-058",
+      "image_path": "runtime/chart-golden-set/cgs-058.png",
+      "image_sha256": "551a4dc1496140c028778d6d5e6d19dfe8beb114aa08d18bf6cf85805a8990cc",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-059",
+      "image_path": "runtime/chart-golden-set/cgs-059.png",
+      "image_sha256": "edafff9a1ca3559cecf1a48a08a30d99c4c39a7604cbd1dc722373d0d148a87d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-060",
+      "image_path": "runtime/chart-golden-set/cgs-060.png",
+      "image_sha256": "6999b6ea1ef827c7d1f1a8bdafe85f19eca3c2063fc4854ffafd0934f902452c",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0822,
+                "y": 0.4028
+              },
+              {
+                "x": 0.9595,
+                "y": 0.4028
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "600519.SS",
+        "timeframe": "30m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-061",
+      "image_path": "runtime/chart-golden-set/cgs-061.png",
+      "image_sha256": "7c6c617e058b21d828df29467a32b8bc1b0820ffc1f999030b5fd29645946502",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-062",
+      "image_path": "runtime/chart-golden-set/cgs-062.png",
+      "image_sha256": "dd2d0d6f82bde8303ccfd0149661ac86f084997900b2d3b34d5d349da1f14ef0",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-063",
+      "image_path": "runtime/chart-golden-set/cgs-063.png",
+      "image_sha256": "1ee6956c262bfbf10703fe259e408920899bcf740b9478af7f47d3e9988fe90e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3429,
+                "y": 0.4034
+              },
+              {
+                "x": 0.8631,
+                "y": 0.4835
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-064",
+      "image_path": "runtime/chart-golden-set/cgs-064.png",
+      "image_sha256": "9afe19f6f092bde768d727ce01ea41a651b04ee93afbf8dfbf207d5766af33d4",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3933,
+                "y": 0.6347
+              },
+              {
+                "x": 0.8819,
+                "y": 0.4496
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": null,
+        "indicators": [],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": null,
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-065",
+      "image_path": "runtime/chart-golden-set/cgs-065.png",
+      "image_sha256": "a3fa391dd2d8a0b824e2ce21eb63734d2cfa43a6b5159150e30b8d05342b5446",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0379,
+                "y": 0.2364
+              },
+              {
+                "x": 0.9205,
+                "y": 0.2364
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 14:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-066",
+      "image_path": "runtime/chart-golden-set/cgs-066.png",
+      "image_sha256": "14bb8a960f0e8304bf8cd2475b496b2c13511466911bf30ba731988584e94732",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4304,
+                "y": 0.4108
+              },
+              {
+                "x": 0.9214,
+                "y": 0.2229
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-067",
+      "image_path": "runtime/chart-golden-set/cgs-067.png",
+      "image_sha256": "4557516de60b5e23387850f4f2d82c4c469962028dabcda182ce11a18d007212",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": "TSM",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-068",
+      "image_path": "runtime/chart-golden-set/cgs-068.png",
+      "image_sha256": "40e6fd2a7fc418a6944770ca505a60921562822ab4bd9d0c8d8b738426e6eb13",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.389,
+                "y": 0.4498
+              },
+              {
+                "x": 0.8799,
+                "y": 0.1527
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "TSM",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-069",
+      "image_path": "runtime/chart-golden-set/cgs-069.png",
+      "image_sha256": "df705218c5956fa55e60939fac79239d18e4b6fcf3f3664ad23cbc715e644864",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4369,
+                "y": 0.3984
+              },
+              {
+                "x": 0.8985,
+                "y": 0.2648
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "9988.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-070",
+      "image_path": "runtime/chart-golden-set/cgs-070.png",
+      "image_sha256": "13941d9638cd4d9a3e38488906edc1aa33fee9cfd79e4e29de49754000ab3c44",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4385,
+                "y": 0.3456
+              },
+              {
+                "x": 0.9187,
+                "y": 0.1177
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-071",
+      "image_path": "runtime/chart-golden-set/cgs-071.png",
+      "image_sha256": "9decf4985e3379743a9ff27b0c2d7b648f6c851bd5f7e259910fb223c2c0bbb3",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 10:30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-072",
+      "image_path": "runtime/chart-golden-set/cgs-072.png",
+      "image_sha256": "14b5818c26a20b9ce20bdf91aacd8b598ce7629b2009cac9bcf7d35390472c15",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3425,
+                "y": 0.9162
+              },
+              {
+                "x": 0.8747,
+                "y": 0.1695
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-073",
+      "image_path": "runtime/chart-golden-set/cgs-073.png",
+      "image_sha256": "2b8132db43514e801827b31f289187fcd348224a587ae67738752ddacfefd1c4",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3424,
+                "y": 0.4418
+              },
+              {
+                "x": 0.8591,
+                "y": 0.2161
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-074",
+      "image_path": "runtime/chart-golden-set/cgs-074.png",
+      "image_sha256": "6b0156f2aba26f3c31e7ca3cbc5b8895aaa927e1eb0d629eca6e340da76e7a8d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0372,
+                "y": 0.354
+              },
+              {
+                "x": 0.9212,
+                "y": 0.354
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-075",
+      "image_path": "runtime/chart-golden-set/cgs-075.png",
+      "image_sha256": "a17a76f3e56ef4f60929facf8c6b04fd36b3432cbeaa4c3077a7640a92e04bb5",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4302,
+                "y": 0.4754
+              },
+              {
+                "x": 0.9221,
+                "y": 0.1192
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "NASDAQ",
+        "indicators": [],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-076",
+      "image_path": "runtime/chart-golden-set/cgs-076.png",
+      "image_sha256": "176048401534f90505f35ba3e43b75d78fc7882c74103b4e2fb5e32e5cad9545",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3415,
+                "y": 0.4841
+              },
+              {
+                "x": 0.8529,
+                "y": 0.5356
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-077",
+      "image_path": "runtime/chart-golden-set/cgs-077.png",
+      "image_sha256": "371afdf8cd405e166dd5ec9e2b54434fb8404379d8f29d9c1407e9f3d25dd78f",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0389,
+                "y": 0.1227
+              },
+              {
+                "x": 0.921,
+                "y": 0.1227
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": null,
+        "indicators": [],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "2h"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_symbol",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-078",
+      "image_path": "runtime/chart-golden-set/cgs-078.png",
+      "image_sha256": "4302b1cb08504137cfffe4d27ffd6ace225d7b1504fdecd77071d1e8d74a5aa3",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 14:30",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-079",
+      "image_path": "runtime/chart-golden-set/cgs-079.png",
+      "image_sha256": "95e75c8ccf711e77de992efbd1cc25c1ab350a90d92bb4ab95925d6f83d720b2",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3925,
+                "y": 0.6428
+              },
+              {
+                "x": 0.8796,
+                "y": 0.5049
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "NYSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "double_top"
+        ],
+        "symbol": "TSM",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-080",
+      "image_path": "runtime/chart-golden-set/cgs-080.png",
+      "image_sha256": "0d0589e2951b0345c11b6e00593d4f6680bcebe1175e8089e8a6108d5edaeeea",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3865,
+                "y": 0.4336
+              },
+              {
+                "x": 0.8613,
+                "y": 0.4428
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-081",
+      "image_path": "runtime/chart-golden-set/cgs-081.png",
+      "image_sha256": "ca5bb1ec928a18026346562d9e840384e81928448181d48e68f4533fc8052e80",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "0005.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-082",
+      "image_path": "runtime/chart-golden-set/cgs-082.png",
+      "image_sha256": "224551125b5c29d4e1f08305af3c19cde35dd74901a19dc942d34946021ffe1c",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.038,
+                "y": 0.1397
+              },
+              {
+                "x": 0.9204,
+                "y": 0.1397
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-083",
+      "image_path": "runtime/chart-golden-set/cgs-083.png",
+      "image_sha256": "6c8a2639e5b0c37c10802349838168f4d09203529ba236dca090e94916fd4172",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3854,
+                "y": 0.2521
+              },
+              {
+                "x": 0.9046,
+                "y": 0.3192
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "1m"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-084",
+      "image_path": "runtime/chart-golden-set/cgs-084.png",
+      "image_sha256": "feff8f66d5cc63f94be4a9388fd1914d95a5bcdd5d0ba6639d4d677b1f3519f8",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4326,
+                "y": 0.2558
+              },
+              {
+                "x": 0.903,
+                "y": 0.3013
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "000001.SZ",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-085",
+      "image_path": "runtime/chart-golden-set/cgs-085.png",
+      "image_sha256": "0829646d7481edfe68371ade518feaeb7db1d7a93629ac890cb1c29ec1ac325a",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4288,
+                "y": 0.5356
+              },
+              {
+                "x": 0.9231,
+                "y": 0.4472
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-086",
+      "image_path": "runtime/chart-golden-set/cgs-086.png",
+      "image_sha256": "bd13fc13cfdc6f39073e1816a22c140ec451ecd33d2d3387587a65dc52a24345",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-087",
+      "image_path": "runtime/chart-golden-set/cgs-087.png",
+      "image_sha256": "363219cf4b6600bb7d3308a10cff6c90b1de60d886defc29770757244f9f1640",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": null,
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "dark",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-088",
+      "image_path": "runtime/chart-golden-set/cgs-088.png",
+      "image_sha256": "578e45c1bf8b7099dc0bf4034b5082f86b4d1d9fd75d9908cf9971f73ca1c153",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.4308,
+                "y": 0.5709
+              },
+              {
+                "x": 0.9081,
+                "y": 0.3463
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 16:00",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "0005.HK",
+        "timeframe": "4h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-089",
+      "image_path": "runtime/chart-golden-set/cgs-089.png",
+      "image_sha256": "8d8c3c38e05c862546c74eedbb5775d1dcb46f11488c703e7fe1fdc457207e5f",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3483,
+                "y": 0.546
+              },
+              {
+                "x": 0.8814,
+                "y": 0.119
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "AAPL",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-090",
+      "image_path": "runtime/chart-golden-set/cgs-090.png",
+      "image_sha256": "2d33433a15b490dc0600605b99aeb71d9ba78fc5b05a78031d7485061632fde5",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3919,
+                "y": 0.5558
+              },
+              {
+                "x": 0.9183,
+                "y": 0.1686
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 11:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0005.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-091",
+      "image_path": "runtime/chart-golden-set/cgs-091.png",
+      "image_sha256": "f0d700c38d981ffc373e1a2f90481f730a57030dd4971c6b213ed843fb1d79c8",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3911,
+                "y": 0.8185
+              },
+              {
+                "x": 0.8755,
+                "y": 0.3237
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          }
+        ],
+        "patterns": [
+          "falling_wedge"
+        ],
+        "symbol": "9988.HK",
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-092",
+      "image_path": "runtime/chart-golden-set/cgs-092.png",
+      "image_sha256": "4ebcc4679f379fe906adf3273cd0c99988cd21a5b263ca33703fcfe72a93c90e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0375,
+                "y": 0.3483
+              },
+              {
+                "x": 0.9209,
+                "y": 0.3483
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": null,
+        "exchange": "SZSE",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "15m"
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-093",
+      "image_path": "runtime/chart-golden-set/cgs-093.png",
+      "image_sha256": "49200028085b8fc2007dbf22249d007a4ec05bda507e6ac59bb7565454126de2",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 11:30",
+        "exchange": null,
+        "indicators": [
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": null,
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_symbol",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-094",
+      "image_path": "runtime/chart-golden-set/cgs-094.png",
+      "image_sha256": "c3850a9a8a24b904350569d53b91923440c4e49990870c2920746e4fa75b9bd8",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [],
+        "patterns": [],
+        "symbol": "0005.HK",
+        "timeframe": "1d"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "none",
+        "info_missing": "no_axes",
+        "language": "zh",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "daily"
+      }
+    },
+    {
+      "id": "cgs-095",
+      "image_path": "runtime/chart-golden-set/cgs-095.png",
+      "image_sha256": "9b76cd392b74d7fadd35a0c86d27ce239f7fdb0d857502904c3cc2e5711d875e",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3528,
+                "y": 0.4067
+              },
+              {
+                "x": 0.873,
+                "y": 0.1395
+              }
+            ],
+            "kind": "rectangle"
+          }
+        ],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": "5m"
+      },
+      "variant_dims": {
+        "annotations": "rectangle",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "tradingview_like",
+        "theme": "light",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-096",
+      "image_path": "runtime/chart-golden-set/cgs-096.png",
+      "image_sha256": "bd980193523bbfdd97d68b341a0ca4c710200c724dac0c517c5686764e6b19c6",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.0789,
+                "y": 0.098
+              },
+              {
+                "x": 0.9628,
+                "y": 0.098
+              }
+            ],
+            "kind": "horizontal_line"
+          }
+        ],
+        "end_time": "2026-06-30",
+        "exchange": "HKEX",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "MACD",
+            "params": [
+              12,
+              26,
+              9
+            ]
+          }
+        ],
+        "patterns": [],
+        "symbol": "0700.HK",
+        "timeframe": null
+      },
+      "variant_dims": {
+        "annotations": "horizontal_line",
+        "degradation": "jpeg_artifact",
+        "info_missing": "no_timeframe",
+        "language": "zh",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    },
+    {
+      "id": "cgs-097",
+      "image_path": "runtime/chart-golden-set/cgs-097.png",
+      "image_sha256": "bd2a6dee2226748442dff927b1cf1457a00c8a073930878051efcfeef4a4de3d",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [
+          {
+            "anchors": [
+              {
+                "x": 0.3468,
+                "y": 0.4356
+              },
+              {
+                "x": 0.8484,
+                "y": 0.4669
+              }
+            ],
+            "kind": "trendline"
+          }
+        ],
+        "end_time": "2026-06-30 10:30",
+        "exchange": "SZSE",
+        "indicators": [],
+        "patterns": [],
+        "symbol": "000001.SZ",
+        "timeframe": "4h"
+      },
+      "variant_dims": {
+        "annotations": "trendline",
+        "degradation": "none",
+        "info_missing": "none",
+        "language": "zh",
+        "platform_style": "minimal_web",
+        "theme": "light",
+        "timeframe_class": "intraday_hour"
+      }
+    },
+    {
+      "id": "cgs-098",
+      "image_path": "runtime/chart-golden-set/cgs-098.png",
+      "image_sha256": "ee4d84955e731c4f5561d6ddfe201c2866d0100d97c030330641807d860566dc",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": "2026-06-30 15:00",
+        "exchange": "NASDAQ",
+        "indicators": [
+          {
+            "name": "MA",
+            "params": [
+              5,
+              10,
+              20
+            ]
+          },
+          {
+            "name": "VOL",
+            "params": []
+          },
+          {
+            "name": "RSI",
+            "params": [
+              14
+            ]
+          }
+        ],
+        "patterns": [
+          "ascending_triangle"
+        ],
+        "symbol": "AAPL",
+        "timeframe": "30m"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "jpeg_artifact",
+        "info_missing": "none",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "intraday_minute"
+      }
+    },
+    {
+      "id": "cgs-099",
+      "image_path": "runtime/chart-golden-set/cgs-099.png",
+      "image_sha256": "b850eac35db3b01463f258036ced6785ccc40aa190188aed87a987c7df79d085",
+      "truth": {
+        "chart_type": "candlestick",
+        "drawn_lines": [],
+        "end_time": null,
+        "exchange": "HKEX",
+        "indicators": [],
+        "patterns": [],
+        "symbol": "9988.HK",
+        "timeframe": "1w"
+      },
+      "variant_dims": {
+        "annotations": "none",
+        "degradation": "downscale",
+        "info_missing": "no_axes",
+        "language": "en",
+        "platform_style": "exchange_terminal",
+        "theme": "dark",
+        "timeframe_class": "weekly"
+      }
+    }
+  ],
+  "seed": 20260702,
+  "set_version": "20260702.chart-golden-set.v1"
+}
