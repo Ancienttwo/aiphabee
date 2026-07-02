@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  CHART_IMAGE_MAX_BYTES,
+  type ChartImageMetadataStore,
+  type ChartImageRecord
+} from "@aiphabee/agent-runtime/parse-chart-image";
 import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import app, { AiphaBeeResearchWorkflow, AiphaBeeRunCoordinator } from "./index";
 
@@ -7177,6 +7182,7 @@ interface ParseChartImageLiveSmokeBody {
   };
   missing_env?: string[];
   parse_outcome?: {
+    calibration_run_id: string | null;
     error_code: string | null;
     latency_ms: number;
     model_call_count: number;
@@ -7185,6 +7191,7 @@ interface ParseChartImageLiveSmokeBody {
       symbol?: { confidence: number; value: string | null };
       timeframe?: { confidence: number; value: string | null };
     } | null;
+    route_decision: string | null;
     status: string;
     usage: { input_tokens: number; output_tokens: number; total_tokens: number };
   };
@@ -7194,6 +7201,25 @@ interface ParseChartImageLiveSmokeBody {
   status: string;
   tool_version?: string;
   version?: string;
+}
+
+interface ChartImageRouteBody {
+  accepted_headers?: string[];
+  chart_image?: {
+    byte_size?: number;
+    content_hash_sha256?: string;
+    content_type?: string;
+    id: string;
+    image_ref: string | null;
+    removal_status?: string;
+    retention_policy?: string;
+  };
+  error_code?: string;
+  missing_env?: string[];
+  request_id: string;
+  response_hash?: string;
+  route?: string;
+  status: string;
 }
 
 interface ModelProviderLiveSmokeBody {
@@ -8149,6 +8175,107 @@ function createChartVisionMockFetch(contents: string[]): {
   }) as typeof fetch;
 
   return { calls, fetch: fetchMock };
+}
+
+function createChartImageRouteStores() {
+  const records = new Map<string, ChartImageRecord>();
+  const objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
+  const removedKeys: string[] = [];
+
+  const metadataStore: ChartImageMetadataStore = {
+    findActiveById: async ({ id, tenant_id }) =>
+      [...records.values()].find(
+        (record) => record.id === id && record.tenant_id === tenant_id && record.deleted_at === null
+      ) ?? null,
+    findActiveByKey: async ({ r2_key, tenant_id }) => {
+      const record = records.get(`${tenant_id}:${r2_key}`) ?? null;
+      return record?.deleted_at === null ? record : null;
+    },
+    insert: async (record) => {
+      records.set(`${record.tenant_id}:${record.r2_key}`, record);
+    },
+    markRemoved: async ({ id, removed_at, tenant_id }) => {
+      const record =
+        [...records.values()].find(
+          (candidate) => candidate.id === id && candidate.tenant_id === tenant_id
+        ) ?? null;
+      if (record === null || record.deleted_at !== null) {
+        return null;
+      }
+      const next = { ...record, deleted_at: removed_at };
+      records.set(`${record.tenant_id}:${record.r2_key}`, next);
+      return next;
+    }
+  };
+
+  const toBytes = (value: ArrayBuffer | string | Uint8Array): Uint8Array => {
+    if (typeof value === "string") {
+      return new TextEncoder().encode(value);
+    }
+    return value instanceof Uint8Array ? value : new Uint8Array(value);
+  };
+
+  const r2 = {
+    delete: vi.fn(async (key: string) => {
+      removedKeys.push(key);
+      objects.delete(key);
+    }),
+    get: vi.fn(async (key: string) => {
+      const object = objects.get(key);
+      return object
+        ? {
+            arrayBuffer: async () =>
+              object.bytes.buffer.slice(
+                object.bytes.byteOffset,
+                object.bytes.byteOffset + object.bytes.byteLength
+              ) as ArrayBuffer,
+            httpMetadata: { contentType: object.contentType },
+            text: async () => new TextDecoder().decode(object.bytes)
+          }
+        : null;
+    }),
+    put: vi.fn(
+      async (
+        key: string,
+        value: ArrayBuffer | string | Uint8Array,
+        options?: { httpMetadata?: { contentType?: string } }
+      ) => {
+        objects.set(key, {
+          bytes: toBytes(value),
+          contentType: options?.httpMetadata?.contentType ?? "application/octet-stream"
+        });
+      }
+    )
+  };
+
+  const seedChartImage = (input: {
+    bytes?: Uint8Array;
+    contentType?: "image/png" | "image/jpeg" | "image/webp";
+    id: string;
+    tenant_id: string;
+    user_id?: string;
+  }) => {
+    const r2Key = `charts/${input.tenant_id}/${input.id}`;
+    const bytes = input.bytes ?? new TextEncoder().encode("PNG_FIXTURE");
+    const contentType = input.contentType ?? "image/png";
+    const record: ChartImageRecord = {
+      byte_size: bytes.byteLength,
+      content_hash_sha256: `sha256:${"b".repeat(64)}`,
+      content_type: contentType,
+      created_at: "2026-07-03T00:00:00.000Z",
+      deleted_at: null,
+      id: input.id,
+      r2_key: r2Key,
+      retention_policy: "user_managed",
+      tenant_id: input.tenant_id,
+      user_id: input.user_id ?? "user-a"
+    };
+    records.set(`${record.tenant_id}:${record.r2_key}`, record);
+    objects.set(r2Key, { bytes, contentType });
+    return record;
+  };
+
+  return { metadataStore, objects, r2, records, removedKeys, seedChartImage };
 }
 
 interface FakeD1Statement {
@@ -21018,6 +21145,572 @@ describe("worker runtime", () => {
     });
   });
 
+  it("uploads chart image bytes into R2 and persists tenant-scoped metadata", async () => {
+    const stores = createChartImageRouteStores();
+    const uploadBytes = new TextEncoder().encode("PNG_UPLOAD");
+
+    const response = await app.request(
+      "/agent/chart-images",
+      {
+        body: uploadBytes,
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "content-type": "image/png",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-aiphabee-user-id": "user-a",
+          "x-request-id": "req-chart-image-upload"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const body = (await response.json()) as ChartImageRouteBody;
+    const imageRef = body.chart_image?.image_ref ?? "";
+
+    expect(response.status).toBe(201);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-upload",
+      route: "POST /agent/chart-images",
+      status: "ok"
+    });
+    expect(imageRef).toMatch(/^charts\/tenant-a\/[0-9a-f-]+$/u);
+    expect(body.chart_image).toMatchObject({
+      byte_size: uploadBytes.byteLength,
+      content_type: "image/png",
+      retention_policy: "user_managed"
+    });
+    expect(body.chart_image?.content_hash_sha256).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(stores.objects.get(imageRef)?.bytes).toEqual(uploadBytes);
+    expect(stores.records.get(`tenant-a:${imageRef}`)).toMatchObject({
+      byte_size: uploadBytes.byteLength,
+      content_type: "image/png",
+      deleted_at: null,
+      tenant_id: "tenant-a",
+      user_id: "user-a"
+    });
+  });
+
+  it("rejects chart image uploads without the smoke header", async () => {
+    const response = await app.request("/agent/chart-images", {
+      body: new TextEncoder().encode("PNG_UPLOAD"),
+      headers: {
+        authorization: "Bearer synthetic-chart-image-token",
+        "content-type": "image/png",
+        "x-aiphabee-tenant-id": "tenant-a",
+        "x-aiphabee-user-id": "user-a",
+        "x-request-id": "req-chart-image-upload-no-smoke"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ChartImageRouteBody;
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-upload-no-smoke",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /agent/chart-images",
+      status: "forbidden"
+    });
+  });
+
+  it("rejects chart image removal with a wrong bearer secret", async () => {
+    const stores = createChartImageRouteStores();
+
+    const response = await app.request(
+      "/agent/chart-images/chart-1",
+      {
+        headers: {
+          authorization: "Bearer wrong-chart-image-token",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-request-id": "req-chart-image-remove-forbidden"
+        },
+        method: "DELETE"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const body = (await response.json()) as ChartImageRouteBody;
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-remove-forbidden",
+      required_authorization: "Bearer AIPHABEE_CHART_IMAGE_SMOKE_TOKEN",
+      status: "forbidden"
+    });
+  });
+
+  it("rejects invalid chart image uploads before writing R2", async () => {
+    const invalidMimeStores = createChartImageRouteStores();
+    const invalidMimeResponse = await app.request(
+      "/agent/chart-images",
+      {
+        body: new TextEncoder().encode("GIF_UPLOAD"),
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "content-type": "image/gif",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-aiphabee-user-id": "user-a",
+          "x-request-id": "req-chart-image-invalid-mime"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_ARTIFACTS: invalidMimeStores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: invalidMimeStores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const invalidMimeBody = (await invalidMimeResponse.json()) as ChartImageRouteBody;
+
+    expect(invalidMimeResponse.status).toBe(400);
+    expect(invalidMimeBody).toMatchObject({
+      error_code: "invalid_content_type",
+      request_id: "req-chart-image-invalid-mime",
+      status: "invalid_request"
+    });
+    expect(invalidMimeStores.r2.put).not.toHaveBeenCalled();
+    expect(invalidMimeStores.objects.size).toBe(0);
+
+    const tooLargeStores = createChartImageRouteStores();
+    const tooLargeResponse = await app.request(
+      "/agent/chart-images",
+      {
+        body: new TextEncoder().encode("PNG_UPLOAD"),
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "content-length": String(CHART_IMAGE_MAX_BYTES + 1),
+          "content-type": "image/png",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-aiphabee-user-id": "user-a",
+          "x-request-id": "req-chart-image-too-large"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_ARTIFACTS: tooLargeStores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: tooLargeStores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const tooLargeBody = (await tooLargeResponse.json()) as ChartImageRouteBody;
+
+    expect(tooLargeResponse.status).toBe(413);
+    expect(tooLargeBody).toMatchObject({
+      error_code: "image_too_large",
+      request_id: "req-chart-image-too-large",
+      status: "invalid_request"
+    });
+    expect(tooLargeStores.r2.put).not.toHaveBeenCalled();
+    expect(tooLargeStores.objects.size).toBe(0);
+
+    const emptyStores = createChartImageRouteStores();
+    const emptyResponse = await app.request(
+      "/agent/chart-images",
+      {
+        body: new Uint8Array(),
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "content-type": "image/png",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-aiphabee-user-id": "user-a",
+          "x-request-id": "req-chart-image-empty"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_ARTIFACTS: emptyStores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: emptyStores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const emptyBody = (await emptyResponse.json()) as ChartImageRouteBody;
+
+    expect(emptyResponse.status).toBe(400);
+    expect(emptyBody).toMatchObject({
+      error_code: "empty_image",
+      request_id: "req-chart-image-empty",
+      status: "invalid_request"
+    });
+    expect(emptyStores.r2.put).not.toHaveBeenCalled();
+    expect(emptyStores.objects.size).toBe(0);
+  });
+
+  it("removes uploaded chart images idempotently and makes later parse fetches resolve absent", async () => {
+    const stores = createChartImageRouteStores();
+    const uploadBytes = new TextEncoder().encode("PNG_UPLOAD");
+    const uploadResponse = await app.request(
+      "/agent/chart-images",
+      {
+        body: uploadBytes,
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "content-type": "image/png",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-aiphabee-user-id": "user-a",
+          "x-request-id": "req-chart-image-upload-before-remove"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const uploadBody = (await uploadResponse.json()) as ChartImageRouteBody;
+    const imageId = uploadBody.chart_image?.id ?? "";
+    const imageRef = uploadBody.chart_image?.image_ref ?? "";
+
+    const removeResponse = await app.request(
+      `/agent/chart-images/${imageId}`,
+      {
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-request-id": "req-chart-image-remove"
+        },
+        method: "DELETE"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const removeBody = (await removeResponse.json()) as ChartImageRouteBody;
+
+    expect(removeResponse.status).toBe(200);
+    expect(removeBody.chart_image).toMatchObject({
+      id: imageId,
+      image_ref: imageRef,
+      removal_status: "removed"
+    });
+    expect(stores.removedKeys).toContain(imageRef);
+    expect(stores.objects.has(imageRef)).toBe(false);
+    expect(stores.records.get(`tenant-a:${imageRef}`)?.deleted_at).not.toBeNull();
+
+    const secondRemoveResponse = await app.request(
+      `/agent/chart-images/${imageId}`,
+      {
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-request-id": "req-chart-image-remove-again"
+        },
+        method: "DELETE"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const secondRemoveBody = (await secondRemoveResponse.json()) as ChartImageRouteBody;
+
+    expect(secondRemoveResponse.status).toBe(200);
+    expect(secondRemoveBody.chart_image).toMatchObject({
+      id: imageId,
+      image_ref: null,
+      removal_status: "not_found"
+    });
+
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+    const parseResponse = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_ref: imageRef
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-request-id": "req-chart-image-removed-parse"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const parseBody = (await parseResponse.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(parseResponse.status).toBe(502);
+    expect(parseBody.parse_outcome).toMatchObject({
+      error_code: "image_not_found",
+      model_call_count: 0,
+      status: "parse_failed"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("treats a cross-tenant chart imageRef as not found before calling the model", async () => {
+    const stores = createChartImageRouteStores();
+    stores.seedChartImage({ id: "chart-1", tenant_id: "tenant-a", user_id: "user-a" });
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_ref: "charts/tenant-a/chart-1",
+          tenant_id: "tenant-a"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-aiphabee-tenant-id": "tenant-b",
+          "x-request-id": "req-chart-image-cross-tenant"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(502);
+    expect(body.chart_parse_record).toMatchObject({
+      error_code: "image_not_found",
+      image_ref: "charts/tenant-a/chart-1",
+      status: "parse_failed"
+    });
+    expect(body.parse_outcome).toMatchObject({
+      error_code: "image_not_found",
+      model_call_count: 0,
+      status: "parse_failed"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("treats cross-tenant chart image removal as not found without deleting the object", async () => {
+    const stores = createChartImageRouteStores();
+    stores.seedChartImage({ id: "chart-1", tenant_id: "tenant-a", user_id: "user-a" });
+
+    const response = await app.request(
+      "/agent/chart-images/chart-1",
+      {
+        headers: {
+          authorization: "Bearer synthetic-chart-image-token",
+          "x-aiphabee-smoke": "chart-image-upload-v1",
+          "x-aiphabee-tenant-id": "tenant-b",
+          "x-request-id": "req-chart-image-cross-tenant-remove"
+        },
+        method: "DELETE"
+      },
+      {
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_CHART_IMAGE_SMOKE_TOKEN: "synthetic-chart-image-token"
+      }
+    );
+    const body = (await response.json()) as ChartImageRouteBody;
+
+    expect(response.status).toBe(200);
+    expect(body.chart_image).toMatchObject({
+      id: "chart-1",
+      image_ref: null,
+      removal_status: "not_found"
+    });
+    expect(stores.r2.delete).not.toHaveBeenCalled();
+    expect(stores.objects.has("charts/tenant-a/chart-1")).toBe(true);
+    expect(stores.records.get("tenant-a:charts/tenant-a/chart-1")?.deleted_at).toBeNull();
+  });
+
+  it("rejects stored-image live smoke requests without the server-owned tenant header", async () => {
+    const stores = createChartImageRouteStores();
+    stores.seedChartImage({ id: "chart-1", tenant_id: "tenant-a", user_id: "user-a" });
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_ref: "charts/tenant-a/chart-1",
+          tenant_id: "tenant-a"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-chart-image-body-only-tenant"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-body-only-tenant",
+      status: "invalid_request"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("reports missing metadata env for stored-image live smoke before model calls", async () => {
+    const stores = createChartImageRouteStores();
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_ref: "charts/tenant-a/chart-1"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-aiphabee-tenant-id": "tenant-a",
+          "x-request-id": "req-chart-image-missing-metadata-store"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body).toMatchObject({
+      missing_env: ["AIPHABEE_HYPERDRIVE"],
+      request_id: "req-chart-image-missing-metadata-store",
+      status: "missing_env"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("rejects invalid tenant headers on parse-chart-image live smoke instead of falling back to body tenant", async () => {
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_base64: btoa("PNG-BYTES-SMOKE"),
+          tenant_id: "tenant-a"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-aiphabee-tenant-id": "../tenant-b",
+          "x-request-id": "req-chart-image-invalid-tenant-header"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-invalid-tenant-header",
+      status: "invalid_request"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("rejects invalid body tenant ids on parse-chart-image live smoke", async () => {
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_base64: btoa("PNG-BYTES-SMOKE"),
+          tenant_id: "../tenant-a"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-chart-image-invalid-body-tenant"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      request_id: "req-chart-image-invalid-body-tenant",
+      status: "invalid_request"
+    });
+    expect(calls).toHaveLength(0);
+  });
+
   it("reports missing env for the parse-chart-image live smoke route without secrets", async () => {
     const response = await app.request("/agent/tools/parse-chart-image/live-smoke", {
       headers: {
@@ -21200,6 +21893,8 @@ describe("worker runtime", () => {
     const { calls, fetch } = createChartVisionMockFetch([
       JSON.stringify(CHART_VISION_SAMPLE_RESULT)
     ]);
+    const stores = createChartImageRouteStores();
+    stores.seedChartImage({ id: "chart-1.png", tenant_id: "smoke-tenant" });
     vi.stubGlobal("fetch", fetch);
 
     const response = await app.request(
@@ -21212,24 +21907,15 @@ describe("worker runtime", () => {
           authorization: "Bearer synthetic-parse-chart-token",
           "content-type": "application/json",
           "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-aiphabee-tenant-id": "smoke-tenant",
           "x-request-id": "req-parse-chart-image-r2"
         },
         method: "POST"
       },
       {
         AI_GATEWAY_NAME: "default",
-        AIPHABEE_ARTIFACTS: {
-          delete: async () => undefined,
-          get: async (key: string) =>
-            key === "charts/smoke-tenant/chart-1.png"
-              ? {
-                  arrayBuffer: async () => new TextEncoder().encode("PNG_FIXTURE").buffer,
-                  httpMetadata: { contentType: "image/png" },
-                  text: async () => ""
-                }
-              : null,
-          put: async () => undefined
-        },
+        AIPHABEE_ARTIFACTS: stores.r2,
+        AIPHABEE_CHART_IMAGE_METADATA_STORE: stores.metadataStore,
         AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
         CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
         CLOUDFLARE_API_TOKEN: "synthetic-token"

@@ -3,6 +3,7 @@ import type { LanguageModelUsage } from "ai";
 import { CHART_PARSE_CONTRACT, safeParseChartParseResult } from "../chart-parse";
 import type { ChartParseResult } from "../chart-parse";
 import { repairAndValidate } from "./repair";
+import { routeChartParseResult } from "./routing";
 import type {
   ChartParseResultRecord,
   ChartParseStatus,
@@ -141,7 +142,7 @@ export const createParseChartImageExecutor = (
     let image: FetchedChartImage | null = null;
     let fetchErrorCode: string | null = null;
     try {
-      image = await deps.fetchImage(request.image_ref);
+      image = await deps.fetchImage(request.image_ref, { tenant_id: request.tenant_id });
     } catch {
       fetchErrorCode = "image_fetch_failed";
     }
@@ -160,10 +161,19 @@ export const createParseChartImageExecutor = (
     const status: ChartParseStatus = attempts.result === null ? "parse_failed" : "ready";
     const errorCode = status === "ready" ? null : attempts.errorCode;
     const latencyMs = Math.max(0, now() - startedAt);
+    const routeDecision =
+      attempts.result === null
+        ? null
+        : await routeChartParseResult({
+            calibrationLookup: deps.calibrationLookup,
+            minCalibrationSamples: deps.minCalibrationSamples,
+            modelVersion: deps.modelVersion,
+            result: attempts.result
+          });
 
     const record: ChartParseResultRecord = {
       analysis_run_id: request.analysis_run_id ?? null,
-      calibration_run_id: null,
+      calibration_run_id: routeDecision?.calibration_run_id ?? null,
       error_code: errorCode,
       id: deps.generateId(),
       image_ref: request.image_ref,
@@ -179,12 +189,14 @@ export const createParseChartImageExecutor = (
     await deps.sink.record(record);
 
     return {
+      calibration_run_id: record.calibration_run_id,
       error_code: errorCode,
       latency_ms: latencyMs,
       model_call_count: attempts.modelCallCount,
       record_id: record.id,
       repair_applied: attempts.repairApplied,
       result: attempts.result,
+      route_decision: routeDecision?.decision ?? null,
       status,
       usage: attempts.usage
     };

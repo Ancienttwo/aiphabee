@@ -1,5 +1,6 @@
 import type { LanguageModel } from "ai";
 import type { ChartParseResult } from "../chart-parse";
+import type { CalibrationLookup, ChartParseRouteDecision } from "./routing";
 
 export type ChartParseStatus = "ready" | "degraded" | "parse_failed";
 
@@ -42,12 +43,14 @@ export interface ParseChartImageRequest {
 }
 
 export interface ParseChartImageOutcome {
+  calibration_run_id: string | null;
   error_code: string | null;
   latency_ms: number;
   model_call_count: number;
   record_id: string;
   repair_applied: boolean;
   result: ChartParseResult | null;
+  route_decision: ChartParseRouteDecision | null;
   status: ChartParseStatus;
   usage: ChartParseUsageTotals;
 }
@@ -59,9 +62,14 @@ export interface FetchedChartImage {
 }
 
 export interface ParseChartImageDeps {
+  calibrationLookup?: CalibrationLookup;
   /** Resolve an imageRef to image bytes + media type; null when unavailable. */
-  fetchImage: (imageRef: string) => Promise<FetchedChartImage | null>;
+  fetchImage: (
+    imageRef: string,
+    context: { tenant_id: string }
+  ) => Promise<FetchedChartImage | null>;
   generateId: () => string;
+  minCalibrationSamples?: number;
   model: LanguageModel;
   /** Vision model identifier recorded as chart_parse_results.model_version. */
   modelVersion: string;
