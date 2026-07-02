@@ -67,6 +67,14 @@ import {
   type ValidatePostGenerationEvidenceBindingInput
 } from "@aiphabee/agent-runtime";
 import {
+  createChartVisionModel,
+  createInMemoryChartParseResultSink,
+  createParseChartImageExecutor,
+  DEFAULT_CHART_VISION_MODEL_ID,
+  PARSE_CHART_IMAGE_TOOL_VERSION,
+  type FetchedChartImage
+} from "@aiphabee/agent-runtime/parse-chart-image";
+import {
   calculateReturnsRisk,
   comparePercentiles,
   compareSecurities,
@@ -396,6 +404,8 @@ interface WorkerBindings {
   AIPHABEE_AGENT_RUN_LIVE_WRITE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_RUN_STATE_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_BILLING_LEDGER_SMOKE_TOKEN?: string;
+  AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN?: string;
+  AIPHABEE_CHART_VISION_MODEL?: string;
   AIPHABEE_EVIDENCE_LIVE_DB_SMOKE_TOKEN?: string;
   AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_TOKEN?: string;
   AIPHABEE_HK_IPO_PUBLIC_HELD_DB_APPLY_SMOKE_TOKEN?: string;
@@ -425,9 +435,15 @@ interface RuntimeKvNamespace {
 
 interface RuntimeR2Bucket {
   delete(key: string): Promise<void>;
-  get(key: string): Promise<{ text(): Promise<string> } | null>;
+  get(key: string): Promise<RuntimeR2BucketObject | null>;
   head?(key: string): Promise<unknown | null>;
   put(key: string, value: string): Promise<unknown>;
+}
+
+interface RuntimeR2BucketObject {
+  arrayBuffer?(): Promise<ArrayBuffer>;
+  httpMetadata?: { contentType?: string };
+  text(): Promise<string>;
 }
 
 interface RuntimeD1PreparedStatement {
@@ -1485,6 +1501,12 @@ const AGENT_BILLING_POSTED_LEDGER_SMOKE_VERSION =
   "2026-06-22.phase1.agent-billing-posted-ledger-smoke.v0";
 const AI_GATEWAY_LIVE_SMOKE_ROUTE = "/agent/model-provider/live-smoke";
 const AI_GATEWAY_LIVE_SMOKE_HEADER_VALUE = "model-provider-live-v1";
+const PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE = "/agent/tools/parse-chart-image/live-smoke";
+const PARSE_CHART_IMAGE_LIVE_SMOKE_HEADER_VALUE = "parse-chart-image-live-v1";
+const PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN_BINDING =
+  "AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN";
+const PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION =
+  "2026-07-03.phase1.parse-chart-image-live-smoke.v0";
 
 app.get("/health", (c) => {
   c.header("Cache-Control", "no-store");
@@ -2341,6 +2363,168 @@ app.post(AI_GATEWAY_LIVE_SMOKE_ROUTE, async (c) => {
       route: `POST ${AI_GATEWAY_LIVE_SMOKE_ROUTE}`,
       status: "failed",
       version: AI_GATEWAY_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      502
+    );
+  }
+});
+
+app.post(PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+
+  c.header("Cache-Control", "no-store");
+
+  if (
+    c.req.header(CLOUDFLARE_BINDING_SMOKE_HEADER) !== PARSE_CHART_IMAGE_LIVE_SMOKE_HEADER_VALUE
+  ) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_header: CLOUDFLARE_BINDING_SMOKE_HEADER,
+        route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  const missingEnv = missingParseChartImageLiveSmokeEnv(c.env ?? {});
+
+  if (missingEnv.length > 0) {
+    const bodyWithoutHash = {
+      missing_env: missingEnv,
+      request_id: requestId,
+      route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+      status: "missing_env",
+      version: PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      424
+    );
+  }
+
+  if (!isParseChartImageLiveSmokeAuthorized(c)) {
+    return c.json(
+      {
+        request_id: requestId,
+        required_authorization: `Bearer ${PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN_BINDING}`,
+        route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+        status: "forbidden"
+      },
+      403
+    );
+  }
+
+  let rawBody: unknown = null;
+  try {
+    rawBody = await c.req.json();
+  } catch {
+    rawBody = null;
+  }
+  const smokeInput = normalizeParseChartImageSmokeInput(rawBody);
+
+  if (smokeInput === null) {
+    const bodyWithoutHash = {
+      accepted_fields: ["image_base64", "image_ref", "media_type", "tenant_id"],
+      detail: "Provide image_base64 (inline bytes) or image_ref (existing R2 object key).",
+      request_id: requestId,
+      route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+      status: "invalid_request",
+      version: PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      400
+    );
+  }
+
+  try {
+    const modelId = getChartVisionModelId(c.env ?? {});
+    const sink = createInMemoryChartParseResultSink();
+    const executeParseChartImage = createParseChartImageExecutor({
+      fetchImage: createParseChartImageSmokeFetchImage(c.env ?? {}, smokeInput),
+      generateId: () => crypto.randomUUID(),
+      model: createChartVisionModel({
+        accountId: c.env.CLOUDFLARE_ACCOUNT_ID ?? "",
+        apiToken: getAiGatewayLiveSmokeToken(c.env ?? {}),
+        gatewayId: c.env.AI_GATEWAY_NAME ?? "",
+        modelId
+      }),
+      modelVersion: modelId,
+      sink
+    });
+
+    const outcome = await executeParseChartImage({
+      analysis_run_id: null,
+      image_ref: smokeInput.imageRef,
+      tenant_id: smokeInput.tenantId
+    });
+    const row = sink.rows[0];
+
+    const bodyWithoutHash = {
+      chart_parse_record: {
+        calibration_run_id: row?.calibration_run_id ?? null,
+        error_code: row?.error_code ?? null,
+        id: row?.id ?? "",
+        image_ref: row?.image_ref ?? "",
+        keys: row ? Object.keys(row).sort() : [],
+        model_version_hash: await hashRuntimeSmokeString(row?.model_version ?? ""),
+        prompt_version: row?.prompt_version ?? "",
+        schema_version: row?.schema_version ?? "",
+        status: row?.status ?? ""
+      },
+      parse_outcome: {
+        error_code: outcome.error_code,
+        latency_ms: outcome.latency_ms,
+        model_call_count: outcome.model_call_count,
+        repair_applied: outcome.repair_applied,
+        result: outcome.result,
+        status: outcome.status,
+        usage: outcome.usage
+      },
+      request_id: requestId,
+      route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+      status: outcome.status === "ready" ? "ok" : "failed",
+      tool_version: PARSE_CHART_IMAGE_TOOL_VERSION,
+      version: PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION
+    };
+    const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
+
+    return c.json(
+      {
+        ...bodyWithoutHash,
+        response_hash: responseHash
+      },
+      outcome.status === "ready" ? 200 : 502
+    );
+  } catch (error) {
+    const bodyWithoutHash = {
+      detail_hash: await hashRuntimeSmokeString(
+        sanitizeRuntimeSmokeDetail(error instanceof Error ? error.message : String(error))
+      ),
+      error_code: "PARSE_CHART_IMAGE_REQUEST_FAILED",
+      request_id: requestId,
+      route: `POST ${PARSE_CHART_IMAGE_LIVE_SMOKE_ROUTE}`,
+      status: "failed",
+      version: PARSE_CHART_IMAGE_LIVE_SMOKE_VERSION
     };
     const responseHash = await hashRuntimeSmokeString(JSON.stringify(bodyWithoutHash));
 
@@ -16710,6 +16894,114 @@ function getAgentLiveToolLoopSmokeToken(env: WorkerBindings): string {
   return env.AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?.trim() ?? "";
 }
 
+function missingParseChartImageLiveSmokeEnv(env: WorkerBindings): string[] {
+  const requiredEnv: Array<[string, string | undefined]> = [
+    ["CLOUDFLARE_ACCOUNT_ID", env.CLOUDFLARE_ACCOUNT_ID],
+    ["AI_GATEWAY_NAME", env.AI_GATEWAY_NAME]
+  ];
+  const missing = requiredEnv
+    .filter(([, value]) => typeof value !== "string" || value.trim().length === 0)
+    .map(([name]) => name);
+
+  if (getAiGatewayLiveSmokeToken(env).length === 0) {
+    missing.splice(1, 0, "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN");
+  }
+
+  if (getParseChartImageLiveSmokeToken(env).length < 16) {
+    return [PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN_BINDING, ...missing];
+  }
+
+  return missing;
+}
+
+function getParseChartImageLiveSmokeToken(env: WorkerBindings): string {
+  return env.AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN?.trim() ?? "";
+}
+
+function getChartVisionModelId(env: WorkerBindings): string {
+  return env.AIPHABEE_CHART_VISION_MODEL?.trim() || DEFAULT_CHART_VISION_MODEL_ID;
+}
+
+interface ParseChartImageSmokeInput {
+  imageBase64: string | null;
+  imageRef: string;
+  mediaType: string;
+  tenantId: string;
+}
+
+function normalizeParseChartImageSmokeInput(raw: unknown): ParseChartImageSmokeInput | null {
+  if (!isPlainRecord(raw)) {
+    return null;
+  }
+
+  const imageBase64 =
+    typeof raw.image_base64 === "string" && raw.image_base64.trim().length > 0
+      ? raw.image_base64.trim()
+      : null;
+  const imageRef =
+    typeof raw.image_ref === "string" && raw.image_ref.trim().length > 0
+      ? raw.image_ref.trim()
+      : null;
+
+  if (imageBase64 === null && imageRef === null) {
+    return null;
+  }
+
+  return {
+    imageBase64,
+    imageRef: imageRef ?? "smoke/inline-image",
+    mediaType:
+      typeof raw.media_type === "string" && raw.media_type.trim().length > 0
+        ? raw.media_type.trim()
+        : "image/png",
+    tenantId:
+      typeof raw.tenant_id === "string" && raw.tenant_id.trim().length > 0
+        ? raw.tenant_id.trim()
+        : "smoke-tenant"
+  };
+}
+
+function decodeParseChartImageSmokeBase64(value: string): Uint8Array | null {
+  try {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function createParseChartImageSmokeFetchImage(
+  env: WorkerBindings,
+  input: ParseChartImageSmokeInput
+): (imageRef: string) => Promise<FetchedChartImage | null> {
+  return async (imageRef) => {
+    if (input.imageBase64 !== null) {
+      const bytes = decodeParseChartImageSmokeBase64(input.imageBase64);
+      return bytes === null ? null : { bytes, mediaType: input.mediaType };
+    }
+
+    const bucket = env.AIPHABEE_ARTIFACTS;
+    if (!bucket) {
+      return null;
+    }
+
+    const object = await bucket.get(imageRef);
+    if (!object || typeof object.arrayBuffer !== "function") {
+      return null;
+    }
+
+    const buffer = await object.arrayBuffer();
+    return {
+      bytes: new Uint8Array(buffer),
+      mediaType: object.httpMetadata?.contentType?.trim() || input.mediaType
+    };
+  };
+}
+
 function missingAgentGeneratedAnswerEvidenceSmokeEnv(env: WorkerBindings): string[] {
   return getAgentGeneratedAnswerEvidenceSmokeToken(env).length >= 16
     ? []
@@ -18867,6 +19159,16 @@ function isAgentModelExecutionAuditSmokeAuthorized(
 
 function isAgentLiveToolLoopSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
   const token = getAgentLiveToolLoopSmokeToken(c.env ?? {});
+
+  if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isParseChartImageLiveSmokeAuthorized(c: Context<{ Bindings: WorkerBindings }>): boolean {
+  const token = getParseChartImageLiveSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
     return false;

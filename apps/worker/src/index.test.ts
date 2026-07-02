@@ -7162,6 +7162,40 @@ interface ModelProviderBody {
   ok: true;
 }
 
+interface ParseChartImageLiveSmokeBody {
+  accepted_fields?: string[];
+  chart_parse_record?: {
+    calibration_run_id: string | null;
+    error_code: string | null;
+    id: string;
+    image_ref: string;
+    keys: string[];
+    model_version_hash: string;
+    prompt_version: string;
+    schema_version: string;
+    status: string;
+  };
+  missing_env?: string[];
+  parse_outcome?: {
+    error_code: string | null;
+    latency_ms: number;
+    model_call_count: number;
+    repair_applied: boolean;
+    result: {
+      symbol?: { confidence: number; value: string | null };
+      timeframe?: { confidence: number; value: string | null };
+    } | null;
+    status: string;
+    usage: { input_tokens: number; output_tokens: number; total_tokens: number };
+  };
+  request_id: string;
+  response_hash?: string;
+  route?: string;
+  status: string;
+  tool_version?: string;
+  version?: string;
+}
+
 interface ModelProviderLiveSmokeBody {
   error_code?: string;
   missing_env?: string[];
@@ -8058,6 +8092,63 @@ function parseMockRequestBody(value: BodyInit | null | undefined): Record<string
   }
 
   return JSON.parse(value) as Record<string, unknown>;
+}
+
+const CHART_VISION_SAMPLE_RESULT = {
+  chart_type: { confidence: 0.98, value: "candlestick" },
+  drawn_lines: [],
+  end_time: { confidence: 0.9, value: "2026-06-30" },
+  exchange: { confidence: 0.96, value: "HKEX" },
+  indicators: [{ confidence: 0.9, name: "RSI", params: [14] }],
+  patterns: [],
+  symbol: { confidence: 0.97, value: "0700.HK" },
+  timeframe: { confidence: 0.95, value: "1d" }
+};
+
+function createChartVisionMockFetch(contents: string[]): {
+  calls: OpenAiCompatibleMockCall[];
+  fetch: typeof fetch;
+} {
+  const calls: OpenAiCompatibleMockCall[] = [];
+  const fetchMock = (async (resource: Parameters<typeof fetch>[0], options?: RequestInit) => {
+    const body = parseMockRequestBody(options?.body);
+    const headers = Object.fromEntries(new Headers(options?.headers).entries());
+    calls.push({
+      body,
+      headers,
+      url: String(resource)
+    });
+    const content = contents[Math.min(calls.length - 1, contents.length - 1)] ?? "";
+
+    return Response.json(
+      {
+        choices: [
+          {
+            finish_reason: "stop",
+            index: 0,
+            message: {
+              content,
+              role: "assistant"
+            }
+          }
+        ],
+        created: 0,
+        id: "chatcmpl-chart-vision",
+        model: "synthetic-model",
+        object: "chat.completion",
+        usage: {
+          completion_tokens: 900,
+          prompt_tokens: 1548,
+          total_tokens: 2448
+        }
+      },
+      {
+        status: 200
+      }
+    );
+  }) as typeof fetch;
+
+  return { calls, fetch: fetchMock };
 }
 
 interface FakeD1Statement {
@@ -20906,6 +20997,252 @@ describe("worker runtime", () => {
     expect(serialized).not.toContain("synthetic-smoke-token");
     expect(serialized).not.toContain("synthetic-account-id");
     expect(serialized).not.toContain("@cf/aiphabee/synthetic-model");
+  });
+
+  it("rejects the parse-chart-image live smoke route without the smoke header", async () => {
+    const response = await app.request("/agent/tools/parse-chart-image/live-smoke", {
+      headers: {
+        "x-request-id": "req-parse-chart-image-denied"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-parse-chart-image-denied",
+      required_header: "x-aiphabee-smoke",
+      route: "POST /agent/tools/parse-chart-image/live-smoke",
+      status: "forbidden"
+    });
+  });
+
+  it("reports missing env for the parse-chart-image live smoke route without secrets", async () => {
+    const response = await app.request("/agent/tools/parse-chart-image/live-smoke", {
+      headers: {
+        "x-aiphabee-smoke": "parse-chart-image-live-v1",
+        "x-request-id": "req-parse-chart-image-missing"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(424);
+    expect(body).toMatchObject({
+      missing_env: [
+        "AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_API_TOKEN or AI_GATEWAY_LIVE_SMOKE_TOKEN",
+        "AI_GATEWAY_NAME"
+      ],
+      request_id: "req-parse-chart-image-missing",
+      status: "missing_env"
+    });
+    expect(body.response_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
+  it("rejects the parse-chart-image live smoke route without the bearer secret", async () => {
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        headers: {
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-parse-chart-image-unauthorized"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      required_authorization: "Bearer AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN",
+      status: "forbidden"
+    });
+  });
+
+  it("parses an inline clear-sample image through the vision channel with strict structured outputs", async () => {
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_base64: btoa("PNG-BYTES-SMOKE"),
+          media_type: "image/png"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-parse-chart-image-ok"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+    const serialized = JSON.stringify(body);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toMatchObject({
+      request_id: "req-parse-chart-image-ok",
+      route: "POST /agent/tools/parse-chart-image/live-smoke",
+      status: "ok",
+      tool_version: "parse-chart-image-tool.v1"
+    });
+    expect(body.parse_outcome).toMatchObject({
+      error_code: null,
+      model_call_count: 1,
+      repair_applied: false,
+      status: "ready",
+      usage: {
+        input_tokens: 1548,
+        output_tokens: 900,
+        total_tokens: 2448
+      }
+    });
+    expect(body.parse_outcome?.result?.symbol).toEqual({ confidence: 0.97, value: "0700.HK" });
+    expect(body.chart_parse_record).toMatchObject({
+      calibration_run_id: null,
+      error_code: null,
+      image_ref: "smoke/inline-image",
+      status: "ready"
+    });
+    expect(body.chart_parse_record?.keys).toEqual([
+      "analysis_run_id",
+      "calibration_run_id",
+      "error_code",
+      "id",
+      "image_ref",
+      "latency_ms",
+      "model_version",
+      "prompt_version",
+      "result_json",
+      "schema_version",
+      "status",
+      "tenant_id",
+      "token_cost"
+    ]);
+    expect(body.chart_parse_record?.model_version_hash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(body.chart_parse_record?.schema_version).not.toHaveLength(0);
+    expect(body.chart_parse_record?.prompt_version).not.toHaveLength(0);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url.endsWith("/ai/v1/chat/completions")).toBe(true);
+    expect(calls[0].headers["cf-aig-gateway-id"]).toBe("default");
+    expect(calls[0].body.model).toBe("google-ai-studio/gemini-2.5-flash");
+    expect((calls[0].body.response_format as { type?: string }).type).toBe("json_schema");
+    expect(calls[0].body.temperature).toBe(0);
+    expect(JSON.stringify(calls[0].body.messages)).toContain("data:image/png;base64");
+
+    expect(serialized).not.toContain("synthetic-token");
+    expect(serialized).not.toContain("synthetic-account-id");
+    expect(serialized).not.toContain("google-ai-studio/gemini-2.5-flash");
+  });
+
+  it("degrades to parse_failed after a single vision retry on unrepairable output", async () => {
+    const { calls, fetch } = createChartVisionMockFetch(['{"chart_type": {', '{"chart_type": {']);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_base64: btoa("PNG-BYTES-SMOKE")
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-parse-chart-image-degraded"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(502);
+    expect(body.status).toBe("failed");
+    expect(body.parse_outcome).toMatchObject({
+      model_call_count: 2,
+      result: null,
+      status: "parse_failed"
+    });
+    expect(body.parse_outcome?.error_code).not.toBeNull();
+    expect(body.chart_parse_record?.status).toBe("parse_failed");
+    expect(calls).toHaveLength(2);
+  });
+
+  it("reads image bytes for the parse-chart-image live smoke from the R2 binding", async () => {
+    const { calls, fetch } = createChartVisionMockFetch([
+      JSON.stringify(CHART_VISION_SAMPLE_RESULT)
+    ]);
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await app.request(
+      "/agent/tools/parse-chart-image/live-smoke",
+      {
+        body: JSON.stringify({
+          image_ref: "charts/smoke-tenant/chart-1.png"
+        }),
+        headers: {
+          authorization: "Bearer synthetic-parse-chart-token",
+          "content-type": "application/json",
+          "x-aiphabee-smoke": "parse-chart-image-live-v1",
+          "x-request-id": "req-parse-chart-image-r2"
+        },
+        method: "POST"
+      },
+      {
+        AI_GATEWAY_NAME: "default",
+        AIPHABEE_ARTIFACTS: {
+          delete: async () => undefined,
+          get: async (key: string) =>
+            key === "charts/smoke-tenant/chart-1.png"
+              ? {
+                  arrayBuffer: async () => new TextEncoder().encode("PNG_FIXTURE").buffer,
+                  httpMetadata: { contentType: "image/png" },
+                  text: async () => ""
+                }
+              : null,
+          put: async () => undefined
+        },
+        AIPHABEE_PARSE_CHART_IMAGE_LIVE_SMOKE_TOKEN: "synthetic-parse-chart-token",
+        CLOUDFLARE_ACCOUNT_ID: "synthetic-account-id",
+        CLOUDFLARE_API_TOKEN: "synthetic-token"
+      }
+    );
+    const body = (await response.json()) as ParseChartImageLiveSmokeBody;
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("ok");
+    expect(body.chart_parse_record?.image_ref).toBe("charts/smoke-tenant/chart-1.png");
+    expect(body.parse_outcome?.status).toBe("ready");
+    expect(calls).toHaveLength(1);
+    expect(JSON.stringify(calls[0].body.messages)).toContain("data:image/png;base64");
   });
 
   it("serves observability runtime capabilities without live export", async () => {
