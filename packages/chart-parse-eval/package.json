@@ -1,0 +1,29 @@
+{
+  "name": "@aiphabee/chart-parse-eval",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "chart-parse-eval": "./bin/chart-parse-eval.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aiphabee/agent-runtime": "file:../agent-runtime",
+    "@aiphabee/chart-golden-set": "file:../chart-golden-set",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "tsx": "^4.22.4"
+  }
+}
