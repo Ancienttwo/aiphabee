@@ -774,7 +774,7 @@ const P0_RIGHTS_MATRIX_COVERAGE_TABLES: P0RightsMatrixCoverageCapabilities["tabl
   "aiphabee_core.p0_rights_matrix_entry",
   "aiphabee_governance.p0_rights_matrix_contract"
 ];
-const P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT = 23;
+const P0_RIGHTS_MATRIX_REQUIRED_TOOL_COUNT = 24;
 const DATA_COVERAGE_RELEASE_GATE_TABLES: DataCoverageReleaseGateCapabilities["tables"] = [
   "aiphabee_core.data_coverage_release_gate",
   "aiphabee_governance.data_coverage_release_gate_contract"

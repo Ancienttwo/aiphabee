@@ -43,6 +43,7 @@ import {
   createAgentTokenCostFallbackReleaseGatePlan,
   createAgentUserToolLoopExecutionReleaseGatePlan,
   createAgentUserRunPersistenceReleaseGatePlan,
+  evaluateAgentLayerToolPolicy,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
@@ -61,9 +62,14 @@ import {
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
   validatePostGenerationEvidenceBinding,
+  type AgentExecutableRunMode,
+  type AgentLayer,
+  type AgentLayerToolPolicyDecision,
+  type AgentRouteDecision,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
   type AgentRunSkeletonInput,
+  type AgentRunMode,
   type ValidatePostGenerationEvidenceBindingInput
 } from "@aiphabee/agent-runtime";
 import {
@@ -1090,6 +1096,7 @@ interface AgentRunRequestBody {
   currency?: unknown;
   entitlement_policy_version?: unknown;
   entitlementPolicyVersion?: unknown;
+  entitlements?: unknown;
   eval_v1_accepted?: unknown;
   evalV1Accepted?: unknown;
   failure_recovery_policy_accepted?: unknown;
@@ -1104,11 +1111,17 @@ interface AgentRunRequestBody {
   fixedLiveToolLoopSmokeAccepted?: unknown;
   fixed_tool_execution_evidence_accepted?: unknown;
   fixedToolExecutionEvidenceAccepted?: unknown;
+  agent_layer?: unknown;
+  agentLayer?: unknown;
+  image_ref?: unknown;
+  imageRef?: unknown;
+  layer?: unknown;
   max_credits?: unknown;
   max_rows?: unknown;
   max_steps?: unknown;
   max_tokens?: unknown;
   max_wall_clock_ms?: unknown;
+  mode?: unknown;
   methodology?: unknown;
   locale?: unknown;
   live_cost_ledger_writer_accepted?: unknown;
@@ -1134,6 +1147,8 @@ interface AgentRunRequestBody {
   responseDepth?: unknown;
   response_locale?: unknown;
   responseLocale?: unknown;
+  run_mode?: unknown;
+  runMode?: unknown;
   securities?: unknown;
   security_query?: unknown;
   securityQuery?: unknown;
@@ -1142,6 +1157,8 @@ interface AgentRunRequestBody {
   tools?: unknown;
   tool_kill_switch?: unknown;
   toolKillSwitch?: unknown;
+  tenant_id?: unknown;
+  tenantId?: unknown;
   user_id?: unknown;
   userId?: unknown;
   notification_channels?: unknown;
@@ -1214,6 +1231,88 @@ interface AgentRunRequestBody {
   workflowKind?: unknown;
   workspace_id?: unknown;
   workspaceId?: unknown;
+}
+
+interface AgentWorkerRouteReadback {
+  control_plane_contract_version: string;
+  requested_layer: AgentLayer;
+  requested_mode: AgentRunMode;
+  route_decision_owner: "agent_runtime";
+  route_reason: AgentRouteDecision;
+  selected_layer: AgentLayer;
+  selected_mode: AgentExecutableRunMode;
+  worker_route_family: "/agent/*";
+}
+
+class AgentWorkerRouteInputError extends Error {
+  readonly routeReason: AgentRouteDecision;
+
+  constructor(routeReason: AgentRouteDecision, message: string) {
+    super(message);
+    this.routeReason = routeReason;
+  }
+}
+
+class AgentWorkerToolPolicyError extends Error {
+  readonly decision: AgentLayerToolPolicyDecision;
+
+  constructor(decision: AgentLayerToolPolicyDecision) {
+    super("requested agent tools are not allowed for the selected layer");
+    this.decision = decision;
+  }
+}
+
+function createAgentWorkerRouteErrorResponse(
+  c: Context<{ Bindings: WorkerBindings }>,
+  error: AgentWorkerRouteInputError,
+  requestId: string,
+  methodologyVersion: string
+) {
+  c.header("x-aiphabee-route-reason", error.routeReason);
+
+  return c.json(
+    createErrorEnvelope("SCOPE_DENIED", error.message, {
+      asOf: new Date().toISOString(),
+      methodologyVersion,
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    }),
+    400
+  );
+}
+
+function createAgentWorkerToolPolicyErrorResponse(
+  c: Context<{ Bindings: WorkerBindings }>,
+  error: AgentWorkerToolPolicyError,
+  requestId: string,
+  methodologyVersion: string
+) {
+  const deniedReason = error.decision.denied_tools[0]?.reason ?? "unknown_tool";
+
+  c.header("x-aiphabee-tool-policy-status", error.decision.status);
+  c.header("x-aiphabee-tool-policy-reason", deniedReason);
+  c.header(
+    "x-aiphabee-denied-tools",
+    error.decision.denied_tools.map((tool) => tool.name).join(",")
+  );
+
+  return c.json(
+    createErrorEnvelope("SCOPE_DENIED", error.message, {
+      asOf: new Date().toISOString(),
+      methodologyVersion,
+      requestId,
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    }),
+    403
+  );
 }
 
 interface WatchlistAlertsRequestBody {
@@ -10097,6 +10196,8 @@ app.post("/agent/runs/dry-run", async (c) => {
       workspaceId?: unknown;
     };
     telemetryIdentity = createAgentTelemetryIdentity(body);
+    const routeReadback = createAgentWorkerRouteReadback(body);
+    const layerToolPolicy = createAgentWorkerLayerToolPolicy(body, routeReadback);
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -10163,7 +10264,12 @@ app.post("/agent/runs/dry-run", async (c) => {
     c.header("x-aiphabee-telemetry-run-id", skeleton.run_id);
 
     return c.json(
-      createSuccessEnvelope(skeleton, {
+      createSuccessEnvelope(
+        attachAgentWorkerPolicyReadback(
+          attachAgentWorkerRouteReadback(skeleton, routeReadback),
+          layerToolPolicy
+        ),
+        {
         asOf: new Date().toISOString(),
         methodologyVersion: "agent-runtime-scaffold-v0",
         provenance: [
@@ -10180,9 +10286,28 @@ app.post("/agent/runs/dry-run", async (c) => {
           credits: 0,
           rows: 0
         }
-      })
+        }
+      )
     );
   } catch (error) {
+    if (error instanceof AgentWorkerRouteInputError) {
+      return createAgentWorkerRouteErrorResponse(
+        c,
+        error,
+        requestId,
+        "agent-runtime-scaffold-v0"
+      );
+    }
+
+    if (error instanceof AgentWorkerToolPolicyError) {
+      return createAgentWorkerToolPolicyErrorResponse(
+        c,
+        error,
+        requestId,
+        "agent-runtime-scaffold-v0"
+      );
+    }
+
     if (error instanceof AgentRuntimeInputError) {
       const code =
         error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
@@ -10341,6 +10466,8 @@ app.post("/agent/runs/plan", async (c) => {
   try {
     const body = (await c.req.json()) as AgentRunRequestBody;
     telemetryIdentity = createAgentTelemetryIdentity(body);
+    const routeReadback = createAgentWorkerRouteReadback(body);
+    const layerToolPolicy = createAgentWorkerLayerToolPolicy(body, routeReadback);
     const requestedTools = Array.isArray(body.tools)
       ? body.tools.filter((tool): tool is string => typeof tool === "string")
       : undefined;
@@ -10373,7 +10500,12 @@ app.post("/agent/runs/plan", async (c) => {
     c.header("x-aiphabee-telemetry-run-id", plan.run_id);
 
     return c.json(
-      createSuccessEnvelope(plan, {
+      createSuccessEnvelope(
+        attachAgentWorkerPolicyReadback(
+          attachAgentWorkerRouteReadback(plan, routeReadback),
+          layerToolPolicy
+        ),
+        {
         asOf: new Date().toISOString(),
         methodologyVersion: "tool-loop-agent-planner-scaffold-v0",
         provenance: [
@@ -10390,9 +10522,28 @@ app.post("/agent/runs/plan", async (c) => {
           credits: 0,
           rows: plan.planned_step_count
         }
-      })
+        }
+      )
     );
   } catch (error) {
+    if (error instanceof AgentWorkerRouteInputError) {
+      return createAgentWorkerRouteErrorResponse(
+        c,
+        error,
+        requestId,
+        "tool-loop-agent-planner-scaffold-v0"
+      );
+    }
+
+    if (error instanceof AgentWorkerToolPolicyError) {
+      return createAgentWorkerToolPolicyErrorResponse(
+        c,
+        error,
+        requestId,
+        "tool-loop-agent-planner-scaffold-v0"
+      );
+    }
+
     if (error instanceof AgentRuntimeInputError) {
       const code =
         error.code === "STEP_LIMIT_OUT_OF_RANGE" ? "OUT_OF_RANGE" : "SCOPE_DENIED";
@@ -18632,6 +18783,113 @@ function normalizeAnswerClaimLabel(
   return value === "calculation" || value === "fact" || value === "inference" || value === "unknown"
     ? value
     : undefined;
+}
+
+function createAgentWorkerRouteReadback(
+  body: AgentRunRequestBody
+): AgentWorkerRouteReadback {
+  const controlPlane = getAgentRuntimeCapabilities().control_plane;
+  const requestedLayerValue = normalizeString(
+    body.layer ?? body.agent_layer ?? body.agentLayer
+  );
+  const requestedModeValue = normalizeString(body.mode ?? body.run_mode ?? body.runMode);
+
+  if (
+    requestedLayerValue !== undefined &&
+    !isRuntimeContractValue(requestedLayerValue, controlPlane.supported_layers)
+  ) {
+    throw new AgentWorkerRouteInputError(
+      "blocked_invalid_layer",
+      "requested agent layer is not supported"
+    );
+  }
+
+  if (
+    requestedModeValue !== undefined &&
+    !isRuntimeContractValue(requestedModeValue, controlPlane.supported_run_modes)
+  ) {
+    throw new AgentWorkerRouteInputError(
+      "blocked_invalid_mode",
+      "requested agent run mode is not supported"
+    );
+  }
+
+  const requestedLayer = requestedLayerValue ?? controlPlane.supported_layers[0];
+  const requestedMode = requestedModeValue ?? controlPlane.executable_run_modes[0];
+
+  if (!isRuntimeContractValue(requestedMode, controlPlane.executable_run_modes)) {
+    throw new AgentWorkerRouteInputError(
+      "runner_required",
+      "requested agent run mode requires a runner that is not enabled"
+    );
+  }
+
+  return {
+    control_plane_contract_version: controlPlane.contract_version,
+    requested_layer: requestedLayer,
+    requested_mode: requestedMode,
+    route_decision_owner: controlPlane.route_decision_owner,
+    route_reason: "selected",
+    selected_layer: requestedLayer,
+    selected_mode: requestedMode,
+    worker_route_family: controlPlane.worker_route_family
+  };
+}
+
+function attachAgentWorkerRouteReadback<T extends object>(
+  payload: T,
+  routeReadback: AgentWorkerRouteReadback
+): T & AgentWorkerRouteReadback & { route_readback: AgentWorkerRouteReadback } {
+  return {
+    ...payload,
+    route_readback: routeReadback,
+    requested_layer: routeReadback.requested_layer,
+    requested_mode: routeReadback.requested_mode,
+    route_reason: routeReadback.route_reason,
+    selected_layer: routeReadback.selected_layer,
+    selected_mode: routeReadback.selected_mode,
+    control_plane_contract_version: routeReadback.control_plane_contract_version,
+    route_decision_owner: routeReadback.route_decision_owner,
+    worker_route_family: routeReadback.worker_route_family
+  };
+}
+
+function attachAgentWorkerPolicyReadback<T extends object>(
+  payload: T,
+  policy: AgentLayerToolPolicyDecision
+): T & { layer_tool_policy: AgentLayerToolPolicyDecision } {
+  return {
+    ...payload,
+    layer_tool_policy: policy
+  };
+}
+
+function createAgentWorkerLayerToolPolicy(
+  body: AgentRunRequestBody,
+  routeReadback: AgentWorkerRouteReadback
+): AgentLayerToolPolicyDecision {
+  const policy = evaluateAgentLayerToolPolicy({
+    entitlements: normalizeStringArray(body.entitlements),
+    imageRef: normalizeString(body.image_ref ?? body.imageRef),
+    layer: routeReadback.selected_layer,
+    requestedTools: Array.isArray(body.tools)
+      ? body.tools.filter((tool): tool is string => typeof tool === "string")
+      : undefined,
+    tenantId: normalizeString(body.tenant_id ?? body.tenantId)
+  });
+
+  if (policy.status === "blocked") {
+    throw new AgentWorkerToolPolicyError(policy);
+  }
+
+  return policy;
+}
+
+function isRuntimeContractValue<T extends string>(
+  value: string,
+  values: readonly T[]
+): value is T {
+  return values.includes(value as T);
 }
 
 function createAgentRunInput(

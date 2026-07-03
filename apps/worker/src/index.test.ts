@@ -8,6 +8,9 @@ import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import app, { AiphaBeeResearchWorkflow, AiphaBeeRunCoordinator } from "./index";
 
 const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
+const MCP_TOOL_COUNT = REGISTERED_TOOLS.filter((tool) =>
+  (tool.channels as readonly string[]).includes("mcp")
+).length;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -3440,6 +3443,7 @@ interface AgentRuntimeBody {
       stop_condition: string;
       target_version: string;
     };
+    control_plane: AgentRouteReadbackControlPlaneBody;
     run_context: {
       context_ready: boolean;
       entitlement_policy_source: string;
@@ -7448,8 +7452,65 @@ interface EvalV1PlanBody {
   };
 }
 
+interface AgentRouteReadbackControlPlaneBody {
+  actual_tool_execution: boolean;
+  authority_package: string;
+  contract_version: string;
+  event_contract_ready: boolean;
+  executable_run_modes: string[];
+  layer_contract_ready: boolean;
+  live_tool_execution: boolean;
+  model_calls: boolean;
+  persistent_writes: boolean;
+  route_decision_owner: string;
+  route_decisions: string[];
+  runner_contract_ready: boolean;
+  supported_layers: string[];
+  supported_run_modes: string[];
+  worker_route_family: string;
+}
+
+interface AgentRouteReadbackBody {
+  control_plane_contract_version: string;
+  requested_layer: string;
+  requested_mode: string;
+  route_decision_owner: string;
+  route_reason: string;
+  route_readback: {
+    control_plane_contract_version: string;
+    requested_layer: string;
+    requested_mode: string;
+    route_decision_owner: string;
+    route_reason: string;
+    selected_layer: string;
+    selected_mode: string;
+    worker_route_family: string;
+  };
+  selected_layer: string;
+  selected_mode: string;
+  worker_route_family: string;
+}
+
+interface AgentLayerToolPolicyBody {
+  actual_tool_execution: boolean;
+  allowed_tools: string[];
+  denied_tools: Array<{
+    name: string;
+    reason: string;
+  }>;
+  entitlement_checked: string;
+  image_ref_required_for: string[];
+  layer: string;
+  model_calls: boolean;
+  requested_tools: string[];
+  research_only_tools: string[];
+  status: string;
+  tenant_context_required_for: string[];
+  version: string;
+}
+
 interface AgentDryRunBody {
-  data: {
+  data: AgentRouteReadbackBody & {
     budget: {
       max_credits: number;
       max_rows: number;
@@ -7490,6 +7551,7 @@ interface AgentDryRunBody {
       };
     };
     status: "dry_run";
+    layer_tool_policy: AgentLayerToolPolicyBody;
     tool_policy: {
       allow_arbitrary_sql: boolean;
       requested_tools: string[];
@@ -7499,7 +7561,7 @@ interface AgentDryRunBody {
 }
 
 interface AgentToolLoopPlanBody {
-  data: {
+  data: AgentRouteReadbackBody & {
     actual_tool_execution: boolean;
     budget_stop_policy: {
       decision: {
@@ -7547,6 +7609,7 @@ interface AgentToolLoopPlanBody {
     };
     max_parallel_tools: number;
     model_calls: boolean;
+    layer_tool_policy: AgentLayerToolPolicyBody;
     failure_recovery_policy: {
       billing: {
         charge_grain: string;
@@ -7813,6 +7876,14 @@ interface AgentToolLoopPlanBody {
       };
       model: {
         model_calls: boolean;
+      };
+      toolset: {
+        tools: Array<{
+          input_schema_id: string;
+          name: string;
+          output_schema_id: string;
+          required_scope: string;
+        }>;
       };
     };
     status: string;
@@ -13918,6 +13989,38 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.ai_sdk.stop_condition).toBe("isStepCount");
     expect(body.data.ai_sdk.target_version).toBe("7.0.0-beta.182");
+    expect(body.data.control_plane).toMatchObject({
+      actual_tool_execution: false,
+      authority_package: "@aiphabee/agent-runtime",
+      contract_version: "2026-07-03.agent-control-plane-convergence.v0",
+      event_contract_ready: true,
+      executable_run_modes: ["dry_run"],
+      layer_contract_ready: true,
+      layer_tool_policy: {
+        default_behavior: "deny_unknown_tool",
+        entitlement_required: "technical_analysis",
+        generic_denied_tools: ["parse_chart_image"],
+        image_ref_required_for: ["parse_chart_image"],
+        policy_version: "2026-07-03.agent-layer-tool-policy.v0",
+        research_only_tools: ["parse_chart_image"],
+        tenant_context_required_for: ["parse_chart_image"]
+      },
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route_decision_owner: "agent_runtime",
+      route_decisions: [
+        "selected",
+        "blocked_invalid_layer",
+        "blocked_invalid_mode",
+        "blocked_policy_denied",
+        "runner_required"
+      ],
+      runner_contract_ready: true,
+      supported_layers: ["generic", "research"],
+      supported_run_modes: ["dry_run", "guarded_live", "runner_remote"],
+      worker_route_family: "/agent/*"
+    });
     expect(body.data.run_context).toMatchObject({
       context_ready: true,
       entitlement_policy_source: "synthetic_default_deny",
@@ -18331,7 +18434,7 @@ describe("worker runtime", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body.ok).toBe(true);
-    expect(body.usage.rows).toBe(REGISTERED_TOOL_COUNT);
+    expect(body.usage.rows).toBe(MCP_TOOL_COUNT);
     expect(body.data).toMatchObject({
       live_tool_execution: false,
       package: "@aiphabee/mcp-runtime",
@@ -18342,11 +18445,12 @@ describe("worker runtime", () => {
       schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
       schema_source_contract: "deploy/tools/tool-schemas.contract.json",
       status: "runtime_schema_snapshot_scaffold",
-      tool_count: REGISTERED_TOOL_COUNT,
+      tool_count: MCP_TOOL_COUNT,
       tools_list_schema_snapshot: true,
       version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0"
     });
-    expect(body.data.tools).toHaveLength(REGISTERED_TOOL_COUNT);
+    expect(body.data.tools).toHaveLength(MCP_TOOL_COUNT);
+    expect(body.data.tools.map((tool) => tool.name)).not.toContain("parse_chart_image");
     expect(
       body.data.tools.every(
         (tool) =>
@@ -19643,7 +19747,7 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("planned_default_deny");
     expect(body.data.tools_list).toEqual({
-      blocked_tool_count: REGISTERED_TOOL_COUNT,
+      blocked_tool_count: MCP_TOOL_COUNT,
       returned_tool_count: 0,
       schema_snapshot: {
         returned_schema_count: 0,
@@ -19651,7 +19755,7 @@ describe("worker runtime", () => {
         schema_catalog_available_after_rights_gate: true,
         schema_snapshot_version: "2026-06-22.phase1.mcp-runtime-schema-snapshot.v0",
         schema_source_contract: "deploy/tools/tool-schemas.contract.json",
-        tool_schema_count: REGISTERED_TOOL_COUNT,
+        tool_schema_count: MCP_TOOL_COUNT,
         tools_list_schema_snapshot: true
       },
       tool_catalog_available_after_rights_gate: true,
@@ -22340,6 +22444,30 @@ describe("worker runtime", () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe("dry_run");
     expect(body.data.request_id).toBe("req-agent-dry-run");
+    expect(body.data).toMatchObject({
+      control_plane_contract_version: "2026-07-03.agent-control-plane-convergence.v0",
+      requested_layer: "generic",
+      requested_mode: "dry_run",
+      route_decision_owner: "agent_runtime",
+      route_reason: "selected",
+      selected_layer: "generic",
+      selected_mode: "dry_run",
+      worker_route_family: "/agent/*"
+    });
+    expect(body.data.route_readback).toMatchObject({
+      requested_layer: "generic",
+      requested_mode: "dry_run",
+      route_reason: "selected",
+      selected_layer: "generic",
+      selected_mode: "dry_run"
+    });
+    expect(body.data.layer_tool_policy).toMatchObject({
+      allowed_tools: ["resolve_security", "get_financial_facts"],
+      denied_tools: [],
+      layer: "generic",
+      requested_tools: ["resolve_security", "get_financial_facts"],
+      status: "allowed"
+    });
     expect(body.data.budget.max_steps).toBe(4);
     expect(body.data.budget.max_credits).toBe(7);
     expect(body.data.budget.max_rows).toBe(99);
@@ -22451,10 +22579,105 @@ describe("worker runtime", () => {
     const body = (await response.json()) as ErrorBody;
 
     expect(response.status).toBe(403);
-    expect(response.headers.get("x-aiphabee-telemetry-event-count")).toBe("2");
-    expect(response.headers.get("x-aiphabee-telemetry-run-id")).toBe(
-      "dry_req-agent-denied"
+    expect(response.headers.get("x-aiphabee-tool-policy-status")).toBe("blocked");
+    expect(response.headers.get("x-aiphabee-tool-policy-reason")).toBe("unknown_tool");
+    expect(response.headers.get("x-aiphabee-denied-tools")).toBe(
+      "sql.query,http.fetch"
     );
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("blocks Generic parse_chart_image before agent planning", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "generic",
+        image_ref: "chart_image_fixture",
+        prompt: "Parse this chart",
+        tenant_id: "tenant_fixture",
+        tools: ["parse_chart_image"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-generic-chart-denied"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("x-aiphabee-tool-policy-status")).toBe("blocked");
+    expect(response.headers.get("x-aiphabee-tool-policy-reason")).toBe(
+      "layer_not_allowed"
+    );
+    expect(response.headers.get("x-aiphabee-denied-tools")).toBe("parse_chart_image");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it("allows Research parse_chart_image only with explicit entitlement and image context", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "research",
+        entitlements: ["technical_analysis"],
+        image_ref: "chart_image_fixture",
+        prompt: "Parse this chart",
+        tenant_id: "tenant_fixture",
+        tools: ["parse_chart_image"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-chart-allowed"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as AgentToolLoopPlanBody;
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.route_reason).toBe("selected");
+    expect(body.data.selected_layer).toBe("research");
+    expect(body.data.layer_tool_policy).toMatchObject({
+      allowed_tools: ["parse_chart_image"],
+      denied_tools: [],
+      layer: "research",
+      requested_tools: ["parse_chart_image"],
+      status: "allowed"
+    });
+    expect(body.data.run_context.toolset.tools).toEqual([
+      expect.objectContaining({
+        input_schema_id: "tool.parse_chart_image.input.v0",
+        name: "parse_chart_image",
+        output_schema_id: "tool.parse_chart_image.output.v0",
+        required_scope: "technical_analysis:read"
+      })
+    ]);
+    expect(body.data.actual_tool_execution).toBe(false);
+  });
+
+  it("blocks Research parse_chart_image without image context", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "research",
+        entitlements: ["technical_analysis"],
+        prompt: "Parse this chart",
+        tenant_id: "tenant_fixture",
+        tools: ["parse_chart_image"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-research-chart-missing-image"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("x-aiphabee-tool-policy-status")).toBe("blocked");
+    expect(response.headers.get("x-aiphabee-tool-policy-reason")).toBe(
+      "image_ref_required"
+    );
+    expect(response.headers.get("x-aiphabee-denied-tools")).toBe("parse_chart_image");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
   });
@@ -22462,10 +22685,12 @@ describe("worker runtime", () => {
   it("plans a no-model ToolLoopAgent sequence with public tool progress", async () => {
     const response = await app.request("/agent/runs/plan", {
       body: JSON.stringify({
+        agent_layer: "research",
         max_steps: 6,
         prompt: "Explain 00700.HK revenue and price trend",
         response_depth: "newbie",
         response_locale: "en",
+        run_mode: "dry_run",
         tools: [
           "resolve_security",
           "get_entitlements",
@@ -22493,6 +22718,23 @@ describe("worker runtime", () => {
     expect(body.data.model_calls).toBe(false);
     expect(body.data.actual_tool_execution).toBe(false);
     expect(body.data.chain_of_thought_exposed).toBe(false);
+    expect(body.data).toMatchObject({
+      control_plane_contract_version: "2026-07-03.agent-control-plane-convergence.v0",
+      requested_layer: "research",
+      requested_mode: "dry_run",
+      route_decision_owner: "agent_runtime",
+      route_reason: "selected",
+      selected_layer: "research",
+      selected_mode: "dry_run",
+      worker_route_family: "/agent/*"
+    });
+    expect(body.data.route_readback).toMatchObject({
+      requested_layer: "research",
+      requested_mode: "dry_run",
+      route_reason: "selected",
+      selected_layer: "research",
+      selected_mode: "dry_run"
+    });
     expect(body.data.max_parallel_tools).toBe(3);
     expect(body.data.planned_step_count).toBe(6);
     expect(body.data.pre_tool_call_resolution).toMatchObject({
@@ -23032,6 +23274,28 @@ describe("worker runtime", () => {
         )
     ).toBe(true);
     expect(body.usage.rows).toBe(6);
+  });
+
+  it("rejects non-executable agent run modes before Worker planning", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "generic",
+        prompt: "Explain 00700.HK revenue trend",
+        run_mode: "guarded_live",
+        tools: ["resolve_security"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-runner-required"
+      },
+      method: "POST"
+    });
+    const body = (await response.json()) as ErrorBody;
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("x-aiphabee-route-reason")).toBe("runner_required");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("SCOPE_DENIED");
   });
 
   it("validates post-generation answer evidence binding over HTTP", async () => {
