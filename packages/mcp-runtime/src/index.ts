@@ -1405,7 +1405,15 @@ const MCP_RUNTIME_INPUT_ERROR_TO_STANDARD_ERROR = {
   UNSUPPORTED_SCOPE: "SCOPE_DENIED"
 } as const satisfies Record<McpRuntimeInputErrorCode, McpStandardErrorCode>;
 
-const MCP_TOOL_INPUT_VALIDATION_RULES = {
+type McpToolInputValidationRule = {
+  allowed: readonly string[];
+  anyOf: readonly (readonly string[])[];
+  required: readonly string[];
+};
+
+const MCP_TOOL_INPUT_VALIDATION_RULES: Partial<
+  Record<RegisteredToolName, McpToolInputValidationRule>
+> = {
   get_corporate_actions: {
     allowed: ["instrument_id", "instrumentId", "from", "to", "types", "limit", "cursor"],
     anyOf: [["instrument_id"], ["instrumentId"]],
@@ -1672,14 +1680,7 @@ const MCP_TOOL_INPUT_VALIDATION_RULES = {
     anyOf: [],
     required: ["query"]
   }
-} as const satisfies Record<
-  RegisteredToolName,
-  {
-    allowed: readonly string[];
-    anyOf: readonly (readonly string[])[];
-    required: readonly string[];
-  }
->;
+} as const satisfies Partial<Record<RegisteredToolName, McpToolInputValidationRule>>;
 
 export function getMcpRuntimeCapabilities() {
   return {
@@ -1846,7 +1847,8 @@ export function getMcpRuntimeCapabilities() {
 }
 
 export function getMcpRuntimeSchemaSnapshot(): McpRuntimeSchemaSnapshot {
-  const tools = createToolDescriptors(REGISTERED_TOOLS);
+  const mcpTools = getMcpRegisteredTools();
+  const tools = createToolDescriptors(mcpTools);
 
   return {
     live_tool_execution: false,
@@ -3962,12 +3964,13 @@ export function createMcpProtocolPlan(
   }
 
   if (method === "tools/list") {
-    const tools = rightsConfirmed ? createToolDescriptors(REGISTERED_TOOLS) : [];
+    const mcpTools = getMcpRegisteredTools();
+    const tools = rightsConfirmed ? createToolDescriptors(mcpTools) : [];
 
     return {
       ...guardedBasePlan,
       tools_list: {
-        blocked_tool_count: rightsConfirmed ? 0 : REGISTERED_TOOLS.length,
+        blocked_tool_count: rightsConfirmed ? 0 : mcpTools.length,
         returned_tool_count: tools.length,
         schema_snapshot: createToolsListSchemaSnapshotSummary(tools.length),
         tool_catalog_available_after_rights_gate: true,
@@ -4091,7 +4094,7 @@ function createToolCallPlan(
     });
   }
 
-  const tool = REGISTERED_TOOLS.find((candidate) => candidate.name === toolName);
+  const tool = getMcpRegisteredTools().find((candidate) => candidate.name === toolName);
 
   if (tool === undefined) {
     throw new McpRuntimeInputError("TOOL_NOT_REGISTERED", "tool is not registered", {
@@ -4323,16 +4326,24 @@ function createToolDescriptors(
   }));
 }
 
+function getMcpRegisteredTools(): readonly RegisteredToolDefinition[] {
+  return REGISTERED_TOOLS.filter((tool) =>
+    (tool.channels as readonly string[]).includes("mcp")
+  );
+}
+
 function createToolsListSchemaSnapshotSummary(
   returnedSchemaCount: number
 ): McpToolsListSchemaSnapshotSummary {
+  const mcpToolCount = getMcpRegisteredTools().length;
+
   return {
     returned_schema_count: returnedSchemaCount,
     runtime_schema_serving: true,
     schema_catalog_available_after_rights_gate: true,
     schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
     schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
-    tool_schema_count: REGISTERED_TOOLS.length,
+    tool_schema_count: mcpToolCount,
     tools_list_schema_snapshot: true
   };
 }
@@ -4340,7 +4351,7 @@ function createToolsListSchemaSnapshotSummary(
 function createToolSchemaSnapshotDescriptor(
   tool: RegisteredToolDefinition
 ): McpToolSchemaSnapshotDescriptor {
-  const inputRule = MCP_TOOL_INPUT_VALIDATION_RULES[tool.name];
+  const inputRule = getMcpToolInputValidationRule(tool);
 
   return {
     input_schema: {
@@ -4362,6 +4373,24 @@ function createToolSchemaSnapshotDescriptor(
     schema_source_contract: MCP_TOOL_SCHEMA_SOURCE_CONTRACT,
     standard_error_codes: tool.schema.standardErrorCodes
   };
+}
+
+function getMcpToolInputValidationRule(
+  tool: RegisteredToolDefinition
+): McpToolInputValidationRule {
+  const rule = MCP_TOOL_INPUT_VALIDATION_RULES[tool.name];
+
+  if (rule === undefined) {
+    throw new McpRuntimeInputError(
+      "TOOL_NOT_REGISTERED",
+      "MCP tool input validation rule is not registered",
+      {
+        toolName: tool.name
+      }
+    );
+  }
+
+  return rule;
 }
 
 function createToolRetrievalLimitsDescriptor(
@@ -4403,7 +4432,7 @@ function createToolInputValidationPlan(
 
   const args = rawArguments ?? {};
   const argumentKeys = Object.keys(args);
-  const rules = MCP_TOOL_INPUT_VALIDATION_RULES[tool.name];
+  const rules = getMcpToolInputValidationRule(tool);
   const allowedArguments = rules.allowed as readonly string[];
   const unsupportedArguments = argumentKeys.filter((key) => !allowedArguments.includes(key));
 

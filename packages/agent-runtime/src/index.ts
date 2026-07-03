@@ -20,6 +20,10 @@ import {
 } from "@aiphabee/tool-registry";
 
 export const AGENT_RUNTIME_VERSION = "agent-runtime-scaffold-v0";
+export const AGENT_CONTROL_PLANE_CONTRACT_VERSION =
+  "2026-07-03.agent-control-plane-convergence.v0";
+export const AGENT_LAYER_TOOL_POLICY_VERSION =
+  "2026-07-03.agent-layer-tool-policy.v0";
 export const AGENT_RUN_CONTEXT_VERSION =
   "2026-06-21.phase1.agent-run-context-scaffold.v0";
 export const TOOL_LOOP_AGENT_PLANNER_VERSION =
@@ -88,6 +92,32 @@ export const AGENT_RUNTIME_LIMITS = {
   minSteps: 1,
   supportedMaxSteps: 8
 } as const;
+
+export const AGENT_LAYERS = ["generic", "research"] as const;
+export const AGENT_RUN_MODES = ["dry_run", "guarded_live", "runner_remote"] as const;
+export const AGENT_EXECUTABLE_RUN_MODES = ["dry_run"] as const;
+export const AGENT_EXECUTION_EVENT_TYPES = [
+  "run.requested",
+  "run.started",
+  "run.blocked",
+  "run.completed",
+  "run.failed"
+] as const;
+export const AGENT_ROUTE_DECISIONS = [
+  "selected",
+  "blocked_invalid_layer",
+  "blocked_invalid_mode",
+  "blocked_policy_denied",
+  "runner_required"
+] as const;
+export const DEFAULT_AGENT_RUN_TOOLS = [
+  "resolve_security",
+  "get_security_profile",
+  "get_data_lineage",
+  "get_entitlements"
+] as const satisfies readonly RegisteredToolName[];
+export const AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT = "technical_analysis";
+export const AGENT_RESEARCH_ONLY_TOOLS = ["parse_chart_image"] as const;
 
 export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
 export type RegisteredAgentToolName = RegisteredToolName;
@@ -266,6 +296,76 @@ export type AgentModelOutputCorpusReleaseGateStatus = "planned_no_write";
 export type AgentTokenCostFallbackReleaseGateCheck =
   (typeof AGENT_TOKEN_COST_FALLBACK_RELEASE_GATE_CHECKS)[number];
 export type AgentTokenCostFallbackReleaseGateStatus = "planned_no_write";
+export type AgentLayer = (typeof AGENT_LAYERS)[number];
+export type AgentRunMode = (typeof AGENT_RUN_MODES)[number];
+export type AgentExecutableRunMode = (typeof AGENT_EXECUTABLE_RUN_MODES)[number];
+export type AgentExecutionEventType = (typeof AGENT_EXECUTION_EVENT_TYPES)[number];
+export type AgentRouteDecision = (typeof AGENT_ROUTE_DECISIONS)[number];
+export type AgentResearchOnlyToolName = (typeof AGENT_RESEARCH_ONLY_TOOLS)[number];
+export type AgentLayerToolPolicyStatus = "allowed" | "blocked";
+export type AgentLayerToolPolicyDenialReason =
+  | "entitlement_required"
+  | "image_ref_required"
+  | "layer_not_allowed"
+  | "tenant_context_required"
+  | "unknown_tool";
+
+export interface AgentExecutionRequest {
+  allowed_tools: readonly string[];
+  budget: AgentRunBudget;
+  context_refs: Readonly<Record<string, string>>;
+  layer: AgentLayer;
+  mode: AgentRunMode;
+  request_id: string;
+  run_id: string;
+  tenant_id: string;
+  user_id: string;
+}
+
+export interface AgentExecutionEvent {
+  created_at: string;
+  event_index: number;
+  event_type: AgentExecutionEventType;
+  layer: AgentLayer;
+  payload: Readonly<Record<string, unknown>>;
+  run_id: string;
+  visible_to_user: boolean;
+}
+
+export interface AgentRunner {
+  readonly layer: AgentLayer;
+  readonly runner_id: string;
+  readonly supported_modes: readonly AgentRunMode[];
+  run(request: AgentExecutionRequest): AsyncIterable<AgentExecutionEvent>;
+}
+
+export interface AgentLayerToolPolicyInput {
+  entitlements?: readonly string[];
+  imageRef?: string;
+  layer: AgentLayer;
+  requestedTools?: readonly string[];
+  tenantId?: string;
+}
+
+export interface AgentLayerToolPolicyDeniedTool {
+  name: string;
+  reason: AgentLayerToolPolicyDenialReason;
+}
+
+export interface AgentLayerToolPolicyDecision {
+  actual_tool_execution: false;
+  allowed_tools: RegisteredAgentToolName[];
+  denied_tools: AgentLayerToolPolicyDeniedTool[];
+  entitlement_checked: typeof AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT;
+  image_ref_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+  layer: AgentLayer;
+  model_calls: false;
+  requested_tools: string[];
+  research_only_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
+  status: AgentLayerToolPolicyStatus;
+  tenant_context_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+  version: typeof AGENT_LAYER_TOOL_POLICY_VERSION;
+}
 
 export interface AgentRunSkeletonInput {
   asOf?: string;
@@ -615,6 +715,32 @@ export interface AgentRuntimeCapabilities {
   };
   limits: typeof AGENT_RUNTIME_LIMITS;
   model_provider: "not_configured";
+  control_plane: {
+    actual_tool_execution: false;
+    authority_package: "@aiphabee/agent-runtime";
+    contract_version: typeof AGENT_CONTROL_PLANE_CONTRACT_VERSION;
+    event_contract_ready: true;
+    executable_run_modes: typeof AGENT_EXECUTABLE_RUN_MODES;
+    layer_contract_ready: true;
+    layer_tool_policy: {
+      default_behavior: "deny_unknown_tool";
+      entitlement_required: typeof AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT;
+      generic_denied_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
+      image_ref_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+      policy_version: typeof AGENT_LAYER_TOOL_POLICY_VERSION;
+      research_only_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
+      tenant_context_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+    };
+    live_tool_execution: false;
+    model_calls: false;
+    persistent_writes: false;
+    route_decision_owner: "agent_runtime";
+    route_decisions: typeof AGENT_ROUTE_DECISIONS;
+    runner_contract_ready: true;
+    supported_layers: typeof AGENT_LAYERS;
+    supported_run_modes: typeof AGENT_RUN_MODES;
+    worker_route_family: "/agent/*";
+  };
   kill_switch: {
     actual_tool_execution: false;
     frontend: false;
@@ -2775,6 +2901,32 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       version: AGENT_KILL_SWITCH_VERSION
     },
     model_provider: "not_configured",
+    control_plane: {
+      actual_tool_execution: false,
+      authority_package: "@aiphabee/agent-runtime",
+      contract_version: AGENT_CONTROL_PLANE_CONTRACT_VERSION,
+      event_contract_ready: true,
+      executable_run_modes: AGENT_EXECUTABLE_RUN_MODES,
+      layer_contract_ready: true,
+      layer_tool_policy: {
+        default_behavior: "deny_unknown_tool",
+        entitlement_required: AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT,
+        generic_denied_tools: AGENT_RESEARCH_ONLY_TOOLS,
+        image_ref_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+        policy_version: AGENT_LAYER_TOOL_POLICY_VERSION,
+        research_only_tools: AGENT_RESEARCH_ONLY_TOOLS,
+        tenant_context_required_for: AGENT_RESEARCH_ONLY_TOOLS
+      },
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route_decision_owner: "agent_runtime",
+      route_decisions: AGENT_ROUTE_DECISIONS,
+      runner_contract_ready: true,
+      supported_layers: AGENT_LAYERS,
+      supported_run_modes: AGENT_RUN_MODES,
+      worker_route_family: "/agent/*"
+    },
     pre_tool_call_resolution: {
       actual_tool_execution: false,
       clarification_supported: true,
@@ -3202,6 +3354,81 @@ export function createAiSdkStopCondition(
   return isStepCount(maxSteps);
 }
 
+export function evaluateAgentLayerToolPolicy(
+  input: AgentLayerToolPolicyInput
+): AgentLayerToolPolicyDecision {
+  const requestedTools = [...(input.requestedTools ?? DEFAULT_AGENT_RUN_TOOLS)];
+  const toolValidation = validateRegisteredTools(requestedTools);
+  const deniedTools: AgentLayerToolPolicyDeniedTool[] =
+    toolValidation.deniedTools.map((tool) => ({
+      name: tool,
+      reason: "unknown_tool"
+    }));
+  const allowedTools: RegisteredAgentToolName[] = [];
+
+  for (const tool of toolValidation.allowedTools) {
+    if (isResearchOnlyTool(tool)) {
+      const denialReason = getResearchOnlyToolDenialReason(tool, input);
+
+      if (denialReason !== undefined) {
+        deniedTools.push({
+          name: tool,
+          reason: denialReason
+        });
+        continue;
+      }
+    }
+
+    allowedTools.push(tool);
+  }
+
+  return {
+    actual_tool_execution: false,
+    allowed_tools: allowedTools,
+    denied_tools: deniedTools,
+    entitlement_checked: AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT,
+    image_ref_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+    layer: input.layer,
+    model_calls: false,
+    requested_tools: requestedTools,
+    research_only_tools: AGENT_RESEARCH_ONLY_TOOLS,
+    status: deniedTools.length > 0 ? "blocked" : "allowed",
+    tenant_context_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+    version: AGENT_LAYER_TOOL_POLICY_VERSION
+  };
+}
+
+function isResearchOnlyTool(tool: RegisteredAgentToolName): tool is AgentResearchOnlyToolName {
+  return AGENT_RESEARCH_ONLY_TOOLS.includes(tool as AgentResearchOnlyToolName);
+}
+
+function getResearchOnlyToolDenialReason(
+  tool: AgentResearchOnlyToolName,
+  input: AgentLayerToolPolicyInput
+): AgentLayerToolPolicyDenialReason | undefined {
+  if (tool !== "parse_chart_image") {
+    return "unknown_tool";
+  }
+
+  if (input.layer !== "research") {
+    return "layer_not_allowed";
+  }
+
+  if (!input.entitlements?.includes(AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT)) {
+    return "entitlement_required";
+  }
+
+  if (input.tenantId === undefined || input.tenantId.trim().length === 0) {
+    return "tenant_context_required";
+  }
+
+  if (input.imageRef === undefined || input.imageRef.trim().length === 0) {
+    return "image_ref_required";
+  }
+
+  return undefined;
+}
+
 export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSkeleton {
   const prompt = input.prompt.trim();
 
@@ -3212,12 +3439,7 @@ export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSk
   const maxSteps = input.maxSteps ?? AGENT_RUNTIME_LIMITS.maxSteps;
   assertStepLimit(maxSteps);
 
-  const requestedTools = input.requestedTools ?? [
-    "resolve_security",
-    "get_security_profile",
-    "get_data_lineage",
-    "get_entitlements"
-  ];
+  const requestedTools = [...(input.requestedTools ?? DEFAULT_AGENT_RUN_TOOLS)];
   const registeredTools = getRegisteredToolNames();
   const toolValidation = validateRegisteredTools(requestedTools);
   const deniedTools = toolValidation.deniedTools;
@@ -5301,12 +5523,7 @@ export function createPreToolCallResolution(
     throw new AgentRuntimeInputError("PROMPT_REQUIRED", "prompt is required");
   }
 
-  const requestedTools = input.requestedTools ?? [
-    "resolve_security",
-    "get_security_profile",
-    "get_data_lineage",
-    "get_entitlements"
-  ];
+  const requestedTools = [...(input.requestedTools ?? DEFAULT_AGENT_RUN_TOOLS)];
   const toolValidation = validateRegisteredTools(requestedTools);
 
   if (toolValidation.deniedTools.length > 0) {
@@ -6881,6 +7098,12 @@ const TOOL_USAGE_ESTIMATES: Record<
     rows: 5,
     tokens: 700,
     wall_clock_ms: 900
+  },
+  parse_chart_image: {
+    credits: 1,
+    rows: 1,
+    tokens: 300,
+    wall_clock_ms: 500
   },
   get_event_timeline: {
     credits: 4,

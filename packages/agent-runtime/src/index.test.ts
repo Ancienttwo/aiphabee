@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { REGISTERED_TOOLS } from "@aiphabee/tool-registry";
 import {
+  AGENT_CONTROL_PLANE_CONTRACT_VERSION,
+  AGENT_EXECUTABLE_RUN_MODES,
+  AGENT_EXECUTION_EVENT_TYPES,
   AGENT_KILL_SWITCH_VERSION,
+  AGENT_LAYERS,
+  AGENT_LAYER_TOOL_POLICY_VERSION,
+  AGENT_ROUTE_DECISIONS,
+  AGENT_RUN_MODES,
   AgentRuntimeInputError,
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
@@ -13,6 +20,7 @@ import {
 	  createAgentUserToolLoopExecutionReleaseGatePlan,
 	  createAgentUserRunPersistenceReleaseGatePlan,
   createAiSdkStopCondition,
+  evaluateAgentLayerToolPolicy,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
@@ -34,6 +42,9 @@ import {
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
   UNSOURCED_NUMERIC_SAMPLING_VERSION,
+  type AgentExecutionEvent,
+  type AgentExecutionRequest,
+  type AgentRunner,
   type AiGatewayLiveSmokeFetch
 } from "./index";
 
@@ -50,6 +61,34 @@ describe("agent runtime scaffold", () => {
     });
     expect(capabilities.surfaces.model_calls).toBe(false);
     expect(capabilities.surfaces.market_data).toBe(false);
+    expect(capabilities.control_plane).toMatchObject({
+      actual_tool_execution: false,
+      authority_package: "@aiphabee/agent-runtime",
+      contract_version: AGENT_CONTROL_PLANE_CONTRACT_VERSION,
+      event_contract_ready: true,
+      layer_contract_ready: true,
+      live_tool_execution: false,
+      model_calls: false,
+      persistent_writes: false,
+      route_decision_owner: "agent_runtime",
+      runner_contract_ready: true,
+      worker_route_family: "/agent/*"
+    });
+    expect(capabilities.control_plane.layer_tool_policy).toMatchObject({
+      default_behavior: "deny_unknown_tool",
+      entitlement_required: "technical_analysis",
+      generic_denied_tools: ["parse_chart_image"],
+      image_ref_required_for: ["parse_chart_image"],
+      policy_version: AGENT_LAYER_TOOL_POLICY_VERSION,
+      research_only_tools: ["parse_chart_image"],
+      tenant_context_required_for: ["parse_chart_image"]
+    });
+    expect(capabilities.control_plane.supported_layers).toEqual(AGENT_LAYERS);
+    expect(capabilities.control_plane.supported_run_modes).toEqual(AGENT_RUN_MODES);
+    expect(capabilities.control_plane.executable_run_modes).toEqual(
+      AGENT_EXECUTABLE_RUN_MODES
+    );
+    expect(capabilities.control_plane.route_decisions).toEqual(AGENT_ROUTE_DECISIONS);
     expect(capabilities.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -453,6 +492,126 @@ describe("agent runtime scaffold", () => {
       schema: {
         standardResponseEnvelope: true
       }
+    });
+  });
+
+  it("defines the agent execution request, event, and runner contract", async () => {
+    const request: AgentExecutionRequest = {
+      allowed_tools: ["resolve_security"],
+      budget: {
+        max_credits: 3,
+        max_parallel_tools: 1,
+        max_rows: 50,
+        max_steps: 2,
+        max_tokens: 1000,
+        max_wall_clock_ms: 5000
+      },
+      context_refs: {
+        security_ref: "security:00700.HK"
+      },
+      layer: "research",
+      mode: "dry_run",
+      request_id: "req-control-plane-1",
+      run_id: "dry_req-control-plane-1",
+      tenant_id: "tenant_fixture",
+      user_id: "user_fixture"
+    };
+    const event: AgentExecutionEvent = {
+      created_at: "2026-07-03T20:47:00.000Z",
+      event_index: 0,
+      event_type: "run.started",
+      layer: "research",
+      payload: {
+        requested_tools: request.allowed_tools
+      },
+      run_id: request.run_id,
+      visible_to_user: false
+    };
+    const runner: AgentRunner = {
+      layer: "research",
+      runner_id: "fixture-research-dry-runner",
+      supported_modes: AGENT_EXECUTABLE_RUN_MODES,
+      async *run(receivedRequest) {
+        expect(receivedRequest).toBe(request);
+        yield event;
+      }
+    };
+    const events: AgentExecutionEvent[] = [];
+
+    for await (const yieldedEvent of runner.run(request)) {
+      events.push(yieldedEvent);
+    }
+
+    expect(AGENT_LAYERS).toEqual(["generic", "research"]);
+    expect(AGENT_RUN_MODES).toEqual(["dry_run", "guarded_live", "runner_remote"]);
+    expect(AGENT_EXECUTION_EVENT_TYPES).toContain("run.blocked");
+    expect(runner.supported_modes).toEqual(["dry_run"]);
+    expect(events).toEqual([event]);
+  });
+
+  it("enforces layer tool policy for parse_chart_image before planning", () => {
+    expect(
+      evaluateAgentLayerToolPolicy({
+        layer: "generic",
+        requestedTools: ["parse_chart_image"]
+      })
+    ).toMatchObject({
+      allowed_tools: [],
+      denied_tools: [
+        {
+          name: "parse_chart_image",
+          reason: "layer_not_allowed"
+        }
+      ],
+      status: "blocked"
+    });
+
+    expect(
+      evaluateAgentLayerToolPolicy({
+        entitlements: ["technical_analysis"],
+        imageRef: "chart_image_fixture",
+        layer: "research",
+        requestedTools: ["parse_chart_image"],
+        tenantId: "tenant_fixture"
+      })
+    ).toMatchObject({
+      allowed_tools: ["parse_chart_image"],
+      denied_tools: [],
+      status: "allowed"
+    });
+
+    expect(
+      evaluateAgentLayerToolPolicy({
+        entitlements: ["technical_analysis"],
+        layer: "research",
+        requestedTools: ["parse_chart_image"],
+        tenantId: "tenant_fixture"
+      })
+    ).toMatchObject({
+      allowed_tools: [],
+      denied_tools: [
+        {
+          name: "parse_chart_image",
+          reason: "image_ref_required"
+        }
+      ],
+      status: "blocked"
+    });
+
+    expect(
+      evaluateAgentLayerToolPolicy({
+        layer: "research",
+        requestedTools: ["admin.override"]
+      })
+    ).toMatchObject({
+      allowed_tools: [],
+      denied_tools: [
+        {
+          name: "admin.override",
+          reason: "unknown_tool"
+        }
+      ],
+      status: "blocked"
     });
   });
 

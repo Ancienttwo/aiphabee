@@ -31,7 +31,8 @@ export type RegisteredToolName =
   | "get_ipo_offering"
   | "get_ipo_allotment"
   | "screen_ipos"
-  | "compare_ipos";
+  | "compare_ipos"
+  | "parse_chart_image";
 
 export interface RegisteredToolDefinition {
   channels: readonly RegisteredToolChannel[];
@@ -555,7 +556,33 @@ export const REGISTERED_TOOLS = [
     "Compare two to five IPO offerings on aligned listing, pricing, demand, and cornerstone dimensions.",
     { defaultLimit: 5, maxLimit: 5, rowLimitParameter: null },
     ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "TOO_MANY_ROWS"]
-  )
+  ),
+  {
+    channels: ["web", "api"],
+    description:
+      "Parse a tenant-owned chart image for Research technical analysis workflows.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("parse_chart_image"),
+    name: "parse_chart_image",
+    permissions: createPermissions("technical_analysis:read", [
+      "chart_image",
+      "chart_parse_result"
+    ]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      rowLimitParameter: null
+    }),
+    schema: createSchema("parse_chart_image", [
+      "DATA_NOT_LICENSED",
+      "DATA_QUALITY_HOLD",
+      "NOT_FOUND",
+      "SCOPE_DENIED"
+    ]),
+    status: "scaffold",
+    testing: createTesting("parse_chart_image", true),
+    version: "0.0.0"
+  }
 ] as const satisfies readonly RegisteredToolDefinition[];
 
 export interface ToolRegistryValidationResult {

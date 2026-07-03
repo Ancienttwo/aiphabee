@@ -238,16 +238,18 @@ describe("tool registry scaffold", () => {
 
   it("keeps registry names stable for agent and tool runtime policy", () => {
     expect(getRegisteredToolNames()).toEqual(REGISTERED_TOOLS.map((tool) => tool.name));
+    expect(getRegisteredToolNames()).toContain("parse_chart_image");
   });
 
   it("rejects unregistered tools without allowing arbitrary SQL or URLs", () => {
     const result = validateRegisteredTools([
       "resolve_security",
+      "parse_chart_image",
       "sql.query",
       "fetch_url"
     ]);
 
-    expect(result.allowedTools).toEqual(["resolve_security"]);
+    expect(result.allowedTools).toEqual(["resolve_security", "parse_chart_image"]);
     expect(result.deniedTools).toEqual(["sql.query", "fetch_url"]);
   });
 });

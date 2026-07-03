@@ -46,7 +46,10 @@ import {
   getMcpTargetClientsConsoleReleaseGateCapabilities
 } from "./index";
 
-const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
+const MCP_REGISTERED_TOOLS = REGISTERED_TOOLS.filter((tool) =>
+  (tool.channels as readonly string[]).includes("mcp")
+);
+const MCP_TOOL_COUNT = MCP_REGISTERED_TOOLS.length;
 
 describe("mcp endpoint default-deny scaffold", () => {
   it("reports MCP runtime capabilities with default-deny rights gate", () => {
@@ -281,11 +284,12 @@ describe("mcp endpoint default-deny scaffold", () => {
       schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
       schema_source_contract: "deploy/tools/tool-schemas.contract.json",
       status: "runtime_schema_snapshot_scaffold",
-      tool_count: REGISTERED_TOOL_COUNT,
+      tool_count: MCP_TOOL_COUNT,
       tools_list_schema_snapshot: true,
       version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION
     });
-    expect(snapshot.tools).toHaveLength(REGISTERED_TOOL_COUNT);
+    expect(snapshot.tools).toHaveLength(MCP_TOOL_COUNT);
+    expect(snapshot.tools.map((tool) => tool.name)).not.toContain("parse_chart_image");
     expect(snapshot.tools.every((tool) => tool.schema_snapshot !== undefined)).toBe(true);
     expect(
       snapshot.tools.every(
@@ -1663,7 +1667,7 @@ describe("mcp endpoint default-deny scaffold", () => {
 
     expect(plan.status).toBe("planned_default_deny");
     expect(plan.tools_list).toMatchObject({
-      blocked_tool_count: REGISTERED_TOOL_COUNT,
+      blocked_tool_count: MCP_TOOL_COUNT,
       returned_tool_count: 0,
       schema_snapshot: {
         returned_schema_count: 0,
@@ -1671,7 +1675,7 @@ describe("mcp endpoint default-deny scaffold", () => {
         schema_catalog_available_after_rights_gate: true,
         schema_snapshot_version: MCP_RUNTIME_SCHEMA_SNAPSHOT_VERSION,
         schema_source_contract: "deploy/tools/tool-schemas.contract.json",
-        tool_schema_count: REGISTERED_TOOL_COUNT,
+        tool_schema_count: MCP_TOOL_COUNT,
         tools_list_schema_snapshot: true
       },
       tool_catalog_available_after_rights_gate: true,
@@ -1688,7 +1692,10 @@ describe("mcp endpoint default-deny scaffold", () => {
       requestId: "req-mcp-tools-list-versioned"
     });
 
-    expect(plan.tools_list?.returned_tool_count).toBe(REGISTERED_TOOL_COUNT);
+    expect(plan.tools_list?.returned_tool_count).toBe(MCP_TOOL_COUNT);
+    expect(plan.tools_list?.tools.map((tool) => tool.name)).not.toContain(
+      "parse_chart_image"
+    );
     expect(
       plan.tools_list?.tools.every(
         (tool) =>
@@ -1709,12 +1716,29 @@ describe("mcp endpoint default-deny scaffold", () => {
       )
     ).toBe(true);
     expect(plan.tools_list?.schema_snapshot).toMatchObject({
-      returned_schema_count: REGISTERED_TOOL_COUNT,
+      returned_schema_count: MCP_TOOL_COUNT,
       runtime_schema_serving: true,
       schema_catalog_available_after_rights_gate: true,
-      tool_schema_count: REGISTERED_TOOL_COUNT,
+      tool_schema_count: MCP_TOOL_COUNT,
       tools_list_schema_snapshot: true
     });
+  });
+
+  it("rejects non-MCP registered tools before tools/call planning", () => {
+    try {
+      createMcpProtocolPlan({
+        grantedScopes: ["technical_analysis:read"],
+        mcpRedistributionRightsConfirmed: true,
+        method: "tools/call",
+        origin: "https://app.aiphabee.com",
+        requestId: "req-mcp-non-mcp-tool",
+        toolName: "parse_chart_image"
+      });
+      throw new Error("expected parse_chart_image to be rejected by MCP surface gate");
+    } catch (error) {
+      expect(error).toBeInstanceOf(McpRuntimeInputError);
+      expect((error as McpRuntimeInputError).code).toBe("TOOL_NOT_REGISTERED");
+    }
   });
 
   it("rejects untrusted origins before tool discovery", () => {
