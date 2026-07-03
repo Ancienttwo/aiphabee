@@ -1,16 +1,16 @@
 # Current Status Snapshot
 
 <!-- generated-by: repo-harness refresh-current-status v1 -->
-<!-- updated_at: 2026-07-03T02:40:11+0800 -->
+<!-- updated_at: 2026-07-04T01:57:34+0800 -->
 <!-- stale_after: 24h -->
 
 > **Status**: Idle
-> **Updated At**: 2026-07-03T02:40:11+0800
-> **Source Branch**: codex/chart-upload-routing
-> **Source Commit**: 38cf5c4
+> **Updated At**: 2026-07-04T01:57:34+0800
+> **Source Branch**: codex/parse-chart-image-sprint-closeout
+> **Source Commit**: c703e7e
 > **Target Branch**: main
 > **Stale After**: 24h
-> **Reason**: archive-workflow
+> **Reason**: manual
 > **Derived From**: active-plan, active-sprint, workstreams, handoff, checks, git status
 
 This file is a tracked mainline snapshot derived from repo artifacts. It is not a live lock, not a kanban board, and not an implementation gate. If it is stale, read the source artifacts below.
@@ -40,35 +40,19 @@ This file is a tracked mainline snapshot derived from repo artifacts. It is not 
 - (none)
 ## Handoff
 
-- Exact Next Step: Stage the completed module diff first; then resolve check evidence: Structured checks are not passing in .ai/harness/checks/latest.json (status=fail). Command: /check
+- Exact Next Step: (none)
 
 ## Checks
 
-- status=pass, source=verify-sprint, exit_code=0, file=.ai/harness/checks/latest.json
+- status=(none), source=(none), file=.ai/harness/checks/latest.json
 
 ## Git Status
 
-- Summary: 18 changed/untracked path(s)
+- Summary: 2 changed/untracked path(s)
 
 ```
- M apps/worker/src/index.test.ts
- M apps/worker/src/index.ts
- M deploy/database/migrations.contract.json
- M packages/agent-runtime/src/parse-chart-image/executor.test.ts
- M packages/agent-runtime/src/parse-chart-image/executor.ts
- M packages/agent-runtime/src/parse-chart-image/index.ts
- M packages/agent-runtime/src/parse-chart-image/types.ts
  M plans/sprints/20260702-1905-parse-chart-image.sprint.md
-?? deploy/database/migrations/20260703005000_chart_image_uploads.sql
-?? packages/agent-runtime/src/parse-chart-image/image-store.test.ts
-?? packages/agent-runtime/src/parse-chart-image/image-store.ts
-?? packages/agent-runtime/src/parse-chart-image/routing.test.ts
-?? packages/agent-runtime/src/parse-chart-image/routing.ts
-?? plans/archive/plan-20260703-0134-chart-upload-routing.md
-?? tasks/archive/contract-20260703-0240-chart-upload-routing.md
-?? tasks/archive/notes-20260703-0240-chart-upload-routing.md
-?? tasks/archive/review-20260703-0240-chart-upload-routing.md
-?? tasks/archive/todo-20260703-0240-chart-upload-routing.md
+ M tasks/current.md
 ```
 
 ## Source Artifacts
