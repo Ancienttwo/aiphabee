@@ -37,7 +37,8 @@
     "get_ipo_offering",
     "get_ipo_allotment",
     "screen_ipos",
-    "compare_ipos"
+    "compare_ipos",
+    "analyze_public_technical_signal"
   ],
   "scaffold_tools": [
     "resolve_security",
@@ -62,7 +63,8 @@
     "get_ipo_offering",
     "get_ipo_allotment",
     "screen_ipos",
-    "compare_ipos"
+    "compare_ipos",
+    "analyze_public_technical_signal"
   ],
   "required_tool_fields": [
     "name",

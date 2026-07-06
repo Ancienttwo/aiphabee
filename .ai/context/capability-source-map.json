@@ -1,4 +1,34 @@
 {
   "version": 1,
-  "capabilities": {}
+  "capabilities": {
+    "technical_analysis_ephemeral": {
+      "skill_entrypoint": "analyze_public_technical_signal",
+      "data_classification": "public_observation_signal",
+      "source_files": [
+        "docs/spec.md",
+        "plans/prds/20260703-2207-ohlcv-skill.prd.md",
+        "plans/sprints/20260703-2214-ephemeral-ohlcv-skill.sprint.md",
+        "packages/tool-registry/src/index.ts",
+        "packages/agent-runtime/src/index.ts"
+      ],
+      "test_files": [
+        "packages/tool-registry/src/index.test.ts",
+        "packages/agent-runtime/src/index.test.ts"
+      ],
+      "acceptance_commands": [
+        "npx vitest run packages/agent-runtime/src packages/tool-registry/src",
+        "npm run check:tool-registry"
+      ],
+      "not_skill_entrypoints": [
+        "get_price_history"
+      ],
+      "invariants": [
+        "raw_to_llm_context: true",
+        "raw_to_market_database: false",
+        "raw_to_shared_cache: false",
+        "raw_to_chat_transcript: temporary_only",
+        "provider_as_authorized_feed: false"
+      ]
+    }
+  }
 }

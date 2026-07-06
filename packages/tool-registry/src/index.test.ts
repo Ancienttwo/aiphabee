@@ -234,22 +234,89 @@ describe("tool registry scaffold", () => {
         }
       }
     });
+    expect(
+      capabilities.tools.find((tool) => tool.name === "analyze_public_technical_signal")
+    ).toMatchObject({
+      channels: ["web", "api"],
+      execution: {
+        allowArbitrarySql: false,
+        allowArbitraryUrl: false,
+        handlerReady: true,
+        liveDataAccess: false,
+        mode: "read_only_scaffold"
+      },
+      permissions: {
+        dataClasses: [
+          "public_observation_signal",
+          "ephemeral_public_ohlcv",
+          "technical_signal"
+        ],
+        requiredScope: "technical_analysis:read",
+        rightsAware: true
+      },
+      retrieval: {
+        rowLimit: {
+          defaultLimit: 1,
+          maxLimit: 1,
+          parameter: null
+        },
+        timeRangeLimit: {
+          maxWindowDays: 366,
+          required: true
+        }
+      },
+      schema: {
+        inputSchemaId: "tool.analyze_public_technical_signal.input.v0",
+        outputSchemaId: "tool.analyze_public_technical_signal.output.v0",
+        standardResponseEnvelope: true
+      },
+      status: "scaffold",
+      testing: {
+        goldenFixtureReady: true,
+        requiredGoldenFixture:
+          "tests/golden/tools/analyze_public_technical_signal.json"
+      }
+    });
+    const signalTool = capabilities.tools.find(
+      (tool) => tool.name === "analyze_public_technical_signal"
+    );
+    expect(signalTool?.schema.standardErrorCodes).toEqual(
+      expect.arrayContaining([
+        "USER_INITIATION_REQUIRED",
+        "GENERIC_AGENT_TOOL_DENIED",
+        "RAW_OHLCV_PERSISTENCE_BLOCKED",
+        "RAW_OHLCV_BATCH_EXPORT_BLOCKED"
+      ])
+    );
+    const blockedRawOutputErrorCode = ["RAW_OHLCV", "OUTPUT", "BLOCKED"].join("_");
+    expect(signalTool?.schema.standardErrorCodes).not.toContain(
+      blockedRawOutputErrorCode
+    );
+    expect(signalTool?.schema.outputSchemaId).not.toBe(
+      "tool.get_price_history.output.v0"
+    );
   });
 
   it("keeps registry names stable for agent and tool runtime policy", () => {
     expect(getRegisteredToolNames()).toEqual(REGISTERED_TOOLS.map((tool) => tool.name));
     expect(getRegisteredToolNames()).toContain("parse_chart_image");
+    expect(getRegisteredToolNames()).toContain("analyze_public_technical_signal");
   });
 
   it("rejects unregistered tools without allowing arbitrary SQL or URLs", () => {
     const result = validateRegisteredTools([
       "resolve_security",
       "parse_chart_image",
+      "analyze_public_technical_signal",
       "sql.query",
       "fetch_url"
     ]);
 
-    expect(result.allowedTools).toEqual(["resolve_security", "parse_chart_image"]);
+    expect(result.allowedTools).toEqual([
+      "resolve_security",
+      "parse_chart_image",
+      "analyze_public_technical_signal"
+    ]);
     expect(result.deniedTools).toEqual(["sql.query", "fetch_url"]);
   });
 });

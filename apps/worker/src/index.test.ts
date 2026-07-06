@@ -13999,11 +13999,21 @@ describe("worker runtime", () => {
       layer_tool_policy: {
         default_behavior: "deny_unknown_tool",
         entitlement_required: "technical_analysis",
-        generic_denied_tools: ["parse_chart_image"],
+        generic_denied_tools: [
+          "parse_chart_image",
+          "analyze_public_technical_signal"
+        ],
         image_ref_required_for: ["parse_chart_image"],
         policy_version: "2026-07-03.agent-layer-tool-policy.v0",
-        research_only_tools: ["parse_chart_image"],
-        tenant_context_required_for: ["parse_chart_image"]
+        research_only_tools: [
+          "parse_chart_image",
+          "analyze_public_technical_signal"
+        ],
+        tenant_context_required_for: [
+          "parse_chart_image",
+          "analyze_public_technical_signal"
+        ],
+        user_initiated_required_for: ["analyze_public_technical_signal"]
       },
       live_tool_execution: false,
       model_calls: false,

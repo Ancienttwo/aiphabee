@@ -21,7 +21,7 @@ import {
   getServingResultEnvelopeCapabilities
 } from "./index";
 
-const REQUIRED_P0_TOOL_COUNT = 24;
+const REQUIRED_P0_TOOL_COUNT = 25;
 const IPO_TOOL_NAMES = [
   "get_ipo_profile",
   "search_ipo_calendar",
@@ -770,6 +770,7 @@ describe("data access gateway", () => {
         "get_event_timeline",
         "get_data_lineage",
         "get_entitlements",
+        "analyze_public_technical_signal",
         "parse_chart_image",
         ...IPO_TOOL_NAMES
       ]

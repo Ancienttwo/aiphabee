@@ -19,6 +19,7 @@
     "tasks/todos.md",
     "tasks/lessons.md",
     ".ai/context/capabilities.json",
+    ".ai/context/capability-source-map.json",
     ".ai/harness/policy.json"
   ],
   "discoverable_contexts": [

@@ -1,9 +1,9 @@
 # Sprint: 临时公开 OHLCV 技术分析 Skill
 
-> **Status**: Draft
+> **Status**: Approved
 > **Slug**: ephemeral-ohlcv-skill
 > **Created**: 2026-07-03 22:14
-> **Updated**: 2026-07-03 22:14
+> **Updated**: 2026-07-07
 > **Source PRD**: `plans/prds/20260703-2207-ohlcv-skill.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -70,6 +70,39 @@ Full PRD: `plans/prds/20260703-2207-ohlcv-skill.prd.md`(对话式方案,已三�
 - **VLM/provider 数据质量**:bounded bars 必须先过 `normalizeEphemeralBars`(校验 OHLC 关系/去重/补齐/识别未完成 bar),不得把 provider 原始 response 直接喂 LLM。
 - Open decisions 留给 `$think` 展开:stock-sdk 具体依赖版本与 provider adapter 选型(PRD §19 PR2);signal 阈值默认值(不得硬编码启用,PRD §9.3)。
 
+### Approval Addendum: Traceability + Runtime Binding
+
+This sprint is approved as an ordered backlog only. Runtime implementation remains 0/9.
+
+Before Row 2 starts, Row 1 must bind the ephemeral OHLCV capability across:
+
+- `docs/spec.md`
+- `.ai/context/capabilities.json`
+- `.ai/context/capability-source-map.json`
+- `packages/tool-registry`
+- `packages/agent-runtime`
+
+The runtime skill name is `analyze_public_technical_signal`. The capability id is `technical_analysis_ephemeral`. The data classification is `public_observation_signal`.
+
+Existing `get_price_history` is not this skill. It remains a separate price-history scaffold and must not be reused as the public OHLCV technical-analysis entrypoint.
+
+Non-negotiable invariants:
+
+- raw OHLCV may enter bounded LLM context
+- raw OHLCV may be displayed to the user
+- raw OHLCV must not be written to AiphaBee market database
+- raw OHLCV must not be written to shared cache
+- transcript policy defaults to `temporary_only`
+- provider output must be normalized before use
+- Generic Agent must be denied
+- Research Agent requires `user_initiated=true`
+- no background refresh
+- no batch scan
+- no full-market scan
+- no authorized/verified claim
+- no buy/sell/hold/position/stop-loss instruction
+- kill switch must fail closed
+
 ## Backlog
 
 Ordered execution queue; keep rows in dependency order. Mode `contract` runs
@@ -78,15 +111,15 @@ execution for small tasks. Every row needs a concrete acceptance line.
 
 | # | Status | Task | Mode | Acceptance | Plan |
 |---|--------|------|------|------------|------|
-| 1 | [ ] | Ephemeral OHLCV Contract + Tool Policy(PRD §8/§13/§16) | contract | `npx vitest run packages/agent-runtime/src` 通过:tool policy 拒 Generic、Research 需 `user_initiated`;`grep` 命中 `raw_to_llm_context: true`/`raw_to_market_database: false`/`raw_to_chat_transcript`/`provider_as_authorized_feed: false`;output schema 含 `bars?` 与 `chat_transcript_policy`、`data_classification: 'public_observation_signal'`;error codes 含 `RAW_OHLCV_PERSISTENCE_BLOCKED`/`RAW_OHLCV_BATCH_EXPORT_BLOCKED` 且**不含** `RAW_OHLCV_OUTPUT_BLOCKED` | (pending) |
-| 2 | [ ] | stock-sdk Provider adapter + normalizeEphemeralBars(PRD §6.1/§9.1) | contract | `npx vitest run packages/market-data/src/ephemeral/normalize` + provider fixture 通过:fetch 单标的 ≤500 bars 成功;`normalizeEphemeralBars` 对非法 fixture(high<max(open,close)/重复 timestamp/volume<0)返回 `INVALID_OHLC_RELATION`/`DUPLICATE_TIMESTAMP` 而非静默通过;识别未完成 latest bar;provider 原始 response 不透传(仅出 normalized bars) | (pending) |
-| 3 | [ ] | Ephemeral 24h TTL cache + 跨用户隔离 + provider timeout/retry(PRD §6.2/§12.2) | contract | `npx vitest run packages/market-data/src/ephemeral/cache` 通过:within-24h 复用同 key、跨 24h refetch、user A 不命中 user B key;`grep -rn "market_bars" packages/market-data/src` 无 raw 写入;provider 超时 fixture 触发 ≤1 retry 后返回 `PROVIDER_UNAVAILABLE`,不 fabricate | (pending) |
-| 4 | [ ] | Indicators + Signal Engine(PRD §9.2/§9.3) | contract | `npx vitest run packages/market-data/src/technical` 通过:golden bars 下 MA/EMA/MACD(12,26,9)/RSI(14)/BOLL(20,2)/ATR(14) 数值对齐参考值;`computeTechnicalSignals` 输出 trend/momentum/volatility/volume 观察信号;类型与 `grep` 断言输出**不含** `buy_signal`/`sell_signal`/`stop_loss`/`target_price`/`position_size` | (pending) |
-| 5 | [ ] | Entitlement + Rate limit + 防批量化(PRD §12/§17.1) | contract | 限流测试通过:Free tier 调用被拒、Research/Pro 放行(entitlement fixture);per-user fixture 断言 hour>20/day>100/concurrent>2 返回 `PROVIDER_RATE_LIMITED`;全市场扫描/批量 symbol 请求返回结构化拒绝(`BATCH_FETCH_NOT_ALLOWED`) | (pending) |
-| 6 | [ ] | Agent tool integration + answer template(PRD §10) | contract | agent fixture:Research Agent 接 `analyze_public_technical_signal` 成功、Generic agent 调用被拒;answer 含 `public_observation` label + `retrieved_at` + delay notice;`detail_level=with_bars` 时 bounded bars 进 LLM context;SSE 事件含 `tool.started`/`tool.finished`/`answer.final` | (pending) |
-| 7 | [ ] | Post-check + transcript 模式(PRD §17.2/§6.3) | contract | post-check fixture 断言 answer 不含 买入/卖出/持有/仓位/止损、不声称 authorized/verified;transcript 模式 B fixture 断言 raw table 不写入持久聊天历史;超长完整 OHLCV 表 rewrite 成摘要 + 关键数值引用 | (pending) |
-| 8 | [ ] | UI/UX consent + signal card + OHLCV 展示(PRD §11) | contract | `apps/web` 组件测试:consent 文案含「临时公开数据 / 24 小时 / 非授权行情验证」;signal card 渲染 trend/momentum/volatility/volume;OHLCV 表格/图带 `public_observation` 标注 + 获取时间;断言 UI 无「批量导出 / 常驻下载 API」入口 | (pending) |
-| 9 | [ ] | Beta Guardrails + kill switch + 监控(PRD §20 Sprint E/§21#15) | contract | kill switch fixture:flag off 时 tool 全拒返回 `KILL_SWITCH_ACTIVE`;abuse 测试套件(后台/批量/全市场/raw 违规导出)全绿;`grep` 断言 beta flag gate 存在;监控埋点(rate-limit/violation/cost)事件 schema 测试通过 | (pending) |
+| 1 | [x] | Ephemeral OHLCV Contract + Tool Policy(PRD §8/§13/§16) | contract | `npx vitest run packages/agent-runtime/src packages/tool-registry/src` + `npm run check:tool-registry` 通过: `docs/spec.md`、`.ai/context/capabilities.json`、`.ai/context/capability-source-map.json` 均命中 `technical_analysis_ephemeral`/`analyze_public_technical_signal`/`public_observation_signal`;tool policy 拒 Generic、Research 需 `user_initiated`;`grep` 命中 `raw_to_llm_context: true`/`raw_to_market_database: false`/`raw_to_shared_cache: false`/`raw_to_chat_transcript`/`provider_as_authorized_feed: false`;output schema 含 `bars?` 与 `chat_transcript_policy`;error codes 含 `RAW_OHLCV_PERSISTENCE_BLOCKED`/`RAW_OHLCV_BATCH_EXPORT_BLOCKED` 且**不含** `RAW_OHLCV_OUTPUT_BLOCKED`;existing `get_price_history` 未注册为该 skill entrypoint | `plans/archive/plan-20260707-ephemeral-ohlcv-contract-tool-policy.md` |
+| 2 | [x] | stock-sdk Provider adapter + normalizeEphemeralBars(PRD §6.1/§9.1) | contract | `npx vitest run packages/market-data/src/ephemeral/normalize` + provider fixture 通过:fetch 单标的 ≤500 bars 成功;`normalizeEphemeralBars` 对非法 fixture(high<max(open,close)/重复 timestamp/volume<0)返回 `INVALID_OHLC_RELATION`/`DUPLICATE_TIMESTAMP` 而非静默通过;识别未完成 latest bar;provider 原始 response 不透传(仅出 normalized bars) | `plans/archive/plan-20260707-ephemeral-ohlcv-provider-normalize.md` |
+| 3 | [x] | Ephemeral 24h TTL cache + 跨用户隔离 + provider timeout/retry(PRD §6.2/§12.2) | contract | `npx vitest run packages/market-data/src/ephemeral/cache` 通过:within-24h 复用同 key、跨 24h refetch、user A 不命中 user B key;`grep -rn "market_bars" packages/market-data/src` 无 raw 写入;provider 超时 fixture 触发 ≤1 retry 后返回 `PROVIDER_UNAVAILABLE`,不 fabricate | `plans/archive/plan-20260707-ephemeral-ohlcv-cache-timeout.md` |
+| 4 | [x] | Indicators + Signal Engine(PRD §9.2/§9.3) | contract | `npx vitest run packages/market-data/src/ephemeral/technical` 通过:golden bars 下 MA/EMA/MACD(12,26,9)/RSI(14)/BOLL(20,2)/ATR(14) 数值对齐参考值;`computeTechnicalSignals` 输出 trend/momentum/volatility/volume 观察信号;类型与 `grep` 断言输出**不含** `buy_signal`/`sell_signal`/`stop_loss`/`target_price`/`position_size` | `plans/archive/plan-20260707-ephemeral-ohlcv-indicators-signals.md` |
+| 5 | [x] | Entitlement + Rate limit + 防批量化(PRD §12/§17.1) | contract | 限流测试通过:Free tier 调用被拒、Research/Pro 放行(entitlement fixture);per-user fixture 断言 hour>20/day>100/concurrent>2 返回 `PROVIDER_RATE_LIMITED`;全市场扫描/批量 symbol 请求返回结构化拒绝(`BATCH_FETCH_NOT_ALLOWED`) | `plans/archive/plan-20260707-ephemeral-ohlcv-entitlement-rate-limit.md` |
+| 6 | [x] | Agent tool integration + answer template(PRD §10) | contract | agent fixture:Research Agent 接 `analyze_public_technical_signal` 成功、Generic agent 调用被拒;answer 含 `public_observation` label + `retrieved_at` + delay notice;`detail_level=with_bars` 时 bounded bars 进 LLM context;SSE 事件含 `tool.started`/`tool.finished`/`answer.final` | `plans/archive/plan-20260707-ephemeral-ohlcv-agent-template.md` |
+| 7 | [x] | Post-check + transcript 模式(PRD §17.2/§6.3) | contract | post-check fixture 断言 answer 不含 买入/卖出/持有/仓位/止损、不声称 authorized/verified;transcript 模式 B fixture 断言 raw table 不写入持久聊天历史;超长完整 OHLCV 表 rewrite 成摘要 + 关键数值引用 | `plans/archive/plan-20260707-ephemeral-ohlcv-post-check-transcript.md` |
+| 8 | [x] | UI/UX consent + signal card + OHLCV 展示(PRD §11) | contract | `apps/web` 组件测试:consent 文案含「临时公开数据 / 24 小时 / 非授权行情验证」;signal card 渲染 trend/momentum/volatility/volume;OHLCV 表格/图带 `public_observation` 标注 + 获取时间;断言 UI 无「批量导出 / 常驻下载 API」入口 | `plans/archive/plan-20260707-ephemeral-ohlcv-ui-display.md` |
+| 9 | [x] | Beta Guardrails + kill switch + 监控 + Release Gate Evidence(PRD §20 Sprint E/§21#15) | contract | kill switch fixture:flag off 时 tool 全拒返回 `KILL_SWITCH_ACTIVE`;abuse 测试套件(后台/批量/全市场/raw 违规导出)全绿;`grep` 断言 beta flag gate 存在;监控埋点(rate-limit/violation/cost/provider/cache/post-check)事件 schema 测试通过;产出 `plans/archive/*ephemeral-ohlcv-release-gate.evidence.md`,逐条覆盖 PRD §21 17 个 gate | `plans/archive/plan-20260707-ephemeral-ohlcv-beta-guardrails.md` |
 
 ## Execution Log
 
@@ -94,3 +127,12 @@ Keep this section last; `repo-harness run sprint-backlog complete-task` appends 
 
 | When | Task | Plan | Result |
 |------|------|------|--------|
+| 2026-07-07 03:19 HKT | Row 1: Ephemeral OHLCV Contract + Tool Policy | `plans/archive/plan-20260707-ephemeral-ohlcv-contract-tool-policy.md` | Completed. Added `technical_analysis_ephemeral` traceability, `analyze_public_technical_signal` registry/runtime policy, Generic deny + Research `userInitiated` gate, storage/output/error-code invariants; verified with vitest, `npm run check:tool-registry`, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:26 HKT | Row 2: stock-sdk Provider adapter + normalizeEphemeralBars | `plans/archive/plan-20260707-ephemeral-ohlcv-provider-normalize.md` | Completed. Added `EphemeralPublicOhlcvProvider`, `fetchNormalizedEphemeralBars`, `normalizeEphemeralBars`, 500-bar bound, invalid OHLC/duplicate/negative-volume/incomplete-latest-bar tests, and raw-response non-passthrough checks; verified with Row 2 vitest, market-data vitest, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:32 HKT | Row 3: Ephemeral 24h TTL cache + isolation + timeout/retry | `plans/archive/plan-20260707-ephemeral-ohlcv-cache-timeout.md` | Completed. Added in-memory 24h TTL cache scoped by `tenant_id:user_id:session_id`, cache hit/expiry/user-isolation tests, provider timeout with one retry, and fail-closed `PROVIDER_UNAVAILABLE` result without fabricated bars; verified with cache/ephemeral/market-data vitest, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:35 HKT | Row 4: Indicators + Signal Engine | `plans/archive/plan-20260707-ephemeral-ohlcv-indicators-signals.md` | Completed. Added deterministic MA/EMA/MACD/RSI/BOLL/ATR/volume/OBV indicators and observation-only trend/momentum/volatility/volume signal summaries; verified with technical/ephemeral/market-data vitest, typecheck, forbidden-term grep, and `git diff --check`. |
+| 2026-07-07 03:38 HKT | Row 5: Entitlement + Rate limit + anti-batch guardrail | `plans/archive/plan-20260707-ephemeral-ohlcv-entitlement-rate-limit.md` | Completed. Added fail-closed `evaluateEphemeralTechnicalAnalysisGuardrails` for Free vs Research/Pro entitlement, hourly/daily/concurrent limits, and batch/full-market rejection; verified with agent-runtime vitest, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:41 HKT | Row 6: Agent tool integration + answer template | `plans/archive/plan-20260707-ephemeral-ohlcv-agent-template.md` | Completed. Added Research-only `createEphemeralTechnicalAnalysisAgentPlan`, `public_observation` answer template, retrieved/delay metadata, with-bars LLM context, and event names; verified with agent-runtime vitest, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:43 HKT | Row 7: Post-check + transcript mode | `plans/archive/plan-20260707-ephemeral-ohlcv-post-check-transcript.md` | Completed. Added answer post-check blocking trade instructions and authorized/verified claims, default `temporary_only` transcript behavior, and long raw-table summary rewrite; verified with agent-runtime vitest, typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:47 HKT | Row 8: UI/UX consent + signal card + OHLCV display | `plans/archive/plan-20260707-ephemeral-ohlcv-ui-display.md` | Completed. Added SSR-testable `EphemeralOhlcvSignalCard` with consent copy, signal dimensions, public-observation OHLCV table, retrieved time, and no batch export/standing download API affordance; verified with component vitest, web/full typecheck, grep assertions, and `git diff --check`. |
+| 2026-07-07 03:50 HKT | Row 9: Beta Guardrails + kill switch + monitoring + release evidence | `plans/archive/plan-20260707-ephemeral-ohlcv-beta-guardrails.md` | Completed. Added beta flag/kill-switch guardrail, abuse probe rejections, monitoring event schema, and PRD §21 17-gate evidence file `plans/archive/20260707-ephemeral-ohlcv-release-gate.evidence.md`; verified with agent-runtime vitest, focused sprint vitest, `check:tool-registry`, typecheck, grep assertions, and `git diff --check`. |

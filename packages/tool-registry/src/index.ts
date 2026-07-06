@@ -32,6 +32,7 @@ export type RegisteredToolName =
   | "get_ipo_allotment"
   | "screen_ipos"
   | "compare_ipos"
+  | "analyze_public_technical_signal"
   | "parse_chart_image";
 
 export interface RegisteredToolDefinition {
@@ -557,6 +558,43 @@ export const REGISTERED_TOOLS = [
     { defaultLimit: 5, maxLimit: 5, rowLimitParameter: null },
     ["DATA_NOT_LICENSED", "DATA_QUALITY_HOLD", "NOT_FOUND", "TOO_MANY_ROWS"]
   ),
+  {
+    channels: ["web", "api"],
+    description:
+      "Analyze user-initiated public OHLCV into bounded technical observation signals.",
+    execution: createScaffoldReadOnlyExecution(),
+    lifecycle: createLifecycle("analyze_public_technical_signal"),
+    name: "analyze_public_technical_signal",
+    permissions: createPermissions("technical_analysis:read", [
+      "public_observation_signal",
+      "ephemeral_public_ohlcv",
+      "technical_signal"
+    ]),
+    retrieval: createRetrievalLimits({
+      defaultLimit: 1,
+      maxLimit: 1,
+      maxWindowDays: 366,
+      requiresTimeRange: true,
+      rowLimitParameter: null
+    }),
+    schema: createSchema("analyze_public_technical_signal", [
+      "USER_INITIATION_REQUIRED",
+      "GENERIC_AGENT_TOOL_DENIED",
+      "RAW_OHLCV_PERSISTENCE_BLOCKED",
+      "RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+      "BATCH_FETCH_NOT_ALLOWED",
+      "BACKGROUND_REFRESH_BLOCKED",
+      "FULL_MARKET_SCAN_BLOCKED",
+      "AUTHORIZED_CLAIM_BLOCKED",
+      "PROVIDER_UNAVAILABLE",
+      "DATA_QUALITY_HOLD",
+      "SCOPE_DENIED",
+      "TOO_MANY_ROWS"
+    ]),
+    status: "scaffold",
+    testing: createTesting("analyze_public_technical_signal", true),
+    version: "0.0.0"
+  },
   {
     channels: ["web", "api"],
     description:

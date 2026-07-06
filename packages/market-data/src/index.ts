@@ -1,5 +1,7 @@
 import type { ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 
+export * from "./ephemeral";
+
 export const GET_QUOTE_SNAPSHOT_VERSION =
   "2026-06-21.phase1.get-quote-snapshot-tool-scaffold.v0";
 export const GET_QUOTE_SNAPSHOT_DATA_VERSION = "quote-snapshot-synthetic-v0";

@@ -26,7 +26,8 @@ const requiredTools = [
   "get_ipo_offering",
   "get_ipo_allotment",
   "screen_ipos",
-  "compare_ipos"
+  "compare_ipos",
+  "analyze_public_technical_signal"
 ];
 const requiredRoutes = ["GET /tools/runtime", "GET /agent/runtime"];
 const requiredChannels = ["web", "mcp", "api"];
@@ -53,7 +54,8 @@ const scaffoldTools = [
   "get_ipo_offering",
   "get_ipo_allotment",
   "screen_ipos",
-  "compare_ipos"
+  "compare_ipos",
+  "analyze_public_technical_signal"
 ];
 
 let contract;

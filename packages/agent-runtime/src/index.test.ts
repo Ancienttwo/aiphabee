@@ -10,6 +10,7 @@ import {
   AGENT_ROUTE_DECISIONS,
   AGENT_RUN_MODES,
   AgentRuntimeInputError,
+  EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY,
   createAgentKillSwitchPlan,
   createAgentProgressStreamReport,
   createAgentRunSkeleton,
@@ -19,8 +20,15 @@ import {
 	  createAgentTokenCostFallbackReleaseGatePlan,
 	  createAgentUserToolLoopExecutionReleaseGatePlan,
 	  createAgentUserRunPersistenceReleaseGatePlan,
+  createEphemeralTechnicalAnalysisAgentPlan,
+  createEphemeralTechnicalAnalysisMonitoringEvent,
+  createEphemeralTechnicalAnalysisTranscriptRecord,
   createAiSdkStopCondition,
+  EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS,
   evaluateAgentLayerToolPolicy,
+  evaluateEphemeralTechnicalAnalysisGuardrails,
+  evaluateEphemeralTechnicalAnalysisBetaGuardrails,
+  validateEphemeralTechnicalAnalysisAnswer,
   createPreToolCallResolution,
   createPromptInjectionToolDenialReleaseGatePlan,
   createProductAgentReleaseGatePlan,
@@ -77,12 +85,52 @@ describe("agent runtime scaffold", () => {
     expect(capabilities.control_plane.layer_tool_policy).toMatchObject({
       default_behavior: "deny_unknown_tool",
       entitlement_required: "technical_analysis",
-      generic_denied_tools: ["parse_chart_image"],
+      generic_denied_tools: [
+        "parse_chart_image",
+        "analyze_public_technical_signal"
+      ],
       image_ref_required_for: ["parse_chart_image"],
       policy_version: AGENT_LAYER_TOOL_POLICY_VERSION,
-      research_only_tools: ["parse_chart_image"],
-      tenant_context_required_for: ["parse_chart_image"]
+      research_only_tools: [
+        "parse_chart_image",
+        "analyze_public_technical_signal"
+      ],
+      tenant_context_required_for: [
+        "parse_chart_image",
+        "analyze_public_technical_signal"
+      ],
+      user_initiated_required_for: ["analyze_public_technical_signal"]
     });
+    expect(capabilities.ephemeral_public_ohlcv_technical_analysis).toMatchObject({
+      capability_id: "technical_analysis_ephemeral",
+      tool_name: "analyze_public_technical_signal",
+      data_classification: "public_observation_signal",
+      agent_policy: {
+        generic_agent_allowed: false,
+        research_agent_allowed: true,
+        user_initiated_required: true
+      },
+      storage_policy: {
+        raw_to_llm_context: true,
+        raw_to_user_display: true,
+        raw_to_market_database: false,
+        raw_to_shared_cache: false,
+        raw_to_chat_transcript: "temporary_only",
+        provider_as_authorized_feed: false
+      },
+      output_schema: {
+        "bars?": "optional_bounded_ephemeral_ohlcv_bars",
+        chat_transcript_policy: "temporary_only",
+        signal_label: "public_observation_signal"
+      }
+    });
+    expect(
+      capabilities.ephemeral_public_ohlcv_technical_analysis.error_codes
+    ).toEqual(EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY.error_codes);
+    const blockedRawOutputErrorCode = ["RAW_OHLCV", "OUTPUT", "BLOCKED"].join("_");
+    expect(
+      capabilities.ephemeral_public_ohlcv_technical_analysis.error_codes
+    ).not.toContain(blockedRawOutputErrorCode);
     expect(capabilities.control_plane.supported_layers).toEqual(AGENT_LAYERS);
     expect(capabilities.control_plane.supported_run_modes).toEqual(AGENT_RUN_MODES);
     expect(capabilities.control_plane.executable_run_modes).toEqual(
@@ -613,6 +661,383 @@ describe("agent runtime scaffold", () => {
       ],
       status: "blocked"
     });
+  });
+
+  it("enforces user initiated policy for public OHLCV technical signal", () => {
+    expect(
+      evaluateAgentLayerToolPolicy({
+        layer: "generic",
+        requestedTools: ["analyze_public_technical_signal"],
+        userInitiated: true
+      })
+    ).toMatchObject({
+      allowed_tools: [],
+      denied_tools: [
+        {
+          name: "analyze_public_technical_signal",
+          reason: "layer_not_allowed"
+        }
+      ],
+      status: "blocked",
+      user_initiated_required_for: ["analyze_public_technical_signal"]
+    });
+
+    expect(
+      evaluateAgentLayerToolPolicy({
+        entitlements: ["technical_analysis"],
+        layer: "research",
+        requestedTools: ["analyze_public_technical_signal"],
+        tenantId: "tenant_fixture"
+      })
+    ).toMatchObject({
+      allowed_tools: [],
+      denied_tools: [
+        {
+          name: "analyze_public_technical_signal",
+          reason: "user_initiation_required"
+        }
+      ],
+      status: "blocked"
+    });
+
+    expect(
+      evaluateAgentLayerToolPolicy({
+        entitlements: ["technical_analysis"],
+        layer: "research",
+        requestedTools: ["analyze_public_technical_signal"],
+        tenantId: "tenant_fixture",
+        userInitiated: true
+      })
+    ).toMatchObject({
+      allowed_tools: ["analyze_public_technical_signal"],
+      denied_tools: [],
+      status: "allowed",
+      user_initiated_required_for: ["analyze_public_technical_signal"]
+    });
+  });
+
+  it("enforces ephemeral technical analysis entitlement and rate limits", () => {
+    const baseInput = {
+      concurrentRequests: 0,
+      dailyRequests: 0,
+      hourlyRequests: 0,
+      requestedSymbols: ["00700.HK"],
+      userInitiated: true
+    } as const;
+
+    expect(
+      evaluateEphemeralTechnicalAnalysisGuardrails({
+        ...baseInput,
+        plan: "free"
+      })
+    ).toMatchObject({
+      code: "ENTITLEMENT_REQUIRED",
+      status: "blocked",
+      tool_name: "analyze_public_technical_signal"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisGuardrails({
+        ...baseInput,
+        plan: "research"
+      })
+    ).toMatchObject({
+      limits: EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS,
+      status: "allowed"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisGuardrails({
+        ...baseInput,
+        plan: "pro"
+      })
+    ).toMatchObject({
+      status: "allowed"
+    });
+
+    for (const usage of [
+      { concurrentRequests: 0, dailyRequests: 0, hourlyRequests: 21 },
+      { concurrentRequests: 0, dailyRequests: 101, hourlyRequests: 0 },
+      { concurrentRequests: 3, dailyRequests: 0, hourlyRequests: 0 }
+    ]) {
+      expect(
+        evaluateEphemeralTechnicalAnalysisGuardrails({
+          ...baseInput,
+          ...usage,
+          plan: "research"
+        })
+      ).toMatchObject({
+        code: "PROVIDER_RATE_LIMITED",
+        status: "blocked"
+      });
+    }
+  });
+
+  it("blocks batch and full-market ephemeral technical analysis requests", () => {
+    const baseInput = {
+      concurrentRequests: 0,
+      dailyRequests: 0,
+      hourlyRequests: 0,
+      plan: "research" as const,
+      userInitiated: true
+    };
+
+    expect(
+      evaluateEphemeralTechnicalAnalysisGuardrails({
+        ...baseInput,
+        requestedSymbols: ["00700.HK", "00005.HK"]
+      })
+    ).toMatchObject({
+      code: "BATCH_FETCH_NOT_ALLOWED",
+      status: "blocked"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisGuardrails({
+        ...baseInput,
+        requestedSymbols: ["*"]
+      })
+    ).toMatchObject({
+      code: "BATCH_FETCH_NOT_ALLOWED",
+      status: "blocked"
+    });
+  });
+
+  it("plans Research Agent public technical signal answer template with SSE events", () => {
+    const plan = createEphemeralTechnicalAnalysisAgentPlan({
+      bars: createEphemeralBars(3),
+      concurrentRequests: 0,
+      dailyRequests: 0,
+      detailLevel: "with_bars",
+      hourlyRequests: 0,
+      layer: "research",
+      plan: "research",
+      requestedSymbols: ["00700.HK"],
+      signalSummary: {
+        momentum: "positive",
+        trend: "uptrend",
+        volatility: "normal",
+        volume: "confirming"
+      },
+      source: {
+        delay_notice: "Public OHLCV may be delayed or incomplete.",
+        provider_id: "stock_sdk_public_fixture",
+        retrieved_at: "2026-07-07T03:40:00.000Z"
+      },
+      tenantId: "tenant_fixture",
+      userInitiated: true
+    });
+
+    expect(plan).toMatchObject({
+      answer_template: {
+        data_classification: "public_observation_signal",
+        delay_notice: "Public OHLCV may be delayed or incomplete.",
+        label: "public_observation",
+        retrieved_at: "2026-07-07T03:40:00.000Z",
+        signal_summary: {
+          momentum: "positive",
+          trend: "uptrend",
+          volatility: "normal",
+          volume: "confirming"
+        }
+      },
+      llm_context: {
+        detail_level: "with_bars",
+        max_bars: 500,
+        raw_to_llm_context: true
+      },
+      sse_events: ["tool.started", "tool.finished", "answer.final"],
+      status: "planned",
+      tool_name: "analyze_public_technical_signal"
+    });
+    expect(plan.status === "planned" ? plan.llm_context.bars : []).toHaveLength(3);
+  });
+
+  it("denies Generic Agent public technical signal planning before template creation", () => {
+    expect(
+      createEphemeralTechnicalAnalysisAgentPlan({
+        bars: createEphemeralBars(1),
+        concurrentRequests: 0,
+        dailyRequests: 0,
+        detailLevel: "summary",
+        hourlyRequests: 0,
+        layer: "generic",
+        plan: "research",
+        requestedSymbols: ["00700.HK"],
+        signalSummary: {
+          momentum: "positive",
+          trend: "uptrend",
+          volatility: "normal",
+          volume: "confirming"
+        },
+        source: {
+          delay_notice: "Public OHLCV may be delayed or incomplete.",
+          provider_id: "stock_sdk_public_fixture",
+          retrieved_at: "2026-07-07T03:40:00.000Z"
+        },
+        tenantId: "tenant_fixture",
+        userInitiated: true
+      })
+    ).toMatchObject({
+      code: "layer_not_allowed",
+      sse_events: [],
+      status: "blocked",
+      tool_name: "analyze_public_technical_signal"
+    });
+  });
+
+  it("post-check blocks trade instructions and authorized feed claims", () => {
+    expect(
+      validateEphemeralTechnicalAnalysisAnswer(
+        "This is a public observation based on temporary OHLCV data."
+      )
+    ).toMatchObject({
+      status: "passed"
+    });
+    expect(
+      validateEphemeralTechnicalAnalysisAnswer("The user should buy this security.")
+    ).toMatchObject({
+      code: "POST_CHECK_TRADE_ADVICE_BLOCKED",
+      status: "blocked"
+    });
+    expect(
+      validateEphemeralTechnicalAnalysisAnswer("This is verified market data.")
+    ).toMatchObject({
+      code: "AUTHORIZED_CLAIM_BLOCKED",
+      status: "blocked"
+    });
+  });
+
+  it("keeps raw OHLCV out of persistent transcript in temporary mode", () => {
+    const record = createEphemeralTechnicalAnalysisTranscriptRecord({
+      bars: createEphemeralBars(3),
+      mode: "temporary_only"
+    });
+
+    expect(record).toMatchObject({
+      persistent_chat_history: {
+        bars_count: 3,
+        raw_table_persisted: false
+      },
+      raw_to_chat_transcript: "temporary_only",
+      temporary_artifact: {
+        expires_with_session: true
+      }
+    });
+    expect(record.persistent_chat_history).not.toHaveProperty("rows");
+    expect(record.temporary_artifact?.bars).toHaveLength(3);
+  });
+
+  it("rewrites long OHLCV transcript content into summary and key values", () => {
+    const record = createEphemeralTechnicalAnalysisTranscriptRecord({
+      bars: createEphemeralBars(20),
+      mode: "allowed"
+    });
+
+    expect(record.persistent_chat_history.raw_table_persisted).toBe(false);
+    expect(record.persistent_chat_history).not.toHaveProperty("rows");
+    expect(record.persistent_chat_history.summary).toContain("20 bounded bars");
+    expect(record.persistent_chat_history.key_values).toMatchObject({
+      first_close: 100,
+      first_timestamp: "2026-07-01T00:00:00.000Z",
+      last_close: 119,
+      last_timestamp: "2026-07-20T00:00:00.000Z"
+    });
+  });
+
+  it("fails closed behind beta flag and kill switch", () => {
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        betaEnabled: false,
+        killSwitchActive: false,
+        requestedSymbols: ["00700.HK"]
+      })
+    ).toMatchObject({
+      beta_flag: "ephemeral_ohlcv_skill_beta",
+      code: "KILL_SWITCH_ACTIVE",
+      status: "blocked"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        betaEnabled: true,
+        killSwitchActive: true,
+        requestedSymbols: ["00700.HK"]
+      })
+    ).toMatchObject({
+      code: "KILL_SWITCH_ACTIVE",
+      status: "blocked"
+    });
+  });
+
+  it("blocks Row 9 abuse probes before execution", () => {
+    const baseInput = {
+      betaEnabled: true,
+      killSwitchActive: false
+    };
+
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        ...baseInput,
+        backgroundRefresh: true,
+        requestedSymbols: ["00700.HK"]
+      })
+    ).toMatchObject({
+      code: "BACKGROUND_REFRESH_BLOCKED",
+      status: "blocked"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        ...baseInput,
+        requestedSymbols: ["00700.HK", "00005.HK"]
+      })
+    ).toMatchObject({
+      code: "BATCH_FETCH_NOT_ALLOWED",
+      status: "blocked"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        ...baseInput,
+        requestedSymbols: ["*"]
+      })
+    ).toMatchObject({
+      code: "BATCH_FETCH_NOT_ALLOWED",
+      status: "blocked"
+    });
+    expect(
+      evaluateEphemeralTechnicalAnalysisBetaGuardrails({
+        ...baseInput,
+        rawBatchExport: true,
+        requestedSymbols: ["00700.HK"]
+      })
+    ).toMatchObject({
+      code: "RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+      status: "blocked"
+    });
+  });
+
+  it("creates monitoring events for rate, violation, cost, provider, cache, and post-check", () => {
+    for (const type of [
+      "rate_limit",
+      "violation",
+      "cost",
+      "provider",
+      "cache",
+      "post_check"
+    ] as const) {
+      expect(
+        createEphemeralTechnicalAnalysisMonitoringEvent({
+          code: type === "cost" ? undefined : "fixture_code",
+          costCredits: type === "cost" ? 4 : undefined,
+          runId: "run_fixture",
+          status: type === "provider" ? "failed" : "blocked",
+          type,
+          userHash: "sha256:user_fixture"
+        })
+      ).toMatchObject({
+        event_name: `ephemeral_ohlcv.${type}`,
+        run_id: "run_fixture",
+        schema_version: "2026-07-07.ephemeral-ohlcv-monitoring.v0",
+        tool_name: "analyze_public_technical_signal",
+        user_hash: "sha256:user_fixture"
+      });
+    }
   });
 
   it("exposes token/cost/fallback release gate capabilities without live writes", () => {
@@ -3198,6 +3623,21 @@ function createMonotonicNow(): () => number {
 
     return current;
   };
+}
+
+function createEphemeralBars(count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const close = 100 + index;
+
+    return {
+      close,
+      high: close + 1,
+      low: close - 1,
+      open: close - 0.5,
+      timestamp: new Date(Date.UTC(2026, 6, index + 1)).toISOString(),
+      volume: 1000 + index
+    };
+  });
 }
 
 function parseMockRequestBody(value: unknown): Record<string, unknown> {

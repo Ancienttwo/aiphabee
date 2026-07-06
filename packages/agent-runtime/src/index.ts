@@ -117,7 +117,114 @@ export const DEFAULT_AGENT_RUN_TOOLS = [
   "get_entitlements"
 ] as const satisfies readonly RegisteredToolName[];
 export const AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT = "technical_analysis";
-export const AGENT_RESEARCH_ONLY_TOOLS = ["parse_chart_image"] as const;
+export const AGENT_RESEARCH_ONLY_TOOLS = [
+  "parse_chart_image",
+  "analyze_public_technical_signal"
+] as const satisfies readonly RegisteredToolName[];
+export const AGENT_IMAGE_REF_REQUIRED_TOOLS = ["parse_chart_image"] as const;
+export const AGENT_USER_INITIATED_REQUIRED_TOOLS = [
+  "analyze_public_technical_signal"
+] as const;
+export const AGENT_TENANT_CONTEXT_REQUIRED_TOOLS = AGENT_RESEARCH_ONLY_TOOLS;
+export const EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY = {
+  capability_id: "technical_analysis_ephemeral",
+  tool_name: "analyze_public_technical_signal",
+  data_classification: "public_observation_signal",
+  agent_policy: {
+    generic_agent_allowed: false,
+    research_agent_allowed: true,
+    user_initiated_required: true
+  },
+  bounded_scope: {
+    background_refresh_allowed: false,
+    batch_scan_allowed: false,
+    full_market_scan_allowed: false,
+    max_bars: 500,
+    max_symbols_per_run: 1
+  },
+  storage_policy: {
+    raw_to_llm_context: true,
+    raw_to_user_display: true,
+    raw_to_market_database: false,
+    raw_to_shared_cache: false,
+    raw_to_chat_transcript: "temporary_only",
+    provider_as_authorized_feed: false
+  },
+  output_schema: {
+    schema_id: "tool.analyze_public_technical_signal.output.v0",
+    "bars?": "optional_bounded_ephemeral_ohlcv_bars",
+    chat_transcript_policy: "temporary_only",
+    signal_label: "public_observation_signal"
+  },
+  error_codes: [
+    "USER_INITIATION_REQUIRED",
+    "GENERIC_AGENT_TOOL_DENIED",
+    "RAW_OHLCV_PERSISTENCE_BLOCKED",
+    "RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+    "BATCH_FETCH_NOT_ALLOWED",
+    "BACKGROUND_REFRESH_BLOCKED",
+    "FULL_MARKET_SCAN_BLOCKED",
+    "AUTHORIZED_CLAIM_BLOCKED",
+    "PROVIDER_UNAVAILABLE",
+    "DATA_QUALITY_HOLD",
+    "SCOPE_DENIED",
+    "TOO_MANY_ROWS"
+  ],
+  claim_policy: {
+    authorized_or_verified_claim_allowed: false,
+    provider_as_authorized_feed: false,
+    trade_instruction_terms_blocked: [
+      "buy",
+      "sell",
+      "hold",
+      "position",
+      "stop_loss"
+    ]
+  },
+  kill_switch: {
+    fail_closed: true
+  }
+} as const;
+export const EPHEMERAL_TECHNICAL_ANALYSIS_ALLOWED_PLANS = [
+  "research",
+  "pro"
+] as const;
+export const EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS = {
+  concurrent: 2,
+  daily: 100,
+  hourly: 20
+} as const;
+export const EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_TEMPLATE_VERSION =
+  "2026-07-07.ephemeral-technical-analysis-agent-template.v0";
+export const EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_EVENTS = [
+  "tool.started",
+  "tool.finished",
+  "answer.final"
+] as const;
+export const EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION =
+  "2026-07-07.ephemeral-technical-analysis-post-check.v0";
+export const EPHEMERAL_TECHNICAL_ANALYSIS_TRANSCRIPT_VERSION =
+  "2026-07-07.ephemeral-technical-analysis-transcript.v0";
+export const EPHEMERAL_TECHNICAL_ANALYSIS_BETA_FLAG =
+  "ephemeral_ohlcv_skill_beta";
+export const EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_SCHEMA_VERSION =
+  "2026-07-07.ephemeral-ohlcv-monitoring.v0";
+export const EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_EVENTS = [
+  "rate_limit",
+  "violation",
+  "cost",
+  "provider",
+  "cache",
+  "post_check"
+] as const;
+export const EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_EVENT_NAMES = [
+  "ephemeral_ohlcv.rate_limit",
+  "ephemeral_ohlcv.violation",
+  "ephemeral_ohlcv.cost",
+  "ephemeral_ohlcv.provider",
+  "ephemeral_ohlcv.cache",
+  "ephemeral_ohlcv.post_check"
+] as const;
 
 export const REGISTERED_AGENT_TOOLS = REGISTERED_TOOLS;
 export type RegisteredAgentToolName = RegisteredToolName;
@@ -308,6 +415,7 @@ export type AgentLayerToolPolicyDenialReason =
   | "image_ref_required"
   | "layer_not_allowed"
   | "tenant_context_required"
+  | "user_initiation_required"
   | "unknown_tool";
 
 export interface AgentExecutionRequest {
@@ -345,6 +453,7 @@ export interface AgentLayerToolPolicyInput {
   layer: AgentLayer;
   requestedTools?: readonly string[];
   tenantId?: string;
+  userInitiated?: boolean;
 }
 
 export interface AgentLayerToolPolicyDeniedTool {
@@ -357,14 +466,208 @@ export interface AgentLayerToolPolicyDecision {
   allowed_tools: RegisteredAgentToolName[];
   denied_tools: AgentLayerToolPolicyDeniedTool[];
   entitlement_checked: typeof AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT;
-  image_ref_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+  image_ref_required_for: typeof AGENT_IMAGE_REF_REQUIRED_TOOLS;
   layer: AgentLayer;
   model_calls: false;
   requested_tools: string[];
   research_only_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
   status: AgentLayerToolPolicyStatus;
-  tenant_context_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+  tenant_context_required_for: typeof AGENT_TENANT_CONTEXT_REQUIRED_TOOLS;
+  user_initiated_required_for: typeof AGENT_USER_INITIATED_REQUIRED_TOOLS;
   version: typeof AGENT_LAYER_TOOL_POLICY_VERSION;
+}
+
+export type EphemeralTechnicalAnalysisPlan =
+  | "enterprise"
+  | "free"
+  | "pro"
+  | "research";
+export type EphemeralTechnicalAnalysisGuardrailBlockCode =
+  | "BACKGROUND_REFRESH_BLOCKED"
+  | "BATCH_FETCH_NOT_ALLOWED"
+  | "ENTITLEMENT_REQUIRED"
+  | "PROVIDER_RATE_LIMITED"
+  | "USER_INITIATION_REQUIRED";
+
+export interface EphemeralTechnicalAnalysisGuardrailInput {
+  backgroundRefresh?: boolean;
+  concurrentRequests: number;
+  dailyRequests: number;
+  hourlyRequests: number;
+  plan: EphemeralTechnicalAnalysisPlan;
+  requestedSymbols: readonly string[];
+  userInitiated: boolean;
+}
+
+export type EphemeralTechnicalAnalysisGuardrailDecision =
+  | {
+      code?: undefined;
+      limits: typeof EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS;
+      plan: EphemeralTechnicalAnalysisPlan;
+      status: "allowed";
+      tool_name: "analyze_public_technical_signal";
+    }
+  | {
+      code: EphemeralTechnicalAnalysisGuardrailBlockCode;
+      limits: typeof EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS;
+      plan: EphemeralTechnicalAnalysisPlan;
+      status: "blocked";
+      tool_name: "analyze_public_technical_signal";
+    };
+
+export type EphemeralTechnicalAnalysisDetailLevel =
+  | "derived_values"
+  | "summary"
+  | "with_bars";
+
+export interface EphemeralTechnicalAnalysisContextBar {
+  close: number;
+  high: number;
+  low: number;
+  open: number;
+  timestamp: string;
+  volume: number | null;
+}
+
+export interface EphemeralTechnicalAnalysisAgentPlanInput
+  extends EphemeralTechnicalAnalysisGuardrailInput {
+  bars: readonly EphemeralTechnicalAnalysisContextBar[];
+  detailLevel: EphemeralTechnicalAnalysisDetailLevel;
+  layer: AgentLayer;
+  source: {
+    delay_notice: string;
+    provider_id: string;
+    retrieved_at: string;
+  };
+  signalSummary: {
+    momentum: string;
+    trend: string;
+    volatility: string;
+    volume: string;
+  };
+  tenantId: string;
+}
+
+export type EphemeralTechnicalAnalysisAgentPlan =
+  | {
+      answer_template: {
+        data_classification: "public_observation_signal";
+        label: "public_observation";
+        retrieved_at: string;
+        delay_notice: string;
+        signal_summary: EphemeralTechnicalAnalysisAgentPlanInput["signalSummary"];
+        version: typeof EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_TEMPLATE_VERSION;
+      };
+      llm_context: {
+        bars?: readonly EphemeralTechnicalAnalysisContextBar[];
+        detail_level: EphemeralTechnicalAnalysisDetailLevel;
+        max_bars: 500;
+        raw_to_llm_context: true;
+      };
+      sse_events: typeof EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_EVENTS;
+      status: "planned";
+      tool_name: "analyze_public_technical_signal";
+    }
+  | {
+      code: AgentLayerToolPolicyDenialReason | EphemeralTechnicalAnalysisGuardrailBlockCode;
+      sse_events: [];
+      status: "blocked";
+      tool_name: "analyze_public_technical_signal";
+    };
+
+export type EphemeralTechnicalAnalysisPostCheckCode =
+  | "AUTHORIZED_CLAIM_BLOCKED"
+  | "POST_CHECK_TRADE_ADVICE_BLOCKED";
+
+export type EphemeralTechnicalAnalysisPostCheckResult =
+  | {
+      code?: undefined;
+      status: "passed";
+      version: typeof EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION;
+    }
+  | {
+      code: EphemeralTechnicalAnalysisPostCheckCode;
+      status: "blocked";
+      version: typeof EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION;
+    };
+
+export type EphemeralRawTranscriptMode = "allowed" | "temporary_only";
+
+export interface EphemeralTechnicalAnalysisTranscriptInput {
+  bars: readonly EphemeralTechnicalAnalysisContextBar[];
+  mode?: EphemeralRawTranscriptMode;
+}
+
+export interface EphemeralTechnicalAnalysisTranscriptRecord {
+  persistent_chat_history: {
+    bars_count: number;
+    key_values: {
+      first_close?: number;
+      first_timestamp?: string;
+      last_close?: number;
+      last_timestamp?: string;
+    };
+    raw_table_persisted: boolean;
+    rows?: readonly EphemeralTechnicalAnalysisContextBar[];
+    summary: string;
+  };
+  raw_to_chat_transcript: EphemeralRawTranscriptMode;
+  temporary_artifact?: {
+    bars: readonly EphemeralTechnicalAnalysisContextBar[];
+    expires_with_session: true;
+  };
+  version: typeof EPHEMERAL_TECHNICAL_ANALYSIS_TRANSCRIPT_VERSION;
+}
+
+export type EphemeralTechnicalAnalysisBetaGuardrailCode =
+  | "BACKGROUND_REFRESH_BLOCKED"
+  | "BATCH_FETCH_NOT_ALLOWED"
+  | "KILL_SWITCH_ACTIVE"
+  | "RAW_OHLCV_BATCH_EXPORT_BLOCKED";
+
+export interface EphemeralTechnicalAnalysisBetaGuardrailInput {
+  backgroundRefresh?: boolean;
+  betaEnabled: boolean;
+  killSwitchActive: boolean;
+  rawBatchExport?: boolean;
+  requestedSymbols: readonly string[];
+}
+
+export type EphemeralTechnicalAnalysisBetaGuardrailDecision =
+  | {
+      beta_flag: typeof EPHEMERAL_TECHNICAL_ANALYSIS_BETA_FLAG;
+      code?: undefined;
+      status: "allowed";
+      tool_name: "analyze_public_technical_signal";
+    }
+  | {
+      beta_flag: typeof EPHEMERAL_TECHNICAL_ANALYSIS_BETA_FLAG;
+      code: EphemeralTechnicalAnalysisBetaGuardrailCode;
+      status: "blocked";
+      tool_name: "analyze_public_technical_signal";
+    };
+
+export type EphemeralTechnicalAnalysisMonitoringEventType =
+  (typeof EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_EVENTS)[number];
+
+export interface EphemeralTechnicalAnalysisMonitoringEventInput {
+  code?: string;
+  costCredits?: number;
+  runId: string;
+  status: "allowed" | "blocked" | "failed" | "ok";
+  type: EphemeralTechnicalAnalysisMonitoringEventType;
+  userHash: string;
+}
+
+export interface EphemeralTechnicalAnalysisMonitoringEvent {
+  code?: string;
+  cost_credits?: number;
+  event_name: `ephemeral_ohlcv.${EphemeralTechnicalAnalysisMonitoringEventType}`;
+  run_id: string;
+  schema_version: typeof EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_SCHEMA_VERSION;
+  status: "allowed" | "blocked" | "failed" | "ok";
+  tool_name: "analyze_public_technical_signal";
+  user_hash: string;
 }
 
 export interface AgentRunSkeletonInput {
@@ -715,6 +1018,7 @@ export interface AgentRuntimeCapabilities {
   };
   limits: typeof AGENT_RUNTIME_LIMITS;
   model_provider: "not_configured";
+  ephemeral_public_ohlcv_technical_analysis: typeof EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY;
   control_plane: {
     actual_tool_execution: false;
     authority_package: "@aiphabee/agent-runtime";
@@ -726,10 +1030,11 @@ export interface AgentRuntimeCapabilities {
       default_behavior: "deny_unknown_tool";
       entitlement_required: typeof AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT;
       generic_denied_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
-      image_ref_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+      image_ref_required_for: typeof AGENT_IMAGE_REF_REQUIRED_TOOLS;
       policy_version: typeof AGENT_LAYER_TOOL_POLICY_VERSION;
       research_only_tools: typeof AGENT_RESEARCH_ONLY_TOOLS;
-      tenant_context_required_for: typeof AGENT_RESEARCH_ONLY_TOOLS;
+      tenant_context_required_for: typeof AGENT_TENANT_CONTEXT_REQUIRED_TOOLS;
+      user_initiated_required_for: typeof AGENT_USER_INITIATED_REQUIRED_TOOLS;
     };
     live_tool_execution: false;
     model_calls: false;
@@ -2887,6 +3192,8 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       target_version: AI_SDK_TARGET_VERSION
     },
     limits: AGENT_RUNTIME_LIMITS,
+    ephemeral_public_ohlcv_technical_analysis:
+      EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY,
     kill_switch: {
       actual_tool_execution: false,
       frontend: false,
@@ -2912,10 +3219,11 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         default_behavior: "deny_unknown_tool",
         entitlement_required: AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT,
         generic_denied_tools: AGENT_RESEARCH_ONLY_TOOLS,
-        image_ref_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+        image_ref_required_for: AGENT_IMAGE_REF_REQUIRED_TOOLS,
         policy_version: AGENT_LAYER_TOOL_POLICY_VERSION,
         research_only_tools: AGENT_RESEARCH_ONLY_TOOLS,
-        tenant_context_required_for: AGENT_RESEARCH_ONLY_TOOLS
+        tenant_context_required_for: AGENT_TENANT_CONTEXT_REQUIRED_TOOLS,
+        user_initiated_required_for: AGENT_USER_INITIATED_REQUIRED_TOOLS
       },
       live_tool_execution: false,
       model_calls: false,
@@ -3387,13 +3695,14 @@ export function evaluateAgentLayerToolPolicy(
     allowed_tools: allowedTools,
     denied_tools: deniedTools,
     entitlement_checked: AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT,
-    image_ref_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+    image_ref_required_for: AGENT_IMAGE_REF_REQUIRED_TOOLS,
     layer: input.layer,
     model_calls: false,
     requested_tools: requestedTools,
     research_only_tools: AGENT_RESEARCH_ONLY_TOOLS,
     status: deniedTools.length > 0 ? "blocked" : "allowed",
-    tenant_context_required_for: AGENT_RESEARCH_ONLY_TOOLS,
+    tenant_context_required_for: AGENT_TENANT_CONTEXT_REQUIRED_TOOLS,
+    user_initiated_required_for: AGENT_USER_INITIATED_REQUIRED_TOOLS,
     version: AGENT_LAYER_TOOL_POLICY_VERSION
   };
 }
@@ -3406,10 +3715,6 @@ function getResearchOnlyToolDenialReason(
   tool: AgentResearchOnlyToolName,
   input: AgentLayerToolPolicyInput
 ): AgentLayerToolPolicyDenialReason | undefined {
-  if (tool !== "parse_chart_image") {
-    return "unknown_tool";
-  }
-
   if (input.layer !== "research") {
     return "layer_not_allowed";
   }
@@ -3422,11 +3727,258 @@ function getResearchOnlyToolDenialReason(
     return "tenant_context_required";
   }
 
-  if (input.imageRef === undefined || input.imageRef.trim().length === 0) {
+  if (
+    tool === "parse_chart_image" &&
+    (input.imageRef === undefined || input.imageRef.trim().length === 0)
+  ) {
     return "image_ref_required";
   }
 
-  return undefined;
+  if (tool === "analyze_public_technical_signal") {
+    return input.userInitiated === true ? undefined : "user_initiation_required";
+  }
+
+  return tool === "parse_chart_image" ? undefined : "unknown_tool";
+}
+
+export function evaluateEphemeralTechnicalAnalysisGuardrails(
+  input: EphemeralTechnicalAnalysisGuardrailInput
+): EphemeralTechnicalAnalysisGuardrailDecision {
+  const blocked = (
+    code: EphemeralTechnicalAnalysisGuardrailBlockCode
+  ): EphemeralTechnicalAnalysisGuardrailDecision => ({
+    code,
+    limits: EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS,
+    plan: input.plan,
+    status: "blocked",
+    tool_name: "analyze_public_technical_signal"
+  });
+
+  if (
+    !(EPHEMERAL_TECHNICAL_ANALYSIS_ALLOWED_PLANS as readonly string[]).includes(
+      input.plan
+    )
+  ) {
+    return blocked("ENTITLEMENT_REQUIRED");
+  }
+
+  if (!input.userInitiated) {
+    return blocked("USER_INITIATION_REQUIRED");
+  }
+
+  if (input.backgroundRefresh === true) {
+    return blocked("BACKGROUND_REFRESH_BLOCKED");
+  }
+
+  if (input.requestedSymbols.length !== 1 || input.requestedSymbols[0] === "*") {
+    return blocked("BATCH_FETCH_NOT_ALLOWED");
+  }
+
+  if (
+    input.hourlyRequests > EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS.hourly ||
+    input.dailyRequests > EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS.daily ||
+    input.concurrentRequests > EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS.concurrent
+  ) {
+    return blocked("PROVIDER_RATE_LIMITED");
+  }
+
+  return {
+    limits: EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS,
+    plan: input.plan,
+    status: "allowed",
+    tool_name: "analyze_public_technical_signal"
+  };
+}
+
+export function createEphemeralTechnicalAnalysisAgentPlan(
+  input: EphemeralTechnicalAnalysisAgentPlanInput
+): EphemeralTechnicalAnalysisAgentPlan {
+  const layerPolicy = evaluateAgentLayerToolPolicy({
+    entitlements: [AGENT_TECHNICAL_ANALYSIS_ENTITLEMENT],
+    layer: input.layer,
+    requestedTools: ["analyze_public_technical_signal"],
+    tenantId: input.tenantId,
+    userInitiated: input.userInitiated
+  });
+
+  if (layerPolicy.status === "blocked") {
+    return {
+      code: layerPolicy.denied_tools[0]?.reason ?? "unknown_tool",
+      sse_events: [],
+      status: "blocked",
+      tool_name: "analyze_public_technical_signal"
+    };
+  }
+
+  const guardrail = evaluateEphemeralTechnicalAnalysisGuardrails(input);
+
+  if (guardrail.status === "blocked") {
+    return {
+      code: guardrail.code,
+      sse_events: [],
+      status: "blocked",
+      tool_name: "analyze_public_technical_signal"
+    };
+  }
+
+  return {
+    answer_template: {
+      data_classification: "public_observation_signal",
+      delay_notice: input.source.delay_notice,
+      label: "public_observation",
+      retrieved_at: input.source.retrieved_at,
+      signal_summary: input.signalSummary,
+      version: EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_TEMPLATE_VERSION
+    },
+    llm_context: {
+      bars: input.detailLevel === "with_bars" ? input.bars.slice(0, 500) : undefined,
+      detail_level: input.detailLevel,
+      max_bars: 500,
+      raw_to_llm_context: true
+    },
+    sse_events: EPHEMERAL_TECHNICAL_ANALYSIS_AGENT_EVENTS,
+    status: "planned",
+    tool_name: "analyze_public_technical_signal"
+  };
+}
+
+export function validateEphemeralTechnicalAnalysisAnswer(
+  answer: string
+): EphemeralTechnicalAnalysisPostCheckResult {
+  const normalized = answer.toLowerCase();
+  const tradeAdvicePatterns = [
+    /\bbuy\b/u,
+    /\bsell\b/u,
+    /\bhold\b/u,
+    /\bposition\b/u,
+    /\bstop[-\s]?loss\b/u,
+    /买入/u,
+    /卖出/u,
+    /持有/u,
+    /仓位/u,
+    /止损/u
+  ];
+  const authorizedClaimPatterns = [
+    /authorized\s+(market\s+)?data/u,
+    /verified\s+(market\s+)?data/u,
+    /授权行情/u,
+    /已验证行情/u
+  ];
+
+  if (tradeAdvicePatterns.some((pattern) => pattern.test(normalized))) {
+    return {
+      code: "POST_CHECK_TRADE_ADVICE_BLOCKED",
+      status: "blocked",
+      version: EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION
+    };
+  }
+
+  if (authorizedClaimPatterns.some((pattern) => pattern.test(normalized))) {
+    return {
+      code: "AUTHORIZED_CLAIM_BLOCKED",
+      status: "blocked",
+      version: EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION
+    };
+  }
+
+  return {
+    status: "passed",
+    version: EPHEMERAL_TECHNICAL_ANALYSIS_POST_CHECK_VERSION
+  };
+}
+
+export function createEphemeralTechnicalAnalysisTranscriptRecord(
+  input: EphemeralTechnicalAnalysisTranscriptInput
+): EphemeralTechnicalAnalysisTranscriptRecord {
+  const mode = input.mode ?? "temporary_only";
+  const first = input.bars[0];
+  const last = input.bars.at(-1);
+  const keyValues = {
+    first_close: first?.close,
+    first_timestamp: first?.timestamp,
+    last_close: last?.close,
+    last_timestamp: last?.timestamp
+  };
+  const summary = `Ephemeral public OHLCV summary: ${input.bars.length} bounded bars; first=${keyValues.first_timestamp ?? "n/a"}; last=${keyValues.last_timestamp ?? "n/a"}.`;
+
+  if (mode === "allowed" && input.bars.length <= 5) {
+    return {
+      persistent_chat_history: {
+        bars_count: input.bars.length,
+        key_values: keyValues,
+        raw_table_persisted: true,
+        rows: input.bars,
+        summary
+      },
+      raw_to_chat_transcript: mode,
+      version: EPHEMERAL_TECHNICAL_ANALYSIS_TRANSCRIPT_VERSION
+    };
+  }
+
+  return {
+    persistent_chat_history: {
+      bars_count: input.bars.length,
+      key_values: keyValues,
+      raw_table_persisted: false,
+      summary
+    },
+    raw_to_chat_transcript: "temporary_only",
+    temporary_artifact: {
+      bars: input.bars,
+      expires_with_session: true
+    },
+    version: EPHEMERAL_TECHNICAL_ANALYSIS_TRANSCRIPT_VERSION
+  };
+}
+
+export function evaluateEphemeralTechnicalAnalysisBetaGuardrails(
+  input: EphemeralTechnicalAnalysisBetaGuardrailInput
+): EphemeralTechnicalAnalysisBetaGuardrailDecision {
+  const blocked = (
+    code: EphemeralTechnicalAnalysisBetaGuardrailCode
+  ): EphemeralTechnicalAnalysisBetaGuardrailDecision => ({
+    beta_flag: EPHEMERAL_TECHNICAL_ANALYSIS_BETA_FLAG,
+    code,
+    status: "blocked",
+    tool_name: "analyze_public_technical_signal"
+  });
+
+  if (!input.betaEnabled || input.killSwitchActive) {
+    return blocked("KILL_SWITCH_ACTIVE");
+  }
+
+  if (input.backgroundRefresh === true) {
+    return blocked("BACKGROUND_REFRESH_BLOCKED");
+  }
+
+  if (input.rawBatchExport === true) {
+    return blocked("RAW_OHLCV_BATCH_EXPORT_BLOCKED");
+  }
+
+  if (input.requestedSymbols.length !== 1 || input.requestedSymbols[0] === "*") {
+    return blocked("BATCH_FETCH_NOT_ALLOWED");
+  }
+
+  return {
+    beta_flag: EPHEMERAL_TECHNICAL_ANALYSIS_BETA_FLAG,
+    status: "allowed",
+    tool_name: "analyze_public_technical_signal"
+  };
+}
+
+export function createEphemeralTechnicalAnalysisMonitoringEvent(
+  input: EphemeralTechnicalAnalysisMonitoringEventInput
+): EphemeralTechnicalAnalysisMonitoringEvent {
+  return {
+    code: input.code,
+    cost_credits: input.costCredits,
+    event_name: `ephemeral_ohlcv.${input.type}`,
+    run_id: input.runId,
+    schema_version: EPHEMERAL_TECHNICAL_ANALYSIS_MONITORING_SCHEMA_VERSION,
+    status: input.status,
+    tool_name: "analyze_public_technical_signal",
+    user_hash: input.userHash
+  };
 }
 
 export function createAgentRunSkeleton(input: AgentRunSkeletonInput): AgentRunSkeleton {
@@ -7098,6 +7650,12 @@ const TOOL_USAGE_ESTIMATES: Record<
     rows: 5,
     tokens: 700,
     wall_clock_ms: 900
+  },
+  analyze_public_technical_signal: {
+    credits: 4,
+    rows: 500,
+    tokens: 900,
+    wall_clock_ms: 1200
   },
   parse_chart_image: {
     credits: 1,

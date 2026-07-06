@@ -1,6 +1,31 @@
 {
   "version": 1,
   "capabilities": [
-
+    {
+      "id": "technical_analysis_ephemeral",
+      "name": "Ephemeral Public OHLCV Technical Analysis",
+      "status": "contract_scaffold",
+      "source_prd": "plans/prds/20260703-2207-ohlcv-skill.prd.md",
+      "source_sprint": "plans/sprints/20260703-2214-ephemeral-ohlcv-skill.sprint.md",
+      "skill_entrypoint": "analyze_public_technical_signal",
+      "data_classification": "public_observation_signal",
+      "authority_packages": [
+        "packages/tool-registry",
+        "packages/agent-runtime"
+      ],
+      "invariants": {
+        "raw_to_llm_context": true,
+        "raw_to_user_display": true,
+        "raw_to_market_database": false,
+        "raw_to_shared_cache": false,
+        "raw_to_chat_transcript": "temporary_only",
+        "provider_as_authorized_feed": false,
+        "user_initiated_required": true,
+        "generic_agent_allowed": false,
+        "research_agent_allowed": true,
+        "max_symbols_per_run": 1,
+        "max_bars": 500
+      }
+    }
   ]
 }
