@@ -22,35 +22,44 @@ export interface StageRailProps {
 /** IPO lifecycle lanes with per-stage counts (the pipeline kanban header). */
 export function StageRail({ active, setActive }: StageRailProps) {
   return (
-    <div style={{ display: "flex", gap: 12, marginBottom: 22, flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        gap: 12,
+        marginBottom: 22,
+      }}
+    >
       <button
         type="button"
         onClick={() => setActive("all")}
         style={{
+          width: "100%",
+          minHeight: 86,
           cursor: "pointer",
           padding: "14px 18px",
           borderRadius: "var(--radius-lg)",
           border: "1px solid " + (active === "all" ? "var(--honey-500)" : "var(--border-subtle)"),
-          background: active === "all" ? "var(--ink-800)" : "var(--surface-card)",
-          minWidth: 120,
+          background: active === "all" ? "var(--surface-honey)" : "var(--surface-card)",
+          boxShadow: active === "all" ? "var(--shadow-sm)" : "none",
           textAlign: "left",
         }}
       >
-        <Eyebrow style={{ color: active === "all" ? "rgba(255,255,255,0.6)" : undefined }}>
+        <Eyebrow style={{ color: active === "all" ? "var(--honey-700)" : undefined }}>
           All Pipeline
         </Eyebrow>
         <div style={{ marginTop: 8, display: "flex", alignItems: "baseline", gap: 6 }}>
           <Mono
             size="var(--text-2xl)"
             weight={800}
-            color={active === "all" ? "#fff" : "var(--text-primary)"}
+            color={active === "all" ? "var(--honey-700)" : "var(--text-primary)"}
           >
             {IPOS.length}
           </Mono>
           <span
             style={{
               fontSize: "var(--text-xs)",
-              color: active === "all" ? "rgba(255,255,255,0.6)" : "var(--text-subtle)",
+              color: "var(--text-subtle)",
             }}
           >
             个标的
@@ -66,8 +75,8 @@ export function StageRail({ active, setActive }: StageRailProps) {
             type="button"
             onClick={() => setActive(on ? "all" : (s.key as IpoStage))}
             style={{
-              flex: 1,
-              minWidth: 144,
+              width: "100%",
+              minHeight: 86,
               textAlign: "left",
               cursor: "pointer",
               padding: "14px 16px",

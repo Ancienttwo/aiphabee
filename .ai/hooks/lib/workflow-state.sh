@@ -70,198 +70,6 @@ workflow_repo_relative_path() {
   esac
 }
 
-workflow_context_latest_file() {
-  workflow_repo_relative_path "$(workflow_policy_get '.context_audit.latest_file' '.ai/harness/context-health/latest.json')" '.ai/harness/context-health/latest.json' '.ai/harness/'
-}
-
-workflow_context_dirty_file() {
-  workflow_repo_relative_path "$(workflow_policy_get '.context_audit.dirty_file' '.ai/harness/context-health/dirty.json')" '.ai/harness/context-health/dirty.json' '.ai/harness/'
-}
-
-workflow_context_session_rendered_file() {
-  workflow_repo_relative_path "$(workflow_policy_get '.context_audit.session_rendered_file' '.ai/harness/context-health/session-start.rendered')" '.ai/harness/context-health/session-start.rendered' '.ai/harness/'
-}
-
-workflow_context_stop_rendered_file() {
-  workflow_repo_relative_path "$(workflow_policy_get '.context_audit.stop_rendered_file' '.ai/harness/context-health/stop.rendered')" '.ai/harness/context-health/stop.rendered' '.ai/harness/'
-}
-
-workflow_context_dirty_reason() {
-  case "$1" in
-    AGENTS.md|CLAUDE.md|WARP.md|CONTRIBUTING.md|.github/copilot-instructions.md)
-      printf '%s' "top_level_router_changed"
-      ;;
-    .agents/skills/*/SKILL.md|.codex/skills/*/SKILL.md)
-      printf '%s' "agent_skill_changed"
-      ;;
-    .ai/context/*)
-      printf '%s' "context_routing_changed"
-      ;;
-    .ai/hooks/*|assets/hooks/*)
-      printf '%s' "hook_runtime_changed"
-      ;;
-    .ai/harness/policy.json|.ai/harness/workflow-contract.json|assets/workflow-contract.v1.json)
-      printf '%s' "harness_policy_changed"
-      ;;
-    package.json|bun.lock|bun.lockb|Makefile|pyproject.toml|Cargo.toml|go.mod)
-      printf '%s' "command_source_changed"
-      ;;
-    .github/workflows/*)
-      printf '%s' "ci_workflow_changed"
-      ;;
-    docs/spec.md|docs/reference-configs/*|specs/*/PRODUCT.md|specs/*/TECH.md|tasks/workstreams/*)
-      printf '%s' "context_source_changed"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-workflow_context_is_high_context_path() {
-  workflow_context_dirty_reason "$1" >/dev/null 2>&1
-}
-
-workflow_context_mark_dirty() {
-  local path="$1" reason dirty_file dirty_dir tmp now escaped_path escaped_reason
-
-  reason="$(workflow_context_dirty_reason "$path" 2>/dev/null || true)"
-  [[ -n "$reason" ]] || return 0
-
-  dirty_file="$(workflow_context_dirty_file)"
-  dirty_dir="$(dirname "$dirty_file")"
-  mkdir -p "$dirty_dir" 2>/dev/null || return 0
-
-  if command -v node >/dev/null 2>&1 || command -v bun >/dev/null 2>&1; then
-    local js='
-const fs = require("fs");
-const path = require("path");
-const file = process.env.CONTEXT_DIRTY_FILE;
-const changedPath = process.env.CONTEXT_CHANGED_PATH;
-const reason = process.env.CONTEXT_DIRTY_REASON;
-const lockDir = `${file}.lock`;
-function sleep(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-function acquireLock() {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  for (let attempt = 0; attempt < 250; attempt += 1) {
-    try {
-      fs.mkdirSync(lockDir);
-      return;
-    } catch (error) {
-      if (error && error.code === "EEXIST") {
-        sleep(10);
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw new Error(`timed out acquiring lock: ${lockDir}`);
-}
-acquireLock();
-try {
-let current = {};
-try {
-  current = JSON.parse(fs.readFileSync(file, "utf8"));
-} catch {}
-const existing = Array.isArray(current.triggers) ? current.triggers : [];
-const seen = new Set();
-const triggers = [];
-for (const trigger of existing) {
-  if (!trigger || typeof trigger.path !== "string" || typeof trigger.reason !== "string") continue;
-  const key = `${trigger.path}\u0000${trigger.reason}`;
-  if (seen.has(key)) continue;
-  seen.add(key);
-  triggers.push({ path: trigger.path, reason: trigger.reason });
-}
-const key = `${changedPath}\u0000${reason}`;
-if (!seen.has(key)) triggers.push({ path: changedPath, reason });
-const next = {
-  schema_version: 1,
-  status: "dirty",
-  updated_at: new Date().toISOString(),
-  triggers,
-};
-if (typeof current.audit_head_sha === "string" && current.audit_head_sha) next.audit_head_sha = current.audit_head_sha;
-fs.mkdirSync(path.dirname(file), { recursive: true });
-const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-fs.writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, "utf8");
-fs.renameSync(tmp, file);
-} finally {
-  fs.rmSync(lockDir, { recursive: true, force: true });
-}
-'
-    if command -v node >/dev/null 2>&1; then
-      CONTEXT_DIRTY_FILE="$dirty_file" CONTEXT_CHANGED_PATH="$path" CONTEXT_DIRTY_REASON="$reason" node -e "$js" >/dev/null 2>&1 && return 0
-    else
-      CONTEXT_DIRTY_FILE="$dirty_file" CONTEXT_CHANGED_PATH="$path" CONTEXT_DIRTY_REASON="$reason" bun -e "$js" >/dev/null 2>&1 && return 0
-    fi
-  fi
-
-  now="$(date '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null || date)"
-  escaped_path="$(workflow_json_escape "$path")"
-  escaped_reason="$(workflow_json_escape "$reason")"
-  tmp="${dirty_file}.$$.$RANDOM.tmp"
-  cat > "$tmp" <<EOF_CONTEXT_DIRTY
-{
-  "schema_version": 1,
-  "status": "dirty",
-  "updated_at": "$(workflow_json_escape "$now")",
-  "triggers": [
-    {
-      "path": "$escaped_path",
-      "reason": "$escaped_reason"
-    }
-  ]
-}
-EOF_CONTEXT_DIRTY
-  mv "$tmp" "$dirty_file" 2>/dev/null || rm -f "$tmp"
-}
-
-workflow_context_status_json() {
-  if [[ -n "${REPO_HARNESS_CLI:-}" && -f "${REPO_HARNESS_CLI:-}" ]] && command -v bun >/dev/null 2>&1; then
-    bun "$REPO_HARNESS_CLI" context status --json
-    return $?
-  fi
-
-  if command -v repo-harness >/dev/null 2>&1; then
-    repo-harness context status --json
-    return $?
-  fi
-
-  if command -v bun >/dev/null 2>&1 && [[ -f "src/cli/index.ts" ]]; then
-    bun src/cli/index.ts context status --json
-    return $?
-  fi
-
-  return 1
-}
-
-workflow_hook_entry() {
-  if [[ -n "${REPO_HARNESS_HOOK_CLI:-}" && -f "${REPO_HARNESS_HOOK_CLI:-}" ]] && command -v bun >/dev/null 2>&1; then
-    bun "$REPO_HARNESS_HOOK_CLI" "$@"
-    return $?
-  fi
-
-  if [[ -n "${HOOK_REPO_ROOT:-}" && -f "$HOOK_REPO_ROOT/src/cli/hook-entry.ts" ]] && command -v bun >/dev/null 2>&1; then
-    bun "$HOOK_REPO_ROOT/src/cli/hook-entry.ts" "$@"
-    return $?
-  fi
-
-  if [[ -f "src/cli/hook-entry.ts" ]] && command -v bun >/dev/null 2>&1; then
-    bun "src/cli/hook-entry.ts" "$@"
-    return $?
-  fi
-
-  if command -v repo-harness-hook >/dev/null 2>&1; then
-    repo-harness-hook "$@"
-    return $?
-  fi
-
-  return 127
-}
-
 workflow_context_map_file() {
   workflow_repo_relative_path "$(workflow_policy_get '.context.map_file' '.ai/context/context-map.json')" '.ai/context/context-map.json' '.ai/context/'
 }
@@ -833,7 +641,7 @@ workflow_next_action() {
     target="$(workflow_target_branch)"
     current_branch="$(workflow_current_branch)"
     if workflow_is_linked_worktree && [[ -n "$current_branch" && "$current_branch" != "$target" ]]; then
-      printf 'finish\tbash scripts/contract-worktree.sh finish\tReview/checks pass; finish and fast-forward merge this contract worktree.\n'
+      printf 'finish\trepo-harness run contract-worktree finish\tReview/checks pass; finish and fast-forward merge this contract worktree.\n'
       return 0
     fi
   fi
@@ -841,7 +649,7 @@ workflow_next_action() {
   if candidate="$(workflow_cleanup_candidate)"; then
     IFS=$'\t' read -r slug branch worktree <<< "$candidate"
     target="$(workflow_target_branch)"
-    command="bash scripts/contract-worktree.sh cleanup --slug ${slug} --target ${target}"
+    command="repo-harness run contract-worktree cleanup --slug ${slug} --target ${target}"
     printf 'cleanup\t%s\tClean up merged contract worktree %s.\n' "$command" "${branch:-$slug}"
     return 0
   fi
@@ -1480,6 +1288,166 @@ workflow_review_recommends_pass() {
   grep -Eq '^> \*\*Recommendation\*\*:[[:space:]]*pass[[:space:]]*$' "$review_file"
 }
 
+workflow_review_metadata_field() {
+  local review_file="${1:-}"
+  local field="${2:-}"
+  [[ -n "$review_file" && -f "$review_file" && -n "$field" ]] || return 1
+  awk -v field="$field" '
+    # Top-of-file metadata only: stop at the first section heading so a
+    # section-level "> **<field>**:" line (e.g. the External Acceptance section
+    # carries its own Reviewed Diff Fingerprint) can never be read as a top-level
+    # value when the real header omits it.
+    /^## / { exit }
+    index($0, "> **" field "**:") == 1 {
+      sub("^> \\*\\*" field "\\*\\*:[[:space:]]*", "");
+      gsub(/\r/, "");
+      print;
+      exit;
+    }
+  ' "$review_file"
+}
+
+workflow_review_fingerprint() {
+  workflow_review_metadata_field "${1:-}" "Reviewed Diff Fingerprint"
+}
+
+workflow_review_rubric_version() {
+  workflow_review_metadata_field "${1:-}" "Review Rubric Version"
+}
+
+# Classify the top-of-file Review Rubric Version. Echoes one of:
+#   absent     - no rubric line at all (a genuine pre-rubric legacy artifact)
+#   1 or 2     - a supported rubric version (1 = legacy, 2 = current)
+#   malformed  - a rubric line is present but is not a supported version
+#                (non-numeric, 0, an unsupported number, or quote/space garbage)
+# A present-but-unsupported rubric means the artifact claims a schema this gate
+# cannot evaluate, so callers must fail closed rather than fall through to the
+# lenient legacy path. Only a genuinely absent rubric stays lenient.
+workflow_review_rubric_class() {
+  local raw trimmed
+  raw="$(workflow_review_rubric_version "${1:-}")"
+  # Trim surrounding whitespace WITHOUT xargs: an unbalanced quote in the value
+  # makes xargs fail and emit nothing, which would silently downgrade a malformed
+  # rubric to "absent" (legacy lenient) — exactly the fail-open this prevents.
+  trimmed="${raw#"${raw%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  if [[ -z "$trimmed" ]]; then
+    printf 'absent'
+  elif [[ "$trimmed" == "1" || "$trimmed" == "2" ]]; then
+    printf '%s' "$trimmed"
+  else
+    printf 'malformed'
+  fi
+}
+
+workflow_hook_cli_json() {
+  if [[ -n "${REPO_HARNESS_HOOK_CLI:-}" && -f "${REPO_HARNESS_HOOK_CLI:-}" ]] && command -v bun >/dev/null 2>&1; then
+    bun "$REPO_HARNESS_HOOK_CLI" "$@"
+    return $?
+  fi
+  if [[ -n "${HOOK_REPO_ROOT:-}" && -f "$HOOK_REPO_ROOT/src/cli/hook-entry.ts" ]] && command -v bun >/dev/null 2>&1; then
+    bun "$HOOK_REPO_ROOT/src/cli/hook-entry.ts" "$@"
+    return $?
+  fi
+  if [[ -n "${REPO_HARNESS_CLI:-}" && -f "${REPO_HARNESS_CLI:-}" ]] && command -v bun >/dev/null 2>&1; then
+    bun "$REPO_HARNESS_CLI" "$@"
+    return $?
+  fi
+  if command -v repo-harness-hook >/dev/null 2>&1; then
+    repo-harness-hook "$@"
+    return $?
+  fi
+  if command -v repo-harness >/dev/null 2>&1; then
+    repo-harness "$@"
+    return $?
+  fi
+  return 127
+}
+
+workflow_json_field() {
+  local json="${1:-}"
+  local field="${2:-}"
+  [[ -n "$json" && -n "$field" ]] || return 1
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$json" | jq -r ".$field // empty" 2>/dev/null || true
+    return
+  fi
+  if command -v bun >/dev/null 2>&1; then
+    JSON_INPUT="$json" JSON_FIELD="$field" bun -e '
+      try {
+        const parsed = JSON.parse(process.env.JSON_INPUT ?? "");
+        const value = parsed?.[process.env.JSON_FIELD ?? ""];
+        if (value != null) process.stdout.write(String(value));
+      } catch {}
+    ' 2>/dev/null || true
+  fi
+}
+
+workflow_current_review_fingerprint_json() {
+  # Bind the fingerprint to the resolved target branch so base_rev tracks the
+  # target tip; without --base the CLI falls back to HEAD, making the branch diff
+  # HEAD...HEAD (empty) and blinding the gate to target movement.
+  local target
+  target="$(workflow_target_branch)"
+  workflow_hook_cli_json review-fingerprint --base "$target" --format json 2>/dev/null || true
+}
+
+workflow_current_review_fingerprint_value() {
+  local json status fingerprint
+  json="$(workflow_current_review_fingerprint_json)"
+  status="$(workflow_json_field "$json" "status")"
+  [[ "$status" == "ok" ]] || return 1
+  fingerprint="$(workflow_json_field "$json" "fingerprint")"
+  [[ -n "$fingerprint" ]] || return 1
+  printf '%s' "$fingerprint"
+}
+
+workflow_review_freshness_status() {
+  local review_file="${1:-}"
+  local reviewed rubric_class current_json current_status current_fingerprint current_scope
+
+  reviewed="$(workflow_review_fingerprint "$review_file" | xargs || true)"
+  rubric_class="$(workflow_review_rubric_class "$review_file")"
+  if [[ "$rubric_class" == "malformed" ]]; then
+    # A malformed/unsupported rubric claims a schema this gate cannot evaluate;
+    # fail closed at the freshness stage instead of treating it as legacy.
+    printf 'malformed_schema\t-\tReview Rubric Version is malformed or unsupported; rerun /check to record the review under a supported rubric, or record a Manual Override.\n'
+    return 0
+  fi
+  if [[ -z "$reviewed" || "$reviewed" == "pending" || "$reviewed" == "unknown" ]]; then
+    # A supported rubric (v1+) with no concrete fingerprint was never bound to the
+    # diff: fail closed (`missing`). An `absent` rubric stays on the advisory legacy
+    # path here — the external-acceptance gate is the authority that requires a
+    # supported rubric (a rubric-less review fails external acceptance), so absent
+    # is still blocked at every Done/finish/verify gate that enforces external.
+    if [[ "$rubric_class" != "absent" ]]; then
+      printf 'missing\t-\tReview fingerprint is missing for rubric v%s; rerun /check and peer acceptance to record the current Reviewed Diff Fingerprint.\n' "$rubric_class"
+      return 0
+    fi
+    printf 'legacy_missing\t-\tReview fingerprint is missing; rerun /check to refresh the review metadata.\n'
+    return 0
+  fi
+  if ! [[ "$reviewed" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+    printf 'malformed\t%s\tReview fingerprint is malformed; rerun /check and peer acceptance.\n' "$reviewed"
+    return 0
+  fi
+
+  current_json="$(workflow_current_review_fingerprint_json)"
+  current_status="$(workflow_json_field "$current_json" "status")"
+  current_fingerprint="$(workflow_json_field "$current_json" "fingerprint")"
+  current_scope="$(workflow_json_field "$current_json" "scope")"
+  if [[ "$current_status" != "ok" || -z "$current_fingerprint" ]]; then
+    printf 'unknown\t-\tCurrent implementation diff fingerprint is unknown; rerun /check after git state is readable.\n'
+    return 0
+  fi
+  if [[ "$reviewed" != "$current_fingerprint" ]]; then
+    printf 'stale\t%s\tReview is stale for current implementation diff fingerprint %s; rerun /check and peer acceptance.\n' "$reviewed" "$current_fingerprint"
+    return 0
+  fi
+
+  printf 'pass\t%s\tReview fingerprint is fresh for %s.\n' "$reviewed" "${current_scope:-branch+staged+unstaged+untracked}"
+}
+
 workflow_external_acceptance_expected_reviewer() {
   local host="${HOOK_HOST:-}"
 
@@ -1600,6 +1568,51 @@ workflow_external_acceptance_status() {
     printf 'fail\t%s\t%s\tExternal acceptance has P1 blockers: %s\n' "${reviewer:--}" "${source:--}" "${p1_blockers:-missing}"
     return 0
   fi
+
+  # Bind the peer's acceptance to the exact diff they reviewed. A supported rubric
+  # (v1+) requires the External Acceptance section to carry its own current Reviewed
+  # Diff Fingerprint and scope; otherwise a stale F1 acceptance keeps satisfying the
+  # gate after the implementation moves to F2, because the top-of-file fingerprint
+  # is agent-editable. An absent or malformed rubric fails closed here — external
+  # acceptance is the authority that requires a supported rubric; Manual Override
+  # above is the only escape for a genuine pre-rubric legacy artifact.
+  local rubric_class section_fp section_scope current_fp
+  rubric_class="$(workflow_review_rubric_class "$review_file")"
+  case "$rubric_class" in
+    absent)
+      # An absent rubric cannot be proven to predate the rubric (it may have been
+      # stripped to skip binding), so fail closed. Manual Override above is the
+      # escape hatch for a genuine pre-rubric legacy artifact.
+      printf 'fail\t%s\t%s\tReview Rubric Version is missing; rerun peer acceptance under a supported rubric or record a Manual Override.\n' "${reviewer:--}" "${source:--}"
+      return 0
+      ;;
+    malformed)
+      # An unsupported rubric must not silently disable the binding check.
+      printf 'fail\t%s\t%s\tReview Rubric Version is malformed or unsupported; rerun peer acceptance under a supported rubric or record a Manual Override.\n' "${reviewer:--}" "${source:--}"
+      return 0
+      ;;
+    *)
+      section_fp="$(workflow_external_acceptance_field "$section" "Reviewed Diff Fingerprint" | xargs || true)"
+      section_scope="$(workflow_external_acceptance_field "$section" "Reviewed Scope" | xargs || true)"
+      current_fp="$(workflow_current_review_fingerprint_value || true)"
+      if [[ -z "$current_fp" ]]; then
+        printf 'fail\t%s\t%s\tCurrent implementation diff fingerprint is unknown; rerun peer acceptance after git state is readable.\n' "${reviewer:--}" "${source:--}"
+        return 0
+      fi
+      if ! [[ "$section_fp" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+        printf 'fail\t%s\t%s\tExternal acceptance is missing a valid Reviewed Diff Fingerprint for rubric v%s; rerun peer acceptance for the current diff.\n' "${reviewer:--}" "${source:--}" "$rubric_class"
+        return 0
+      fi
+      if [[ "$section_fp" != "$current_fp" ]]; then
+        printf 'fail\t%s\t%s\tExternal acceptance fingerprint %s is stale for current implementation diff %s; rerun peer acceptance.\n' "${reviewer:--}" "${source:--}" "$section_fp" "$current_fp"
+        return 0
+      fi
+      if [[ "$section_scope" != "branch+staged+unstaged+untracked" ]]; then
+        printf 'fail\t%s\t%s\tExternal acceptance scope is %s; expected branch+staged+unstaged+untracked.\n' "${reviewer:--}" "${source:--}" "${section_scope:-missing}"
+        return 0
+      fi
+      ;;
+  esac
 
   printf 'pass\t%s\t%s\tExternal acceptance passed.\n' "$reviewer" "$source"
 }
@@ -1916,6 +1929,31 @@ ${recent_commands}
 ${changed_files}
 \`\`\`
 EOF_HANDOFF
+
+  cat > "$resume_file" <<EOF_RESUME
+# Codex Resume Packet
+<!-- generated-by: workflow_write_handoff v1 -->
+
+> **Generated**: $(date '+%Y-%m-%d %H:%M:%S')
+> **Reason**: ${reason}
+
+## Resume Prompt
+
+Start a fresh session for this task; do not rely on auto-compact or prior chat history. Read the source artifacts below, then the handoff, before continuing from Exact Next Step.
+
+- ${next_task}
+
+## Source Artifacts
+
+- Handoff: ${handoff_file}
+- Spec: ${spec_file}
+- Active plan: ${active_plan:-(none)}
+- Active contract: ${active_contract:-(none)}
+- Review: ${active_review:-(none)}
+- Notes: ${active_notes:-(none)}
+- Research: $(workflow_policy_get '.tasks.research_dir' 'docs/researches')/
+- Checks: ${checks_file}
+EOF_RESUME
 
   workflow_append_event "handoff_refresh" "$reason" "{\"source_plan\":\"$(workflow_json_escape "${source_plan:-}")\",\"parent_run_id\":\"$(workflow_json_escape "$parent_run_id")\"}"
   workflow_write_run_summary "$reason"

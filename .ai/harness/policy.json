@@ -90,8 +90,8 @@
     "architecture_events_file": ".ai/harness/architecture/events.jsonl",
     "runs_dir": ".ai/harness/runs",
     "helper_runtime_dir": ".ai/harness/scripts",
-    "helper_compat_dir": "scripts",
     "helper_source": "package",
+    "helper_compat_dir": "scripts",
     "helper_package_dir": "assets/templates/helpers"
   },
   "architecture": {
@@ -130,6 +130,10 @@
     "evidence": {
       "latest": ".ai/harness/checks/latest.json",
       "snapshots_dir": ".ai/harness/runs",
+      "cache_globs": [
+        ".ai/harness/checks/*.latest.json",
+        ".ai/harness/checks/*.latest.md"
+      ],
       "purpose": "raw verification records used to audit notes, reviews, and future promotion"
     },
     "assets": {
@@ -196,6 +200,15 @@
     "allow_parallel_writers": false,
     "stop_fallback": true,
     "state_file": ".ai/harness/delegation/latest.json",
+    "preferred_runners": [
+      "subagent",
+      "codex-subagent",
+      "codex-exec",
+      "main-thread"
+    ],
+    "fallback_runner": "main-thread",
+    "brief_source": "tasks/contracts/<stem>.contract.md",
+    "runner_rule": "the active task contract is the authoritative execution brief consumed by contract-run; native subagent (Claude) or codex-subagent (Codex's own native subagent) is an optional parallelism accelerator, preferred first per host. Degrade to codex-exec, then sequential main-thread, on the SAME contract when spawn is unavailable, sandboxed, or unreliable. Runner-availability fallback MUST be recorded in the contract-run manifest and MUST NOT silently succeed; it is a runner-availability fallback, not a product-semantics compatibility fallback.",
     "rule": "UserPromptSubmit.delegation only injects bounded subagent context after explicit user authorization such as /delegate, /parallel, spawn subagents, or parallel investigation"
   },
   "sidecar_research": {
@@ -234,7 +247,8 @@
       "heartbeat-triage.md",
       "handoff-protocol.md",
       "document-generation.md",
-      "global-working-rules.md"
+      "global-working-rules.md",
+      "minimal-change-hooks.md"
     ],
     "rule": "create optional docs only when the agent has concrete repo evidence or the user asks; docs/reference-configs contains repo-local pointer stubs while full generic runtime docs live in the user-level/package repo-harness install"
   },
@@ -327,6 +341,35 @@
       "sync_mode": "stage-upstream-then-copy-to-codex",
       "host_drift_policy": "report-per-host-version-staging-and-upstream-drift"
     },
+    "hai_stack": {
+      "source_repo": "hylarucoder/hai-stack",
+      "source_url": "https://github.com/hylarucoder/hai-stack.git",
+      "managed_skills": [
+        "geju"
+      ],
+      "primary_host": "codex",
+      "codex_primary_path": "~/.codex/skills",
+      "staging_cache_path": "~/.agents/skills",
+      "sync_mode": "stage-upstream-then-copy-to-codex",
+      "host_drift_policy": "report-per-host-version-staging-and-upstream-drift"
+    },
+    "fable_agents": {
+      "source_repo": "Ancienttwo/Fable-agents",
+      "source_url": "https://github.com/Ancienttwo/Fable-agents.git",
+      "raw_base": "https://raw.githubusercontent.com/Ancienttwo/Fable-agents/main/assets",
+      "managed_agents": [
+        "deep-reasoner",
+        "fast-worker",
+        "gatekeeper"
+      ],
+      "claude_target": "~/.claude/agents",
+      "codex_target": "~/.codex/agents",
+      "codex_generation": "derive-toml-from-md",
+      "install_mode": "advisory",
+      "conflict_policy": "never-clobber-without-force",
+      "install_command": "repo-harness run install-agent-fleet",
+      "vendoring_policy": "do-not-vendor-agent-bodies"
+    },
     "codex_automation_profile": {
       "required_skills": [
         "health",
@@ -392,6 +435,30 @@
         "shared_contract"
       ]
     }
+  },
+  "minimal_change": {
+    "version": 1,
+    "mode": "advice",
+    "session_context": true,
+    "prompt_advice": true,
+    "post_edit_observer": false,
+    "stop_review": true,
+    "max_findings": 5,
+    "max_context_words": 180,
+    "new_dependency": "warn",
+    "new_file": "observe",
+    "new_abstraction": "warn",
+    "protected_concerns": [
+      "security",
+      "validation",
+      "data_loss",
+      "error_handling",
+      "accessibility",
+      "explicit_requirement",
+      "tests"
+    ],
+    "report_path": ".ai/harness/checks/minimal-change.latest.json",
+    "event_dedupe": true
   },
   "enforcement": {
     "worktree_guard": "warn-by-default",

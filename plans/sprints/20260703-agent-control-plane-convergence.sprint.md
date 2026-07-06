@@ -1,0 +1,99 @@
+# Sprint: Agent Control Plane Convergence
+
+> **Status**: Draft
+> **Slug**: agent-control-plane-convergence
+> **Created**: 2026-07-03 20:42 +0800
+> **Updated**: 2026-07-03 20:42 +0800
+> **Source PRD**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`
+> **Source Spec**: `docs/spec.md`
+> **Goal Mode**: incremental
+
+Program-level sprint container. The Source PRD summary and ordered backlog
+decompose product intent into task-contract slices; each backlog row is a
+long-task waypoint that must be expanded with `$think` before code edits.
+`tasks/todos.md` stays the deferred-goal ledger and never carries this backlog.
+
+## PRD
+
+Full PRD: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md` (Draft).
+
+### Problem
+
+- The repo already has Agent runtime scaffolds, Worker `/agent/*` routes, tool registry, answer/evidence contracts, and the landed `parse_chart_image` chain.
+- Creating new Agent contract packages would split run/event/tool authority.
+- The next slice must converge existing scaffolds into one Agent Control Plane before Generic guarded-live or FastClaw runner work proceeds.
+
+### Users
+
+- Backend/runtime engineer: needs one stable contract for Generic, Research, chart tools, and future FastClaw adapter.
+- Product/frontend engineer: needs deterministic selected layer, route reason, event envelope, and evidence state.
+- Compliance/support operator: needs traceable route, tool, evidence, and validator decisions.
+
+### Success Criteria
+
+- `@aiphabee/agent-runtime` is the only Agent contract authority.
+- Worker `/agent/*` consumes runtime contract; it does not define a second contract.
+- Generic layer cannot call `parse_chart_image`.
+- Research layer can call `parse_chart_image` only through tenant/image/calibration/evidence gates.
+- Existing parse-chart-image and Worker regression tests remain green.
+
+### Acceptance Scenarios
+
+- Generic requested tool policy blocks `parse_chart_image` before any tool/model call.
+- Research requested tool policy allows `parse_chart_image` only with technical-analysis entitlement and tenant context.
+- Wrong-tenant or inactive imageRef remains fail-closed through existing image-store/fetch semantics.
+- No ready calibration, version mismatch, or insufficient sample count cannot produce `auto_match`.
+
+### Non-goals
+
+- No new `packages/agent-contracts`.
+- No new `packages/agent-generic`.
+- No new `apps/api-worker`.
+- No FastClaw adapter implementation in this sprint.
+- No Generic guarded-live model cutover in this sprint.
+- No production auth/session implementation in this sprint.
+- No licensed-advice mode, broker write tools, or automated trading.
+
+## Architecture Notes
+
+### Capabilities Touched
+
+- `packages/agent-runtime`: Agent layer, run mode, execution request/event, runner interface, route decision, and layer tool policy.
+- `packages/agent-runtime/src/parse-chart-image`: existing research-only chart parser gates and tests must remain intact.
+- `packages/tool-registry`: source for registered tools; may receive or feed layer capability metadata if needed.
+- `apps/worker/src/index.ts`: Worker route adapter should record or surface selected layer and route reason without owning a competing contract.
+- `apps/worker/src/index.test.ts`: regression and route-policy fixture coverage.
+
+### Dependency Order
+
+- Task 1 establishes contract authority and tool policy.
+- Task 2 wires route decision/readback in Worker without enabling live Generic.
+- Task 3 hardens evidence/check surfaces for chart parser as research-only.
+- Generic guarded-live and FastClaw runner adapter must wait for this sprint's contract convergence.
+
+### Risks
+
+- P0: second Agent authority emerges if Worker or new packages define separate run/event/tool semantics.
+- P0: Generic accidentally receives access to `parse_chart_image`, bypassing Research entitlement and calibration expectations.
+- P1: `parse_chart_image` is treated as production-auth-ready; current PR #22 boundary is fixture/smoke-level auth with server-owned tenant context.
+- P1: scope creeps into Generic live model execution or FastClaw adapter before the control-plane contract is stable.
+
+## Backlog
+
+Ordered execution queue; keep rows in dependency order. Mode `contract` runs
+the full plan -> contract -> worktree flow; `inline` allows primary-tree
+execution for small tasks. Every row needs a concrete acceptance line.
+
+| # | Status | Task | Mode | Acceptance | Plan |
+|---|--------|------|------|------------|------|
+| 1 | [ ] | Agent layer + runner contract convergence | contract | `npx vitest run packages/agent-runtime/src/index.test.ts` passes with `AgentLayer`, `AgentRunMode`, `AgentExecutionRequest`, `AgentExecutionEvent`, `AgentRunner`, and route decision fixtures; no new `packages/agent-contracts`, `packages/agent-generic`, or `apps/api-worker` files exist | (pending) |
+| 2 | [ ] | Layer tool policy + parse_chart_image research-only gate | contract | Generic policy blocks `parse_chart_image`; Research policy allows it only with technical-analysis entitlement + tenant context; unknown tools default deny; `npx vitest run packages/agent-runtime/src/parse-chart-image` stays green | (pending) |
+| 3 | [ ] | Worker route decision readback | contract | Worker `/agent/*` route plan/dry-run response includes `requested_layer`, `selected_layer`, and `route_reason`; route decision is runtime-owned; `npx vitest run apps/worker/src/index.test.ts` passes | (pending) |
+| 4 | [ ] | Research chart evidence boundary handoff | contract | Chart parse outcome exposes evidence candidate/data-status handoff fields without exposing pixels/raw bytes; wrong tenant, inactive ref, no ready calibration, version mismatch, and insufficient sample count remain non-`auto_match`; `npm run check:answer-evidence-contract` and targeted vitest pass | (pending) |
+
+## Execution Log
+
+Keep this section last; `.ai/harness/scripts/sprint-backlog.sh complete-task` appends rows here.
+
+| When | Task | Plan | Result |
+|------|------|------|--------|

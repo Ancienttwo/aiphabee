@@ -241,7 +241,7 @@ function RightRail({ ipo }: { ipo: IpoRecord }) {
       <BeeNote
         basePath={MASCOT_BP}
         pose={pose}
-        tone="navy"
+        tone="honey"
         title="AiphaBee 研究信号"
         action={
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
