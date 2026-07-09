@@ -1,6 +1,11 @@
 export const PARSE_CHART_IMAGE_TOOL_VERSION = "parse-chart-image-tool.v1";
 
 export {
+  CHART_EVIDENCE_STRENGTH_BY_ROUTE_DECISION,
+  deriveChartEvidenceHandoff,
+  type DeriveChartEvidenceHandoffInput
+} from "./evidence";
+export {
   createParseChartImageExecutor,
   PARSE_CHART_IMAGE_MAX_MODEL_CALLS,
   PARSE_CHART_IMAGE_MAX_OUTPUT_TOKENS
@@ -56,6 +61,13 @@ export {
   type ParseChartImageToolContext
 } from "./tool";
 export type {
+  ChartEvidenceCalibrationStatus,
+  ChartEvidenceCandidate,
+  ChartEvidenceClaimLabel,
+  ChartEvidenceDataPoints,
+  ChartEvidenceDataStatus,
+  ChartEvidenceHandoff,
+  ChartEvidenceStrength,
   ChartParseResultRecord,
   ChartParseResultSink,
   ChartParseStatus,
