@@ -242,6 +242,9 @@
     "smoke:cloudflare-resources-live": "node scripts/smoke-cloudflare-resources-live.mjs",
     "smoke:observability-live": "node scripts/smoke-observability-live.mjs",
     "smoke:provider-secret-stores-live": "node scripts/smoke-provider-secret-stores-live.mjs",
+    "smoke:fastclaw-cloudflare-sandbox": "node --import tsx scripts/smoke-fastclaw-cloudflare-sandbox.ts",
+    "serve:fastclaw-smoke-model": "node scripts/serve-fastclaw-smoke-model.mjs",
+    "check:fastclaw-cloudflare-sandbox-smoke": "node scripts/check-fastclaw-cloudflare-sandbox-smoke-contract.mjs",
     "data-ingest": "node packages/data-ingest/bin/data-ingest.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:brain-manifest": "repo-harness run check-brain-manifest",
@@ -271,6 +274,7 @@
     "check:live-smoke-operator-run-plan": "node scripts/check-live-smoke-operator-run-plan-contract.mjs"
   },
   "devDependencies": {
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

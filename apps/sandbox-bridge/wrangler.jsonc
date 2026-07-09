@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aiphabee-sandbox-bridge-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": false,
+  "observability": {
+    "enabled": false
+  },
+  "containers": [
+    {
+      "class_name": "AiphaBeeSandbox",
+      "image": "./Dockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 10
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "AiphaBeeSandbox",
+        "name": "AIPHABEE_SANDBOX"
+      },
+      {
+        "class_name": "RunGuard",
+        "name": "RUN_GUARD"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": ["AiphaBeeSandbox", "RunGuard"],
+      "tag": "v1"
+    }
+  ],
+  "vars": {
+    "SANDBOX_TRANSPORT": "rpc"
+  }
+}
