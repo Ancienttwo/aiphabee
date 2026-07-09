@@ -6,18 +6,38 @@
       "data_classification": "public_observation_signal",
       "source_files": [
         "docs/spec.md",
+        ".ai/context/capabilities.json",
+        ".ai/context/capability-source-map.json",
         "plans/prds/20260703-2207-ohlcv-skill.prd.md",
         "plans/sprints/20260703-2214-ephemeral-ohlcv-skill.sprint.md",
+        "plans/archive/20260707-ephemeral-ohlcv-release-gate.evidence.md",
         "packages/tool-registry/src/index.ts",
-        "packages/agent-runtime/src/index.ts"
+        "packages/agent-runtime/src/index.ts",
+        "packages/market-data/src/ephemeral/types.ts",
+        "packages/market-data/src/ephemeral/provider.ts",
+        "packages/market-data/src/ephemeral/normalize.ts",
+        "packages/market-data/src/ephemeral/cache.ts",
+        "packages/market-data/src/ephemeral/technical.ts",
+        "packages/market-data/src/ephemeral/index.ts",
+        "apps/web/src/components/technical/EphemeralOhlcvSignalCard.tsx",
+        "apps/web/src/components/technical/index.ts"
       ],
       "test_files": [
         "packages/tool-registry/src/index.test.ts",
-        "packages/agent-runtime/src/index.test.ts"
+        "packages/agent-runtime/src/index.test.ts",
+        "packages/market-data/src/ephemeral/provider.test.ts",
+        "packages/market-data/src/ephemeral/normalize.test.ts",
+        "packages/market-data/src/ephemeral/cache.test.ts",
+        "packages/market-data/src/ephemeral/technical.test.ts",
+        "apps/web/src/components/technical/EphemeralOhlcvSignalCard.test.tsx"
       ],
       "acceptance_commands": [
         "npx vitest run packages/agent-runtime/src packages/tool-registry/src",
-        "npm run check:tool-registry"
+        "npx vitest run packages/market-data/src",
+        "npx vitest run apps/web/src/components/technical",
+        "npm run check:tool-registry",
+        "npm run typecheck",
+        "git diff --check"
       ],
       "not_skill_entrypoints": [
         "get_price_history"

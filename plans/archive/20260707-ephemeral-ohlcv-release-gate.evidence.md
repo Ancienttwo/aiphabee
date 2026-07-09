@@ -103,3 +103,7 @@ git diff --check
 - Row 6: `plans/archive/plan-20260707-ephemeral-ohlcv-agent-template.md`
 - Row 7: `plans/archive/plan-20260707-ephemeral-ohlcv-post-check-transcript.md`
 - Row 8: `plans/archive/plan-20260707-ephemeral-ohlcv-ui-display.md`
+- Row 9: `plans/archive/plan-20260707-ephemeral-ohlcv-beta-guardrails.md`
+  - `packages/agent-runtime/src/index.ts`
+  - `plans/archive/20260707-ephemeral-ohlcv-release-gate.evidence.md`
+  - verifies PRD §20E / §21#15 / kill switch / monitoring / abuse gate

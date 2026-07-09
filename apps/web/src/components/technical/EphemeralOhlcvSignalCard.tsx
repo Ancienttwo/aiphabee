@@ -49,8 +49,8 @@ export function EphemeralOhlcvSignalCard({
           }}
         >
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-body)", lineHeight: 1.6 }}>
-            本次分析使用临时公开数据，最长 24 小时内仅用于本会话跟进；结果属于非授权行情验证，仅作
-            public_observation_signal。
+            本次分析使用临时公开数据，最长 24 小时内仅用于本会话跟进；结果属于 public_observation_signal，
+            不是授权行情验证，也不构成投资建议。
           </p>
           <p style={{ margin: "6px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
             获取时间：{retrievedAt} · {delayNotice}

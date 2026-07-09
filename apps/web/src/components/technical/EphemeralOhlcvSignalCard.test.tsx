@@ -19,8 +19,9 @@ describe("EphemeralOhlcvSignalCard (SSR)", () => {
 
     expect(html).toContain("临时公开数据");
     expect(html).toContain("24 小时");
-    expect(html).toContain("非授权行情验证");
     expect(html).toContain("public_observation_signal");
+    expect(html).toContain("不是授权行情验证");
+    expect(html).toContain("不构成投资建议");
   });
 
   it("renders trend, momentum, volatility, and volume signal fields", () => {

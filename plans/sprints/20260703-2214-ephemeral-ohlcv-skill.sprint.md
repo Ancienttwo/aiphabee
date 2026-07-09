@@ -72,7 +72,9 @@ Full PRD: `plans/prds/20260703-2207-ohlcv-skill.prd.md`(对话式方案,已三�
 
 ### Approval Addendum: Traceability + Runtime Binding
 
-This sprint is approved as an ordered backlog only. Runtime implementation remains 0/9.
+This sprint was approved as an ordered backlog and has now completed its
+contract/scaffold implementation pass. Runtime/live worker execution remains
+out of scope for this sprint unless a follow-up sprint explicitly enables it.
 
 Before Row 2 starts, Row 1 must bind the ephemeral OHLCV capability across:
 
@@ -118,7 +120,7 @@ execution for small tasks. Every row needs a concrete acceptance line.
 | 5 | [x] | Entitlement + Rate limit + 防批量化(PRD §12/§17.1) | contract | 限流测试通过:Free tier 调用被拒、Research/Pro 放行(entitlement fixture);per-user fixture 断言 hour>20/day>100/concurrent>2 返回 `PROVIDER_RATE_LIMITED`;全市场扫描/批量 symbol 请求返回结构化拒绝(`BATCH_FETCH_NOT_ALLOWED`) | `plans/archive/plan-20260707-ephemeral-ohlcv-entitlement-rate-limit.md` |
 | 6 | [x] | Agent tool integration + answer template(PRD §10) | contract | agent fixture:Research Agent 接 `analyze_public_technical_signal` 成功、Generic agent 调用被拒;answer 含 `public_observation` label + `retrieved_at` + delay notice;`detail_level=with_bars` 时 bounded bars 进 LLM context;SSE 事件含 `tool.started`/`tool.finished`/`answer.final` | `plans/archive/plan-20260707-ephemeral-ohlcv-agent-template.md` |
 | 7 | [x] | Post-check + transcript 模式(PRD §17.2/§6.3) | contract | post-check fixture 断言 answer 不含 买入/卖出/持有/仓位/止损、不声称 authorized/verified;transcript 模式 B fixture 断言 raw table 不写入持久聊天历史;超长完整 OHLCV 表 rewrite 成摘要 + 关键数值引用 | `plans/archive/plan-20260707-ephemeral-ohlcv-post-check-transcript.md` |
-| 8 | [x] | UI/UX consent + signal card + OHLCV 展示(PRD §11) | contract | `apps/web` 组件测试:consent 文案含「临时公开数据 / 24 小时 / 非授权行情验证」;signal card 渲染 trend/momentum/volatility/volume;OHLCV 表格/图带 `public_observation` 标注 + 获取时间;断言 UI 无「批量导出 / 常驻下载 API」入口 | `plans/archive/plan-20260707-ephemeral-ohlcv-ui-display.md` |
+| 8 | [x] | UI/UX consent + signal card + OHLCV 展示(PRD §11) | contract | `apps/web` 组件测试:consent 文案含「临时公开数据 / 24 小时 / 不是授权行情验证 / 不构成投资建议」;signal card 渲染 trend/momentum/volatility/volume;OHLCV 表格/图带 `public_observation` 标注 + 获取时间;断言 UI 无「批量导出 / 常驻下载 API」入口 | `plans/archive/plan-20260707-ephemeral-ohlcv-ui-display.md` |
 | 9 | [x] | Beta Guardrails + kill switch + 监控 + Release Gate Evidence(PRD §20 Sprint E/§21#15) | contract | kill switch fixture:flag off 时 tool 全拒返回 `KILL_SWITCH_ACTIVE`;abuse 测试套件(后台/批量/全市场/raw 违规导出)全绿;`grep` 断言 beta flag gate 存在;监控埋点(rate-limit/violation/cost/provider/cache/post-check)事件 schema 测试通过;产出 `plans/archive/*ephemeral-ohlcv-release-gate.evidence.md`,逐条覆盖 PRD §21 17 个 gate | `plans/archive/plan-20260707-ephemeral-ohlcv-beta-guardrails.md` |
 
 ## Execution Log
