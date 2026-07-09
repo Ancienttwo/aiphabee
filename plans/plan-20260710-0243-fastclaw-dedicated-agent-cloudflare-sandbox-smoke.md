@@ -185,7 +185,7 @@ See captured planning output.
 - [x] 实现 AiphaBee deterministic orchestrator、FastClaw provision/SSE client、receipt/artifact/hash/destroy/cost evidence 和 tests。
 - [x] 加入 root scripts、Bridge `.dev.vars` example、operator runbook 与 FastClaw README；更新研究文档，明确 Cloudflare 与 Sandbank 成本及选择。
 - [x] 运行 AiphaBee targeted/full tests/typecheck/contract checks、FastClaw Go tests/vet/race、secret non-disclosure grep 和 deterministic model smoke。
-- [x] 只有存在有效 Cloudflare credentials 时运行 live Bridge smoke；当前缺凭证与 Docker，明确产出 `not_run_missing_credentials`，未伪造 PASS。
+- [x] 使用 Wrangler OAuth、Docker 与 disposable FastClaw 完成 live Bridge smoke：serial 1/1、最终 concurrency 10/10；随后删除 staging Worker 与 Container application 并 readback。
 - [x] 完成 implementation notes、独立 review evidence 和 rollback/readback。
 
 ## Verification
@@ -253,5 +253,5 @@ Expected: credential only appears in header/context access and test redaction as
 - [x] 实现 AiphaBee deterministic orchestrator、FastClaw provision/SSE client、receipt/artifact/hash/destroy/cost evidence 和 tests。
 - [x] 加入 root scripts、Bridge `.dev.vars` example、operator runbook 与 FastClaw README；更新研究文档，明确 Cloudflare 与 Sandbank 成本及选择。
 - [x] 运行 AiphaBee targeted/full tests/typecheck/contract checks、FastClaw Go tests/vet/race、secret non-disclosure grep 和 deterministic model smoke。
-- [x] 只有存在有效 Cloudflare credentials 时运行 live Bridge smoke；当前缺凭证与 Docker，明确产出 `not_run_missing_credentials`，未伪造 PASS。
+- [x] 使用 Wrangler OAuth、Docker 与 disposable FastClaw 完成 live Bridge smoke：serial 1/1、最终 concurrency 10/10；随后删除 staging Worker 与 Container application 并 readback。
 - [x] 完成 implementation notes、独立 review evidence 和 rollback/readback。

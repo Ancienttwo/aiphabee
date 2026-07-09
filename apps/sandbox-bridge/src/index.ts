@@ -51,7 +51,7 @@ const handler = createSandboxBridgeHandler({
         }
       },
       listFiles: (path) => sandbox.listFiles(path),
-      readFile: (path) => sandbox.readFile(path),
+      readFile: (path) => sandbox.readFile(path, { encoding: "utf-8" }),
       writeFile: (path, content) => sandbox.writeFile(path, content)
     } as SandboxHandle;
   },

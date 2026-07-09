@@ -1,7 +1,7 @@
 # FastClaw Sandbox Backend Selection: Cloudflare / Sandbank Cloud / boxlite
 
 > **Created**: 2026-07-09
-> **Updated**: 2026-07-10（官方價格、GA/隔離/配額、專屬 Agent 成本模型重查）
+> **Updated**: 2026-07-10（官方價格、GA/隔離/配額、專屬 Agent 成本模型與 live staging meter）
 > **Question**: FastClaw 為每位付費用戶 provision 專屬 Agent 時，sandbox 應選 Cloudflare Sandbox SDK 還是 Sandbank Cloud；是否值得接 sandbank 聚合層；成本對比為第一級交付物。
 > **Method**: deep-research pass（repo 約束對讀 + 三方源碼/文檔/定價核實）
 > **Consumes**: `packages/agent-runtime/src/index.ts`（AgentRunner 契約）、`plans/sprints/20260703-dual-agent-v2.sprint.md`（redirect 決策）、`plans/prds/20260703-1742-dual-agent.prd.md`
@@ -101,6 +101,29 @@ Sandbank Cloud：
 Sandbank_run = ceil(session_minutes / 10) × 0.02
 ```
 
+### 2026-07-10 live staging meter
+
+真实链路为 AiphaBee orchestrator → disposable FastClaw dedicated Agent →
+Bridge Worker → Cloudflare `standard-1` Sandbox。最终 serial smoke 1/1
+通过，wall clock 7.385 秒，raw list-price bound 为
+`$0.0000780384-$0.0001519384`。最终并发 10 smoke 10/10 通过，十个 run
+均使用不同 Agent/sandbox identity，wall clock 为 6.052-17.804 秒；十个
+run 合计 `$0.0010399488-$0.0020247488`，平均每 run
+`$0.00010399488-$0.00020247488`。所有 run 都完成 direct artifact hash、
+exec receipt、destroy 和 terminal readback。
+
+这组输出仍明确标记 `actual_bill=false`：memory/disk 按 orchestrator wall
+clock 计，CPU 只给 0-0.5 vCPU 上下界，未扣 monthly included usage，也不含
+Worker、DO、logs、egress、FastClaw、LLM 或 tool provider。因此它把短 run
+的 sandbox 量级从假设收紧到 live upper/lower bound，但不能当 invoice。
+
+首次并发 10 只有 8/10：两个 cold exec 被 Cloudflare runtime connection
+closing 中断。Bridge `create` 原先只签发 sandbox id，并未启动 runtime；改为
+在 create 内先执行安全、幂等的 `true` readiness probe 后，最终并发 10
+达到 10/10。另一个 live defect 是 file URL 的 `workspace/...` 被解析成
+`/workspace/workspace/...`；现已与官方 Bridge 一样按绝对 workspace URL
+路径解析。两项都保持 fail-closed，没有重试未知副作用的业务命令。
+
 ### 專屬 Agent 月成本情境
 
 假設：100/1,000/10,000 名**付費活躍用戶**；每人每月 10 次 research
@@ -151,7 +174,7 @@ AiphaBee 已在付這 `$5`，100-user 情境的 sandbox incremental overage 約
 4. **★ 雖然 CF 官方稱每 sandbox 獨立 VM，enterprise/真券商 tier 是否仍要求自架 boxlite/KVM 是合規 owner 決策。** 這決定 boxlite 何時（是否）上位。
 5. **★ boxlite 運維產能。** 沒有 SRE owner 承擔 KVM host fleet 的 patch/capacity/on-call，B 即使 compute 單價更低也不可用。
 6. **跨雲 first-progress 延遲。** B/C 的 Worker→外部 sandbox hop 對 PRD first-progress 10s 是額外壓力；A 在 CF 內少一段網路與供應商故障面。
-7. **成本表不是 live bill。** 真實 run CPU duty cycle、cold start、artifact egress、DO/Worker/logs、LLM token 和 tool data cost 尚未量測；Slice 3 必須用 per-run meter 取代假設。
+7. **成本表不是 live bill。** 2026-07-10 live meter 已取得 wall-clock memory/disk 与 CPU 低/高界，但真實 CPU duty cycle、included usage、artifact egress、DO/Worker/logs、LLM token 和 tool data cost 仍未进入 actual bill readback。
 
 ## (d) 對 FastClaw sprint 的切法建議
 
@@ -159,7 +182,7 @@ sandbox 選型掛在 FastClaw runner sprint 之下（contract 由 agent-control-
 
 - **Slice 1（已實作於本 contract branch）**：新增 `apps/sandbox-bridge`，pin `@cloudflare/sandbox@0.12.3` 與同版 container image，RPC transport、`enableDefaultSession:false`、`enableInternet=false`、`standard-1`/max 10；run-scoped HMAC + RunGuard Durable Object 鎖 identity/scope/max-calls/terminal destroy，並保存不含原文的 exec receipt hash。
 - **Slice 2（已實作於 linked FastClaw branch）**：在 FastClaw 既有 `sandbox.Executor/ExecutorPool` 新增 `cloudflare` backend；`X-AiphaBee-Sandbox-Authorization` 只由 HTTP header 移入 request context，不進 `params`/LLM/persistence/log；不同 scope 的 create 不持全域鎖；turn 結束後 FastClaw 只 forget/scrub 本地 executor/token，由 AiphaBee 單獨負責 Bridge receipt/artifact readback、destroy 和 terminal readback。
-- **Slice 3（成本/上限驗證）**：並發 10 壓測，量真實 per-run CPU/memory/disk/egress/DO/log cost + 冷啟，核實 account-level 1,500 concurrent vCPU / 6 TiB RAM / 30 TB disk 是否足夠，並驗證 AiphaBee 540s active hard-timeout + 60s cleanup reserve + `destroy()` invariant。起步 instance type 用 `standard-1`（0.5 vCPU/4 GiB/8 GB），量測後才可降到 `basic`。
+- **Slice 3（首轮已完成）**：`standard-1` serial 1/1 与并发 10/10 live smoke 已验证 cold-start readiness、artifact/receipt/destroy/terminal invariant，并产出 wall-clock raw list-price bound。尚未完成的是 Cloudflare actual CPU duty、included usage、egress、DO/Worker/log账单归因；在这些数据前不降到 `basic`，也不把 bound 当 invoice。
 - **延後（獨立 Enterprise-isolation sprint）**：boxlite 已是 FastClaw `ExecutorPool` 的另一 provider；是否讓某 tenant tier 使用它，gated on 合規 owner 與 KVM fleet owner。Sandbank Cloud 只在 data-free 原型出現，不進合規路徑。
 
 **會改變判斷的證據**：Sandbank Cloud 提供可接受的 enterprise API-token 報價、並發/SLA、DPA/data-residency，且在同負載 live meter 上總成本顯著低於 CF；合規 owner 要求自架 KVM；或 Cloudflare live spike 無法滿足 FastClaw image/runtime/egress/540s active + 60s cleanup invariant。

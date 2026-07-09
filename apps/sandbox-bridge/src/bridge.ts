@@ -257,6 +257,10 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
       if (claim instanceof Response) return claim;
 
       if (matched.kind === "create") {
+        const ready = await dependencies.getSandbox(env, authorized.sandboxId).isRunning();
+        if (!ready) {
+          return jsonError(502, "SANDBOX_START_FAILED", "sandbox failed its readiness probe");
+        }
         return Response.json({ id: authorized.sandboxId }, { status: 201 });
       }
 
@@ -333,7 +337,7 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
       }
 
       if (matched.kind === "file") {
-        const path = dependencies.resolveWorkspacePath(matched.filePath);
+        const path = dependencies.resolveWorkspacePath(`/${matched.filePath}`);
         if (path === null) return jsonError(400, "INVALID_PATH", "path must remain under /workspace");
         if (request.method === "GET") {
           const result = await sandbox.readFile(path);
@@ -368,6 +372,10 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
       if (error instanceof Error && error.message === "OUTPUT_TOO_LARGE") {
         return jsonError(502, "OUTPUT_TOO_LARGE", "sandbox output exceeds maximum size");
       }
+      console.error("sandbox bridge operation failed", {
+        error: error instanceof Error ? error.message : "unknown error",
+        kind: matched.kind
+      });
       return jsonError(502, "SANDBOX_OPERATION_FAILED", "sandbox operation failed");
     }
   };

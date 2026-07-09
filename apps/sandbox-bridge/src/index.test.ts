@@ -85,6 +85,8 @@ class FakeSandbox implements SandboxHandle {
   destroyed = false;
   failNextDestroy = false;
   lastCommand = "";
+  ready = true;
+  readinessChecks = 0;
 
   async exec(command: string): Promise<{ exitCode: number; stderr: string; stdout: string }> {
     this.lastCommand = command;
@@ -104,7 +106,8 @@ class FakeSandbox implements SandboxHandle {
   }
 
   async isRunning(): Promise<boolean> {
-    return !this.destroyed;
+    this.readinessChecks += 1;
+    return this.ready && !this.destroyed;
   }
 
   async destroy(): Promise<void> {
@@ -141,7 +144,7 @@ function request(url: string, token: string, init: RequestInit = {}): Request {
   return new Request(url, { ...init, headers });
 }
 
-function harness() {
+function harness(options: { sandboxReady?: boolean } = {}) {
   const guard = new MemoryGuard();
   const sandboxes = new Map<string, FakeSandbox>();
   const handler = createSandboxBridgeHandler({
@@ -150,6 +153,7 @@ function harness() {
       const existing = sandboxes.get(sandboxId);
       if (existing !== undefined) return existing;
       const created = new FakeSandbox();
+      created.ready = options.sandboxReady ?? true;
       sandboxes.set(sandboxId, created);
       return created;
     },
@@ -167,6 +171,24 @@ function harness() {
 }
 
 describe("AiphaBee sandbox bridge", () => {
+  it("fails closed when create cannot prove sandbox readiness", async () => {
+    const { env, handler } = harness({ sandboxReady: false });
+    const issued = await issue("run_20260710_bridge_not_ready");
+
+    const response = await handler(
+      request("https://bridge.test/v1/sandbox", issued.token, { method: "POST" }),
+      env
+    );
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "SANDBOX_START_FAILED",
+        message: "sandbox failed its readiness probe"
+      }
+    });
+  });
+
   it("runs a bounded file/exec lifecycle and proves terminal destroy", async () => {
     const { env, handler, sandboxes } = harness();
     const issued = await issue("run_20260710_bridge_001");
@@ -177,6 +199,7 @@ describe("AiphaBee sandbox bridge", () => {
     );
     expect(create.status).toBe(201);
     expect(await create.json()).toEqual({ id: issued.sandbox_id });
+    expect(sandboxes.get(issued.sandbox_id)?.readinessChecks).toBe(1);
 
     const fileUrl = `https://bridge.test/v1/sandbox/${issued.sandbox_id}/file/workspace/smoke.txt`;
     expect(
@@ -185,6 +208,7 @@ describe("AiphaBee sandbox bridge", () => {
       ).status
     ).toBe(204);
     expect(await (await handler(request(fileUrl, issued.token), env)).text()).toBe("artifact");
+    expect(sandboxes.get(issued.sandbox_id)?.files.has("/workspace/smoke.txt")).toBe(true);
 
     const exec = await handler(
       request(`https://bridge.test/v1/sandbox/${issued.sandbox_id}/exec`, issued.token, {

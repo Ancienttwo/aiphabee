@@ -4,7 +4,7 @@
 > **Plan**: plans/plan-20260710-0243-fastclaw-dedicated-agent-cloudflare-sandbox-smoke.md
 > **Contract**: tasks/contracts/20260710-0243-fastclaw-dedicated-agent-cloudflare-sandbox-smoke.contract.md
 > **Review**: tasks/reviews/20260710-0243-fastclaw-dedicated-agent-cloudflare-sandbox-smoke.review.md
-> **Last Updated**: 2026-07-10 04:14
+> **Last Updated**: 2026-07-10 05:15
 > **Lifecycle**: notes
 
 ## Design Decisions
@@ -48,8 +48,16 @@
   `.dev.vars.example`, strict CLI validation, Worker secret setup, and the
   runbook are the authoritative surfaces; this avoids mixing smoke secrets
   into production app configuration.
-- No live Cloudflare deploy was attempted: Docker daemon and all five live
-  credential inputs are absent. State is `not_run_missing_credentials`.
+- Live staging was executed with Wrangler OAuth, Docker Desktop, a disposable
+  FastClaw SQLite home and the deterministic model. The Worker and Container
+  application were deleted after readback; no reusable secret or product
+  mapping remains.
+- Live execution exposed three concrete gaps that deterministic tests missed:
+  the compatibility date was ahead of Cloudflare UTC, file URLs were resolved
+  as `/workspace/workspace/...`, and a create response could precede runtime
+  readiness. The final Bridge uses the accepted UTC date, explicit UTF-8 file
+  reads plus absolute workspace URL paths, and a safe create-time readiness
+  probe. It does not retry an ambiguous business exec.
 - FastClaw full `go test ./...` is not green on the pinned baseline: generated
   `internal/setup/web` embed assets are absent, and existing
   `internal/agentcli.TestRemoveDeletesAgentAndFiles` fails on SQLite column
@@ -68,9 +76,9 @@
 
 ## Open Questions
 
-- Live Cloudflare cold-start, 10-way concurrency, actual CPU duty cycle,
-  egress/DO/log cost, and provider destroy latency remain unmeasured until
-  Docker and staging credentials are available.
+- Cold-start and 10-way concurrency are now live-measured. Actual CPU duty
+  cycle, included-usage allocation, egress/DO/log invoice attribution, and
+  sustained-load behavior remain outside this wall-clock-bound smoke.
 - Durable paid-user → FastClaw Agent mapping, entitlement/billing,
   disable/delete, and production runner cutover remain a separate product
   slice; the current provision is disposable smoke-only.
@@ -83,10 +91,13 @@
 - AiphaBee full workspace typecheck: passed.
 - AiphaBee targeted auth/Bridge/runner: 3 files, 15 tests passed.
 - Contract check: all 12 static invariants passed; live state
-  `not_run_missing_credentials` with five missing inputs named.
-- Wrangler Worker-only dry run: bundle 631.16 KiB, bindings
+  `not_run_missing_credentials` when rerun after ephemeral secrets were
+  destroyed; the separate live acceptance evidence below is authoritative for
+  the completed staging run.
+- Pre-live Wrangler Worker-only dry run: bundle 631.16 KiB, bindings
   `AIPHABEE_SANDBOX`, `RUN_GUARD`, RPC transport, container declaration read
-  back. Full container dry run correctly failed because Docker is unavailable.
+  back. The later live pass completed the full image build, registry push,
+  Worker deployment and Container application creation.
 - FastClaw targeted `go test` and `go vet` for config/sandbox/api/gateway:
   passed. Focused Cloudflare/lifecycle race tests: passed.
 - FastClaw branch base: exact merge-base
@@ -96,6 +107,15 @@
 - Independent architecture review initially found four blockers; all four were
   fixed and regression-tested. Final independent security recheck found no
   P1/P2 blockers.
+- Live serial acceptance: 1/1 completed in 7.385 seconds with
+  `sandbox_destroyed=true`; raw list-price bound
+  `$0.0000780384-$0.0001519384`.
+- Live final concurrency acceptance: 10/10 completed, ten distinct Agent and
+  sandbox identities, 6.052-17.804 seconds per run, aggregate raw list-price
+  bound `$0.0010399488-$0.0020247488`; every run completed receipt, direct
+  artifact, destroy and terminal readback.
+- Rollback readback: Worker health returned HTTP 404 and the exact-name
+  Container application query returned an empty list.
 
 ## Promotion Filter
 
