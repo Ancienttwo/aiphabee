@@ -34,7 +34,8 @@ const requiredPlannedCardSources = [
   "get_quote_snapshot",
   "get_price_history",
   "get_financial_facts",
-  "get_data_lineage"
+  "get_data_lineage",
+  "parse_chart_image"
 ];
 const requiredValidationRules = [
   "require_ordered_answer_sections",

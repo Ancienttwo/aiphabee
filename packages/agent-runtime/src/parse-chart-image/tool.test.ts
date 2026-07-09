@@ -49,6 +49,13 @@ describe("createParseChartImageTool", () => {
     expect(sink.rows[0].tenant_id).toBe("tenant-a");
     expect(sink.rows[0].analysis_run_id).toBe("run-1");
 
+    expect(outcome.data_status).toBe("parsed_pending_confirmation");
+    expect(outcome.evidence_candidate).toMatchObject({
+      evidence_strength: "weak",
+      source_tool: "parse_chart_image",
+      tenant_id: "tenant-a"
+    });
+
     const binaryValues = Object.values(outcome).filter(
       (value) => value instanceof Uint8Array || value instanceof ArrayBuffer
     );

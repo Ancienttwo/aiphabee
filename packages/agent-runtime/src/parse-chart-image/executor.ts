@@ -2,6 +2,7 @@ import { generateObject, NoObjectGeneratedError } from "ai";
 import type { LanguageModelUsage } from "ai";
 import { CHART_PARSE_CONTRACT, safeParseChartParseResult } from "../chart-parse";
 import type { ChartParseResult } from "../chart-parse";
+import { deriveChartEvidenceHandoff } from "./evidence";
 import { repairAndValidate } from "./repair";
 import { routeChartParseResult } from "./routing";
 import type {
@@ -160,7 +161,8 @@ export const createParseChartImageExecutor = (
 
     const status: ChartParseStatus = attempts.result === null ? "parse_failed" : "ready";
     const errorCode = status === "ready" ? null : attempts.errorCode;
-    const latencyMs = Math.max(0, now() - startedAt);
+    const completedAt = now();
+    const latencyMs = Math.max(0, completedAt - startedAt);
     const routeDecision =
       attempts.result === null
         ? null
@@ -188,9 +190,18 @@ export const createParseChartImageExecutor = (
     };
     await deps.sink.record(record);
 
+    const handoff = deriveChartEvidenceHandoff({
+      record,
+      repair_applied: attempts.repairApplied,
+      retrieved_at: completedAt,
+      routing: routeDecision
+    });
+
     return {
       calibration_run_id: record.calibration_run_id,
+      data_status: handoff.data_status,
       error_code: errorCode,
+      evidence_candidate: handoff.evidence_candidate,
       latency_ms: latencyMs,
       model_call_count: attempts.modelCallCount,
       record_id: record.id,

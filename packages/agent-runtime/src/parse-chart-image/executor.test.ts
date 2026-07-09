@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { CHART_PARSE_CONTRACT, safeParseChartParseResult } from "../chart-parse";
 import { createParseChartImageExecutor } from "./executor";
+import {
+  createStoredChartImageFetchImage,
+  removeChartImage,
+  uploadChartImage,
+  type ChartImageMetadataStore,
+  type ChartImageObjectStore,
+  type ChartImageRecord
+} from "./image-store";
 import { createInMemoryChartParseResultSink } from "./sink";
 import type { ParseChartImageDeps } from "./types";
 import {
@@ -77,6 +85,22 @@ describe("createParseChartImageExecutor", () => {
     expect(outcome.route_decision).toBe("user_confirm");
     expect(safeParseChartParseResult(outcome.result).success).toBe(true);
     expect(outcome.result).toEqual(CLEAR_SAMPLE_RESULT);
+
+    expect(outcome.data_status).toBe("parsed_pending_confirmation");
+    expect(outcome.evidence_candidate).toMatchObject({
+      calibration_status: "not_used",
+      claim_label: "inference",
+      evidence_strength: "weak",
+      route_decision: "user_confirm",
+      route_reason: "no_calibration_lookup",
+      source_record_id: outcome.record_id,
+      source_tool: "parse_chart_image",
+      tenant_id: "tenant-a"
+    });
+    expect(outcome.evidence_candidate?.warnings).toEqual([
+      "no_calibration_lookup",
+      "chart_time_unverified"
+    ]);
 
     expect(sink.rows).toHaveLength(1);
     const row = sink.rows[0];
@@ -156,6 +180,17 @@ describe("createParseChartImageExecutor", () => {
     expect(outcome.calibration_run_id).toBe("cal-ready");
     expect(outcome.route_decision).toBe("auto_match");
     expect(sink.rows[0].calibration_run_id).toBe("cal-ready");
+
+    expect(outcome.data_status).toBe("parsed");
+    expect(outcome.evidence_candidate).toMatchObject({
+      calibration_run_id: "cal-ready",
+      calibration_status: "ready_used",
+      evidence_strength: "medium",
+      route_decision: "auto_match",
+      route_reason: "auto_match_threshold_met"
+    });
+    expect(outcome.evidence_candidate?.evidence_strength).not.toBe("strong");
+    expect(outcome.evidence_candidate?.warnings).toEqual(["chart_time_unverified"]);
   });
 
   it("sends the frozen contract prompt and the image bytes to the vision model", async () => {
@@ -187,6 +222,8 @@ describe("createParseChartImageExecutor", () => {
     expect(outcome.status).toBe("parse_failed");
     expect(outcome.result).toBeNull();
     expect(outcome.error_code).not.toBeNull();
+    expect(outcome.data_status).toBe("unavailable");
+    expect(outcome.evidence_candidate).toBeNull();
 
     const row = sink.rows[0];
     expect(row.status).toBe("parse_failed");
@@ -209,6 +246,12 @@ describe("createParseChartImageExecutor", () => {
     expect(outcome.result).toEqual(CLEAR_SAMPLE_RESULT);
     expect(sink.rows[0].status).toBe("ready");
     expect(sink.rows[0].result_json).toEqual(CLEAR_SAMPLE_RESULT);
+
+    expect(outcome.evidence_candidate?.warnings).toEqual([
+      "repair_applied",
+      "no_calibration_lookup",
+      "chart_time_unverified"
+    ]);
   });
 
   it("does not call the model when the image cannot be fetched", async () => {
@@ -227,6 +270,9 @@ describe("createParseChartImageExecutor", () => {
     expect(sink.rows).toHaveLength(1);
     expect(sink.rows[0].status).toBe("parse_failed");
     expect(sink.rows[0].token_cost).toBe(0);
+
+    expect(outcome.data_status).toBe("unavailable");
+    expect(outcome.evidence_candidate).toBeNull();
   });
 
   it("still records an audit row when the image fetch itself throws", async () => {
@@ -259,5 +305,151 @@ describe("createParseChartImageExecutor", () => {
 
     expect(outcome.status).toBe("ready");
     expect(sink.rows[0].token_cost).toBe(0);
+  });
+});
+
+describe("createParseChartImageExecutor with the production image-store fetchImage", () => {
+  const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  const HASH = `sha256:${"a".repeat(64)}`;
+
+  const toArrayBuffer = (bytes: Uint8Array): ArrayBuffer =>
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+
+  const makeStoredImageHarness = async () => {
+    const records = new Map<string, ChartImageRecord>();
+    const objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
+
+    const metadataStore: ChartImageMetadataStore = {
+      findActiveById: async ({ id, tenant_id }) =>
+        [...records.values()].find(
+          (record) =>
+            record.id === id && record.tenant_id === tenant_id && record.deleted_at === null
+        ) ?? null,
+      findActiveByKey: async ({ r2_key, tenant_id }) =>
+        records.get(`${tenant_id}:${r2_key}`)?.deleted_at === null
+          ? (records.get(`${tenant_id}:${r2_key}`) ?? null)
+          : null,
+      insert: async (record) => {
+        records.set(`${record.tenant_id}:${record.r2_key}`, record);
+      },
+      markRemoved: async ({ id, removed_at, tenant_id }) => {
+        const record =
+          [...records.values()].find(
+            (candidate) => candidate.id === id && candidate.tenant_id === tenant_id
+          ) ?? null;
+        if (record === null || record.deleted_at !== null) {
+          return null;
+        }
+        const next = { ...record, deleted_at: removed_at };
+        records.set(`${record.tenant_id}:${record.r2_key}`, next);
+        return next;
+      }
+    };
+
+    const objectStore: ChartImageObjectStore = {
+      get: async (key) => {
+        const object = objects.get(key);
+        return object
+          ? {
+              arrayBuffer: async () => toArrayBuffer(object.bytes),
+              mediaType: object.contentType
+            }
+          : null;
+      },
+      put: async (key, bytes, options) => {
+        objects.set(key, { bytes, contentType: options.contentType });
+      },
+      remove: async (key) => {
+        objects.delete(key);
+      }
+    };
+
+    const uploaded = await uploadChartImage({
+      bytes: PNG_BYTES,
+      contentType: "image/png",
+      generateId: () => "img-1",
+      hashBytes: async () => HASH,
+      metadataStore,
+      nowIso: () => "2026-07-09T00:00:00.000Z",
+      objectStore,
+      tenant_id: "tenant-a",
+      user_id: "user-a"
+    });
+
+    return {
+      fetchImage: createStoredChartImageFetchImage({ metadataStore, objectStore }),
+      metadataStore,
+      objectStore,
+      uploaded
+    };
+  };
+
+  it("keeps a wrong-tenant request unavailable with zero model calls", async () => {
+    const stored = await makeStoredImageHarness();
+    const model = makeVisionModelMockFromTexts([JSON.stringify(CLEAR_SAMPLE_RESULT)]);
+    const { deps, sink } = makeHarness(model, { fetchImage: stored.fetchImage });
+
+    const outcome = await createParseChartImageExecutor(deps)({
+      analysis_run_id: null,
+      image_ref: stored.uploaded.image_ref,
+      tenant_id: "tenant-b"
+    });
+
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(outcome.model_call_count).toBe(0);
+    expect(outcome.status).toBe("parse_failed");
+    expect(outcome.error_code).toBe("image_not_found");
+    expect(outcome.data_status).toBe("unavailable");
+    expect(outcome.evidence_candidate).toBeNull();
+    expect(sink.rows[0].status).toBe("parse_failed");
+  });
+
+  it("keeps a hostile data:image ref unavailable and out of the evidence candidate", async () => {
+    const stored = await makeStoredImageHarness();
+    const model = makeVisionModelMockFromTexts([JSON.stringify(CLEAR_SAMPLE_RESULT)]);
+    const { deps } = makeHarness(model, { fetchImage: stored.fetchImage });
+
+    const outcome = await createParseChartImageExecutor(deps)({
+      analysis_run_id: null,
+      image_ref: "data:image/png;base64,iVBORw0KGgo=",
+      tenant_id: "tenant-a"
+    });
+
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(outcome.model_call_count).toBe(0);
+    expect(outcome.status).toBe("parse_failed");
+    expect(outcome.data_status).toBe("unavailable");
+    expect(outcome.evidence_candidate).toBeNull();
+    expect(
+      JSON.stringify({
+        data_status: outcome.data_status,
+        evidence_candidate: outcome.evidence_candidate
+      })
+    ).not.toContain("data:image");
+  });
+
+  it("keeps a removed (inactive) ref unavailable with zero model calls", async () => {
+    const stored = await makeStoredImageHarness();
+    await removeChartImage({
+      id: "img-1",
+      metadataStore: stored.metadataStore,
+      nowIso: () => "2026-07-09T00:05:00.000Z",
+      objectStore: stored.objectStore,
+      tenant_id: "tenant-a"
+    });
+    const model = makeVisionModelMockFromTexts([JSON.stringify(CLEAR_SAMPLE_RESULT)]);
+    const { deps } = makeHarness(model, { fetchImage: stored.fetchImage });
+
+    const outcome = await createParseChartImageExecutor(deps)({
+      analysis_run_id: null,
+      image_ref: stored.uploaded.image_ref,
+      tenant_id: "tenant-a"
+    });
+
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(outcome.model_call_count).toBe(0);
+    expect(outcome.status).toBe("parse_failed");
+    expect(outcome.data_status).toBe("unavailable");
+    expect(outcome.evidence_candidate).toBeNull();
   });
 });
