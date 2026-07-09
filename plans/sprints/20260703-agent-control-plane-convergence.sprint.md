@@ -1,9 +1,9 @@
 # Sprint: Agent Control Plane Convergence
 
-> **Status**: Draft
+> **Status**: Approved
 > **Slug**: agent-control-plane-convergence
 > **Created**: 2026-07-03 20:42 +0800
-> **Updated**: 2026-07-03 20:42 +0800
+> **Updated**: 2026-07-09
 > **Source PRD**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -86,9 +86,9 @@ execution for small tasks. Every row needs a concrete acceptance line.
 
 | # | Status | Task | Mode | Acceptance | Plan |
 |---|--------|------|------|------------|------|
-| 1 | [ ] | Agent layer + runner contract convergence | contract | `npx vitest run packages/agent-runtime/src/index.test.ts` passes with `AgentLayer`, `AgentRunMode`, `AgentExecutionRequest`, `AgentExecutionEvent`, `AgentRunner`, and route decision fixtures; no new `packages/agent-contracts`, `packages/agent-generic`, or `apps/api-worker` files exist | (pending) |
-| 2 | [ ] | Layer tool policy + parse_chart_image research-only gate | contract | Generic policy blocks `parse_chart_image`; Research policy allows it only with technical-analysis entitlement + tenant context; unknown tools default deny; `npx vitest run packages/agent-runtime/src/parse-chart-image` stays green | (pending) |
-| 3 | [ ] | Worker route decision readback | contract | Worker `/agent/*` route plan/dry-run response includes `requested_layer`, `selected_layer`, and `route_reason`; route decision is runtime-owned; `npx vitest run apps/worker/src/index.test.ts` passes | (pending) |
+| 1 | [x] | Agent layer + runner contract convergence | contract | `npx vitest run packages/agent-runtime/src/index.test.ts` passes with `AgentLayer`, `AgentRunMode`, `AgentExecutionRequest`, `AgentExecutionEvent`, `AgentRunner`, and route decision fixtures; no new `packages/agent-contracts`, `packages/agent-generic`, or `apps/api-worker` files exist | (pre-satisfied — see Execution Log 2026-07-09) |
+| 2 | [x] | Layer tool policy + parse_chart_image research-only gate | contract | Generic policy blocks `parse_chart_image`; Research policy allows it only with technical-analysis entitlement + tenant context; unknown tools default deny; `npx vitest run packages/agent-runtime/src/parse-chart-image` stays green | (pre-satisfied — see Execution Log 2026-07-09) |
+| 3 | [x] | Worker route decision readback | contract | Worker `/agent/*` route plan/dry-run response includes `requested_layer`, `selected_layer`, and `route_reason`; route decision is runtime-owned; `npx vitest run apps/worker/src/index.test.ts` passes | (pre-satisfied — see Execution Log 2026-07-09) |
 | 4 | [ ] | Research chart evidence boundary handoff | contract | Chart parse outcome exposes evidence candidate/data-status handoff fields without exposing pixels/raw bytes; wrong tenant, inactive ref, no ready calibration, version mismatch, and insufficient sample count remain non-`auto_match`; `npm run check:answer-evidence-contract` and targeted vitest pass | (pending) |
 
 ## Execution Log
@@ -97,3 +97,4 @@ Keep this section last; `.ai/harness/scripts/sprint-backlog.sh complete-task` ap
 
 | When | Task | Plan | Result |
 |------|------|------|--------|
+| 2026-07-09 17:12 HKT | Rows 1–3 freshness audit (pre-satisfied) | (none) | Rows 1–3 drafted 07-03,已被後續落地覆蓋:parse-chart-image task 5(PR #23 layer tool policy + research-only gate)、5f9e7c1 chart upload routing、f017ff5 ephemeral scaffold。2026-07-09 按 acceptance 原文實跑:agent-runtime/tool-registry/market-data vitest 149 passed;apps/worker vitest 252 passed;`packages/agent-contracts`/`packages/agent-generic`/`apps/api-worker` 不存在;worker readback 含 `requested_layer`/`selected_layer`/`route_reason`(apps/worker/src/index.ts:1238)。Row 4 仍開放:`ParseChartImageOutcome`(parse-chart-image/types.ts:45)無 evidence candidate/data-status handoff 欄位,`check:answer-evidence-contract` 通過但屬既有面。 |

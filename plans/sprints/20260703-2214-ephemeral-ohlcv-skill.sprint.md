@@ -1,9 +1,9 @@
 # Sprint: 临时公开 OHLCV 技术分析 Skill
 
-> **Status**: Approved
+> **Status**: Done
 > **Slug**: ephemeral-ohlcv-skill
 > **Created**: 2026-07-03 22:14
-> **Updated**: 2026-07-07
+> **Updated**: 2026-07-09
 > **Source PRD**: `plans/prds/20260703-2207-ohlcv-skill.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental

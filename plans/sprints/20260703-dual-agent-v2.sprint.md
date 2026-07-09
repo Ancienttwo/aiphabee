@@ -20,6 +20,7 @@ Decision carried forward:
 - Keep Worker `/agent/*` as the public API owner.
 - Treat `parse_chart_image` as a Research-only technical-analysis tool, never a Generic tool.
 - Treat FastClaw as a future `AgentRunner` implementation behind AiphaBee authority.
+- FastClaw sandbox backend decided 2026-07-09: Cloudflare Sandbox SDK (CF Containers) behind a thin `SandboxBackend` port; no sandbank abstraction layer; boxlite deferred as enterprise microVM upgrade; Sandbank Cloud excluded from compliance paths. Evidence: `docs/researches/20260709-fastclaw-sandbox-backend-selection.md`.
 
 Next executable slice:
 
