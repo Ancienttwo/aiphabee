@@ -1,4 +1,52 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@cloudflare/sandbox", () => {
+  class Sandbox {
+    private static registeredOutbound: unknown;
+    private static registeredOutboundHandlers: Record<string, unknown> | undefined;
+
+    static get outbound(): unknown {
+      return this.registeredOutbound;
+    }
+
+    static set outbound(handler: unknown) {
+      this.registeredOutbound = handler;
+    }
+
+    static get outboundHandlers(): Record<string, unknown> | undefined {
+      return this.registeredOutboundHandlers;
+    }
+
+    static set outboundHandlers(handlers: Record<string, unknown>) {
+      this.registeredOutboundHandlers = handlers;
+    }
+  }
+
+  class ContainerProxy {
+    protected readonly ctx: { props: Record<string, unknown> };
+    protected readonly env: unknown;
+
+    constructor(ctx: { props: Record<string, unknown> }, env: unknown) {
+      this.ctx = ctx;
+      this.env = env;
+    }
+
+    async fetch(): Promise<Response> {
+      return new Response("Origin is disallowed", { status: 520 });
+    }
+  }
+
+  return {
+    ContainerProxy,
+    Sandbox,
+    getSandbox: vi.fn()
+  };
+});
+
+vi.mock("@cloudflare/sandbox/bridge", () => ({
+  resolveWorkspacePath: vi.fn(),
+  shellQuote: (value: string) => value
+}));
 
 import { issueSandboxRunToken, type SandboxRunTokenClaims } from "./token.js";
 import {
@@ -13,6 +61,7 @@ import type {
   SandboxExecReceipt
 } from "./run-guard.js";
 import { applyRunGuardClaim } from "./run-guard.js";
+import { AiphaBeeSandbox, ContainerProxy } from "./index.js";
 
 const SECRET = "bridge-test-secret-which-is-at-least-thirty-two-bytes";
 const NOW = Date.UTC(2026, 6, 10, 1, 0, 0);
@@ -171,6 +220,65 @@ function harness(options: { sandboxReady?: boolean } = {}) {
 }
 
 describe("AiphaBee sandbox bridge", () => {
+  it("registers inherited outbound setters and dispatches Tool Gateway in the proxy isolate", async () => {
+    expect(typeof AiphaBeeSandbox.outbound).toBe("function");
+    expect(typeof AiphaBeeSandbox.outboundHandlers?.toolGateway).toBe("function");
+
+    const forwarded: Request[] = [];
+    const proxy = new ContainerProxy(
+      {
+        props: {
+          className: "AiphaBeeSandbox",
+          containerId: "container-row4",
+          enableInternet: false,
+          interceptAll: true,
+          outboundByHostOverrides: {
+            "tool-gateway.internal": {
+              method: "toolGateway",
+              params: {
+                lease_id: "lease-row4",
+                run_id: "run-row4",
+                tenant_id: "tenant-row4",
+                token: "signed-token.signature",
+                user_id: "user-row4"
+              }
+            }
+          }
+        }
+      } as never,
+      {
+        TOOL_GATEWAY: {
+          fetch: async (request: Request) => {
+            forwarded.push(request);
+            return new Response(null, { status: 204 });
+          }
+        }
+      } as never
+    );
+    const response = await proxy.fetch(
+      new Request("https://tool-gateway.internal/v1/tools/call", {
+        body: JSON.stringify({ arguments: {}, tool_name: "get_quote_snapshot" }),
+        headers: { "content-type": "application/json" },
+        method: "POST"
+      })
+    );
+    expect(response.status).toBe(204);
+    expect(forwarded).toHaveLength(1);
+    expect(forwarded[0]?.headers.get("authorization")).toBe(
+      "Bearer signed-token.signature"
+    );
+
+    const denied = await proxy.fetch(
+      new Request("https://example.com/v1/tools/call", {
+        body: "{}",
+        headers: { "content-type": "application/json" },
+        method: "POST"
+      })
+    );
+    expect([403, 520]).toContain(denied.status);
+    expect(forwarded).toHaveLength(1);
+  });
+
   it("fails closed when create cannot prove sandbox readiness", async () => {
     const { env, handler } = harness({ sandboxReady: false });
     const issued = await issue("run_20260710_bridge_not_ready");

@@ -6,6 +6,11 @@ const MAX_CALLS = 64;
 const TOKEN_PART_PATTERN = /^[A-Za-z0-9_-]+$/u;
 const RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/u;
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
+const TOOL_NAME_PATTERN = /^[a-z][a-z0-9_]{0,127}$/u;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/u;
+
+export const SANDBOX_TOOL_GATEWAY_TOKEN_AUDIENCE =
+  "aiphabee:sandbox-tool-gateway" as const;
 
 export const SANDBOX_RUN_SCOPES = [
   "sandbox:create",
@@ -45,6 +50,36 @@ export interface IssuedSandboxRunToken {
   token: string;
 }
 
+export interface SandboxToolGatewayTokenClaims {
+  aud: typeof SANDBOX_TOOL_GATEWAY_TOKEN_AUDIENCE;
+  exp: number;
+  iat: number;
+  jti: string;
+  lease_id: string;
+  run_id: string;
+  tenant_id: string;
+  tool_name: string;
+  user_id: string;
+  v: typeof TOKEN_VERSION;
+}
+
+export interface IssueSandboxToolGatewayTokenInput {
+  leaseId: string;
+  nowMs?: number;
+  runId: string;
+  secret: string;
+  tenantId: string;
+  tokenId: string;
+  toolName: string;
+  ttlSeconds: number;
+  userId: string;
+}
+
+export interface IssuedSandboxToolGatewayToken {
+  claims: SandboxToolGatewayTokenClaims;
+  token: string;
+}
+
 export type SandboxRunTokenErrorCode =
   | "INVALID_CLAIMS"
   | "INVALID_SCOPE"
@@ -65,7 +100,7 @@ export class SandboxRunTokenError extends Error {
 }
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8", { fatal: true });
+const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false });
 
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = "";
@@ -325,6 +360,189 @@ export async function verifySandboxRunToken(
   );
   if (JSON.stringify(canonicalClaims(claims)) !== payloadText) {
     throw new SandboxRunTokenError("INVALID_CLAIMS", "token payload is not canonical");
+  }
+  return claims;
+}
+
+function canonicalToolGatewayClaims(
+  claims: SandboxToolGatewayTokenClaims
+): SandboxToolGatewayTokenClaims {
+  return {
+    aud: claims.aud,
+    exp: claims.exp,
+    iat: claims.iat,
+    jti: claims.jti,
+    lease_id: claims.lease_id,
+    run_id: claims.run_id,
+    tenant_id: claims.tenant_id,
+    tool_name: claims.tool_name,
+    user_id: claims.user_id,
+    v: claims.v
+  };
+}
+
+function validateToolGatewayId(value: unknown, label: string): string {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 128 ||
+    value.trim() !== value ||
+    CONTROL_CHARACTER_PATTERN.test(value)
+  ) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", `${label} is invalid`);
+  }
+  return value;
+}
+
+function validateToolGatewayClaims(
+  value: unknown,
+  nowSeconds: number,
+  requiredToolName?: string
+): SandboxToolGatewayTokenClaims {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", "tool gateway claims must be an object");
+  }
+  const claims = value as Record<string, unknown>;
+  const exactKeys = [
+    "aud",
+    "exp",
+    "iat",
+    "jti",
+    "lease_id",
+    "run_id",
+    "tenant_id",
+    "tool_name",
+    "user_id",
+    "v"
+  ];
+  if (
+    Object.keys(claims).length !== exactKeys.length ||
+    exactKeys.some((key) => !Object.hasOwn(claims, key))
+  ) {
+    throw new SandboxRunTokenError(
+      "INVALID_CLAIMS",
+      "tool gateway claims have an unexpected shape"
+    );
+  }
+  if (claims.v !== TOKEN_VERSION || claims.aud !== SANDBOX_TOOL_GATEWAY_TOKEN_AUDIENCE) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", "tool gateway token authority is invalid");
+  }
+  if (!Number.isSafeInteger(claims.iat) || !Number.isSafeInteger(claims.exp)) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", "tool gateway timestamps are invalid");
+  }
+  const iat = claims.iat as number;
+  const exp = claims.exp as number;
+  if (exp <= iat || exp - iat > MAX_TOKEN_TTL_SECONDS) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", "tool gateway token TTL is invalid");
+  }
+  if (iat > nowSeconds + MAX_CLOCK_SKEW_SECONDS) {
+    throw new SandboxRunTokenError("TOKEN_NOT_YET_VALID", "tool gateway token is not yet valid");
+  }
+  if (exp <= nowSeconds) {
+    throw new SandboxRunTokenError("TOKEN_EXPIRED", "tool gateway token has expired");
+  }
+  const toolName = claims.tool_name;
+  if (typeof toolName !== "string" || !TOOL_NAME_PATTERN.test(toolName)) {
+    throw new SandboxRunTokenError("INVALID_SCOPE", "tool gateway tool name is invalid");
+  }
+  if (requiredToolName !== undefined && toolName !== requiredToolName) {
+    throw new SandboxRunTokenError("INVALID_SCOPE", "tool gateway token is scoped to another tool");
+  }
+  return canonicalToolGatewayClaims({
+    aud: SANDBOX_TOOL_GATEWAY_TOKEN_AUDIENCE,
+    exp,
+    iat,
+    jti: validateToolGatewayId(claims.jti, "tool gateway token id"),
+    lease_id: validateToolGatewayId(claims.lease_id, "tool gateway lease id"),
+    run_id: validateToolGatewayId(claims.run_id, "tool gateway run id"),
+    tenant_id: validateToolGatewayId(claims.tenant_id, "tool gateway tenant id"),
+    tool_name: toolName,
+    user_id: validateToolGatewayId(claims.user_id, "tool gateway user id"),
+    v: TOKEN_VERSION
+  });
+}
+
+export async function issueSandboxToolGatewayToken(
+  input: IssueSandboxToolGatewayTokenInput
+): Promise<IssuedSandboxToolGatewayToken> {
+  const nowSeconds = Math.floor((input.nowMs ?? Date.now()) / 1000);
+  if (
+    !Number.isSafeInteger(input.ttlSeconds) ||
+    input.ttlSeconds < 1 ||
+    input.ttlSeconds > MAX_TOKEN_TTL_SECONDS
+  ) {
+    throw new SandboxRunTokenError(
+      "INVALID_CLAIMS",
+      `tool gateway ttlSeconds must be between 1 and ${MAX_TOKEN_TTL_SECONDS}`
+    );
+  }
+  const claims = validateToolGatewayClaims(
+    {
+      aud: SANDBOX_TOOL_GATEWAY_TOKEN_AUDIENCE,
+      exp: nowSeconds + input.ttlSeconds,
+      iat: nowSeconds,
+      jti: input.tokenId,
+      lease_id: input.leaseId,
+      run_id: input.runId,
+      tenant_id: input.tenantId,
+      tool_name: input.toolName,
+      user_id: input.userId,
+      v: TOKEN_VERSION
+    },
+    nowSeconds
+  );
+  const payloadBytes = encoder.encode(JSON.stringify(canonicalToolGatewayClaims(claims)));
+  const key = await importHmacKey(input.secret, ["sign"]);
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, payloadBytes));
+  return {
+    claims,
+    token: `${bytesToBase64Url(payloadBytes)}.${bytesToBase64Url(signature)}`
+  };
+}
+
+export async function verifySandboxToolGatewayToken(
+  token: string,
+  secret: string,
+  options: { nowMs?: number; requiredToolName?: string } = {}
+): Promise<SandboxToolGatewayTokenClaims> {
+  if (token.length > 4096) {
+    throw new SandboxRunTokenError("INVALID_TOKEN", "tool gateway token exceeds maximum length");
+  }
+  const parts = token.split(".");
+  if (parts.length !== 2 || parts[0] === undefined || parts[1] === undefined) {
+    throw new SandboxRunTokenError(
+      "INVALID_TOKEN",
+      "tool gateway token must have payload and signature parts"
+    );
+  }
+  const decodedPayload = base64UrlToBytes(parts[0]);
+  const decodedSignature = base64UrlToBytes(parts[1]);
+  const payloadBytes = new Uint8Array(decodedPayload.byteLength);
+  payloadBytes.set(decodedPayload);
+  const signatureBytes = new Uint8Array(decodedSignature.byteLength);
+  signatureBytes.set(decodedSignature);
+  const key = await importHmacKey(secret, ["verify"]);
+  if (!(await crypto.subtle.verify("HMAC", key, signatureBytes, payloadBytes))) {
+    throw new SandboxRunTokenError("INVALID_SIGNATURE", "tool gateway token signature is invalid");
+  }
+  let payloadText: string;
+  let parsed: unknown;
+  try {
+    payloadText = decoder.decode(payloadBytes);
+    parsed = JSON.parse(payloadText);
+  } catch {
+    throw new SandboxRunTokenError(
+      "INVALID_TOKEN",
+      "tool gateway token payload is not valid UTF-8 JSON"
+    );
+  }
+  const claims = validateToolGatewayClaims(
+    parsed,
+    Math.floor((options.nowMs ?? Date.now()) / 1000),
+    options.requiredToolName
+  );
+  if (JSON.stringify(canonicalToolGatewayClaims(claims)) !== payloadText) {
+    throw new SandboxRunTokenError("INVALID_CLAIMS", "tool gateway token is not canonical");
   }
   return claims;
 }

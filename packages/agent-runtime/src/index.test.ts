@@ -68,6 +68,7 @@ import {
   type SandboxBackendAccessGrant,
   type SandboxCreateInput,
   type SandboxDestroyInput,
+  type SandboxExecuteInput,
   type SandboxLease,
   type AiGatewayLiveSmokeFetch
 } from "./index";
@@ -371,7 +372,9 @@ describe("agent runtime scaffold", () => {
       backend_registered: false,
       live_execution: false,
       port_ready: true,
-      required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES
+      production_token_mint_wired: false,
+      required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+      scoped_tool_gateway_implemented: true
     });
     expect(capabilities.kill_switch).toMatchObject({
       actual_tool_execution: false,
@@ -968,13 +971,13 @@ describe("agent runtime scaffold", () => {
 
   it("defines one provider-neutral sandbox backend port with fixed safety invariants", async () => {
     expect(SANDBOX_BACKEND_CONTRACT_VERSION).toBe(
-      "2026-07-10.sandbox-backend-port.v0"
+      "2026-07-11.sandbox-backend-port.v1"
     );
     expect(SANDBOX_SOFT_TIMEOUT_MS).toBe(180_000);
     expect(SANDBOX_HARD_TIMEOUT_MS).toBe(600_000);
     expect(SANDBOX_BACKEND_POLICY).toEqual({
       egress: {
-        allowed_target_kinds: [],
+        allowed_target_kinds: ["tool_gateway"],
         default_action: "deny",
         direct_internet_access: false
       },
@@ -1019,6 +1022,22 @@ describe("agent runtime scaffold", () => {
       lease_id: unknownLeaseId
     } satisfies SandboxLease;
 
+    const sandboxExecuteInputWithoutExplicitEgress = {
+      argv: ["node", "task.mjs"],
+      lease
+    } as const;
+    // @ts-expect-error Every execution must select deny-all or the fixed Tool Gateway path.
+    const invalidMissingEgress: SandboxExecuteInput = sandboxExecuteInputWithoutExplicitEgress;
+    void invalidMissingEgress;
+    const invalidArbitraryEnvironment: SandboxExecuteInput = {
+      argv: ["node", "task.mjs"],
+      egress_access: { kind: "deny_all" },
+      // @ts-expect-error The sandbox port has no arbitrary environment/secret injection surface.
+      env: { DATABASE_URL: "forbidden" },
+      lease
+    };
+    void invalidArbitraryEnvironment;
+
     // @ts-expect-error Every post-create operation requires the opaque lease, not a naked ID.
     const invalidDestroyInput: SandboxDestroyInput = { lease_id: leaseId };
     void invalidDestroyInput;
@@ -1026,6 +1045,7 @@ describe("agent runtime scaffold", () => {
     const events = [];
     for await (const event of backend.execute({
       argv: ["node", "task.mjs"],
+      egress_access: { kind: "deny_all" },
       lease
     })) {
       events.push(event);
@@ -1058,6 +1078,7 @@ describe("agent runtime scaffold", () => {
     const failedEvents = [];
     for await (const event of backend.execute({
       argv: ["timeout"],
+      egress_access: { kind: "deny_all" },
       lease
     })) {
       failedEvents.push(event);
@@ -1075,6 +1096,7 @@ describe("agent runtime scaffold", () => {
     const unknownLeaseEvents = [];
     for await (const event of backend.execute({
       argv: ["node", "task.mjs"],
+      egress_access: { kind: "deny_all" },
       lease: unknownLease
     })) {
       unknownLeaseEvents.push(event);

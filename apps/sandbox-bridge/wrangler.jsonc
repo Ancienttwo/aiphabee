@@ -8,6 +8,13 @@
   "observability": {
     "enabled": false
   },
+  "services": [
+    {
+      "binding": "TOOL_GATEWAY",
+      "service": "aiphabee-worker-staging",
+      "entrypoint": "SandboxToolGateway"
+    }
+  ],
   "containers": [
     {
       "class_name": "AiphaBeeSandbox",

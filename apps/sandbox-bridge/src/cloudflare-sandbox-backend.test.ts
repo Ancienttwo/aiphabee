@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   AGENT_RUNNER_SELECTION_VERSION,
+  SANDBOX_TOOL_GATEWAY_URL,
   validateSandboxWorkspacePath,
   type SandboxBackendAccessGrant,
   type SandboxLease,
@@ -22,6 +23,7 @@ import {
   type SandboxLeaseRecord,
   type SandboxLeaseRegistry
 } from "./lease-registry.js";
+import type { SandboxToolGatewayEgressParams } from "./tool-gateway-egress.js";
 
 function grant(input: {
   owner?: SandboxOwnership;
@@ -222,20 +224,37 @@ class FakeSandbox implements CloudflareSandboxHandle {
   failProcessWait = false;
   failProviderKill = false;
   failStart = false;
+  failSetOutbound = false;
+  failSetOutboundAfterMutation = false;
+  failRemoveOutbound = false;
+  failRemoveOutboundOnCalls = new Set<number>();
+  applySetOutboundAfterBarrier = false;
   emitStreamError = false;
   killed: string[] = [];
+  lastProcessEnv: Record<string, string> | undefined;
+  outboundConfigurations: Array<{
+    hostname: string;
+    methodName: string;
+    params: SandboxToolGatewayEgressParams;
+  }> = [];
+  outboundMappedAtProcessStart: boolean[] = [];
+  removeOutboundCalls = 0;
+  removedOutboundHosts: string[] = [];
+  toolGatewayMapped = false;
   outputChunks: Array<["stderr" | "stdout", string]> = [
     ["stdout", "out"],
     ["stderr", "err"]
   ];
   resolvedSessions: string[] = [];
   sessions: string[] = [];
+  setOutboundBarrier: Promise<void> | undefined;
   startBarrier: Promise<void> | undefined;
   private startObservedResolve: (() => void) | undefined;
   readonly startObserved = new Promise<void>((resolve) => {
     this.startObservedResolve = resolve;
   });
   starts = 0;
+  startCompletions = 0;
 
   async createSession(options: { id: string }): Promise<void> {
     if (this.failCreateSession) throw new Error("session create failed");
@@ -254,6 +273,33 @@ class FakeSandbox implements CloudflareSandboxHandle {
     this.killed.push(processId);
   }
 
+  async setOutboundByHost(
+    hostname: string,
+    methodName: string,
+    params: SandboxToolGatewayEgressParams
+  ): Promise<void> {
+    if (this.failSetOutbound) throw new Error("outbound configuration failed");
+    this.outboundConfigurations.push({ hostname, methodName, params });
+    if (!this.applySetOutboundAfterBarrier) this.toolGatewayMapped = true;
+    await this.setOutboundBarrier;
+    if (this.applySetOutboundAfterBarrier) this.toolGatewayMapped = true;
+    if (this.failSetOutboundAfterMutation) {
+      throw new Error("outbound configuration failed after mutation");
+    }
+  }
+
+  async removeOutboundByHost(hostname: string): Promise<void> {
+    this.removeOutboundCalls += 1;
+    if (
+      this.failRemoveOutbound ||
+      this.failRemoveOutboundOnCalls.has(this.removeOutboundCalls)
+    ) {
+      throw new Error("outbound cleanup failed");
+    }
+    this.removedOutboundHosts.push(hostname);
+    this.toolGatewayMapped = false;
+  }
+
   async getSession(sessionId: string) {
     this.resolvedSessions.push(sessionId);
     return { startProcess: this.startProcess.bind(this) };
@@ -262,6 +308,7 @@ class FakeSandbox implements CloudflareSandboxHandle {
   async startProcess(
     _command: string,
     options: {
+      env?: Record<string, string>;
       onError(error: Error): void;
       onExit(code: number | null): void;
       onOutput(stream: "stderr" | "stdout", data: string): void;
@@ -269,12 +316,15 @@ class FakeSandbox implements CloudflareSandboxHandle {
     }
   ) {
     this.starts += 1;
+    this.outboundMappedAtProcessStart.push(this.toolGatewayMapped);
+    this.lastProcessEnv = options.env;
     this.startObservedResolve?.();
     await this.startBarrier;
     if (this.failStart) throw new Error("start failed");
     for (const [stream, data] of this.outputChunks) options.onOutput(stream, data);
     if (this.emitStreamError) options.onError(new Error("stream failed"));
     options.onExit(0);
+    this.startCompletions += 1;
     return {
       id: options.processId,
       kill: async () => {
@@ -340,10 +390,16 @@ describe("CloudflareSandboxBackend", () => {
     });
 
     const events = [];
-    for await (const event of backend.execute({ argv: ["printf", "ok"], lease })) {
+    for await (const event of backend.execute({
+      argv: ["printf", "ok"],
+      egress_access: { kind: "deny_all" },
+      lease
+    })) {
       events.push(event);
     }
     expect(events.map((event) => event.event)).toEqual(["output", "output", "exit"]);
+    expect(sandbox.outboundConfigurations).toEqual([]);
+    expect(sandbox.lastProcessEnv).toBeUndefined();
     expect(sandbox.resolvedSessions).toEqual(["session-lease-adapter"]);
     expect(events.slice(0, 2).map((event) => "classification" in event && event.classification)).toEqual([
       "untrusted_process_output",
@@ -388,6 +444,424 @@ describe("CloudflareSandboxBackend", () => {
     });
   });
 
+  it("keeps the short Tool Gateway token outside the process and removes exact-host egress", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-tool-egress", "process-tool-egress"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => `'${value}'`
+    });
+    const created = await backend.create({ access_grant: grant() });
+    if (created.status !== "created") throw new Error("adapter fixture create failed");
+    const jobToken = "signed-job-token.signature";
+    const events = [];
+    for await (const event of backend.execute({
+      argv: ["python", "tool.py"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-adapter",
+        token: jobToken
+      },
+      lease: created.lease
+    })) {
+      events.push(event);
+    }
+
+    expect(events.at(-1)).toMatchObject({ event: "exit", terminal: true });
+    expect(sandbox.outboundConfigurations).toEqual([
+      {
+        hostname: "tool-gateway.internal",
+        methodName: "toolGateway",
+        params: {
+          lease_id: "lease-tool-egress",
+          run_id: "run-adapter",
+          tenant_id: "tenant-1",
+          token: jobToken,
+          user_id: "user-1"
+        }
+      }
+    ]);
+    expect(sandbox.removedOutboundHosts).toEqual([
+      "tool-gateway.internal",
+      "tool-gateway.internal"
+    ]);
+    expect(sandbox.lastProcessEnv).toEqual({
+      AIPHABEE_TOOL_GATEWAY_URL: SANDBOX_TOOL_GATEWAY_URL
+    });
+    expect(JSON.stringify(sandbox.lastProcessEnv)).not.toContain(jobToken);
+    expect(JSON.stringify(events)).not.toContain(jobToken);
+  });
+
+  it("starts no process when Tool Gateway configuration or access validation fails", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-tool-denied", "process-config-failed", "process-invalid-access"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => value
+    });
+    const created = await backend.create({ access_grant: grant() });
+    if (created.status !== "created") throw new Error("adapter fixture create failed");
+
+    sandbox.failSetOutbound = true;
+    const configFailure = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-adapter",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      configFailure.push(event);
+    }
+    expect(configFailure.at(-1)).toMatchObject({ event: "failed", terminal: true });
+    expect(sandbox.starts).toBe(0);
+    expect(registry.record).toMatchObject({
+      process_id: "process-config-failed",
+      process_state: "starting",
+      status: "ready"
+    });
+
+    sandbox.failSetOutbound = false;
+    const invalidAccess = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: "https://example.com/tools" as typeof SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-adapter",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      invalidAccess.push(event);
+    }
+    expect(invalidAccess.at(-1)).toMatchObject({
+      event: "failed",
+      retryable: false,
+      terminal: true
+    });
+    const mismatchedRun = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-other",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      mismatchedRun.push(event);
+    }
+    expect(mismatchedRun.at(-1)).toMatchObject({
+      event: "failed",
+      retryable: false,
+      terminal: true
+    });
+    expect(sandbox.starts).toBe(0);
+    expect(sandbox.outboundConfigurations).toEqual([]);
+  });
+
+  it("poisons the lease when Tool Gateway configuration or cleanup is unconfirmed", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-stale-egress", "process-partial-set", "process-deny-all"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => value
+    });
+    const created = await backend.create({ access_grant: grant() });
+    if (created.status !== "created") throw new Error("adapter fixture create failed");
+
+    sandbox.failSetOutboundAfterMutation = true;
+    sandbox.failRemoveOutboundOnCalls.add(2);
+    const partialSetFailure = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-adapter",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      partialSetFailure.push(event);
+    }
+    expect(partialSetFailure.at(-1)).toMatchObject({ event: "failed", terminal: true });
+    expect(sandbox.starts).toBe(0);
+    expect(sandbox.toolGatewayMapped).toBe(true);
+    expect(sandbox.removeOutboundCalls).toBe(2);
+
+    sandbox.failSetOutboundAfterMutation = false;
+    const removeCallsBeforeRetry = sandbox.removeOutboundCalls;
+    const denyAllEvents = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
+      denyAllEvents.push(event);
+    }
+    expect(denyAllEvents.at(-1)).toMatchObject({
+      event: "failed",
+      retryable: false,
+      terminal: true
+    });
+    expect(sandbox.starts).toBe(0);
+    expect(sandbox.removeOutboundCalls).toBe(removeCallsBeforeRetry);
+    expect(registry.record).toMatchObject({
+      process_id: "process-partial-set",
+      process_state: "starting",
+      status: "ready"
+    });
+    await expect(backend.destroy({ lease: created.lease })).resolves.toMatchObject({
+      status: "destroyed",
+      terminal: true
+    });
+  });
+
+  it("does not reopen a lease after confirmed configuration has unconfirmed cleanup", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-cleanup-poison", "process-cleanup-poison", "process-denied"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => value
+    });
+    const created = await backend.create({ access_grant: grant() });
+    if (created.status !== "created") throw new Error("adapter fixture create failed");
+
+    sandbox.failRemoveOutboundOnCalls.add(2);
+    const configuredEvents = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-adapter",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      configuredEvents.push(event);
+    }
+    expect(configuredEvents.at(-1)).toMatchObject({ event: "exit", terminal: true });
+    expect(sandbox.toolGatewayMapped).toBe(true);
+    expect(registry.record).toMatchObject({
+      process_id: "process-cleanup-poison",
+      status: "ready"
+    });
+
+    const removeCallsBeforeRetry = sandbox.removeOutboundCalls;
+    const deniedEvents = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
+      deniedEvents.push(event);
+    }
+    expect(deniedEvents.at(-1)).toMatchObject({ event: "failed", retryable: false });
+    expect(sandbox.removeOutboundCalls).toBe(removeCallsBeforeRetry);
+    expect(sandbox.starts).toBe(1);
+  });
+
+  it("bounds a hanging Tool Gateway configuration before any process starts", async () => {
+    vi.useFakeTimers();
+    try {
+      const registry = new MemoryLeaseRegistry();
+      const sandbox = new FakeSandbox();
+      const ids = ["lease-egress-timeout", "process-egress-timeout", "process-after-timeout"];
+      const backend = new CloudflareSandboxBackend({
+        getSandbox: () => sandbox,
+        leaseRegistry: registry,
+        newId: () => ids.shift() ?? "unexpected-id",
+        shellQuote: (value) => value
+      });
+      const created = await backend.create({ access_grant: grant() });
+      if (created.status !== "created") throw new Error("adapter fixture create failed");
+
+      let releaseSetOutbound: (() => void) | undefined;
+      sandbox.applySetOutboundAfterBarrier = true;
+      sandbox.setOutboundBarrier = new Promise<void>((resolve) => {
+        releaseSetOutbound = resolve;
+      });
+      const timedOutEventsPromise = (async () => {
+        const events = [];
+        for await (const event of backend.execute({
+          argv: ["true"],
+          egress_access: {
+            endpoint: SANDBOX_TOOL_GATEWAY_URL,
+            kind: "tool_gateway",
+            run_id: "run-adapter",
+            token: "signed-job-token.signature"
+          },
+          lease: created.lease
+        })) {
+          events.push(event);
+        }
+        return events;
+      })();
+      await vi.advanceTimersByTimeAsync(15_000);
+      const timedOutEvents = await timedOutEventsPromise;
+      expect(timedOutEvents.at(-1)).toMatchObject({
+        event: "failed",
+        reason: "hard_timeout",
+        terminal: true
+      });
+      expect(sandbox.starts).toBe(0);
+      expect(sandbox.toolGatewayMapped).toBe(false);
+      expect(registry.record).toMatchObject({
+        process_id: "process-egress-timeout",
+        process_state: "starting",
+        status: "ready"
+      });
+
+      releaseSetOutbound?.();
+      await Promise.resolve();
+      expect(sandbox.toolGatewayMapped).toBe(true);
+
+      sandbox.setOutboundBarrier = undefined;
+      const removeCallsBeforeRetry = sandbox.removeOutboundCalls;
+      const denyAllEvents = [];
+      for await (const event of backend.execute({
+        argv: ["true"],
+        egress_access: { kind: "deny_all" },
+        lease: created.lease
+      })) {
+        denyAllEvents.push(event);
+      }
+      expect(denyAllEvents.at(-1)).toMatchObject({
+        event: "failed",
+        retryable: false,
+        terminal: true
+      });
+      expect(sandbox.removeOutboundCalls).toBe(removeCallsBeforeRetry);
+      expect(sandbox.outboundMappedAtProcessStart).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("poisons the lease when process start does not confirm before the provider bound", async () => {
+    vi.useFakeTimers();
+    try {
+      const registry = new MemoryLeaseRegistry();
+      const sandbox = new FakeSandbox();
+      const ids = ["lease-start-timeout", "process-start-timeout", "process-denied"];
+      const backend = new CloudflareSandboxBackend({
+        getSandbox: () => sandbox,
+        leaseRegistry: registry,
+        newId: () => ids.shift() ?? "unexpected-id",
+        shellQuote: (value) => value
+      });
+      const created = await backend.create({ access_grant: grant() });
+      if (created.status !== "created") throw new Error("adapter fixture create failed");
+
+      let releaseStart: (() => void) | undefined;
+      sandbox.startBarrier = new Promise<void>((resolve) => {
+        releaseStart = resolve;
+      });
+      const timedOutEventsPromise = (async () => {
+        const events = [];
+        for await (const event of backend.execute({
+          argv: ["true"],
+          egress_access: { kind: "deny_all" },
+          lease: created.lease
+        })) {
+          events.push(event);
+        }
+        return events;
+      })();
+      await vi.advanceTimersByTimeAsync(15_000);
+      const timedOutEvents = await timedOutEventsPromise;
+      expect(timedOutEvents.at(-1)).toMatchObject({
+        event: "failed",
+        reason: "hard_timeout",
+        terminal: true
+      });
+      expect(registry.record).toMatchObject({
+        process_id: "process-start-timeout",
+        process_state: "starting",
+        status: "ready"
+      });
+
+      releaseStart?.();
+      await Promise.resolve();
+      expect(sandbox.startCompletions).toBe(1);
+      const removeCallsBeforeRetry = sandbox.removeOutboundCalls;
+      const deniedEvents = [];
+      for await (const event of backend.execute({
+        argv: ["true"],
+        egress_access: { kind: "deny_all" },
+        lease: created.lease
+      })) {
+        deniedEvents.push(event);
+      }
+      expect(deniedEvents.at(-1)).toMatchObject({ event: "failed", retryable: false });
+      expect(sandbox.removeOutboundCalls).toBe(removeCallsBeforeRetry);
+      expect(sandbox.starts).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("binds a session-owned lease to the explicit current run without inventing identity", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-session-egress", "process-session-egress"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => value
+    });
+    const created = await backend.create({
+      access_grant: grant({ owner: { kind: "session", session_id: "session-row4" } })
+    });
+    if (created.status !== "created") throw new Error("adapter fixture create failed");
+    const events = [];
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: {
+        endpoint: SANDBOX_TOOL_GATEWAY_URL,
+        kind: "tool_gateway",
+        run_id: "run-session-job",
+        token: "signed-job-token.signature"
+      },
+      lease: created.lease
+    })) {
+      events.push(event);
+    }
+
+    expect(events.at(-1)).toMatchObject({ event: "exit", terminal: true });
+    expect(sandbox.starts).toBe(1);
+    expect(sandbox.outboundConfigurations).toEqual([
+      expect.objectContaining({
+        params: expect.objectContaining({
+          lease_id: "lease-session-egress",
+          run_id: "run-session-job"
+        })
+      })
+    ]);
+    expect(registry.record?.process_id).toBeUndefined();
+  });
+
   it("blocks a cross-tenant lease before any provider operation", async () => {
     const registry = new MemoryLeaseRegistry();
     const sandbox = new FakeSandbox();
@@ -404,7 +878,11 @@ describe("CloudflareSandboxBackend", () => {
       access_grant: grant({ tenant: "tenant-2" })
     };
     const events = [];
-    for await (const event of backend.execute({ argv: ["true"], lease: foreignLease })) {
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: { kind: "deny_all" },
+      lease: foreignLease
+    })) {
       events.push(event);
     }
     expect(events).toEqual([
@@ -445,6 +923,7 @@ describe("CloudflareSandboxBackend", () => {
       const events = [];
       for await (const event of backend.execute({
         argv: ["sleep", "10"],
+        egress_access: { kind: "deny_all" },
         lease: created.lease
       })) {
         events.push(event);
@@ -485,7 +964,11 @@ describe("CloudflareSandboxBackend", () => {
 
     sandbox.failStart = true;
     const events = [];
-    for await (const event of backend.execute({ argv: ["false"], lease: created.lease })) {
+    for await (const event of backend.execute({
+      argv: ["false"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
       events.push(event);
     }
     expect(events).toEqual([
@@ -500,7 +983,11 @@ describe("CloudflareSandboxBackend", () => {
     sandbox.failStart = false;
     sandbox.emitStreamError = true;
     const streamEvents = [];
-    for await (const event of backend.execute({ argv: ["true"], lease: created.lease })) {
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
       streamEvents.push(event);
     }
     expect(streamEvents.at(-1)).toMatchObject({
@@ -595,7 +1082,11 @@ describe("CloudflareSandboxBackend", () => {
     if (created.status !== "created") throw new Error("adapter fixture create failed");
 
     const events = [];
-    for await (const event of backend.execute({ argv: ["sleep", "10"], lease: created.lease })) {
+    for await (const event of backend.execute({
+      argv: ["sleep", "10"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
       events.push(event);
     }
     expect(events.at(-1)).toMatchObject({
@@ -622,7 +1113,11 @@ describe("CloudflareSandboxBackend", () => {
     await registry.markProcessRunning(created.lease, "process-first");
 
     const events = [];
-    for await (const event of backend.execute({ argv: ["true"], lease: created.lease })) {
+    for await (const event of backend.execute({
+      argv: ["true"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
       events.push(event);
     }
     expect(events).toEqual([
@@ -651,7 +1146,11 @@ describe("CloudflareSandboxBackend", () => {
     if (created.status !== "created") throw new Error("adapter fixture create failed");
 
     const events = [];
-    for await (const event of backend.execute({ argv: ["yes"], lease: created.lease })) {
+    for await (const event of backend.execute({
+      argv: ["yes"],
+      egress_access: { kind: "deny_all" },
+      lease: created.lease
+    })) {
       events.push(event);
     }
     expect(events).toEqual([

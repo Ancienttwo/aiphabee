@@ -1,12 +1,15 @@
 import {
   SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
   SANDBOX_HARD_TIMEOUT_MS,
+  SANDBOX_TOOL_GATEWAY_HOST,
+  SANDBOX_TOOL_GATEWAY_URL,
   validateSandboxWorkspacePath,
   type SandboxBackend,
   type SandboxCreateInput,
   type SandboxCreateResult,
   type SandboxDestroyInput,
   type SandboxDestroyResult,
+  type SandboxEgressAccess,
   type SandboxExecuteInput,
   type SandboxExecutionEvent,
   type SandboxKillInput,
@@ -24,6 +27,10 @@ import {
   type SandboxLeaseRecord,
   type SandboxLeaseRegistry
 } from "./lease-registry.js";
+import {
+  SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER,
+  type SandboxToolGatewayEgressParams
+} from "./tool-gateway-egress.js";
 
 const BACKEND_ID = "cloudflare.sandbox-v0";
 const MAX_FILE_BYTES = 1_048_576;
@@ -31,6 +38,8 @@ const MAX_OUTPUT_QUEUE_BYTES = 1_048_576;
 const MAX_OUTPUT_QUEUE_EVENTS = 1_024;
 const PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS = 15_000;
 const UTF8_ENCODER = new TextEncoder();
+const TOOL_GATEWAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/u;
 
 class ProviderOperationTimeoutError extends Error {}
 class SandboxAdapterRequestRejectedError extends Error {}
@@ -48,6 +57,7 @@ export interface CloudflareSandboxSession {
     options: {
       autoCleanup: false;
       cwd: string;
+      env?: Record<string, string>;
       onError(error: Error): void;
       onExit(code: number | null): void;
       onOutput(stream: "stderr" | "stdout", data: string): void;
@@ -65,10 +75,16 @@ export interface CloudflareSandboxHandle {
   destroy(): Promise<void>;
   getSession(sessionId: string): Promise<CloudflareSandboxSession>;
   killProcess(processId: string, signal?: string): Promise<void>;
+  removeOutboundByHost(hostname: string): Promise<void>;
   readFile(
     path: string,
     options: { encoding: "none"; sessionId: string }
   ): Promise<{ content: ReadableStream<Uint8Array>; success: true }>;
+  setOutboundByHost(
+    hostname: string,
+    methodName: string,
+    params: SandboxToolGatewayEgressParams
+  ): Promise<void>;
   writeFile(
     path: string,
     content: ReadableStream<Uint8Array>,
@@ -125,6 +141,40 @@ class AsyncEventQueue implements AsyncIterable<SandboxExecutionEvent> {
       });
     }
   }
+}
+
+function validateEgressAccess(access: unknown): SandboxEgressAccess {
+  if (typeof access !== "object" || access === null || Array.isArray(access)) {
+    throw new SandboxAdapterRequestRejectedError("missing sandbox egress access");
+  }
+  const candidate = access as Record<string, unknown>;
+  if (candidate.kind === "deny_all") {
+    if (Object.keys(access).length !== 1) {
+      throw new SandboxAdapterRequestRejectedError("invalid deny-all egress access");
+    }
+    return { kind: "deny_all" };
+  }
+  if (
+    candidate.kind !== "tool_gateway" ||
+    Object.keys(candidate).sort().join(",") !== "endpoint,kind,run_id,token" ||
+    candidate.endpoint !== SANDBOX_TOOL_GATEWAY_URL ||
+    typeof candidate.run_id !== "string" ||
+    candidate.run_id.length < 1 ||
+    candidate.run_id.length > 128 ||
+    candidate.run_id.trim() !== candidate.run_id ||
+    CONTROL_CHARACTER_PATTERN.test(candidate.run_id) ||
+    typeof candidate.token !== "string" ||
+    candidate.token.length > 4_096 ||
+    !TOOL_GATEWAY_TOKEN_PATTERN.test(candidate.token)
+  ) {
+    throw new SandboxAdapterRequestRejectedError("invalid Tool Gateway egress access");
+  }
+  return {
+    endpoint: SANDBOX_TOOL_GATEWAY_URL,
+    kind: "tool_gateway",
+    run_id: candidate.run_id,
+    token: candidate.token
+  };
 }
 
 function workspacePath(path: unknown): string {
@@ -257,8 +307,14 @@ export class CloudflareSandboxBackend implements SandboxBackend {
     let processId: string | undefined;
     let process: CloudflareSandboxProcess | undefined;
     let processBound = false;
+    let processStartAttempted = false;
+    let processStartStateUncertain = false;
     let processTerminalConfirmed = false;
     let providerId: string | undefined;
+    let sandbox: CloudflareSandboxHandle | undefined;
+    let outboundStateConfirmedClean = false;
+    let toolGatewayConfigurationAttempted = false;
+    let toolGatewayConfigurationConfirmed = false;
     let rejectStream: (error: Error) => void = () => undefined;
     let resolveStream: (exitCode: number) => void = () => undefined;
     const streamedExit = new Promise<number>((resolve, reject) => {
@@ -267,6 +323,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
     });
     void streamedExit.catch(() => undefined);
     try {
+      const egressAccess = validateEgressAccess(input.egress_access);
       const command = input.argv.map(this.dependencies.shellQuote).join(" ");
       processId = this.dependencies.newId();
       const reservation = await this.dependencies.leaseRegistry.beginProcess(
@@ -279,37 +336,83 @@ export class CloudflareSandboxBackend implements SandboxBackend {
       processBound = true;
       providerId = reservation.record.provider_id;
       const sessionId = reservation.record.session_id;
-      const session = await this.dependencies.getSandbox(providerId).getSession(sessionId);
-      process = await session.startProcess(command, {
-        autoCleanup: false,
-        cwd: "/workspace",
-        onError: (error) => {
-          rejectStream(error);
-        },
-        onExit: (code) => {
-          if (code === null) {
-            rejectStream(new Error("provider process exited without an exit code"));
-            return;
-          }
-          resolveStream(code);
-        },
-        onOutput: (stream, data) => {
-          const accepted = queue.push({
-            chunk: data,
-            classification: "untrusted_process_output",
-            event: "output",
-            sequence,
-            stream,
-            terminal: false
-          });
-          if (accepted) {
-            sequence += 1;
-            return;
-          }
-          rejectStream(new SandboxOutputLimitError("sandbox output queue limit exceeded"));
-        },
-        processId
-      });
+      sandbox = this.dependencies.getSandbox(providerId);
+      await withTimeout(
+        sandbox.removeOutboundByHost(SANDBOX_TOOL_GATEWAY_HOST),
+        PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+      );
+      outboundStateConfirmedClean = true;
+      if (egressAccess.kind === "tool_gateway") {
+        const owner = input.lease.access_grant.owner;
+        if (owner.kind === "run" && owner.run_id !== egressAccess.run_id) {
+          throw new SandboxAdapterRequestRejectedError(
+            "Tool Gateway run does not match the sandbox lease owner"
+          );
+        }
+        toolGatewayConfigurationAttempted = true;
+        outboundStateConfirmedClean = false;
+        await withTimeout(
+          sandbox.setOutboundByHost(
+            SANDBOX_TOOL_GATEWAY_HOST,
+            SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER,
+            {
+              lease_id: input.lease.lease_id,
+              run_id: egressAccess.run_id,
+              tenant_id: input.lease.access_grant.tenant_id,
+              token: egressAccess.token,
+              user_id: input.lease.access_grant.user_id
+            }
+          ),
+          PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+        );
+        toolGatewayConfigurationConfirmed = true;
+      }
+      const session = await sandbox.getSession(sessionId);
+      processStartAttempted = true;
+      try {
+        process = await withTimeout(
+          session.startProcess(command, {
+            autoCleanup: false,
+            cwd: "/workspace",
+            env:
+              egressAccess.kind === "tool_gateway"
+                ? { AIPHABEE_TOOL_GATEWAY_URL: SANDBOX_TOOL_GATEWAY_URL }
+                : undefined,
+            onError: (error) => {
+              rejectStream(error);
+            },
+            onExit: (code) => {
+              if (code === null) {
+                rejectStream(new Error("provider process exited without an exit code"));
+                return;
+              }
+              resolveStream(code);
+            },
+            onOutput: (stream, data) => {
+              const accepted = queue.push({
+                chunk: data,
+                classification: "untrusted_process_output",
+                event: "output",
+                sequence,
+                stream,
+                terminal: false
+              });
+              if (accepted) {
+                sequence += 1;
+                return;
+              }
+              rejectStream(new SandboxOutputLimitError("sandbox output queue limit exceeded"));
+            },
+            processId
+          }),
+          PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+        );
+      } catch (error) {
+        if (error instanceof ProviderOperationTimeoutError) {
+          processStartStateUncertain = true;
+        }
+        throw error;
+      }
       if (process.id !== processId) throw new Error("provider process ID mismatch");
       const processBinding = await this.dependencies.leaseRegistry.markProcessRunning(
         input.lease,
@@ -326,6 +429,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
       processTerminalConfirmed = true;
       queue.push({ event: "exit", exit_code: exitCode, sequence: sequence++, terminal: true });
     } catch (error) {
+      if (!processStartAttempted) processTerminalConfirmed = true;
       if (process !== undefined) {
         try {
           await withTimeout(
@@ -337,7 +441,11 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         } catch {
           // The terminal failure remains explicit; Row 5 owns cleanup retry/audit.
         }
-      } else if (providerId !== undefined && processId !== undefined) {
+      } else if (
+        processStartAttempted &&
+        providerId !== undefined &&
+        processId !== undefined
+      ) {
         try {
           await withTimeout(
             this.dependencies.getSandbox(providerId).killProcess(processId, "SIGTERM"),
@@ -360,7 +468,29 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         terminal: true
       });
     } finally {
-      if (processId !== undefined && processBound && processTerminalConfirmed) {
+      if (
+        sandbox !== undefined &&
+        (toolGatewayConfigurationAttempted || !outboundStateConfirmedClean)
+      ) {
+        try {
+          await withTimeout(
+            sandbox.removeOutboundByHost(SANDBOX_TOOL_GATEWAY_HOST),
+            PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+          );
+          if (!toolGatewayConfigurationAttempted || toolGatewayConfigurationConfirmed) {
+            outboundStateConfirmedClean = true;
+          }
+        } catch {
+          outboundStateConfirmedClean = false;
+        }
+      }
+      if (
+        processId !== undefined &&
+        processBound &&
+        processTerminalConfirmed &&
+        outboundStateConfirmedClean &&
+        !processStartStateUncertain
+      ) {
         try {
           await this.dependencies.leaseRegistry.clearProcess(input.lease, processId);
         } catch {

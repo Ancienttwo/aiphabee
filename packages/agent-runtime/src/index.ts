@@ -117,12 +117,15 @@ export const AGENT_RUNNER_FAMILIES = AGENT_RUNNER_REGISTRY.map(
   (registration) => registration.family
 );
 export const SANDBOX_BACKEND_CONTRACT_VERSION =
-  "2026-07-10.sandbox-backend-port.v0";
+  "2026-07-11.sandbox-backend-port.v1";
 export const SANDBOX_SOFT_TIMEOUT_MS = 180_000;
 export const SANDBOX_HARD_TIMEOUT_MS = 600_000;
+export const SANDBOX_TOOL_GATEWAY_HOST = "tool-gateway.internal" as const;
+export const SANDBOX_TOOL_GATEWAY_URL =
+  `https://${SANDBOX_TOOL_GATEWAY_HOST}/v1/tools/call` as const;
 export const SANDBOX_BACKEND_POLICY: SandboxBackendPolicy = Object.freeze({
   egress: Object.freeze({
-    allowed_target_kinds: Object.freeze([] as const),
+    allowed_target_kinds: Object.freeze(["tool_gateway"] as const),
     default_action: "deny",
     direct_internet_access: false
   }),
@@ -546,7 +549,7 @@ export type AgentRunnerSelection =
 
 export interface SandboxBackendPolicy {
   readonly egress: {
-    readonly allowed_target_kinds: readonly [];
+    readonly allowed_target_kinds: readonly ["tool_gateway"];
     readonly default_action: "deny";
     readonly direct_internet_access: false;
   };
@@ -649,8 +652,20 @@ export type SandboxCreateResult =
     }
   | SandboxBackendFailure<"create_failed">;
 
+export type SandboxEgressAccess =
+  | {
+      readonly kind: "deny_all";
+    }
+  | {
+      readonly endpoint: typeof SANDBOX_TOOL_GATEWAY_URL;
+      readonly kind: "tool_gateway";
+      readonly run_id: string;
+      readonly token: string;
+    };
+
 export interface SandboxExecuteInput {
   argv: readonly [string, ...string[]];
+  egress_access: SandboxEgressAccess;
   lease: SandboxLease;
 }
 
@@ -1394,7 +1409,9 @@ export interface AgentRuntimeCapabilities {
       backend_registered: false;
       live_execution: false;
       port_ready: true;
+      production_token_mint_wired: false;
       required_capabilities: typeof SANDBOX_BACKEND_REQUIRED_CAPABILITIES;
+      scoped_tool_gateway_implemented: true;
     };
     supported_layers: typeof AGENT_LAYERS;
     supported_run_modes: typeof AGENT_RUN_MODES;
@@ -3718,7 +3735,9 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         backend_registered: false,
         live_execution: false,
         port_ready: true,
-        required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES
+        production_token_mint_wired: false,
+        required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+        scoped_tool_gateway_implemented: true
       },
       supported_layers: AGENT_LAYERS,
       supported_run_modes: AGENT_RUN_MODES,

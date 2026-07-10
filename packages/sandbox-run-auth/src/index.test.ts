@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   SandboxRunTokenError,
   deriveSandboxId,
+  issueSandboxToolGatewayToken,
   issueSandboxRunToken,
+  verifySandboxToolGatewayToken,
   verifySandboxRunToken
 } from "./index.js";
 
@@ -111,5 +113,76 @@ describe("sandbox run token", () => {
     });
 
     expect(second.sandbox_id).not.toBe(first.sandbox_id);
+  });
+});
+
+describe("sandbox Tool Gateway token", () => {
+  const input = {
+    leaseId: "lease-row4-001",
+    nowMs: NOW,
+    runId: "run-row4-001",
+    secret: SECRET,
+    tenantId: "tenant-1",
+    tokenId: "call-row4-001",
+    toolName: "get_quote_snapshot",
+    ttlSeconds: 120,
+    userId: "user-1"
+  } as const;
+
+  it("binds one canonical token to tenant, user, run, lease, tool and expiry", async () => {
+    const issued = await issueSandboxToolGatewayToken(input);
+    const claims = await verifySandboxToolGatewayToken(issued.token, SECRET, {
+      nowMs: NOW + 1_000,
+      requiredToolName: "get_quote_snapshot"
+    });
+
+    expect(claims).toEqual({
+      aud: "aiphabee:sandbox-tool-gateway",
+      exp: Math.floor(NOW / 1_000) + 120,
+      iat: Math.floor(NOW / 1_000),
+      jti: "call-row4-001",
+      lease_id: "lease-row4-001",
+      run_id: "run-row4-001",
+      tenant_id: "tenant-1",
+      tool_name: "get_quote_snapshot",
+      user_id: "user-1",
+      v: 1
+    });
+  });
+
+  it("fails closed before use on tamper, expiry and cross-tool reuse", async () => {
+    const issued = await issueSandboxToolGatewayToken(input);
+    const tamperIndex = issued.token.indexOf(".") + 2;
+    const tampered = `${issued.token.slice(0, tamperIndex)}${
+      issued.token[tamperIndex] === "a" ? "b" : "a"
+    }${issued.token.slice(tamperIndex + 1)}`;
+
+    await expect(
+      verifySandboxToolGatewayToken(tampered, SECRET, { nowMs: NOW + 1_000 })
+    ).rejects.toMatchObject({ code: "INVALID_SIGNATURE" });
+    await expect(
+      verifySandboxToolGatewayToken(issued.token, SECRET, { nowMs: NOW + 120_000 })
+    ).rejects.toMatchObject({ code: "TOKEN_EXPIRED" });
+    await expect(
+      verifySandboxToolGatewayToken(issued.token, SECRET, {
+        nowMs: NOW + 1_000,
+        requiredToolName: "get_price_history"
+      })
+    ).rejects.toMatchObject({ code: "INVALID_SCOPE" });
+  });
+
+  it("rejects overlong TTL, weak secrets and malformed identity/tool claims", async () => {
+    await expect(
+      issueSandboxToolGatewayToken({ ...input, ttlSeconds: 601 })
+    ).rejects.toMatchObject({ code: "INVALID_CLAIMS" });
+    await expect(
+      issueSandboxToolGatewayToken({ ...input, secret: "too-short" })
+    ).rejects.toMatchObject({ code: "INVALID_SECRET" });
+    await expect(
+      issueSandboxToolGatewayToken({ ...input, tenantId: " tenant with leading space" })
+    ).rejects.toMatchObject({ code: "INVALID_CLAIMS" });
+    await expect(
+      issueSandboxToolGatewayToken({ ...input, toolName: "GET /arbitrary" })
+    ).rejects.toMatchObject({ code: "INVALID_SCOPE" });
   });
 });

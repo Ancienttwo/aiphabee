@@ -1,4 +1,9 @@
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+import {
+  WorkerEntrypoint,
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep
+} from "cloudflare:workers";
 import { Hono, type Context } from "hono";
 import { Client } from "pg";
 import {
@@ -417,6 +422,7 @@ import {
   type WatchlistAlertKind,
   type WatchlistBriefingCadence
 } from "@aiphabee/watchlist-runtime";
+import { handleSandboxToolGatewayRequest } from "./sandbox-tool-gateway.js";
 import {
   createStockWorkbenchAnnouncementSearch,
   createStockWorkbenchSnapshot,
@@ -427,6 +433,7 @@ interface WorkerBindings {
   AIPHABEE_ARTIFACTS?: RuntimeR2Bucket;
   AIPHABEE_CONFIG?: RuntimeKvNamespace;
   AIPHABEE_AGENT_TOOL_EXECUTION_SMOKE_TOKEN?: string;
+  AIPHABEE_SANDBOX_TOOL_GATEWAY_HMAC_KEY?: string;
   AIPHABEE_AGENT_MODEL_AUDIT_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_LIVE_TOOL_LOOP_SMOKE_TOKEN?: string;
   AIPHABEE_AGENT_GENERATED_ANSWER_SMOKE_TOKEN?: string;
@@ -12583,6 +12590,50 @@ export class AiphaBeeRunCoordinator {
       state_key_hash: await hashRuntimeSmokeString(payload.state_key),
       status: "ok",
       value_hash: payload.value_hash
+    });
+  }
+}
+
+export class SandboxToolGateway extends WorkerEntrypoint<WorkerBindings> {
+  fetch(request: Request): Promise<Response> {
+    return handleSandboxToolGatewayRequest(request, {
+      execute: async (input) => {
+        const route = MCP_TOOL_EXECUTION_ROUTE_MAP[input.tool_name];
+        if (route === undefined) {
+          return Response.json(
+            { error: { code: "TOOL_GATEWAY_TOOL_DENIED" }, ok: false },
+            { headers: { "cache-control": "no-store" }, status: 403 }
+          );
+        }
+        return app.request(
+          route,
+          {
+            body: JSON.stringify(input.arguments),
+            headers: {
+              "content-type": "application/json",
+              "x-aiphabee-sandbox-lease-id": input.claims.lease_id,
+              "x-aiphabee-sandbox-run-id": input.claims.run_id,
+              "x-aiphabee-tenant-id": input.claims.tenant_id,
+              "x-aiphabee-tool-token-id": input.claims.jti,
+              "x-aiphabee-user-id": input.claims.user_id
+            },
+            method: "POST"
+          },
+          this.env
+        );
+      },
+      isToolExecutable: (toolName) => {
+        if (!getToolRegistryCapabilities().execution_ready) return false;
+        const definition = REGISTERED_TOOLS.find((tool) => tool.name === toolName);
+        return (
+          definition?.execution.handlerReady === true &&
+          definition.execution.mode === "read_only_scaffold" &&
+          definition.execution.allowArbitrarySql === false &&
+          definition.execution.allowArbitraryUrl === false &&
+          MCP_TOOL_EXECUTION_ROUTE_MAP[toolName] !== undefined
+        );
+      },
+      secret: this.env.AIPHABEE_SANDBOX_TOOL_GATEWAY_HMAC_KEY
     });
   }
 }

@@ -1,6 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
-import { ContainerProxy, Sandbox, getSandbox } from "@cloudflare/sandbox";
+import {
+  ContainerProxy as SandboxContainerProxy,
+  Sandbox,
+  getSandbox
+} from "@cloudflare/sandbox";
 import { resolveWorkspacePath, shellQuote } from "@cloudflare/sandbox/bridge";
+import { SANDBOX_TOOL_GATEWAY_HOST } from "@aiphabee/agent-runtime";
 
 import {
   createSandboxBridgeHandler,
@@ -14,8 +19,31 @@ import {
   DurableObjectSandboxLeaseRegistry,
   handleSandboxLeaseRegistryRequest
 } from "./lease-registry.js";
+import {
+  SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER,
+  denySandboxOutbound,
+  forwardSandboxToolGatewayRequest,
+  type SandboxToolGatewayEgressEnv
+} from "./tool-gateway-egress.js";
 
-export { ContainerProxy };
+export class ContainerProxy extends SandboxContainerProxy {
+  async fetch(request: Request): Promise<Response> {
+    const hostname = new URL(request.url).hostname;
+    const props = this.ctx.props;
+    const override = props.outboundByHostOverrides?.[hostname];
+    if (
+      hostname === SANDBOX_TOOL_GATEWAY_HOST &&
+      override?.method === SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER
+    ) {
+      return forwardSandboxToolGatewayRequest(
+        request,
+        this.env as SandboxToolGatewayEgressEnv,
+        { params: override.params }
+      );
+    }
+    return super.fetch(request);
+  }
+}
 
 export class RunGuard extends DurableObject {
   fetch(request: Request): Promise<Response> {
@@ -31,9 +59,15 @@ export class SandboxLeaseRegistryObject extends DurableObject {
 
 export class AiphaBeeSandbox extends Sandbox {
   enableInternet = false;
+  interceptHttps = true;
 }
 
-export interface Env extends BridgeEnv {
+AiphaBeeSandbox.outbound = denySandboxOutbound;
+AiphaBeeSandbox.outboundHandlers = {
+  [SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER]: forwardSandboxToolGatewayRequest
+};
+
+export interface Env extends BridgeEnv, SandboxToolGatewayEgressEnv {
   AIPHABEE_SANDBOX: DurableObjectNamespace<AiphaBeeSandbox>;
   SANDBOX_LEASE_REGISTRY: DurableObjectNamespace<SandboxLeaseRegistryObject>;
 }
@@ -71,7 +105,10 @@ export function createCloudflareSandboxBackend(env: Env): CloudflareSandboxBacke
           };
         },
         killProcess: (processId, signal) => sandbox.killProcess(processId, signal),
+        removeOutboundByHost: (hostname) => sandbox.removeOutboundByHost(hostname),
         readFile: (path, options) => sandbox.readFile(path, options),
+        setOutboundByHost: (hostname, methodName, params) =>
+          sandbox.setOutboundByHost(hostname, methodName, params),
         writeFile: (path, content, options) => sandbox.writeFile(path, content, options)
       };
     },
