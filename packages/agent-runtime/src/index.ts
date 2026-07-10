@@ -18,6 +18,24 @@ import {
   type RegisteredToolName,
   type RegisteredToolStatus
 } from "@aiphabee/tool-registry";
+import {
+  SANDBOX_CREATE_TIMEOUT_MS,
+  SANDBOX_TERMINATION_GRACE_MS
+} from "./sandbox-terminal-lifecycle.js";
+export {
+  SANDBOX_CREATE_TIMEOUT_MS,
+  SANDBOX_TERMINATION_GRACE_MS,
+  SandboxTerminalLifecycleError,
+  runSandboxTerminalLifecycle,
+  type RunSandboxTerminalLifecycleInput,
+  type SandboxLifecycleAbortSignal,
+  type SandboxLifecycleControlReason,
+  type SandboxObservedExecutionUsage,
+  type SandboxTerminalCleanupStatus,
+  type SandboxTerminalKillStatus,
+  type SandboxTerminalLifecycleRecord,
+  type SandboxTerminalState
+} from "./sandbox-terminal-lifecycle.js";
 
 export const AGENT_RUNTIME_VERSION = "agent-runtime-scaffold-v0";
 export const AGENT_CONTROL_PLANE_CONTRACT_VERSION =
@@ -117,7 +135,7 @@ export const AGENT_RUNNER_FAMILIES = AGENT_RUNNER_REGISTRY.map(
   (registration) => registration.family
 );
 export const SANDBOX_BACKEND_CONTRACT_VERSION =
-  "2026-07-11.sandbox-backend-port.v1";
+  "2026-07-11.sandbox-backend-port.v2";
 export const SANDBOX_SOFT_TIMEOUT_MS = 180_000;
 export const SANDBOX_HARD_TIMEOUT_MS = 600_000;
 export const SANDBOX_TOOL_GATEWAY_HOST = "tool-gateway.internal" as const;
@@ -130,7 +148,9 @@ export const SANDBOX_BACKEND_POLICY: SandboxBackendPolicy = Object.freeze({
     direct_internet_access: false
   }),
   hard_timeout_ms: SANDBOX_HARD_TIMEOUT_MS,
-  soft_timeout_ms: SANDBOX_SOFT_TIMEOUT_MS
+  create_timeout_ms: SANDBOX_CREATE_TIMEOUT_MS,
+  soft_timeout_ms: SANDBOX_SOFT_TIMEOUT_MS,
+  termination_grace_ms: SANDBOX_TERMINATION_GRACE_MS
 });
 export const SANDBOX_BACKEND_REQUIRED_CAPABILITIES: SandboxBackendRequiredCapabilities =
   Object.freeze({
@@ -553,8 +573,10 @@ export interface SandboxBackendPolicy {
     readonly default_action: "deny";
     readonly direct_internet_access: false;
   };
+  readonly create_timeout_ms: typeof SANDBOX_CREATE_TIMEOUT_MS;
   readonly hard_timeout_ms: typeof SANDBOX_HARD_TIMEOUT_MS;
   readonly soft_timeout_ms: typeof SANDBOX_SOFT_TIMEOUT_MS;
+  readonly termination_grace_ms: typeof SANDBOX_TERMINATION_GRACE_MS;
 }
 
 export interface SandboxBackendRequiredCapabilities {
@@ -671,9 +693,12 @@ export interface SandboxExecuteInput {
 
 export type SandboxKillReason =
   | "client_cancelled"
+  | "global_kill"
   | "hard_timeout"
   | "kill_switch"
-  | "soft_timeout";
+  | "soft_timeout"
+  | "stream_interrupted"
+  | "tenant_kill";
 
 export type SandboxExecutionFailureReason = "backend_failure" | SandboxKillReason;
 
@@ -700,6 +725,10 @@ export type SandboxExecutionEvent =
       sequence: number;
       terminal: true;
     };
+
+export interface SandboxExecutionHandle extends AsyncIterable<SandboxExecutionEvent> {
+  readonly closed: Promise<void>;
+}
 
 declare const SANDBOX_WORKSPACE_PATH_BRAND: unique symbol;
 export type SandboxWorkspacePath = string & {
@@ -790,7 +819,7 @@ export interface SandboxBackend {
   readonly backend_id: string;
   readonly capabilities: SandboxBackendRequiredCapabilities;
   create(input: SandboxCreateInput): Promise<SandboxCreateResult>;
-  execute(input: SandboxExecuteInput): AsyncIterable<SandboxExecutionEvent>;
+  execute(input: SandboxExecuteInput): SandboxExecutionHandle;
   writeFile(input: SandboxWriteFileInput): Promise<SandboxWriteResult>;
   readFile(input: SandboxReadFileInput): Promise<SandboxReadFileResult>;
   kill(input: SandboxKillInput): Promise<SandboxKillResult>;
@@ -1412,6 +1441,9 @@ export interface AgentRuntimeCapabilities {
       production_token_mint_wired: false;
       required_capabilities: typeof SANDBOX_BACKEND_REQUIRED_CAPABILITIES;
       scoped_tool_gateway_implemented: true;
+      terminal_lifecycle_implemented: true;
+      observed_usage_contract_implemented: true;
+      terminal_record_sink_wired: false;
     };
     supported_layers: typeof AGENT_LAYERS;
     supported_run_modes: typeof AGENT_RUN_MODES;
@@ -3737,7 +3769,10 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         port_ready: true,
         production_token_mint_wired: false,
         required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
-        scoped_tool_gateway_implemented: true
+        scoped_tool_gateway_implemented: true,
+        terminal_lifecycle_implemented: true,
+        observed_usage_contract_implemented: true,
+        terminal_record_sink_wired: false
       },
       supported_layers: AGENT_LAYERS,
       supported_run_modes: AGENT_RUN_MODES,

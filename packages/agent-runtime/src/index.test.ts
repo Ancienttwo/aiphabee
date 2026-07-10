@@ -15,6 +15,7 @@ import {
   SANDBOX_BACKEND_CONTRACT_VERSION,
   SANDBOX_BACKEND_POLICY,
   SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+  SANDBOX_CREATE_TIMEOUT_MS,
   SANDBOX_HARD_TIMEOUT_MS,
   SANDBOX_SOFT_TIMEOUT_MS,
   AgentRuntimeInputError,
@@ -137,51 +138,56 @@ function createSandboxBackendFixture(): SandboxBackend {
         status: "created"
       };
     },
-    async *execute(input) {
-      if (!activeLeases.has(input.lease.lease_id)) {
-        yield {
-          error_code: "execute_failed",
-          event: "failed",
-          reason: "backend_failure",
-          retryable: false,
-          sequence: 0,
-          terminal: true
-        } as const;
-        return;
-      }
-      if (input.argv[0] === "timeout") {
-        yield {
-          error_code: "execute_failed",
-          event: "failed",
-          reason: "hard_timeout",
-          retryable: true,
-          sequence: 0,
-          terminal: true
-        } as const;
-        return;
-      }
-      yield {
-        chunk: "sandbox output",
-        classification: "untrusted_process_output",
-        event: "output",
-        sequence: 0,
-        stream: "stdout",
-        terminal: false
-      } as const;
-      yield {
-        chunk: "sandbox warning",
-        classification: "untrusted_process_output",
-        event: "output",
-        sequence: 1,
-        stream: "stderr",
-        terminal: false
-      } as const;
-      yield {
-        event: "exit",
-        exit_code: 0,
-        sequence: 2,
-        terminal: true
-      } as const;
+    execute(input) {
+      return {
+        closed: Promise.resolve(),
+        async *[Symbol.asyncIterator]() {
+          if (!activeLeases.has(input.lease.lease_id)) {
+            yield {
+              error_code: "execute_failed",
+              event: "failed",
+              reason: "backend_failure",
+              retryable: false,
+              sequence: 0,
+              terminal: true
+            } as const;
+            return;
+          }
+          if (input.argv[0] === "timeout") {
+            yield {
+              error_code: "execute_failed",
+              event: "failed",
+              reason: "hard_timeout",
+              retryable: true,
+              sequence: 0,
+              terminal: true
+            } as const;
+            return;
+          }
+          yield {
+            chunk: "sandbox output",
+            classification: "untrusted_process_output",
+            event: "output",
+            sequence: 0,
+            stream: "stdout",
+            terminal: false
+          } as const;
+          yield {
+            chunk: "sandbox warning",
+            classification: "untrusted_process_output",
+            event: "output",
+            sequence: 1,
+            stream: "stderr",
+            terminal: false
+          } as const;
+          yield {
+            event: "exit",
+            exit_code: 0,
+            sequence: 2,
+            terminal: true
+          } as const;
+        }
+      };
     },
     async writeFile(input) {
       if (!activeLeases.has(input.lease.lease_id)) {
@@ -374,7 +380,10 @@ describe("agent runtime scaffold", () => {
       port_ready: true,
       production_token_mint_wired: false,
       required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
-      scoped_tool_gateway_implemented: true
+      scoped_tool_gateway_implemented: true,
+      terminal_lifecycle_implemented: true,
+      observed_usage_contract_implemented: true,
+      terminal_record_sink_wired: false
     });
     expect(capabilities.kill_switch).toMatchObject({
       actual_tool_execution: false,
@@ -971,18 +980,21 @@ describe("agent runtime scaffold", () => {
 
   it("defines one provider-neutral sandbox backend port with fixed safety invariants", async () => {
     expect(SANDBOX_BACKEND_CONTRACT_VERSION).toBe(
-      "2026-07-11.sandbox-backend-port.v1"
+      "2026-07-11.sandbox-backend-port.v2"
     );
     expect(SANDBOX_SOFT_TIMEOUT_MS).toBe(180_000);
     expect(SANDBOX_HARD_TIMEOUT_MS).toBe(600_000);
+    expect(SANDBOX_CREATE_TIMEOUT_MS).toBe(30_000);
     expect(SANDBOX_BACKEND_POLICY).toEqual({
       egress: {
         allowed_target_kinds: ["tool_gateway"],
         default_action: "deny",
         direct_internet_access: false
       },
+      create_timeout_ms: 30_000,
       hard_timeout_ms: 600_000,
-      soft_timeout_ms: 180_000
+      soft_timeout_ms: 180_000,
+      termination_grace_ms: 15_000
     });
     expect(SANDBOX_BACKEND_REQUIRED_CAPABILITIES).toEqual({
       contract_version: SANDBOX_BACKEND_CONTRACT_VERSION,

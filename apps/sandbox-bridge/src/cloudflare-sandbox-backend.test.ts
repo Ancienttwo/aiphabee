@@ -3,10 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AGENT_RUNNER_SELECTION_VERSION,
   SANDBOX_TOOL_GATEWAY_URL,
+  runSandboxTerminalLifecycle,
   validateSandboxWorkspacePath,
   type SandboxBackendAccessGrant,
   type SandboxLease,
   type SandboxOwnership,
+  type SandboxTerminalLifecycleRecord,
   type SandboxWorkspacePath
 } from "@aiphabee/agent-runtime";
 
@@ -48,6 +50,10 @@ class MemoryLeaseRegistry implements SandboxLeaseRegistry {
   failFinishDestroy = false;
   failRequestKill = false;
   record: SandboxLeaseRecord | undefined;
+  private removedResolve: (() => void) | undefined;
+  readonly removed = new Promise<void>((resolve) => {
+    this.removedResolve = resolve;
+  });
 
   private matches(lease: SandboxLease): boolean {
     return (
@@ -210,11 +216,13 @@ class MemoryLeaseRegistry implements SandboxLeaseRegistry {
       throw new Error("lease mismatch");
     }
     this.record = undefined;
+    this.removedResolve?.();
   }
 }
 
 class FakeSandbox implements CloudflareSandboxHandle {
   readonly files = new Map<string, Uint8Array>();
+  createSessionBarrier: Promise<void> | undefined;
   destroyed = false;
   destroyBarrier: Promise<void> | undefined;
   destroys = 0;
@@ -258,6 +266,7 @@ class FakeSandbox implements CloudflareSandboxHandle {
 
   async createSession(options: { id: string }): Promise<void> {
     if (this.failCreateSession) throw new Error("session create failed");
+    await this.createSessionBarrier;
     this.sessions.push(options.id);
   }
 
@@ -266,6 +275,7 @@ class FakeSandbox implements CloudflareSandboxHandle {
     await this.destroyBarrier;
     if (this.failDestroy) throw new Error("destroy failed");
     this.destroyed = true;
+    this.sessions.length = 0;
   }
 
   async killProcess(processId: string): Promise<void> {
@@ -369,6 +379,58 @@ class FakeSandbox implements CloudflareSandboxHandle {
 }
 
 describe("CloudflareSandboxBackend", () => {
+  it("runs the terminal lifecycle through the concrete adapter and releases the lease once", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    const ids = ["lease-lifecycle-adapter", "process-lifecycle-adapter"];
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => ids.shift() ?? "unexpected-id",
+      shellQuote: (value) => `'${value}'`
+    });
+    const records: SandboxTerminalLifecycleRecord[] = [];
+
+    const result = await runSandboxTerminalLifecycle({
+      access_grant: grant({ owner: { kind: "run", run_id: "run-lifecycle-adapter" } }),
+      argv: ["printf", "ok"],
+      backend,
+      egress_access: { kind: "deny_all" },
+      record_terminal: async (record) => {
+        records.push(record);
+      },
+      run_id: "run-lifecycle-adapter"
+    });
+
+    expect(result).toMatchObject({
+      cleanup: { release_safe: true, status: "destroyed" },
+      terminal_state: "completed",
+      usage: { estimated: false, measurement: "observed" }
+    });
+    expect(records).toEqual([result]);
+    expect(sandbox.destroys).toBe(1);
+    expect(registry.record?.status).toBe("destroyed");
+
+    const path = validateSandboxWorkspacePath("artifacts/result.bin");
+    if (path.status !== "allowed") throw new Error("fixture path rejected");
+    const lease = {
+      access_grant: grant({ owner: { kind: "run", run_id: "run-lifecycle-adapter" } }),
+      backend_id: backend.backend_id,
+      lease_id: "lease-lifecycle-adapter",
+      status: "ready"
+    } as const satisfies SandboxLease;
+    await expect(backend.readFile({ lease, workspace_path: path.workspace_path })).resolves.toMatchObject({
+      error_code: "file_read_failed",
+      retryable: false,
+      status: "failed"
+    });
+    await expect(backend.destroy({ lease })).resolves.toMatchObject({
+      status: "already_destroyed",
+      terminal: true
+    });
+    expect(sandbox.destroys).toBe(1);
+  });
+
   it("runs an isolated create/stream/file/kill/destroy lifecycle", async () => {
     const registry = new MemoryLeaseRegistry();
     const sandbox = new FakeSandbox();
@@ -1063,6 +1125,42 @@ describe("CloudflareSandboxBackend", () => {
       status: "pending"
     });
     expect(sandbox.destroys).toBe(1);
+  });
+
+  it("bounds stalled provider creation and destroys the pending provider", async () => {
+    const registry = new MemoryLeaseRegistry();
+    const sandbox = new FakeSandbox();
+    let releaseCreate: (() => void) | undefined;
+    sandbox.createSessionBarrier = new Promise<void>((resolve) => {
+      releaseCreate = resolve;
+    });
+    const backend = new CloudflareSandboxBackend({
+      getSandbox: () => sandbox,
+      leaseRegistry: registry,
+      newId: () => "lease-create-timeout",
+      shellQuote: (value) => value
+    });
+
+    vi.useFakeTimers();
+    try {
+      const resultPromise = backend.create({ access_grant: grant() });
+      await vi.advanceTimersByTimeAsync(15_000);
+
+      await expect(resultPromise).resolves.toMatchObject({
+        error_code: "create_failed",
+        status: "failed"
+      });
+      expect(sandbox.destroys).toBe(1);
+      expect(registry.record).toMatchObject({ status: "pending" });
+
+      releaseCreate?.();
+      await registry.removed;
+      expect(sandbox.destroys).toBe(2);
+      expect(sandbox.sessions).toEqual([]);
+      expect(registry.record).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("retains the process binding when provider termination cannot be confirmed", async () => {

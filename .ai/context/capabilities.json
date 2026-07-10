@@ -28,18 +28,21 @@
         "worker_owns_public_agent_routes": true,
         "unknown_tools_default_deny": true,
         "runner_selection_implemented": true,
-      "sandbox_backend_port_implemented": true,
-      "sandbox_adapter_implemented": true,
-      "sandbox_tool_gateway_implemented": true,
-      "production_tool_token_mint_wired": false,
-      "runner_dispatch_implemented": false,
+        "sandbox_backend_port_implemented": true,
+        "sandbox_adapter_implemented": true,
+        "sandbox_tool_gateway_implemented": true,
+        "sandbox_terminal_lifecycle_implemented": true,
+        "sandbox_observed_usage_contract_implemented": true,
+        "sandbox_terminal_record_sink_wired": false,
+        "production_tool_token_mint_wired": false,
+        "runner_dispatch_implemented": false,
         "live_model_execution_enabled": false
       }
     },
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "scoped_tool_gateway_implemented_not_activated_no_live_execution",
+      "status": "terminal_lifecycle_implemented_not_integrated_no_live_execution",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -59,6 +62,9 @@
         "sandbox_backend_port_implemented": true,
         "sandbox_adapter_implemented": true,
         "sandbox_tool_gateway_implemented": true,
+        "sandbox_terminal_lifecycle_implemented": true,
+        "sandbox_observed_usage_contract_implemented": true,
+        "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false
       }

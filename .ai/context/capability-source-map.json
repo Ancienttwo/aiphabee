@@ -6,6 +6,7 @@
         "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
         "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/sandbox-terminal-lifecycle.ts",
         "packages/sandbox-run-auth/src/index.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
         "apps/sandbox-bridge/src/lease-registry.ts",
@@ -15,6 +16,7 @@
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "packages/agent-runtime/src/sandbox-terminal-lifecycle.test.ts",
         "packages/sandbox-run-auth/src/index.test.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
         "apps/sandbox-bridge/src/lease-registry.test.ts",
@@ -32,6 +34,8 @@
         "Generic cannot call Research-only tools",
         "runner selection is Agent Runtime-owned and dispatch remains disabled",
         "Cloudflare sandbox adapter exists but no backend is registered or dispatched",
+        "one provider-neutral terminal lifecycle owns timeout kill cleanup and observed execution usage",
+        "terminal record persistence remains an explicit required callback but is not wired to a production sink",
         "sandbox egress reaches only the private Tool Gateway with a short tenant run lease and tool scoped token",
         "production Tool Gateway token minting and runner integration remain disabled",
         "only dry_run is currently executable"
@@ -43,6 +47,7 @@
         "plans/prds/20260710-1702-dual-agent-v3.prd.md",
         "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/sandbox-terminal-lifecycle.ts",
         "packages/sandbox-run-auth/src/index.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
         "apps/sandbox-bridge/src/lease-registry.ts",
@@ -52,6 +57,7 @@
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "packages/agent-runtime/src/sandbox-terminal-lifecycle.test.ts",
         "packages/sandbox-run-auth/src/index.test.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
         "apps/sandbox-bridge/src/lease-registry.test.ts",
@@ -71,6 +77,8 @@
         "fastclaw.personal-v0 is registered but disabled",
         "runner selection exists without runner dispatch",
         "Cloudflare sandbox adapter exists without grant minting backend registration runner dispatch or live execution",
+        "the Agent Runtime lifecycle emits one terminal state after idempotent cleanup and records observed rather than estimated usage",
+        "terminal record persistence remains unwired until the runner integration slice",
         "only the exact private Tool Gateway egress path exists and its short token stays outside the sandbox process",
         "production Tool Gateway token minting remains unwired until runner activation",
         "live acceptance cannot be satisfied by fixtures alone"

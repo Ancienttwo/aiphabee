@@ -1,6 +1,8 @@
 import {
   SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+  SANDBOX_CREATE_TIMEOUT_MS,
   SANDBOX_HARD_TIMEOUT_MS,
+  SANDBOX_TERMINATION_GRACE_MS,
   SANDBOX_TOOL_GATEWAY_HOST,
   SANDBOX_TOOL_GATEWAY_URL,
   validateSandboxWorkspacePath,
@@ -12,6 +14,7 @@ import {
   type SandboxEgressAccess,
   type SandboxExecuteInput,
   type SandboxExecutionEvent,
+  type SandboxExecutionHandle,
   type SandboxKillInput,
   type SandboxKillResult,
   type SandboxReadFileInput,
@@ -36,7 +39,6 @@ const BACKEND_ID = "cloudflare.sandbox-v0";
 const MAX_FILE_BYTES = 1_048_576;
 const MAX_OUTPUT_QUEUE_BYTES = 1_048_576;
 const MAX_OUTPUT_QUEUE_EVENTS = 1_024;
-const PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS = 15_000;
 const UTF8_ENCODER = new TextEncoder();
 const TOOL_GATEWAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/u;
@@ -99,14 +101,18 @@ export interface CloudflareSandboxBackendDependencies {
   shellQuote(argument: string): string;
 }
 
-class AsyncEventQueue implements AsyncIterable<SandboxExecutionEvent> {
-  private closed = false;
+class AsyncEventQueue implements SandboxExecutionHandle {
+  private ended = false;
+  private resolveClosed: (() => void) | undefined;
+  readonly closed = new Promise<void>((resolve) => {
+    this.resolveClosed = resolve;
+  });
   private readonly events: Array<{ event: SandboxExecutionEvent; size: number }> = [];
   private queuedBytes = 0;
   private wake: (() => void) | undefined;
 
   push(event: SandboxExecutionEvent): boolean {
-    if (this.closed) return false;
+    if (this.ended) return false;
     const size = event.event === "output" ? UTF8_ENCODER.encode(event.chunk).byteLength : 0;
     if (
       event.event === "output" &&
@@ -123,13 +129,16 @@ class AsyncEventQueue implements AsyncIterable<SandboxExecutionEvent> {
   }
 
   close(): void {
-    this.closed = true;
+    if (this.ended) return;
+    this.ended = true;
     this.wake?.();
     this.wake = undefined;
+    this.resolveClosed?.();
+    this.resolveClosed = undefined;
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<SandboxExecutionEvent> {
-    while (!this.closed || this.events.length > 0) {
+    while (!this.ended || this.events.length > 0) {
       const queued = this.events.shift();
       if (queued !== undefined) {
         this.queuedBytes -= queued.size;
@@ -259,33 +268,65 @@ export class CloudflareSandboxBackend implements SandboxBackend {
       session_id: sessionId,
       status: "pending"
     };
+    let providerCreation: Promise<unknown> | undefined;
     let providerCreationStarted = false;
     let reserved = false;
     try {
       await this.dependencies.leaseRegistry.reserve(record);
       reserved = true;
       providerCreationStarted = true;
-      await this.dependencies.getSandbox(providerId).createSession({
-        commandTimeoutMs: SANDBOX_HARD_TIMEOUT_MS,
-        cwd: "/workspace",
-        id: sessionId
-      });
+      providerCreation = this.dependencies.getSandbox(providerId).createSession({
+          commandTimeoutMs: SANDBOX_HARD_TIMEOUT_MS,
+          cwd: "/workspace",
+          id: sessionId
+        });
+      await withTimeout(
+        providerCreation,
+        SANDBOX_CREATE_TIMEOUT_MS - SANDBOX_TERMINATION_GRACE_MS
+      );
       await this.dependencies.leaseRegistry.markReady(lease);
       return { lease, status: "created" };
-    } catch {
+    } catch (error) {
+      const providerCreationTimedOut = error instanceof ProviderOperationTimeoutError;
       let providerCleanupConfirmed = false;
       if (providerCreationStarted) {
         try {
           await withTimeout(
             this.dependencies.getSandbox(providerId).destroy(),
-            PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+            SANDBOX_TERMINATION_GRACE_MS
           );
           providerCleanupConfirmed = true;
         } catch {
           // The create result remains failed; Row 5 owns cleanup retry/audit.
         }
       }
-      if (reserved && providerCleanupConfirmed) {
+      if (
+        reserved &&
+        providerCreationTimedOut &&
+        providerCreation !== undefined
+      ) {
+        void providerCreation.then(
+          async () => {
+            try {
+              await withTimeout(
+                this.dependencies.getSandbox(providerId).destroy(),
+                SANDBOX_TERMINATION_GRACE_MS
+              );
+              await this.dependencies.leaseRegistry.remove(lease);
+            } catch {
+              // Keep the pending tombstone when late-create cleanup is unconfirmed.
+            }
+          },
+          async () => {
+            if (!providerCleanupConfirmed) return;
+            try {
+              await this.dependencies.leaseRegistry.remove(lease);
+            } catch {
+              // Keep the pending tombstone when reconciliation is unconfirmed.
+            }
+          }
+        );
+      } else if (reserved && providerCleanupConfirmed) {
         try {
           await this.dependencies.leaseRegistry.remove(lease);
         } catch {
@@ -296,7 +337,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
     }
   }
 
-  execute(input: SandboxExecuteInput): AsyncIterable<SandboxExecutionEvent> {
+  execute(input: SandboxExecuteInput): SandboxExecutionHandle {
     const queue = new AsyncEventQueue();
     void this.runProcess(input, queue);
     return queue;
@@ -339,7 +380,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
       sandbox = this.dependencies.getSandbox(providerId);
       await withTimeout(
         sandbox.removeOutboundByHost(SANDBOX_TOOL_GATEWAY_HOST),
-        PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+        SANDBOX_TERMINATION_GRACE_MS
       );
       outboundStateConfirmedClean = true;
       if (egressAccess.kind === "tool_gateway") {
@@ -363,7 +404,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
               user_id: input.lease.access_grant.user_id
             }
           ),
-          PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+          SANDBOX_TERMINATION_GRACE_MS
         );
         toolGatewayConfigurationConfirmed = true;
       }
@@ -405,7 +446,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
             },
             processId
           }),
-          PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+          SANDBOX_TERMINATION_GRACE_MS
         );
       } catch (error) {
         if (error instanceof ProviderOperationTimeoutError) {
@@ -421,7 +462,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
       if (processBinding.kill_requested) {
         await withTimeout(
           process.kill("SIGTERM"),
-          PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+          SANDBOX_TERMINATION_GRACE_MS
         );
         await this.dependencies.leaseRegistry.finishKill(input.lease);
       }
@@ -434,9 +475,9 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         try {
           await withTimeout(
             process.kill("SIGTERM"),
-            PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+            SANDBOX_TERMINATION_GRACE_MS
           );
-          await withTimeout(process.waitForExit(), PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS);
+          await withTimeout(process.waitForExit(), SANDBOX_TERMINATION_GRACE_MS);
           processTerminalConfirmed = true;
         } catch {
           // The terminal failure remains explicit; Row 5 owns cleanup retry/audit.
@@ -449,7 +490,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         try {
           await withTimeout(
             this.dependencies.getSandbox(providerId).killProcess(processId, "SIGTERM"),
-            PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+            SANDBOX_TERMINATION_GRACE_MS
           );
           processTerminalConfirmed = true;
         } catch {
@@ -475,7 +516,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         try {
           await withTimeout(
             sandbox.removeOutboundByHost(SANDBOX_TOOL_GATEWAY_HOST),
-            PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+            SANDBOX_TERMINATION_GRACE_MS
           );
           if (!toolGatewayConfigurationAttempted || toolGatewayConfigurationConfirmed) {
             outboundStateConfirmedClean = true;
@@ -596,7 +637,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
         this.dependencies
           .getSandbox(reservation.provider_id)
           .killProcess(reservation.process_id, "SIGTERM"),
-        PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+        SANDBOX_TERMINATION_GRACE_MS
       );
       await this.dependencies.leaseRegistry.finishKill(input.lease);
       return {
@@ -645,7 +686,7 @@ export class CloudflareSandboxBackend implements SandboxBackend {
     try {
       await withTimeout(
         this.dependencies.getSandbox(reservation.provider_id).destroy(),
-        PROVIDER_TERMINATION_CONFIRM_TIMEOUT_MS
+        SANDBOX_TERMINATION_GRACE_MS
       );
     } catch (error) {
       if (
