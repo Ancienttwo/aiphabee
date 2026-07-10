@@ -116,6 +116,36 @@ export const AGENT_RUNNER_REGISTRY = [
 export const AGENT_RUNNER_FAMILIES = AGENT_RUNNER_REGISTRY.map(
   (registration) => registration.family
 );
+export const SANDBOX_BACKEND_CONTRACT_VERSION =
+  "2026-07-10.sandbox-backend-port.v0";
+export const SANDBOX_SOFT_TIMEOUT_MS = 180_000;
+export const SANDBOX_HARD_TIMEOUT_MS = 600_000;
+export const SANDBOX_BACKEND_POLICY: SandboxBackendPolicy = Object.freeze({
+  egress: Object.freeze({
+    allowed_target_kinds: Object.freeze([] as const),
+    default_action: "deny",
+    direct_internet_access: false
+  }),
+  hard_timeout_ms: SANDBOX_HARD_TIMEOUT_MS,
+  soft_timeout_ms: SANDBOX_SOFT_TIMEOUT_MS
+});
+export const SANDBOX_BACKEND_REQUIRED_CAPABILITIES: SandboxBackendRequiredCapabilities =
+  Object.freeze({
+    contract_version: SANDBOX_BACKEND_CONTRACT_VERSION,
+    operations: Object.freeze({
+      create: true,
+      destroy: true,
+      execute_stream: true,
+      kill: true,
+      read_file: true,
+      write_file: true
+    }),
+    policy: SANDBOX_BACKEND_POLICY,
+    repeated_destroy: "idempotent"
+  });
+const SANDBOX_BACKEND_ACCESS_GRANT_BRAND: unique symbol = Symbol(
+  "aiphabee.sandbox-backend-access-grant"
+);
 export const AGENT_EXECUTION_EVENT_TYPES = [
   "run.requested",
   "run.started",
@@ -513,6 +543,244 @@ export interface AgentRunnerSelectionBlocked extends AgentRunnerSelectionBase {
 export type AgentRunnerSelection =
   | AgentRunnerSelectionBlocked
   | AgentRunnerSelectionSelected;
+
+export interface SandboxBackendPolicy {
+  readonly egress: {
+    readonly allowed_target_kinds: readonly [];
+    readonly default_action: "deny";
+    readonly direct_internet_access: false;
+  };
+  readonly hard_timeout_ms: typeof SANDBOX_HARD_TIMEOUT_MS;
+  readonly soft_timeout_ms: typeof SANDBOX_SOFT_TIMEOUT_MS;
+}
+
+export interface SandboxBackendRequiredCapabilities {
+  readonly contract_version: typeof SANDBOX_BACKEND_CONTRACT_VERSION;
+  readonly operations: {
+    readonly create: true;
+    readonly destroy: true;
+    readonly execute_stream: true;
+    readonly kill: true;
+    readonly read_file: true;
+    readonly write_file: true;
+  };
+  readonly policy: SandboxBackendPolicy;
+  readonly repeated_destroy: "idempotent";
+}
+
+export interface SandboxBackendAccessInput {
+  layer: AgentLayer;
+  mode: AgentRunMode;
+  requestedRunnerFamily?: unknown;
+}
+
+export interface SandboxBackendAccessGrant {
+  readonly [SANDBOX_BACKEND_ACCESS_GRANT_BRAND]: true;
+  readonly layer: "research";
+  readonly owner: SandboxOwnership;
+  readonly run_mode: "runner_remote";
+  readonly runner_family: "fastclaw";
+  readonly runner_id: "fastclaw.personal-v0";
+  readonly runner_selection_contract_version: typeof AGENT_RUNNER_SELECTION_VERSION;
+  readonly source: "agent_runner_selection";
+  readonly tenant_id: string;
+  readonly user_id: string;
+}
+
+export type SandboxBackendAccessDecision =
+  | {
+      requested_layer: AgentLayer;
+      route_reason: "blocked_layer_not_allowed";
+      status: "blocked";
+    }
+  | {
+      requested_layer: "research";
+      route_reason: "blocked_runner_selection";
+      runner_selection: AgentRunnerSelectionBlocked;
+      status: "blocked";
+    }
+  | {
+      requested_layer: "research";
+      route_reason: "blocked_runner_family_not_allowed";
+      runner_selection: AgentRunnerSelectionSelected;
+      status: "blocked";
+    };
+
+export type SandboxOwnership =
+  | {
+      readonly kind: "run";
+      readonly run_id: string;
+    }
+  | {
+      readonly kind: "session";
+      readonly session_id: string;
+    };
+
+export interface SandboxCreateInput {
+  readonly access_grant: SandboxBackendAccessGrant;
+}
+
+export interface SandboxLease {
+  readonly access_grant: SandboxBackendAccessGrant;
+  readonly backend_id: string;
+  readonly lease_id: string;
+  readonly status: "ready";
+}
+
+export type SandboxBackendFailureCode =
+  | "create_failed"
+  | "destroy_failed"
+  | "execute_failed"
+  | "file_not_found"
+  | "file_read_failed"
+  | "file_write_failed"
+  | "kill_failed";
+
+export interface SandboxBackendFailure<Code extends SandboxBackendFailureCode> {
+  error_code: Code;
+  retryable: boolean;
+  status: "failed";
+}
+
+export type SandboxCreateResult =
+  | {
+      lease: SandboxLease;
+      status: "created";
+    }
+  | SandboxBackendFailure<"create_failed">;
+
+export interface SandboxExecuteInput {
+  argv: readonly [string, ...string[]];
+  lease_id: string;
+}
+
+export type SandboxKillReason =
+  | "client_cancelled"
+  | "hard_timeout"
+  | "kill_switch"
+  | "soft_timeout";
+
+export type SandboxExecutionFailureReason = "backend_failure" | SandboxKillReason;
+
+export type SandboxExecutionEvent =
+  | {
+      chunk: string;
+      classification: "untrusted_process_output";
+      event: "output";
+      sequence: number;
+      stream: "stderr" | "stdout";
+      terminal: false;
+    }
+  | {
+      event: "exit";
+      exit_code: number;
+      sequence: number;
+      terminal: true;
+    }
+  | {
+      error_code: "execute_failed";
+      event: "failed";
+      reason: SandboxExecutionFailureReason;
+      retryable: boolean;
+      sequence: number;
+      terminal: true;
+    };
+
+declare const SANDBOX_WORKSPACE_PATH_BRAND: unique symbol;
+export type SandboxWorkspacePath = string & {
+  readonly [SANDBOX_WORKSPACE_PATH_BRAND]: true;
+};
+
+export type SandboxWorkspacePathDecision =
+  | {
+      route_reason: "invalid_workspace_path";
+      status: "blocked";
+    }
+  | {
+      status: "allowed";
+      workspace_path: SandboxWorkspacePath;
+    };
+
+export interface SandboxWriteFileInput {
+  bytes: Uint8Array;
+  lease_id: string;
+  workspace_path: SandboxWorkspacePath;
+}
+
+export interface SandboxWriteReceipt {
+  bytes_written: number;
+  lease_id: string;
+  workspace_path: SandboxWorkspacePath;
+}
+
+export type SandboxWriteResult =
+  | {
+      receipt: SandboxWriteReceipt;
+      status: "written";
+    }
+  | SandboxBackendFailure<"file_write_failed">;
+
+export interface SandboxReadFileInput {
+  lease_id: string;
+  workspace_path: SandboxWorkspacePath;
+}
+
+export interface SandboxReadResult {
+  bytes: Uint8Array;
+  lease_id: string;
+  workspace_path: SandboxWorkspacePath;
+}
+
+export type SandboxReadFileResult =
+  | {
+      result: SandboxReadResult;
+      status: "read";
+    }
+  | SandboxBackendFailure<"file_not_found" | "file_read_failed">;
+
+export interface SandboxKillInput {
+  lease_id: string;
+  reason: SandboxKillReason;
+}
+
+export type SandboxKillResult =
+  | {
+      lease_id: string;
+      reason: SandboxKillReason;
+      status: "already_terminal" | "killed";
+      terminal: true;
+    }
+  | (SandboxBackendFailure<"kill_failed"> & {
+      lease_id: string;
+      reason: SandboxKillReason;
+      terminal: false;
+    });
+
+export interface SandboxDestroyInput {
+  lease_id: string;
+}
+
+export type SandboxDestroyResult =
+  | {
+      lease_id: string;
+      status: "already_destroyed" | "destroyed";
+      terminal: true;
+    }
+  | (SandboxBackendFailure<"destroy_failed"> & {
+      lease_id: string;
+      terminal: false;
+    });
+
+export interface SandboxBackend {
+  readonly backend_id: string;
+  readonly capabilities: SandboxBackendRequiredCapabilities;
+  create(input: SandboxCreateInput): Promise<SandboxCreateResult>;
+  execute(input: SandboxExecuteInput): AsyncIterable<SandboxExecutionEvent>;
+  writeFile(input: SandboxWriteFileInput): Promise<SandboxWriteResult>;
+  readFile(input: SandboxReadFileInput): Promise<SandboxReadFileResult>;
+  kill(input: SandboxKillInput): Promise<SandboxKillResult>;
+  destroy(input: SandboxDestroyInput): Promise<SandboxDestroyResult>;
+}
 
 export interface AgentLayerToolPolicyInput {
   entitlements?: readonly string[];
@@ -1116,6 +1384,17 @@ export interface AgentRuntimeCapabilities {
       registered_families: typeof AGENT_RUNNER_FAMILIES;
       registered_runners: typeof AGENT_RUNNER_REGISTRY;
       selection_owner: "agent_runtime";
+    };
+    sandbox_backend: {
+      access: {
+        allowed_layer: "research";
+        allowed_runner_family: "fastclaw";
+      };
+      adapter_implemented: false;
+      backend_registered: false;
+      live_execution: false;
+      port_ready: true;
+      required_capabilities: typeof SANDBOX_BACKEND_REQUIRED_CAPABILITIES;
     };
     supported_layers: typeof AGENT_LAYERS;
     supported_run_modes: typeof AGENT_RUN_MODES;
@@ -3313,6 +3592,68 @@ export function selectAgentRunner(
   };
 }
 
+export function evaluateSandboxBackendAccess(
+  input: SandboxBackendAccessInput
+): SandboxBackendAccessDecision {
+  if (input.layer !== "research") {
+    return {
+      requested_layer: input.layer,
+      route_reason: "blocked_layer_not_allowed",
+      status: "blocked"
+    };
+  }
+
+  const runnerSelection = selectAgentRunner({
+    mode: input.mode,
+    requestedRunnerFamily: input.requestedRunnerFamily
+  });
+  if (runnerSelection.status === "blocked") {
+    return {
+      requested_layer: input.layer,
+      route_reason: "blocked_runner_selection",
+      runner_selection: runnerSelection,
+      status: "blocked"
+    };
+  }
+  return {
+    requested_layer: input.layer,
+    route_reason: "blocked_runner_family_not_allowed",
+    runner_selection: runnerSelection,
+    status: "blocked"
+  };
+}
+
+export function validateSandboxWorkspacePath(
+  value: unknown
+): SandboxWorkspacePathDecision {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 1024 ||
+    value.startsWith("/") ||
+    value.includes("\\") ||
+    value.includes("\0")
+  ) {
+    return {
+      route_reason: "invalid_workspace_path",
+      status: "blocked"
+    };
+  }
+
+  const segments = value.split("/");
+  if (segments.some((segment) => segment.length === 0 || segment === "." || segment === "..")) {
+    return {
+      route_reason: "invalid_workspace_path",
+      status: "blocked"
+    };
+  }
+
+  return {
+    status: "allowed",
+    workspace_path: value as SandboxWorkspacePath
+  };
+}
+
 export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
   return {
     ai_sdk: {
@@ -3367,6 +3708,17 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
         registered_families: AGENT_RUNNER_FAMILIES,
         registered_runners: AGENT_RUNNER_REGISTRY,
         selection_owner: "agent_runtime"
+      },
+      sandbox_backend: {
+        access: {
+          allowed_layer: "research",
+          allowed_runner_family: "fastclaw"
+        },
+        adapter_implemented: false,
+        backend_registered: false,
+        live_execution: false,
+        port_ready: true,
+        required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES
       },
       supported_layers: AGENT_LAYERS,
       supported_run_modes: AGENT_RUN_MODES,

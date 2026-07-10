@@ -20,6 +20,7 @@
         "Worker owns public /agent/* routes",
         "Generic cannot call Research-only tools",
         "runner selection is Agent Runtime-owned and dispatch remains disabled",
+        "sandbox backend port is Agent Runtime-owned and no adapter is registered",
         "only dry_run is currently executable"
       ]
     },
@@ -45,6 +46,7 @@
         "no shared identity fallback",
         "fastclaw.personal-v0 is registered but disabled",
         "runner selection exists without runner dispatch",
+        "provider-neutral sandbox port exists without an adapter or live execution",
         "live acceptance cannot be satisfied by fixtures alone"
       ]
     },

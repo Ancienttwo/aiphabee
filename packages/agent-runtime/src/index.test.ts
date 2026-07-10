@@ -12,6 +12,11 @@ import {
   AGENT_RUNNER_REGISTRY,
   AGENT_RUNNER_SELECTION_VERSION,
   AGENT_RUN_MODES,
+  SANDBOX_BACKEND_CONTRACT_VERSION,
+  SANDBOX_BACKEND_POLICY,
+  SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+  SANDBOX_HARD_TIMEOUT_MS,
+  SANDBOX_SOFT_TIMEOUT_MS,
   AgentRuntimeInputError,
   EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY,
   createAgentKillSwitchPlan,
@@ -29,6 +34,7 @@ import {
   createAiSdkStopCondition,
   EPHEMERAL_TECHNICAL_ANALYSIS_RATE_LIMITS,
   evaluateAgentLayerToolPolicy,
+  evaluateSandboxBackendAccess,
   evaluateEphemeralTechnicalAnalysisGuardrails,
   evaluateEphemeralTechnicalAnalysisBetaGuardrails,
   validateEphemeralTechnicalAnalysisAnswer,
@@ -53,10 +59,14 @@ import {
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
   selectAgentRunner,
+  validateSandboxWorkspacePath,
   UNSOURCED_NUMERIC_SAMPLING_VERSION,
   type AgentExecutionEvent,
   type AgentExecutionRequest,
   type AgentRunner,
+  type SandboxBackend,
+  type SandboxBackendAccessGrant,
+  type SandboxCreateInput,
   type AiGatewayLiveSmokeFetch
 } from "./index";
 
@@ -72,6 +82,196 @@ const mismatchedRunnerRegistration = {
 // @ts-expect-error AgentRunner identity and modes must come from one registry entry.
 const invalidRunnerRegistration: AgentRunner = mismatchedRunnerRegistration;
 void invalidRunnerRegistration;
+
+const sandboxCreateInputWithoutAccessGrant = {} as const;
+// @ts-expect-error Sandbox creation requires a runner-selection-derived access grant.
+const invalidSandboxCreateInput: SandboxCreateInput = sandboxCreateInputWithoutAccessGrant;
+void invalidSandboxCreateInput;
+
+const forgedFastclawAccessGrant = {
+  layer: "research",
+  owner: {
+    kind: "run",
+    run_id: "run-forged"
+  },
+  run_mode: "runner_remote",
+  runner_family: "fastclaw",
+  runner_id: "fastclaw.personal-v0",
+  runner_selection_contract_version: AGENT_RUNNER_SELECTION_VERSION,
+  source: "agent_runner_selection",
+  tenant_id: "tenant-forged",
+  user_id: "user-forged"
+} as const;
+// @ts-expect-error Access grants carry an Agent Runtime-private brand.
+const invalidForgedFastclawAccessGrant: SandboxBackendAccessGrant =
+  forgedFastclawAccessGrant;
+void invalidForgedFastclawAccessGrant;
+
+function createSandboxBackendFixture(): SandboxBackend {
+  const activeLeases = new Set([
+    "lease-run-sandbox-port-fixture",
+    "lease-session-sandbox-port-fixture"
+  ]);
+  const filesByLease = new Map<string, Map<string, Uint8Array>>();
+  const destroyedLeases = new Set<string>();
+  const killedLeases = new Set<string>();
+
+  return {
+    backend_id: "fixture.backend-v0",
+    capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES,
+    async create(input) {
+      const owner = input.access_grant.owner;
+      const ownerId = owner.kind === "run" ? owner.run_id : owner.session_id;
+      const leaseId = `lease-${ownerId}`;
+      activeLeases.add(leaseId);
+      return {
+        lease: {
+          access_grant: input.access_grant,
+          backend_id: "fixture.backend-v0",
+          lease_id: leaseId,
+          status: "ready"
+        },
+        status: "created"
+      };
+    },
+    async *execute(input) {
+      if (!activeLeases.has(input.lease_id)) {
+        yield {
+          error_code: "execute_failed",
+          event: "failed",
+          reason: "backend_failure",
+          retryable: false,
+          sequence: 0,
+          terminal: true
+        } as const;
+        return;
+      }
+      if (input.argv[0] === "timeout") {
+        yield {
+          error_code: "execute_failed",
+          event: "failed",
+          reason: "hard_timeout",
+          retryable: true,
+          sequence: 0,
+          terminal: true
+        } as const;
+        return;
+      }
+      yield {
+        chunk: "sandbox output",
+        classification: "untrusted_process_output",
+        event: "output",
+        sequence: 0,
+        stream: "stdout",
+        terminal: false
+      } as const;
+      yield {
+        chunk: "sandbox warning",
+        classification: "untrusted_process_output",
+        event: "output",
+        sequence: 1,
+        stream: "stderr",
+        terminal: false
+      } as const;
+      yield {
+        event: "exit",
+        exit_code: 0,
+        sequence: 2,
+        terminal: true
+      } as const;
+    },
+    async writeFile(input) {
+      if (!activeLeases.has(input.lease_id)) {
+        return {
+          error_code: "file_write_failed",
+          retryable: false,
+          status: "failed"
+        };
+      }
+      const files = filesByLease.get(input.lease_id) ?? new Map<string, Uint8Array>();
+      files.set(input.workspace_path, input.bytes);
+      filesByLease.set(input.lease_id, files);
+      return {
+        receipt: {
+          bytes_written: input.bytes.byteLength,
+          lease_id: input.lease_id,
+          workspace_path: input.workspace_path
+        },
+        status: "written"
+      };
+    },
+    async readFile(input) {
+      if (!activeLeases.has(input.lease_id)) {
+        return {
+          error_code: "file_read_failed",
+          retryable: false,
+          status: "failed"
+        };
+      }
+      const bytes = filesByLease.get(input.lease_id)?.get(input.workspace_path);
+      if (bytes === undefined) {
+        return {
+          error_code: "file_not_found",
+          retryable: false,
+          status: "failed"
+        };
+      }
+      return {
+        result: {
+          bytes,
+          lease_id: input.lease_id,
+          workspace_path: input.workspace_path
+        },
+        status: "read"
+      };
+    },
+    async kill(input) {
+      if (!activeLeases.has(input.lease_id)) {
+        return {
+          error_code: "kill_failed",
+          lease_id: input.lease_id,
+          reason: input.reason,
+          retryable: false,
+          status: "failed",
+          terminal: false
+        };
+      }
+      const status = killedLeases.has(input.lease_id) ? "already_terminal" : "killed";
+      killedLeases.add(input.lease_id);
+      return {
+        lease_id: input.lease_id,
+        reason: input.reason,
+        status,
+        terminal: true
+      };
+    },
+    async destroy(input) {
+      if (destroyedLeases.has(input.lease_id)) {
+        return {
+          lease_id: input.lease_id,
+          status: "already_destroyed",
+          terminal: true
+        };
+      }
+      if (!activeLeases.has(input.lease_id)) {
+        return {
+          error_code: "destroy_failed",
+          lease_id: input.lease_id,
+          retryable: false,
+          status: "failed",
+          terminal: false
+        };
+      }
+      destroyedLeases.add(input.lease_id);
+      activeLeases.delete(input.lease_id);
+      return {
+        lease_id: input.lease_id,
+        status: "destroyed",
+        terminal: true
+      };
+    }
+  };
+}
 
 describe("agent runtime scaffold", () => {
   it("exposes AI SDK v7 dry-run capabilities without model calls", () => {
@@ -159,6 +359,17 @@ describe("agent runtime scaffold", () => {
       registered_families: AGENT_RUNNER_FAMILIES,
       registered_runners: AGENT_RUNNER_REGISTRY,
       selection_owner: "agent_runtime"
+    });
+    expect(capabilities.control_plane.sandbox_backend).toEqual({
+      access: {
+        allowed_layer: "research",
+        allowed_runner_family: "fastclaw"
+      },
+      adapter_implemented: false,
+      backend_registered: false,
+      live_execution: false,
+      port_ready: true,
+      required_capabilities: SANDBOX_BACKEND_REQUIRED_CAPABILITIES
     });
     expect(capabilities.kill_switch).toMatchObject({
       actual_tool_execution: false,
@@ -694,6 +905,315 @@ describe("agent runtime scaffold", () => {
       selected_runner_family: null,
       selected_runner_id: null,
       status: "blocked"
+    });
+  });
+
+  it("keeps sandbox backend access behind authoritative runner selection", () => {
+    expect(
+      evaluateSandboxBackendAccess({
+        layer: "generic",
+        mode: "runner_remote",
+        requestedRunnerFamily: "fastclaw"
+      })
+    ).toEqual({
+      requested_layer: "generic",
+      route_reason: "blocked_layer_not_allowed",
+      status: "blocked"
+    });
+    expect(
+      evaluateSandboxBackendAccess({
+        layer: "generic",
+        mode: "dry_run",
+        requestedRunnerFamily: "edge"
+      })
+    ).toMatchObject({
+      route_reason: "blocked_layer_not_allowed",
+      status: "blocked"
+    });
+    expect(
+      evaluateSandboxBackendAccess({
+        layer: "research",
+        mode: "dry_run",
+        requestedRunnerFamily: "edge"
+      })
+    ).toMatchObject({
+      requested_layer: "research",
+      route_reason: "blocked_runner_family_not_allowed",
+      runner_selection: {
+        route_reason: "selected",
+        selected_runner_family: "edge",
+        selected_runner_id: "edge.worker-v0",
+        status: "selected"
+      },
+      status: "blocked"
+    });
+    expect(
+      evaluateSandboxBackendAccess({
+        layer: "research",
+        mode: "runner_remote",
+        requestedRunnerFamily: "fastclaw"
+      })
+    ).toMatchObject({
+      requested_layer: "research",
+      route_reason: "blocked_runner_selection",
+      runner_selection: {
+        route_reason: "blocked_runner_disabled",
+        status: "blocked"
+      },
+      status: "blocked"
+    });
+  });
+
+  it("defines one provider-neutral sandbox backend port with fixed safety invariants", async () => {
+    expect(SANDBOX_BACKEND_CONTRACT_VERSION).toBe(
+      "2026-07-10.sandbox-backend-port.v0"
+    );
+    expect(SANDBOX_SOFT_TIMEOUT_MS).toBe(180_000);
+    expect(SANDBOX_HARD_TIMEOUT_MS).toBe(600_000);
+    expect(SANDBOX_BACKEND_POLICY).toEqual({
+      egress: {
+        allowed_target_kinds: [],
+        default_action: "deny",
+        direct_internet_access: false
+      },
+      hard_timeout_ms: 600_000,
+      soft_timeout_ms: 180_000
+    });
+    expect(SANDBOX_BACKEND_REQUIRED_CAPABILITIES).toEqual({
+      contract_version: SANDBOX_BACKEND_CONTRACT_VERSION,
+      operations: {
+        create: true,
+        destroy: true,
+        execute_stream: true,
+        kill: true,
+        read_file: true,
+        write_file: true
+      },
+      policy: SANDBOX_BACKEND_POLICY,
+      repeated_destroy: "idempotent"
+    });
+    expect(Object.isFrozen(SANDBOX_BACKEND_POLICY)).toBe(true);
+    expect(Object.isFrozen(SANDBOX_BACKEND_POLICY.egress)).toBe(true);
+    expect(Object.isFrozen(SANDBOX_BACKEND_POLICY.egress.allowed_target_kinds)).toBe(true);
+
+    const backend = createSandboxBackendFixture();
+    expect(typeof backend.create).toBe("function");
+    const leaseId = "lease-run-sandbox-port-fixture";
+    const sessionLeaseId = "lease-session-sandbox-port-fixture";
+    const unknownLeaseId = "lease-unknown";
+
+    const events = [];
+    for await (const event of backend.execute({
+      argv: ["node", "task.mjs"],
+      lease_id: leaseId
+    })) {
+      events.push(event);
+    }
+    expect(events).toEqual([
+      {
+        chunk: "sandbox output",
+        classification: "untrusted_process_output",
+        event: "output",
+        sequence: 0,
+        stream: "stdout",
+        terminal: false
+      },
+      {
+        chunk: "sandbox warning",
+        classification: "untrusted_process_output",
+        event: "output",
+        sequence: 1,
+        stream: "stderr",
+        terminal: false
+      },
+      {
+        event: "exit",
+        exit_code: 0,
+        sequence: 2,
+        terminal: true
+      }
+    ]);
+
+    const failedEvents = [];
+    for await (const event of backend.execute({
+      argv: ["timeout"],
+      lease_id: leaseId
+    })) {
+      failedEvents.push(event);
+    }
+    expect(failedEvents).toEqual([
+      {
+        error_code: "execute_failed",
+        event: "failed",
+        reason: "hard_timeout",
+        retryable: true,
+        sequence: 0,
+        terminal: true
+      }
+    ]);
+    const unknownLeaseEvents = [];
+    for await (const event of backend.execute({
+      argv: ["node", "task.mjs"],
+      lease_id: unknownLeaseId
+    })) {
+      unknownLeaseEvents.push(event);
+    }
+    expect(unknownLeaseEvents).toEqual([
+      {
+        error_code: "execute_failed",
+        event: "failed",
+        reason: "backend_failure",
+        retryable: false,
+        sequence: 0,
+        terminal: true
+      }
+    ]);
+
+    for (const invalidPath of [
+      "",
+      "/etc/passwd",
+      "../secrets",
+      "artifacts/../../secrets",
+      "artifacts//result.txt",
+      "artifacts\\result.txt",
+      "artifacts/./result.txt",
+      "artifact\0result.txt"
+    ]) {
+      expect(validateSandboxWorkspacePath(invalidPath)).toEqual({
+        route_reason: "invalid_workspace_path",
+        status: "blocked"
+      });
+    }
+    const workspacePathDecision = validateSandboxWorkspacePath("artifacts/result.txt");
+    expect(workspacePathDecision).toEqual({
+      status: "allowed",
+      workspace_path: "artifacts/result.txt"
+    });
+    if (workspacePathDecision.status !== "allowed") {
+      throw new Error("sandbox fixture path validation failed");
+    }
+    const workspacePath = workspacePathDecision.workspace_path;
+
+    const artifactBytes = new TextEncoder().encode("fixture");
+    await expect(
+      backend.writeFile({
+        bytes: artifactBytes,
+        lease_id: unknownLeaseId,
+        workspace_path: workspacePath
+      })
+    ).resolves.toEqual({
+      error_code: "file_write_failed",
+      retryable: false,
+      status: "failed"
+    });
+    await expect(
+      backend.writeFile({
+        bytes: artifactBytes,
+        lease_id: leaseId,
+        workspace_path: workspacePath
+      })
+    ).resolves.toEqual({
+      receipt: {
+        bytes_written: artifactBytes.byteLength,
+        lease_id: leaseId,
+        workspace_path: "artifacts/result.txt"
+      },
+      status: "written"
+    });
+    await expect(
+      backend.readFile({
+        lease_id: leaseId,
+        workspace_path: workspacePath
+      })
+    ).resolves.toEqual({
+      result: {
+        bytes: artifactBytes,
+        lease_id: leaseId,
+        workspace_path: "artifacts/result.txt"
+      },
+      status: "read"
+    });
+    const missingPathDecision = validateSandboxWorkspacePath("artifacts/missing.txt");
+    if (missingPathDecision.status !== "allowed") {
+      throw new Error("sandbox fixture missing path validation failed");
+    }
+    await expect(
+      backend.readFile({
+        lease_id: leaseId,
+        workspace_path: missingPathDecision.workspace_path
+      })
+    ).resolves.toEqual({
+      error_code: "file_not_found",
+      retryable: false,
+      status: "failed"
+    });
+    await expect(
+      backend.readFile({
+        lease_id: sessionLeaseId,
+        workspace_path: workspacePath
+      })
+    ).resolves.toEqual({
+      error_code: "file_not_found",
+      retryable: false,
+      status: "failed"
+    });
+    await expect(
+      backend.readFile({
+        lease_id: unknownLeaseId,
+        workspace_path: workspacePath
+      })
+    ).resolves.toEqual({
+      error_code: "file_read_failed",
+      retryable: false,
+      status: "failed"
+    });
+    await expect(
+      backend.kill({ lease_id: unknownLeaseId, reason: "kill_switch" })
+    ).resolves.toEqual({
+      error_code: "kill_failed",
+      lease_id: unknownLeaseId,
+      reason: "kill_switch",
+      retryable: false,
+      status: "failed",
+      terminal: false
+    });
+    await expect(backend.destroy({ lease_id: unknownLeaseId })).resolves.toEqual({
+      error_code: "destroy_failed",
+      lease_id: unknownLeaseId,
+      retryable: false,
+      status: "failed",
+      terminal: false
+    });
+    await expect(
+      backend.kill({ lease_id: leaseId, reason: "soft_timeout" })
+    ).resolves.toEqual({
+      lease_id: leaseId,
+      reason: "soft_timeout",
+      status: "killed",
+      terminal: true
+    });
+    await expect(
+      backend.kill({ lease_id: leaseId, reason: "kill_switch" })
+    ).resolves.toEqual({
+      lease_id: leaseId,
+      reason: "kill_switch",
+      status: "already_terminal",
+      terminal: true
+    });
+    await expect(backend.destroy({ lease_id: leaseId })).resolves.toEqual({
+      lease_id: leaseId,
+      status: "destroyed",
+      terminal: true
+    });
+    await expect(backend.destroy({ lease_id: sessionLeaseId })).resolves.toEqual({
+      lease_id: sessionLeaseId,
+      status: "destroyed",
+      terminal: true
+    });
+    await expect(backend.destroy({ lease_id: leaseId })).resolves.toEqual({
+      lease_id: leaseId,
+      status: "already_destroyed",
+      terminal: true
     });
   });
 
