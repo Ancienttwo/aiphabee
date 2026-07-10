@@ -77,6 +77,11 @@
     "check:planetscale-direct-preflight": "node scripts/check-planetscale-direct-preflight.mjs",
     "check:planetscale-remote-apply": "node scripts/apply-planetscale-migrations.mjs",
     "database:planetscale:apply": "node scripts/apply-planetscale-migrations.mjs --execute --use-keychain",
+    "netquity:schema": "node scripts/netquity-mirror/generate-schema.mjs",
+    "netquity:load": "node scripts/netquity-mirror/load.mjs",
+    "netquity:update": "node scripts/netquity-mirror/update.mjs",
+    "netquity:verify": "node scripts/netquity-mirror/verify.mjs",
+    "check:netquity-mirror": "node --test scripts/netquity-mirror/lib.test.mjs && node scripts/netquity-mirror/verify.mjs --self-test",
     "check:ipo-schema": "node scripts/check-ipo-schema-contract.mjs",
     "check:ipo-etl-manifest": "node scripts/check-ipo-etl-manifest.mjs",
     "check:hkex-news-ingest": "node scripts/check-hkex-news-ingest-contract.mjs",
@@ -269,6 +274,9 @@
     "check:live-smoke-ledger-update-review-fixtures": "node scripts/check-live-smoke-ledger-update-review-fixtures.mjs",
     "check:current-release-readiness": "node scripts/check-current-release-readiness-contract.mjs",
     "check:live-smoke-operator-run-plan": "node scripts/check-live-smoke-operator-run-plan-contract.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
