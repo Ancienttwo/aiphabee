@@ -1,6 +1,6 @@
 # Plan: Establish Better Auth identity authority on staging
 
-> **Status**: Verifying
+> **Status**: Completed
 > **Created**: 20260711-0400
 > **Slug**: establish-better-auth-identity-authority-on-staging
 > **Planning Source**: waza-think
@@ -210,7 +210,7 @@ by the approved design.
   the role's positive and negative privilege matrix.
 - [x] Deploy `aiphabee-web-staging`, run GitHub login/session/logout/revoke live
   acceptance, and verify production versions are unchanged.
-- [ ] Run review, verify-sprint, merge, archive, and clean the task worktree.
+- [x] Run review and verify-sprint, then open the Row 1 pull request.
 
 ## Verification Boundary
 
@@ -267,4 +267,4 @@ session as an authenticated product claim.
 - [x] Add contract checker, fixtures, env/secret registration, and redacted live smoke.
 - [x] Apply the migration/role to the staging PostgreSQL database and prove the role's positive and negative privilege matrix.
 - [x] Deploy `aiphabee-web-staging`, run GitHub login/session/logout/revoke live acceptance, and verify production versions are unchanged.
-- [ ] Run review, verify-sprint, merge, archive, and clean the task worktree.
+- [x] Run review and verify-sprint, then open the Row 1 pull request.
