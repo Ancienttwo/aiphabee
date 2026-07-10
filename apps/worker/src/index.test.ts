@@ -17,6 +17,82 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("research Agent lifecycle route", () => {
+  const lifecycleToken = "research-agent-lifecycle-test-token-32-bytes";
+
+  it("fails closed when the internal credential is absent", async () => {
+    const response = await app.request(
+      "/internal/research-agent/lifecycle",
+      {
+        body: JSON.stringify({
+          account_id: "account-1",
+          intent: "activate",
+          reason: "subscription active",
+          workspace_id: "workspace-1"
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req-lifecycle-unauthorized"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED: "true",
+        AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN: lifecycleToken
+      }
+    );
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error_code: "RESEARCH_AGENT_LIFECYCLE_UNAUTHORIZED"
+    });
+  });
+
+  it("keeps the lifecycle surface disabled by default", async () => {
+    const response = await app.request(
+      "/internal/research-agent/lifecycle",
+      {
+        body: "{}",
+        headers: {
+          authorization: `Bearer ${lifecycleToken}`,
+          "content-type": "application/json",
+          "x-request-id": "req-lifecycle-disabled"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN: lifecycleToken
+      }
+    );
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      error_code: "RESEARCH_AGENT_LIFECYCLE_DISABLED"
+    });
+  });
+
+  it("rejects malformed identity before opening Hyperdrive", async () => {
+    const response = await app.request(
+      "/internal/research-agent/lifecycle",
+      {
+        body: JSON.stringify({ intent: "activate" }),
+        headers: {
+          authorization: `Bearer ${lifecycleToken}`,
+          "content-type": "application/json",
+          "x-request-id": "req-lifecycle-invalid"
+        },
+        method: "POST"
+      },
+      {
+        AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED: "true",
+        AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN: lifecycleToken
+      }
+    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error_code: "INVALID_LIFECYCLE_INPUT"
+    });
+  });
+});
+
 interface RootRouteBody {
   data: {
     market_data_surfaces: boolean;

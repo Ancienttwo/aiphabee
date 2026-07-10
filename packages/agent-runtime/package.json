@@ -19,6 +19,10 @@
     "./fastclaw-sandbox-smoke": {
       "types": "./src/fastclaw-sandbox-smoke.ts",
       "default": "./src/fastclaw-sandbox-smoke.ts"
+    },
+    "./fastclaw-lifecycle": {
+      "types": "./src/fastclaw-lifecycle.ts",
+      "default": "./src/fastclaw-lifecycle.ts"
     }
   },
   "scripts": {
