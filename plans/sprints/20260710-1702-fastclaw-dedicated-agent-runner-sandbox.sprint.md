@@ -1,9 +1,9 @@
 # Sprint: FastClaw Dedicated Agent Runner and Ephemeral Sandbox
 
-> **Status**: Draft
+> **Status**: Approved
 > **Slug**: fastclaw-dedicated-agent-runner-sandbox
 > **Created**: 2026-07-10 17:02 +0800
-> **Updated**: 2026-07-10 17:02 +0800
+> **Updated**: 2026-07-10 18:34 +0800
 > **Source PRD**: `plans/prds/20260710-1702-dual-agent-v3.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -16,7 +16,7 @@ ledger and never carries this backlog.
 
 ## PRD
 
-Full PRD: `plans/prds/20260710-1702-dual-agent-v3.prd.md` (Draft).
+Full PRD: `plans/prds/20260710-1702-dual-agent-v3.prd.md` (Approved).
 
 ### Problem
 
@@ -134,8 +134,9 @@ rows never land.
   independent review, and strict repo-harness verification before completion.
 - Row 10 additionally requires credentialed live evidence and external acceptance.
   Fixture-only success cannot be overridden into a live pass.
-- The Sprint remains Draft until a human approves the programme backlog. After
-  approval, `repo-harness run sprint-backlog next` should select row 1.
+- The user approved the programme backlog on 2026-07-10. Row execution still
+  requires `$think`, a task contract, isolated implementation, independent
+  review, and strict verification; approval alone enables no runtime behavior.
 
 ## Execution Log
 
