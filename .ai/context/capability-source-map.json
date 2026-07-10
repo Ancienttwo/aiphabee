@@ -1,6 +1,44 @@
 {
   "version": 1,
   "capabilities": {
+    "agent_control_plane": {
+      "source_files": [
+        "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
+        "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
+        "packages/agent-runtime/src/index.ts",
+        "apps/worker/src/index.ts"
+      ],
+      "test_files": [
+        "packages/agent-runtime/src/index.test.ts",
+        "apps/worker/src/index.test.ts"
+      ],
+      "acceptance_commands": [
+        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts"
+      ],
+      "invariants": [
+        "single run/event/tool authority",
+        "Worker owns public /agent/* routes",
+        "Generic cannot call Research-only tools",
+        "only dry_run is currently executable"
+      ]
+    },
+    "fastclaw_personal_runner": {
+      "source_files": [
+        "docs/researches/20260710-gpt-planning-pack-distillation.md",
+        "plans/prds/20260710-1702-dual-agent-v3.prd.md",
+        "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
+        "packages/agent-runtime/src/index.ts"
+      ],
+      "test_files": [],
+      "acceptance_commands": [],
+      "invariants": [
+        "FastClaw is a runner, not a capability layer",
+        "one durable identity per entitled user",
+        "one ephemeral sandbox per active run or session",
+        "no shared identity fallback",
+        "live acceptance cannot be satisfied by fixtures alone"
+      ]
+    },
     "technical_analysis_ephemeral": {
       "skill_entrypoint": "analyze_public_technical_signal",
       "data_classification": "public_observation_signal",

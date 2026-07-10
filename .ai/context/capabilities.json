@@ -2,6 +2,58 @@
   "version": 1,
   "capabilities": [
     {
+      "id": "agent_control_plane",
+      "name": "AiphaBee Agent Control Plane",
+      "status": "contract_converged_dry_run_only",
+      "source_prd": "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
+      "source_sprint": "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
+      "authority_packages": [
+        "packages/agent-runtime"
+      ],
+      "public_api_owner": "apps/worker:/agent/*",
+      "supported_layers": [
+        "generic",
+        "research"
+      ],
+      "supported_run_modes": [
+        "dry_run",
+        "guarded_live",
+        "runner_remote"
+      ],
+      "executable_run_modes": [
+        "dry_run"
+      ],
+      "invariants": {
+        "single_run_event_tool_authority": true,
+        "worker_owns_public_agent_routes": true,
+        "unknown_tools_default_deny": true,
+        "runner_dispatch_implemented": false,
+        "live_model_execution_enabled": false
+      }
+    },
+    {
+      "id": "fastclaw_personal_runner",
+      "name": "FastClaw Personal Agent Runner",
+      "status": "planned_no_live_execution",
+      "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
+      "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
+      "authority_packages": [
+        "packages/agent-runtime"
+      ],
+      "execution_family": "fastclaw",
+      "invariants": {
+        "one_durable_identity_per_entitled_user": true,
+        "ephemeral_sandbox_per_run_or_session": true,
+        "shared_identity_fallback_allowed": false,
+        "direct_app_database_access": false,
+        "direct_provider_credential_access": false,
+        "egress_default_deny": true,
+        "durable_memory_owned_by_aiphabee": true,
+        "live_acceptance_required": true,
+        "runtime_dispatch_implemented": false
+      }
+    },
+    {
       "id": "technical_analysis_ephemeral",
       "name": "Ephemeral Public OHLCV Technical Analysis",
       "status": "contract_scaffold",
