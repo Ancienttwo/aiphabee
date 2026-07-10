@@ -156,6 +156,7 @@ export function validateStaticImplementation(root = process.cwd()) {
     'useSecureCookies: true',
     'disableCSRFCheck: false',
     'disableOriginCheck: false',
+    'ipAddressHeaders: ["cf-connecting-ip"]',
     'storage: "database"',
     'max: 1',
     'options: "-c search_path=aiphabee_auth,pg_catalog"',
@@ -170,7 +171,7 @@ export function validateStaticImplementation(root = process.cwd()) {
     'createFileRoute("/api/auth/$")',
     'new URL(request.url).pathname === "/api/auth/github/start"',
     'target.hostname !== "github.com"',
-    '["CF-Connecting-IP", "Cookie", "User-Agent", "X-Forwarded-For"]',
+    '["CF-Connecting-IP", "Cookie", "User-Agent"]',
     'error.code === "AUTH_ENVIRONMENT_DENIED" ? 404 : 503',
     '"Cache-Control": "no-store"',
   ]);

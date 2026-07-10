@@ -51,7 +51,7 @@ async function startGitHubOAuth(request: Request) {
     "content-type": "application/json",
     origin,
   });
-  for (const name of ["CF-Connecting-IP", "Cookie", "User-Agent", "X-Forwarded-For"]) {
+  for (const name of ["CF-Connecting-IP", "Cookie", "User-Agent"]) {
     const value = request.headers.get(name);
     if (value) forwardedHeaders.set(name, value);
   }

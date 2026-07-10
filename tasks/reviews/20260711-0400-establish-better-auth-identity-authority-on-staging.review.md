@@ -5,7 +5,7 @@
 > **Contract**: tasks/contracts/20260711-0400-establish-better-auth-identity-authority-on-staging.contract.md
 > **Notes File**: tasks/notes/20260711-0400-establish-better-auth-identity-authority-on-staging.notes.md
 > **Checks File**: .ai/harness/checks/latest.json
-> **Last Updated**: 2026-07-11 05:26
+> **Last Updated**: 2026-07-11 05:38
 > **Recommendation**: pass
 > **Review Rubric Version**: 1
 > **Reviewed Diff Fingerprint**: sha256:9f62998f8bd41d365ef55dd1047416423e74a1cee36767a54001215485f234ec
@@ -18,12 +18,14 @@
 - Intended files changed: 36 allowed-path files spanning Web auth/UI, explicit
   schema/role packets, executable contracts, tests, deploy config, and evidence.
 - Actual files changed: 36; no path outside the contract allowlist.
-- Commands passed: identity/secret/database/env checks, 271 targeted Web/Worker
-  tests, root typecheck, staging Web build + artifact gate, live preflight, and
-  `git diff --check`.
+- Commands passed: identity/secret/database/env checks, 20 targeted auth tests,
+  1045 full-suite tests, root typecheck, staging Web build + artifact gate,
+  live preflight, and `git diff --check`.
 - External acceptance: manual_override — Claude review was invoked but the local
-  Claude session limit had been reached; two independent read-only specialist
-  closure reviews passed after all findings were fixed.
+  Claude session limit had been reached; the independent security closure
+  passed with zero findings after all six cumulative findings were fixed. The
+  architecture reviewer found the same final pool-close issue before its quota
+  ended; that issue is covered by the security closure and two regressions.
 - Residual risks: no product resolver or entitlement path exists in this row by
   design; that is Row 2, not an identity fallback.
 - Reviewer action required: none for Row 1.
@@ -47,8 +49,10 @@
 
 ## Verification Evidence
 
-- Waza `/check` run: independent security closure PASS, 0 findings; independent
-  architecture closure PASS, 0 findings.
+- Waza `/check` run: independent security closure PASS, 0 findings. Architecture
+  review's migration/index/production findings passed closure; its final
+  resource-close finding was fixed before quota exhaustion and independently
+  reverified by security closure.
 - Commands run: `npm run check:authenticated-web-identity`, `npm run
   check:secrets`, `npm run check:database`, `npm run check:env`, targeted
   Vitest, Web and root typecheck, staging build/artifact gate, preflight smoke,
@@ -74,13 +78,13 @@
   per-privilege role readback fixes.
 - Acceptance checklist: all Row 1 contract checks and live surfaces passed.
 - Claude external review was attempted but unavailable because the local Claude
-  session limit resets at 07:00 Asia/Hong_Kong; the two independent specialist
-  closures provide the external review evidence for this row.
+  session limit resets at 07:00 Asia/Hong_Kong; specialist review plus strict
+  machine and live readback provide the external evidence for this row.
 - Manual Override: accept Row 1 because Claude review was attempted and returned
-  `You've hit your session limit`; independent read-only security and
-  architecture closure reviews both passed with zero findings after remediation,
-  strict contract verification passed, staging live acceptance passed, and
-  production Web/Worker isolation was read back exactly.
+  `You've hit your session limit`; independent read-only security closure passed
+  with zero findings after remediation, strict contract verification passed,
+  staging live acceptance passed, and production Web/Worker isolation was read
+  back exactly.
 
 ## Behavior Diff Notes
 
@@ -118,4 +122,6 @@
 ## Summary
 
 - PASS. Row 1 establishes one verified, revocable staging identity authority
-  without granting product or raw-data access and without changing production.
+  without granting product or raw-data access. A transient mistaken production
+  Web deploy during closure was immediately deleted; final readback is Worker
+  absent/URL 404, while the production API Worker version remained unchanged.

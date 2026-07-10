@@ -48,8 +48,8 @@
 
 - Checks: `.ai/harness/checks/latest.json`
 - Run snapshots: `.ai/harness/runs/`
-- Staging Web deployment: deployment `b335257b-a4b6-4579-88a0-7a36f7bcc916`,
-  version `24fc077d-1870-4555-84ed-38a5c97cb8fc`, 100%.
+- Staging Web deployment: deployment `e31fbda5-cbcb-464a-b9c9-3a9e0a4b2d53`,
+  version `1c9dfc94-2aab-4f8b-936c-080da4ae7fd0`, 100%.
 - Production Worker readback: deployment
   `3921afaa-fa64-439f-9a49-af891264947d`, version
   `0ab3f7d0-517e-4fa3-91b7-1ccc92e90a88`, 100%, unchanged.
@@ -60,6 +60,15 @@
   invalid-session denial, exact GitHub OAuth redirect, and production isolation.
 - Staging role packet completed `applied_and_read_back`; the temporary apply
   Worker was deleted and Cloudflare returned Worker-not-found on readback.
+- Closure correction removed the accidentally applied shared
+  `platform_account_auth_subject_shape_check`, confirmed zero
+  `legacy-auth-user:%` rows, and added/read back `rateLimit_lastRequest_idx`.
+- During closure, an operator invoked the generic workspace deploy command with
+  `--env staging`; TanStack's redirected config dropped the environment and
+  briefly created `aiphabee-web`. It was immediately deleted, its URL returned
+  404, Cloudflare returned Worker-not-found, and the contract-owned
+  `deploy:authenticated-web-identity:staging` command then deployed only the
+  staging build. The production API Worker version never changed.
 
 ## Promotion Filter
 

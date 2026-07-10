@@ -97,9 +97,9 @@
   },
   "live_acceptance": {
     "status": "passed",
-    "observed_at": "2026-07-10T21:22:38.744Z",
-    "staging_deployment_id": "b335257b-a4b6-4579-88a0-7a36f7bcc916",
-    "staging_version_id": "24fc077d-1870-4555-84ed-38a5c97cb8fc",
+    "observed_at": "2026-07-10T21:37:22.453Z",
+    "staging_deployment_id": "e31fbda5-cbcb-464a-b9c9-3a9e0a4b2d53",
+    "staging_version_id": "1c9dfc94-2aab-4f8b-936c-080da4ae7fd0",
     "production_deployment_id": "3921afaa-fa64-439f-9a49-af891264947d",
     "required_checks": [
       "github_login",
@@ -109,6 +109,7 @@
       "invalid_session_denied",
       "uninvited_identity_denied",
       "auth_role_privilege_matrix",
+      "production_web_absent",
       "production_version_unchanged"
     ],
     "evidence_policy": "hash_status_count_only",
@@ -120,6 +121,7 @@
       "invalid_session_denied": true,
       "uninvited_identity_denied": true,
       "auth_role_privilege_matrix": true,
+      "production_web_absent": true,
       "production_version_unchanged": true
     }
   },

@@ -142,6 +142,27 @@ export function createBackgroundTaskTracker() {
   };
 }
 
+export async function closeAuthenticatedWebIdentityResources(
+  backgroundTasks: Pick<ReturnType<typeof createBackgroundTaskTracker>, "settle">,
+  pool: Pick<Pool, "end">,
+) {
+  const errors: unknown[] = [];
+  try {
+    await backgroundTasks.settle();
+  } catch (error) {
+    errors.push(error);
+  }
+  try {
+    await pool.end();
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(errors, "AUTH_RESOURCE_CLOSE_FAILED");
+  }
+}
+
 export function createBetterAuthOptions(
   config: AuthenticatedWebIdentityConfig,
   pool: Pool,
@@ -167,6 +188,9 @@ export function createBetterAuthOptions(
       },
       disableCSRFCheck: false,
       disableOriginCheck: false,
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
       useSecureCookies: true,
     },
     appName: "AiphaBee",
@@ -248,10 +272,7 @@ export function createAuthenticatedWebIdentityRuntime(
   const auth = betterAuth(createBetterAuthOptions(config, pool, backgroundTasks.handler));
   return {
     auth,
-    close: async () => {
-      await backgroundTasks.settle();
-      await pool.end();
-    },
+    close: () => closeAuthenticatedWebIdentityResources(backgroundTasks, pool),
   };
 }
 

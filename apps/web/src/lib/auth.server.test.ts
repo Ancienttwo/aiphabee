@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Pool } from "pg";
 import {
   AuthConfigurationError,
   canonicalAuthSubject,
+  closeAuthenticatedWebIdentityResources,
   createBackgroundTaskTracker,
   createBetterAuthOptions,
   hashInvitedEmail,
@@ -53,6 +54,33 @@ describe("authenticated Web identity configuration", () => {
     tracker.handler(Promise.reject(new Error("cleanup failed")));
 
     await expect(tracker.settle()).rejects.toThrow("AUTH_BACKGROUND_TASK_FAILED");
+  });
+
+  it("closes the request pool even when a background task fails", async () => {
+    const pool = { end: vi.fn().mockResolvedValue(undefined) };
+    const backgroundTasks = {
+      settle: vi.fn().mockRejectedValue(new Error("cleanup failed")),
+    };
+
+    await expect(
+      closeAuthenticatedWebIdentityResources(backgroundTasks, pool),
+    ).rejects.toThrow("cleanup failed");
+    expect(pool.end).toHaveBeenCalledOnce();
+  });
+
+  it("reports both background and pool close failures", async () => {
+    const pool = { end: vi.fn().mockRejectedValue(new Error("pool close failed")) };
+    const backgroundTasks = {
+      settle: vi.fn().mockRejectedValue(new Error("cleanup failed")),
+    };
+
+    await expect(
+      closeAuthenticatedWebIdentityResources(backgroundTasks, pool),
+    ).rejects.toMatchObject({
+      errors: [expect.objectContaining({ message: "cleanup failed" }), expect.objectContaining({ message: "pool close failed" })],
+      message: "AUTH_RESOURCE_CLOSE_FAILED",
+    });
+    expect(pool.end).toHaveBeenCalledOnce();
   });
 
   it("accepts only the staging authority and normalizes invite hashes", async () => {
@@ -151,6 +179,7 @@ describe("authenticated Web identity configuration", () => {
       backgroundTasks: { handler: backgroundTasks.handler },
       disableCSRFCheck: false,
       disableOriginCheck: false,
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
       useSecureCookies: true,
     });
 
