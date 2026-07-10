@@ -1,6 +1,6 @@
 # Plan: Netquity staging security resolution
 
-> **Status**: Executing
+> **Status**: Archived
 > **Created**: 20260711-0209
 > **Slug**: netquity-security-resolution-staging
 > **Planning Source**: waza-think
@@ -406,5 +406,5 @@ Remote staging checks:
 - [x] Run targeted/full relevant local validation and ephemeral PostgreSQL apply.
 - [x] Apply promotion + grants to shared staging and prove role/release readback.
 - [x] Deploy staging only and run symbol/multilingual/negative live acceptance.
-- [ ] Run second-model review, bind redacted notes/review evidence, merge, and
+- [x] Run second-model review, bind redacted notes/review evidence, merge, and
   clean up the feature branch/worktree.

@@ -1,10 +1,10 @@
 # Sprint: Netquity staging security resolution
 
-> **Status**: Approved
+> **Status**: Done
 > **Approved**: user `go on`, 2026-07-11
 > **Slug**: netquity-security-resolution-staging
 > **Created**: 2026-07-11 01:54
-> **Updated**: 2026-07-11 01:54
+> **Updated**: 2026-07-11 03:42
 > **Source PRD**: none; bounded brownfield activation from `plans/plan-netquity-pg-mirror.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -111,7 +111,7 @@ execution for small tasks. Every row needs a concrete acceptance line.
 
 | # | Status | Task | Mode | Acceptance | Plan |
 |---|--------|------|------|------------|------|
-| 1 | [ ] | Promote and prove guarded Netquity security resolution on staging | contract | 18,036/18,036 rows promoted; role/read/release checks pass; guarded symbol + multilingual live smokes pass with `liveDataAccess=true`; failure paths prove no synthetic fallback; production unchanged | `plans/plan-20260711-0209-promote-and-prove-guarded-netquity-security-resolution-on-staging.md` |
+| 1 | [x] | Promote and prove guarded Netquity security resolution on staging | contract | 18,036/18,036 rows promoted; role/read/release checks pass; guarded symbol + multilingual live smokes pass with `liveDataAccess=true`; failure paths prove no synthetic fallback; production unchanged | `plans/plan-20260711-0209-promote-and-prove-guarded-netquity-security-resolution-on-staging.md` |
 
 ## Execution Log
 
@@ -119,3 +119,4 @@ Keep this section last; `repo-harness run sprint-backlog complete-task` appends 
 
 | When | Task | Plan | Result |
 |------|------|------|--------|
+| 2026-07-11 03:42 | Promote and prove guarded Netquity security resolution on staging | `plans/plan-20260711-0209-promote-and-prove-guarded-netquity-security-resolution-on-staging.md` | done |

@@ -1,7 +1,13 @@
+> **Archived**: 2026-07-11 03:43
+> **Related Plan**: plans/archive/plan-20260711-0209-promote-and-prove-guarded-netquity-security-resolution-on-staging.md
+> **Outcome**: Completed
+> **Source Plan**: (none)
+> **Parent Run ID**: run-20260711-0343
+
 # Deferred Goal Ledger
 
 > **Status**: Backlog
-> **Updated**: (archive-workflow)
+> **Updated**: 2026-07-10 11:29
 > **Scope**: Medium/long-term goals deferred from active plan execution
 
 Current plan tasks live in the active plan's `## Task Breakdown`.
