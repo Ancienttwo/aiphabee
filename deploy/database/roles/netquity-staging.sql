@@ -27,9 +27,7 @@ ALTER ROLE netquity_staging
   NOINHERIT
   NOBYPASSRLS;
 
-GRANT netquity_staging TO CURRENT_USER;
-
-DO $netquity_ownership$
+DO $netquity_grants$
 DECLARE
   item record;
 BEGIN
@@ -39,35 +37,23 @@ BEGIN
     WHERE schema_name LIKE 'nq\_%' ESCAPE '\'
     ORDER BY schema_name
   LOOP
-    EXECUTE format('ALTER SCHEMA %I OWNER TO netquity_staging', item.schema_name);
     EXECUTE format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', item.schema_name);
     EXECUTE format(
-      'GRANT USAGE, CREATE ON SCHEMA %I TO netquity_staging',
+      'GRANT USAGE ON SCHEMA %I TO netquity_staging',
+      item.schema_name
+    );
+    EXECUTE format(
+      'REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM PUBLIC',
+      item.schema_name
+    );
+    EXECUTE format(
+      'GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA %I TO netquity_staging',
       item.schema_name
     );
   END LOOP;
-
-  FOR item IN
-    SELECT schemaname, tablename
-    FROM pg_tables
-    WHERE schemaname LIKE 'nq\_%' ESCAPE '\'
-    ORDER BY schemaname, tablename
-  LOOP
-    EXECUTE format(
-      'ALTER TABLE %I.%I OWNER TO netquity_staging',
-      item.schemaname,
-      item.tablename
-    );
-    EXECUTE format(
-      'REVOKE ALL ON TABLE %I.%I FROM PUBLIC',
-      item.schemaname,
-      item.tablename
-    );
-  END LOOP;
 END
-$netquity_ownership$;
+$netquity_grants$;
 
-REVOKE netquity_staging FROM CURRENT_USER;
 REVOKE ALL ON DATABASE postgres FROM netquity_staging;
 GRANT CONNECT ON DATABASE postgres TO netquity_staging;
 
