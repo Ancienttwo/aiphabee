@@ -198,6 +198,31 @@ verifier checks full-row coverage. A keyless table cannot distinguish a correcti
 row outside the window, so both update and verify fail closed instead of accumulating stale
 revisions.
 
+### `verify.mjs --mode daily` row-level parity
+
+Row-level, not aggregate: each planned table is staged into a temp table and compared against
+the target with a bidirectional `EXCEPT ALL`, mode-aware:
+
+- `replace_all` -- whole table, both directions (`extra_in_file`/`extra_in_db` must both be 0).
+- `upsert_only` -- scoped to the staged key set only, since this mode never deletes; target rows
+  outside that key set are out of scope by design.
+- `window_replace` -- in-window rows compared the same way, plus a full-row (not key-only)
+  coverage check for out-of-window/NULL-window staged rows: every one must match an identical row
+  somewhere in the whole target table, mirroring the updater's own delete-union semantics.
+
+`nq_ops.del_sec` coverage is checked separately: every `(del_date, code)` row parsed from the
+drop's `del_sec_*.dat` file(s) must exist in `nq_ops.del_sec` (a single existence query -- there
+is no staged file to diff against for this feed). A drop containing only `del_sec_*.dat` files
+still yields a real, non-vacuous report entry rather than a trivial pass.
+
+Zip archives in a `--drop-dir` are contained in two layers, shared by `update.mjs` and
+`verify.mjs --mode daily` alike (both resolve a drop dir through the same code path): before
+extraction, `unzip -Z1` lists every entry and refuses the whole archive if any entry is an
+absolute path or contains a `..` path segment; after extraction, every extracted file's realpath
+must resolve strictly under the extraction tmpdir's own realpath, and any symlink or
+non-file/non-directory entry is refused outright. Every tmpdir created while resolving a drop is
+removed in a `finally` block, independent of success or failure.
+
 ### Unresolved tables
 
 Two reasons a table is `unresolved`:

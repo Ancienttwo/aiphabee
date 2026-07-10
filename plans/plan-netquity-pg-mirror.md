@@ -36,7 +36,8 @@ Detailed design captured during planning (empirically validated against mdbtools
 - [x] Gate: gatekeeper review of Phase 1 diff + verification evidence (PASS; dual-track with Codex, 11 findings fixed and re-verified — see `tasks/reviews/plan-netquity-pg-mirror.review.md`).
 - [x] Phase 3: `strategies.json` + `update.mjs` + `verify.mjs --mode daily` + README (vendor delivery clock, rebuild/rollback).
 - [x] Gate: deep Phase 3 review completed 2026-07-10; fixed non-destructive generation, `psql -X`, duplicate-delivery hashing, vacuous daily verify, keyless out-of-window revisions, fail-fast sequencing, explicit root `pg`, and public-repo licensed-evidence redaction; re-ran bootstrap/daily parity and negative probes.
-- [ ] Phase 2: PlanetScale apply (blocked on explicit database-write authorization plus licence approval for the target/public schema surface; no remote data apply in this work package).
+- [x] Licence gate: user confirmed on 2026-07-10 that the Netquity data is authorised cooperation material and has no copyright restriction for AiphaBee; the repository is also returning to private visibility. Existing evidence minimisation remains in place.
+- [ ] Phase 2: PlanetScale apply (blocked on explicit database-write authorization; no remote data apply in this work package).
 
 ## Evidence Contract
 

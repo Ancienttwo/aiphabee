@@ -43,4 +43,43 @@
 ## Residual production gate
 
 - The local fixture is a full-history proving set, not evidence that every real daily file is a complete snapshot. `replace_all` classifications for FinReport and TurnoverBreakdown must not be used on production daily drops until a real delivery confirms full-snapshot semantics.
-- The generated structural schema may itself be subject to the vendor licence. No push/publication of this local commit is authorised by this task; licence ownership must approve that surface before any future push.
+- On 2026-07-10 the user confirmed that Netquity supplied this data under an authorised cooperation and that AiphaBee's use has no copyright restriction. The repository is also returning to private visibility. This closes the licence/publication gate, while exact vendor prose and row-level evidence remain excluded as deliberate data minimisation.
+
+## Final hardening round (post Phase-3 gate)
+
+Seven hardening items, each re-verified end to end against the local fixture and the current
+committed code (`node --check` on all five `.mjs` entrypoints plus `npm run check:netquity-mirror`
+first):
+
+1. **`nq_ops.del_sec` daily coverage** -- `verify.mjs --mode daily` asserts every parsed
+   `del_sec_*.dat` row exists in `nq_ops.del_sec`. Confirmed pass (2,088/2,088 rows found) on a
+   clean drop; always produces a real report entry, not a vacuous one.
+2. **Row-level (not aggregate) daily parity** -- bidirectional `EXCEPT ALL` per mode
+   (`replace_all` whole-table, `upsert_only` scoped to staged keys, `window_replace` in-window
+   plus full-row out-of-window coverage). Confirmed pass on a clean drop; confirmed fail (naming
+   the offending table, `extra_in_file=1 extra_in_db=1`) after a single tampered cell; restore
+   via a normal write run returned the table to green.
+3. **Zip containment** -- pre-extraction entry-name check (`unzip -Z1`, refuses absolute paths or
+   `..` segments) and post-extraction realpath containment check. Confirmed refusal of a crafted
+   archive containing a path-traversal entry, before any extraction occurred and before any
+   database access.
+4. **`del_sec_*.dat` pre-parse** -- strict line grammar parsed and validated fully in memory
+   before any table commit. Confirmed refusal (naming the exact malformed line) with a sibling
+   table's row count unchanged before/after, even though a valid `.mdb` for that table was
+   present in the same drop.
+5. **`del_sec` regex tightening** -- the code-capture group excludes tab/CR/LF, so an
+   extra-column line fails the match instead of silently absorbing the extra field. Exercised by
+   the same malformed-line probe as item 4.
+6. **Tmpdir cleanup on failure** -- every tmpdir created while resolving a `--drop-dir` (zip
+   extraction) is removed in a `finally` block in both `update.mjs` and `verify.mjs --mode
+   daily`, independent of success or failure.
+7. **Daily key-set assertion** -- `strategies.json` vs. the migration DDL is asserted
+   bidirectionally before any drop-dir or database access. Confirmed refusal (naming the missing
+   entry) using a scratch `strategies.json` copy with one entry removed via the documented
+   override path, before any table verification.
+
+Full battery: `node --check` x5 + self-test; two consecutive `--allow-db-write` runs (byte-identical
+summaries, idempotent); bootstrap verify (172 passed, 1 skipped); daily verify (row-level, exit 0);
+the four negative fixtures above; `check:database` / `check:env` (both `status: "ok"`). All green
+against the current committed code, in which `nq_sharecapitaldata.data` is `unresolved` (see
+"Daily update safety decisions" above) -- the daily plan is 155 tables plus `nq_ops.del_sec`.
