@@ -27,6 +27,7 @@
         "single_run_event_tool_authority": true,
         "worker_owns_public_agent_routes": true,
         "unknown_tools_default_deny": true,
+        "runner_selection_implemented": true,
         "runner_dispatch_implemented": false,
         "live_model_execution_enabled": false
       }
@@ -34,7 +35,7 @@
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "planned_no_live_execution",
+      "status": "selection_contract_only_no_live_execution",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -50,6 +51,7 @@
         "egress_default_deny": true,
         "durable_memory_owned_by_aiphabee": true,
         "live_acceptance_required": true,
+        "runner_selection_implemented": true,
         "runtime_dispatch_implemented": false
       }
     },

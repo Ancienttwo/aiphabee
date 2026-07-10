@@ -96,6 +96,26 @@ export const AGENT_RUNTIME_LIMITS = {
 export const AGENT_LAYERS = ["generic", "research"] as const;
 export const AGENT_RUN_MODES = ["dry_run", "guarded_live", "runner_remote"] as const;
 export const AGENT_EXECUTABLE_RUN_MODES = ["dry_run"] as const;
+export const AGENT_RUNNER_SELECTION_VERSION =
+  "2026-07-10.agent-runner-selection.v0";
+export const AGENT_DEFAULT_RUNNER_FAMILY = "edge" as const;
+export const AGENT_RUNNER_REGISTRY = [
+  {
+    enabled: true,
+    family: "edge",
+    runner_id: "edge.worker-v0",
+    supported_modes: ["dry_run", "guarded_live"]
+  },
+  {
+    enabled: false,
+    family: "fastclaw",
+    runner_id: "fastclaw.personal-v0",
+    supported_modes: ["runner_remote"]
+  }
+] as const;
+export const AGENT_RUNNER_FAMILIES = AGENT_RUNNER_REGISTRY.map(
+  (registration) => registration.family
+);
 export const AGENT_EXECUTION_EVENT_TYPES = [
   "run.requested",
   "run.started",
@@ -108,7 +128,10 @@ export const AGENT_ROUTE_DECISIONS = [
   "blocked_invalid_layer",
   "blocked_invalid_mode",
   "blocked_policy_denied",
-  "runner_required"
+  "runner_required",
+  "blocked_invalid_runner_family",
+  "blocked_runner_disabled",
+  "blocked_runner_mode_incompatible"
 ] as const;
 export const DEFAULT_AGENT_RUN_TOOLS = [
   "resolve_security",
@@ -406,8 +429,16 @@ export type AgentTokenCostFallbackReleaseGateStatus = "planned_no_write";
 export type AgentLayer = (typeof AGENT_LAYERS)[number];
 export type AgentRunMode = (typeof AGENT_RUN_MODES)[number];
 export type AgentExecutableRunMode = (typeof AGENT_EXECUTABLE_RUN_MODES)[number];
+export type AgentRegisteredRunner = (typeof AGENT_RUNNER_REGISTRY)[number];
+export type AgentRegisteredRunnerId = AgentRegisteredRunner["runner_id"];
+export type AgentRunnerFamily = AgentRegisteredRunner["family"];
 export type AgentExecutionEventType = (typeof AGENT_EXECUTION_EVENT_TYPES)[number];
 export type AgentRouteDecision = (typeof AGENT_ROUTE_DECISIONS)[number];
+export type AgentRunnerSelectionBlockedReason =
+  | "blocked_invalid_runner_family"
+  | "blocked_runner_disabled"
+  | "blocked_runner_mode_incompatible"
+  | "runner_required";
 export type AgentResearchOnlyToolName = (typeof AGENT_RESEARCH_ONLY_TOOLS)[number];
 export type AgentLayerToolPolicyStatus = "allowed" | "blocked";
 export type AgentLayerToolPolicyDenialReason =
@@ -440,12 +471,48 @@ export interface AgentExecutionEvent {
   visible_to_user: boolean;
 }
 
-export interface AgentRunner {
-  readonly layer: AgentLayer;
-  readonly runner_id: string;
-  readonly supported_modes: readonly AgentRunMode[];
-  run(request: AgentExecutionRequest): AsyncIterable<AgentExecutionEvent>;
+export type AgentRunner = {
+  [Registration in AgentRegisteredRunner as Registration["runner_id"]]: {
+    readonly family: Registration["family"];
+    readonly layer: AgentLayer;
+    readonly runner_id: Registration["runner_id"];
+    readonly supported_modes: Registration["supported_modes"];
+    run(request: AgentExecutionRequest): AsyncIterable<AgentExecutionEvent>;
+  };
+}[AgentRegisteredRunnerId];
+
+export interface AgentRunnerSelectionInput {
+  mode: AgentRunMode;
+  requestedRunnerFamily?: unknown;
 }
+
+interface AgentRunnerSelectionBase {
+  requested_mode: AgentRunMode;
+  requested_runner_family: string | null;
+  runner_selection_contract_version: typeof AGENT_RUNNER_SELECTION_VERSION;
+  runner_selection_owner: "agent_runtime";
+}
+
+export interface AgentRunnerSelectionSelected extends AgentRunnerSelectionBase {
+  requested_runner_family: AgentRunnerFamily;
+  route_reason: "selected";
+  selected_mode: AgentExecutableRunMode;
+  selected_runner_family: AgentRunnerFamily;
+  selected_runner_id: AgentRegisteredRunnerId;
+  status: "selected";
+}
+
+export interface AgentRunnerSelectionBlocked extends AgentRunnerSelectionBase {
+  route_reason: AgentRunnerSelectionBlockedReason;
+  selected_mode: null;
+  selected_runner_family: null;
+  selected_runner_id: null;
+  status: "blocked";
+}
+
+export type AgentRunnerSelection =
+  | AgentRunnerSelectionBlocked
+  | AgentRunnerSelectionSelected;
 
 export interface AgentLayerToolPolicyInput {
   entitlements?: readonly string[];
@@ -1042,6 +1109,14 @@ export interface AgentRuntimeCapabilities {
     route_decision_owner: "agent_runtime";
     route_decisions: typeof AGENT_ROUTE_DECISIONS;
     runner_contract_ready: true;
+    runner_selection: {
+      contract_version: typeof AGENT_RUNNER_SELECTION_VERSION;
+      default_family: typeof AGENT_DEFAULT_RUNNER_FAMILY;
+      dispatch_implemented: false;
+      registered_families: typeof AGENT_RUNNER_FAMILIES;
+      registered_runners: typeof AGENT_RUNNER_REGISTRY;
+      selection_owner: "agent_runtime";
+    };
     supported_layers: typeof AGENT_LAYERS;
     supported_run_modes: typeof AGENT_RUN_MODES;
     worker_route_family: "/agent/*";
@@ -3184,6 +3259,60 @@ async function hashAiGatewaySmokeString(value: string): Promise<string> {
     .join("")}`;
 }
 
+export function selectAgentRunner(
+  input: AgentRunnerSelectionInput
+): AgentRunnerSelection {
+  const requestedRunnerFamily =
+    input.requestedRunnerFamily === undefined
+      ? AGENT_DEFAULT_RUNNER_FAMILY
+      : typeof input.requestedRunnerFamily === "string"
+        ? input.requestedRunnerFamily
+        : null;
+  const blocked = (
+    routeReason: AgentRunnerSelectionBlockedReason
+  ): AgentRunnerSelectionBlocked => ({
+    requested_mode: input.mode,
+    requested_runner_family: requestedRunnerFamily,
+    route_reason: routeReason,
+    runner_selection_contract_version: AGENT_RUNNER_SELECTION_VERSION,
+    runner_selection_owner: "agent_runtime",
+    selected_mode: null,
+    selected_runner_family: null,
+    selected_runner_id: null,
+    status: "blocked"
+  });
+
+  const registration = AGENT_RUNNER_REGISTRY.find(
+    (candidate) => candidate.family === requestedRunnerFamily
+  );
+  if (registration === undefined) {
+    return blocked("blocked_invalid_runner_family");
+  }
+  if (!registration.supported_modes.some((mode) => mode === input.mode)) {
+    return blocked("blocked_runner_mode_incompatible");
+  }
+  if (!registration.enabled) {
+    return blocked("blocked_runner_disabled");
+  }
+  if (
+    !AGENT_EXECUTABLE_RUN_MODES.includes(input.mode as AgentExecutableRunMode)
+  ) {
+    return blocked("runner_required");
+  }
+
+  return {
+    requested_mode: input.mode,
+    requested_runner_family: registration.family,
+    route_reason: "selected",
+    runner_selection_contract_version: AGENT_RUNNER_SELECTION_VERSION,
+    runner_selection_owner: "agent_runtime",
+    selected_mode: input.mode as AgentExecutableRunMode,
+    selected_runner_family: registration.family,
+    selected_runner_id: registration.runner_id,
+    status: "selected"
+  };
+}
+
 export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
   return {
     ai_sdk: {
@@ -3231,6 +3360,14 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       route_decision_owner: "agent_runtime",
       route_decisions: AGENT_ROUTE_DECISIONS,
       runner_contract_ready: true,
+      runner_selection: {
+        contract_version: AGENT_RUNNER_SELECTION_VERSION,
+        default_family: AGENT_DEFAULT_RUNNER_FAMILY,
+        dispatch_implemented: false,
+        registered_families: AGENT_RUNNER_FAMILIES,
+        registered_runners: AGENT_RUNNER_REGISTRY,
+        selection_owner: "agent_runtime"
+      },
       supported_layers: AGENT_LAYERS,
       supported_run_modes: AGENT_RUN_MODES,
       worker_route_family: "/agent/*"

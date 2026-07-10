@@ -61,11 +61,14 @@ import {
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
+  selectAgentRunner,
   validatePostGenerationEvidenceBinding,
   type AgentExecutableRunMode,
   type AgentLayer,
   type AgentLayerToolPolicyDecision,
+  type AgentRegisteredRunnerId,
   type AgentRouteDecision,
+  type AgentRunnerFamily,
   type AgentWorkflowNotificationChannel,
   type AgentWorkflowTaskKind,
   type AgentRunSkeletonInput,
@@ -1149,6 +1152,7 @@ interface AgentRunRequestBody {
   responseLocale?: unknown;
   run_mode?: unknown;
   runMode?: unknown;
+  runner_family?: unknown;
   securities?: unknown;
   security_query?: unknown;
   securityQuery?: unknown;
@@ -1237,10 +1241,15 @@ interface AgentWorkerRouteReadback {
   control_plane_contract_version: string;
   requested_layer: AgentLayer;
   requested_mode: AgentRunMode;
+  requested_runner_family: AgentRunnerFamily;
   route_decision_owner: "agent_runtime";
   route_reason: AgentRouteDecision;
+  runner_selection_contract_version: string;
+  runner_selection_owner: "agent_runtime";
   selected_layer: AgentLayer;
   selected_mode: AgentExecutableRunMode;
+  selected_runner_family: AgentRunnerFamily;
+  selected_runner_id: AgentRegisteredRunnerId;
   worker_route_family: "/agent/*";
 }
 
@@ -10189,6 +10198,7 @@ app.post("/agent/runs/dry-run", async (c) => {
       modelTier?: unknown;
       plan?: unknown;
       prompt?: unknown;
+      runner_family?: unknown;
       tools?: unknown;
       user_id?: unknown;
       userId?: unknown;
@@ -18816,11 +18826,23 @@ function createAgentWorkerRouteReadback(
 
   const requestedLayer = requestedLayerValue ?? controlPlane.supported_layers[0];
   const requestedMode = requestedModeValue ?? controlPlane.executable_run_modes[0];
+  const runnerSelection = selectAgentRunner({
+    mode: requestedMode,
+    requestedRunnerFamily: body.runner_family
+  });
 
-  if (!isRuntimeContractValue(requestedMode, controlPlane.executable_run_modes)) {
+  if (runnerSelection.status === "blocked") {
+    const message =
+      runnerSelection.route_reason === "blocked_invalid_runner_family"
+        ? "requested agent runner family is not registered"
+        : runnerSelection.route_reason === "blocked_runner_mode_incompatible"
+          ? "requested agent run mode is incompatible with the runner family"
+          : runnerSelection.route_reason === "blocked_runner_disabled"
+            ? "requested agent runner is disabled"
+            : "requested agent run mode requires a runner that is not enabled";
     throw new AgentWorkerRouteInputError(
-      "runner_required",
-      "requested agent run mode requires a runner that is not enabled"
+      runnerSelection.route_reason,
+      message
     );
   }
 
@@ -18828,10 +18850,16 @@ function createAgentWorkerRouteReadback(
     control_plane_contract_version: controlPlane.contract_version,
     requested_layer: requestedLayer,
     requested_mode: requestedMode,
+    requested_runner_family: runnerSelection.requested_runner_family,
     route_decision_owner: controlPlane.route_decision_owner,
-    route_reason: "selected",
+    route_reason: runnerSelection.route_reason,
+    runner_selection_contract_version:
+      runnerSelection.runner_selection_contract_version,
+    runner_selection_owner: runnerSelection.runner_selection_owner,
     selected_layer: requestedLayer,
-    selected_mode: requestedMode,
+    selected_mode: runnerSelection.selected_mode,
+    selected_runner_family: runnerSelection.selected_runner_family,
+    selected_runner_id: runnerSelection.selected_runner_id,
     worker_route_family: controlPlane.worker_route_family
   };
 }
@@ -18845,9 +18873,15 @@ function attachAgentWorkerRouteReadback<T extends object>(
     route_readback: routeReadback,
     requested_layer: routeReadback.requested_layer,
     requested_mode: routeReadback.requested_mode,
+    requested_runner_family: routeReadback.requested_runner_family,
     route_reason: routeReadback.route_reason,
+    runner_selection_contract_version:
+      routeReadback.runner_selection_contract_version,
+    runner_selection_owner: routeReadback.runner_selection_owner,
     selected_layer: routeReadback.selected_layer,
     selected_mode: routeReadback.selected_mode,
+    selected_runner_family: routeReadback.selected_runner_family,
+    selected_runner_id: routeReadback.selected_runner_id,
     control_plane_contract_version: routeReadback.control_plane_contract_version,
     route_decision_owner: routeReadback.route_decision_owner,
     worker_route_family: routeReadback.worker_route_family

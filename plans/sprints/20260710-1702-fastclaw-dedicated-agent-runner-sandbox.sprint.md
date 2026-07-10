@@ -1,9 +1,9 @@
 # Sprint: FastClaw Dedicated Agent Runner and Ephemeral Sandbox
 
-> **Status**: Approved
+> **Status**: Executing
 > **Slug**: fastclaw-dedicated-agent-runner-sandbox
 > **Created**: 2026-07-10 17:02 +0800
-> **Updated**: 2026-07-10 18:34 +0800
+> **Updated**: 2026-07-10 19:06
 > **Source PRD**: `plans/prds/20260710-1702-dual-agent-v3.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -117,7 +117,7 @@ rows never land.
 
 | # | Status | Task | Mode | Acceptance | Plan |
 |---|---|---|---|---|---|
-| 1 | [ ] | runner-selection-contract | contract | `npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts` passes with one Agent Runtime-owned registered runner-selection representation; product families are exactly edge and FastClaw; workflow and service are rejected as runner families; invalid/disabled/mode-incompatible selection fails before execution; Worker readback exposes requested/selected family, concrete runner ID, reason, and runtime owner without replacing `AgentRunMode` | (pending `$think`) |
+| 1 | [x] | runner-selection-contract | contract | `npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts` passes with one Agent Runtime-owned registered runner-selection representation; product families are exactly edge and FastClaw; workflow and service are rejected as runner families; invalid/disabled/mode-incompatible selection fails before execution; Worker readback exposes requested/selected family, concrete runner ID, reason, and runtime owner without replacing `AgentRunMode` | `plans/plan-20260710-1837-runner-selection-contract.md` |
 | 2 | [ ] | sandbox-backend-port | contract | Targeted Agent Runtime tests pass for a provider-neutral create/execute-output/write/read/destroy/kill contract; Generic cannot acquire sandbox capability; egress default-deny, 180s soft timeout, 600s hard timeout, kill, and idempotent destroy invariants are representable; no new sandbox package is added without a proven second implementation | (pending `$think`) |
 | 3 | [ ] | cloudflare-sandbox-adapter-spike | contract | Pinned official SDK and container image build; fixture/integration tests cover create, isolated run/session ownership, output streaming, read/write, destroy, provider errors, and version drift; the current official transport/session contract is recorded; no live-complete claim is made without credentialed readback | (pending `$think`) |
 | 4 | [ ] | scoped-tool-gateway-token-egress | contract | Security tests prove the sandbox receives no App DB, Netquity, broker, payment, provider, or other long-lived credentials; job token is tenant/run/tool scoped and expires; only approved Tool Gateway egress succeeds; arbitrary DNS/IP/URL and wrong/expired token fail closed before tool execution | (pending `$think`) |
@@ -145,3 +145,4 @@ rows here.
 
 | When | Task | Plan | Result |
 |---|---|---|---|
+| 2026-07-10 19:06 | runner-selection-contract | `plans/plan-20260710-1837-runner-selection-contract.md` | done |

@@ -8,6 +8,9 @@ import {
   AGENT_LAYERS,
   AGENT_LAYER_TOOL_POLICY_VERSION,
   AGENT_ROUTE_DECISIONS,
+  AGENT_RUNNER_FAMILIES,
+  AGENT_RUNNER_REGISTRY,
+  AGENT_RUNNER_SELECTION_VERSION,
   AGENT_RUN_MODES,
   AgentRuntimeInputError,
   EPHEMERAL_PUBLIC_OHLCV_TECHNICAL_ANALYSIS_POLICY,
@@ -49,6 +52,7 @@ import {
   getProductAgentReleaseGateCapabilities,
   getTaskReplayModeReleaseGateCapabilities,
   runAiGatewayLiveSmoke,
+  selectAgentRunner,
   UNSOURCED_NUMERIC_SAMPLING_VERSION,
   type AgentExecutionEvent,
   type AgentExecutionRequest,
@@ -57,6 +61,17 @@ import {
 } from "./index";
 
 const REGISTERED_TOOL_COUNT = REGISTERED_TOOLS.length;
+
+const mismatchedRunnerRegistration = {
+  family: "edge",
+  layer: "research",
+  runner_id: "fastclaw.personal-v0",
+  supported_modes: ["runner_remote"],
+  async *run() {}
+} as const;
+// @ts-expect-error AgentRunner identity and modes must come from one registry entry.
+const invalidRunnerRegistration: AgentRunner = mismatchedRunnerRegistration;
+void invalidRunnerRegistration;
 
 describe("agent runtime scaffold", () => {
   it("exposes AI SDK v7 dry-run capabilities without model calls", () => {
@@ -137,6 +152,14 @@ describe("agent runtime scaffold", () => {
       AGENT_EXECUTABLE_RUN_MODES
     );
     expect(capabilities.control_plane.route_decisions).toEqual(AGENT_ROUTE_DECISIONS);
+    expect(capabilities.control_plane.runner_selection).toEqual({
+      contract_version: AGENT_RUNNER_SELECTION_VERSION,
+      default_family: "edge",
+      dispatch_implemented: false,
+      registered_families: AGENT_RUNNER_FAMILIES,
+      registered_runners: AGENT_RUNNER_REGISTRY,
+      selection_owner: "agent_runtime"
+    });
     expect(capabilities.kill_switch).toMatchObject({
       actual_tool_execution: false,
       frontend: false,
@@ -576,9 +599,10 @@ describe("agent runtime scaffold", () => {
       visible_to_user: false
     };
     const runner: AgentRunner = {
+      family: "edge",
       layer: "research",
-      runner_id: "fixture-research-dry-runner",
-      supported_modes: AGENT_EXECUTABLE_RUN_MODES,
+      runner_id: "edge.worker-v0",
+      supported_modes: AGENT_RUNNER_REGISTRY[0].supported_modes,
       async *run(receivedRequest) {
         expect(receivedRequest).toBe(request);
         yield event;
@@ -593,8 +617,84 @@ describe("agent runtime scaffold", () => {
     expect(AGENT_LAYERS).toEqual(["generic", "research"]);
     expect(AGENT_RUN_MODES).toEqual(["dry_run", "guarded_live", "runner_remote"]);
     expect(AGENT_EXECUTION_EVENT_TYPES).toContain("run.blocked");
-    expect(runner.supported_modes).toEqual(["dry_run"]);
+    expect(runner.supported_modes).toEqual(["dry_run", "guarded_live"]);
     expect(events).toEqual([event]);
+  });
+
+  it("selects one registered runner family without replacing AgentRunMode", () => {
+    expect(AGENT_RUNNER_FAMILIES).toEqual(["edge", "fastclaw"]);
+    expect(AGENT_RUNNER_REGISTRY).toEqual([
+      {
+        enabled: true,
+        family: "edge",
+        runner_id: "edge.worker-v0",
+        supported_modes: ["dry_run", "guarded_live"]
+      },
+      {
+        enabled: false,
+        family: "fastclaw",
+        runner_id: "fastclaw.personal-v0",
+        supported_modes: ["runner_remote"]
+      }
+    ]);
+    expect(selectAgentRunner({ mode: "dry_run" })).toEqual({
+      requested_mode: "dry_run",
+      requested_runner_family: "edge",
+      route_reason: "selected",
+      runner_selection_contract_version: AGENT_RUNNER_SELECTION_VERSION,
+      runner_selection_owner: "agent_runtime",
+      selected_mode: "dry_run",
+      selected_runner_family: "edge",
+      selected_runner_id: "edge.worker-v0",
+      status: "selected"
+    });
+
+    for (const requestedRunnerFamily of ["workflow", "service", "unknown"]) {
+      expect(
+        selectAgentRunner({ mode: "dry_run", requestedRunnerFamily })
+      ).toMatchObject({
+        requested_runner_family: requestedRunnerFamily,
+        route_reason: "blocked_invalid_runner_family",
+        selected_runner_family: null,
+        selected_runner_id: null,
+        status: "blocked"
+      });
+    }
+    expect(
+      selectAgentRunner({ mode: "dry_run", requestedRunnerFamily: 42 })
+    ).toMatchObject({
+      requested_runner_family: null,
+      route_reason: "blocked_invalid_runner_family",
+      status: "blocked"
+    });
+
+    expect(
+      selectAgentRunner({ mode: "runner_remote", requestedRunnerFamily: "edge" })
+    ).toMatchObject({
+      route_reason: "blocked_runner_mode_incompatible",
+      selected_runner_family: null,
+      selected_runner_id: null,
+      status: "blocked"
+    });
+    expect(
+      selectAgentRunner({
+        mode: "runner_remote",
+        requestedRunnerFamily: "fastclaw"
+      })
+    ).toMatchObject({
+      route_reason: "blocked_runner_disabled",
+      selected_runner_family: null,
+      selected_runner_id: null,
+      status: "blocked"
+    });
+    expect(
+      selectAgentRunner({ mode: "guarded_live", requestedRunnerFamily: "edge" })
+    ).toMatchObject({
+      route_reason: "runner_required",
+      selected_runner_family: null,
+      selected_runner_id: null,
+      status: "blocked"
+    });
   });
 
   it("enforces layer tool policy for parse_chart_image before planning", () => {

@@ -7465,6 +7465,19 @@ interface AgentRouteReadbackControlPlaneBody {
   route_decision_owner: string;
   route_decisions: string[];
   runner_contract_ready: boolean;
+  runner_selection: {
+    contract_version: string;
+    default_family: string;
+    dispatch_implemented: boolean;
+    registered_families: string[];
+    registered_runners: Array<{
+      enabled: boolean;
+      family: string;
+      runner_id: string;
+      supported_modes: string[];
+    }>;
+    selection_owner: string;
+  };
   supported_layers: string[];
   supported_run_modes: string[];
   worker_route_family: string;
@@ -7474,20 +7487,30 @@ interface AgentRouteReadbackBody {
   control_plane_contract_version: string;
   requested_layer: string;
   requested_mode: string;
+  requested_runner_family: string;
   route_decision_owner: string;
   route_reason: string;
+  runner_selection_contract_version: string;
+  runner_selection_owner: string;
   route_readback: {
     control_plane_contract_version: string;
     requested_layer: string;
     requested_mode: string;
+    requested_runner_family: string;
     route_decision_owner: string;
     route_reason: string;
+    runner_selection_contract_version: string;
+    runner_selection_owner: string;
     selected_layer: string;
     selected_mode: string;
+    selected_runner_family: string;
+    selected_runner_id: string;
     worker_route_family: string;
   };
   selected_layer: string;
   selected_mode: string;
+  selected_runner_family: string;
+  selected_runner_id: string;
   worker_route_family: string;
 }
 
@@ -14024,9 +14047,33 @@ describe("worker runtime", () => {
         "blocked_invalid_layer",
         "blocked_invalid_mode",
         "blocked_policy_denied",
-        "runner_required"
+        "runner_required",
+        "blocked_invalid_runner_family",
+        "blocked_runner_disabled",
+        "blocked_runner_mode_incompatible"
       ],
       runner_contract_ready: true,
+      runner_selection: {
+        contract_version: "2026-07-10.agent-runner-selection.v0",
+        default_family: "edge",
+        dispatch_implemented: false,
+        registered_families: ["edge", "fastclaw"],
+        registered_runners: [
+          {
+            enabled: true,
+            family: "edge",
+            runner_id: "edge.worker-v0",
+            supported_modes: ["dry_run", "guarded_live"]
+          },
+          {
+            enabled: false,
+            family: "fastclaw",
+            runner_id: "fastclaw.personal-v0",
+            supported_modes: ["runner_remote"]
+          }
+        ],
+        selection_owner: "agent_runtime"
+      },
       supported_layers: ["generic", "research"],
       supported_run_modes: ["dry_run", "guarded_live", "runner_remote"],
       worker_route_family: "/agent/*"
@@ -22458,18 +22505,28 @@ describe("worker runtime", () => {
       control_plane_contract_version: "2026-07-03.agent-control-plane-convergence.v0",
       requested_layer: "generic",
       requested_mode: "dry_run",
+      requested_runner_family: "edge",
       route_decision_owner: "agent_runtime",
       route_reason: "selected",
+      runner_selection_contract_version: "2026-07-10.agent-runner-selection.v0",
+      runner_selection_owner: "agent_runtime",
       selected_layer: "generic",
       selected_mode: "dry_run",
+      selected_runner_family: "edge",
+      selected_runner_id: "edge.worker-v0",
       worker_route_family: "/agent/*"
     });
     expect(body.data.route_readback).toMatchObject({
       requested_layer: "generic",
       requested_mode: "dry_run",
+      requested_runner_family: "edge",
       route_reason: "selected",
+      runner_selection_contract_version: "2026-07-10.agent-runner-selection.v0",
+      runner_selection_owner: "agent_runtime",
       selected_layer: "generic",
-      selected_mode: "dry_run"
+      selected_mode: "dry_run",
+      selected_runner_family: "edge",
+      selected_runner_id: "edge.worker-v0"
     });
     expect(body.data.layer_tool_policy).toMatchObject({
       allowed_tools: ["resolve_security", "get_financial_facts"],
@@ -22732,18 +22789,28 @@ describe("worker runtime", () => {
       control_plane_contract_version: "2026-07-03.agent-control-plane-convergence.v0",
       requested_layer: "research",
       requested_mode: "dry_run",
+      requested_runner_family: "edge",
       route_decision_owner: "agent_runtime",
       route_reason: "selected",
+      runner_selection_contract_version: "2026-07-10.agent-runner-selection.v0",
+      runner_selection_owner: "agent_runtime",
       selected_layer: "research",
       selected_mode: "dry_run",
+      selected_runner_family: "edge",
+      selected_runner_id: "edge.worker-v0",
       worker_route_family: "/agent/*"
     });
     expect(body.data.route_readback).toMatchObject({
       requested_layer: "research",
       requested_mode: "dry_run",
+      requested_runner_family: "edge",
       route_reason: "selected",
+      runner_selection_contract_version: "2026-07-10.agent-runner-selection.v0",
+      runner_selection_owner: "agent_runtime",
       selected_layer: "research",
-      selected_mode: "dry_run"
+      selected_mode: "dry_run",
+      selected_runner_family: "edge",
+      selected_runner_id: "edge.worker-v0"
     });
     expect(body.data.max_parallel_tools).toBe(3);
     expect(body.data.planned_step_count).toBe(6);
@@ -23306,6 +23373,78 @@ describe("worker runtime", () => {
     expect(response.headers.get("x-aiphabee-route-reason")).toBe("runner_required");
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("SCOPE_DENIED");
+  });
+
+  it.each(["workflow", "service"])(
+    "rejects invalid %s runner family before Worker planning",
+    async (runnerFamily) => {
+      const response = await app.request("/agent/runs/plan", {
+        body: JSON.stringify({
+          agent_layer: "generic",
+          prompt: "Explain 00700.HK revenue trend",
+          run_mode: "dry_run",
+          runner_family: runnerFamily,
+          tools: ["resolve_security"]
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": `req-agent-invalid-${runnerFamily}-runner`
+        },
+        method: "POST"
+      });
+      const body = (await response.json()) as ErrorBody;
+
+      expect(response.status).toBe(400);
+      expect(response.headers.get("x-aiphabee-route-reason")).toBe(
+        "blocked_invalid_runner_family"
+      );
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe("SCOPE_DENIED");
+    }
+  );
+
+  it("rejects a mode-incompatible edge runner before Worker planning", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "generic",
+        prompt: "Explain 00700.HK revenue trend",
+        run_mode: "runner_remote",
+        runner_family: "edge",
+        tools: ["resolve_security"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-edge-mode-incompatible"
+      },
+      method: "POST"
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("x-aiphabee-route-reason")).toBe(
+      "blocked_runner_mode_incompatible"
+    );
+  });
+
+  it("rejects the disabled FastClaw runner before Worker planning", async () => {
+    const response = await app.request("/agent/runs/plan", {
+      body: JSON.stringify({
+        agent_layer: "research",
+        prompt: "Run personal analysis",
+        run_mode: "runner_remote",
+        runner_family: "fastclaw",
+        tools: ["resolve_security"]
+      }),
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req-agent-fastclaw-disabled"
+      },
+      method: "POST"
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("x-aiphabee-route-reason")).toBe(
+      "blocked_runner_disabled"
+    );
   });
 
   it("validates post-generation answer evidence binding over HTTP", async () => {
