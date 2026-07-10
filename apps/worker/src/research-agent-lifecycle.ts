@@ -281,14 +281,17 @@ export class ResearchAgentLifecycleService {
     } catch (error) {
       const code =
         error instanceof FastClawLifecycleError ? error.code : "RESEARCH_AGENT_LIFECYCLE_FAILED";
+      const outcome =
+        error instanceof FastClawLifecycleError && error.retryable
+          ? "retryable_failure"
+          : "internal_failure";
       const completed = await this.repository.finalizeFailure({
         errorCode: code,
         fastclawAgentId: claim.profile.fastclaw_agent_id,
         fastclawUserId: claim.profile.fastclaw_user_id,
         fromStatus: claim.previousStatus,
         intent: request.intent,
-        outcome:
-          error instanceof FastClawLifecycleError ? "retryable_failure" : "internal_failure",
+        outcome,
         profile: claim.profile,
         reason: request.reason,
         requestId: request.requestId
@@ -473,7 +476,6 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
         and (
           lease_owner_request_id is null
           or lease_expires_at <= now()
-          or lease_owner_request_id = $4
         )
       returning ${PROFILE_COLUMNS}`,
       [input.profileId, input.desiredState, input.pendingStatus, input.requestId, LIFECYCLE_LEASE_SECONDS]
@@ -491,13 +493,8 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
         last_request_id, last_error_code
       ) values ($1, $2, $3, $4, 'disabled', 'disabled', $5, $6)
       on conflict (workspace_id, account_id) do update set
-        desired_state = case when $7 = 'activate' then 'disabled' else profile.desired_state end,
-        lifecycle_status = case when $7 = 'activate' then 'disabled' else profile.lifecycle_status end,
-        lease_owner_request_id = case when $7 = 'activate' then null else profile.lease_owner_request_id end,
-        lease_expires_at = case when $7 = 'activate' then null else profile.lease_expires_at end,
         last_request_id = excluded.last_request_id,
         last_error_code = excluded.last_error_code,
-        disabled_at = case when $7 = 'activate' then now() else profile.disabled_at end,
         updated_at = now()`,
       [
         input.profileId,
@@ -505,8 +502,7 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
         input.accountId,
         input.externalIdentity,
         input.requestId,
-        input.errorCode,
-        input.intent
+        input.errorCode
       ]
     );
     const profile = await this.readProfile(input.profileId);
@@ -551,17 +547,26 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
   }
 
   async finalizeFailure(input: EventWriteInput) {
+    const failureStatus =
+      input.outcome === "retryable_failure"
+        ? "blocked_retryable"
+        : (input.fromStatus ?? "disabled");
     const result = await this.client.query<ProfileRow>(
       `update aiphabee_core.research_agent_profile
-      set lifecycle_status = 'blocked_retryable',
+      set lifecycle_status = $3,
           lease_owner_request_id = null,
           lease_expires_at = null,
-          last_error_code = $3,
+          last_error_code = $4,
           operation_version = operation_version + 1,
           updated_at = now()
       where profile_id = $1 and lease_owner_request_id = $2
       returning ${PROFILE_COLUMNS}`,
-      [input.profile.profile_id, input.requestId, input.errorCode ?? "RESEARCH_AGENT_LIFECYCLE_FAILED"]
+      [
+        input.profile.profile_id,
+        input.requestId,
+        failureStatus,
+        input.errorCode ?? "RESEARCH_AGENT_LIFECYCLE_FAILED"
+      ]
     );
     const profile = normalizeProfile(result.rows[0]);
     if (profile === undefined) throw new Error("research Agent failure finalization lost its lease");

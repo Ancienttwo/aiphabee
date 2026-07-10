@@ -73,13 +73,6 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
       profile_id: input.profileId,
       workspace_id: input.workspaceId
     };
-    if (input.intent === "activate") {
-      this.profile = {
-        ...this.profile,
-        desired_state: "disabled",
-        lifecycle_status: "disabled"
-      };
-    }
     const event = eventFrom(input, this.profile);
     this.audit.set(input.requestId, event);
     return event;
@@ -114,7 +107,13 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
 
   async finalizeFailure(input: Parameters<ResearchAgentLifecycleRepository["finalizeFailure"]>[0]) {
     if (this.profile === undefined) throw new Error("profile missing");
-    this.profile = { ...this.profile, lifecycle_status: "blocked_retryable" };
+    this.profile = {
+      ...this.profile,
+      lifecycle_status:
+        input.outcome === "retryable_failure"
+          ? "blocked_retryable"
+          : (input.fromStatus ?? "disabled")
+    };
     const event = eventFrom(input, this.profile);
     this.audit.set(input.requestId, event);
     return { event, profile: this.profile };
@@ -227,7 +226,7 @@ describe("ResearchAgentLifecycleService", () => {
     expect(remote.provisionUser).not.toHaveBeenCalled();
   });
 
-  it("locally disables an existing active profile when entitlement is revoked", async () => {
+  it("preserves an active profile on denied activation so an explicit disable still reconciles FastClaw", async () => {
     const repository = new MemoryRepository();
     repository.authority = { ...AUTHORIZED, activate_allowed: false, entitlement_approved: false };
     repository.profile = {
@@ -253,10 +252,18 @@ describe("ResearchAgentLifecycleService", () => {
     );
     expect(result).toMatchObject({
       error_code: "RESEARCH_AGENT_ENTITLEMENT_DENIED",
-      lifecycle_status: "disabled",
+      lifecycle_status: "active",
       outcome: "denied"
     });
-    expect(repository.profile?.lifecycle_status).toBe("disabled");
+    expect(repository.profile?.lifecycle_status).toBe("active");
+    expect(remote.setUserStatus).not.toHaveBeenCalled();
+
+    await expect(
+      new ResearchAgentLifecycleService({ remote, repository }).execute(
+        request("disable", "req-disable-after-denied-activate")
+      )
+    ).resolves.toMatchObject({ lifecycle_status: "disabled", outcome: "succeeded" });
+    expect(remote.setUserStatus).toHaveBeenCalledWith("u_dedicated", "disabled");
   });
 
   it("blocks locally before disabling the remote app-user", async () => {
@@ -309,6 +316,28 @@ describe("ResearchAgentLifecycleService", () => {
       lifecycle_status: "blocked_retryable",
       outcome: "retryable_failure",
       retryable: true
+    });
+  });
+
+  it("does not advertise retry for a non-retryable FastClaw failure", async () => {
+    const repository = new MemoryRepository();
+    const remote = {
+      provisionAgent: vi.fn(),
+      provisionUser: vi.fn(async () => {
+        throw new FastClawLifecycleError("FASTCLAW_AUTH_REJECTED", "rejected", false);
+      }),
+      removeUser: vi.fn(),
+      setUserStatus: vi.fn()
+    };
+
+    const result = await new ResearchAgentLifecycleService({ remote, repository }).execute(
+      request("activate", "req-non-retryable")
+    );
+    expect(result).toMatchObject({
+      error_code: "FASTCLAW_AUTH_REJECTED",
+      lifecycle_status: "disabled",
+      outcome: "internal_failure",
+      retryable: false
     });
   });
 

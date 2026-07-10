@@ -85,6 +85,47 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     expect(provisionUser).toHaveBeenCalledOnce();
     expect(provisionAgent).toHaveBeenCalledOnce();
 
+    await client.query(
+      "update platform.workspace_entitlement set status = 'revoked' where workspace_id = 'workspace-test'"
+    );
+    await expect(
+      service.execute({
+        ...activate,
+        requestId: "req-activate-denied"
+      })
+    ).resolves.toMatchObject({
+      error_code: "RESEARCH_AGENT_ENTITLEMENT_DENIED",
+      lifecycle_status: "active",
+      outcome: "denied"
+    });
+    const profileAfterDeniedActivate = await client.query<{ lifecycle_status: string }>(
+      "select lifecycle_status from aiphabee_core.research_agent_profile"
+    );
+    expect(profileAfterDeniedActivate.rows[0]?.lifecycle_status).toBe("active");
+    const activeProfile = await client.query<{ external_identity: string; profile_id: string }>(
+      "select external_identity, profile_id from aiphabee_core.research_agent_profile"
+    );
+    if (activeProfile.rows[0] === undefined) throw new Error("active profile missing");
+
+    const duplicateClaimInput = {
+      accountId: "account-test",
+      desiredState: "disabled" as const,
+      externalIdentity: activeProfile.rows[0].external_identity,
+      intent: "disable" as const,
+      pendingStatus: "disable_pending" as const,
+      profileId: activeProfile.rows[0].profile_id,
+      requestId: "req-duplicate-claim",
+      workspaceId: "workspace-test"
+    };
+    await expect(repository.claim(duplicateClaimInput)).resolves.toMatchObject({ kind: "claimed" });
+    await expect(repository.claim(duplicateClaimInput)).resolves.toEqual({ kind: "busy" });
+    await client.query(
+      `update aiphabee_core.research_agent_profile
+       set lifecycle_status = 'active', desired_state = 'active',
+           lease_owner_request_id = null, lease_expires_at = null
+       where workspace_id = 'workspace-test' and account_id = 'account-test'`
+    );
+
     await client.query("grant usage on schema platform to aiphabee_runtime_rls");
     await client.query(
       "grant execute on function platform.current_account_id(), platform.is_workspace_member(text) to aiphabee_runtime_rls"
@@ -158,7 +199,7 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     const audit = await client.query<{ count: string }>(
       "select count(*)::text as count from aiphabee_audit.research_agent_lifecycle_event"
     );
-    expect(audit.rows[0]?.count).toBe("3");
+    expect(audit.rows[0]?.count).toBe("4");
   });
 });
 
