@@ -3,7 +3,7 @@
 > **Status**: Done
 > **Slug**: agent-control-plane-convergence
 > **Created**: 2026-07-03 20:42 +0800
-> **Updated**: 2026-07-09 22:53 +0800
+> **Updated**: 2026-07-10 02:05 +0800
 > **Source PRD**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -90,6 +90,36 @@ execution for small tasks. Every row needs a concrete acceptance line.
 | 2 | [x] | Layer tool policy + parse_chart_image research-only gate | contract | Generic policy blocks `parse_chart_image`; Research policy allows it only with technical-analysis entitlement + tenant context; unknown tools default deny; `npx vitest run packages/agent-runtime/src/parse-chart-image` stays green | (pre-satisfied — see Execution Log 2026-07-09) |
 | 3 | [x] | Worker route decision readback | contract | Worker `/agent/*` route plan/dry-run response includes `requested_layer`, `selected_layer`, and `route_reason`; route decision is runtime-owned; `npx vitest run apps/worker/src/index.test.ts` passes | (pre-satisfied — see Execution Log 2026-07-09) |
 | 4 | [x] | Research chart evidence boundary handoff | contract | Chart parse outcome exposes evidence candidate/data-status handoff fields without exposing pixels/raw bytes; wrong tenant, inactive ref, no ready calibration, version mismatch, and insufficient sample count remain non-`auto_match`; `npm run check:answer-evidence-contract` and targeted vitest pass | plans/plan-20260709-1743-research-chart-evidence-handoff.md |
+
+## 2026-07-10 Completion Audit And Follow-on Boundary
+
+This sprint is genuinely complete at **4/4**. A fresh readback on 2026-07-10
+verified `99/99` targeted `agent-runtime`/`parse-chart-image` tests, `252/252`
+Worker tests, and `check:answer-evidence-contract=ok`. The forbidden parallel
+authority roots remain absent: `packages/agent-contracts`,
+`packages/agent-generic`, and `apps/api-worker`.
+
+The following work is **not** missing from this sprint; it was an explicit
+non-goal and needs a new executable sprint:
+
+- Provision one dedicated FastClaw Agent identity/profile for each entitled
+  paid user. AiphaBee owns the user-to-agent mapping, entitlement, billing,
+  audit, disable, and delete lifecycle. Provisioning failure is fail-closed and
+  retryable; it must not silently fall back to a shared Agent.
+- Implement FastClaw as an `AgentRunner` behind
+  `AgentRunner.run(request): AsyncIterable<AgentExecutionEvent>`.
+- Implement a thin `SandboxBackend` below FastClaw. The sandbox is ephemeral
+  per run/session; it is not the durable per-user Agent identity or memory
+  authority.
+- Use Cloudflare Sandbox SDK as the production-primary backend. The alternative
+  named "Cloudbank" in discussion is recorded as **Sandbank Cloud**; the
+  unrelated `cloudbank.org` research-cloud broker is not a sandbox provider.
+  Current official pricing and workload estimates are maintained in
+  `docs/researches/20260709-fastclaw-sandbox-backend-selection.md`.
+
+No `packages/agent-fastclaw`, `packages/sandbox-runtime`, `SandboxBackend`, or
+live FastClaw adapter exists in the current tree, so no FastClaw deployment or
+sandbox-cost-at-runtime claim is complete yet.
 
 ## Execution Log
 
