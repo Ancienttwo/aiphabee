@@ -94,6 +94,28 @@ function validateContract(value) {
       errors.push(`bindings[${index}].provisioned must be boolean`);
     }
 
+    if (binding.provisioned_environments !== undefined) {
+      if (!isRecord(binding.provisioned_environments)) {
+        errors.push(`bindings[${index}].provisioned_environments must be an object`);
+      } else {
+        for (const environment of ["staging", "production"]) {
+          if (typeof binding.provisioned_environments[environment] !== "boolean") {
+            errors.push(
+              `bindings[${index}].provisioned_environments.${environment} must be boolean`
+            );
+          }
+        }
+        if (
+          binding.provisioned !==
+          Object.values(binding.provisioned_environments).every((value) => value === true)
+        ) {
+          errors.push(
+            `bindings[${index}].provisioned must be true only when every environment is provisioned`
+          );
+        }
+      }
+    }
+
     if (typeof binding.name === "string") {
       if (seenNames.has(binding.name)) {
         errors.push(`bindings[${index}].name is duplicated`);

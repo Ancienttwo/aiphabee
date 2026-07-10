@@ -56,6 +56,7 @@
     "check:announcement-diff-extraction": "node scripts/check-announcement-diff-extraction-contract.mjs",
     "check:authorized-session-memory": "node scripts/check-authorized-session-memory-contract.mjs",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
+    "check:fastclaw-aiphabee-staging": "node scripts/check-fastclaw-aiphabee-staging-contract.mjs",
     "check:budget-stop-policy": "node scripts/check-budget-stop-policy-contract.mjs",
     "check:chart-golden-set": "bash packages/chart-golden-set/scripts/check-golden-set.sh",
     "check:chart-parse-eval": "bash packages/chart-parse-eval/scripts/check-eval.sh",
