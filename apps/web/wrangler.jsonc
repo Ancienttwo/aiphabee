@@ -30,6 +30,13 @@
           "binding": "AIPHABEE_AUTH_HYPERDRIVE",
           "id": "4a105c35ab2a42f3aec810a2db775eda"
         }
+      ],
+      "services": [
+        {
+          "binding": "AIPHABEE_API",
+          "service": "aiphabee-worker-staging",
+          "entrypoint": "AuthenticatedNetquityResolver"
+        }
       ]
     }
   }

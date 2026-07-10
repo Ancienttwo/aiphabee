@@ -288,6 +288,18 @@ export async function handleAuthenticatedWebIdentityRequest(
   }
 }
 
+export async function getAuthenticatedWebIdentitySession(
+  bindings: AuthenticatedWebIdentityBindings,
+  headers: Headers,
+) {
+  const runtime = createAuthenticatedWebIdentityRuntime(bindings);
+  try {
+    return await runtime.auth.api.getSession({ headers });
+  } finally {
+    await runtime.close();
+  }
+}
+
 function normalizeSecureBaseUrl(value: string | undefined): string {
   if (!value) {
     throw new AuthConfigurationError("AUTH_ORIGIN_INVALID");

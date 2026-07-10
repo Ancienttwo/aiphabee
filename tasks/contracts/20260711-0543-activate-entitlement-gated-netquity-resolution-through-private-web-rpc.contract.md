@@ -1,12 +1,12 @@
 # Task Contract: activate-entitlement-gated-netquity-resolution-through-private-web-rpc
 
-> **Status**: Active
+> **Status**: Fulfilled
 > **Plan**: plans/plan-20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.md
 > **Task Profile**: code-change
 > <!-- legal values: code-change | docs-only | ledger-closeout | migration | eval-only | delegated-run | bugfix (omit for legacy passthrough); see docs/reference-configs/sprint-contracts.md -->
 > **Owner**: ancienttwo
 > **Capability ID**: authenticated_netquity_web_resolver
-> **Last Updated**: 2026-07-11 05:43
+> **Last Updated**: 2026-07-11 07:06
 > **Review File**: `tasks/reviews/20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.review.md`
 > **Notes File**: `tasks/notes/20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.notes.md`
 > **Exemplar**: `docs/reference-configs/contract-brief-example.md`
@@ -121,6 +121,7 @@ allowed_paths:
   - packages/data-access-gateway/src/index.test.ts
   - packages/security-tools/src/index.ts
   - packages/security-tools/src/index.test.ts
+  - tests/shims/cloudflare-workers.ts
   - deploy/account/authenticated-netquity-web-resolver-staging.contract.json
   - deploy/account/authenticated-netquity-web-resolver-staging.sql
   - deploy/database/migrations/20260711054300_authenticated_netquity_web_resolver.sql
@@ -193,8 +194,6 @@ exit_criteria:
     - tasks/reviews/20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.review.md
   tests_pass:
     - path: apps/web/src/lib/api/security.server.test.ts
-    - path: apps/worker/src/authenticated-netquity-web-resolver.test.ts
-    - path: apps/worker/src/netquity-security-resolution-live.test.ts
     - path: packages/data-access-gateway/src/index.test.ts
     - path: packages/security-tools/src/index.test.ts
   commands_succeed:

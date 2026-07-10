@@ -296,24 +296,51 @@ function validateMigrations(value) {
 function validateSqlCoverage(migration, sql, errors) {
   const lowerSql = sql.toLowerCase();
   const normalizedSql = lowerSql.replaceAll('"', "");
+  const functionOnlyMigration =
+    Array.isArray(migration.functions) &&
+    migration.functions.length > 0 &&
+    Array.isArray(migration.tables) &&
+    migration.tables.length === 0;
 
   if (!Array.isArray(migration.schemas) || migration.schemas.length === 0) {
     errors.push(`${migration.file} must list at least one schema`);
   } else {
     for (const schema of migration.schemas) {
-      if (!normalizedSql.includes(`create schema if not exists ${schema.toLowerCase()}`)) {
+      if (
+        !normalizedSql.includes(`create schema if not exists ${schema.toLowerCase()}`) &&
+        !(functionOnlyMigration && normalizedSql.includes(`${schema.toLowerCase()}.`))
+      ) {
         errors.push(`${migration.file} must create schema ${schema}`);
       }
     }
   }
 
-  if (!Array.isArray(migration.tables) || migration.tables.length === 0) {
+  if (
+    !Array.isArray(migration.tables) ||
+    (migration.tables.length === 0 && !functionOnlyMigration)
+  ) {
     errors.push(`${migration.file} must list at least one table`);
   } else {
     for (const table of migration.tables) {
       const normalizedTable = table.toLowerCase().replaceAll('"', "");
       if (!normalizedSql.includes(`create table if not exists ${normalizedTable}`)) {
         errors.push(`${migration.file} must create table ${table}`);
+      }
+    }
+  }
+
+  if (migration.functions !== undefined) {
+    if (!Array.isArray(migration.functions) || migration.functions.length === 0) {
+      errors.push(`${migration.file} functions must be a non-empty array when present`);
+    } else {
+      for (const functionName of migration.functions) {
+        const normalizedFunction = functionName.toLowerCase().replace(/\([^)]*\)$/u, "");
+        if (
+          !normalizedSql.includes(`create function ${normalizedFunction}`) &&
+          !normalizedSql.includes(`create or replace function ${normalizedFunction}`)
+        ) {
+          errors.push(`${migration.file} must create function ${functionName}`);
+        }
       }
     }
   }

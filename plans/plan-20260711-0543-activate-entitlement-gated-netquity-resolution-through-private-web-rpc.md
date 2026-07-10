@@ -1,6 +1,6 @@
 # Plan: Activate Entitlement-Gated Netquity Resolution Through Private Web RPC
 
-> **Status**: Executing
+> **Status**: Completed
 > **Created**: 20260711-0543
 > **Slug**: activate-entitlement-gated-netquity-resolution-through-private-web-rpc
 > **Planning Source**: waza-think
@@ -268,26 +268,26 @@ admin workflow; the packet never guesses by email or row order.
 
 ## Task Breakdown
 
-- [ ] Add failing contract/fixture tests for the named RPC, session-only Web input,
+- [x] Add failing contract/fixture tests for the named RPC, session-only Web input,
   RLS account lookup, exact field rights, public-route isolation, and staging
   binding/deploy invariants.
-- [ ] Add the convergent subject-lookup migration, narrow runtime role packet,
+- [x] Add the convergent subject-lookup migration, narrow runtime role packet,
   and initial invited staging provisioning packet with rollback/readback SQL.
-- [ ] Implement the Worker private RPC identity/workspace/subscription/rights
+- [x] Implement the Worker private RPC identity/workspace/subscription/rights
   loader and share the existing released Netquity query without a synthetic
   fallback.
-- [ ] Implement the TanStack authenticated server function and switch the stock
+- [x] Implement the TanStack authenticated server function and switch the stock
   search client to it without exposing auth subject or workspace input.
-- [ ] Add unit/integration tests for unauthenticated, unmapped, inactive or
+- [x] Add unit/integration tests for unauthenticated, unmapped, inactive or
   expired membership/subscription, no-rights, blocked-field, ambiguous
   workspace, missing binding, code/English/Traditional/Simplified success, and
   public HTTP isolation.
-- [ ] Apply migration/role/provisioning to staging, deploy the API Worker then Web
+- [x] Apply migration/role/provisioning to staging, deploy the API Worker then Web
   staging binding, and prove exact deployment/binding/privilege readback.
-- [ ] Run live Web/RPC acceptance for success and negative fixtures, delete all
+- [x] Run live Web/RPC acceptance for success and negative fixtures, delete all
   temporary acceptance Workers/rows, and prove public HTTP and production
   deployments unchanged.
-- [ ] Run independent architecture/security review, strict contract and sprint
+- [x] Run independent architecture/security review, strict contract and sprint
   verification, then open a stacked Row 2 pull request targeting Row 1.
 
 ## Verification Boundary
@@ -349,11 +349,11 @@ admin workflow; the packet never guesses by email or row order.
 <!-- [NOTE]: prefixed inline. Claude processes all and revises. -->
 
 ## Task Breakdown
-- [ ] Add failing contract/fixture tests for the named RPC, session-only Web input,
-- [ ] Add the convergent subject-lookup migration, narrow runtime role packet,
-- [ ] Implement the Worker private RPC identity/workspace/subscription/rights
-- [ ] Implement the TanStack authenticated server function and switch the stock
-- [ ] Add unit/integration tests for unauthenticated, unmapped, inactive or
-- [ ] Apply migration/role/provisioning to staging, deploy the API Worker then Web
-- [ ] Run live Web/RPC acceptance for success and negative fixtures, delete all
-- [ ] Run independent architecture/security review, strict contract and sprint
+- [x] Add failing contract/fixture tests for the named RPC, session-only Web input,
+- [x] Add the convergent subject-lookup migration, narrow runtime role packet,
+- [x] Implement the Worker private RPC identity/workspace/subscription/rights
+- [x] Implement the TanStack authenticated server function and switch the stock
+- [x] Add unit/integration tests for unauthenticated, unmapped, inactive or
+- [x] Apply migration/role/provisioning to staging, deploy the API Worker then Web
+- [x] Run live Web/RPC acceptance for success and negative fixtures, delete all
+- [x] Run independent architecture/security review, strict contract and sprint

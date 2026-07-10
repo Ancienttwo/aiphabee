@@ -1,4 +1,9 @@
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+import {
+  WorkerEntrypoint,
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep,
+} from "cloudflare:workers";
 import { timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { Client } from "pg";
@@ -101,6 +106,12 @@ import {
   parseResearchAgentLifecycleRequest,
   runResearchAgentLifecycle
 } from "./research-agent-lifecycle.js";
+import {
+  resolveAuthenticatedNetquitySecurity,
+  resolveReleasedNetquitySecurity,
+  NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+  type AuthenticatedNetquityResolverInput,
+} from "./authenticated-netquity-web-resolver.js";
 import {
   calculateReturnsRisk,
   comparePercentiles,
@@ -362,17 +373,13 @@ import {
   GetSecurityProfileInputError,
   GetSecurityHistoryInputError,
   RESOLVE_SECURITY_LIVE_VERSION,
-  ResolveLiveSecurityReadbackError,
   ResolveSecurityInputError,
   getSecurityHistory,
   getSecurityHistoryCapabilities,
   getSecurityProfile,
   getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
-  normalizeExactSecurityLookup,
-  resolveLiveSecurityRows,
-  resolveSecurity,
-  type ResolveLiveSecurityRow
+  resolveSecurity
 } from "@aiphabee/security-tools";
 import { REGISTERED_TOOLS, getToolRegistryCapabilities } from "@aiphabee/tool-registry";
 import {
@@ -509,12 +516,6 @@ interface RuntimeQueue {
 
 interface RuntimeHyperdrive {
   connectionString?: string;
-}
-
-interface NetquitySecuritySnapshotRow {
-  as_of: Date | string;
-  data_version: string;
-  serving_snapshot_id: string;
 }
 
 interface RuntimeFetcher {
@@ -1502,48 +1503,6 @@ const NETQUITY_SECURITY_RESOLUTION_LIVE_ROUTE = "/tools/resolve-security/live-sm
 const NETQUITY_SECURITY_RESOLUTION_SMOKE_HEADER_VALUE =
   "netquity-security-resolution-v1";
 const NETQUITY_SECURITY_RESOLUTION_MAX_INPUT_BYTES = 512;
-const NETQUITY_SECURITY_SNAPSHOT_QUERY = `
-  SELECT
-    snapshot.serving_snapshot_id,
-    snapshot.data_version,
-    snapshot.as_of
-  FROM aiphabee_core.serving_dataset dataset
-  JOIN aiphabee_core.serving_snapshot snapshot
-    ON snapshot.serving_dataset_id = dataset.serving_dataset_id
-  JOIN aiphabee_core.data_version_batch version
-    ON version.data_version = snapshot.data_version
-  WHERE dataset.dataset = 'security_master'
-    AND snapshot.release_state = 'released'
-    AND version.release_state = 'released'
-  ORDER BY snapshot.as_of DESC, snapshot.created_at DESC
-  LIMIT 1
-`;
-const NETQUITY_SECURITY_CANDIDATE_QUERY = `
-  SELECT
-    record.entity_id,
-    record.source_record_id,
-    snapshot.data_version,
-    record.payload,
-    matched_alias.reason AS match_reason
-  FROM aiphabee_core.serving_record record
-  JOIN aiphabee_core.serving_snapshot snapshot
-    ON snapshot.serving_snapshot_id = record.serving_snapshot_id
-  CROSS JOIN LATERAL (
-    SELECT alias.value ->> 'reason' AS reason
-    FROM jsonb_array_elements(record.payload -> 'aliases') AS alias(value)
-    WHERE alias.value ->> 'value' = $2
-    ORDER BY alias.value ->> 'reason'
-    LIMIT 1
-  ) matched_alias
-  WHERE record.serving_snapshot_id = $1
-    AND record.entity_type = 'instrument'
-    AND record.quality_state = 'PASS'
-    AND (record.payload -> 'aliases') @>
-      jsonb_build_array(jsonb_build_object('value', $2::text))
-    AND ($3::text IS NULL OR record.payload ->> 'market' = $3)
-  ORDER BY record.entity_id ASC
-  LIMIT 26
-`;
 const CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE =
   "/cloudflare/hyperdrive/platform-rls-fixture-smoke";
 const CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE =
@@ -11259,94 +11218,15 @@ app.post(NETQUITY_SECURITY_RESOLUTION_LIVE_ROUTE, async (c) => {
 
   try {
     await client.connect();
-    const snapshotResult = await client.query<NetquitySecuritySnapshotRow>(
-      NETQUITY_SECURITY_SNAPSHOT_QUERY
-    );
-    const snapshot = snapshotResult.rows[0];
-
-    if (snapshot === undefined) {
-      return c.json(
-        createErrorEnvelope("DATA_QUALITY_HOLD", "no released security_master snapshot is available", {
-          asOf: responseAsOf,
-          methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
-          requestId
-        }),
-        409
-      );
-    }
-
-    const snapshotAsOf = normalizeLiveSnapshotAsOf(snapshot.as_of);
-    const normalizedQuery = normalizeExactSecurityLookup(query);
-    const candidatesResult = await client.query<ResolveLiveSecurityRow>(
-      NETQUITY_SECURITY_CANDIDATE_QUERY,
-      [snapshot.serving_snapshot_id, normalizedQuery, market ?? null]
-    );
-
-    if (candidatesResult.rows.length > 25) {
-      return c.json(
-        createErrorEnvelope("TOO_MANY_ROWS", "exact security lookup exceeded 25 candidates", {
-          asOf: snapshotAsOf,
-          dataVersion: snapshot.data_version,
-          methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
-          requestId,
-          usage: {
-            cached: false,
-            credits: 0,
-            rows: candidatesResult.rows.length
-          }
-        }),
-        409
-      );
-    }
-
-    const result = resolveLiveSecurityRows(
-      {
-        asOf: snapshotAsOf,
-        dataVersion: snapshot.data_version,
-        market,
-        query
-      },
-      candidatesResult.rows
-    );
-
-    if (result.status === "not_found") {
-      return c.json(
-        createErrorEnvelope("NOT_FOUND", "exact security alias was not found", {
-          asOf: result.asOf,
-          dataVersion: result.dataVersion,
-          methodologyVersion: result.methodologyVersion,
-          requestId,
-          usage: result.usage
-        }),
-        404
-      );
-    }
-
-    return c.json(
-      createSuccessEnvelope(result, {
-        asOf: result.asOf,
-        dataVersion: result.dataVersion,
-        methodologyVersion: result.methodologyVersion,
-        provenance: result.provenance,
-        requestId,
-        usage: result.usage
-      })
-    );
-  } catch (error) {
-    if (
-      error instanceof ResolveLiveSecurityReadbackError &&
-      error.code === "CANDIDATE_LIMIT_EXCEEDED"
-    ) {
-      return c.json(
-        createErrorEnvelope("TOO_MANY_ROWS", error.message, {
-          asOf: responseAsOf,
-          methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
-          requestId
-        }),
-        409
-      );
-    }
-
+    const result = await resolveReleasedNetquitySecurity(client, {
+      market,
+      query,
+      requestId,
+      responseAsOf,
+      rightsPolicyVersion: NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+    });
+    return c.json(result.envelope, result.status);
+  } catch {
     return c.json(
       createErrorEnvelope("INTERNAL_ERROR", "released security Serving read failed", {
         asOf: responseAsOf,
@@ -12814,6 +12694,14 @@ export class AiphaBeeRunCoordinator {
   }
 }
 
+export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindings> {
+  async resolveSecurity(
+    input: AuthenticatedNetquityResolverInput,
+  ) {
+    return resolveAuthenticatedNetquitySecurity(this.env, input);
+  }
+}
+
 export class AiphaBeeResearchWorkflow extends WorkflowEntrypoint<
   WorkerBindings,
   CloudflareWorkflowSmokePayload
@@ -13542,19 +13430,6 @@ async function hasValidNetquitySecuritySmokeAuthorization(
     hasBearerScheme &&
     timingSafeEqual(new Uint8Array(expectedDigest), new Uint8Array(suppliedDigest))
   );
-}
-
-function normalizeLiveSnapshotAsOf(value: Date | string): string {
-  const parsed = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    throw new ResolveLiveSecurityReadbackError(
-      "MALFORMED_LIVE_ROW",
-      "released snapshot as-of is malformed"
-    );
-  }
-
-  return parsed.toISOString();
 }
 
 function getRuntimeHyperdriveConnectionString(env: WorkerBindings): string | undefined {

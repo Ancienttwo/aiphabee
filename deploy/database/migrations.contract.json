@@ -1491,6 +1491,25 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260711054300_authenticated_netquity_web_resolver.sql",
+      "purpose": "Add the locked canonical-subject account resolver and runtime indexes required for private RLS-gated Web security resolution without creating a public or raw-data path.",
+      "schemas": [
+        "platform",
+        "aiphabee_governance"
+      ],
+      "tables": [],
+      "functions": [
+        "platform.resolve_active_account_id_by_auth_subject(text)"
+      ],
+      "indexes": [
+        "data_entitlement_web_dataset_status_field_idx",
+        "governance_workspace_entitlement_runtime_idx",
+        "workspace_subscription_runtime_authority_idx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -1,0 +1,163 @@
+{
+  "version": "2026-07-11.authenticated-netquity-web-resolver-staging.v1",
+  "status": "live_passed",
+  "environment": "staging",
+  "web_worker": "aiphabee-web-staging",
+  "api_worker": "aiphabee-worker-staging",
+  "rpc": {
+    "binding": "AIPHABEE_API",
+    "entrypoint": "AuthenticatedNetquityResolver",
+    "method": "resolveSecurity",
+    "public_http_exposed": false,
+    "await_required": true
+  },
+  "web": {
+    "transport": "tanstack_createServerFn_post",
+    "session_authority": "better_auth_database_session",
+    "canonical_subject_prefix": "better-auth:",
+    "allowed_input_fields": ["market", "query"],
+    "forbidden_input_fields": ["accountId", "authSubject", "email", "workspaceId"],
+    "cache_control": "no-store",
+    "vary": "Cookie"
+  },
+  "database": {
+    "binding": "AIPHABEE_HYPERDRIVE",
+    "runtime_role": "aiphabee_runtime_rls",
+    "subject_function": "platform.resolve_active_account_id_by_auth_subject(text)",
+    "subject_function_security_definer": true,
+    "subject_function_public_execute": false,
+    "migration": "deploy/database/migrations/20260711054300_authenticated_netquity_web_resolver.sql",
+    "role_policy": "deploy/database/roles/authenticated-netquity-web-resolver-staging.sql",
+    "provisioning": "deploy/account/authenticated-netquity-web-resolver-staging.sql",
+    "exact_verified_auth_user_count": 1,
+    "required_tables": [
+      "aiphabee_governance.data_entitlement",
+      "aiphabee_governance.workspace_entitlement",
+      "platform.account",
+      "platform.entitlement_policy",
+      "platform.product",
+      "platform.subscription_plan",
+      "platform.workspace",
+      "platform.workspace_membership",
+      "platform.workspace_product_access",
+      "platform.workspace_subscription"
+    ],
+    "writes_by_runtime": false,
+    "raw_netquity_access": false,
+    "better_auth_schema_access_by_api_runtime": false
+  },
+  "authorization": {
+    "account_status": "active",
+    "workspace_status": "active",
+    "membership_status": "active",
+    "subscription_billing_state": "active",
+    "product_status": "active",
+    "product_access_status": "active",
+    "entitlement_policy_status": "active",
+    "entitled_workspace_cardinality": 1,
+    "channel": "web",
+    "dataset": "security_master",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "default_rights_status": "default_deny",
+    "requested_fields": [
+      "security_master.currency",
+      "security_master.exchange",
+      "security_master.instrument_id",
+      "security_master.listing_id",
+      "security_master.market",
+      "security_master.match_reason",
+      "security_master.name.en",
+      "security_master.name.zh_hans",
+      "security_master.name.zh_hant",
+      "security_master.status",
+      "security_master.symbol",
+      "security_master.valid_from",
+      "security_master.valid_to"
+    ],
+    "partial_candidate_allowed": false,
+    "api_rights_approved": false,
+    "mcp_rights_approved": false,
+    "export_rights_approved": false
+  },
+  "serving": {
+    "release_state": "released",
+    "quality_state": "PASS",
+    "exact_alias_only": true,
+    "max_candidates": 25,
+    "synthetic_fallback": false,
+    "raw_table_reads": false,
+    "shared_operator_route": "/tools/resolve-security/live-smoke"
+  },
+  "public_http": {
+    "route": "/tools/resolve-security",
+    "remains_synthetic": true,
+    "private_identity_headers_accepted": false,
+    "named_rpc_route_exists": false
+  },
+  "live_acceptance": {
+    "status": "passed",
+    "observed_at": "2026-07-10T23:19:40.495Z",
+    "required_success_queries": [
+      "code",
+      "english_name",
+      "traditional_chinese_name",
+      "simplified_chinese_name"
+    ],
+    "required_denials": [
+      "unauthenticated",
+      "invalid_session",
+      "unmapped_account",
+      "no_membership",
+      "inactive_or_expired_subscription",
+      "no_rights",
+      "blocked_field",
+      "ambiguous_workspace",
+      "missing_binding"
+    ],
+    "temporary_fixture_cleanup_required": true,
+    "evidence_policy": "hash_status_count_only",
+    "database_readback": {
+      "function_count": 1,
+      "mapped_account_count": 1,
+      "approved_web_field_count": 13,
+      "non_web_approved_count": 0,
+      "runtime_execute": true,
+      "auth_schema_usage": false
+    },
+    "api_deployment": {
+      "deployment_id": "db4e9458-2008-439b-8edd-955ab057a57e",
+      "version_id": "dc29656e-0310-4879-8ccb-81057dde58d6"
+    },
+    "web_deployment": {
+      "deployment_id": "9f0e7e85-950d-4afb-beb1-abaf1674b222",
+      "version_id": "102464b3-446b-4dd5-8b45-d69df3b5bbb5"
+    },
+    "authenticated_web_session_readback": true,
+    "authenticated_web_stock_search_navigated": true,
+    "unauthenticated_web_server_fn_status": 401,
+    "better_auth_secret_synced_after_final_deploy": true,
+    "alias_index_readback": {
+      "name": "serving_record_security_aliases_gin_idx",
+      "index_used": true,
+      "execution_time_ms": 0.766
+    },
+    "live_success_count": 4,
+    "live_denial_count": 7,
+    "temporary_fixture_count_after_cleanup": 0,
+    "temporary_session_count_after_cleanup": 0,
+    "temporary_workers_absent": true,
+    "missing_binding_covered_by_deterministic_web_boundary_test": true
+  },
+  "production": {
+    "deployment_allowed": false,
+    "web_worker": "aiphabee-web",
+    "web_worker_must_remain_absent": true,
+    "api_worker": "aiphabee-worker",
+    "expected_api_worker_version": "0ab3f7d0-517e-4fa3-91b7-1ccc92e90a88",
+    "version_must_remain_unchanged": true
+  },
+  "checker": "scripts/check-authenticated-netquity-web-resolver-contract.mjs",
+  "fixture_checker": "scripts/check-authenticated-netquity-web-resolver-fixtures.mjs",
+  "smoke": "scripts/smoke-authenticated-netquity-web-resolver-staging.mjs",
+  "documentation": "docs/governance/authenticated-netquity-web-resolver-staging.md"
+}

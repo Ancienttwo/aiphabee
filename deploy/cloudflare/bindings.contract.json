@@ -105,6 +105,19 @@
         "staging": true
       },
       "staging_topology": "persistent_private_fastclaw-aiphabee-staging_container"
+    },
+    {
+      "name": "AIPHABEE_API",
+      "type": "worker",
+      "purpose": "Staging-only private RPC service binding from the authenticated TanStack Web Worker to the named AuthenticatedNetquityResolver API entrypoint.",
+      "required_by_sprint": "authenticated-netquity-web-resolver",
+      "smoke_test": "An authenticated staging Web session resolves code and multilingual aliases while direct public HTTP cannot invoke the named entrypoint.",
+      "provisioned": false,
+      "provisioned_environments": {
+        "production": false,
+        "staging": true
+      },
+      "staging_topology": "aiphabee-web-staging_to_aiphabee-worker-staging_named_rpc"
     }
   ]
 }

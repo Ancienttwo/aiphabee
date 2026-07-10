@@ -1,10 +1,10 @@
 # Sprint: Authenticated Netquity Web Resolver
 
-> **Status**: Approved
+> **Status**: Done
 > **Approved**: user `同意`, 2026-07-11
 > **Slug**: authenticated-netquity-web-resolver
 > **Created**: 2026-07-11 03:57
-> **Updated**: 2026-07-11 05:32
+> **Updated**: 2026-07-11 07:17
 > **Source PRD**: none; user-approved brownfield design following the Netquity staging resolver sprint
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -125,7 +125,7 @@ execution for small tasks. Every row needs a concrete acceptance line.
 | # | Status | Task | Mode | Acceptance | Plan |
 |---|--------|------|------|------------|------|
 | 1 | [x] | Establish Better Auth identity authority on staging | contract | `npm run check:authenticated-web-identity`, targeted Web/Worker auth tests, and staging login/session/logout/revoke readback pass; the auth role has no product/Serving/raw privileges; production remains unchanged | `plans/plan-20260711-0400-establish-better-auth-identity-authority-on-staging.md` |
-| 2 | [ ] | Activate entitlement-gated Netquity resolution through private Web RPC | contract | `npm run check:authenticated-netquity-web-resolver`, targeted Web/Worker/Gateway/security-tools tests, and staging live code + multilingual success plus unauthenticated/unmapped/no-rights/expired/binding failure paths pass with no synthetic fallback; public HTTP and production remain unchanged | (pending) |
+| 2 | [x] | Activate entitlement-gated Netquity resolution through private Web RPC | contract | `npm run check:authenticated-netquity-web-resolver`, targeted Web/Worker/Gateway/security-tools tests, and staging live code + multilingual success plus unauthenticated/unmapped/no-rights/expired/binding failure paths pass with no synthetic fallback; public HTTP and production remain unchanged | `plans/plan-20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.md` |
 
 ## Execution Log
 
@@ -134,3 +134,4 @@ Keep this section last; `repo-harness run sprint-backlog complete-task` appends 
 | When | Task | Plan | Result |
 |------|------|------|--------|
 | 2026-07-11 05:32 | Establish Better Auth identity authority on staging | `plans/plan-20260711-0400-establish-better-auth-identity-authority-on-staging.md` | done |
+| 2026-07-11 07:17 | Activate entitlement-gated Netquity resolution through private Web RPC | `plans/plan-20260711-0543-activate-entitlement-gated-netquity-resolution-through-private-web-rpc.md` | done |
