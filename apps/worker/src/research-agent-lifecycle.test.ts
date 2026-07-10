@@ -150,7 +150,11 @@ describe("ResearchAgentLifecycleService", () => {
     await expect(
       runResearchAgentLifecycle(
         {
-          AIPHABEE_HYPERDRIVE: { connectionString: "postgresql://runtime.invalid/db" }
+          AIPHABEE_HYPERDRIVE: { connectionString: "postgresql://runtime.invalid/db" },
+          FASTCLAW_ADMIN_API_KEY: "admin-key",
+          FASTCLAW_BASE_URL: "https://fastclaw.invalid",
+          FASTCLAW_CONTROL_SERVICE: { fetch: vi.fn() },
+          FASTCLAW_TEMPLATE_AGENT_ID: "agt_template"
         } as unknown as Parameters<typeof runResearchAgentLifecycle>[0],
         request("activate")
       )

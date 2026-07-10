@@ -1243,6 +1243,10 @@
         "research_agent_lifecycle_event_profile_created_idx",
         "research_agent_lifecycle_event_request_idx"
       ],
+      "rls_tables": [
+        "aiphabee_core.research_agent_profile",
+        "aiphabee_audit.research_agent_lifecycle_event"
+      ],
       "market_data": false,
       "default_rights_status": "default_deny"
     }

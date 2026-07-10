@@ -82,12 +82,8 @@ do $do$ begin
   ) then
     create policy research_agent_profile_account_scope
     on aiphabee_core.research_agent_profile
-    for all
+    for select
     using (
-      account_id = (select platform.current_account_id())
-      and (select platform.is_workspace_member(workspace_id))
-    )
-    with check (
       account_id = (select platform.current_account_id())
       and (select platform.is_workspace_member(workspace_id))
     );
@@ -103,17 +99,8 @@ do $do$ begin
   ) then
     create policy research_agent_lifecycle_event_account_scope
     on aiphabee_audit.research_agent_lifecycle_event
-    for all
+    for select
     using (
-      exists (
-        select 1
-        from aiphabee_core.research_agent_profile profile
-        where profile.profile_id = research_agent_lifecycle_event.profile_id
-          and profile.account_id = (select platform.current_account_id())
-          and (select platform.is_workspace_member(profile.workspace_id))
-      )
-    )
-    with check (
       exists (
         select 1
         from aiphabee_core.research_agent_profile profile

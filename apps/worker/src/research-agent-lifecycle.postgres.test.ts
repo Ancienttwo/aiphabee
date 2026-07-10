@@ -94,7 +94,10 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     );
     await client.query("grant usage on schema aiphabee_core, aiphabee_audit to aiphabee_runtime_rls");
     await client.query(
-      "grant select on aiphabee_core.research_agent_profile, aiphabee_audit.research_agent_lifecycle_event to aiphabee_runtime_rls"
+      "grant select, update, delete on aiphabee_core.research_agent_profile to aiphabee_runtime_rls"
+    );
+    await client.query(
+      "grant select, delete on aiphabee_audit.research_agent_lifecycle_event to aiphabee_runtime_rls"
     );
     await client.query("set role aiphabee_runtime_rls");
     await client.query("select set_config('aiphabee.account_id', 'account-test', false)");
@@ -102,6 +105,14 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
       "select count(*)::text as count from aiphabee_core.research_agent_profile"
     );
     expect(ownProfile.rows[0]?.count).toBe("1");
+    const forbiddenProfileUpdate = await client.query(
+      "update aiphabee_core.research_agent_profile set desired_state = 'disabled' returning profile_id"
+    );
+    expect(forbiddenProfileUpdate.rowCount).toBe(0);
+    const forbiddenAuditDelete = await client.query(
+      "delete from aiphabee_audit.research_agent_lifecycle_event returning event_id"
+    );
+    expect(forbiddenAuditDelete.rowCount).toBe(0);
     await client.query("select set_config('aiphabee.account_id', 'account-other', false)");
     const otherProfile = await client.query<{ count: string }>(
       "select count(*)::text as count from aiphabee_core.research_agent_profile"
@@ -153,7 +164,11 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
 
 const PREREQUISITE_SQL = `
 create schema platform;
-create role aiphabee_runtime_rls nologin;
+do $do$ begin
+  if not exists (select 1 from pg_roles where rolname = 'aiphabee_runtime_rls') then
+    create role aiphabee_runtime_rls nologin;
+  end if;
+end $do$;
 create table platform.account (
   account_id text primary key,
   status text not null

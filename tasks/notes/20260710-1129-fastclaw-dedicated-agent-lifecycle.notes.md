@@ -34,7 +34,10 @@
   `2c08f46ff87343bfbdd7cd9c0d62f10d`. A temporary FastClaw Cloudflare
   Container was reached through a service binding; direct Worker egress to a
   local Quick Tunnel was rejected as `FASTCLAW_UNAVAILABLE` and was not kept as
-  a compatibility path.
+  a compatibility path. Final migration content is bound to
+  `sha256:bc34091942b03f30104b0c7015c17fe11337bf5437c41055cb35c098023864b3`;
+  a post-review staging readback proved both lifecycle tables have RLS enabled
+  and forced, with exactly one account-scoped `SELECT` policy each.
 - **P3 rationale**: synchronous control-plane orchestration is sufficient for
   infrequent provisioning and preserves the existing Worker/package boundary.
   The crash window is closed by stable FastClaw external identities plus
@@ -93,6 +96,9 @@
   Docker database named `aiphabee_lifecycle_test`; activate replayed to one
   remote user/Agent, disable observed `disable_pending` before remote call,
   closed-account delete cleared remote ids and wrote three audit events; PASS.
+  The final RLS regression also grants an ordinary runtime role adversarial
+  update/delete privileges and proves profile mutation and audit deletion still
+  affect zero rows; two consecutive runs on the same PostgreSQL cluster PASS.
 - Staging acceptance: **PASS**. Activate + same-request replay converged to one
   FastClaw app-user and one Agent; disable produced live FastClaw HTTP 403;
   reactivate preserved both remote-id hashes and the 1/1 counts; closed-account
