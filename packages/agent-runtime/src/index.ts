@@ -651,7 +651,7 @@ export type SandboxCreateResult =
 
 export interface SandboxExecuteInput {
   argv: readonly [string, ...string[]];
-  lease_id: string;
+  lease: SandboxLease;
 }
 
 export type SandboxKillReason =
@@ -703,7 +703,7 @@ export type SandboxWorkspacePathDecision =
 
 export interface SandboxWriteFileInput {
   bytes: Uint8Array;
-  lease_id: string;
+  lease: SandboxLease;
   workspace_path: SandboxWorkspacePath;
 }
 
@@ -721,7 +721,7 @@ export type SandboxWriteResult =
   | SandboxBackendFailure<"file_write_failed">;
 
 export interface SandboxReadFileInput {
-  lease_id: string;
+  lease: SandboxLease;
   workspace_path: SandboxWorkspacePath;
 }
 
@@ -739,7 +739,7 @@ export type SandboxReadFileResult =
   | SandboxBackendFailure<"file_not_found" | "file_read_failed">;
 
 export interface SandboxKillInput {
-  lease_id: string;
+  lease: SandboxLease;
   reason: SandboxKillReason;
 }
 
@@ -757,7 +757,7 @@ export type SandboxKillResult =
     });
 
 export interface SandboxDestroyInput {
-  lease_id: string;
+  lease: SandboxLease;
 }
 
 export type SandboxDestroyResult =
@@ -1390,7 +1390,7 @@ export interface AgentRuntimeCapabilities {
         allowed_layer: "research";
         allowed_runner_family: "fastclaw";
       };
-      adapter_implemented: false;
+      adapter_implemented: true;
       backend_registered: false;
       live_execution: false;
       port_ready: true;
@@ -3714,7 +3714,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
           allowed_layer: "research",
           allowed_runner_family: "fastclaw"
         },
-        adapter_implemented: false,
+        adapter_implemented: true,
         backend_registered: false,
         live_execution: false,
         port_ready: true,

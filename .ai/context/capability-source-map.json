@@ -6,21 +6,26 @@
         "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
         "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
+        "apps/sandbox-bridge/src/lease-registry.ts",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
+        "apps/sandbox-bridge/src/lease-registry.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
-        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts"
+        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts",
+        "npx vitest run apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts apps/sandbox-bridge/src/lease-registry.test.ts"
       ],
       "invariants": [
         "single run/event/tool authority",
         "Worker owns public /agent/* routes",
         "Generic cannot call Research-only tools",
         "runner selection is Agent Runtime-owned and dispatch remains disabled",
-        "sandbox backend port is Agent Runtime-owned and no adapter is registered",
+        "Cloudflare sandbox adapter exists but no backend is registered or dispatched",
         "only dry_run is currently executable"
       ]
     },
@@ -30,14 +35,19 @@
         "plans/prds/20260710-1702-dual-agent-v3.prd.md",
         "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
+        "apps/sandbox-bridge/src/lease-registry.ts",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
+        "apps/sandbox-bridge/src/lease-registry.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
-        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts"
+        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts",
+        "npx vitest run apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts apps/sandbox-bridge/src/lease-registry.test.ts"
       ],
       "invariants": [
         "FastClaw is a runner, not a capability layer",
@@ -46,7 +56,7 @@
         "no shared identity fallback",
         "fastclaw.personal-v0 is registered but disabled",
         "runner selection exists without runner dispatch",
-        "provider-neutral sandbox port exists without an adapter or live execution",
+        "Cloudflare sandbox adapter exists without grant minting backend registration runner dispatch or live execution",
         "live acceptance cannot be satisfied by fixtures alone"
       ]
     },

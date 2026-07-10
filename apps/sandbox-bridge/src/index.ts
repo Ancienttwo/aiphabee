@@ -9,6 +9,11 @@ import {
   type SandboxHandle
 } from "./bridge.js";
 import { handleRunGuardRequest } from "./run-guard.js";
+import { CloudflareSandboxBackend } from "./cloudflare-sandbox-backend.js";
+import {
+  DurableObjectSandboxLeaseRegistry,
+  handleSandboxLeaseRegistryRequest
+} from "./lease-registry.js";
 
 export { ContainerProxy };
 
@@ -18,27 +23,68 @@ export class RunGuard extends DurableObject {
   }
 }
 
+export class SandboxLeaseRegistryObject extends DurableObject {
+  fetch(request: Request): Promise<Response> {
+    return handleSandboxLeaseRegistryRequest(this.ctx.storage, request);
+  }
+}
+
 export class AiphaBeeSandbox extends Sandbox {
   enableInternet = false;
 }
 
 export interface Env extends BridgeEnv {
   AIPHABEE_SANDBOX: DurableObjectNamespace<AiphaBeeSandbox>;
+  SANDBOX_LEASE_REGISTRY: DurableObjectNamespace<SandboxLeaseRegistryObject>;
+}
+
+function configuredSandbox(env: Env, sandboxId: string): AiphaBeeSandbox {
+  return getSandbox(env.AIPHABEE_SANDBOX, sandboxId, {
+    enableDefaultSession: false,
+    normalizeId: true,
+    sleepAfter: "2m",
+    transport: "rpc"
+  });
+}
+
+export function createCloudflareSandboxBackend(env: Env): CloudflareSandboxBackend {
+  return new CloudflareSandboxBackend({
+    getSandbox: (providerId) => {
+      const sandbox = configuredSandbox(env, providerId);
+      return {
+        createSession: (options) => sandbox.createSession(options),
+        destroy: () => sandbox.destroy(),
+        getSession: async (sessionId) => {
+          const session = await sandbox.getSession(sessionId);
+          return {
+            startProcess: async (command, options) => {
+              const process = await session.startProcess(command, options);
+              return {
+                id: process.id,
+                kill: (signal) => process.kill(signal),
+                waitForExit: async (timeoutMs) => {
+                  const result = await process.waitForExit(timeoutMs);
+                  return result.exitCode;
+                }
+              };
+            }
+          };
+        },
+        killProcess: (processId, signal) => sandbox.killProcess(processId, signal),
+        readFile: (path, options) => sandbox.readFile(path, options),
+        writeFile: (path, content, options) => sandbox.writeFile(path, content, options)
+      };
+    },
+    leaseRegistry: new DurableObjectSandboxLeaseRegistry(env.SANDBOX_LEASE_REGISTRY),
+    newId: () => crypto.randomUUID(),
+    shellQuote
+  });
 }
 
 const handler = createSandboxBridgeHandler({
   getRunGuard: defaultRunGuardFactory,
   getSandbox: (env, sandboxId) => {
-    const sandbox = getSandbox(
-      env.AIPHABEE_SANDBOX as DurableObjectNamespace<AiphaBeeSandbox>,
-      sandboxId,
-      {
-      enableDefaultSession: false,
-      normalizeId: true,
-      sleepAfter: "2m",
-      transport: "rpc"
-      }
-    );
+    const sandbox = configuredSandbox(env as Env, sandboxId);
     return {
       destroy: () => sandbox.destroy(),
       exec: (command, options) => sandbox.exec(command, options),

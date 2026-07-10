@@ -29,7 +29,7 @@
         "unknown_tools_default_deny": true,
         "runner_selection_implemented": true,
         "sandbox_backend_port_implemented": true,
-        "sandbox_adapter_implemented": false,
+        "sandbox_adapter_implemented": true,
         "runner_dispatch_implemented": false,
         "live_model_execution_enabled": false
       }
@@ -37,7 +37,7 @@
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "sandbox_port_contract_only_no_live_execution",
+      "status": "sandbox_adapter_implemented_not_registered_no_live_execution",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -55,7 +55,7 @@
         "live_acceptance_required": true,
         "runner_selection_implemented": true,
         "sandbox_backend_port_implemented": true,
-        "sandbox_adapter_implemented": false,
+        "sandbox_adapter_implemented": true,
         "runtime_dispatch_implemented": false
       }
     },

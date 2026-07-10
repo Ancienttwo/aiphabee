@@ -67,6 +67,8 @@ import {
   type SandboxBackend,
   type SandboxBackendAccessGrant,
   type SandboxCreateInput,
+  type SandboxDestroyInput,
+  type SandboxLease,
   type AiGatewayLiveSmokeFetch
 } from "./index";
 
@@ -135,7 +137,7 @@ function createSandboxBackendFixture(): SandboxBackend {
       };
     },
     async *execute(input) {
-      if (!activeLeases.has(input.lease_id)) {
+      if (!activeLeases.has(input.lease.lease_id)) {
         yield {
           error_code: "execute_failed",
           event: "failed",
@@ -181,34 +183,34 @@ function createSandboxBackendFixture(): SandboxBackend {
       } as const;
     },
     async writeFile(input) {
-      if (!activeLeases.has(input.lease_id)) {
+      if (!activeLeases.has(input.lease.lease_id)) {
         return {
           error_code: "file_write_failed",
           retryable: false,
           status: "failed"
         };
       }
-      const files = filesByLease.get(input.lease_id) ?? new Map<string, Uint8Array>();
+      const files = filesByLease.get(input.lease.lease_id) ?? new Map<string, Uint8Array>();
       files.set(input.workspace_path, input.bytes);
-      filesByLease.set(input.lease_id, files);
+      filesByLease.set(input.lease.lease_id, files);
       return {
         receipt: {
           bytes_written: input.bytes.byteLength,
-          lease_id: input.lease_id,
+          lease_id: input.lease.lease_id,
           workspace_path: input.workspace_path
         },
         status: "written"
       };
     },
     async readFile(input) {
-      if (!activeLeases.has(input.lease_id)) {
+      if (!activeLeases.has(input.lease.lease_id)) {
         return {
           error_code: "file_read_failed",
           retryable: false,
           status: "failed"
         };
       }
-      const bytes = filesByLease.get(input.lease_id)?.get(input.workspace_path);
+      const bytes = filesByLease.get(input.lease.lease_id)?.get(input.workspace_path);
       if (bytes === undefined) {
         return {
           error_code: "file_not_found",
@@ -219,53 +221,53 @@ function createSandboxBackendFixture(): SandboxBackend {
       return {
         result: {
           bytes,
-          lease_id: input.lease_id,
+          lease_id: input.lease.lease_id,
           workspace_path: input.workspace_path
         },
         status: "read"
       };
     },
     async kill(input) {
-      if (!activeLeases.has(input.lease_id)) {
+      if (!activeLeases.has(input.lease.lease_id)) {
         return {
           error_code: "kill_failed",
-          lease_id: input.lease_id,
+          lease_id: input.lease.lease_id,
           reason: input.reason,
           retryable: false,
           status: "failed",
           terminal: false
         };
       }
-      const status = killedLeases.has(input.lease_id) ? "already_terminal" : "killed";
-      killedLeases.add(input.lease_id);
+      const status = killedLeases.has(input.lease.lease_id) ? "already_terminal" : "killed";
+      killedLeases.add(input.lease.lease_id);
       return {
-        lease_id: input.lease_id,
+        lease_id: input.lease.lease_id,
         reason: input.reason,
         status,
         terminal: true
       };
     },
     async destroy(input) {
-      if (destroyedLeases.has(input.lease_id)) {
+      if (destroyedLeases.has(input.lease.lease_id)) {
         return {
-          lease_id: input.lease_id,
+          lease_id: input.lease.lease_id,
           status: "already_destroyed",
           terminal: true
         };
       }
-      if (!activeLeases.has(input.lease_id)) {
+      if (!activeLeases.has(input.lease.lease_id)) {
         return {
           error_code: "destroy_failed",
-          lease_id: input.lease_id,
+          lease_id: input.lease.lease_id,
           retryable: false,
           status: "failed",
           terminal: false
         };
       }
-      destroyedLeases.add(input.lease_id);
-      activeLeases.delete(input.lease_id);
+      destroyedLeases.add(input.lease.lease_id);
+      activeLeases.delete(input.lease.lease_id);
       return {
-        lease_id: input.lease_id,
+        lease_id: input.lease.lease_id,
         status: "destroyed",
         terminal: true
       };
@@ -365,7 +367,7 @@ describe("agent runtime scaffold", () => {
         allowed_layer: "research",
         allowed_runner_family: "fastclaw"
       },
-      adapter_implemented: false,
+      adapter_implemented: true,
       backend_registered: false,
       live_execution: false,
       port_ready: true,
@@ -1001,11 +1003,30 @@ describe("agent runtime scaffold", () => {
     const leaseId = "lease-run-sandbox-port-fixture";
     const sessionLeaseId = "lease-session-sandbox-port-fixture";
     const unknownLeaseId = "lease-unknown";
+    const testAccessGrant = forgedFastclawAccessGrant as unknown as SandboxBackendAccessGrant;
+    const lease = {
+      access_grant: testAccessGrant,
+      backend_id: backend.backend_id,
+      lease_id: leaseId,
+      status: "ready"
+    } satisfies SandboxLease;
+    const sessionLease = {
+      ...lease,
+      lease_id: sessionLeaseId
+    } satisfies SandboxLease;
+    const unknownLease = {
+      ...lease,
+      lease_id: unknownLeaseId
+    } satisfies SandboxLease;
+
+    // @ts-expect-error Every post-create operation requires the opaque lease, not a naked ID.
+    const invalidDestroyInput: SandboxDestroyInput = { lease_id: leaseId };
+    void invalidDestroyInput;
 
     const events = [];
     for await (const event of backend.execute({
       argv: ["node", "task.mjs"],
-      lease_id: leaseId
+      lease
     })) {
       events.push(event);
     }
@@ -1037,7 +1058,7 @@ describe("agent runtime scaffold", () => {
     const failedEvents = [];
     for await (const event of backend.execute({
       argv: ["timeout"],
-      lease_id: leaseId
+      lease
     })) {
       failedEvents.push(event);
     }
@@ -1054,7 +1075,7 @@ describe("agent runtime scaffold", () => {
     const unknownLeaseEvents = [];
     for await (const event of backend.execute({
       argv: ["node", "task.mjs"],
-      lease_id: unknownLeaseId
+      lease: unknownLease
     })) {
       unknownLeaseEvents.push(event);
     }
@@ -1098,7 +1119,7 @@ describe("agent runtime scaffold", () => {
     await expect(
       backend.writeFile({
         bytes: artifactBytes,
-        lease_id: unknownLeaseId,
+        lease: unknownLease,
         workspace_path: workspacePath
       })
     ).resolves.toEqual({
@@ -1109,7 +1130,7 @@ describe("agent runtime scaffold", () => {
     await expect(
       backend.writeFile({
         bytes: artifactBytes,
-        lease_id: leaseId,
+        lease,
         workspace_path: workspacePath
       })
     ).resolves.toEqual({
@@ -1122,7 +1143,7 @@ describe("agent runtime scaffold", () => {
     });
     await expect(
       backend.readFile({
-        lease_id: leaseId,
+        lease,
         workspace_path: workspacePath
       })
     ).resolves.toEqual({
@@ -1139,7 +1160,7 @@ describe("agent runtime scaffold", () => {
     }
     await expect(
       backend.readFile({
-        lease_id: leaseId,
+        lease,
         workspace_path: missingPathDecision.workspace_path
       })
     ).resolves.toEqual({
@@ -1149,7 +1170,7 @@ describe("agent runtime scaffold", () => {
     });
     await expect(
       backend.readFile({
-        lease_id: sessionLeaseId,
+        lease: sessionLease,
         workspace_path: workspacePath
       })
     ).resolves.toEqual({
@@ -1159,7 +1180,7 @@ describe("agent runtime scaffold", () => {
     });
     await expect(
       backend.readFile({
-        lease_id: unknownLeaseId,
+        lease: unknownLease,
         workspace_path: workspacePath
       })
     ).resolves.toEqual({
@@ -1168,7 +1189,7 @@ describe("agent runtime scaffold", () => {
       status: "failed"
     });
     await expect(
-      backend.kill({ lease_id: unknownLeaseId, reason: "kill_switch" })
+      backend.kill({ lease: unknownLease, reason: "kill_switch" })
     ).resolves.toEqual({
       error_code: "kill_failed",
       lease_id: unknownLeaseId,
@@ -1177,7 +1198,7 @@ describe("agent runtime scaffold", () => {
       status: "failed",
       terminal: false
     });
-    await expect(backend.destroy({ lease_id: unknownLeaseId })).resolves.toEqual({
+    await expect(backend.destroy({ lease: unknownLease })).resolves.toEqual({
       error_code: "destroy_failed",
       lease_id: unknownLeaseId,
       retryable: false,
@@ -1185,7 +1206,7 @@ describe("agent runtime scaffold", () => {
       terminal: false
     });
     await expect(
-      backend.kill({ lease_id: leaseId, reason: "soft_timeout" })
+      backend.kill({ lease, reason: "soft_timeout" })
     ).resolves.toEqual({
       lease_id: leaseId,
       reason: "soft_timeout",
@@ -1193,24 +1214,24 @@ describe("agent runtime scaffold", () => {
       terminal: true
     });
     await expect(
-      backend.kill({ lease_id: leaseId, reason: "kill_switch" })
+      backend.kill({ lease, reason: "kill_switch" })
     ).resolves.toEqual({
       lease_id: leaseId,
       reason: "kill_switch",
       status: "already_terminal",
       terminal: true
     });
-    await expect(backend.destroy({ lease_id: leaseId })).resolves.toEqual({
+    await expect(backend.destroy({ lease })).resolves.toEqual({
       lease_id: leaseId,
       status: "destroyed",
       terminal: true
     });
-    await expect(backend.destroy({ lease_id: sessionLeaseId })).resolves.toEqual({
+    await expect(backend.destroy({ lease: sessionLease })).resolves.toEqual({
       lease_id: sessionLeaseId,
       status: "destroyed",
       terminal: true
     });
-    await expect(backend.destroy({ lease_id: leaseId })).resolves.toEqual({
+    await expect(backend.destroy({ lease })).resolves.toEqual({
       lease_id: leaseId,
       status: "already_destroyed",
       terminal: true

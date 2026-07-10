@@ -25,6 +25,10 @@
       {
         "class_name": "RunGuard",
         "name": "RUN_GUARD"
+      },
+      {
+        "class_name": "SandboxLeaseRegistryObject",
+        "name": "SANDBOX_LEASE_REGISTRY"
       }
     ]
   },
@@ -32,6 +36,10 @@
     {
       "new_sqlite_classes": ["AiphaBeeSandbox", "RunGuard"],
       "tag": "v1"
+    },
+    {
+      "new_sqlite_classes": ["SandboxLeaseRegistryObject"],
+      "tag": "v2"
     }
   ],
   "vars": {
