@@ -3,7 +3,7 @@
 > **Status**: Archived
 > **Slug**: dual-agent
 > **Created**: 2026-07-03 17:42 +0800
-> **Updated**: 2026-07-10 02:05 +0800
+> **Updated**: 2026-07-10 15:30 +0800
 > **Source PRD**: `plans/prds/20260703-1742-dual-agent.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Superseded By**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`, `plans/sprints/20260703-agent-control-plane-convergence.sprint.md`
@@ -17,9 +17,9 @@ checklist 不能当作当前 backlog，也不能把 Archived 误读成 Done。
 | 范围 | 当前完成度 | 证据 |
 |---|---|---|
 | Agent Control Plane 收敛 | **已完成 4/4** | 替代 sprint `20260703-agent-control-plane-convergence.sprint.md`；2026-07-10 复跑 Agent runtime `99/99`、Worker `252/252`、answer/evidence contract `ok` |
-| FastClaw `AgentRunner` adapter | **未实现** | `packages/agent-fastclaw` 不存在；仓内只有 authority contract 与研究/规划文档 |
-| 付费用户专属 Agent provisioning | **未实现** | 当前没有 user → `fastclaw_agent_id` provisioning/disable/delete runtime 路径 |
-| `SandboxBackend` / live sandbox | **未实现** | `packages/sandbox-runtime` 与 `SandboxBackend` 实现不存在；未做 live 成本或隔离验收 |
+| FastClaw `AgentRunner` adapter | **staging/smoke 已实现；production 未启用** | 独立 contract branch 的 `packages/agent-runtime/src/fastclaw-sandbox-smoke.ts` 实现既有 `AgentRunner`；production `runner_remote` 保持关闭 |
+| 付费用户专属 Agent provisioning | **产品生命周期已实现并通过 credentialed staging；production 未启用** | durable `(workspace_id, account_id)` profile/audit、live entitlement、activate/replay `1/1`、disable `403`、reactivate `1/1`、closed-account delete `0/0`、四条 audit 与 fixture cleanup 均通过 |
+| Cloudflare sandbox execution | **deterministic + live staging 已验收；production 未启用** | `apps/sandbox-bridge` + linked FastClaw `cloudflare` Executor/Pool；live serial `1/1`、并发 `10/10`、receipt/artifact/destroy/terminal readback 通过，临时 Worker/Container 已删除 |
 
 当前产品记录已经收紧为：
 

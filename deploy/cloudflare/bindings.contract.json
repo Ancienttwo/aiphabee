@@ -83,6 +83,28 @@
       "provisioned": true,
       "staging_alias": "HYPERDRIVE",
       "staging_topology": "shared_platform_umbrella_database"
+    },
+    {
+      "name": "AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE",
+      "type": "hyperdrive",
+      "purpose": "Least-privilege BYPASSRLS control-plane path for dedicated research Agent lifecycle transitions, including closed-account deletion.",
+      "required_by_sprint": "fastclaw-dedicated-agent-lifecycle",
+      "smoke_test": "Staging activate, replay, disable, reactivate, and closed-account delete all complete through the dedicated control role with audit readback.",
+      "provisioned": true,
+      "staging_topology": "shared_platform_umbrella_database_dedicated_control_role"
+    },
+    {
+      "name": "FASTCLAW_CONTROL_SERVICE",
+      "type": "worker",
+      "purpose": "Service binding from AiphaBee lifecycle orchestration to the dedicated FastClaw control-plane Worker or Container deployment.",
+      "required_by_sprint": "fastclaw-dedicated-agent-lifecycle",
+      "smoke_test": "Credentialed staging lifecycle acceptance reaches FastClaw through a temporary service-bound Container and proves one user and Agent across replay/reactivation.",
+      "provisioned": false,
+      "provisioned_environments": {
+        "production": false,
+        "staging": true
+      },
+      "staging_topology": "persistent_private_fastclaw-aiphabee-staging_container"
     }
   ]
 }

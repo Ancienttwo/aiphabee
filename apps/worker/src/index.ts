@@ -94,6 +94,12 @@ import {
   type ChartImageRecord,
   type FetchedChartImage
 } from "@aiphabee/agent-runtime/parse-chart-image";
+import { FastClawLifecycleError } from "@aiphabee/agent-runtime/fastclaw-lifecycle";
+import {
+  ResearchAgentLifecycleInputError,
+  parseResearchAgentLifecycleRequest,
+  runResearchAgentLifecycle
+} from "./research-agent-lifecycle.js";
 import {
   calculateReturnsRisk,
   comparePercentiles,
@@ -436,8 +442,12 @@ interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
+  AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE?: RuntimeHyperdrive;
+  FASTCLAW_CONTROL_SERVICE?: RuntimeFetcher;
   AIPHABEE_RUN_COORDINATOR?: RuntimeDurableObjectNamespace;
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
+  AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED?: string;
+  AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN?: string;
   APP_ENV?: string;
   APP_VERSION?: string;
   AI_GATEWAY_NAME?: string;
@@ -446,6 +456,9 @@ interface WorkerBindings {
   AIPHABEE_MCP_LIVE_EXECUTION_SMOKE_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
+  FASTCLAW_ADMIN_API_KEY?: string;
+  FASTCLAW_BASE_URL?: string;
+  FASTCLAW_TEMPLATE_AGENT_ID?: string;
   OTLP_EXPORTER_OTLP_ENDPOINT?: string;
   OTLP_EXPORTER_OTLP_HEADERS?: string;
 }
@@ -489,6 +502,10 @@ interface RuntimeQueue {
 
 interface RuntimeHyperdrive {
   connectionString?: string;
+}
+
+interface RuntimeFetcher {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
 
 interface IpoServingOfferingRow {
@@ -4131,6 +4148,80 @@ app.post("/partner/white-label-embeds/plan", async (c) => {
       }
     )
   );
+});
+
+app.post("/internal/research-agent/lifecycle", async (c) => {
+  const requestId = c.req.header("x-request-id")?.trim();
+  c.header("Cache-Control", "no-store");
+
+  if (!isResearchAgentLifecycleAuthorized(c)) {
+    return c.json(
+      {
+        error_code: "RESEARCH_AGENT_LIFECYCLE_UNAUTHORIZED",
+        status: "unauthorized"
+      },
+      401
+    );
+  }
+
+  if (c.env?.AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED !== "true") {
+    return c.json(
+      {
+        error_code: "RESEARCH_AGENT_LIFECYCLE_DISABLED",
+        status: "unavailable"
+      },
+      503
+    );
+  }
+
+  try {
+    const body = await c.req.json().catch(() => undefined);
+    const request = parseResearchAgentLifecycleRequest(body, requestId);
+    const result = await runResearchAgentLifecycle(c.env ?? {}, request);
+    const status =
+      result.outcome === "denied"
+        ? 403
+        : result.outcome === "conflict"
+          ? 409
+          : result.outcome === "retryable_failure"
+            ? 503
+            : result.outcome === "internal_failure"
+              ? 500
+              : 200;
+    return c.json(result, status);
+  } catch (error) {
+    if (error instanceof ResearchAgentLifecycleInputError) {
+      return c.json(
+        {
+          error_code: error.code,
+          message: error.message,
+          status: "invalid_request"
+        },
+        400
+      );
+    }
+    if (error instanceof FastClawLifecycleError) {
+      return c.json(
+        {
+          error_code: error.code,
+          retryable: error.retryable,
+          status: "unavailable"
+        },
+        503
+      );
+    }
+    console.error("research Agent lifecycle failed", {
+      error: error instanceof Error ? error.message : String(error),
+      request_id: requestId
+    });
+    return c.json(
+      {
+        error_code: "RESEARCH_AGENT_LIFECYCLE_INTERNAL_ERROR",
+        status: "failed"
+      },
+      500
+    );
+  }
 });
 
 app.get("/account/runtime", (c) => {
@@ -20264,6 +20355,18 @@ function isAgentBillingPostedLedgerSmokeAuthorized(
   const token = getAgentBillingPostedLedgerSmokeToken(c.env ?? {});
 
   if (token.length < 16) {
+    return false;
+  }
+
+  return c.req.header("authorization") === `Bearer ${token}`;
+}
+
+function isResearchAgentLifecycleAuthorized(
+  c: Context<{ Bindings: WorkerBindings }>
+): boolean {
+  const token = c.env?.AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN?.trim() ?? "";
+
+  if (token.length < 32) {
     return false;
   }
 

@@ -3,7 +3,7 @@
 > **Status**: Done
 > **Slug**: agent-control-plane-convergence
 > **Created**: 2026-07-03 20:42 +0800
-> **Updated**: 2026-07-10 02:05 +0800
+> **Updated**: 2026-07-10 04:10 +0800
 > **Source PRD**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -99,8 +99,9 @@ Worker tests, and `check:answer-evidence-contract=ok`. The forbidden parallel
 authority roots remain absent: `packages/agent-contracts`,
 `packages/agent-generic`, and `apps/api-worker`.
 
-The following work is **not** missing from this sprint; it was an explicit
-non-goal and needs a new executable sprint:
+The following work was **not** missing from this sprint; it was an explicit
+non-goal. It now has a separate executable contract branch:
+`plans/plan-20260710-0243-fastclaw-dedicated-agent-cloudflare-sandbox-smoke.md`.
 
 - Provision one dedicated FastClaw Agent identity/profile for each entitled
   paid user. AiphaBee owns the user-to-agent mapping, entitlement, billing,
@@ -108,18 +109,30 @@ non-goal and needs a new executable sprint:
   retryable; it must not silently fall back to a shared Agent.
 - Implement FastClaw as an `AgentRunner` behind
   `AgentRunner.run(request): AsyncIterable<AgentExecutionEvent>`.
-- Implement a thin `SandboxBackend` below FastClaw. The sandbox is ephemeral
-  per run/session; it is not the durable per-user Agent identity or memory
-  authority.
+- Implement Cloudflare below FastClaw through its existing
+  `sandbox.Executor` / `ExecutorPool` provider seam and an internal Worker
+  Bridge. The sandbox is ephemeral per run/session; it is not the durable
+  per-user Agent identity or memory authority.
 - Use Cloudflare Sandbox SDK as the production-primary backend. The alternative
   named "Cloudbank" in discussion is recorded as **Sandbank Cloud**; the
   unrelated `cloudbank.org` research-cloud broker is not a sandbox provider.
   Current official pricing and workload estimates are maintained in
   `docs/researches/20260709-fastclaw-sandbox-backend-selection.md`.
 
-No `packages/agent-fastclaw`, `packages/sandbox-runtime`, `SandboxBackend`, or
-live FastClaw adapter exists in the current tree, so no FastClaw deployment or
-sandbox-cost-at-runtime claim is complete yet.
+Current readback on that separate branch: `FastClawSandboxSmokeRunner`
+implements the existing `AgentRunner` contract; the linked FastClaw branch
+implements `cloudflare` through `Executor/ExecutorPool`; deterministic receipt,
+artifact and cleanup tests pass. The Cloudflare Sandbox path also completed live
+serial `1/1` and concurrent `10/10` smoke with explicit Container rollback.
+The follow-on dedicated-Agent lifecycle then completed credentialed staging
+acceptance: activate/replay and reactivate stayed at one FastClaw user + Agent,
+disable was denied by FastClaw with HTTP `403`, closed-account delete reached
+remote `0/0`, local `deleted`, four audit events, and complete fixture cleanup.
+Lifecycle DB authority is now a dedicated caching-disabled Hyperdrive plus
+table-scoped control role; FastClaw is reached through a Cloudflare service
+binding, not a public-network fallback. Production `runner_remote`, persistent
+FastClaw service/storage, public onboarding, actual provider billing, and
+long-lived feature enablement remain incomplete.
 
 ## Execution Log
 

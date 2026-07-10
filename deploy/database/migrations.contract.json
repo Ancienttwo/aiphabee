@@ -1444,6 +1444,30 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260710120000_research_agent_lifecycle.sql",
+      "purpose": "Create the durable AiphaBee-owned research Agent profile and append-only lifecycle audit tables for entitled workspace accounts without enabling billing-provider writes or production runner execution.",
+      "schemas": [
+        "aiphabee_core",
+        "aiphabee_audit"
+      ],
+      "tables": [
+        "aiphabee_core.research_agent_profile",
+        "aiphabee_audit.research_agent_lifecycle_event"
+      ],
+      "indexes": [
+        "research_agent_profile_workspace_status_idx",
+        "research_agent_profile_lease_idx",
+        "research_agent_lifecycle_event_profile_created_idx",
+        "research_agent_lifecycle_event_request_idx"
+      ],
+      "rls_tables": [
+        "aiphabee_core.research_agent_profile",
+        "aiphabee_audit.research_agent_lifecycle_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
