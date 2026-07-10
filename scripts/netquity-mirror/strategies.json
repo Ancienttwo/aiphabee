@@ -1,0 +1,1070 @@
+{
+  "version": "2026-07-10.netquity-update-strategies.v2",
+  "description": "Per-table daily-update strategy for every vendor table in the Netquity mirror (172 tables, cross-checked 1:1 against deploy/database/migrations/20260709180000_netquity_mirror_schema.sql). mode: replace_all (TRUNCATE + full COPY), upsert_only (INSERT ... ON CONFLICT DO UPDATE, no deletes), window_replace (replace the declared date window), unresolved (refuse without explicit skip). evidence contains public-safe source references and paraphrased rationale only; licensed vendor wording and row content stay outside Git.",
+  "counts": {
+    "replace_all": 127,
+    "window_replace": 27,
+    "unresolved": 16,
+    "upsert_only": 2
+  },
+  "strategies": [
+    {
+      "schema": "nq_basicdata",
+      "table": "relatedcode",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_basicdata",
+      "table": "stock",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section A [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_biography",
+      "table": "biography",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section F [licensed wording omitted], Method 2: [licensed wording omitted]. (Method 1, an incremental compare-and-remove-missing variant, is documented as an alternative; Method 2's full-replace semantics is what this pipeline implements.)"
+    },
+    {
+      "schema": "nq_capitalraised",
+      "table": "capitalraised",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section M [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_capitalraised",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section M [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "areacode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "asset_classcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "benchmark_code",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "currencycode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "custodiancode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "duplicate_sharetypecode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "eventcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "eventcode2",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "eventcode3",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "fundmanagercode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "geo_focus_code",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "hdrdepositarycode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "hdrpmcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "industrycode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "inv_focuscode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "lockupsharetype",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "lpcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "meetingcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "methodcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "registrarcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "rep_methodcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "sc_reasoncode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "secgroup",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "secsector",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "sectorcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "shkindustry",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "shksector",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "statementtypecode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "subindustrycode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "takeovercode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "underlyingcode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "warnclasscode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "warncode",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "warrantissuer",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_codetable",
+      "table": "warranttype2",
+      "mode": "replace_all",
+      "evidence": "Master - Code Table (Access) (2026-06-08)[49].doc -- Lookup/reference table: no [licensed wording omitted] section exists anywhere in this dictionary (grep-verified: 0 occurrences across 1157 lines); every entry documents only a [licensed wording omitted] line for its lookup/reference table. Classified replace_all per the plan's directed treatment of static code/lookup tables (small, fully replaced each delivery, keyed by the table's own documented Primary Key field)."
+    },
+    {
+      "schema": "nq_compinfo",
+      "table": "compinfo",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section D [licensed wording omitted] (CompInfo.mdb): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_compprofile",
+      "table": "compprofile",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section E [licensed wording omitted] (CompProfile.mdb): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_compprofile2",
+      "table": "businessoutlook",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section I [licensed wording omitted]: [licensed wording omitted] (same pattern as BusinessReview)"
+    },
+    {
+      "schema": "nq_compprofile2",
+      "table": "businessreview",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section H [licensed wording omitted]: [licensed wording omitted] (PK Code+PeriodEnd_Date; no DataPeriod companion table in this schema, no window/removal language in the doc)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "auditorchange",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section D [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "boardlotchange",
+      "mode": "window_replace",
+      "window_column": "effectivedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section G [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "companywarn",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section L [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "compsecchange",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section C [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Table format section, DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "delistingdate",
+      "mode": "replace_all",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section Q [licensed wording omitted]: [licensed wording omitted] (no window/removal language)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "directorchange",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section B [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "earningsresult",
+      "mode": "replace_all",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section M [licensed wording omitted]: [licensed wording omitted] (no DataPeriod-window check/remove language, unlike its CorpAct siblings -- table-level deviation from the [licensed wording omitted] family default; PK is Code+EventID, not a date field)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "listboardchange",
+      "mode": "window_replace",
+      "window_column": "listingdate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section H [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "meetingnotice",
+      "mode": "window_replace",
+      "window_column": "meetingdate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section K [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "mergetakeover",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section I [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "namechange",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section E [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "newlisting",
+      "mode": "replace_all",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section P [licensed wording omitted]: [licensed wording omitted] (no window/removal language)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "paralleltrading",
+      "mode": "window_replace",
+      "window_column": "startdate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section O [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "reorganisations",
+      "mode": "window_replace",
+      "window_column": "proposeddate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section J [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "stockcons",
+      "mode": "window_replace",
+      "window_column": "exdate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section U [licensed wording omitted]: identical ExDate + [licensed wording omitted] pattern as StockSplit; same anomaly applies"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "stockresume",
+      "mode": "window_replace",
+      "window_column": "actiondate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section S [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "stocksplit",
+      "mode": "window_replace",
+      "window_column": "exdate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section T [licensed wording omitted]: [licensed wording omitted] (doc explicitly carves out ExDate IS NULL rows from the window filter; the shipped mechanism does not implement that carve-out, see README anomaly note)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "stocksuspend",
+      "mode": "window_replace",
+      "window_column": "actiondate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section R [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "upcomingresult",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section N [licensed wording omitted]: [licensed wording omitted] (window phrased as [licensed wording omitted], not symmetric [start,end] -- implemented via the standard [startdate,enddate] DataPeriod-table mechanism, see README anomaly note)"
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "yearendchange",
+      "mode": "window_replace",
+      "window_column": "announcedate",
+      "evidence": "Master - Corporate Action Information (2022-04-25).doc -- Section F [licensed wording omitted]: [licensed wording omitted]AnnounceDate[licensed wording omitted]DataPeriod[licensed wording omitted]"
+    },
+    {
+      "schema": "nq_debtdata",
+      "table": "dataperiod",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers DebtData.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_debtdata",
+      "table": "ipoinfo",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers DebtData.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_dividendinfo",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section L [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_dividendinfo",
+      "table": "dividendinfo",
+      "mode": "window_replace",
+      "window_column": "exdate",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section L [licensed wording omitted]: [licensed wording omitted] (same ExDate-IS-NULL carve-out anomaly as nq_corpact.stocksplit/stockcons)"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "cyperformance",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section L [licensed wording omitted] (Table Name ETFData_CYPerformance): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "delistingdate",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section I [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "etf",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section A [licensed wording omitted] (documented as ETFData.mdb; delivered as ETFData2.mdb): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "invest",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section J [licensed wording omitted] (Table Name ETFData_Invest): [licensed wording omitted] (matches pk-demotions.json's demoted key exactly)"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "marketmaker",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section F [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "newlisting",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section H [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "portfolio",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section K [licensed wording omitted] (Table Name ETFData_Portfolio): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "priceperform",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "relatedcode",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section G [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "sharedata",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section B [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "techindicator",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section E [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "turnover",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section D [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_etfnav_data",
+      "table": "data",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section M [licensed wording omitted]: [licensed wording omitted] (has a DataPeriod companion table but the per-table suggestion text has no check/remove-within-window language, same pattern as IssueShare.IssueShare)"
+    },
+    {
+      "schema": "nq_etfnav_data",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc -- Section M [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "bal_b",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section E [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "bal_i",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section H [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "bal_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section B [licensed wording omitted]: [licensed wording omitted] (the pla_nb Note explicitly excludes bal/fr/cf from the delete-on-window step, so this is a plain upsert-shaped instruction with no anomaly)"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "cf",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section J [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "fr_b",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section F [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "fr_i",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section I [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "fr_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "pla_b",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section D [licensed wording omitted]: [licensed wording omitted] plus the same per-Code dynamic-window delete procedure and Note as pla_nb; same anomaly"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "pla_i",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section G [licensed wording omitted]: [licensed wording omitted] plus the same per-Code dynamic-window delete procedure and Note as pla_nb; same anomaly"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "pla_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section A [licensed wording omitted]: [licensed wording omitted] plus a documented per-Code dynamic YearEnd_Date-window delete procedure ([licensed wording omitted]; Note: [licensed wording omitted]). FinReport.mdb has no DataPeriod control table, so this per-Code dynamic window cannot be expressed via the window_replace mechanism (which reads a companion dataperiod table); classified replace_all per the plan's directed [licensed wording omitted], anomaly noted in README"
+    },
+    {
+      "schema": "nq_finreport",
+      "table": "sup",
+      "mode": "replace_all",
+      "evidence": "Master - Company Financials Information (2022-01-04).doc -- Section K [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport3",
+      "table": "es",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section G [licensed wording omitted] (FinReport3.mdb): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport4",
+      "table": "fs_b",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section S [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport4",
+      "table": "fs_i",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section T [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreport4",
+      "table": "fs_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section R [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "bal_b",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "bal_i",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "bal_nb",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "cf",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "fr_b",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "fr_i",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "fr_nb",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "pla_b",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "pla_i",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "pla_nb",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_finreportipo",
+      "table": "sup",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers FinReportIPO.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_freefloatshare2",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section A [licensed wording omitted], DataPeriod table (shared definition with FreeFloatShare2_Partial.mdb): this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_freefloatshare2",
+      "table": "freefloatshare",
+      "mode": "window_replace",
+      "window_column": "date",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section A [licensed wording omitted], same rolling-window Remark and same anomaly as nq_freefloatshare2_partial.freefloatshare (one shared doc section covers both .mdb files)"
+    },
+    {
+      "schema": "nq_freefloatshare2_partial",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section A [licensed wording omitted], DataPeriod table (shared by FreeFloatShare2.mdb and FreeFloatShare2_Partial.mdb): this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_freefloatshare2_partial",
+      "table": "freefloatshare",
+      "mode": "window_replace",
+      "window_column": "date",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section A [licensed wording omitted], Remark: [licensed wording omitted] The boilerplate [licensed wording omitted] bullet itself just says [licensed wording omitted] without repeating the window/removal language -- classification rests on this Remark plus the companion DataPeriod table, flagged as an anomaly (weaker textual anchor than the CorpAct/SDI-style entries)"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "basicinfo",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section A [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "cashflow",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section H [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "finratio",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section I [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "growthrate",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section J [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "majorfinance",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section G [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "marketliquidity",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section D [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "priceperform",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "sharevaluation",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section F [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "techindicator",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section E [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_industrycomp",
+      "table": "tradeinfo",
+      "mode": "replace_all",
+      "evidence": "Master - Industry Comparison Information (2016-12-22).doc -- Section B [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_issueshare",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Issue Shares Data Structure (Access) (2024-05-22).doc -- Section A [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_issueshare",
+      "table": "issueshare",
+      "mode": "replace_all",
+      "evidence": "Master - Issue Shares Data Structure (Access) (2024-05-22).doc -- Section B [licensed wording omitted]: [licensed wording omitted] plus [licensed wording omitted] -- a full-current-snapshot framing, not a windowed one, despite the schema having a DataPeriod control table"
+    },
+    {
+      "schema": "nq_issueshare",
+      "table": "sharehold",
+      "mode": "replace_all",
+      "evidence": "Master - Issue Shares Data Structure (Access) (2024-05-22).doc -- Section C [licensed wording omitted] (Table Name ShareHold, inside IssueShare.mdb): [licensed wording omitted] -- no window/removal language, no [licensed wording omitted] framing (contrast with ShareHold.mdb's own ShareHoldData table, a different schema)"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "bal_b",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section P [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "bal_i",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section Q [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "bal_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section O [licensed wording omitted]: [licensed wording omitted] (shared with pla_nb, see above)"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "pla_b",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section P [licensed wording omitted]: shared suggestion [licensed wording omitted] (same pairing pattern as section O)"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "pla_i",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section Q [licensed wording omitted]: shared suggestion [licensed wording omitted] (same pairing pattern as section O)"
+    },
+    {
+      "schema": "nq_latestresult",
+      "table": "pla_nb",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section O [licensed wording omitted]: the section's single [licensed wording omitted] ([licensed wording omitted]) is written once after the paired pla_nb/bal_nb field lists and covers both tables"
+    },
+    {
+      "schema": "nq_listcompheld",
+      "table": "data",
+      "mode": "replace_all",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section B [licensed wording omitted]: [licensed wording omitted] -- no date field/DataPeriod table involved; the removal criterion (row absent from the new file) is exactly what TRUNCATE+COPY achieves"
+    },
+    {
+      "schema": "nq_marketdata",
+      "table": "stock",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section B [licensed wording omitted] (MarketData.mdb): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "allotmentresult",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section K [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "allotmentsummary",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section L [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "app_detail",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section N [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "app_share",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section O [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "clawback",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section J [licensed wording omitted]: same Remark-only pattern (no dedicated suggestion bullet) and same classification rationale as Pool"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "companysummary",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section D [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "compinfo",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section G [licensed wording omitted] (nq_newipo2.compinfo, distinct from nq_compinfo.compinfo): [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "csi_info",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section H [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section A [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "dataperiod_lockupperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Not mentioned anywhere in this dictionary revision by name (grep-verified) -- LockUpPeriod's own Remark cites the plain [licensed wording omitted] table, not [licensed wording omitted]. Classified replace_all by structural analogy to the schema's other two DataPeriod-shaped control tables (identical startdate/enddate columns); flagged as an anomaly (doc/mdb structural drift between this dictionary revision and the delivered .mdb)"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "dataperiod_plan",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section A [licensed wording omitted], DataPeriod_Plan table (companion control table for Plan_Info, windowed by PostDate): this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "expectedtimetable",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "lockupperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section P [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "newipoinfo",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section B [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "offerstatistics",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section E [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "partiesinvolved",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section F [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "plan_info",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section M [licensed wording omitted]: no dedicated [licensed wording omitted] bullet found (grep-verified); Remark reads [licensed wording omitted] Classified replace_all per the plan's [licensed wording omitted] directive; anomaly noted (no explicit per-table suggestion text; PK is AppCode, a pre-listing applicant code namespace distinct from Code+ListingDate)"
+    },
+    {
+      "schema": "nq_newipo2",
+      "table": "pool",
+      "mode": "replace_all",
+      "evidence": "Master - Initial Public Offering (IPO) Information (2026-06-09)[3].doc -- Section I [licensed wording omitted]: no dedicated [licensed wording omitted] bullet found (grep-verified); the section's Remark reads [licensed wording omitted] Classified replace_all per the plan's explicit [licensed wording omitted] directive and consistency with every documented sibling table in this file; anomaly noted (no explicit per-table suggestion text)"
+    },
+    {
+      "schema": "nq_scsharehold",
+      "table": "data",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers SCShareHold.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_scsharehold",
+      "table": "dataperiod",
+      "mode": "unresolved",
+      "evidence": "no vendor dictionary covers SCShareHold.mdb (grep-verified across all 12 _ref/tables/*.doc filenames and contents)"
+    },
+    {
+      "schema": "nq_sdidata",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section A [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_sdidata",
+      "table": "sdi",
+      "mode": "window_replace",
+      "window_column": "reportdate",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section A [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_sharebuyback",
+      "table": "daily_data",
+      "mode": "window_replace",
+      "window_column": "sharebuybackdate",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section B [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_sharebuyback",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section B [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_sharecapital",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section N [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_sharecapital",
+      "table": "sharecapitalchange",
+      "mode": "window_replace",
+      "window_column": "effectivedate",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section N [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_sharecapitaldata",
+      "table": "data",
+      "mode": "unresolved",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc, Section G. The delivered table has no key and contains a row outside its declared EffectiveDate window. A later revision of that row cannot be matched safely to its predecessor, so incremental application is refused pending an authoritative vendor key or full-snapshot contract."
+    },
+    {
+      "schema": "nq_sharecapitaldata",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Supplemental Data Information (2025-06-04).doc -- Section G [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_sharehold",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Issue Shares Data Structure (Access) (2024-05-22).doc -- Not separately documented with its own field list in this dictionary (only IssueShare.mdb's own DataPeriod table is shown); classified per the plan's directed treatment of DataPeriod control tables, by structural analogy to every other schema's dataperiod table (same startdate/enddate shape)"
+    },
+    {
+      "schema": "nq_sharehold",
+      "table": "shareholddata",
+      "mode": "unresolved",
+      "evidence": "Master - Issue Shares Data Structure (Access) (2024-05-22).doc -- Section D [licensed wording omitted]: doc text is only [licensed wording omitted] -- NO explicit DataPeriod-window check/remove language (unlike SDI/CorpAct in other dictionaries). An earlier pass classified this window_replace/reportdate by structural analogy only (companion nq_sharehold.dataperiod table exists; section titled [licensed wording omitted]; ReportDate described as [licensed wording omitted], the same semantic role as SDI's ReportDate) -- flagged at the time as the lowest-confidence entry in this file. The Phase 3 proving run against _ref/Sample falsified that inference with real data: a row with reportdate=2026-02-09 (outside that run's DataPeriod window) but transdate=2026-05-27 (inside it) triggered the window_replace out-of-window path, demonstrating reportdate is not a safe incremental-window boundary for this table without further vendor clarification. Reclassified unresolved rather than guessing a different column (e.g. transdate) with no doc evidence for it either."
+    },
+    {
+      "schema": "nq_shortselling",
+      "table": "daily_data",
+      "mode": "window_replace",
+      "window_column": "shortselldate",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section C [licensed wording omitted]: [licensed wording omitted]"
+    },
+    {
+      "schema": "nq_shortselling",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section C [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_subtransaction",
+      "table": "daily",
+      "mode": "window_replace",
+      "window_column": "transdate",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section D [licensed wording omitted]: [licensed wording omitted] (table has no primary key, matches README's documented no-PK list)"
+    },
+    {
+      "schema": "nq_subtransaction",
+      "table": "dataperiod",
+      "mode": "replace_all",
+      "evidence": "Master - Insider Trading Information (2020-05-12).doc -- Section D [licensed wording omitted], DataPeriod table: this schema's DataPeriod control table (StartDate/EndDate, [licensed wording omitted]) has no dedicated [licensed wording omitted] text of its own in any dictionary; classified per the plan's directed treatment of DataPeriod control tables (small, wholly replaced each delivery)"
+    },
+    {
+      "schema": "nq_turnoverbreakdown2",
+      "table": "area",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section K [licensed wording omitted]: identical text and same anomaly as Business (both tables share PK shape Code+Period+CurrYearEnd+Type+DataType+EngBusinessLoc)"
+    },
+    {
+      "schema": "nq_turnoverbreakdown2",
+      "table": "business",
+      "mode": "replace_all",
+      "evidence": "Master - Equity Securities Information (2022-06-15).doc -- Section J [licensed wording omitted] (documented as TurnoverBreakdown.mdb, delivered as TurnoverBreakdown2.mdb): [licensed wording omitted] Per-Code dynamic CurrYearEnd-window delete documented, but no DataPeriod control table exists in this schema; classified replace_all per the plan's directed [licensed wording omitted], anomaly noted in README (same class as nq_finreport.pla_*)"
+    },
+    {
+      "schema": "nq_unadjprice2",
+      "table": "daily",
+      "mode": "upsert_only",
+      "evidence": "Master - Price and Volume (unadjusted data with adjusted nominal) (2021-08-02).doc -- [licensed wording omitted] -- latest-day snapshot whose AdjNominal is corrected the next morning via a second delivery for the SAME TradeDay row; no deletes."
+    },
+    {
+      "schema": "nq_unadjprice2h",
+      "table": "daily",
+      "mode": "upsert_only",
+      "evidence": "Master - Price and Volume (unadjusted data with adjusted nominal) (2021-08-02).doc -- [licensed wording omitted] -- full adjustment-history file; upsert_only avoids re-truncating multi-decade history daily and is safe whether the delivery restates the full history or is incremental. Suggested sequence: [licensed wording omitted] -- UnAdjPrice2 before UnAdjPrice2H."
+    }
+  ]
+}

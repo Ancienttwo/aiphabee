@@ -1,0 +1,26 @@
+{
+  "name": "@aiphabee/sandbox-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "deploy:staging": "wrangler deploy",
+    "dev": "wrangler dev",
+    "lint": "tsc --noEmit",
+    "test": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aiphabee/sandbox-run-auth": "file:../../packages/sandbox-run-auth",
+    "@cloudflare/sandbox": "0.12.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260620.1",
+    "@types/node": "^22.20.0",
+    "wrangler": "^4.103.0"
+  }
+}

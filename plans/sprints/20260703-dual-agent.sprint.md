@@ -1,13 +1,45 @@
-# Sprint: AiphaBee 双层 Agent + FastClaw/E2B 投研 Runner
+# Archived Sprint: AiphaBee 双层 Agent + FastClaw/E2B 投研 Runner
 
 > **Status**: Archived
 > **Slug**: dual-agent
 > **Created**: 2026-07-03 17:42 +0800
-> **Updated**: 2026-07-03 20:42 +0800
+> **Updated**: 2026-07-10 15:30 +0800
 > **Source PRD**: `plans/prds/20260703-1742-dual-agent.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Superseded By**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`, `plans/sprints/20260703-agent-control-plane-convergence.sprint.md`
 > **Goal Mode**: archived
+
+## 2026-07-10 完成度审计与当前决策
+
+这份原始 1,232 行的 v0.1 是历史方案，不是当前可执行 sprint；下方未勾选的
+checklist 不能当作当前 backlog，也不能把 Archived 误读成 Done。
+
+| 范围 | 当前完成度 | 证据 |
+|---|---|---|
+| Agent Control Plane 收敛 | **已完成 4/4** | 替代 sprint `20260703-agent-control-plane-convergence.sprint.md`；2026-07-10 复跑 Agent runtime `99/99`、Worker `252/252`、answer/evidence contract `ok` |
+| FastClaw `AgentRunner` adapter | **staging/smoke 已实现；production 未启用** | 独立 contract branch 的 `packages/agent-runtime/src/fastclaw-sandbox-smoke.ts` 实现既有 `AgentRunner`；production `runner_remote` 保持关闭 |
+| 付费用户专属 Agent provisioning | **产品生命周期已实现并通过 credentialed staging；production 未启用** | durable `(workspace_id, account_id)` profile/audit、live entitlement、activate/replay `1/1`、disable `403`、reactivate `1/1`、closed-account delete `0/0`、四条 audit 与 fixture cleanup 均通过 |
+| Cloudflare sandbox execution | **deterministic + live staging 已验收；production 未启用** | `apps/sandbox-bridge` + linked FastClaw `cloudflare` Executor/Pool；live serial `1/1`、并发 `10/10`、receipt/artifact/destroy/terminal readback 通过，临时 Worker/Container 已删除 |
+
+当前产品记录已经收紧为：
+
+1. 每个有 entitlement 的付费用户 provision 一个**专属 FastClaw Agent
+   identity/profile**；AiphaBee 持有映射、鉴权、计费、审计、停用和删除
+   authority。provision 失败必须 fail-closed/retryable，不得静默降级到共享
+   Agent。
+2. 专属 Agent 不等于 24x7 常驻 sandbox。sandbox 按 run/session 临时创建，
+   只拿 job-scoped token；批准的 artifact 同步到 AiphaBee-owned storage 后销毁。
+3. sandbox 生产主选为 **Cloudflare Sandbox SDK**；讨论中的
+   “Cloudbank”按 **Sandbank Cloud** (`sandbank.dev/cloud`) 记录，
+   `cloudbank.org` 是研究云资源经纪平台，不是本方案候选。
+4. Cloudflare 与 Sandbank Cloud 的最新官方价格、公式和 100/1,000/10,000
+   付费用户情境见
+   `docs/researches/20260709-fastclaw-sandbox-backend-selection.md`。Cloudflare
+   继续作为 production-primary；Sandbank Cloud 只保留成本比较/data-free
+   prototype，不进入合规生产路径。
+
+**以下 v0.1 内容仅保留历史 provenance。所有 E2B、shared-template fallback
+与未勾选 checklist 都已被上面的审计和替代 sprint 路由覆盖，不可直接执行。**
 
 版本：v0.1
 Sprint 长度：默认 2 周；Sprint 0 为 1 周技术预备。
@@ -821,7 +853,7 @@ public beta readiness
 * [ ] 定义 shared template → per-user clone 策略。
 * [ ] 新增 `fastclaw_agent_id` 字段。
 * [ ] 付费开通时 provision agent。
-* [ ] provision 失败时 fallback shared template。
+* [ ] provision 失败时标记 retryable/blocked 并停止；不得 fallback shared template。
 * [ ] provision job 可重试。
 * [ ] agent clone 带 research-only SOUL。
 * [ ] agent clone 带用户 risk profile。

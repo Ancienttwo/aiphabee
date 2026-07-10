@@ -1,0 +1,31 @@
+{
+  "version": "2026-07-10.fastclaw-aiphabee-staging.v1",
+  "status": "provisioned",
+  "database_topology": "shared_planetscale_staging_database",
+  "schema": "fastclaw_aiphabee",
+  "role": "fastclaw_aiphabee_staging",
+  "search_path": ["fastclaw_aiphabee", "pg_catalog"],
+  "role_attributes": {
+    "bypassrls": false,
+    "createdb": false,
+    "createrole": false,
+    "inherit": false,
+    "login": true,
+    "superuser": false
+  },
+  "forbidden_schemas": [
+    "platform",
+    "aiphabee_core",
+    "aiphabee_audit",
+    "devision",
+    "devision_drizzle",
+    "platform_audit"
+  ],
+  "provisioned": true,
+  "readback": {
+    "schema_owner": "fastclaw_aiphabee_staging",
+    "role_search_path": "fastclaw_aiphabee, pg_catalog",
+    "forbidden_table_write_grants": 0,
+    "database_create": false
+  }
+}

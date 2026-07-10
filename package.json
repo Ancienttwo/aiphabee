@@ -56,6 +56,7 @@
     "check:announcement-diff-extraction": "node scripts/check-announcement-diff-extraction-contract.mjs",
     "check:authorized-session-memory": "node scripts/check-authorized-session-memory-contract.mjs",
     "check:bindings": "node scripts/check-cloudflare-bindings-contract.mjs",
+    "check:fastclaw-aiphabee-staging": "node scripts/check-fastclaw-aiphabee-staging-contract.mjs",
     "check:budget-stop-policy": "node scripts/check-budget-stop-policy-contract.mjs",
     "check:chart-golden-set": "bash packages/chart-golden-set/scripts/check-golden-set.sh",
     "check:chart-parse-eval": "bash packages/chart-parse-eval/scripts/check-eval.sh",
@@ -77,6 +78,11 @@
     "check:planetscale-direct-preflight": "node scripts/check-planetscale-direct-preflight.mjs",
     "check:planetscale-remote-apply": "node scripts/apply-planetscale-migrations.mjs",
     "database:planetscale:apply": "node scripts/apply-planetscale-migrations.mjs --execute --use-keychain",
+    "netquity:schema": "node scripts/netquity-mirror/generate-schema.mjs",
+    "netquity:load": "node scripts/netquity-mirror/load.mjs",
+    "netquity:update": "node scripts/netquity-mirror/update.mjs",
+    "netquity:verify": "node scripts/netquity-mirror/verify.mjs",
+    "check:netquity-mirror": "node --test scripts/netquity-mirror/lib.test.mjs && node scripts/netquity-mirror/verify.mjs --self-test",
     "check:ipo-schema": "node scripts/check-ipo-schema-contract.mjs",
     "check:ipo-etl-manifest": "node scripts/check-ipo-etl-manifest.mjs",
     "check:hkex-news-ingest": "node scripts/check-hkex-news-ingest-contract.mjs",
@@ -242,6 +248,9 @@
     "smoke:cloudflare-resources-live": "node scripts/smoke-cloudflare-resources-live.mjs",
     "smoke:observability-live": "node scripts/smoke-observability-live.mjs",
     "smoke:provider-secret-stores-live": "node scripts/smoke-provider-secret-stores-live.mjs",
+    "smoke:fastclaw-cloudflare-sandbox": "node --import tsx scripts/smoke-fastclaw-cloudflare-sandbox.ts",
+    "serve:fastclaw-smoke-model": "node scripts/serve-fastclaw-smoke-model.mjs",
+    "check:fastclaw-cloudflare-sandbox-smoke": "node scripts/check-fastclaw-cloudflare-sandbox-smoke-contract.mjs",
     "data-ingest": "node packages/data-ingest/bin/data-ingest.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:brain-manifest": "repo-harness run check-brain-manifest",
@@ -270,7 +279,11 @@
     "check:current-release-readiness": "node scripts/check-current-release-readiness-contract.mjs",
     "check:live-smoke-operator-run-plan": "node scripts/check-live-smoke-operator-run-plan-contract.mjs"
   },
+  "dependencies": {
+    "pg": "^8.22.0"
+  },
   "devDependencies": {
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

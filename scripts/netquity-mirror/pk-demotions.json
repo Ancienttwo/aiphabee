@@ -1,0 +1,27 @@
+{
+  "version": "2026-07-09.netquity-pk-demotions.v0",
+  "description": "Explicit, evidence-backed exception register for scripts/netquity-mirror/generate-schema.mjs. Each entry demotes one table's documented composite primary key to a UNIQUE constraint instead of PRIMARY KEY, because a PostgreSQL PRIMARY KEY cannot hold NULL (relational invariant) and the vendor's delivered rows genuinely contain NULL in a documented key column. This is NOT a blanket rule -- it applies only to the exact schema/table/columns listed here. generate-schema.mjs fails hard if an entry does not match a generated table's actual PRIMARY KEY columns (protects against silent drift if a future vendor delivery changes the table's structure), and fails hard if any entry is never applied.",
+  "demotions": [
+    {
+      "schema": "nq_biography",
+      "table": "biography",
+      "columns": ["code", "engname", "capacity", "engtitle"],
+      "reason": "The private vendor dictionary and delivered MDB agree on this composite key, but a delivered row has NULL in one key member. PostgreSQL PRIMARY KEY cannot represent that source state, so the key is demoted to UNIQUE with default NULLS DISTINCT behavior while preserving uniqueness for fully non-NULL keys.",
+      "evidence": "Private evidence reference: _ref/tables/Master - Equity Securities Information (2022-06-15).doc, section F; failing key member engtitle. Exact licensed row content is intentionally excluded from this public repository."
+    },
+    {
+      "schema": "nq_corpact",
+      "table": "directorchange",
+      "columns": ["code", "announcedate", "effectivedate", "reasoncode", "engdirectorname", "engtitlename"],
+      "reason": "The private vendor dictionary and delivered MDB agree on this composite key, but a delivered row has NULL in one key member. PostgreSQL PRIMARY KEY cannot represent that source state, so the key is demoted to UNIQUE with default NULLS DISTINCT behavior while preserving uniqueness for fully non-NULL keys.",
+      "evidence": "Private evidence reference: _ref/tables/Master - Corporate Action Information (2022-04-25).doc, section B; failing key member engdirectorname. Exact licensed row content is intentionally excluded from this public repository."
+    },
+    {
+      "schema": "nq_etfdata2",
+      "table": "invest",
+      "columns": ["code", "enginvestname", "engsectorname", "sector_weight", "recorddate"],
+      "reason": "The private vendor dictionary and delivered MDB agree on this composite key, but a delivered row has NULL in one key member. PostgreSQL PRIMARY KEY cannot represent that source state, so the key is demoted to UNIQUE with default NULLS DISTINCT behavior while preserving uniqueness for fully non-NULL keys.",
+      "evidence": "Private evidence reference: _ref/tables/Master - Exchange Traded Funds (ETFs) Information (2025-11-12).doc, section J; failing key member engsectorname. Exact licensed row content is intentionally excluded from this public repository."
+    }
+  ]
+}
