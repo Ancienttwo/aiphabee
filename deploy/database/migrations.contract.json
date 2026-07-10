@@ -1468,6 +1468,29 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260711041000_authenticated_web_identity.sql",
+      "purpose": "Create the isolated Better Auth staging identity schema and converge platform.account.auth_subject without activating product data access.",
+      "schemas": [
+        "aiphabee_auth"
+      ],
+      "tables": [
+        "aiphabee_auth.user",
+        "aiphabee_auth.session",
+        "aiphabee_auth.account",
+        "aiphabee_auth.verification",
+        "aiphabee_auth.rateLimit"
+      ],
+      "indexes": [
+        "session_userId_idx",
+        "account_userId_idx",
+        "verification_identifier_idx",
+        "rateLimit_lastRequest_idx",
+        "platform_account_auth_subject_uidx"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

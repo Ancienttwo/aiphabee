@@ -1,35 +1,59 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { authClient } from "../auth-client";
 
 export interface Session {
-  userId: string;
-  email: string;
-  plan: string;
+  userId?: string;
+  email?: string;
+  name?: string;
   isAuthenticated: boolean;
+  isPending: boolean;
 }
 
-/**
- * Phase 1 placeholder session. Real auth (PRD ACC-01: email / social /
- * passwordless) lands once Gate 0 clears; until then the app runs as this
- * mock user so the full shell is reachable. The API client has an injection
- * point reserved for the auth token (not sent in Phase 1).
- */
-const MOCK_SESSION: Session = {
-  userId: "mock-user-001",
-  email: "researcher@aiphabee.dev",
-  plan: "explorer",
-  isAuthenticated: true,
+interface BetterAuthSessionUser {
+  email: string;
+  id: string;
+  name: string;
+}
+
+const ANONYMOUS_SESSION: Session = {
+  isAuthenticated: false,
+  isPending: false,
 };
 
-const SessionContext = createContext<Session>(MOCK_SESSION);
+const SessionContext = createContext<Session>(ANONYMOUS_SESSION);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const { data, isPending } = authClient.useSession();
+  const value = useMemo(
+    () => toSessionState(data?.user, isPending),
+    [data?.user, isPending],
+  );
+
   return (
-    <SessionContext.Provider value={MOCK_SESSION}>
-      {children}
-    </SessionContext.Provider>
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
   );
 }
 
 export function useSession(): Session {
   return useContext(SessionContext);
+}
+
+export function toSessionState(
+  user: BetterAuthSessionUser | null | undefined,
+  isPending: boolean,
+): Session {
+  if (!user) {
+    return {
+      isAuthenticated: false,
+      isPending,
+    };
+  }
+
+  return {
+    email: user.email,
+    isAuthenticated: true,
+    isPending,
+    name: user.name,
+    userId: user.id,
+  };
 }

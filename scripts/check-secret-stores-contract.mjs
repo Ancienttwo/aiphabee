@@ -5,7 +5,11 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const contractPath = "deploy/secrets/stores.contract.json";
 const envSchemaPath = "deploy/env/env.schema.json";
-const requiredProviders = ["cloudflare_workers", "github_actions"];
+const requiredProviders = [
+  "cloudflare_workers",
+  "cloudflare_web_staging",
+  "github_actions"
+];
 const requiredProviderFields = [
   "name",
   "status",
@@ -149,6 +153,30 @@ function validateProviders(value, allowedSecretNames) {
   for (const providerName of requiredProviders) {
     if (!providerNames.has(providerName)) {
       errors.push(`missing provider ${providerName}`);
+    }
+  }
+
+  const webProvider = value.find((provider) => provider?.name === "cloudflare_web_staging");
+  if (webProvider) {
+    if (webProvider.scope !== "aiphabee-web-staging authentication runtime only") {
+      errors.push("cloudflare_web_staging scope must be staging Web auth only");
+    }
+    for (const [field, expected] of [
+      ["set_command", "wrangler secret put <SECRET_NAME> --name aiphabee-web-staging"],
+      ["list_command", "wrangler secret list --name aiphabee-web-staging"],
+      ["delete_command", "wrangler secret delete <SECRET_NAME> --name aiphabee-web-staging"]
+    ]) {
+      if (webProvider[field] !== expected) {
+        errors.push(`cloudflare_web_staging.${field} must target aiphabee-web-staging`);
+      }
+    }
+    const expectedWebSecrets = [
+      "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
+      "BETTER_AUTH_SECRET",
+      "GITHUB_CLIENT_SECRET"
+    ].sort();
+    if ([...(webProvider.stores ?? [])].sort().join("\n") !== expectedWebSecrets.join("\n")) {
+      errors.push("cloudflare_web_staging stores must contain exactly the three runtime auth secrets");
     }
   }
 

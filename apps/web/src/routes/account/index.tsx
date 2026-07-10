@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "../../ds";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "../../ds";
 import { KV } from "../../components/KV";
 import { Disclaimer } from "../../components/Disclaimer";
 import { useSession } from "../../lib/context/SessionContext";
-import { getAccountRuntime } from "../../lib/api";
+import { authClient } from "../../lib/auth-client";
 import { SHELL } from "../../lib/ui";
 
 export const Route = createFileRoute("/account/")({
@@ -13,11 +14,42 @@ export const Route = createFileRoute("/account/")({
 
 function Account() {
   const session = useSession();
-  const { data: env, isLoading } = useQuery({
-    queryKey: ["account-runtime"],
-    queryFn: getAccountRuntime,
-  });
-  const online = env?.ok === true;
+  const [action, setAction] = useState<"idle" | "logout" | "revoke">("idle");
+  const [actionError, setActionError] = useState<string>();
+
+  const signOut = async () => {
+    setAction("logout");
+    setActionError(undefined);
+    try {
+      const result = await authClient.signOut();
+      if (result.error) {
+        setAction("idle");
+        setActionError("退出失败，会话仍保持有效。请重试。");
+        return;
+      }
+      window.location.assign("/login");
+    } catch {
+      setAction("idle");
+      setActionError("认证服务暂时不可用，会话仍保持有效。");
+    }
+  };
+
+  const revokeSessions = async () => {
+    setAction("revoke");
+    setActionError(undefined);
+    try {
+      const result = await authClient.revokeSessions();
+      if (result.error) {
+        setAction("idle");
+        setActionError("撤销失败，现有会话未被确认失效。请重试。");
+        return;
+      }
+      window.location.assign("/login");
+    } catch {
+      setAction("idle");
+      setActionError("认证服务暂时不可用，现有会话未被确认失效。");
+    }
+  };
 
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
@@ -33,25 +65,45 @@ function Account() {
         账户
       </h1>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        真实登录（邮箱 / 社交 / 无密码）与订阅、用量、隐私管理将在 Gate 0 通过后接入。当前为占位会话。
+        staging 使用 GitHub OAuth 建立真实会话。工作区、套餐和数据权限不会从会话或邮箱推断。
       </p>
 
       <Card style={{ maxWidth: 560 }}>
         <CardHeader>
-          <CardTitle>当前会话（占位）</CardTitle>
+          <CardTitle>当前会话</CardTitle>
         </CardHeader>
         <CardContent>
-          <KV label="邮箱" value={session.email} mono />
-          <KV label="套餐" value={<Badge tone="honey" variant="soft" size="sm">{session.plan}</Badge>} />
-          <KV label="认证状态" value={session.isAuthenticated ? "已登录（占位）" : "未登录"} />
-          <KV
-            label="后端账户能力"
-            value={
-              <Badge tone={online ? "bullish" : "neutral"} variant="soft" size="sm" dot>
-                {isLoading ? "检查中…" : online ? "在线（合成）" : "未连接"}
-              </Badge>
-            }
-          />
+          {session.isPending ? (
+            <KV label="认证状态" value="检查中…" />
+          ) : session.isAuthenticated ? (
+            <>
+              <KV label="名称" value={session.name ?? "—"} />
+              <KV label="邮箱" value={session.email ?? "—"} mono />
+              <KV label="用户 ID" value={session.userId ?? "—"} mono />
+              <KV
+                label="认证状态"
+                value={<Badge tone="bullish" variant="soft" size="sm">Better Auth 已认证</Badge>}
+              />
+              <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
+                <Button type="button" variant="outline" onClick={signOut} disabled={action !== "idle"}>
+                  退出当前会话
+                </Button>
+                <Button type="button" variant="danger" onClick={revokeSessions} disabled={action !== "idle"}>
+                  撤销全部会话
+                </Button>
+              </div>
+              {actionError ? (
+                <p role="alert" style={{ color: "var(--red-600)", marginBottom: 0 }}>
+                  {actionError}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <KV label="认证状态" value="未登录" />
+              <Link to="/login">前往登录</Link>
+            </>
+          )}
         </CardContent>
       </Card>
 
