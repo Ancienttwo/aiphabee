@@ -694,7 +694,10 @@ const AUTHORITY_SQL = `select
   ) as entitlement_approved`;
 
 export interface ResearchAgentLifecycleBindings {
-  AIPHABEE_HYPERDRIVE?: { connectionString?: string };
+  AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE?: { connectionString?: string };
+  FASTCLAW_CONTROL_SERVICE?: {
+    fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+  };
   FASTCLAW_ADMIN_API_KEY?: string;
   FASTCLAW_BASE_URL?: string;
   FASTCLAW_TEMPLATE_AGENT_ID?: string;
@@ -704,10 +707,12 @@ export async function runResearchAgentLifecycle(
   bindings: ResearchAgentLifecycleBindings,
   request: ResearchAgentLifecycleRequest
 ): Promise<ResearchAgentLifecycleResult> {
-  const connectionString = bindings.AIPHABEE_HYPERDRIVE?.connectionString?.trim();
+  const connectionString =
+    bindings.AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE?.connectionString?.trim();
   if (
     connectionString === undefined ||
     connectionString.length === 0 ||
+    bindings.FASTCLAW_CONTROL_SERVICE === undefined ||
     bindings.FASTCLAW_ADMIN_API_KEY?.trim() === "" ||
     bindings.FASTCLAW_ADMIN_API_KEY === undefined ||
     bindings.FASTCLAW_BASE_URL?.trim() === "" ||
@@ -717,7 +722,7 @@ export async function runResearchAgentLifecycle(
   ) {
     throw new FastClawLifecycleError(
       "INVALID_LIFECYCLE_CONFIG",
-      "research Agent lifecycle requires Hyperdrive and FastClaw control-plane bindings"
+      "research Agent lifecycle requires its dedicated control-plane Hyperdrive, FastClaw service binding, and FastClaw configuration"
     );
   }
   const client = new Client({ connectionString });
@@ -727,6 +732,7 @@ export async function runResearchAgentLifecycle(
     const remote = new FastClawLifecycleClient({
       adminApiKey: bindings.FASTCLAW_ADMIN_API_KEY,
       baseUrl: bindings.FASTCLAW_BASE_URL,
+      fetch: (input, init) => bindings.FASTCLAW_CONTROL_SERVICE!.fetch(input, init),
       templateAgentId: bindings.FASTCLAW_TEMPLATE_AGENT_ID
     });
     return await new ResearchAgentLifecycleService({ remote, repository }).execute(request);

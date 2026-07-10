@@ -41,6 +41,10 @@
         {
           "binding": "HYPERDRIVE",
           "id": "1e83eb563db44746a168175e065cc958"
+        },
+        {
+          "binding": "AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE",
+          "id": "2c08f46ff87343bfbdd7cd9c0d62f10d"
         }
       ]
     }

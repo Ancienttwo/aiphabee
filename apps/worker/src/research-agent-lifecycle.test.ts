@@ -6,6 +6,7 @@ import {
 } from "@aiphabee/agent-runtime/fastclaw-lifecycle";
 import {
   ResearchAgentLifecycleService,
+  runResearchAgentLifecycle,
   type ResearchAgentAuthoritySnapshot,
   type ResearchAgentLifecycleEvent,
   type ResearchAgentLifecycleProfile,
@@ -145,6 +146,33 @@ function request(intent: "activate" | "disable" | "delete", requestId = `req-${i
 }
 
 describe("ResearchAgentLifecycleService", () => {
+  it("requires the dedicated control-plane Hyperdrive instead of the user runtime binding", async () => {
+    await expect(
+      runResearchAgentLifecycle(
+        {
+          AIPHABEE_HYPERDRIVE: { connectionString: "postgresql://runtime.invalid/db" }
+        } as unknown as Parameters<typeof runResearchAgentLifecycle>[0],
+        request("activate")
+      )
+    ).rejects.toMatchObject({ code: "INVALID_LIFECYCLE_CONFIG" });
+  });
+
+  it("requires the FastClaw service binding before opening the control database", async () => {
+    await expect(
+      runResearchAgentLifecycle(
+        {
+          AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE: {
+            connectionString: "postgresql://control.invalid/db"
+          },
+          FASTCLAW_ADMIN_API_KEY: "admin-key",
+          FASTCLAW_BASE_URL: "https://fastclaw.invalid",
+          FASTCLAW_TEMPLATE_AGENT_ID: "agt_template"
+        },
+        request("activate")
+      )
+    ).rejects.toMatchObject({ code: "INVALID_LIFECYCLE_CONFIG" });
+  });
+
   it("activates one dedicated user and Agent under the authoritative entitlement", async () => {
     const repository = new MemoryRepository();
     const remote = {

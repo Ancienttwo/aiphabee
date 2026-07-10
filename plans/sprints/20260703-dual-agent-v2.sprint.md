@@ -3,7 +3,7 @@
 > **Status**: Archived
 > **Slug**: dual-agent-v2
 > **Created**: 2026-07-03
-> **Updated**: 2026-07-10 04:10 +0800
+> **Updated**: 2026-07-10 15:30 +0800
 > **Superseded By**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`, `plans/sprints/20260703-agent-control-plane-convergence.sprint.md`
 
 This file originally mixed a review memo, architecture recommendation, multi-phase plan, and sprint tracker. It is intentionally no longer the executable sprint artifact.
@@ -50,9 +50,18 @@ Decision carried forward:
   FastClaw branches. It provisions a disposable dedicated Agent per smoke,
   runs through the Cloudflare Bridge/Executor seam, verifies structured exec
   receipt + direct artifact hash, and terminally destroys the sandbox.
-- Production completeness is still **partial**: no durable user→Agent mapping,
-  entitlement/billing/disable/delete lifecycle, production runner cutover, or
-  live Cloudflare deploy/readback. Live state is explicitly
-  `not_run_missing_credentials`.
+- Follow-on lifecycle contract
+  `plan-20260710-1129-fastclaw-dedicated-agent-lifecycle` is complete through
+  credentialed staging: durable `(workspace_id, account_id)` profile/audit,
+  live entitlement, idempotent one-user/one-Agent activate + replay,
+  disable/reactivate, closed-account delete, and full fixture cleanup all pass.
+- Cloudflare live state is verified: Sandbox serial `1/1` and concurrency
+  `10/10`; lifecycle acceptance used a dedicated control Hyperdrive and a
+  temporary service-bound FastClaw Container. Temporary Workers, Containers,
+  images, and secrets were removed after readback.
+- Production completeness remains **partial**: persistent FastClaw
+  service/storage, public onboarding/billing event source, production
+  `runner_remote`, actual invoice attribution, and long-lived feature
+  enablement are not shipped.
 - This redirect remains Archived; executable truth lives in the new contract,
   not in the historical checklist below.

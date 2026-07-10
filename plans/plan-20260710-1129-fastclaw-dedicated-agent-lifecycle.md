@@ -160,9 +160,19 @@ Base a stacked AiphaBee contract worktree on `3ac36e6`; do not touch the primary
 - Staging acceptance, when credentials are present: create an isolated entitlement fixture; activate twice and prove one user/Agent; disable and prove local denial plus FastClaw denial; reactivate the same identity; close/delete and prove remote absence, local tombstone, and audit; then clean the fixture.
 - Missing credentials are `not_run_missing_credentials`, never PASS.
 
+Live acceptance completed on 2026-07-10. Shared staging PlanetScale received
+only its two missing authority tables plus the additive lifecycle migration;
+lifecycle access used a dedicated table-scoped BYPASSRLS role through
+caching-disabled Hyperdrive `2c08f46ff87343bfbdd7cd9c0d62f10d`. A temporary
+FastClaw Cloudflare Container was connected by `FASTCLAW_CONTROL_SERVICE` and
+proved activate/replay `1/1`, disable HTTP `403`, reactivate `1/1`, delete
+`0/0`, local `deleted`, four audit events, and 11-row fixture cleanup. The
+temporary Worker/Container/images and lifecycle secrets were removed; the
+canonical staging Worker was redeployed with the feature disabled.
+
 ## Rollout and rollback
 
-Deploy FastClaw prerequisite first, then apply the additive DB migration, then deploy AiphaBee with the lifecycle flag off. Enable only in staging for acceptance. Production runner remains disabled. Roll back by disabling the lifecycle flag and reverting application commits; retain additive schema/tombstones for audit rather than performing a destructive down migration.
+Deploy FastClaw prerequisite first, then apply the additive DB migration, then deploy AiphaBee with the lifecycle flag off. Cloudflare deployments use an explicit FastClaw service binding; missing service authority fails closed. Enable only in staging for acceptance. Production runner remains disabled. Roll back by disabling the lifecycle flag and reverting application commits; retain additive schema/tombstones for audit rather than performing a destructive down migration.
 
 ## Scale and failure boundary
 

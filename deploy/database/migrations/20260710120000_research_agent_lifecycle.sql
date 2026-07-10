@@ -67,6 +67,64 @@ create table if not exists aiphabee_audit.research_agent_lifecycle_event (
   unique (profile_id, request_id)
 );
 
+alter table aiphabee_core.research_agent_profile enable row level security;
+alter table aiphabee_core.research_agent_profile force row level security;
+
+alter table aiphabee_audit.research_agent_lifecycle_event enable row level security;
+alter table aiphabee_audit.research_agent_lifecycle_event force row level security;
+
+do $do$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'aiphabee_core'
+      and tablename = 'research_agent_profile'
+      and policyname = 'research_agent_profile_account_scope'
+  ) then
+    create policy research_agent_profile_account_scope
+    on aiphabee_core.research_agent_profile
+    for all
+    using (
+      account_id = (select platform.current_account_id())
+      and (select platform.is_workspace_member(workspace_id))
+    )
+    with check (
+      account_id = (select platform.current_account_id())
+      and (select platform.is_workspace_member(workspace_id))
+    );
+  end if;
+end $do$;
+
+do $do$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'aiphabee_audit'
+      and tablename = 'research_agent_lifecycle_event'
+      and policyname = 'research_agent_lifecycle_event_account_scope'
+  ) then
+    create policy research_agent_lifecycle_event_account_scope
+    on aiphabee_audit.research_agent_lifecycle_event
+    for all
+    using (
+      exists (
+        select 1
+        from aiphabee_core.research_agent_profile profile
+        where profile.profile_id = research_agent_lifecycle_event.profile_id
+          and profile.account_id = (select platform.current_account_id())
+          and (select platform.is_workspace_member(profile.workspace_id))
+      )
+    )
+    with check (
+      exists (
+        select 1
+        from aiphabee_core.research_agent_profile profile
+        where profile.profile_id = research_agent_lifecycle_event.profile_id
+          and profile.account_id = (select platform.current_account_id())
+          and (select platform.is_workspace_member(profile.workspace_id))
+      )
+    );
+  end if;
+end $do$;
+
 create index if not exists research_agent_profile_workspace_status_idx
   on aiphabee_core.research_agent_profile (workspace_id, lifecycle_status);
 

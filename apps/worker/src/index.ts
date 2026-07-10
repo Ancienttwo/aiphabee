@@ -442,6 +442,8 @@ interface WorkerBindings {
   AIPHABEE_EVAL_STORE?: RuntimeD1Database;
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
+  AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE?: RuntimeHyperdrive;
+  FASTCLAW_CONTROL_SERVICE?: RuntimeFetcher;
   AIPHABEE_RUN_COORDINATOR?: RuntimeDurableObjectNamespace;
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
   AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED?: string;
@@ -500,6 +502,10 @@ interface RuntimeQueue {
 
 interface RuntimeHyperdrive {
   connectionString?: string;
+}
+
+interface RuntimeFetcher {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
 
 interface IpoServingOfferingRow {

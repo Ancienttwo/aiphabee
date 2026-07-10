@@ -122,10 +122,17 @@ non-goal. It now has a separate executable contract branch:
 Current readback on that separate branch: `FastClawSandboxSmokeRunner`
 implements the existing `AgentRunner` contract; the linked FastClaw branch
 implements `cloudflare` through `Executor/ExecutorPool`; deterministic receipt,
-artifact and cleanup tests pass. This is staging/smoke scope only: production
-`runner_remote`, durable user-to-agent mapping/entitlement lifecycle, Cloudflare
-live deploy, and actual provider billing remain incomplete. Missing credentials
-are recorded as `not_run_missing_credentials`, not as a live PASS.
+artifact and cleanup tests pass. The Cloudflare Sandbox path also completed live
+serial `1/1` and concurrent `10/10` smoke with explicit Container rollback.
+The follow-on dedicated-Agent lifecycle then completed credentialed staging
+acceptance: activate/replay and reactivate stayed at one FastClaw user + Agent,
+disable was denied by FastClaw with HTTP `403`, closed-account delete reached
+remote `0/0`, local `deleted`, four audit events, and complete fixture cleanup.
+Lifecycle DB authority is now a dedicated caching-disabled Hyperdrive plus
+table-scoped control role; FastClaw is reached through a Cloudflare service
+binding, not a public-network fallback. Production `runner_remote`, persistent
+FastClaw service/storage, public onboarding, actual provider billing, and
+long-lived feature enablement remain incomplete.
 
 ## Execution Log
 

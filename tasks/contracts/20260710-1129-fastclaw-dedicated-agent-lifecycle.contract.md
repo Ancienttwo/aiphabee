@@ -95,6 +95,8 @@ allowed_paths:
   - packages/agent-runtime/package.json
   - packages/agent-runtime/src/
   - apps/worker/src/
+  - apps/worker/wrangler.jsonc
+  - deploy/cloudflare/bindings.contract.json
 ```
 
 ## Delegation Contract

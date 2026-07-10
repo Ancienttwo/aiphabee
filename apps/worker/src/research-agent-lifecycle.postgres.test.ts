@@ -85,6 +85,30 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     expect(provisionUser).toHaveBeenCalledOnce();
     expect(provisionAgent).toHaveBeenCalledOnce();
 
+    await client.query("grant usage on schema platform to aiphabee_runtime_rls");
+    await client.query(
+      "grant execute on function platform.current_account_id(), platform.is_workspace_member(text) to aiphabee_runtime_rls"
+    );
+    await client.query(
+      "grant select on platform.account, platform.workspace_membership to aiphabee_runtime_rls"
+    );
+    await client.query("grant usage on schema aiphabee_core, aiphabee_audit to aiphabee_runtime_rls");
+    await client.query(
+      "grant select on aiphabee_core.research_agent_profile, aiphabee_audit.research_agent_lifecycle_event to aiphabee_runtime_rls"
+    );
+    await client.query("set role aiphabee_runtime_rls");
+    await client.query("select set_config('aiphabee.account_id', 'account-test', false)");
+    const ownProfile = await client.query<{ count: string }>(
+      "select count(*)::text as count from aiphabee_core.research_agent_profile"
+    );
+    expect(ownProfile.rows[0]?.count).toBe("1");
+    await client.query("select set_config('aiphabee.account_id', 'account-other', false)");
+    const otherProfile = await client.query<{ count: string }>(
+      "select count(*)::text as count from aiphabee_core.research_agent_profile"
+    );
+    expect(otherProfile.rows[0]?.count).toBe("0");
+    await client.query("reset role");
+
     await expect(
       service.execute({
         ...activate,
@@ -129,6 +153,7 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
 
 const PREREQUISITE_SQL = `
 create schema platform;
+create role aiphabee_runtime_rls nologin;
 create table platform.account (
   account_id text primary key,
   status text not null
@@ -187,7 +212,33 @@ create table platform.workspace_entitlement (
   status text not null,
   valid_from timestamptz not null,
   valid_to timestamptz
-);`;
+);
+create or replace function platform.current_account_id()
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select nullif(current_setting('aiphabee.account_id', true), '')
+$$;
+create or replace function platform.is_workspace_member(target_workspace_id text)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from platform.workspace_membership membership
+    join platform.account account on account.account_id = membership.account_id
+    where membership.workspace_id = target_workspace_id
+      and membership.account_id = (select platform.current_account_id())
+      and membership.status = 'active'
+      and membership.valid_from <= now()
+      and (membership.valid_to is null or membership.valid_to > now())
+      and account.status = 'active'
+  )
+$$;`;
 
 const SEED_SQL = `
 insert into platform.account values ('account-test', 'active');
