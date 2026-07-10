@@ -109,6 +109,8 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
     if (this.profile === undefined) throw new Error("profile missing");
     this.profile = {
       ...this.profile,
+      fastclaw_agent_id: input.fastclawAgentId ?? this.profile.fastclaw_agent_id,
+      fastclaw_user_id: input.fastclawUserId ?? this.profile.fastclaw_user_id,
       lifecycle_status:
         input.outcome === "retryable_failure"
           ? "blocked_retryable"
@@ -317,6 +319,38 @@ describe("ResearchAgentLifecycleService", () => {
       outcome: "retryable_failure",
       retryable: true
     });
+  });
+
+  it("retains a partially provisioned remote user so a later disable cannot terminal-shortcut it", async () => {
+    const repository = new MemoryRepository();
+    const setUserStatus = vi.fn(async (_userId: string, status: "active" | "disabled") => ({
+      status
+    }));
+    const remote = {
+      provisionAgent: vi.fn(async () => {
+        throw new FastClawLifecycleError("FASTCLAW_UNAVAILABLE", "unavailable", true);
+      }),
+      provisionUser: vi.fn(async (externalId: string) => ({
+        external_id: externalId,
+        user_id: "u_partial"
+      })),
+      removeUser: vi.fn(),
+      setUserStatus
+    };
+    const service = new ResearchAgentLifecycleService({ remote, repository });
+
+    await expect(service.execute(request("activate", "req-partial-activate"))).resolves.toMatchObject({
+      lifecycle_status: "blocked_retryable",
+      outcome: "retryable_failure"
+    });
+    expect(repository.profile?.fastclaw_user_id).toBe("u_partial");
+
+    await expect(service.execute(request("disable", "req-disable-partial"))).resolves.toMatchObject({
+      lifecycle_status: "disabled",
+      outcome: "succeeded"
+    });
+    expect(setUserStatus).toHaveBeenCalledWith("u_partial", "disabled");
+    expect(remote.provisionUser).toHaveBeenCalledOnce();
   });
 
   it("does not advertise retry for a non-retryable FastClaw failure", async () => {

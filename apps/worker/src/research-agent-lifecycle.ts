@@ -154,6 +154,17 @@ export class ResearchAgentLifecycleInputError extends Error {
   }
 }
 
+class ResearchAgentRemoteReconcileError extends Error {
+  constructor(
+    readonly remoteCause: unknown,
+    readonly fastclawUserId?: string,
+    readonly fastclawAgentId?: string
+  ) {
+    super("FastClaw reconciliation failed after a partial remote transition");
+    this.name = "ResearchAgentRemoteReconcileError";
+  }
+}
+
 export class ResearchAgentLifecycleService {
   private readonly remote: FastClawLifecycleRemote;
   private readonly repository: ResearchAgentLifecycleRepository;
@@ -279,16 +290,26 @@ export class ResearchAgentLifecycleService {
       });
       return resultFromEvent(completed.event, desiredState);
     } catch (error) {
+      const remoteError =
+        error instanceof ResearchAgentRemoteReconcileError ? error.remoteCause : error;
       const code =
-        error instanceof FastClawLifecycleError ? error.code : "RESEARCH_AGENT_LIFECYCLE_FAILED";
+        remoteError instanceof FastClawLifecycleError
+          ? remoteError.code
+          : "RESEARCH_AGENT_LIFECYCLE_FAILED";
       const outcome =
-        error instanceof FastClawLifecycleError && error.retryable
+        remoteError instanceof FastClawLifecycleError && remoteError.retryable
           ? "retryable_failure"
           : "internal_failure";
       const completed = await this.repository.finalizeFailure({
         errorCode: code,
-        fastclawAgentId: claim.profile.fastclaw_agent_id,
-        fastclawUserId: claim.profile.fastclaw_user_id,
+        fastclawAgentId:
+          error instanceof ResearchAgentRemoteReconcileError
+            ? error.fastclawAgentId
+            : claim.profile.fastclaw_agent_id,
+        fastclawUserId:
+          error instanceof ResearchAgentRemoteReconcileError
+            ? error.fastclawUserId
+            : claim.profile.fastclaw_user_id,
         fromStatus: claim.previousStatus,
         intent: request.intent,
         outcome,
@@ -306,31 +327,33 @@ export class ResearchAgentLifecycleService {
     externalIdentity: string,
     agentExternalIdentity: string
   ): Promise<{ fastclawAgentId?: string; fastclawUserId?: string }> {
-    if (intent === "activate") {
-      let userId = profile.fastclaw_user_id;
-      let agentId = profile.fastclaw_agent_id;
-      if (userId !== undefined) {
-        await this.remote.setUserStatus(userId, "active");
-      } else {
-        userId = (await this.remote.provisionUser(externalIdentity)).user_id;
+    let userId = profile.fastclaw_user_id;
+    let agentId = profile.fastclaw_agent_id;
+    try {
+      if (intent === "activate") {
+        if (userId !== undefined) {
+          await this.remote.setUserStatus(userId, "active");
+        } else {
+          userId = (await this.remote.provisionUser(externalIdentity)).user_id;
+        }
+        if (agentId === undefined) {
+          agentId = (await this.remote.provisionAgent(userId, agentExternalIdentity)).agent_id;
+        }
+        return { fastclawAgentId: agentId, fastclawUserId: userId };
       }
-      if (agentId === undefined) {
-        agentId = (await this.remote.provisionAgent(userId, agentExternalIdentity)).agent_id;
+
+      if (intent === "disable") {
+        userId ??= (await this.remote.provisionUser(externalIdentity)).user_id;
+        await this.remote.setUserStatus(userId, "disabled");
+        return { fastclawAgentId: agentId, fastclawUserId: userId };
       }
-      return { fastclawAgentId: agentId, fastclawUserId: userId };
-    }
 
-    if (intent === "disable") {
-      const userId =
-        profile.fastclaw_user_id ?? (await this.remote.provisionUser(externalIdentity)).user_id;
-      await this.remote.setUserStatus(userId, "disabled");
-      return { fastclawAgentId: profile.fastclaw_agent_id, fastclawUserId: userId };
+      userId ??= (await this.remote.provisionUser(externalIdentity)).user_id;
+      await this.remote.removeUser(userId);
+      return {};
+    } catch (error) {
+      throw new ResearchAgentRemoteReconcileError(error, userId, agentId);
     }
-
-    const userId =
-      profile.fastclaw_user_id ?? (await this.remote.provisionUser(externalIdentity)).user_id;
-    await this.remote.removeUser(userId);
-    return {};
   }
 }
 
@@ -554,6 +577,8 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
     const result = await this.client.query<ProfileRow>(
       `update aiphabee_core.research_agent_profile
       set lifecycle_status = $3,
+          fastclaw_user_id = coalesce($5, fastclaw_user_id),
+          fastclaw_agent_id = coalesce($6, fastclaw_agent_id),
           lease_owner_request_id = null,
           lease_expires_at = null,
           last_error_code = $4,
@@ -565,7 +590,9 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
         input.profile.profile_id,
         input.requestId,
         failureStatus,
-        input.errorCode ?? "RESEARCH_AGENT_LIFECYCLE_FAILED"
+        input.errorCode ?? "RESEARCH_AGENT_LIFECYCLE_FAILED",
+        input.fastclawUserId ?? null,
+        input.fastclawAgentId ?? null
       ]
     );
     const profile = normalizeProfile(result.rows[0]);

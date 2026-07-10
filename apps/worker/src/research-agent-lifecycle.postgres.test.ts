@@ -4,6 +4,7 @@ import { fileURLToPath, URL as NodeURL } from "node:url";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { FastClawLifecycleError } from "@aiphabee/agent-runtime/fastclaw-lifecycle";
 import {
   PostgresResearchAgentLifecycleRepository,
   ResearchAgentLifecycleService
@@ -201,6 +202,65 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     );
     expect(audit.rows[0]?.count).toBe("4");
   });
+
+  it("persists a partial FastClaw user before a failed Agent provision", async () => {
+    const repository = new PostgresResearchAgentLifecycleRepository(client);
+    const provisionUser = vi.fn(async (externalId: string) => ({
+      external_id: externalId,
+      user_id: "u_partial"
+    }));
+    const provisionAgent = vi.fn(async () => {
+      throw new FastClawLifecycleError("FASTCLAW_UNAVAILABLE", "unavailable", true);
+    });
+    const setUserStatus = vi.fn(async (_userId: string, status: "active" | "disabled") => ({
+      status
+    }));
+    const service = new ResearchAgentLifecycleService({
+      remote: {
+        provisionAgent,
+        provisionUser,
+        removeUser: vi.fn(),
+        setUserStatus
+      },
+      repository
+    });
+
+    await expect(
+      service.execute({
+        accountId: "account-partial",
+        intent: "activate",
+        reason: "partial provision regression",
+        requestId: "req-partial-activate",
+        workspaceId: "workspace-partial"
+      })
+    ).resolves.toMatchObject({
+      lifecycle_status: "blocked_retryable",
+      outcome: "retryable_failure"
+    });
+    const partialProfile = await client.query<{
+      fastclaw_agent_id: string | null;
+      fastclaw_user_id: string | null;
+    }>(
+      `select fastclaw_user_id, fastclaw_agent_id
+       from aiphabee_core.research_agent_profile
+       where workspace_id = 'workspace-partial'`
+    );
+    expect(partialProfile.rows).toEqual([
+      { fastclaw_agent_id: null, fastclaw_user_id: "u_partial" }
+    ]);
+
+    await expect(
+      service.execute({
+        accountId: "account-partial",
+        intent: "disable",
+        reason: "disable retained partial user",
+        requestId: "req-partial-disable",
+        workspaceId: "workspace-partial"
+      })
+    ).resolves.toMatchObject({ lifecycle_status: "disabled", outcome: "succeeded" });
+    expect(setUserStatus).toHaveBeenCalledWith("u_partial", "disabled");
+    expect(provisionUser).toHaveBeenCalledOnce();
+  });
 });
 
 const PREREQUISITE_SQL = `
@@ -315,5 +375,20 @@ insert into platform.workspace_product_access values (
 );
 insert into platform.workspace_entitlement values (
   'entitlement-test', 'workspace-test', 'aiphabee', 'research_agent_enabled', 'approved',
+  now() - interval '1 day', null
+);
+insert into platform.account values ('account-partial', 'active');
+insert into platform.workspace values ('workspace-partial', 'account-partial', 'active');
+insert into platform.workspace_membership values (
+  'membership-partial', 'workspace-partial', 'account-partial', 'active', now() - interval '1 day', null
+);
+insert into platform.workspace_subscription values (
+  'subscription-partial', 'workspace-partial', 'pro', 'active', now() - interval '1 day', null
+);
+insert into platform.workspace_product_access values (
+  'access-partial', 'workspace-partial', 'aiphabee', 'active', 'policy-v1', now() - interval '1 day', null
+);
+insert into platform.workspace_entitlement values (
+  'entitlement-partial', 'workspace-partial', 'aiphabee', 'research_agent_enabled', 'approved',
   now() - interval '1 day', null
 );`;
