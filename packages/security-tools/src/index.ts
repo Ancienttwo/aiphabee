@@ -3,6 +3,8 @@ import type { ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
 export const RESOLVE_SECURITY_VERSION =
   "2026-06-21.phase1.resolve-security-tool-scaffold.v0";
 export const RESOLVE_SECURITY_DATA_VERSION = "security-tools-synthetic-v0";
+export const RESOLVE_SECURITY_LIVE_VERSION =
+  "2026-07-11.netquity-security-resolution-live.v1";
 export const GET_SECURITY_PROFILE_VERSION =
   "2026-06-21.phase1.get-security-profile-tool-scaffold.v0";
 export const GET_SECURITY_PROFILE_DATA_VERSION = "security-profile-synthetic-v0";
@@ -19,6 +21,9 @@ export type ResolveSecurityMatchReason =
   | "name"
   | "symbol";
 export type ResolveSecurityInputErrorCode = "QUERY_REQUIRED";
+export type ResolveLiveSecurityReadbackErrorCode =
+  | "CANDIDATE_LIMIT_EXCEEDED"
+  | "MALFORMED_LIVE_ROW";
 export type GetSecurityProfileInputErrorCode = "INSTRUMENT_ID_REQUIRED";
 export type GetSecurityHistoryInputErrorCode =
   | "AS_OF_REQUIRED"
@@ -38,7 +43,7 @@ export interface ResolveSecurityCandidate {
   currency: string;
   exchange: string;
   instrumentId: string;
-  listingId: string;
+  listingId?: string;
   market: string;
   matchReason: ResolveSecurityMatchReason;
   name: {
@@ -48,7 +53,7 @@ export interface ResolveSecurityCandidate {
   };
   status: SecurityListingStatus;
   symbol: string;
-  validFrom: string;
+  validFrom?: string;
   validTo?: string;
 }
 
@@ -59,6 +64,37 @@ export interface ResolveSecurityResult {
   liveDataAccess: false;
   market?: string;
   methodologyVersion: typeof RESOLVE_SECURITY_VERSION;
+  normalizedQuery: string;
+  provenance: ProvenanceRef[];
+  query: string;
+  selectedInstrumentId?: string;
+  status: ResolveSecurityStatus;
+  toolName: "resolve_security";
+  usage: UsageSummary;
+}
+
+export interface ResolveLiveSecurityRow {
+  data_version: string;
+  entity_id: string;
+  match_reason: unknown;
+  payload: unknown;
+  source_record_id: string;
+}
+
+export interface ResolveLiveSecurityRowsInput {
+  asOf: string;
+  dataVersion: string;
+  market?: string;
+  query: string;
+}
+
+export interface ResolveLiveSecurityResult {
+  asOf: string;
+  candidates: ResolveSecurityCandidate[];
+  dataVersion: string;
+  liveDataAccess: true;
+  market?: string;
+  methodologyVersion: typeof RESOLVE_SECURITY_LIVE_VERSION;
   normalizedQuery: string;
   provenance: ProvenanceRef[];
   query: string;
@@ -218,6 +254,15 @@ export class ResolveSecurityInputError extends Error {
   readonly code: ResolveSecurityInputErrorCode;
 
   constructor(code: ResolveSecurityInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export class ResolveLiveSecurityReadbackError extends Error {
+  readonly code: ResolveLiveSecurityReadbackErrorCode;
+
+  constructor(code: ResolveLiveSecurityReadbackErrorCode, message: string) {
     super(message);
     this.code = code;
   }
@@ -639,6 +684,66 @@ export function resolveSecurity(input: ResolveSecurityInput): ResolveSecurityRes
   };
 }
 
+export function normalizeExactSecurityLookup(value: string): string {
+  return value.trim().toLocaleLowerCase("en-US").replace(/\s+/gu, " ");
+}
+
+export function resolveLiveSecurityRows(
+  input: ResolveLiveSecurityRowsInput,
+  rows: readonly ResolveLiveSecurityRow[]
+): ResolveLiveSecurityResult {
+  const query = input.query.trim();
+
+  if (query.length === 0) {
+    throw new ResolveSecurityInputError("QUERY_REQUIRED", "query is required");
+  }
+
+  if (rows.length > 25) {
+    throw new ResolveLiveSecurityReadbackError(
+      "CANDIDATE_LIMIT_EXCEEDED",
+      "exact security lookup exceeded 25 candidates"
+    );
+  }
+
+  const normalizedQuery = normalizeExactSecurityLookup(query);
+  const candidates = rows.map((row) =>
+    mapLiveSecurityRow({
+      expectedDataVersion: input.dataVersion,
+      expectedMarket: input.market,
+      normalizedQuery,
+      row
+    })
+  );
+  const status: ResolveSecurityStatus =
+    candidates.length === 0 ? "not_found" : candidates.length === 1 ? "resolved" : "ambiguous";
+
+  return {
+    asOf: requireNonEmptyLiveString(input.asOf, "snapshot as-of"),
+    candidates,
+    dataVersion: requireNonEmptyLiveString(input.dataVersion, "snapshot data version"),
+    liveDataAccess: true,
+    market: input.market,
+    methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+    normalizedQuery,
+    provenance: rows.map((row) => ({
+      data_version: row.data_version,
+      methodology_version: RESOLVE_SECURITY_LIVE_VERSION,
+      source: "netquity-basicdata",
+      source_record_id: row.source_record_id
+    })),
+    query,
+    selectedInstrumentId:
+      status === "resolved" ? candidates[0]?.instrumentId : undefined,
+    status,
+    toolName: "resolve_security",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: candidates.length
+    }
+  };
+}
+
 export function getResolveSecurityCapabilities() {
   return {
     ambiguity_candidates: true,
@@ -851,6 +956,158 @@ function normalizeLookupValue(value: string): string {
     .replace(/\s+/g, " ")
     .replace(/^hk:/u, "")
     .replace(/\.hk$/u, ".hk");
+}
+
+function mapLiveSecurityRow(input: {
+  expectedDataVersion: string;
+  expectedMarket?: string;
+  normalizedQuery: string;
+  row: ResolveLiveSecurityRow;
+}): ResolveSecurityCandidate {
+  const { row } = input;
+  const dataVersion = requireNonEmptyLiveString(row.data_version, "row data version");
+  const expectedDataVersion = requireNonEmptyLiveString(
+    input.expectedDataVersion,
+    "snapshot data version"
+  );
+
+  if (dataVersion !== expectedDataVersion) {
+    throw malformedLiveRow("row data version does not match the released snapshot");
+  }
+
+  const instrumentId = requireNonEmptyLiveString(row.entity_id, "entity id");
+
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) {
+    throw malformedLiveRow("entity id is not an opaque HKEX security id");
+  }
+
+  const sourceRecordId = requireNonEmptyLiveString(row.source_record_id, "source record id");
+
+  if (!/^netquity:basicdata\.stock:\d{5}$/u.test(sourceRecordId)) {
+    throw malformedLiveRow("source record id is not a Netquity BasicData stock record");
+  }
+
+  const payload = requireLiveObject(row.payload, "payload");
+  const code = requireLivePayloadString(payload, "code");
+  const symbol = requireLivePayloadString(payload, "symbol");
+  const exchange = requireLivePayloadString(payload, "exchange");
+  const market = requireLivePayloadString(payload, "market");
+  const currency = requireLivePayloadString(payload, "currency");
+
+  if (!/^\d{5}$/u.test(code) || symbol !== `${code}.HK`) {
+    throw malformedLiveRow("payload code and canonical symbol disagree");
+  }
+
+  if (instrumentId !== `hkex_security_${code}` || exchange !== "HKEX" || market !== "HK") {
+    throw malformedLiveRow("payload identity or HKEX market authority is malformed");
+  }
+
+  if (input.expectedMarket !== undefined && market !== input.expectedMarket) {
+    throw malformedLiveRow("row market does not match the requested market");
+  }
+
+  const listingStatus = payload.listingStatus;
+
+  if (!isSecurityListingStatus(listingStatus)) {
+    throw malformedLiveRow("payload listing status is malformed");
+  }
+
+  const name = requireLiveObject(payload.name, "payload name");
+  const aliases = payload.aliases;
+
+  if (!Array.isArray(aliases)) {
+    throw malformedLiveRow("payload aliases are malformed");
+  }
+
+  const matchReason = row.match_reason;
+
+  if (!isResolveSecurityMatchReason(matchReason)) {
+    throw malformedLiveRow("matched alias reason is malformed");
+  }
+
+  const matchedAlias = aliases.some((alias) => {
+    if (!isUnknownRecord(alias)) {
+      return false;
+    }
+
+    return alias.value === input.normalizedQuery && alias.reason === matchReason;
+  });
+
+  if (!matchedAlias) {
+    throw malformedLiveRow("matched alias is absent from the authoritative payload");
+  }
+
+  return {
+    currency,
+    exchange,
+    instrumentId,
+    market,
+    matchReason,
+    name: {
+      en: requireLivePayloadString(name, "en"),
+      zhHans: requireLivePayloadString(name, "zhHans"),
+      zhHant: requireLivePayloadString(name, "zhHant")
+    },
+    status: listingStatus,
+    symbol,
+    validFrom: optionalLiveDate(payload.validFrom, "validFrom"),
+    validTo: optionalLiveDate(payload.validTo, "validTo")
+  };
+}
+
+function isSecurityListingStatus(value: unknown): value is SecurityListingStatus {
+  return value === "delisted" || value === "listed" || value === "suspended";
+}
+
+function isResolveSecurityMatchReason(value: unknown): value is ResolveSecurityMatchReason {
+  return (
+    value === "canonical_symbol" ||
+    value === "code" ||
+    value === "historical_identifier" ||
+    value === "historical_name" ||
+    value === "name" ||
+    value === "symbol"
+  );
+}
+
+function optionalLiveDate(value: unknown, field: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    throw malformedLiveRow(`payload ${field} is malformed`);
+  }
+
+  return value;
+}
+
+function requireLivePayloadString(payload: Record<string, unknown>, field: string): string {
+  return requireNonEmptyLiveString(payload[field], `payload ${field}`);
+}
+
+function requireNonEmptyLiveString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw malformedLiveRow(`${field} is missing`);
+  }
+
+  return value;
+}
+
+function requireLiveObject(value: unknown, field: string): Record<string, unknown> {
+  if (!isUnknownRecord(value)) {
+    throw malformedLiveRow(`${field} is malformed`);
+  }
+
+  return value;
+}
+
+function isUnknownRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function malformedLiveRow(message: string): ResolveLiveSecurityReadbackError {
+  return new ResolveLiveSecurityReadbackError("MALFORMED_LIVE_ROW", message);
 }
 
 function normalizeInstrumentId(value: string): string {

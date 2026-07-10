@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   GetSecurityProfileInputError,
   GetSecurityHistoryInputError,
+  ResolveLiveSecurityReadbackError,
   ResolveSecurityInputError,
   getSecurityHistory,
   getSecurityHistoryCapabilities,
   getSecurityProfile,
   getSecurityProfileCapabilities,
   getResolveSecurityCapabilities,
-  resolveSecurity
+  normalizeExactSecurityLookup,
+  resolveLiveSecurityRows,
+  resolveSecurity,
+  type ResolveLiveSecurityRow
 } from "./index";
 
 describe("resolve security scaffold", () => {
@@ -78,6 +82,162 @@ describe("resolve security scaffold", () => {
     });
   });
 });
+
+describe("live security resolver", () => {
+  it("maps an exact released Serving row without synthetic identity fields", () => {
+    const result = resolveLiveSecurityRows(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        market: "HK",
+        query: "  00001.HK "
+      },
+      [createLiveSecurityRow()]
+    );
+
+    expect(result).toMatchObject({
+      dataVersion: "netquity-basicdata-test.v1",
+      liveDataAccess: true,
+      normalizedQuery: "00001.hk",
+      selectedInstrumentId: "hkex_security_00001",
+      status: "resolved"
+    });
+    expect(result.candidates[0]).toEqual({
+      currency: "HKD",
+      exchange: "HKEX",
+      instrumentId: "hkex_security_00001",
+      market: "HK",
+      matchReason: "canonical_symbol",
+      name: {
+        en: "Alpha Holdings Limited",
+        zhHans: "阿尔法控股有限公司",
+        zhHant: "阿爾法控股有限公司"
+      },
+      status: "listed",
+      symbol: "00001.HK",
+      validFrom: undefined,
+      validTo: undefined
+    });
+    expect(result.candidates[0]?.listingId).toBeUndefined();
+    expect(result.provenance).toEqual([
+      expect.objectContaining({
+        source: "netquity-basicdata",
+        source_record_id: "netquity:basicdata.stock:00001"
+      })
+    ]);
+  });
+
+  it("keeps exact multilingual name matches and nullable listing dates authoritative", () => {
+    const row = createLiveSecurityRow({
+      matchReason: "name",
+      queryAlias: "阿爾法控股有限公司"
+    });
+    const result = resolveLiveSecurityRows(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        query: "阿爾法控股有限公司"
+      },
+      [row]
+    );
+
+    expect(result.candidates[0]).toMatchObject({
+      matchReason: "name",
+      validFrom: undefined
+    });
+  });
+
+  it("returns ambiguity without selecting a candidate", () => {
+    const rows = [
+      createLiveSecurityRow({ code: "00001", matchReason: "name", queryAlias: "shared" }),
+      createLiveSecurityRow({ code: "00002", matchReason: "name", queryAlias: "shared" })
+    ];
+    const result = resolveLiveSecurityRows(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        query: "SHARED"
+      },
+      rows
+    );
+
+    expect(result.status).toBe("ambiguous");
+    expect(result.selectedInstrumentId).toBeUndefined();
+    expect(result.candidates).toHaveLength(2);
+  });
+
+  it("rejects candidate overflow rather than truncating", () => {
+    const rows = Array.from({ length: 26 }, (_, index) =>
+      createLiveSecurityRow({
+        code: String(index + 1).padStart(5, "0"),
+        matchReason: "name",
+        queryAlias: "shared"
+      })
+    );
+
+    expect(() =>
+      resolveLiveSecurityRows(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          query: "shared"
+        },
+        rows
+      )
+    ).toThrow(ResolveLiveSecurityReadbackError);
+  });
+
+  it("rejects a row that disagrees with snapshot authority", () => {
+    expect(() =>
+      resolveLiveSecurityRows(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          query: "00001.HK"
+        },
+        [{ ...createLiveSecurityRow(), data_version: "other-version" }]
+      )
+    ).toThrowError("row data version does not match the released snapshot");
+  });
+
+  it("normalizes only casing and whitespace for exact matching", () => {
+    expect(normalizeExactSecurityLookup("  HK:00001  ")).toBe("hk:00001");
+    expect(normalizeExactSecurityLookup("Alpha   Holdings")).toBe("alpha holdings");
+  });
+});
+
+function createLiveSecurityRow(
+  overrides: {
+    code?: string;
+    matchReason?: "canonical_symbol" | "name";
+    queryAlias?: string;
+  } = {}
+): ResolveLiveSecurityRow {
+  const code = overrides.code ?? "00001";
+  const matchReason = overrides.matchReason ?? "canonical_symbol";
+  const queryAlias = normalizeExactSecurityLookup(overrides.queryAlias ?? `${code}.HK`);
+
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: `hkex_security_${code}`,
+    match_reason: matchReason,
+    payload: {
+      aliases: [{ reason: matchReason, value: queryAlias }],
+      code,
+      currency: "HKD",
+      exchange: "HKEX",
+      listingStatus: "listed",
+      market: "HK",
+      name: {
+        en: "Alpha Holdings Limited",
+        zhHans: "阿尔法控股有限公司",
+        zhHant: "阿爾法控股有限公司"
+      },
+      symbol: `${code}.HK`
+    },
+    source_record_id: `netquity:basicdata.stock:${code}`
+  };
+}
 
 describe("security profile scaffold", () => {
   it("returns listed security profile, currency, and coverage metadata", () => {
