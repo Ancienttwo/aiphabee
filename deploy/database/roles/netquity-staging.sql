@@ -10,22 +10,15 @@ BEGIN
     SELECT 1 FROM pg_roles WHERE rolname = 'netquity_staging'
   ) THEN
     CREATE ROLE netquity_staging
-      LOGIN
-      NOSUPERUSER
-      NOCREATEDB
-      NOCREATEROLE
-      NOINHERIT
-      NOBYPASSRLS;
+      LOGIN;
   END IF;
 END
 $netquity_role$;
 
 ALTER ROLE netquity_staging
-  NOSUPERUSER
   NOCREATEDB
   NOCREATEROLE
-  NOINHERIT
-  NOBYPASSRLS;
+  NOINHERIT;
 
 DO $netquity_grants$
 DECLARE
@@ -54,8 +47,9 @@ BEGIN
 END
 $netquity_grants$;
 
-REVOKE ALL ON DATABASE postgres FROM netquity_staging;
-GRANT CONNECT ON DATABASE postgres TO netquity_staging;
+-- PlanetScale's Cloudflare integration role can create roles and own the mirror objects, but it
+-- does not own the shared `postgres` database and therefore cannot rewrite database ACLs. The new
+-- role receives no database-level CREATE grant here; CONNECT remains the platform's PUBLIC default.
 
 ALTER ROLE netquity_staging SET search_path TO pg_catalog;
 

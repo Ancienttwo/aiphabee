@@ -40,6 +40,28 @@
 - Negative probes confirmed missing write URL and unapproved remote writes fail closed.
 - `npm run check:database` and `npm run check:env` passed before final merge validation.
 
+## PlanetScale shared-staging deployment (2026-07-11)
+
+- User authorization covered the remote database write. The target was only PlanetScale PostgreSQL
+  `share-staging` (branch `v20dtpdoz3ik`) through Cloudflare Hyperdrive
+  `1e83eb563db44746a168175e065cc958`; `aiphabee-prod` was not touched.
+- Applied canonical migration `20260709180000_netquity_mirror_schema.sql`, SHA-256
+  `e7fb3e8728684108207163a9897c6ab3ad1c053264463b864271b6eb25e803e4`: 36 `nq_*`
+  schemas and 173 tables including `nq_ops.del_sec`.
+- The bootstrap loader committed 172/172 vendor tables with 635,501 source rows and 635,501
+  loaded rows. Independent remote verification passed 172, failed 0, and skipped only the
+  structurally separate `nq_ops.del_sec` table.
+- The authorized `del_sec_20260707.dat` drop staged and inserted 2,088 rows; daily remote
+  verification found all 2,088 rows and passed 1/1.
+- Dedicated login `netquity_staging.v20dtpdoz3ik` has USAGE on 36/36 mirror schemas and
+  SELECT/INSERT/UPDATE/DELETE/TRUNCATE on 173/173 mirror tables. Readback confirmed no
+  superuser, database-create, role-create, inheritance, or RLS-bypass authority and zero writable
+  non-`nq_*` tables. Its password is stored only in macOS Keychain service
+  `aiphabee-planetscale-share-staging-netquity-role`.
+- The temporary authenticated operations Worker was removed after final readback and its public
+  URL returned 404. PlanetScale rollback is forward-fix by default; destructive schema removal
+  requires separate explicit authorization.
+
 ## Residual production gate
 
 - The local fixture is a full-history proving set, not evidence that every real daily file is a complete snapshot. `replace_all` classifications for FinReport and TurnoverBreakdown must not be used on production daily drops until a real delivery confirms full-snapshot semantics.
