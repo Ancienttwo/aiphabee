@@ -1,10 +1,43 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  "account_id": "ab66185011440a6f8a698d61ad58703a",
   "name": "aiphabee-web",
   "compatibility_date": "2026-06-17",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "APP_ENV": "prod"
+  },
+  "env": {
+    "staging": {
+      "vars": {
+        "APP_ENV": "staging",
+        "BETTER_AUTH_URL": "https://aiphabee-web-staging.metalabs.workers.dev",
+        "GITHUB_CLIENT_ID": "Ov23li4RDf41KAk1K6la"
+      },
+      "secrets": {
+        "required": [
+          "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
+          "BETTER_AUTH_SECRET",
+          "GITHUB_CLIENT_SECRET"
+        ]
+      },
+      "hyperdrive": [
+        {
+          "binding": "AIPHABEE_AUTH_HYPERDRIVE",
+          "id": "4a105c35ab2a42f3aec810a2db775eda"
+        }
+      ],
+      "services": [
+        {
+          "binding": "AIPHABEE_API",
+          "service": "aiphabee-worker-staging",
+          "entrypoint": "AuthenticatedNetquityResolver"
+        }
+      ]
+    }
   }
 }

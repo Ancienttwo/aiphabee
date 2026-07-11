@@ -1,0 +1,139 @@
+{
+  "version": "2026-07-11.authenticated-web-identity-staging.v1",
+  "status": "live_passed",
+  "environment": "staging",
+  "worker": "aiphabee-web-staging",
+  "routes": {
+    "handler": "/api/auth/$",
+    "login": "/login",
+    "account": "/account"
+  },
+  "dependency": {
+    "name": "better-auth",
+    "version": "1.6.23",
+    "database_adapter": "pg_pool",
+    "orm_added": false
+  },
+  "oauth": {
+    "provider": "github",
+    "callback_path": "/api/auth/callback/github",
+    "requested_scopes": ["read:user", "user:email"],
+    "invited_signup_enabled": true,
+    "invite_gate": "sha256_normalized_email",
+    "password_fallback": false
+  },
+  "identity": {
+    "canonical_subject_prefix": "better-auth:",
+    "canonical_subject_column": "platform.account.auth_subject",
+    "email_is_identity_key": false,
+    "caller_workspace_accepted": false,
+    "legacy_runtime_fallback": false
+  },
+  "session": {
+    "database_backed": true,
+    "expires_in_seconds": 604800,
+    "update_age_seconds": 86400,
+    "cookie_cache_enabled": false,
+    "secure_cookies": true,
+    "csrf_check_enabled": true,
+    "origin_check_enabled": true,
+    "revoke_all_supported": true
+  },
+  "oauth_token_storage": {
+    "encrypted": true,
+    "account_cookie_enabled": false,
+    "state_strategy": "database"
+  },
+  "rate_limit": {
+    "enabled": true,
+    "storage": "database",
+    "default_window_seconds": 60,
+    "default_max": 30,
+    "social_sign_in_max": 10
+  },
+  "database": {
+    "provider": "planetscale_postgres",
+    "connection_path": "cloudflare_hyperdrive",
+    "binding": "AIPHABEE_AUTH_HYPERDRIVE",
+    "schema": "aiphabee_auth",
+    "migration": "deploy/database/migrations/20260711041000_authenticated_web_identity.sql",
+    "role_policy": "deploy/database/roles/authenticated-web-identity-staging.sql",
+    "runtime_role": "aiphabee_auth_staging",
+    "hyperdrive_origin_user": "aiphabee_auth_staging.v20dtpdoz3ik",
+    "hyperdrive_cache_disabled": true,
+    "pool_lifecycle": "request_scoped_max_1_close_after_handler",
+    "tables": ["user", "session", "account", "verification", "rateLimit"]
+  },
+  "runtime_role_policy": {
+    "auth_table_dml": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+    "auth_schema_create": false,
+    "superuser": false,
+    "createdb": false,
+    "createrole": false,
+    "inherit": false,
+    "bypassrls": false,
+    "forbidden_schema_usage": [
+      "platform",
+      "platform_audit",
+      "aiphabee_core",
+      "aiphabee_governance",
+      "aiphabee_audit",
+      "nq_*"
+    ]
+  },
+  "required_variables": ["APP_ENV", "BETTER_AUTH_URL", "GITHUB_CLIENT_ID"],
+  "required_secrets": [
+    "BETTER_AUTH_SECRET",
+    "GITHUB_CLIENT_SECRET",
+    "AIPHABEE_AUTH_INVITED_EMAIL_SHA256"
+  ],
+  "operator_secrets": [
+    "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_AIPHABEE_AUTH_HYPERDRIVE"
+  ],
+  "product_data_access": {
+    "enabled": false,
+    "netquity_reads": false,
+    "automatic_platform_provisioning": false
+  },
+  "live_acceptance": {
+    "status": "passed",
+    "observed_at": "2026-07-10T21:37:22.453Z",
+    "staging_deployment_id": "e31fbda5-cbcb-464a-b9c9-3a9e0a4b2d53",
+    "staging_version_id": "1c9dfc94-2aab-4f8b-936c-080da4ae7fd0",
+    "production_deployment_id": "3921afaa-fa64-439f-9a49-af891264947d",
+    "required_checks": [
+      "github_login",
+      "session_readback",
+      "logout",
+      "revoke_all_sessions",
+      "invalid_session_denied",
+      "uninvited_identity_denied",
+      "auth_role_privilege_matrix",
+      "production_web_absent",
+      "production_version_unchanged"
+    ],
+    "evidence_policy": "hash_status_count_only",
+    "result": {
+      "github_login": true,
+      "session_readback": true,
+      "logout": true,
+      "revoke_all_sessions": true,
+      "invalid_session_denied": true,
+      "uninvited_identity_denied": true,
+      "auth_role_privilege_matrix": true,
+      "production_web_absent": true,
+      "production_version_unchanged": true
+    }
+  },
+  "production": {
+    "deployment_allowed": false,
+    "auth_route_status": "not_found",
+    "worker": "aiphabee-worker",
+    "expected_worker_version": "0ab3f7d0-517e-4fa3-91b7-1ccc92e90a88",
+    "version_must_remain_unchanged": true
+  },
+  "checker": "scripts/check-authenticated-web-identity-staging-contract.mjs",
+  "fixture_checker": "scripts/check-authenticated-web-identity-staging-fixtures.mjs",
+  "smoke": "scripts/smoke-authenticated-web-identity-staging.mjs",
+  "documentation": "docs/governance/authenticated-web-identity-staging.md"
+}

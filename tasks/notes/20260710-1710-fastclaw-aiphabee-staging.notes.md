@@ -70,3 +70,35 @@ lifecycle control and intentionally separate from the future execution plane.
 - The authenticated one-shot database provisioning Worker was deleted after
   final readback; the lifecycle ops Worker was also deleted; its public URL now
   returns `404`.
+
+## 2026-07-11 final hardening re-acceptance
+
+- FastClaw `dev@35cd5ad` was pushed and redeployed. The private control Worker is
+  version `043776e2-23f0-4225-99fa-43a279a78ec8`; Container application
+  `a03c8edd-72d5-4c3c-b646-a7d09289f2ea` is `ready`, one instance, on image
+  `sha256:10e3a2a6ee929acf550aa2fa794fd25f79f64ac4d43e243ca68ddf81d5113d07`.
+- AiphaBee hardening was accepted on temporary version
+  `37dee220-6dd2-47ce-ad7a-4cab9d9db103`. Activate cold wake returned one
+  `FASTCLAW_UNAVAILABLE` retryable result, then succeeded; replay preserved the
+  exact user/Agent hashes and remote counts `1/1`. After `70s` idle, disable
+  likewise retried once then converged to remote `disabled 1/1`. Reactivate
+  preserved both hashes and returned remote `active 1/1`; closed-account delete
+  ended at remote users/Agents `0/0`, local `deleted` with both remote IDs
+  absent, two retryable plus four succeeded audit events, and
+  `sandbox_created=false` throughout.
+- Final cleanup deleted `14` fixture rows (six audit, one profile, seven
+  authority rows). A transaction-scoped readback then proved profile/audit
+  absent and remote counts still `0/0`; this avoids the shared Hyperdrive's SQL
+  cache rather than accepting stale evidence.
+- Public `workers.dev` propagation briefly served mixed old/new secret versions
+  despite the deployment reporting `100%`. Final acceptance therefore used an
+  authenticated temporary ops Worker with a native Service Binding to
+  `aiphabee-worker-staging`, preserving the same AiphaBee -> FastClaw product
+  boundary without relying on the public edge for credentialed control calls.
+  The ops Worker was deleted after acceptance.
+- The final fail-closed AiphaBee baseline is version
+  `ab7ad06c-e91a-41da-a228-8bef38a43297`: health `200`, unauthenticated
+  lifecycle `401`, temporary ops URL `404`, and secret inventory exactly
+  `FASTCLAW_ADMIN_API_KEY`. FastClaw retains exactly its five required secrets,
+  has no public target (`/api/status` returns `404`), and the lifecycle feature
+  variables/token are absent from the baseline.

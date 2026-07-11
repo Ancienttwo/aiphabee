@@ -29,26 +29,28 @@ export interface ResolveSecurityCandidate {
   currency: string;
   exchange: string;
   instrumentId: string;
-  listingId: string;
+  listingId?: string;
   market: string;
   matchReason: string;
   name: { en: string; zhHans: string; zhHant: string };
   status: "delisted" | "listed" | "suspended";
   symbol: string;
-  validFrom: string;
+  validFrom?: string;
   validTo?: string;
 }
 
 export interface ResolveSecurityData {
   candidates: ResolveSecurityCandidate[];
+  dataVersion?: string;
+  liveDataAccess?: boolean;
   market?: string;
+  methodologyVersion?: string;
   normalizedQuery: string;
   provenance: ProvenanceRef[];
   query: string;
   selectedInstrumentId?: string;
   status: ResolveSecurityStatus;
   usage: UsageSummary;
-  [key: string]: unknown;
 }
 
 // --- agent progress stream (packages/agent-runtime) ----------------------

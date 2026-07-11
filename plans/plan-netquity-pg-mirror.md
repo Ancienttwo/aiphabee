@@ -1,12 +1,12 @@
 # Plan: Netquity Vendor MDB → PostgreSQL 1:1 Mirror
 
-> **Status**: Approved
+> **Status**: Completed
 > **Created**: 2026-07-09 17:40 +08
 > **Slug**: netquity-pg-mirror
 > **Artifact Level**: work-package
 > **Promotion Reason**: Establish the licensed vendor (Netquity) raw mirror layer as PG schemas so downstream capabilities can consume authoritative HK market data.
-> **Verification Boundary**: parity report exit 0 (172 tables) + `npm run check:database` green
-> **Rollback Surface**: drop `nq_*` schemas locally; revert migration file + manifest row before PlanetScale apply
+> **Verification Boundary**: local and PlanetScale staging parity reports exit 0 (172 vendor tables + daily `del_sec`) + `npm run check:database` green
+> **Rollback Surface**: forward-fix on PlanetScale staging; destructive `nq_*` schema removal requires separate explicit authorization
 > **Spec**: `docs/spec.md`
 > **Task Contract**: `tasks/contracts/netquity-pg-mirror.contract.md` (not created; plan-level execution)
 > **Implementation Notes**: `tasks/notes/netquity-pg-mirror.notes.md`
@@ -37,7 +37,7 @@ Detailed design captured during planning (empirically validated against mdbtools
 - [x] Phase 3: `strategies.json` + `update.mjs` + `verify.mjs --mode daily` + README (vendor delivery clock, rebuild/rollback).
 - [x] Gate: deep Phase 3 review completed 2026-07-10; fixed non-destructive generation, `psql -X`, duplicate-delivery hashing, vacuous daily verify, keyless out-of-window revisions, fail-fast sequencing, explicit root `pg`, and public-repo licensed-evidence redaction; re-ran bootstrap/daily parity and negative probes.
 - [x] Licence gate: user confirmed on 2026-07-10 that the Netquity data is authorised cooperation material and has no copyright restriction for AiphaBee; the repository is also returning to private visibility. Existing evidence minimisation remains in place.
-- [ ] Phase 2: PlanetScale apply (blocked on explicit database-write authorization; no remote data apply in this work package).
+- [x] Phase 2: user authorized the remote write on 2026-07-11; applied the canonical migration to shared PlanetScale `share-staging`, loaded all 172 vendor tables plus `nq_ops.del_sec`, and passed independent remote parity/readback. `aiphabee-prod` was not touched.
 
 ## Evidence Contract
 
@@ -45,7 +45,7 @@ Detailed design captured during planning (empirically validated against mdbtools
 - **Verification evidence**: `_ops/netquity-mirror/out/parity-report.{json,md}` + `npm run check:database` output
 - **Evaluator rubric**: parity exit 0 on all 172 tables (rows/columns/PK/NULL/Chinese/SUM); check:database green; updater strategies cover 172/172 tables
 - **Stop condition**: parity failures that trace to source-data defects (not pipeline bugs) are reported, not patched around
-- **Rollback surface**: `DROP SCHEMA nq_* CASCADE` locally; revert migration + manifest row; no PlanetScale apply without explicit user go
+- **Rollback surface**: local fixtures may be rebuilt from scratch; PlanetScale staging uses forward fixes. Destructive `DROP SCHEMA nq_* CASCADE` requires a separate explicit user instruction.
 
 ## Annotations
 

@@ -4,6 +4,7 @@ import {
   type WorkflowEvent,
   type WorkflowStep
 } from "cloudflare:workers";
+import { timingSafeEqual } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { Client } from "pg";
 import {
@@ -108,6 +109,12 @@ import {
   parseResearchAgentLifecycleRequest,
   runResearchAgentLifecycle
 } from "./research-agent-lifecycle.js";
+import {
+  resolveAuthenticatedNetquitySecurity,
+  resolveReleasedNetquitySecurity,
+  NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+  type AuthenticatedNetquityResolverInput,
+} from "./authenticated-netquity-web-resolver.js";
 import {
   calculateReturnsRisk,
   comparePercentiles,
@@ -368,6 +375,7 @@ import {
   GET_SECURITY_HISTORY_VERSION,
   GetSecurityProfileInputError,
   GetSecurityHistoryInputError,
+  RESOLVE_SECURITY_LIVE_VERSION,
   ResolveSecurityInputError,
   getSecurityHistory,
   getSecurityHistoryCapabilities,
@@ -458,6 +466,7 @@ interface WorkerBindings {
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
   AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED?: string;
   AIPHABEE_RESEARCH_AGENT_LIFECYCLE_TOKEN?: string;
+  AIPHABEE_NETQUITY_SECURITY_RESOLUTION_SMOKE_TOKEN?: string;
   APP_ENV?: string;
   APP_VERSION?: string;
   AI_GATEWAY_NAME?: string;
@@ -1501,6 +1510,10 @@ const CLOUDFLARE_CRON_NATURAL_EVIDENCE_KEY = `${CLOUDFLARE_BINDING_SMOKE_PREFIX}
 const CLOUDFLARE_HYPERDRIVE_SMOKE_ROUTE = "/cloudflare/hyperdrive/smoke";
 const CLOUDFLARE_HYPERDRIVE_SCHEMA_INVENTORY_ROUTE =
   "/cloudflare/hyperdrive/schema-inventory";
+const NETQUITY_SECURITY_RESOLUTION_LIVE_ROUTE = "/tools/resolve-security/live-smoke";
+const NETQUITY_SECURITY_RESOLUTION_SMOKE_HEADER_VALUE =
+  "netquity-security-resolution-v1";
+const NETQUITY_SECURITY_RESOLUTION_MAX_INPUT_BYTES = 512;
 const CLOUDFLARE_PLATFORM_RLS_FIXTURE_SMOKE_ROUTE =
   "/cloudflare/hyperdrive/platform-rls-fixture-smoke";
 const CLOUDFLARE_PLATFORM_RUNTIME_ROLE_SMOKE_ROUTE =
@@ -11140,6 +11153,105 @@ app.post("/tools/resolve-security", async (c) => {
   }
 });
 
+app.post(NETQUITY_SECURITY_RESOLUTION_LIVE_ROUTE, async (c) => {
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
+  const responseAsOf = new Date().toISOString();
+
+  c.header("Cache-Control", "no-store");
+
+  if (c.env.APP_ENV !== "staging") {
+    return c.json(
+      createErrorEnvelope("NOT_FOUND", "route not found", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      404
+    );
+  }
+
+  if (!(await hasValidNetquitySecuritySmokeAuthorization(c))) {
+    return c.json(
+      createErrorEnvelope("AUTH_REQUIRED", "staging security-resolution smoke authorization failed", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      403
+    );
+  }
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    market?: unknown;
+    query?: unknown;
+  };
+  const query = typeof body.query === "string" ? body.query : "";
+  const market = typeof body.market === "string" ? body.market : undefined;
+
+  if (query.trim().length === 0) {
+    return c.json(
+      createErrorEnvelope("SCOPE_DENIED", "query is required", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      400
+    );
+  }
+
+  if (
+    new TextEncoder().encode(query).byteLength >
+    NETQUITY_SECURITY_RESOLUTION_MAX_INPUT_BYTES
+  ) {
+    return c.json(
+      createErrorEnvelope("SCOPE_DENIED", "query exceeds the staging smoke input limit", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      400
+    );
+  }
+
+  const connectionString = getRuntimeHyperdriveConnectionString(c.env);
+
+  if (connectionString === undefined) {
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "staging security Serving binding is unavailable", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      424
+    );
+  }
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    const result = await resolveReleasedNetquitySecurity(client, {
+      market,
+      query,
+      requestId,
+      responseAsOf,
+      rightsPolicyVersion: NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+    });
+    return c.json(result.envelope, result.status);
+  } catch {
+    return c.json(
+      createErrorEnvelope("INTERNAL_ERROR", "released security Serving read failed", {
+        asOf: responseAsOf,
+        methodologyVersion: RESOLVE_SECURITY_LIVE_VERSION,
+        requestId
+      }),
+      502
+    );
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+});
+
 app.post("/tools/get-security-profile", async (c) => {
   const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
 
@@ -12638,6 +12750,12 @@ export class SandboxToolGateway extends WorkerEntrypoint<WorkerBindings> {
   }
 }
 
+export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindings> {
+  async resolveSecurity(input: AuthenticatedNetquityResolverInput) {
+    return resolveAuthenticatedNetquitySecurity(this.env, input);
+  }
+}
+
 export class AiphaBeeResearchWorkflow extends WorkflowEntrypoint<
   WorkerBindings,
   CloudflareWorkflowSmokePayload
@@ -13325,6 +13443,47 @@ async function withHyperdrivePostgresClient<T>(
   } finally {
     await client.end().catch(() => undefined);
   }
+}
+
+async function hasValidNetquitySecuritySmokeAuthorization(
+  context: Context<{ Bindings: WorkerBindings }>
+): Promise<boolean> {
+  if (
+    context.req.header("x-aiphabee-smoke") !==
+    NETQUITY_SECURITY_RESOLUTION_SMOKE_HEADER_VALUE
+  ) {
+    return false;
+  }
+
+  const expectedToken = context.env.AIPHABEE_NETQUITY_SECURITY_RESOLUTION_SMOKE_TOKEN?.trim();
+
+  if (expectedToken === undefined || expectedToken.length === 0) {
+    return false;
+  }
+
+  const authorization = context.req.header("authorization") ?? "";
+  const hasBearerScheme = authorization.startsWith("Bearer ");
+  const suppliedToken = hasBearerScheme ? authorization.slice("Bearer ".length) : "";
+  const encoder = new TextEncoder();
+  const expectedBytes = encoder.encode(expectedToken);
+  const suppliedBytes = encoder.encode(suppliedToken);
+
+  if (
+    expectedBytes.byteLength > NETQUITY_SECURITY_RESOLUTION_MAX_INPUT_BYTES ||
+    suppliedBytes.byteLength > NETQUITY_SECURITY_RESOLUTION_MAX_INPUT_BYTES
+  ) {
+    return false;
+  }
+
+  const [expectedDigest, suppliedDigest] = await Promise.all([
+    crypto.subtle.digest("SHA-256", expectedBytes),
+    crypto.subtle.digest("SHA-256", suppliedBytes)
+  ]);
+
+  return (
+    hasBearerScheme &&
+    timingSafeEqual(new Uint8Array(expectedDigest), new Uint8Array(suppliedDigest))
+  );
 }
 
 function getRuntimeHyperdriveConnectionString(env: WorkerBindings): string | undefined {

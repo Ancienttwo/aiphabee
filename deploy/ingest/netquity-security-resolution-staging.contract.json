@@ -1,0 +1,148 @@
+{
+  "version": "2026-07-11.netquity-security-resolution-staging.v1",
+  "status": "approved_staging_only",
+  "provider": "planetscale_postgres_via_cloudflare_hyperdrive",
+  "environment": "staging",
+  "source": {
+    "dataset": "nq_basicdata.stock",
+    "source_batch_id": "src_netquity_basicdata_80cfa8bd1c73",
+    "data_version": "netquity-basicdata-80cfa8bd1c73.v1",
+    "source_as_of": "2026-07-11T00:00:00+08:00",
+    "sha256": "80cfa8bd1c737750199ceaf0f8f0bfe5c71d7f3cb074d6ae51da5cb394f8c861",
+    "row_count": 18036,
+    "missing_listing_dates": 62,
+    "status_partition": {
+      "listed": 17555,
+      "suspended": 141,
+      "delisted": 340
+    }
+  },
+  "promotion": {
+    "staging_prerequisite_migrations": [
+      "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "deploy/database/migrations/20260620091000_serving_store_scaffold.sql"
+    ],
+    "sql": "deploy/ingest/netquity-security-resolution-staging.sql",
+    "index_sql": "deploy/ingest/netquity-security-resolution-staging-index.sql",
+    "serving_dataset": "security_master",
+    "serving_dataset_id": "serving_dataset_security_master",
+    "serving_snapshot_id": "serving_security_master_netquity_basicdata_80cfa8bd1c73_v1",
+    "methodology_version": "2026-07-11.netquity-security-resolution-promotion.v1",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "release_state": "released",
+    "quality_state": "PASS",
+    "record_entity_type": "instrument",
+    "entity_id_pattern": "hkex_security_<five-digit-code>",
+    "source_record_id_pattern": "netquity:basicdata.stock:<five-digit-code>",
+    "transactional": true,
+    "concurrent_index_outside_transaction": true,
+    "idempotent": true
+  },
+  "payload_fields": [
+    "code",
+    "symbol",
+    "exchange",
+    "market",
+    "currency",
+    "name.en",
+    "name.zhHant",
+    "name.zhHans",
+    "validFrom",
+    "validTo",
+    "listingStatus",
+    "aliases"
+  ],
+  "exact_alias_sources": [
+    "code_unpadded",
+    "code_four_digit",
+    "code_five_digit",
+    "canonical_dot_hk",
+    "hk_prefix",
+    "engshkname",
+    "chishkname",
+    "simshkname",
+    "engname",
+    "chiname",
+    "simname"
+  ],
+  "forbidden_matching": [
+    "fuzzy",
+    "substring",
+    "transliteration",
+    "semantic_inference",
+    "synthetic_fallback"
+  ],
+  "runtime_role": {
+    "role": "aiphabee_runtime_rls",
+    "policy_sql": "deploy/database/roles/netquity-security-serving-staging.sql",
+    "schema_usage": [
+      "aiphabee_core"
+    ],
+    "select_tables": [
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
+    ],
+    "raw_schema_usage": false,
+    "writes": false,
+    "schema_create": false,
+    "database_create": false,
+    "superuser": false,
+    "bypassrls": false
+  },
+  "route": {
+    "method": "POST",
+    "path": "/tools/resolve-security/live-smoke",
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "test_file": "apps/worker/src/netquity-security-resolution-live.test.ts",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "token_binding": "AIPHABEE_NETQUITY_SECURITY_RESOLUTION_SMOKE_TOKEN",
+    "required_app_env": "staging",
+    "smoke_header": {
+      "name": "x-aiphabee-smoke",
+      "value": "netquity-security-resolution-v1"
+    },
+    "authorization_before_binding": true,
+    "constant_time_bearer_comparison": true,
+    "latest_released_snapshot_only": true,
+    "query_limit": 26,
+    "maximum_candidates": 25,
+    "maximum_input_bytes": 512
+  },
+  "failure_statuses": {
+    "wrong_environment": 404,
+    "authorization": 403,
+    "missing_binding": 424,
+    "no_release": 409,
+    "candidate_limit": 409,
+    "not_found": 404,
+    "database_or_readback": 502
+  },
+  "checker": "scripts/check-netquity-security-resolution-staging-contract.mjs",
+  "package_script": "npm run check:netquity-security-resolution-staging",
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret_value": true,
+    "no_vendor_row_payload": true,
+    "counts_versions_tables_and_hashes_only": true
+  },
+  "rollback": {
+    "withdraw_data_version": true,
+    "revoke_five_select_grants": true,
+    "delete_staging_smoke_secret": true,
+    "redeploy_staging_without_route": true,
+    "delete_raw_mirror": false
+  },
+  "not_claimed": [
+    "public_resolver_cutover",
+    "production_deploy",
+    "product_ui_activation",
+    "mcp_or_export_access",
+    "profile_or_history",
+    "fuzzy_matching",
+    "daily_promotion"
+  ]
+}

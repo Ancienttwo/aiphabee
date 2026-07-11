@@ -1,9 +1,9 @@
 import { apiCall } from "./client";
+import { resolveAuthenticatedSecurity } from "./security.functions";
 import type {
   AgentPlan,
   CompareResult,
   GetAnnouncementResult,
-  ResolveSecurityData,
   RuntimeCapabilities,
   ScreenResult,
   SearchAnnouncementsResult,
@@ -22,10 +22,7 @@ import type {
 
 /** Resolves a free-text query to one or more securities (POST /tools/resolve-security). */
 export function resolveSecurity(query: string, market?: string) {
-  return apiCall<ResolveSecurityData>("/tools/resolve-security", {
-    method: "POST",
-    body: { query, market },
-  });
+  return resolveAuthenticatedSecurity({ data: { query, market } });
 }
 
 // --- Agent research plan -------------------------------------------------
