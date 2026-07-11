@@ -43,7 +43,7 @@
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "runner_adapter_implemented_private_activation_no_live_transport",
+      "status": "durable_handoff_implemented_no_live_scanner_or_transport",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -71,6 +71,13 @@
         "private_sandbox_grant_mint_implemented": true,
         "callback_tool_policy_required": true,
         "opaque_sse_live_transport_compatible": false,
+        "durable_handoff_contract_implemented": true,
+        "durable_handoff_worker_stores_implemented": true,
+        "durable_handoff_explicit_approval_before_read": true,
+        "durable_handoff_authoritative_scan_required": true,
+        "durable_handoff_cross_tenant_object_probe_allowed": false,
+        "durable_handoff_live_scanner_wired": false,
+        "durable_handoff_migration_applied_live": false,
         "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false

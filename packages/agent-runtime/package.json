@@ -27,6 +27,10 @@
     "./fastclaw-agent-runner": {
       "types": "./src/fastclaw-agent-runner.ts",
       "default": "./src/fastclaw-agent-runner.ts"
+    },
+    "./durable-memory-artifact-handoff": {
+      "types": "./src/durable-memory-artifact-handoff.ts",
+      "default": "./src/durable-memory-artifact-handoff.ts"
     }
   },
   "scripts": {

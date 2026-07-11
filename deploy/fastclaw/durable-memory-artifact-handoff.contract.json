@@ -1,0 +1,58 @@
+{
+  "version": "2026-07-11.durable-memory-artifact-handoff.v0",
+  "approval": {
+    "authority": "aiphabee",
+    "sandbox_can_approve": false,
+    "approval_before_sandbox_read": true,
+    "exact_decision_per_candidate": true
+  },
+  "limits": {
+    "max_candidates": 16,
+    "memory_max_bytes": 65536,
+    "artifact_max_bytes": 10485760
+  },
+  "scan": {
+    "authoritative_scanner_required": true,
+    "local_heuristic_is_authority": false,
+    "accepted_status": "clean",
+    "classification_must_match": true
+  },
+  "storage": {
+    "bytes": "AIPHABEE_ARTIFACTS_R2",
+    "metadata": "aiphabee_core.durable_agent_handoff",
+    "object_key_is_authorization": false,
+    "metadata_insert_failure_compensates_object": true,
+    "tenant_scoped_metadata_read_before_object": true
+  },
+  "record_fields": [
+    "tenant_id",
+    "owner_user_id",
+    "run_id",
+    "lease_id",
+    "kind",
+    "content_hash_sha256",
+    "classification",
+    "byte_size",
+    "retention_policy",
+    "expires_at",
+    "approval",
+    "scan",
+    "provenance",
+    "evidence",
+    "storage_key"
+  ],
+  "cleanup": {
+    "destroy_attempted_on_every_path": true,
+    "destroy_is_idempotent": true,
+    "destroy_failure_release_safe": false,
+    "fixture_residual_files_after_destroy": 0
+  },
+  "release": {
+    "public_route_added": false,
+    "live_scanner_wired": false,
+    "database_migration_applied_live": false,
+    "cloudflare_deployed": false,
+    "credentialed_live_acceptance": false,
+    "live_acceptance_owned_by_sprint_row": 10
+  }
+}

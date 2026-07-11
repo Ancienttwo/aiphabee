@@ -1510,6 +1510,26 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260711140000_durable_memory_artifact_handoff.sql",
+      "purpose": "Store only explicitly approved and authoritatively clean FastClaw memory/artifact metadata under tenant and owner RLS while AIPHABEE_ARTIFACTS R2 owns bounded bytes; this local contract does not apply the migration or enable public runner execution.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [
+        "aiphabee_core.durable_agent_handoff"
+      ],
+      "indexes": [
+        "durable_agent_handoff_owner_active_idx",
+        "durable_agent_handoff_run_idx",
+        "durable_agent_handoff_expiry_idx"
+      ],
+      "rls_tables": [
+        "aiphabee_core.durable_agent_handoff"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }
