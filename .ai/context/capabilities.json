@@ -43,7 +43,7 @@
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "durable_handoff_implemented_no_live_scanner_or_transport",
+      "status": "product_control_implemented_no_live_dispatch_or_billing",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -78,6 +78,14 @@
         "durable_handoff_cross_tenant_object_probe_allowed": false,
         "durable_handoff_live_scanner_wired": false,
         "durable_handoff_migration_applied_live": false,
+        "product_control_implemented": true,
+        "paid_plan_auto_selects_fastclaw": false,
+        "observed_run_usage_attribution_implemented": true,
+        "usage_billing_state": "preview",
+        "admin_control_contract_implemented": true,
+        "admin_roles": ["owner", "admin"],
+        "live_kill_dispatch_wired": false,
+        "posted_billing_enabled": false,
         "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false

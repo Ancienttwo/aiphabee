@@ -69,6 +69,7 @@
     "check:fastclaw-dedicated-agent-provisioning": "node scripts/check-fastclaw-dedicated-agent-provisioning-contract.mjs",
     "check:fastclaw-agent-runner": "node scripts/check-fastclaw-agent-runner-contract.mjs",
     "check:durable-memory-artifact-handoff": "node scripts/check-durable-memory-artifact-handoff-contract.mjs",
+    "check:research-agent-product-control": "node scripts/check-research-agent-product-control-contract.mjs",
     "check:budget-stop-policy": "node scripts/check-budget-stop-policy-contract.mjs",
     "check:chart-golden-set": "bash packages/chart-golden-set/scripts/check-golden-set.sh",
     "check:chart-parse-eval": "bash packages/chart-parse-eval/scripts/check-eval.sh",

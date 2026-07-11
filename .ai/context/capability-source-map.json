@@ -70,8 +70,11 @@
         "apps/worker/src/sandbox-tool-gateway.ts",
         "apps/worker/src/fastclaw-agent-runner.ts",
         "apps/worker/src/durable-memory-artifact-handoff.ts",
+        "apps/worker/src/research-agent-product-control.ts",
         "deploy/database/migrations/20260711140000_durable_memory_artifact_handoff.sql",
+        "deploy/database/migrations/20260711151100_research_agent_product_control.sql",
         "deploy/fastclaw/durable-memory-artifact-handoff.contract.json",
+        "deploy/fastclaw/research-agent-product-control.contract.json",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
@@ -86,9 +89,12 @@
         "apps/worker/src/sandbox-tool-gateway.test.ts",
         "apps/worker/src/fastclaw-agent-runner.test.ts",
         "apps/worker/src/durable-memory-artifact-handoff.test.ts",
+        "apps/worker/src/research-agent-product-control.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
+        "npm run check:research-agent-product-control",
+        "npx vitest run apps/worker/src/research-agent-product-control.test.ts apps/worker/src/research-agent-lifecycle.test.ts apps/worker/src/research-agent-lifecycle.postgres.test.ts",
         "npm run check:durable-memory-artifact-handoff",
         "npx vitest run packages/agent-runtime/src/durable-memory-artifact-handoff.test.ts apps/worker/src/durable-memory-artifact-handoff.test.ts",
         "npm run check:fastclaw-agent-runner",
@@ -106,6 +112,9 @@
         "only exact AiphaBee-approved candidates are read from the sandbox and only authoritative clean scans persist",
         "AIPHABEE_ARTIFACTS R2 owns bytes while tenant-scoped PostgreSQL metadata owns access, retention, scan, provenance and evidence",
         "every durable handoff path attempts idempotent sandbox destroy and destroy failure is not release-safe",
+        "temporal entitlement and paid plan expose availability but never auto-select FastClaw; Agent Runtime remains selection authority",
+        "observed model tool sandbox and storage usage is linked by run to existing preview usage ledger rows",
+        "only current owner or admin can request idempotent lifecycle or kill actions and read tenant-scoped audit",
         "every transport tool call must re-enter the AiphaBee callback before execution",
         "opaque FastClaw SSE is not a compliant live transport and cannot activate",
         "Cloudflare sandbox adapter remains unregistered for public live dispatch; private runner activation alone can mint a run-owned grant",

@@ -1530,6 +1530,29 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260711151100_research_agent_product_control.sql",
+      "purpose": "Add observed per-run FastClaw model/tool/sandbox/storage detail linked to existing preview billing rows plus current owner/admin request-idempotent audit events, without automatic routing, posted billing, public routes or live resource activation.",
+      "schemas": [
+        "aiphabee_core",
+        "aiphabee_audit"
+      ],
+      "tables": [
+        "aiphabee_core.research_agent_run_usage",
+        "aiphabee_audit.research_agent_admin_event"
+      ],
+      "indexes": [
+        "research_agent_run_usage_account_created_idx",
+        "research_agent_admin_event_target_created_idx",
+        "research_agent_admin_event_actor_created_idx"
+      ],
+      "rls_tables": [
+        "aiphabee_core.research_agent_run_usage",
+        "aiphabee_audit.research_agent_admin_event"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

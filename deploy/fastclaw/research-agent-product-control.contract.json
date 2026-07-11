@@ -1,0 +1,68 @@
+{
+  "version": "2026-07-11.research-agent-product-control.v0",
+  "status": {
+    "user_states": [
+      "provisioning",
+      "ready",
+      "retryable",
+      "blocked",
+      "disabled"
+    ],
+    "temporal_entitlement_required": true,
+    "single_snapshot": true,
+    "selection_owner": "agent_runtime",
+    "default_runner_family": "edge",
+    "paid_plan_auto_selects_fastclaw": false,
+    "selected_runner_family": null
+  },
+  "usage": {
+    "measurement": "observed",
+    "estimated_usage_accepted": false,
+    "terminal_state_required": true,
+    "dimensions": [
+      "model_input_tokens",
+      "model_output_tokens",
+      "tool_calls_succeeded",
+      "tool_calls_failed",
+      "sandbox_wall_clock_ms",
+      "sandbox_cpu_ms",
+      "sandbox_peak_memory_bytes",
+      "sandbox_peak_disk_bytes",
+      "storage_bytes_written",
+      "storage_bytes_read",
+      "storage_write_ops",
+      "storage_read_ops",
+      "storage_delete_ops"
+    ],
+    "detail_table": "aiphabee_core.research_agent_run_usage",
+    "usage_event_linked": true,
+    "usage_ledger_state": "preview",
+    "unpriced_preview_credit_delta": 0,
+    "billing_provider_calls": false,
+    "exact_replay_required": true,
+    "mismatched_replay_blocked": true,
+    "methodology": "fastclaw-cost-pending-live-row10-v0"
+  },
+  "admin": {
+    "allowed_roles": ["owner", "admin"],
+    "actions": ["retry", "disable", "delete", "kill"],
+    "current_temporal_membership_required": true,
+    "request_idempotent": true,
+    "started_before_side_effect": true,
+    "lifecycle_authority_reused": true,
+    "kill_authority_injected": true,
+    "live_kill_dispatch_wired": false,
+    "audit_table": "aiphabee_audit.research_agent_admin_event",
+    "raw_fastclaw_ids_recorded": false,
+    "tokens_or_leases_recorded": false,
+    "raw_errors_recorded": false
+  },
+  "release": {
+    "public_route_added": false,
+    "posted_billing_enabled": false,
+    "database_migration_applied_live": false,
+    "cloudflare_deployed": false,
+    "credentialed_live_acceptance": false,
+    "live_acceptance_owned_by_sprint_row": 10
+  }
+}
