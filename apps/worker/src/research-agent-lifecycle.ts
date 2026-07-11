@@ -478,7 +478,7 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
       subscription_active: boolean;
       workspace_exists: boolean;
       workspace_status: "active" | "closed" | "suspended" | null;
-    }>(AUTHORITY_SQL, [accountId, workspaceId]);
+    }>(RESEARCH_AGENT_AUTHORITY_SQL, [accountId, workspaceId]);
     const row = result.rows[0];
     if (row === undefined) throw new Error("research Agent authority query returned no row");
     const accountStatus = row.account_status ?? undefined;
@@ -752,7 +752,7 @@ function normalizeEvent(row: ResearchAgentLifecycleEvent | undefined) {
   };
 }
 
-const AUTHORITY_SQL = `select
+export const RESEARCH_AGENT_AUTHORITY_SQL = `select
   exists(select 1 from platform.account a where a.account_id = $1) as account_exists,
   (select a.status from platform.account a where a.account_id = $1 limit 1) as account_status,
   exists(select 1 from platform.workspace w where w.workspace_id = $2) as workspace_exists,

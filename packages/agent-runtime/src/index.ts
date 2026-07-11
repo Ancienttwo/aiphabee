@@ -22,6 +22,8 @@ import {
   SANDBOX_CREATE_TIMEOUT_MS,
   SANDBOX_TERMINATION_GRACE_MS
 } from "./sandbox-terminal-lifecycle.js";
+import type { SandboxBackendAccessGrant } from "./sandbox-access-grant.js";
+export type { SandboxBackendAccessGrant } from "./sandbox-access-grant.js";
 export {
   SANDBOX_CREATE_TIMEOUT_MS,
   SANDBOX_TERMINATION_GRACE_MS,
@@ -113,7 +115,7 @@ export const AGENT_RUNTIME_LIMITS = {
 
 export const AGENT_LAYERS = ["generic", "research"] as const;
 export const AGENT_RUN_MODES = ["dry_run", "guarded_live", "runner_remote"] as const;
-export const AGENT_EXECUTABLE_RUN_MODES = ["dry_run"] as const;
+export const AGENT_EXECUTABLE_RUN_MODES = ["dry_run", "runner_remote"] as const;
 export const AGENT_RUNNER_SELECTION_VERSION =
   "2026-07-10.agent-runner-selection.v0";
 export const AGENT_DEFAULT_RUNNER_FAMILY = "edge" as const;
@@ -125,7 +127,7 @@ export const AGENT_RUNNER_REGISTRY = [
     supported_modes: ["dry_run", "guarded_live"]
   },
   {
-    enabled: false,
+    enabled: true,
     family: "fastclaw",
     runner_id: "fastclaw.personal-v0",
     supported_modes: ["runner_remote"]
@@ -166,9 +168,6 @@ export const SANDBOX_BACKEND_REQUIRED_CAPABILITIES: SandboxBackendRequiredCapabi
     policy: SANDBOX_BACKEND_POLICY,
     repeated_destroy: "idempotent"
   });
-const SANDBOX_BACKEND_ACCESS_GRANT_BRAND: unique symbol = Symbol(
-  "aiphabee.sandbox-backend-access-grant"
-);
 export const AGENT_EXECUTION_EVENT_TYPES = [
   "run.requested",
   "run.started",
@@ -184,6 +183,7 @@ export const AGENT_ROUTE_DECISIONS = [
   "runner_required",
   "blocked_invalid_runner_family",
   "blocked_runner_disabled",
+  "blocked_runner_activation_required",
   "blocked_runner_mode_incompatible"
 ] as const;
 export const DEFAULT_AGENT_RUN_TOOLS = [
@@ -490,6 +490,7 @@ export type AgentRouteDecision = (typeof AGENT_ROUTE_DECISIONS)[number];
 export type AgentRunnerSelectionBlockedReason =
   | "blocked_invalid_runner_family"
   | "blocked_runner_disabled"
+  | "blocked_runner_activation_required"
   | "blocked_runner_mode_incompatible"
   | "runner_required";
 export type AgentResearchOnlyToolName = (typeof AGENT_RESEARCH_ONLY_TOOLS)[number];
@@ -502,14 +503,26 @@ export type AgentLayerToolPolicyDenialReason =
   | "user_initiation_required"
   | "unknown_tool";
 
+export interface AgentRunAbortSignal {
+  readonly aborted: boolean;
+  addEventListener(
+    type: "abort",
+    listener: () => void,
+    options?: Readonly<{ once?: boolean }>
+  ): void;
+  removeEventListener(type: "abort", listener: () => void): void;
+}
+
 export interface AgentExecutionRequest {
   allowed_tools: readonly string[];
   budget: AgentRunBudget;
   context_refs: Readonly<Record<string, string>>;
   layer: AgentLayer;
   mode: AgentRunMode;
+  prompt: string;
   request_id: string;
   run_id: string;
+  signal?: AgentRunAbortSignal;
   tenant_id: string;
   user_id: string;
 }
@@ -535,6 +548,7 @@ export type AgentRunner = {
 }[AgentRegisteredRunnerId];
 
 export interface AgentRunnerSelectionInput {
+  activatedRunnerId?: unknown;
   mode: AgentRunMode;
   requestedRunnerFamily?: unknown;
 }
@@ -597,19 +611,6 @@ export interface SandboxBackendAccessInput {
   layer: AgentLayer;
   mode: AgentRunMode;
   requestedRunnerFamily?: unknown;
-}
-
-export interface SandboxBackendAccessGrant {
-  readonly [SANDBOX_BACKEND_ACCESS_GRANT_BRAND]: true;
-  readonly layer: "research";
-  readonly owner: SandboxOwnership;
-  readonly run_mode: "runner_remote";
-  readonly runner_family: "fastclaw";
-  readonly runner_id: "fastclaw.personal-v0";
-  readonly runner_selection_contract_version: typeof AGENT_RUNNER_SELECTION_VERSION;
-  readonly source: "agent_runner_selection";
-  readonly tenant_id: string;
-  readonly user_id: string;
 }
 
 export type SandboxBackendAccessDecision =
@@ -1424,7 +1425,7 @@ export interface AgentRuntimeCapabilities {
     runner_selection: {
       contract_version: typeof AGENT_RUNNER_SELECTION_VERSION;
       default_family: typeof AGENT_DEFAULT_RUNNER_FAMILY;
-      dispatch_implemented: false;
+      dispatch_implemented: true;
       registered_families: typeof AGENT_RUNNER_FAMILIES;
       registered_runners: typeof AGENT_RUNNER_REGISTRY;
       selection_owner: "agent_runtime";
@@ -3623,6 +3624,12 @@ export function selectAgentRunner(
     return blocked("blocked_runner_disabled");
   }
   if (
+    registration.runner_id === "fastclaw.personal-v0" &&
+    input.activatedRunnerId !== registration.runner_id
+  ) {
+    return blocked("blocked_runner_activation_required");
+  }
+  if (
     !AGENT_EXECUTABLE_RUN_MODES.includes(input.mode as AgentExecutableRunMode)
   ) {
     return blocked("runner_required");
@@ -3753,7 +3760,7 @@ export function getAgentRuntimeCapabilities(): AgentRuntimeCapabilities {
       runner_selection: {
         contract_version: AGENT_RUNNER_SELECTION_VERSION,
         default_family: AGENT_DEFAULT_RUNNER_FAMILY,
-        dispatch_implemented: false,
+        dispatch_implemented: true,
         registered_families: AGENT_RUNNER_FAMILIES,
         registered_runners: AGENT_RUNNER_REGISTRY,
         selection_owner: "agent_runtime"

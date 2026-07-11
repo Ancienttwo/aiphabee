@@ -364,7 +364,7 @@ describe("agent runtime scaffold", () => {
     expect(capabilities.control_plane.runner_selection).toEqual({
       contract_version: AGENT_RUNNER_SELECTION_VERSION,
       default_family: "edge",
-      dispatch_implemented: false,
+      dispatch_implemented: true,
       registered_families: AGENT_RUNNER_FAMILIES,
       registered_runners: AGENT_RUNNER_REGISTRY,
       selection_owner: "agent_runtime"
@@ -807,6 +807,7 @@ describe("agent runtime scaffold", () => {
       },
       layer: "research",
       mode: "dry_run",
+      prompt: "Inspect the security profile",
       request_id: "req-control-plane-1",
       run_id: "dry_req-control-plane-1",
       tenant_id: "tenant_fixture",
@@ -856,7 +857,7 @@ describe("agent runtime scaffold", () => {
         supported_modes: ["dry_run", "guarded_live"]
       },
       {
-        enabled: false,
+        enabled: true,
         family: "fastclaw",
         runner_id: "fastclaw.personal-v0",
         supported_modes: ["runner_remote"]
@@ -903,13 +904,24 @@ describe("agent runtime scaffold", () => {
     });
     expect(
       selectAgentRunner({
+        activatedRunnerId: "fastclaw.personal-v0",
         mode: "runner_remote",
         requestedRunnerFamily: "fastclaw"
       })
     ).toMatchObject({
-      route_reason: "blocked_runner_disabled",
-      selected_runner_family: null,
-      selected_runner_id: null,
+      route_reason: "selected",
+      selected_mode: "runner_remote",
+      selected_runner_family: "fastclaw",
+      selected_runner_id: "fastclaw.personal-v0",
+      status: "selected"
+    });
+    expect(
+      selectAgentRunner({
+        mode: "runner_remote",
+        requestedRunnerFamily: "fastclaw"
+      })
+    ).toMatchObject({
+      route_reason: "blocked_runner_activation_required",
       status: "blocked"
     });
     expect(
@@ -971,7 +983,7 @@ describe("agent runtime scaffold", () => {
       requested_layer: "research",
       route_reason: "blocked_runner_selection",
       runner_selection: {
-        route_reason: "blocked_runner_disabled",
+        route_reason: "blocked_runner_activation_required",
         status: "blocked"
       },
       status: "blocked"

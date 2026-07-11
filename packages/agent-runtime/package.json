@@ -23,6 +23,10 @@
     "./fastclaw-lifecycle": {
       "types": "./src/fastclaw-lifecycle.ts",
       "default": "./src/fastclaw-lifecycle.ts"
+    },
+    "./fastclaw-agent-runner": {
+      "types": "./src/fastclaw-agent-runner.ts",
+      "default": "./src/fastclaw-agent-runner.ts"
     }
   },
   "scripts": {

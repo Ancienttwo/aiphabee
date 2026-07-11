@@ -35,6 +35,7 @@ function request(overrides: Partial<AgentExecutionRequest> = {}): AgentExecution
     context_refs: {},
     layer: "research",
     mode: "runner_remote",
+    prompt: "Run the deterministic sandbox smoke",
     request_id: "req_20260710_smoke_001",
     run_id: "run_20260710_smoke_001",
     tenant_id: "tenant-1",

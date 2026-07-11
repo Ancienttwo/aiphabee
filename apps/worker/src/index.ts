@@ -19140,6 +19140,8 @@ function createAgentWorkerRouteReadback(
           ? "requested agent run mode is incompatible with the runner family"
           : runnerSelection.route_reason === "blocked_runner_disabled"
             ? "requested agent runner is disabled"
+            : runnerSelection.route_reason === "blocked_runner_activation_required"
+              ? "requested agent runner requires private activation"
             : "requested agent run mode requires a runner that is not enabled";
     throw new AgentWorkerRouteInputError(
       runnerSelection.route_reason,

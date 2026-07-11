@@ -4,7 +4,7 @@
     {
       "id": "agent_control_plane",
       "name": "AiphaBee Agent Control Plane",
-      "status": "contract_converged_dry_run_only",
+      "status": "contract_converged_private_remote_adapter_no_live_execution",
       "source_prd": "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
       "source_sprint": "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
       "authority_packages": [
@@ -21,7 +21,8 @@
         "runner_remote"
       ],
       "executable_run_modes": [
-        "dry_run"
+        "dry_run",
+        "runner_remote"
       ],
       "invariants": {
         "single_run_event_tool_authority": true,
@@ -35,14 +36,14 @@
         "sandbox_observed_usage_contract_implemented": true,
         "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
-        "runner_dispatch_implemented": false,
+        "runner_dispatch_implemented": true,
         "live_model_execution_enabled": false
       }
     },
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "dedicated_provisioning_verified_terminal_lifecycle_implemented_not_integrated_no_live_execution",
+      "status": "runner_adapter_implemented_private_activation_no_live_transport",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -66,6 +67,10 @@
         "sandbox_observed_usage_contract_implemented": true,
         "dedicated_agent_provisioning_verified": true,
         "fastclaw_upstream_commit": "35cd5ad006d991713c91a1fc641bcf01dbaf3a8b",
+        "runner_adapter_implemented": true,
+        "private_sandbox_grant_mint_implemented": true,
+        "callback_tool_policy_required": true,
+        "opaque_sse_live_transport_compatible": false,
         "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false

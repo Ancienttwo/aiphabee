@@ -1,0 +1,46 @@
+{
+  "version": "2026-07-11.fastclaw-agent-runner.v1",
+  "runner": {
+    "family": "fastclaw",
+    "id": "fastclaw.personal-v0",
+    "layer": "research",
+    "mode": "runner_remote",
+    "registry_enabled": true,
+    "selection_owner": "agent_runtime"
+  },
+  "activation": {
+    "grant_mint_package_exported": false,
+    "grant_runtime_authenticity_checked": true,
+    "grant_deep_frozen": true,
+    "registry_flip_is_authorization": false,
+    "dedicated_identity_live_read_required": true,
+    "temporal_entitlement_live_read_required": true
+  },
+  "transport": {
+    "required_contract_version": "2026-07-11.aiphabee-tool-callback.v1",
+    "tool_interception": "callback_before_execution",
+    "opaque_fastclaw_sse_compliant": false,
+    "live_transport_wired": false
+  },
+  "events": {
+    "monotonic_indexes": true,
+    "unique_terminal": true,
+    "raw_progress_public": false,
+    "raw_final_public": false,
+    "private_reasoning_public": false,
+    "protected_remote_ids_public": false,
+    "sandbox_authorization_public": false,
+    "tool_input_or_output_public": false,
+    "public_error_messages": false
+  },
+  "final_authority": {
+    "aiphabee_post_check_required": true,
+    "failed_post_check_fallback_to_raw": false
+  },
+  "release": {
+    "public_route_added": false,
+    "production_enabled": false,
+    "credentialed_live_acceptance": false,
+    "live_acceptance_owned_by_sprint_row": 10
+  }
+}

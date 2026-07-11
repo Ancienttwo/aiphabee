@@ -6,6 +6,8 @@
         "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
         "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/fastclaw-agent-runner.ts",
+        "packages/agent-runtime/src/sandbox-access-grant.ts",
         "packages/agent-runtime/src/fastclaw-lifecycle.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.ts",
         "packages/sandbox-run-auth/src/index.ts",
@@ -14,11 +16,13 @@
         "apps/sandbox-bridge/src/tool-gateway-egress.ts",
         "apps/worker/src/sandbox-tool-gateway.ts",
         "apps/worker/src/research-agent-lifecycle.ts",
+        "apps/worker/src/fastclaw-agent-runner.ts",
         "deploy/fastclaw/dedicated-agent-provisioning.contract.json",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "packages/agent-runtime/src/fastclaw-agent-runner.test.ts",
         "packages/agent-runtime/src/fastclaw-lifecycle.test.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.test.ts",
         "packages/sandbox-run-auth/src/index.test.ts",
@@ -28,6 +32,7 @@
         "apps/worker/src/sandbox-tool-gateway.test.ts",
         "apps/worker/src/research-agent-lifecycle.test.ts",
         "apps/worker/src/research-agent-lifecycle.postgres.test.ts",
+        "apps/worker/src/fastclaw-agent-runner.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
@@ -39,13 +44,13 @@
         "single run/event/tool authority",
         "Worker owns public /agent/* routes",
         "Generic cannot call Research-only tools",
-        "runner selection is Agent Runtime-owned and dispatch remains disabled",
+        "runner selection and adapter dispatch are Agent Runtime-owned while live transport remains disabled",
         "Cloudflare sandbox adapter exists but no backend is registered or dispatched",
         "one provider-neutral terminal lifecycle owns timeout kill cleanup and observed execution usage",
         "terminal record persistence remains an explicit required callback but is not wired to a production sink",
         "sandbox egress reaches only the private Tool Gateway with a short tenant run lease and tool scoped token",
-        "production Tool Gateway token minting and runner integration remain disabled",
-        "only dry_run is currently executable"
+        "production Tool Gateway token minting and public live runner integration remain disabled",
+        "dry_run and private runner_remote adapter execution are contract-executable; public live execution remains disabled"
       ]
     },
     "fastclaw_personal_runner": {
@@ -54,25 +59,32 @@
         "plans/prds/20260710-1702-dual-agent-v3.prd.md",
         "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/fastclaw-agent-runner.ts",
+        "packages/agent-runtime/src/sandbox-access-grant.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.ts",
         "packages/sandbox-run-auth/src/index.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
         "apps/sandbox-bridge/src/lease-registry.ts",
         "apps/sandbox-bridge/src/tool-gateway-egress.ts",
         "apps/worker/src/sandbox-tool-gateway.ts",
+        "apps/worker/src/fastclaw-agent-runner.ts",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "packages/agent-runtime/src/fastclaw-agent-runner.test.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.test.ts",
         "packages/sandbox-run-auth/src/index.test.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
         "apps/sandbox-bridge/src/lease-registry.test.ts",
         "apps/sandbox-bridge/src/tool-gateway-egress.test.ts",
         "apps/worker/src/sandbox-tool-gateway.test.ts",
+        "apps/worker/src/fastclaw-agent-runner.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
+        "npm run check:fastclaw-agent-runner",
+        "npx vitest run packages/agent-runtime/src/fastclaw-agent-runner.test.ts apps/worker/src/fastclaw-agent-runner.test.ts packages/agent-runtime/src/index.test.ts",
         "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts",
         "npx vitest run packages/sandbox-run-auth/src/index.test.ts apps/worker/src/sandbox-tool-gateway.test.ts apps/sandbox-bridge/src/tool-gateway-egress.test.ts apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts apps/sandbox-bridge/src/lease-registry.test.ts"
       ],
@@ -81,14 +93,16 @@
         "one durable identity per entitled user",
         "one ephemeral sandbox per active run or session",
         "no shared identity fallback",
-        "fastclaw.personal-v0 is registered but disabled",
-        "runner selection exists without runner dispatch",
-        "Cloudflare sandbox adapter exists without grant minting backend registration runner dispatch or live execution",
+        "fastclaw.personal-v0 is registered and runner_remote is selectable",
+        "private activation owns the only authentic frozen sandbox grant mint",
+        "every transport tool call must re-enter the AiphaBee callback before execution",
+        "opaque FastClaw SSE is not a compliant live transport and cannot activate",
+        "Cloudflare sandbox adapter remains unregistered for public live dispatch; private runner activation alone can mint a run-owned grant",
         "the Agent Runtime lifecycle emits one terminal state after idempotent cleanup and records observed rather than estimated usage",
         "dedicated provisioning is fixture-verified at FastClaw dev@35cd5ad006d991713c91a1fc641bcf01dbaf3a8b with one audited identity path under concurrent PostgreSQL claims",
         "terminal record persistence remains unwired until the runner integration slice",
         "only the exact private Tool Gateway egress path exists and its short token stays outside the sandbox process",
-        "production Tool Gateway token minting remains unwired until runner activation",
+        "production Tool Gateway token minting remains unwired until product integration",
         "live acceptance cannot be satisfied by fixtures alone"
       ]
     },

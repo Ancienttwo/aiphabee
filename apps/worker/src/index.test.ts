@@ -14093,7 +14093,7 @@ describe("worker runtime", () => {
       authority_package: "@aiphabee/agent-runtime",
       contract_version: "2026-07-03.agent-control-plane-convergence.v0",
       event_contract_ready: true,
-      executable_run_modes: ["dry_run"],
+      executable_run_modes: ["dry_run", "runner_remote"],
       layer_contract_ready: true,
       layer_tool_policy: {
         default_behavior: "deny_unknown_tool",
@@ -14126,13 +14126,14 @@ describe("worker runtime", () => {
         "runner_required",
         "blocked_invalid_runner_family",
         "blocked_runner_disabled",
+        "blocked_runner_activation_required",
         "blocked_runner_mode_incompatible"
       ],
       runner_contract_ready: true,
       runner_selection: {
         contract_version: "2026-07-10.agent-runner-selection.v0",
         default_family: "edge",
-        dispatch_implemented: false,
+        dispatch_implemented: true,
         registered_families: ["edge", "fastclaw"],
         registered_runners: [
           {
@@ -14142,7 +14143,7 @@ describe("worker runtime", () => {
             supported_modes: ["dry_run", "guarded_live"]
           },
           {
-            enabled: false,
+            enabled: true,
             family: "fastclaw",
             runner_id: "fastclaw.personal-v0",
             supported_modes: ["runner_remote"]
@@ -23501,7 +23502,7 @@ describe("worker runtime", () => {
     );
   });
 
-  it("rejects the disabled FastClaw runner before Worker planning", async () => {
+  it("rejects FastClaw without private activation before Worker planning", async () => {
     const response = await app.request("/agent/runs/plan", {
       body: JSON.stringify({
         agent_layer: "research",
@@ -23519,7 +23520,7 @@ describe("worker runtime", () => {
 
     expect(response.status).toBe(400);
     expect(response.headers.get("x-aiphabee-route-reason")).toBe(
-      "blocked_runner_disabled"
+      "blocked_runner_activation_required"
     );
   });
 
