@@ -42,7 +42,7 @@
     {
       "id": "fastclaw_personal_runner",
       "name": "FastClaw Personal Agent Runner",
-      "status": "terminal_lifecycle_implemented_not_integrated_no_live_execution",
+      "status": "dedicated_provisioning_verified_terminal_lifecycle_implemented_not_integrated_no_live_execution",
       "source_prd": "plans/prds/20260710-1702-dual-agent-v3.prd.md",
       "source_sprint": "plans/sprints/20260710-1702-fastclaw-dedicated-agent-runner-sandbox.sprint.md",
       "authority_packages": [
@@ -64,6 +64,8 @@
         "sandbox_tool_gateway_implemented": true,
         "sandbox_terminal_lifecycle_implemented": true,
         "sandbox_observed_usage_contract_implemented": true,
+        "dedicated_agent_provisioning_verified": true,
+        "fastclaw_upstream_commit": "35cd5ad006d991713c91a1fc641bcf01dbaf3a8b",
         "sandbox_terminal_record_sink_wired": false,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false

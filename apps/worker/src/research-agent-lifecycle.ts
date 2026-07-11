@@ -47,6 +47,7 @@ export interface ResearchAgentLifecycleProfile {
   fastclaw_agent_id?: string;
   fastclaw_user_id?: string;
   lifecycle_status: ResearchAgentLifecycleStatus;
+  lease_owner_request_id?: string;
   profile_id: string;
   workspace_id: string;
 }
@@ -94,7 +95,9 @@ export interface ResearchAgentLifecycleRepository {
     requestId: string;
     workspaceId: string;
   }): Promise<
-    | { kind: "busy" }
+    | { kind: "busy"; profile: ResearchAgentLifecycleProfile }
+    | { kind: "deleted"; profile: ResearchAgentLifecycleProfile }
+    | { kind: "in_progress"; profile: ResearchAgentLifecycleProfile }
     | { kind: "terminal"; profile: ResearchAgentLifecycleProfile }
     | {
         kind: "claimed";
@@ -142,6 +145,7 @@ export interface ResearchAgentLifecycleResult {
   profile_id: string;
   request_id: string;
   retryable: boolean;
+  retry_with_new_request_id: boolean;
   sandbox_created: false;
 }
 
@@ -199,6 +203,7 @@ export class ResearchAgentLifecycleService {
           profile_id: profileId,
           request_id: request.requestId,
           retryable: false,
+          retry_with_new_request_id: false,
           sandbox_created: false
         };
       }
@@ -217,6 +222,7 @@ export class ResearchAgentLifecycleService {
           profile_id: profileId,
           request_id: request.requestId,
           retryable: false,
+          retry_with_new_request_id: false,
           sandbox_created: false
         };
       }
@@ -244,17 +250,54 @@ export class ResearchAgentLifecycleService {
       requestId: request.requestId,
       workspaceId: request.workspaceId
     });
-    if (claim.kind === "busy") {
+    if (claim.kind === "in_progress") {
       return {
         desired_state: desiredState,
-        error_code: "LIFECYCLE_LEASE_BUSY",
-        lifecycle_status: pendingStatusForIntent(request.intent),
+        error_code: "LIFECYCLE_REQUEST_IN_PROGRESS",
+        fastclaw_agent_id_hash:
+          claim.profile.fastclaw_agent_id === undefined
+            ? undefined
+            : await hashLifecycleReference(claim.profile.fastclaw_agent_id),
+        fastclaw_user_id_hash:
+          claim.profile.fastclaw_user_id === undefined
+            ? undefined
+            : await hashLifecycleReference(claim.profile.fastclaw_user_id),
+        lifecycle_status: claim.profile.lifecycle_status,
         outcome: "conflict",
         profile_id: profileId,
         request_id: request.requestId,
         retryable: true,
+        retry_with_new_request_id: false,
         sandbox_created: false
       };
+    }
+    if (claim.kind === "deleted") {
+      const event = await this.repository.recordTerminal({
+        errorCode: "RESEARCH_AGENT_PROFILE_DELETED",
+        fastclawAgentId: claim.profile.fastclaw_agent_id,
+        fastclawUserId: claim.profile.fastclaw_user_id,
+        fromStatus: claim.profile.lifecycle_status,
+        intent: request.intent,
+        outcome: "denied",
+        profile: claim.profile,
+        reason: request.reason,
+        requestId: request.requestId
+      });
+      return resultFromEvent(event, desiredState);
+    }
+    if (claim.kind === "busy") {
+      const event = await this.repository.recordTerminal({
+        errorCode: "LIFECYCLE_LEASE_BUSY",
+        fastclawAgentId: claim.profile.fastclaw_agent_id,
+        fastclawUserId: claim.profile.fastclaw_user_id,
+        fromStatus: claim.profile.lifecycle_status,
+        intent: request.intent,
+        outcome: "conflict",
+        profile: claim.profile,
+        reason: request.reason,
+        requestId: request.requestId
+      });
+      return resultFromEvent(event, desiredState);
     }
     if (claim.kind === "terminal") {
       const event = await this.repository.recordTerminal({
@@ -386,6 +429,8 @@ function resultFromEvent(
     profile_id: event.profile_id,
     request_id: event.request_id,
     retryable: event.outcome === "retryable_failure" || event.outcome === "conflict",
+    retry_with_new_request_id:
+      event.outcome === "retryable_failure" || event.outcome === "conflict",
     sandbox_created: false
   };
 }
@@ -481,7 +526,7 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
     if (current === undefined) throw new Error("research Agent profile missing after ensure");
     const terminal = terminalStatusForIntent(input.intent);
     if (current.lifecycle_status === terminal) return { kind: "terminal" as const, profile: current };
-    if (current.lifecycle_status === "deleted") return { kind: "busy" as const };
+    if (current.lifecycle_status === "deleted") return { kind: "deleted" as const, profile: current };
 
     const result = await this.client.query<ProfileRow>(
       `update aiphabee_core.research_agent_profile
@@ -504,9 +549,21 @@ export class PostgresResearchAgentLifecycleRepository implements ResearchAgentLi
       [input.profileId, input.desiredState, input.pendingStatus, input.requestId, LIFECYCLE_LEASE_SECONDS]
     );
     const claimed = normalizeProfile(result.rows[0]);
-    return claimed === undefined
-      ? { kind: "busy" as const }
-      : { kind: "claimed" as const, previousStatus: current.lifecycle_status, profile: claimed };
+    if (claimed !== undefined) {
+      return { kind: "claimed" as const, previousStatus: current.lifecycle_status, profile: claimed };
+    }
+    const busyProfile = await this.readProfile(input.profileId);
+    if (busyProfile === undefined) throw new Error("research Agent busy profile missing");
+    if (busyProfile.lifecycle_status === terminal) {
+      return { kind: "terminal" as const, profile: busyProfile };
+    }
+    if (busyProfile.lifecycle_status === "deleted") {
+      return { kind: "deleted" as const, profile: busyProfile };
+    }
+    if (busyProfile.lease_owner_request_id === input.requestId) {
+      return { kind: "in_progress" as const, profile: busyProfile };
+    }
+    return { kind: "busy" as const, profile: busyProfile };
   }
 
   async recordDenied(input: Parameters<ResearchAgentLifecycleRepository["recordDenied"]>[0]) {
@@ -660,12 +717,14 @@ interface ProfileRow {
   fastclaw_agent_id: string | null;
   fastclaw_user_id: string | null;
   lifecycle_status: ResearchAgentLifecycleStatus;
+  lease_owner_request_id: string | null;
   profile_id: string;
   workspace_id: string;
 }
 
 const PROFILE_COLUMNS = `profile_id, workspace_id, account_id, external_identity,
-  fastclaw_user_id, fastclaw_agent_id, desired_state, lifecycle_status, attempt_count`;
+  fastclaw_user_id, fastclaw_agent_id, desired_state, lifecycle_status, attempt_count,
+  lease_owner_request_id`;
 
 function normalizeProfile(row: ProfileRow | undefined): ResearchAgentLifecycleProfile | undefined {
   if (row === undefined) return undefined;
@@ -677,6 +736,7 @@ function normalizeProfile(row: ProfileRow | undefined): ResearchAgentLifecyclePr
     fastclaw_agent_id: row.fastclaw_agent_id ?? undefined,
     fastclaw_user_id: row.fastclaw_user_id ?? undefined,
     lifecycle_status: row.lifecycle_status,
+    lease_owner_request_id: row.lease_owner_request_id ?? undefined,
     profile_id: row.profile_id,
     workspace_id: row.workspace_id
   };

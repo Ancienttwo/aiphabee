@@ -15,6 +15,7 @@ const describePostgres = databaseUrl === undefined ? describe.skip : describe;
 
 describePostgres("research Agent lifecycle Postgres integration", () => {
   const client = new Client({ connectionString: databaseUrl });
+  let priorRuntimeMembershipSetOption: boolean | undefined;
 
   beforeAll(async () => {
     await client.connect();
@@ -24,6 +25,21 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     if (!database.rows[0]?.current_database.startsWith("aiphabee_lifecycle_test")) {
       throw new Error("integration database name must start with aiphabee_lifecycle_test");
     }
+    const serverVersion = await client.query<{ server_version_num: string }>(
+      "select current_setting('server_version_num') as server_version_num"
+    );
+    if (Number(serverVersion.rows[0]?.server_version_num) < 160_000) {
+      throw new Error("research Agent lifecycle integration requires PostgreSQL 16 or newer");
+    }
+    const priorMembership = await client.query<{ set_option: boolean }>(
+      `select membership.set_option
+       from pg_auth_members membership
+       join pg_roles role on role.oid = membership.roleid
+       where role.rolname = 'aiphabee_runtime_rls'
+         and membership.member = (select oid from pg_roles where rolname = current_user)
+         and membership.grantor = (select oid from pg_roles where rolname = current_user)`
+    );
+    priorRuntimeMembershipSetOption = priorMembership.rows[0]?.set_option;
     await client.query("drop schema if exists aiphabee_audit cascade");
     await client.query("drop schema if exists aiphabee_core cascade");
     await client.query("drop schema if exists platform cascade");
@@ -42,7 +58,27 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
   });
 
   afterAll(async () => {
-    await client.end();
+    try {
+      if (priorRuntimeMembershipSetOption === false) {
+        await client.query(
+          `do $do$ begin
+             execute format('grant aiphabee_runtime_rls to %I with set false', current_user);
+           end $do$;`
+        );
+      } else if (priorRuntimeMembershipSetOption === undefined) {
+        await client.query(
+          `do $do$ begin
+             execute format(
+               'revoke aiphabee_runtime_rls from %I granted by %I',
+               current_user,
+               current_user
+             );
+           end $do$;`
+        );
+      }
+    } finally {
+      await client.end();
+    }
   });
 
   it("persists one activate-disable-remove lifecycle with leases and audit", async () => {
@@ -119,7 +155,10 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
       workspaceId: "workspace-test"
     };
     await expect(repository.claim(duplicateClaimInput)).resolves.toMatchObject({ kind: "claimed" });
-    await expect(repository.claim(duplicateClaimInput)).resolves.toEqual({ kind: "busy" });
+    await expect(repository.claim(duplicateClaimInput)).resolves.toMatchObject({
+      kind: "in_progress",
+      profile: { lifecycle_status: "disable_pending" }
+    });
     await client.query(
       `update aiphabee_core.research_agent_profile
        set lifecycle_status = 'active', desired_state = 'active',
@@ -172,16 +211,57 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     ).resolves.toMatchObject({ lifecycle_status: "disabled", outcome: "succeeded" });
     expect(setUserStatus).toHaveBeenCalledWith("u_dedicated", "disabled");
 
-    await client.query("update platform.account set status = 'closed' where account_id = 'account-test'");
+    await client.query(
+      "update platform.workspace_entitlement set status = 'approved' where workspace_id = 'workspace-test'"
+    );
     await expect(
       service.execute({
         ...activate,
-        intent: "delete",
-        reason: "account erasure approved",
-        requestId: "req-delete"
+        reason: "subscription resumed",
+        requestId: "req-reactivate"
       })
+    ).resolves.toMatchObject({ lifecycle_status: "active", outcome: "succeeded" });
+    expect(setUserStatus).toHaveBeenCalledWith("u_dedicated", "active");
+    expect(provisionUser).toHaveBeenCalledOnce();
+    expect(provisionAgent).toHaveBeenCalledOnce();
+
+    await expect(
+      service.execute({ ...activate, requestId: "req-activate-terminal" })
+    ).resolves.toMatchObject({ lifecycle_status: "active", outcome: "succeeded" });
+    expect(provisionUser).toHaveBeenCalledOnce();
+    expect(provisionAgent).toHaveBeenCalledOnce();
+
+    const disableAgain = {
+      ...activate,
+      intent: "disable" as const,
+      reason: "subscription paused again",
+      requestId: "req-disable-again"
+    };
+    await expect(service.execute(disableAgain)).resolves.toMatchObject({
+      lifecycle_status: "disabled",
+      outcome: "succeeded"
+    });
+    await expect(
+      service.execute({ ...disableAgain, requestId: "req-disable-terminal" })
+    ).resolves.toMatchObject({ lifecycle_status: "disabled", outcome: "succeeded" });
+    expect(setUserStatus).toHaveBeenCalledTimes(3);
+
+    await client.query("update platform.account set status = 'closed' where account_id = 'account-test'");
+    const remove = {
+      ...activate,
+      intent: "delete" as const,
+      reason: "account erasure approved",
+      requestId: "req-delete"
+    };
+    await expect(service.execute(remove)).resolves.toMatchObject({
+      lifecycle_status: "deleted",
+      outcome: "succeeded"
+    });
+    await expect(
+      service.execute({ ...remove, requestId: "req-delete-terminal" })
     ).resolves.toMatchObject({ lifecycle_status: "deleted", outcome: "succeeded" });
     expect(removeUser).toHaveBeenCalledWith("u_dedicated");
+    expect(removeUser).toHaveBeenCalledOnce();
 
     const profile = await client.query<{
       fastclaw_agent_id: string | null;
@@ -200,7 +280,7 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     const audit = await client.query<{ count: string }>(
       "select count(*)::text as count from aiphabee_audit.research_agent_lifecycle_event"
     );
-    expect(audit.rows[0]?.count).toBe("4");
+    expect(audit.rows[0]?.count).toBe("9");
   });
 
   it("persists a partial FastClaw user before a failed Agent provision", async () => {
@@ -209,9 +289,12 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
       external_id: externalId,
       user_id: "u_partial"
     }));
-    const provisionAgent = vi.fn(async () => {
-      throw new FastClawLifecycleError("FASTCLAW_UNAVAILABLE", "unavailable", true);
-    });
+    const provisionAgent = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new FastClawLifecycleError("FASTCLAW_UNAVAILABLE", "unavailable", true)
+      )
+      .mockResolvedValueOnce({ agent_id: "agt_partial", created: true });
     const setUserStatus = vi.fn(async (_userId: string, status: "active" | "disabled") => ({
       status
     }));
@@ -252,16 +335,331 @@ describePostgres("research Agent lifecycle Postgres integration", () => {
     await expect(
       service.execute({
         accountId: "account-partial",
-        intent: "disable",
-        reason: "disable retained partial user",
-        requestId: "req-partial-disable",
+        intent: "activate",
+        reason: "retry retained partial user",
+        requestId: "req-partial-retry",
         workspaceId: "workspace-partial"
       })
-    ).resolves.toMatchObject({ lifecycle_status: "disabled", outcome: "succeeded" });
-    expect(setUserStatus).toHaveBeenCalledWith("u_partial", "disabled");
+    ).resolves.toMatchObject({ lifecycle_status: "active", outcome: "succeeded" });
+    expect(setUserStatus).toHaveBeenCalledWith("u_partial", "active");
     expect(provisionUser).toHaveBeenCalledOnce();
+    expect(provisionAgent).toHaveBeenCalledTimes(2);
+    const reconciledProfile = await client.query<{
+      fastclaw_agent_id: string | null;
+      fastclaw_user_id: string | null;
+      lifecycle_status: string;
+    }>(
+      `select fastclaw_user_id, fastclaw_agent_id, lifecycle_status
+       from aiphabee_core.research_agent_profile
+       where workspace_id = 'workspace-partial'`
+    );
+    expect(reconciledProfile.rows).toEqual([
+      {
+        fastclaw_agent_id: "agt_partial",
+        fastclaw_user_id: "u_partial",
+        lifecycle_status: "active"
+      }
+    ]);
+  });
+
+  it("allows one remote provision path and audits the loser under true concurrent claims", async () => {
+    await seedAuthorizedIdentity(client, "concurrent");
+    const firstClient = new Client({ connectionString: databaseUrl });
+    const secondClient = new Client({ connectionString: databaseUrl });
+    let releaseProvision = (): void => undefined;
+    let markProvisionStarted = (): void => undefined;
+    const provisionGate = new Promise<void>((resolve) => {
+      releaseProvision = resolve;
+    });
+    const provisionStarted = new Promise<void>((resolve) => {
+      markProvisionStarted = resolve;
+    });
+    const provisionUser = vi.fn(async (externalId: string) => {
+      markProvisionStarted();
+      await provisionGate;
+      return { external_id: externalId, user_id: "u_concurrent" };
+    });
+    const provisionAgent = vi.fn(async () => ({
+      agent_id: "agt_concurrent",
+      created: true
+    }));
+    const remote = {
+      provisionAgent,
+      provisionUser,
+      removeUser: vi.fn(),
+      setUserStatus: vi.fn()
+    };
+
+    await firstClient.connect();
+    await secondClient.connect();
+    try {
+      const firstService = new ResearchAgentLifecycleService({
+        remote,
+        repository: new PostgresResearchAgentLifecycleRepository(firstClient)
+      });
+      const secondService = new ResearchAgentLifecycleService({
+        remote,
+        repository: new PostgresResearchAgentLifecycleRepository(secondClient)
+      });
+      const firstResult = firstService.execute({
+        accountId: "account-concurrent",
+        intent: "activate",
+        reason: "concurrent winner",
+        requestId: "req-concurrent-first",
+        workspaceId: "workspace-concurrent"
+      });
+      await provisionStarted;
+
+      await expect(
+        secondService.execute({
+          accountId: "account-concurrent",
+          intent: "activate",
+          reason: "duplicate in-flight delivery",
+          requestId: "req-concurrent-first",
+          workspaceId: "workspace-concurrent"
+        })
+      ).resolves.toMatchObject({
+        error_code: "LIFECYCLE_REQUEST_IN_PROGRESS",
+        lifecycle_status: "provisioning",
+        outcome: "conflict",
+        retryable: true,
+        retry_with_new_request_id: false
+      });
+
+      await expect(
+        secondService.execute({
+          accountId: "account-concurrent",
+          intent: "activate",
+          reason: "concurrent loser",
+          requestId: "req-concurrent-second",
+          workspaceId: "workspace-concurrent"
+        })
+      ).resolves.toMatchObject({
+        error_code: "LIFECYCLE_LEASE_BUSY",
+        lifecycle_status: "provisioning",
+        outcome: "conflict",
+        retryable: true,
+        retry_with_new_request_id: true
+      });
+      releaseProvision();
+      await expect(firstResult).resolves.toMatchObject({
+        lifecycle_status: "active",
+        outcome: "succeeded"
+      });
+      await expect(
+        secondService.execute({
+          accountId: "account-concurrent",
+          intent: "activate",
+          reason: "completed same-attempt replay",
+          requestId: "req-concurrent-first",
+          workspaceId: "workspace-concurrent"
+        })
+      ).resolves.toMatchObject({
+        lifecycle_status: "active",
+        outcome: "succeeded",
+        retry_with_new_request_id: false
+      });
+      await expect(
+        secondService.execute({
+          accountId: "account-concurrent",
+          intent: "activate",
+          reason: "same idempotent attempt replay",
+          requestId: "req-concurrent-second",
+          workspaceId: "workspace-concurrent"
+        })
+      ).resolves.toMatchObject({
+        error_code: "LIFECYCLE_LEASE_BUSY",
+        outcome: "conflict",
+        retry_with_new_request_id: true
+      });
+      await expect(
+        secondService.execute({
+          accountId: "account-concurrent",
+          intent: "activate",
+          reason: "new retry attempt",
+          requestId: "req-concurrent-retry",
+          workspaceId: "workspace-concurrent"
+        })
+      ).resolves.toMatchObject({
+        lifecycle_status: "active",
+        outcome: "succeeded",
+        retry_with_new_request_id: false
+      });
+    } finally {
+      releaseProvision();
+      await Promise.all([
+        firstClient.end().catch(() => undefined),
+        secondClient.end().catch(() => undefined)
+      ]);
+    }
+
+    expect(provisionUser).toHaveBeenCalledOnce();
+    expect(provisionAgent).toHaveBeenCalledOnce();
+    const profiles = await client.query<{ count: string; lifecycle_status: string }>(
+      `select count(*)::text as count, max(lifecycle_status) as lifecycle_status
+       from aiphabee_core.research_agent_profile
+       where workspace_id = 'workspace-concurrent' and account_id = 'account-concurrent'`
+    );
+    expect(profiles.rows).toEqual([{ count: "1", lifecycle_status: "active" }]);
+    const events = await client.query<{
+      error_code: string | null;
+      outcome: string;
+      request_id: string;
+      to_status: string;
+    }>(
+      `select event.request_id, event.outcome, event.error_code, event.to_status
+       from aiphabee_audit.research_agent_lifecycle_event event
+       join aiphabee_core.research_agent_profile profile on profile.profile_id = event.profile_id
+       where profile.workspace_id = 'workspace-concurrent'
+       order by event.request_id`
+    );
+    expect(events.rows).toEqual([
+      {
+        error_code: null,
+        outcome: "succeeded",
+        request_id: "req-concurrent-first",
+        to_status: "active"
+      },
+      {
+        error_code: null,
+        outcome: "succeeded",
+        request_id: "req-concurrent-retry",
+        to_status: "active"
+      },
+      {
+        error_code: "LIFECYCLE_LEASE_BUSY",
+        outcome: "conflict",
+        request_id: "req-concurrent-second",
+        to_status: "provisioning"
+      }
+    ]);
+  });
+
+  it("reclaims an expired operation lease without provisioning a second identity", async () => {
+    await seedAuthorizedIdentity(client, "lease-expiry");
+    const provisionUser = vi.fn(async (externalId: string) => ({
+      external_id: externalId,
+      user_id: "u_lease_expiry"
+    }));
+    const provisionAgent = vi.fn(async () => ({
+      agent_id: "agt_lease_expiry",
+      created: true
+    }));
+    const setUserStatus = vi.fn(async (_userId: string, status: "active" | "disabled") => ({
+      status
+    }));
+    const service = new ResearchAgentLifecycleService({
+      remote: { provisionAgent, provisionUser, removeUser: vi.fn(), setUserStatus },
+      repository: new PostgresResearchAgentLifecycleRepository(client)
+    });
+    const activate = {
+      accountId: "account-lease-expiry",
+      intent: "activate" as const,
+      reason: "initial provision",
+      requestId: "req-lease-initial",
+      workspaceId: "workspace-lease-expiry"
+    };
+    await expect(service.execute(activate)).resolves.toMatchObject({ lifecycle_status: "active" });
+    await client.query(
+      `update aiphabee_core.research_agent_profile
+       set lifecycle_status = 'provisioning', desired_state = 'active',
+           lease_owner_request_id = 'req-stale-owner',
+           lease_expires_at = now() - interval '1 second'
+       where workspace_id = 'workspace-lease-expiry'`
+    );
+
+    await expect(
+      service.execute({ ...activate, reason: "reclaim expired lease", requestId: "req-lease-reclaim" })
+    ).resolves.toMatchObject({ lifecycle_status: "active", outcome: "succeeded" });
+    expect(provisionUser).toHaveBeenCalledOnce();
+    expect(provisionAgent).toHaveBeenCalledOnce();
+    expect(setUserStatus).toHaveBeenCalledOnce();
+    expect(setUserStatus).toHaveBeenCalledWith("u_lease_expiry", "active");
+  });
+
+  it("denies and audits activation after temporal entitlement expiry before upstream work", async () => {
+    await seedAuthorizedIdentity(client, "entitlement-expiry", { entitlementExpired: true });
+    const remote = {
+      provisionAgent: vi.fn(),
+      provisionUser: vi.fn(),
+      removeUser: vi.fn(),
+      setUserStatus: vi.fn()
+    };
+    const service = new ResearchAgentLifecycleService({
+      remote,
+      repository: new PostgresResearchAgentLifecycleRepository(client)
+    });
+
+    await expect(
+      service.execute({
+        accountId: "account-entitlement-expiry",
+        intent: "activate",
+        reason: "expired temporal entitlement",
+        requestId: "req-entitlement-expired",
+        workspaceId: "workspace-entitlement-expiry"
+      })
+    ).resolves.toMatchObject({
+      error_code: "RESEARCH_AGENT_ENTITLEMENT_DENIED",
+      lifecycle_status: "disabled",
+      outcome: "denied",
+      retryable: false
+    });
+    expect(remote.provisionUser).not.toHaveBeenCalled();
+    expect(remote.provisionAgent).not.toHaveBeenCalled();
+    const audit = await client.query<{ error_code: string; outcome: string; to_status: string }>(
+      `select event.error_code, event.outcome, event.to_status
+       from aiphabee_audit.research_agent_lifecycle_event event
+       join aiphabee_core.research_agent_profile profile on profile.profile_id = event.profile_id
+       where profile.workspace_id = 'workspace-entitlement-expiry'`
+    );
+    expect(audit.rows).toEqual([
+      {
+        error_code: "RESEARCH_AGENT_ENTITLEMENT_DENIED",
+        outcome: "denied",
+        to_status: "disabled"
+      }
+    ]);
   });
 });
+
+async function seedAuthorizedIdentity(
+  client: Client,
+  suffix: string,
+  options: { entitlementExpired?: boolean } = {}
+): Promise<void> {
+  const accountId = `account-${suffix}`;
+  const workspaceId = `workspace-${suffix}`;
+  await client.query("insert into platform.account values ($1, 'active')", [accountId]);
+  await client.query("insert into platform.workspace values ($1, $2, 'active')", [
+    workspaceId,
+    accountId
+  ]);
+  await client.query(
+    `insert into platform.workspace_membership values
+      ($1, $2, $3, 'active', now() - interval '1 day', null)`,
+    [`membership-${suffix}`, workspaceId, accountId]
+  );
+  await client.query(
+    `insert into platform.workspace_subscription values
+      ($1, $2, 'pro', 'active', now() - interval '1 day', null)`,
+    [`subscription-${suffix}`, workspaceId]
+  );
+  await client.query(
+    `insert into platform.workspace_product_access values
+      ($1, $2, 'aiphabee', 'active', 'policy-v1', now() - interval '1 day', null)`,
+    [`access-${suffix}`, workspaceId]
+  );
+  await client.query(
+    `insert into platform.workspace_entitlement values
+      ($1, $2, 'aiphabee', 'research_agent_enabled', 'approved',
+       now() - interval '1 day', $3)`,
+    [
+      `entitlement-${suffix}`,
+      workspaceId,
+      options.entitlementExpired ? new Date(Date.now() - 60_000) : null
+    ]
+  );
+}
 
 const PREREQUISITE_SQL = `
 create schema platform;
@@ -269,6 +667,10 @@ do $do$ begin
   if not exists (select 1 from pg_roles where rolname = 'aiphabee_runtime_rls') then
     create role aiphabee_runtime_rls nologin;
   end if;
+  execute format(
+    'grant aiphabee_runtime_rls to %I with set true',
+    current_user
+  );
 end $do$;
 create table platform.account (
   account_id text primary key,

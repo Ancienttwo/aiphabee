@@ -29,6 +29,7 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
   authority = AUTHORIZED;
   audit = new Map<string, ResearchAgentLifecycleEvent>();
   busy = false;
+  failSuccessOnce = false;
   profile?: ResearchAgentLifecycleProfile;
 
   async readAuthority(): Promise<ResearchAgentAuthoritySnapshot> {
@@ -40,13 +41,22 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
   }
 
   async claim(input: Parameters<ResearchAgentLifecycleRepository["claim"]>[0]) {
-    if (this.busy) return { kind: "busy" as const };
+    if (this.busy) {
+      if (this.profile === undefined) throw new Error("busy profile missing");
+      if (this.profile.lease_owner_request_id === input.requestId) {
+        return { kind: "in_progress" as const, profile: this.profile };
+      }
+      return { kind: "busy" as const, profile: this.profile };
+    }
     const terminal =
       (input.intent === "activate" && this.profile?.lifecycle_status === "active") ||
       (input.intent === "disable" && this.profile?.lifecycle_status === "disabled") ||
       (input.intent === "delete" && this.profile?.lifecycle_status === "deleted");
     if (terminal && this.profile !== undefined) {
       return { kind: "terminal" as const, profile: this.profile };
+    }
+    if (this.profile?.lifecycle_status === "deleted") {
+      return { kind: "deleted" as const, profile: this.profile };
     }
     const previousStatus = this.profile?.lifecycle_status;
     this.profile = {
@@ -57,6 +67,7 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
       fastclaw_agent_id: this.profile?.fastclaw_agent_id,
       fastclaw_user_id: this.profile?.fastclaw_user_id,
       lifecycle_status: input.pendingStatus,
+      lease_owner_request_id: input.requestId,
       profile_id: input.profileId,
       workspace_id: input.workspaceId
     };
@@ -86,11 +97,16 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
 
   async finalizeSuccess(input: Parameters<ResearchAgentLifecycleRepository["finalizeSuccess"]>[0]) {
     if (this.profile === undefined) throw new Error("profile missing");
+    if (this.failSuccessOnce) {
+      this.failSuccessOnce = false;
+      throw new Error("simulated local finalization failure");
+    }
     this.profile = {
       ...this.profile,
       fastclaw_agent_id: input.fastclawAgentId,
       fastclaw_user_id: input.fastclawUserId,
-      lifecycle_status: input.terminalStatus
+      lifecycle_status: input.terminalStatus,
+      lease_owner_request_id: undefined
     };
     const event = eventFrom(input, this.profile);
     event.fastclaw_user_id_hash =
@@ -114,7 +130,8 @@ class MemoryRepository implements ResearchAgentLifecycleRepository {
       lifecycle_status:
         input.outcome === "retryable_failure"
           ? "blocked_retryable"
-          : (input.fromStatus ?? "disabled")
+          : (input.fromStatus ?? "disabled"),
+      lease_owner_request_id: undefined
     };
     const event = eventFrom(input, this.profile);
     this.audit.set(input.requestId, event);
@@ -408,6 +425,18 @@ describe("ResearchAgentLifecycleService", () => {
 
   it("returns conflict for an unexpired competing lease", async () => {
     const repository = new MemoryRepository();
+    repository.profile = {
+      account_id: "account-1",
+      attempt_count: 1,
+      desired_state: "active",
+      external_identity: "aiphabee:v1:abc",
+      fastclaw_agent_id: "agt_dedicated",
+      fastclaw_user_id: "u_dedicated",
+      lifecycle_status: "provisioning",
+      lease_owner_request_id: "req-other-owner",
+      profile_id: "profile-1",
+      workspace_id: "workspace-1"
+    };
     repository.busy = true;
     const remote = {
       provisionAgent: vi.fn(),
@@ -418,8 +447,156 @@ describe("ResearchAgentLifecycleService", () => {
     const result = await new ResearchAgentLifecycleService({ remote, repository }).execute(
       request("activate")
     );
-    expect(result).toMatchObject({ error_code: "LIFECYCLE_LEASE_BUSY", outcome: "conflict" });
+    expect(result).toMatchObject({
+      error_code: "LIFECYCLE_LEASE_BUSY",
+      lifecycle_status: "provisioning",
+      outcome: "conflict",
+      retryable: true,
+      retry_with_new_request_id: true
+    });
+    expect(repository.audit.get("req-activate")).toMatchObject({
+      error_code: "LIFECYCLE_LEASE_BUSY",
+      outcome: "conflict",
+      to_status: "provisioning"
+    });
     expect(remote.provisionUser).not.toHaveBeenCalled();
+
+    repository.busy = false;
+    await expect(
+      new ResearchAgentLifecycleService({ remote, repository }).execute(request("activate"))
+    ).resolves.toMatchObject({
+      error_code: "LIFECYCLE_LEASE_BUSY",
+      outcome: "conflict",
+      retry_with_new_request_id: true
+    });
+    expect(remote.setUserStatus).not.toHaveBeenCalled();
+
+    await expect(
+      new ResearchAgentLifecycleService({ remote, repository }).execute(
+        request("activate", "req-activate-retry")
+      )
+    ).resolves.toMatchObject({
+      lifecycle_status: "active",
+      outcome: "succeeded",
+      retry_with_new_request_id: false
+    });
+    expect(remote.setUserStatus).toHaveBeenCalledWith("u_dedicated", "active");
+  });
+
+  it("keeps a concurrent duplicate request transient until its owning attempt is audited", async () => {
+    const repository = new MemoryRepository();
+    repository.profile = {
+      account_id: "account-1",
+      attempt_count: 1,
+      desired_state: "active",
+      external_identity: "aiphabee:v1:abc",
+      lifecycle_status: "provisioning",
+      lease_owner_request_id: "req-activate",
+      profile_id: "profile-1",
+      workspace_id: "workspace-1"
+    };
+    repository.busy = true;
+    const remote = {
+      provisionAgent: vi.fn(),
+      provisionUser: vi.fn(),
+      removeUser: vi.fn(),
+      setUserStatus: vi.fn()
+    };
+
+    await expect(
+      new ResearchAgentLifecycleService({ remote, repository }).execute(request("activate"))
+    ).resolves.toMatchObject({
+      error_code: "LIFECYCLE_REQUEST_IN_PROGRESS",
+      lifecycle_status: "provisioning",
+      outcome: "conflict",
+      retryable: true,
+      retry_with_new_request_id: false
+    });
+    expect(repository.audit.size).toBe(0);
+    expect(remote.provisionUser).not.toHaveBeenCalled();
+  });
+
+  it("denies activate and disable after terminal deletion without claiming a lease", async () => {
+    const repository = new MemoryRepository();
+    repository.profile = {
+      account_id: "account-1",
+      attempt_count: 2,
+      desired_state: "deleted",
+      external_identity: "aiphabee:v1:abc",
+      lifecycle_status: "deleted",
+      profile_id: "profile-1",
+      workspace_id: "workspace-1"
+    };
+    const remote = {
+      provisionAgent: vi.fn(),
+      provisionUser: vi.fn(),
+      removeUser: vi.fn(),
+      setUserStatus: vi.fn()
+    };
+    const service = new ResearchAgentLifecycleService({ remote, repository });
+
+    for (const intent of ["activate", "disable"] as const) {
+      await expect(
+        service.execute(request(intent, `req-deleted-${intent}`))
+      ).resolves.toMatchObject({
+        error_code: "RESEARCH_AGENT_PROFILE_DELETED",
+        lifecycle_status: "deleted",
+        outcome: "denied",
+        retryable: false,
+        retry_with_new_request_id: false
+      });
+    }
+    expect(remote.provisionUser).not.toHaveBeenCalled();
+    expect(remote.setUserStatus).not.toHaveBeenCalled();
+  });
+
+  it("retries idempotent remote absence after delete succeeded but local finalization failed", async () => {
+    const repository = new MemoryRepository();
+    repository.authority = { ...AUTHORIZED, account_status: "closed", activate_allowed: false };
+    repository.profile = {
+      account_id: "account-1",
+      attempt_count: 1,
+      desired_state: "disabled",
+      external_identity: "aiphabee:v1:abc",
+      fastclaw_agent_id: "agt_dedicated",
+      fastclaw_user_id: "u_dedicated",
+      lifecycle_status: "disabled",
+      profile_id: "profile-1",
+      workspace_id: "workspace-1"
+    };
+    repository.failSuccessOnce = true;
+    const removeUser = vi
+      .fn()
+      .mockResolvedValueOnce({ already_absent: false })
+      .mockResolvedValueOnce({ already_absent: true });
+    const remote = {
+      provisionAgent: vi.fn(),
+      provisionUser: vi.fn(),
+      removeUser,
+      setUserStatus: vi.fn()
+    };
+    const service = new ResearchAgentLifecycleService({ remote, repository });
+
+    await expect(service.execute(request("delete", "req-delete-local-failure"))).resolves.toMatchObject({
+      error_code: "RESEARCH_AGENT_LIFECYCLE_FAILED",
+      lifecycle_status: "disabled",
+      outcome: "internal_failure"
+    });
+    expect(repository.profile).toMatchObject({
+      fastclaw_agent_id: "agt_dedicated",
+      fastclaw_user_id: "u_dedicated",
+      lifecycle_status: "disabled"
+    });
+
+    await expect(service.execute(request("delete", "req-delete-retry"))).resolves.toMatchObject({
+      lifecycle_status: "deleted",
+      outcome: "succeeded"
+    });
+    expect(removeUser).toHaveBeenNthCalledWith(1, "u_dedicated");
+    expect(removeUser).toHaveBeenNthCalledWith(2, "u_dedicated");
+    expect(repository.profile).toMatchObject({ lifecycle_status: "deleted" });
+    expect(repository.profile?.fastclaw_user_id).toBeUndefined();
+    expect(repository.profile?.fastclaw_agent_id).toBeUndefined();
   });
 
   it("rejects reusing a request id for a different lifecycle intent", async () => {

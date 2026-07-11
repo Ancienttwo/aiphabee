@@ -6,26 +6,33 @@
         "plans/prds/20260703-2042-agent-control-plane-convergence.prd.md",
         "plans/sprints/20260703-agent-control-plane-convergence.sprint.md",
         "packages/agent-runtime/src/index.ts",
+        "packages/agent-runtime/src/fastclaw-lifecycle.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.ts",
         "packages/sandbox-run-auth/src/index.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.ts",
         "apps/sandbox-bridge/src/lease-registry.ts",
         "apps/sandbox-bridge/src/tool-gateway-egress.ts",
         "apps/worker/src/sandbox-tool-gateway.ts",
+        "apps/worker/src/research-agent-lifecycle.ts",
+        "deploy/fastclaw/dedicated-agent-provisioning.contract.json",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
         "packages/agent-runtime/src/index.test.ts",
+        "packages/agent-runtime/src/fastclaw-lifecycle.test.ts",
         "packages/agent-runtime/src/sandbox-terminal-lifecycle.test.ts",
         "packages/sandbox-run-auth/src/index.test.ts",
         "apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts",
         "apps/sandbox-bridge/src/lease-registry.test.ts",
         "apps/sandbox-bridge/src/tool-gateway-egress.test.ts",
         "apps/worker/src/sandbox-tool-gateway.test.ts",
+        "apps/worker/src/research-agent-lifecycle.test.ts",
+        "apps/worker/src/research-agent-lifecycle.postgres.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
-        "npx vitest run packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts",
+        "npm run check:fastclaw-dedicated-agent-provisioning",
+        "npx vitest run packages/agent-runtime/src/fastclaw-lifecycle.test.ts apps/worker/src/research-agent-lifecycle.test.ts packages/agent-runtime/src/index.test.ts apps/worker/src/index.test.ts",
         "npx vitest run packages/sandbox-run-auth/src/index.test.ts apps/worker/src/sandbox-tool-gateway.test.ts apps/sandbox-bridge/src/tool-gateway-egress.test.ts apps/sandbox-bridge/src/cloudflare-sandbox-backend.test.ts apps/sandbox-bridge/src/lease-registry.test.ts"
       ],
       "invariants": [
@@ -78,6 +85,7 @@
         "runner selection exists without runner dispatch",
         "Cloudflare sandbox adapter exists without grant minting backend registration runner dispatch or live execution",
         "the Agent Runtime lifecycle emits one terminal state after idempotent cleanup and records observed rather than estimated usage",
+        "dedicated provisioning is fixture-verified at FastClaw dev@35cd5ad006d991713c91a1fc641bcf01dbaf3a8b with one audited identity path under concurrent PostgreSQL claims",
         "terminal record persistence remains unwired until the runner integration slice",
         "only the exact private Tool Gateway egress path exists and its short token stays outside the sandbox process",
         "production Tool Gateway token minting remains unwired until runner activation",

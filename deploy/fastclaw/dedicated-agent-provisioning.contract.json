@@ -1,0 +1,41 @@
+{
+  "version": "2026-07-11.dedicated-agent-provisioning.v1",
+  "status": "fixture_verified_not_live_accepted",
+  "upstream": {
+    "repository": "Ancienttwo/fastclaw",
+    "branch": "dev",
+    "commit": "35cd5ad006d991713c91a1fc641bcf01dbaf3a8b"
+  },
+  "control_routes": [
+    { "method": "GET", "path": "/api/status" },
+    { "method": "POST", "path": "/v1/users" },
+    { "method": "POST", "path": "/api/users/{user_id}/agents" },
+    { "method": "PUT", "path": "/api/users/{user_id}" },
+    { "method": "DELETE", "path": "/api/users/{user_id}" }
+  ],
+  "identity_authority": {
+    "local_unique_scope": ["workspace_id", "account_id"],
+    "fastclaw_user_unique_scope": ["owner", "external_id"],
+    "fastclaw_agent_unique_scope": ["user_id", "external_id"],
+    "shared_identity_fallback": false
+  },
+  "recovery": {
+    "partial_user_id_persisted_before_retry": true,
+    "incomplete_agent_clone_reconciled_by_external_id": true,
+    "delete_absence_receipt_idempotent": true,
+    "competing_lease_request_audited": true,
+    "request_id_replays_same_attempt": true,
+    "retryable_attempt_requires_new_request_id": true,
+    "concurrent_duplicate_request_transient_until_owner_audit": true
+  },
+  "expiry": {
+    "entitlement": "temporal_authority_valid_to_denies_new_activation",
+    "operation_lease": "expired_lease_may_be_reclaimed",
+    "public_expire_intent": false
+  },
+  "activation": {
+    "runner_dispatch_enabled": false,
+    "production_enabled": false,
+    "live_acceptance_owned_by_sprint_row": 10
+  }
+}
