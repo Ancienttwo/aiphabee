@@ -8,7 +8,7 @@
 > **Last Updated**: 2026-07-12 15:30
 > **Recommendation**: pass
 > **Review Rubric Version**: 1
-> **Reviewed Diff Fingerprint**: sha256:7d5acd7ce697986cffbf6cac66e2b43c9b23771caae71c25249621da5313b141
+> **Reviewed Diff Fingerprint**: sha256:684bdfa12d506cabed833e07d1f94bec2b11b492f75d500be699910f7740fb8c
 > **Reviewed Scope**: AiphaBee branch plus linked FastClaw commit `efc65f947fa8a4a3b1be67d9c61b83fd4552248b`
 
 ## Human Review Card
@@ -44,7 +44,7 @@
 > **External Version**: Anthropic Claude Code 2.1.205; final focused FastClaw security and packet compliance reviews
 > **External Completed**: 2026-07-12
 > **Manual Override**: forbidden and not used
-> **Reviewed Diff Fingerprint**: sha256:7d5acd7ce697986cffbf6cac66e2b43c9b23771caae71c25249621da5313b141
+> **Reviewed Diff Fingerprint**: sha256:684bdfa12d506cabed833e07d1f94bec2b11b492f75d500be699910f7740fb8c
 > **Reviewed Scope**: branch+staged+unstaged+untracked
 
 - P1 blockers: none
@@ -76,12 +76,20 @@ Final fingerprint acceptance key lines, verbatim:
 >
 > P1 blockers: none
 >
-> FINGERPRINT: sha256:7d5acd7ce697986cffbf6cac66e2b43c9b23771caae71c25249621da5313b141
+> FINGERPRINT: sha256:684bdfa12d506cabed833e07d1f94bec2b11b492f75d500be699910f7740fb8c
 
 The reviewer independently ran the repository fingerprint hook and read the
 authority contract, capability, checker, runbook, Sprint and review. It found
 the closeout consistent and recorded only the non-blocking fingerprint-history
 advisory described under Accepted P2 Advisories.
+
+Post-commit acceptance key lines, verbatim:
+
+> VERDICT: PASS
+>
+> P1 blockers: none
+>
+> FINGERPRINT: sha256:684bdfa12d506cabed833e07d1f94bec2b11b492f75d500be699910f7740fb8c
 
 ## Accepted P2 Advisories
 
