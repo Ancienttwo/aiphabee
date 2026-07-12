@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "aiphabee-row10-live-acceptance-operator",
+  "account_id": "ab66185011440a6f8a698d61ad58703a",
+  "main": "row10-live-acceptance-worker.ts",
+  "compatibility_date": "2026-07-11",
+  "preview_urls": false,
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "Row10OperatorJob",
+        "name": "ROW10_OPERATOR_JOBS"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": ["Row10OperatorJob"],
+      "tag": "v1"
+    }
+  ],
+  "services": [
+    {
+      "binding": "ROW10_ACCEPTANCE",
+      "service": "aiphabee-worker-staging",
+      "entrypoint": "FastClawRow10Acceptance"
+    }
+  ]
+}

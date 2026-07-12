@@ -9,7 +9,14 @@ import {
 import { FASTCLAW_TOOL_INTERCEPTION_CONTRACT_VERSION } from "@aiphabee/agent-runtime/fastclaw-agent-runner";
 
 function client(authority: Record<string, unknown>, profiles: Record<string, unknown>[] = []) {
-  const query = vi.fn(async (sql: string) => {
+  const query = vi.fn(async (sql: string, params?: unknown[]) => {
+    if (sql === "begin" || sql === "commit" || sql === "rollback") {
+      return { rows: [] };
+    }
+    if (sql.includes("set_config('aiphabee.account_id'")) {
+      expect(params).toEqual(["account-row7"]);
+      return { rows: [] };
+    }
     if (sql.includes("with authority as")) {
       return { rows: [{ ...authority, ...(profiles[0] ?? {}) }] };
     }
@@ -60,6 +67,13 @@ describe("Worker FastClaw runner authority", () => {
       expect.stringContaining("where workspace_id = $2 and account_id = $1"),
       ["account-row7", "workspace-row7"]
     );
+    expect(pg.query).toHaveBeenNthCalledWith(1, "begin");
+    expect(pg.query).toHaveBeenNthCalledWith(
+      2,
+      "select set_config('aiphabee.account_id', $1, true)",
+      ["account-row7"]
+    );
+    expect(pg.query).toHaveBeenLastCalledWith("commit");
   });
 
   it("blocks expired entitlement in the same snapshot as the protected profile", async () => {
@@ -73,7 +87,7 @@ describe("Worker FastClaw runner authority", () => {
       retryable: false,
       status: "blocked"
     });
-    expect(pg.query).toHaveBeenCalledTimes(1);
+    expect(pg.query).toHaveBeenCalledTimes(4);
   });
 
   it("blocks absent, inactive, mismatched or incomplete profiles", async () => {
@@ -108,7 +122,7 @@ describe("Worker FastClaw runner authority", () => {
         },
         transport: {
           contract_version: FASTCLAW_TOOL_INTERCEPTION_CONTRACT_VERSION,
-          run: async () => ({ raw_answer: "raw", usage: { output_tokens: 1, steps: 1 } }),
+          run: async () => ({ raw_answer: "raw", usage: { input_tokens: 1, output_tokens: 1, steps: 1 } }),
           tool_interception: "callback_before_execution"
         }
       },
@@ -137,7 +151,7 @@ describe("Worker FastClaw runner authority", () => {
           contract_version: FASTCLAW_TOOL_INTERCEPTION_CONTRACT_VERSION,
           run: async (input) => {
             expect(input.sandbox_authorization.split(".")).toHaveLength(2);
-            return { raw_answer: "raw", usage: { output_tokens: 1, steps: 1 } };
+            return { raw_answer: "raw", usage: { input_tokens: 1, output_tokens: 1, steps: 1 } };
           },
           tool_interception: "callback_before_execution"
         }

@@ -9,6 +9,8 @@ const roleSql = readFileSync(
   "utf8"
 );
 const wrangler = readFileSync("apps/worker/wrangler.jsonc", "utf8");
+const caddy = readFileSync("deploy/fastclaw/vps/Caddyfile", "utf8");
+const transport = readFileSync("apps/worker/src/fastclaw-service-transport.ts", "utf8");
 const bindings = JSON.parse(
   readFileSync("deploy/cloudflare/bindings.contract.json", "utf8")
 );
@@ -40,15 +42,29 @@ for (const schema of roleContract.forbidden_schemas ?? []) {
     errors.push(`role SQL must revoke schema ${schema}`);
   }
 }
-if (!wrangler.includes('"binding": "FASTCLAW_CONTROL_SERVICE"')) {
-  errors.push("AiphaBee staging Worker must declare FASTCLAW_CONTROL_SERVICE");
+if (wrangler.includes('"binding": "FASTCLAW_CONTROL_SERVICE"')) {
+  errors.push("AiphaBee staging Worker must not retain the removed Cloudflare FastClaw binding");
 }
-if (!wrangler.includes('"service": "fastclaw-aiphabee-staging"')) {
-  errors.push("AiphaBee staging binding must target fastclaw-aiphabee-staging");
+if (!wrangler.includes('"FASTCLAW_BASE_URL": "https://89-167-47-141.sslip.io/"')) {
+  errors.push("AiphaBee staging Worker must target the dedicated VPS FastClaw HTTPS origin");
 }
-const binding = bindings.bindings.find((entry) => entry.name === "FASTCLAW_CONTROL_SERVICE");
-if (binding?.staging_topology !== "persistent_private_fastclaw-aiphabee-staging_container") {
-  errors.push("binding contract must record the persistent private staging topology");
+if (
+  !transport.includes(
+    'requestHeaders.set(VPS_SHARED_TOKEN_HEADER, `Bearer ${input.shared_token}`)'
+  ) ||
+  !caddy.includes('header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"') ||
+  !caddy.includes('header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"') ||
+  !caddy.includes('respond "Not found" 404')
+) {
+  errors.push(
+    "VPS ingress must replace caller authorization with the shared token, then Caddy must replace it with the host-local FastClaw control key and deny unmatched routes"
+  );
+}
+const obsoleteBinding = bindings.bindings.find(
+  (entry) => entry.name === "FASTCLAW_CONTROL_SERVICE"
+);
+if (obsoleteBinding !== undefined) {
+  errors.push("binding contract must remove the obsolete Cloudflare FastClaw service");
 }
 
 if (errors.length > 0) {
@@ -61,7 +77,7 @@ console.log(
       provisioned: roleContract.provisioned,
       role: roleContract.role,
       schema: roleContract.schema,
-      service: "fastclaw-aiphabee-staging",
+      service: "https://89-167-47-141.sslip.io/",
       status: "ok"
     },
     null,

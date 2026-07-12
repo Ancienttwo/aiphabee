@@ -1,0 +1,22 @@
+FROM golang:1.24.5-alpine AS build
+
+WORKDIR /src
+COPY scanner/go.mod ./go.mod
+COPY scanner/main.go ./main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /artifact-scanner ./main.go
+
+# The exact engine patch is fixed while the official non-base tag refreshes its
+# bundled signature database. Runtime evidence records the built image digest
+# and exact engine/signature version, and fails closed if clamd is not ready.
+FROM clamav/clamav:1.5.3
+
+ARG CLAMAV_SIGNATURE_REFRESH=2026-07-11
+RUN freshclam --verbose
+
+COPY --from=build /artifact-scanner /usr/local/bin/artifact-scanner
+COPY scanner/entrypoint.sh /scanner-entrypoint.sh
+
+RUN chmod 0555 /usr/local/bin/artifact-scanner /scanner-entrypoint.sh
+
+EXPOSE 8080
+ENTRYPOINT ["/scanner-entrypoint.sh"]

@@ -3,7 +3,7 @@
 > **Status**: Done
 > **Slug**: agent-control-plane-convergence
 > **Created**: 2026-07-03 20:42 +0800
-> **Updated**: 2026-07-10 04:10 +0800
+> **Updated**: 2026-07-12 02:22 +0800
 > **Source PRD**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Goal Mode**: incremental
@@ -119,6 +119,17 @@ non-goal. It now has a separate executable contract branch:
   Current official pricing and workload estimates are maintained in
   `docs/researches/20260709-fastclaw-sandbox-backend-selection.md`.
 
+### 2026-07-11 Runtime placement correction
+
+FastClaw itself is now a persistent, AiphaBee-dedicated service on the existing
+VPS, backed by the shared PS staging PostgreSQL with a hard two-connection pool.
+It is **not** deployed as a Cloudflare Container. Cloudflare owns only the
+Worker orchestration, R2 handoff, and ephemeral Sandbox Bridge/Containers.
+The VPS control endpoint is server-only HTTPS with an ingress bearer that Caddy
+validates and rewrites to the private FastClaw admin credential; the browser
+never receives either value. This placement supersedes the temporary
+service-bound FastClaw Container wording below.
+
 Current readback on that separate branch: `FastClawSandboxSmokeRunner`
 implements the existing `AgentRunner` contract; the linked FastClaw branch
 implements `cloudflare` through `Executor/ExecutorPool`; deterministic receipt,
@@ -129,10 +140,18 @@ acceptance: activate/replay and reactivate stayed at one FastClaw user + Agent,
 disable was denied by FastClaw with HTTP `403`, closed-account delete reached
 remote `0/0`, local `deleted`, four audit events, and complete fixture cleanup.
 Lifecycle DB authority is now a dedicated caching-disabled Hyperdrive plus
-table-scoped control role; FastClaw is reached through a Cloudflare service
-binding, not a public-network fallback. Production `runner_remote`, persistent
-FastClaw service/storage, public onboarding, actual provider billing, and
-long-lived feature enablement remain incomplete.
+table-scoped control role. The current implementation reaches VPS FastClaw
+through the server-only HTTPS adapter; Cloudflare service binding remains only
+for the Sandbox Bridge. Row-10 staging acceptance now proves 10 simultaneously
+active provider-linked Sandboxes. Exact object-ID joins now measure Container
+`$0.02484286684618496`, Durable Object `$0.0040512255856`, R2
+`$0.00004374000002808381`, Worker `$0.000029819999999999996`, and logs
+`$0.00009839999999999999`, for a complete `$0.029066052431813046` raw list
+cost. Billing Read proves `$3.8600075` of account-period contracted cost but no
+approved policy attributes it to these runs, so per-run invoice allocation
+remains null. Fresh security/compliance reviews pass. Production
+`runner_remote`, public onboarding and long-lived feature enablement remain
+disabled and out of this staging gate.
 
 ## Execution Log
 

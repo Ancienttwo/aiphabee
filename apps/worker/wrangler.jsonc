@@ -31,7 +31,9 @@
     "staging": {
       "vars": {
         "APP_ENV": "staging",
-        "APP_VERSION": "0.0.0"
+        "APP_VERSION": "0.0.0",
+        "FASTCLAW_BASE_URL": "https://89-167-47-141.sslip.io/",
+        "FASTCLAW_TEMPLATE_AGENT_ID": "agt_1180f3adbf5bbf6608"
       },
       "hyperdrive": [
         {
@@ -55,8 +57,8 @@
       ],
       "services": [
         {
-          "binding": "FASTCLAW_CONTROL_SERVICE",
-          "service": "fastclaw-aiphabee-staging"
+          "binding": "AIPHABEE_SANDBOX_BRIDGE",
+          "service": "aiphabee-sandbox-bridge-staging"
         }
       ]
     }

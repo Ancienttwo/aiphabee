@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { Container } from "@cloudflare/containers";
 import {
   ContainerProxy as SandboxContainerProxy,
   Sandbox,
@@ -25,6 +26,17 @@ import {
   forwardSandboxToolGatewayRequest,
   type SandboxToolGatewayEgressEnv
 } from "./tool-gateway-egress.js";
+import {
+  handleArtifactScannerRequest,
+  type ArtifactScannerEnv
+} from "./artifact-scanner.js";
+
+export class ArtifactScannerContainer extends Container {
+  defaultPort = 8080;
+  enableInternet = false;
+  pingEndpoint = "scanner/startup";
+  sleepAfter = "2m";
+}
 
 export class ContainerProxy extends SandboxContainerProxy {
   async fetch(request: Request): Promise<Response> {
@@ -67,7 +79,7 @@ AiphaBeeSandbox.outboundHandlers = {
   [SANDBOX_TOOL_GATEWAY_OUTBOUND_HANDLER]: forwardSandboxToolGatewayRequest
 };
 
-export interface Env extends BridgeEnv, SandboxToolGatewayEgressEnv {
+export interface Env extends BridgeEnv, SandboxToolGatewayEgressEnv, ArtifactScannerEnv {
   AIPHABEE_SANDBOX: DurableObjectNamespace<AiphaBeeSandbox>;
   SANDBOX_LEASE_REGISTRY: DurableObjectNamespace<SandboxLeaseRegistryObject>;
 }
@@ -138,6 +150,17 @@ const handler = createSandboxBridgeHandler({
       writeFile: (path, content) => sandbox.writeFile(path, content)
     } as SandboxHandle;
   },
+  getProviderInstanceHash: async (env, sandboxId) => {
+    const instanceId = (env as Env).AIPHABEE_SANDBOX.idFromName(
+      sandboxId.toLowerCase()
+    ).toString();
+    const digest = new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(instanceId))
+    );
+    return `sha256:${[...digest]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("")}`;
+  },
   nowMs: () => Date.now(),
   resolveWorkspacePath,
   shellQuote
@@ -145,6 +168,9 @@ const handler = createSandboxBridgeHandler({
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
+    if (new URL(request.url).pathname === "/internal/artifact-scan") {
+      return handleArtifactScannerRequest(request, env);
+    }
     return handler(request, env);
   }
 } satisfies ExportedHandler<Env>;

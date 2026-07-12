@@ -10,6 +10,8 @@ export const DURABLE_HANDOFF_CONTRACT_VERSION =
 export const DURABLE_HANDOFF_MAX_CANDIDATES = 16;
 export const DURABLE_HANDOFF_MEMORY_MAX_BYTES = 64 * 1024;
 export const DURABLE_HANDOFF_ARTIFACT_MAX_BYTES = 10 * 1024 * 1024;
+export const ARTIFACT_SCANNER_CONTRACT_VERSION =
+  "2026-07-11.authoritative-clamav.v0" as const;
 
 export type DurableHandoffKind = "artifact" | "memory";
 export type DurableHandoffClassification =

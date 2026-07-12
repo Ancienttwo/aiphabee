@@ -1,0 +1,89 @@
+{
+	auto_https disable_redirects
+}
+
+(fastclaw_routes) {
+	header Cache-Control "no-store"
+	@status {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method GET
+		path /api/status
+	}
+	@users {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method POST
+		path /v1/users
+	}
+	@agents {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method POST
+		path_regexp agents ^/api/users/[^/]+/agents$
+	}
+	@user_update {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method PUT
+		path_regexp user_update ^/api/users/[^/]+$
+	}
+	@user_delete {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method DELETE
+		path_regexp user_delete ^/api/users/[^/]+$
+	}
+	@chat {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method POST
+		path /v1/chat/completions
+	}
+	@tool_result {
+		header Authorization "Bearer {$AIPHABEE_VPS_SHARED_TOKEN}"
+		method POST
+		path_regexp tool_result ^/v1/chat/completions/[^/]+/tool-results/[^/]+$
+	}
+
+	handle @status {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @users {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @agents {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @user_update {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @user_delete {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @chat {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle @tool_result {
+		reverse_proxy fastclaw:18953 {
+			header_up Authorization "Bearer {$FASTCLAW_CONTROL_API_KEY}"
+		}
+	}
+	handle {
+		respond "Not found" 404
+	}
+}
+
+:80 {
+	import fastclaw_routes
+}
+
+https://89-167-47-141.sslip.io {
+	import fastclaw_routes
+}

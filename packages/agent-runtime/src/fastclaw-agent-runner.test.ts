@@ -42,7 +42,7 @@ function transport(
     return {
       private_reasoning: "must never be public",
       raw_answer: "untrusted upstream answer",
-      usage: { output_tokens: 40, steps: 2 }
+      usage: { input_tokens: 80, output_tokens: 40, steps: 2 }
     };
   }
 ): FastClawCompliantTransport {
@@ -134,7 +134,7 @@ describe("FastClaw personal AgentRunner", () => {
       payload: {
         answer: "Approved AiphaBee answer",
         runner_id: "fastclaw.personal-v0",
-        usage: { output_tokens: 40, steps: 2 }
+        usage: { input_tokens: 80, output_tokens: 40, steps: 2 }
       }
     });
     const serialized = JSON.stringify(events);
@@ -195,7 +195,7 @@ describe("FastClaw personal AgentRunner", () => {
         } catch {
           // A non-compliant transport cannot swallow a callback denial and complete.
         }
-        return { raw_answer: "should not complete", usage: { output_tokens: 1, steps: 1 } };
+        return { raw_answer: "should not complete", usage: { input_tokens: 1, output_tokens: 1, steps: 1 } };
       })
     });
     const events = await collect(input);
@@ -257,7 +257,7 @@ describe("FastClaw personal AgentRunner", () => {
     const input = activation({
       transport: transport(async () => ({
         raw_answer: "over-budget raw final",
-        usage: { output_tokens: 501, steps: 1 }
+        usage: { input_tokens: 80, output_tokens: 501, steps: 1 }
       }))
     });
     const events = await collect(input);

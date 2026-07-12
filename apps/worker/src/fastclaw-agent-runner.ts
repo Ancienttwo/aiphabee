@@ -30,6 +30,32 @@ interface RunnerProfileRow {
   workspace_status: "active" | "closed" | "suspended" | null;
 }
 
+const CLIENT_LOCKS = new WeakMap<Client, Promise<void>>();
+
+// node-postgres serializes individual statements, not transaction ownership.
+// Row-10 intentionally shares one restricted Hyperdrive client across
+// concurrent runs, so account-scoped transactions must be serialized as a
+// unit or SET LOCAL could cross tenant boundaries.
+export async function withFastClawPostgresClientLock<T>(
+  client: Client,
+  operation: () => Promise<T>
+): Promise<T> {
+  const previous = CLIENT_LOCKS.get(client) ?? Promise.resolve();
+  let release: (() => void) | undefined;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const queued = previous.then(() => current);
+  CLIENT_LOCKS.set(client, queued);
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release?.();
+    if (CLIENT_LOCKS.get(client) === queued) CLIENT_LOCKS.delete(client);
+  }
+}
+
 export class PostgresFastClawDedicatedAgentAuthority
   implements FastClawDedicatedAgentAuthority
 {
@@ -39,8 +65,15 @@ export class PostgresFastClawDedicatedAgentAuthority
     tenant_id: string;
     user_id: string;
   }): Promise<FastClawDedicatedAgentAuthorityDecision> {
-    const result = await this.client.query<RunnerProfileRow>(
-      `with authority as (${RESEARCH_AGENT_AUTHORITY_SQL}),
+    return withFastClawPostgresClientLock(this.client, async () => {
+      await this.client.query("begin");
+      try {
+      await this.client.query(
+        "select set_config('aiphabee.account_id', $1, true)",
+        [input.user_id]
+      );
+      const result = await this.client.query<RunnerProfileRow>(
+        `with authority as (${RESEARCH_AGENT_AUTHORITY_SQL}),
       profile as (
         select profile_id, workspace_id, account_id, external_identity,
           fastclaw_user_id, fastclaw_agent_id, desired_state, lifecycle_status
@@ -51,61 +84,70 @@ export class PostgresFastClawDedicatedAgentAuthority
       select authority.*, profile.*
       from authority
       left join profile on true`,
-      [input.user_id, input.tenant_id]
-    );
-    const profile = result.rows[0];
-    if (profile === undefined) {
-      throw new Error("FastClaw runner authority query returned no row");
-    }
-    if (!profile.entitlement_approved) {
-      return {
-        code: "FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED",
-        retryable: false,
-        status: "blocked"
-      };
-    }
-    const activateAllowed =
-      profile.account_status === "active" &&
-      profile.workspace_status === "active" &&
-      profile.membership_active &&
-      profile.subscription_active &&
-      profile.product_access_active &&
-      profile.entitlement_approved;
-    if (!activateAllowed) {
-      return {
-        code: "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
-        retryable: false,
-        status: "blocked"
-      };
-    }
-    if (
-      profile.workspace_id !== input.tenant_id ||
-      profile.account_id !== input.user_id ||
-      profile.desired_state !== "active" ||
-      profile.lifecycle_status !== "active" ||
-      profile.profile_id === null ||
-      profile.external_identity === null ||
-      profile.external_identity.length === 0 ||
-      profile.fastclaw_user_id === null ||
-      profile.fastclaw_user_id.length === 0 ||
-      profile.fastclaw_agent_id === null ||
-      profile.fastclaw_agent_id.length === 0
-    ) {
-      return {
-        code: "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
-        retryable: true,
-        status: "blocked"
-      };
-    }
-    return {
-      external_user_identity: profile.external_identity,
-      fastclaw_agent_id: profile.fastclaw_agent_id,
-      fastclaw_user_id: profile.fastclaw_user_id,
-      profile_id: profile.profile_id,
-      status: "allowed",
-      tenant_id: input.tenant_id,
-      user_id: input.user_id
-    };
+        [input.user_id, input.tenant_id]
+      );
+      const profile = result.rows[0];
+      if (profile === undefined) {
+        throw new Error("FastClaw runner authority query returned no row");
+      }
+      let decision: FastClawDedicatedAgentAuthorityDecision;
+      if (!profile.entitlement_approved) {
+        decision = {
+          code: "FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED",
+          retryable: false,
+          status: "blocked"
+        };
+      } else {
+        const activateAllowed =
+          profile.account_status === "active" &&
+          profile.workspace_status === "active" &&
+          profile.membership_active &&
+          profile.subscription_active &&
+          profile.product_access_active &&
+          profile.entitlement_approved;
+        if (!activateAllowed) {
+          decision = {
+            code: "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
+            retryable: false,
+            status: "blocked"
+          };
+        } else if (
+          profile.workspace_id !== input.tenant_id ||
+          profile.account_id !== input.user_id ||
+          profile.desired_state !== "active" ||
+          profile.lifecycle_status !== "active" ||
+          profile.profile_id === null ||
+          profile.external_identity === null ||
+          profile.external_identity.length === 0 ||
+          profile.fastclaw_user_id === null ||
+          profile.fastclaw_user_id.length === 0 ||
+          profile.fastclaw_agent_id === null ||
+          profile.fastclaw_agent_id.length === 0
+        ) {
+          decision = {
+            code: "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
+            retryable: true,
+            status: "blocked"
+          };
+        } else {
+          decision = {
+            external_user_identity: profile.external_identity,
+            fastclaw_agent_id: profile.fastclaw_agent_id,
+            fastclaw_user_id: profile.fastclaw_user_id,
+            profile_id: profile.profile_id,
+            status: "allowed",
+            tenant_id: input.tenant_id,
+            user_id: input.user_id
+          };
+        }
+      }
+      await this.client.query("commit");
+        return decision;
+      } catch (error) {
+        await this.client.query("rollback").catch(() => undefined);
+        throw error;
+      }
+    });
   }
 }
 

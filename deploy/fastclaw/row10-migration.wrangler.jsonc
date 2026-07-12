@@ -1,0 +1,21 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "aiphabee-row10-migration-operator",
+  "account_id": "ab66185011440a6f8a698d61ad58703a",
+  "main": "./row10-migration-worker.ts",
+  "compatibility_date": "2026-07-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": false,
+  "workers_dev": false,
+  "observability": { "enabled": false },
+  "hyperdrive": [
+    {
+      "binding": "AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE",
+      "id": "2c08f46ff87343bfbdd7cd9c0d62f10d"
+    },
+    {
+      "binding": "STAGING_MIGRATION_HYPERDRIVE",
+      "id": "1e83eb563db44746a168175e065cc958"
+    }
+  ]
+}

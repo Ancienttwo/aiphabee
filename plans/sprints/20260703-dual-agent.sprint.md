@@ -3,7 +3,7 @@
 > **Status**: Archived
 > **Slug**: dual-agent
 > **Created**: 2026-07-03 17:42 +0800
-> **Updated**: 2026-07-10 15:30 +0800
+> **Updated**: 2026-07-12 15:35 +0800
 > **Source PRD**: `plans/prds/20260703-1742-dual-agent.prd.md`
 > **Source Spec**: `docs/spec.md`
 > **Superseded By**: `plans/prds/20260703-2042-agent-control-plane-convergence.prd.md`, `plans/sprints/20260703-agent-control-plane-convergence.sprint.md`
@@ -20,6 +20,8 @@ checklist 不能当作当前 backlog，也不能把 Archived 误读成 Done。
 | FastClaw `AgentRunner` adapter | **staging/smoke 已实现；production 未启用** | 独立 contract branch 的 `packages/agent-runtime/src/fastclaw-sandbox-smoke.ts` 实现既有 `AgentRunner`；production `runner_remote` 保持关闭 |
 | 付费用户专属 Agent provisioning | **产品生命周期已实现并通过 credentialed staging；production 未启用** | durable `(workspace_id, account_id)` profile/audit、live entitlement、activate/replay `1/1`、disable `403`、reactivate `1/1`、closed-account delete `0/0`、四条 audit 与 fixture cleanup 均通过 |
 | Cloudflare sandbox execution | **deterministic + live staging 已验收；production 未启用** | `apps/sandbox-bridge` + linked FastClaw `cloudflare` Executor/Pool；live serial `1/1`、并发 `10/10`、receipt/artifact/destroy/terminal readback 通过，临时 Worker/Container 已删除 |
+| FastClaw hosting | **VPS staging 已部署；production feature 仍关闭** | FastClaw 常驻既有 VPS，使用 PS 共用 staging PostgreSQL 与 2-connection pool；CF 只承载 Worker/R2/临时 Sandbox，不承载 FastClaw 本体 |
+| Live 成本证据 | **完整 raw list cost 已逐 run 实测；invoice allocation 保持 null** | 10 路 acceptance 通过 provider ID/correlation hash join 得到 Container、DO、Worker、logs、R2 完整总额 `$0.029066052431813046`，平均 `$0.0029066052431813046/run`；Billing Read 证明 account-period contracted cost `$3.8600075`，但无批准的分摊策略，不得称为 Row-10 invoice 成本 |
 
 当前产品记录已经收紧为：
 
@@ -29,6 +31,7 @@ checklist 不能当作当前 backlog，也不能把 Archived 误读成 Done。
    Agent。
 2. 专属 Agent 不等于 24x7 常驻 sandbox。sandbox 按 run/session 临时创建，
    只拿 job-scoped token；批准的 artifact 同步到 AiphaBee-owned storage 后销毁。
+   FastClaw control plane 本体常驻 VPS；浏览器不接触 VPS URL 或凭证。
 3. sandbox 生产主选为 **Cloudflare Sandbox SDK**；讨论中的
    “Cloudbank”按 **Sandbank Cloud** (`sandbank.dev/cloud`) 记录，
    `cloudbank.org` 是研究云资源经纪平台，不是本方案候选。

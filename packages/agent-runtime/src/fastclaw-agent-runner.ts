@@ -77,6 +77,7 @@ export interface FastClawToolPolicyExecutor {
   execute(input: {
     call: FastClawTransportToolCall;
     request: AgentExecutionRequest;
+    sandbox_authorization: string;
   }): Promise<{ output: unknown; status: "completed" } | { code: string; status: "denied" }>;
 }
 
@@ -92,6 +93,7 @@ export interface FastClawFinalPostCheck {
 }
 
 export interface FastClawTransportUsage {
+  input_tokens: number;
   output_tokens: number;
   steps: number;
 }
@@ -414,7 +416,11 @@ class FastClawPersonalAgentRunner {
               throw callbackFailure;
             }
             try {
-              const decision = await this.input.tool_policy_executor.execute({ call, request });
+              const decision = await this.input.tool_policy_executor.execute({
+                call,
+                request,
+                sandbox_authorization: issued.authorization
+              });
               if (decision.status === "denied") {
                 callbackFailure = new FastClawRunnerFailure(
                   "FASTCLAW_TOOL_DENIED",
@@ -447,8 +453,10 @@ class FastClawPersonalAgentRunner {
         typeof result?.usage !== "object" ||
         result.usage === null ||
         !Number.isSafeInteger(result.usage.output_tokens) ||
+        !Number.isSafeInteger(result.usage.input_tokens) ||
         !Number.isSafeInteger(result.usage.steps) ||
         result.usage.output_tokens < 0 ||
+        result.usage.input_tokens < 0 ||
         result.usage.steps < 0 ||
         result.usage.output_tokens > request.budget.max_tokens ||
         result.usage.steps > request.budget.max_steps
@@ -489,6 +497,7 @@ class FastClawPersonalAgentRunner {
         runner_id: this.runner_id,
         usage: Object.freeze({
           output_tokens: result.usage.output_tokens,
+          input_tokens: result.usage.input_tokens,
           steps: result.usage.steps
         })
       });

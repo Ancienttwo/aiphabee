@@ -1553,6 +1553,21 @@
       ],
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260711164500_fastclaw_live_runtime_policies.sql",
+      "purpose": "Add fail-closed tenant-bound write policies for the restricted FastClaw staging runtime across profile, audit, handoff and observed usage tables without granting BYPASSRLS or enabling a public route.",
+      "schemas": [
+        "aiphabee_governance"
+      ],
+      "tables": [
+        "aiphabee_governance.fastclaw_live_runtime_policy_contract"
+      ],
+      "rls_tables": [
+        "aiphabee_governance.fastclaw_live_runtime_policy_contract"
+      ],
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

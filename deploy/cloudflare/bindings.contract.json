@@ -94,17 +94,17 @@
       "staging_topology": "shared_platform_umbrella_database_dedicated_control_role"
     },
     {
-      "name": "FASTCLAW_CONTROL_SERVICE",
+      "name": "AIPHABEE_SANDBOX_BRIDGE",
       "type": "worker",
-      "purpose": "Service binding from AiphaBee lifecycle orchestration to the dedicated FastClaw control-plane Worker or Container deployment.",
-      "required_by_sprint": "fastclaw-dedicated-agent-lifecycle",
-      "smoke_test": "Credentialed staging lifecycle acceptance reaches FastClaw through a temporary service-bound Container and proves one user and Agent across replay/reactivation.",
+      "purpose": "Private staging service binding from AiphaBee policy execution to the Cloudflare Sandbox Bridge; FastClaw itself runs on the VPS.",
+      "required_by_sprint": "fastclaw-dedicated-agent-runner-sandbox",
+      "smoke_test": "Credentialed staging acceptance executes ten isolated Cloudflare sandboxes through the Bridge while FastClaw remains on the VPS.",
       "provisioned": false,
       "provisioned_environments": {
         "production": false,
         "staging": true
       },
-      "staging_topology": "persistent_private_fastclaw-aiphabee-staging_container"
+      "staging_topology": "aiphabee_worker_to_cloudflare_sandbox_bridge"
     },
     {
       "name": "AIPHABEE_API",

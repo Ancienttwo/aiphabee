@@ -61,6 +61,17 @@ function stateMatchesClaims(state: RunGuardState, claims: SandboxRunTokenClaims)
   );
 }
 
+function stateMatchesRunIdentity(
+  state: RunGuardState,
+  claims: SandboxRunTokenClaims
+): boolean {
+  return (
+    state.jti === claims.jti &&
+    state.tenant_hash === claims.tenant_hash &&
+    state.user_hash === claims.user_hash
+  );
+}
+
 function decision(state: RunGuardState, allowed: boolean): RunGuardDecision {
   return {
     allowed,
@@ -76,7 +87,12 @@ export function applyRunGuardClaim(
   operation: RunGuardOperation
 ): { decision: RunGuardDecision; state: RunGuardState } {
   const state = current ?? initialState(claims);
-  if (!stateMatchesClaims(state, claims)) {
+  const exactTokenState = stateMatchesClaims(state, claims);
+  const reissuedControlToken =
+    !exactTokenState &&
+    (operation === "destroy" || operation === "status") &&
+    stateMatchesRunIdentity(state, claims);
+  if (!exactTokenState && !reissuedControlToken) {
     return {
       decision: {
         allowed: false,
@@ -95,6 +111,12 @@ export function applyRunGuardClaim(
     };
   }
   if (operation === "destroy" && state.terminal) {
+    return {
+      decision: decision(state, true),
+      state
+    };
+  }
+  if (reissuedControlToken && operation === "status") {
     return {
       decision: decision(state, true),
       state

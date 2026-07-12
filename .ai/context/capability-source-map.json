@@ -17,6 +17,8 @@
         "apps/worker/src/sandbox-tool-gateway.ts",
         "apps/worker/src/research-agent-lifecycle.ts",
         "apps/worker/src/fastclaw-agent-runner.ts",
+        "apps/worker/src/fastclaw-service-transport.ts",
+        "apps/worker/src/fastclaw-live-composition.ts",
         "deploy/fastclaw/dedicated-agent-provisioning.contract.json",
         "apps/worker/src/index.ts"
       ],
@@ -75,6 +77,7 @@
         "deploy/database/migrations/20260711151100_research_agent_product_control.sql",
         "deploy/fastclaw/durable-memory-artifact-handoff.contract.json",
         "deploy/fastclaw/research-agent-product-control.contract.json",
+        "deploy/fastclaw/live-security-load-cost-release-evidence.contract.json",
         "apps/worker/src/index.ts"
       ],
       "test_files": [
@@ -88,11 +91,15 @@
         "apps/sandbox-bridge/src/tool-gateway-egress.test.ts",
         "apps/worker/src/sandbox-tool-gateway.test.ts",
         "apps/worker/src/fastclaw-agent-runner.test.ts",
+        "apps/worker/src/fastclaw-service-transport.test.ts",
+        "apps/worker/src/fastclaw-live-composition.test.ts",
         "apps/worker/src/durable-memory-artifact-handoff.test.ts",
         "apps/worker/src/research-agent-product-control.test.ts",
         "apps/worker/src/index.test.ts"
       ],
       "acceptance_commands": [
+        "npm run check:fastclaw-live-release-evidence",
+        "npx vitest run apps/worker/src/fastclaw-service-transport.test.ts apps/worker/src/fastclaw-live-composition.test.ts packages/agent-runtime/src/fastclaw-agent-runner.test.ts",
         "npm run check:research-agent-product-control",
         "npx vitest run apps/worker/src/research-agent-product-control.test.ts apps/worker/src/research-agent-lifecycle.test.ts apps/worker/src/research-agent-lifecycle.postgres.test.ts",
         "npm run check:durable-memory-artifact-handoff",
@@ -116,14 +123,15 @@
         "observed model tool sandbox and storage usage is linked by run to existing preview usage ledger rows",
         "only current owner or admin can request idempotent lifecycle or kill actions and read tenant-scoped audit",
         "every transport tool call must re-enter the AiphaBee callback before execution",
+        "the private service-binding transport rejects opaque SSE, wrong run/user/call identity, changed result replay and missing callback terminal",
         "opaque FastClaw SSE is not a compliant live transport and cannot activate",
-        "Cloudflare sandbox adapter remains unregistered for public live dispatch; private runner activation alone can mint a run-owned grant",
+        "Cloudflare sandbox adapter remains unregistered for public live dispatch; private staging runner activation alone can mint a run-owned grant",
         "the Agent Runtime lifecycle emits one terminal state after idempotent cleanup and records observed rather than estimated usage",
         "dedicated provisioning is fixture-verified at FastClaw dev@35cd5ad006d991713c91a1fc641bcf01dbaf3a8b with one audited identity path under concurrent PostgreSQL claims",
-        "terminal record persistence remains unwired until the runner integration slice",
+        "terminal record persistence is wired and live-verified in the private staging composition",
         "only the exact private Tool Gateway egress path exists and its short token stays outside the sandbox process",
         "production Tool Gateway token minting remains unwired until product integration",
-        "live acceptance cannot be satisfied by fixtures alone"
+        "live acceptance is satisfied only by the provider-linked ten-run packet plus independent review; production dispatch remains disabled"
       ]
     },
     "technical_analysis_ephemeral": {

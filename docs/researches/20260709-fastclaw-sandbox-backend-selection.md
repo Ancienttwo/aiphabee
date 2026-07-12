@@ -1,13 +1,20 @@
 # FastClaw Sandbox Backend Selection: Cloudflare / Sandbank Cloud / boxlite
 
 > **Created**: 2026-07-09
-> **Updated**: 2026-07-10（官方價格、GA/隔離/配額、專屬 Agent 成本模型與 live staging meter）
+> **Updated**: 2026-07-12（VPS hosting correction、官方價格、GA/隔離/配額、專屬 Agent 成本模型與 live staging capacity）
 > **Question**: FastClaw 為每位付費用戶 provision 專屬 Agent 時，sandbox 應選 Cloudflare Sandbox SDK 還是 Sandbank Cloud；是否值得接 sandbank 聚合層；成本對比為第一級交付物。
 > **Method**: deep-research pass（repo 約束對讀 + 三方源碼/文檔/定價核實）
 > **Consumes**: `packages/agent-runtime/src/index.ts`（AgentRunner 契約）、`plans/sprints/20260703-dual-agent-v2.sprint.md`（redirect 決策）、`plans/prds/20260703-1742-dual-agent.prd.md`
 > **Feeds**: FastClaw runner sprint 規劃（於 agent-control-plane-convergence 收斂後）
 
 RECOMMENDATION: MVP 直接用 Cloudflare Sandbox SDK（建於 CF Containers），由獨立內部 Worker 暴露受限 Bridge API，FastClaw 透過既有 `sandbox.Executor` / `ExecutorPool` seam 接入；不再在 AiphaBee 發明一個 FastClaw 工具路徑繞不過去的平行 `SandboxBackend`，也不引入 sandbank 聚合層。每位付費用戶的專屬 FastClaw Agent 是 durable identity/profile，sandbox 按 run/session 臨時建立並銷毀。Sandbank Cloud 僅保留 data-free 原型/成本比較，boxlite 留作自架隔離升級 — confidence: HIGH（方向與公開單價）／MEDIUM（工作負載估算，待 live meter）
+
+> **2026-07-11 hosting correction**: FastClaw control plane 常驻既有 VPS，
+> 使用 PS 共用 staging PostgreSQL；它不部署在 Cloudflare Container。
+> Cloudflare 只承载 Worker/R2 与按 run 建立的 Sandbox/Scanner。因此下文
+> Cloudflare 单价是 sandbox plane 成本；FastClaw VPS/PG 必须另按
+> host/database invoice 分配。既有 VPS 的当前增量现金成本为 `$0`，但在
+> 没有 invoice allocation 前不能声称 allocated hosting cost 为零。
 
 > **命名澄清**: 討論中的「Cloudbank」按 **Sandbank Cloud**
 > (`sandbank.dev/cloud`) 理解。`cloudbank.org` 是面向研究機構的商業雲資源

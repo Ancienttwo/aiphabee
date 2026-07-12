@@ -1,4 +1,5 @@
 import { Client } from "pg";
+import { createFastClawVpsControlService } from "./fastclaw-service-transport.js";
 
 import {
   FastClawLifecycleClient,
@@ -793,6 +794,7 @@ export interface ResearchAgentLifecycleBindings {
   FASTCLAW_ADMIN_API_KEY?: string;
   FASTCLAW_BASE_URL?: string;
   FASTCLAW_TEMPLATE_AGENT_ID?: string;
+  FASTCLAW_VPS_SHARED_TOKEN?: string;
 }
 
 export async function runResearchAgentLifecycle(
@@ -804,7 +806,8 @@ export async function runResearchAgentLifecycle(
   if (
     connectionString === undefined ||
     connectionString.length === 0 ||
-    bindings.FASTCLAW_CONTROL_SERVICE === undefined ||
+    (bindings.FASTCLAW_CONTROL_SERVICE === undefined &&
+      (bindings.FASTCLAW_VPS_SHARED_TOKEN?.length ?? 0) < 32) ||
     bindings.FASTCLAW_ADMIN_API_KEY?.trim() === "" ||
     bindings.FASTCLAW_ADMIN_API_KEY === undefined ||
     bindings.FASTCLAW_BASE_URL?.trim() === "" ||
@@ -814,20 +817,36 @@ export async function runResearchAgentLifecycle(
   ) {
     throw new FastClawLifecycleError(
       "INVALID_LIFECYCLE_CONFIG",
-      "research Agent lifecycle requires its dedicated control-plane Hyperdrive, FastClaw service binding, and FastClaw configuration"
+      "research Agent lifecycle requires its dedicated control-plane Hyperdrive and authenticated FastClaw transport"
     );
   }
   const client = new Client({ connectionString });
   try {
     await client.connect();
+    await client.query("begin");
+    await client.query(
+      "select set_config('aiphabee.account_id', $1, true)",
+      [request.accountId]
+    );
     const repository = new PostgresResearchAgentLifecycleRepository(client);
+    const controlService =
+      bindings.FASTCLAW_CONTROL_SERVICE ??
+      createFastClawVpsControlService({
+        base_url: bindings.FASTCLAW_BASE_URL,
+        shared_token: bindings.FASTCLAW_VPS_SHARED_TOKEN!
+      });
     const remote = new FastClawLifecycleClient({
       adminApiKey: bindings.FASTCLAW_ADMIN_API_KEY,
       baseUrl: bindings.FASTCLAW_BASE_URL,
-      fetch: (input, init) => bindings.FASTCLAW_CONTROL_SERVICE!.fetch(input, init),
+      fetch: (input, init) => controlService.fetch(input, init),
       templateAgentId: bindings.FASTCLAW_TEMPLATE_AGENT_ID
     });
-    return await new ResearchAgentLifecycleService({ remote, repository }).execute(request);
+    const result = await new ResearchAgentLifecycleService({ remote, repository }).execute(request);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
   } finally {
     await client.end().catch(() => undefined);
   }

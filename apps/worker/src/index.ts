@@ -432,6 +432,10 @@ import {
 } from "@aiphabee/watchlist-runtime";
 import { handleSandboxToolGatewayRequest } from "./sandbox-tool-gateway.js";
 import {
+  handleFastClawRow10AcceptanceRequest,
+  type FastClawRow10AcceptanceEnv
+} from "./fastclaw-row10-acceptance.js";
+import {
   createStockWorkbenchAnnouncementSearch,
   createStockWorkbenchSnapshot,
   getStockWorkbenchCapabilities
@@ -461,7 +465,13 @@ interface WorkerBindings {
   AIPHABEE_EVENTS_QUEUE?: RuntimeQueue;
   AIPHABEE_HYPERDRIVE?: RuntimeHyperdrive;
   AIPHABEE_RESEARCH_AGENT_CONTROL_HYPERDRIVE?: RuntimeHyperdrive;
+  AIPHABEE_SANDBOX_BRIDGE?: RuntimeFetcher;
+  ARTIFACT_SCANNER_SHARED_KEY?: string;
   FASTCLAW_CONTROL_SERVICE?: RuntimeFetcher;
+  FASTCLAW_VPS_SHARED_TOKEN?: string;
+  FASTCLAW_ROW10_ACCEPTANCE_TOKEN?: string;
+  HYPERDRIVE?: RuntimeHyperdrive;
+  SANDBOX_RUN_HMAC_KEY?: string;
   AIPHABEE_RUN_COORDINATOR?: RuntimeDurableObjectNamespace;
   AIPHABEE_RESEARCH_WORKFLOW?: RuntimeWorkflow<CloudflareWorkflowSmokePayload>;
   AIPHABEE_RESEARCH_AGENT_LIFECYCLE_ENABLED?: string;
@@ -12747,6 +12757,18 @@ export class SandboxToolGateway extends WorkerEntrypoint<WorkerBindings> {
       },
       secret: this.env.AIPHABEE_SANDBOX_TOOL_GATEWAY_HMAC_KEY
     });
+  }
+}
+
+// Temporary, private service-binding entrypoint for the credentialed Row-10
+// staging gate. It is not reachable through the public Worker router and is
+// removed from the deployed binding after cleanup/readback.
+export class FastClawRow10Acceptance extends WorkerEntrypoint<WorkerBindings> {
+  fetch(request: Request): Promise<Response> {
+    return handleFastClawRow10AcceptanceRequest(
+      request,
+      this.env as FastClawRow10AcceptanceEnv
+    );
   }
 }
 

@@ -1,12 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "aiphabee-sandbox-bridge-staging",
+  "account_id": "ab66185011440a6f8a698d61ad58703a",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-09",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
+  "workers_dev": false,
   "observability": {
-    "enabled": false
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    }
   },
   "services": [
     {
@@ -20,7 +26,13 @@
       "class_name": "AiphaBeeSandbox",
       "image": "./Dockerfile",
       "instance_type": "standard-1",
-      "max_instances": 10
+      "max_instances": 20
+    },
+    {
+      "class_name": "ArtifactScannerContainer",
+      "image": "./ScannerDockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 1
     }
   ],
   "durable_objects": {
@@ -36,6 +48,10 @@
       {
         "class_name": "SandboxLeaseRegistryObject",
         "name": "SANDBOX_LEASE_REGISTRY"
+      },
+      {
+        "class_name": "ArtifactScannerContainer",
+        "name": "ARTIFACT_SCANNER"
       }
     ]
   },
@@ -47,6 +63,10 @@
     {
       "new_sqlite_classes": ["SandboxLeaseRegistryObject"],
       "tag": "v2"
+    },
+    {
+      "new_sqlite_classes": ["ArtifactScannerContainer"],
+      "tag": "v3"
     }
   ],
   "vars": {

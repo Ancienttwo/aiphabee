@@ -206,6 +206,7 @@ function harness(options: { sandboxReady?: boolean } = {}) {
       sandboxes.set(sandboxId, created);
       return created;
     },
+    getProviderInstanceHash: async () => `sha256:${"a".repeat(64)}`,
     nowMs: () => NOW + 1_000,
     resolveWorkspacePath: (value) => {
       const prefixed = value.startsWith("/") ? value : `/${value}`;
@@ -297,6 +298,30 @@ describe("AiphaBee sandbox bridge", () => {
     });
   });
 
+  it("emits only hashed Row-10 correlation for provider observability", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    try {
+      const { env, handler } = harness();
+      const issued = await issue("run-row10-0123456789abcdef01234567-00");
+
+      const response = await handler(
+        request("https://bridge.test/v1/sandbox", issued.token, { method: "POST" }),
+        env
+      );
+
+      expect(response.status).toBe(201);
+      expect(info).toHaveBeenCalledWith({
+        component: "sandbox_bridge",
+        event: "row10_worker_invocation",
+        operation: "create",
+        run_hash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u)
+      });
+      expect(JSON.stringify(info.mock.calls)).not.toContain(issued.claims.jti);
+    } finally {
+      info.mockRestore();
+    }
+  });
+
   it("runs a bounded file/exec lifecycle and proves terminal destroy", async () => {
     const { env, handler, sandboxes } = harness();
     const issued = await issue("run_20260710_bridge_001");
@@ -306,7 +331,10 @@ describe("AiphaBee sandbox bridge", () => {
       env
     );
     expect(create.status).toBe(201);
-    expect(await create.json()).toEqual({ id: issued.sandbox_id });
+    expect(await create.json()).toEqual({
+      id: issued.sandbox_id,
+      provider_instance_hash: `sha256:${"a".repeat(64)}`
+    });
     expect(sandboxes.get(issued.sandbox_id)?.readinessChecks).toBe(1);
 
     const fileUrl = `https://bridge.test/v1/sandbox/${issued.sandbox_id}/file/workspace/smoke.txt`;
@@ -418,6 +446,33 @@ describe("AiphaBee sandbox bridge", () => {
 
     expect((await handler(request(url, issued.token, { method: "DELETE" }), env)).status).toBe(502);
     expect((await handler(request(url, issued.token, { method: "DELETE" }), env)).status).toBe(204);
+  });
+
+  it("dispatches a tenant run kill as terminal provider destruction", async () => {
+    const { env, handler, sandboxes } = harness();
+    const issued = await issue("run_20260710_bridge_kill");
+    await handler(request("https://bridge.test/v1/sandbox", issued.token, { method: "POST" }), env);
+
+    const first = await handler(
+      request(`https://bridge.test/v1/sandbox/${issued.sandbox_id}/kill`, issued.token, {
+        method: "POST"
+      }),
+      env
+    );
+    expect(first.status).toBe(200);
+    await expect(first.json()).resolves.toEqual({ status: "killed", terminal: true });
+    expect(sandboxes.get(issued.sandbox_id)?.destroyed).toBe(true);
+
+    const replay = await handler(
+      request(`https://bridge.test/v1/sandbox/${issued.sandbox_id}/kill`, issued.token, {
+        method: "POST"
+      }),
+      env
+    );
+    await expect(replay.json()).resolves.toEqual({
+      status: "already_terminal",
+      terminal: true
+    });
   });
 
   it("rejects reissued claims that change identity within one guard state", async () => {

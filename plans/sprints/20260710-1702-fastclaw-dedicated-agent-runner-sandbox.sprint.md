@@ -1,6 +1,6 @@
 # Sprint: FastClaw Dedicated Agent Runner and Ephemeral Sandbox
 
-> **Status**: Executing
+> **Status**: Complete
 > **Slug**: fastclaw-dedicated-agent-runner-sandbox
 > **Created**: 2026-07-10 17:02 +0800
 > **Updated**: 2026-07-11 14:21
@@ -126,7 +126,28 @@ rows never land.
 | 7 | [x] | fastclaw-agent-runner-adapter | contract | Executable `runner_remote` selection, FastClaw enablement, the private frozen sandbox-access grant mint, and activation integration land atomically; merely flipping registry `enabled` cannot mint a grant; adapter tests pass through existing `AgentRunner.run(request): AsyncIterable<AgentExecutionEvent>`; event indexes are monotonic and terminal state is unique; cancellation/error/budget/final semantics match Agent Runtime; raw terminal output/private reasoning never becomes public progress or final answer; all tool calls re-enter AiphaBee policy | `plans/plan-20260711-1308-fastclaw-agent-runner-adapter.md` |
 | 8 | [x] | durable-memory-artifact-handoff | contract | Tests prove only explicitly approved memory/artifacts leave the sandbox; records include tenant/owner, run, hash, classification, size, retention, scan, provenance, and evidence; rejected/oversize/unsafe artifacts do not persist; cross-tenant reads fail; sandbox residual state is absent after handoff and destroy | `plans/plan-20260711-1402-durable-memory-artifact-handoff.md` |
 | 9 | [x] | entitlement-billing-admin-user-status | contract | Account/usage/admin integration tests show entitlement gates availability but does not route every paid request to FastClaw; model/tool/sandbox/storage usage is attributable by run; user sees provisioning/ready/retryable/blocked/disabled state; authorised admin retry/disable/delete/audit and kill actions are idempotent and recorded | `plans/plan-20260711-1512-entitlement-billing-admin-user-status.md` |
-| 10 | [ ] | live-security-load-cost-release-evidence | contract | Credentialed acceptance runs 10 concurrent cross-tenant sandboxes and records cold start, first progress, duration, CPU/memory/disk, egress, Worker/DO/log usage, total per-run cost, terminal cleanup, and kill-switch readback; security/compliance and independent review approve the packet; without credentials or any required live field the row stays blocked and the feature remains off | (pending `$think`) |
+| 10 | [x] | live-security-load-cost-release-evidence | contract | Credentialed acceptance runs 10 concurrent cross-tenant sandboxes and records cold start, first progress, duration, CPU/memory/disk, egress, Worker/DO/log usage, total per-run cost, terminal cleanup, and kill-switch readback; FastClaw is VPS-hosted and CF is sandbox-only; security/compliance and independent review approve the packet; without credentials or any required live field the row stays blocked and the feature remains off | `plans/plan-20260711-1552-live-security-load-cost-release-evidence.md` |
+
+### Row 10 live status — 2026-07-12
+
+- Architecture is corrected and deployed as intended: FastClaw is persistent on
+  the VPS; only the Sandbox Bridge, ephemeral Sandbox and authoritative scanner
+  run on Cloudflare. The superseded Cloudflare-hosted FastClaw Worker, Container
+  application and registry images have been deleted.
+- VPS ingress, callback-before-execution, shared staging PostgreSQL migrations,
+  scanner startup/ClamAV readback and exact cleanup paths have live evidence.
+- The credentialed application gate now passes 10 distinct tenants/users/Agents
+  and 10 simultaneously active Sandboxes. All ten callback-before-execution
+  runs completed in one 31-second overlap window; cross-tenant probes, scanner,
+  one kill-switch path, PG/R2 handoff, destroy and zero-row cleanup passed.
+- Container, Durable Object, Worker, logs, R2 and Billing provider reads joined
+  all ten runs. Complete raw list cost is `$0.029066052431813046` total and
+  `$0.0029066052431813046/run` average. The account-period contracted cost is
+  `$3.8600075`; it is not allocated to these runs, so invoice allocation stays
+  null.
+- Fresh independent FastClaw security and packet compliance reviews both pass.
+  Row 10 and the Sprint are complete. Production/public dispatch, paid-plan
+  auto-routing and feature enablement remain explicitly off and out of scope.
 
 ## Promotion Gates
 

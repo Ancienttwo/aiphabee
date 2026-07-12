@@ -17,6 +17,7 @@ const MAX_BODY_BYTES = 1_048_576;
 const MAX_COMMAND_BYTES = 65_536;
 const MAX_EXEC_TIMEOUT_MS = 600_000;
 const DESTROY_TIMEOUT_MS = 15_000;
+const ROW10_RUN_ID = /^run-row10-[a-f0-9]{24}-\d{2}$/u;
 
 export interface SandboxExecResult {
   exitCode: number;
@@ -50,6 +51,7 @@ export interface BridgeEnv {
 export interface BridgeDependencies {
   getRunGuard(env: BridgeEnv): RunGuardClient;
   getSandbox(env: BridgeEnv, sandboxId: string): SandboxHandle;
+  getProviderInstanceHash(env: BridgeEnv, sandboxId: string): Promise<string>;
   nowMs(): number;
   resolveWorkspacePath(path: string): string | null;
   shellQuote(argument: string): string;
@@ -173,7 +175,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 function route(pathname: string):
   | { kind: "create" }
-  | { id: string; kind: "destroy" | "exec" | "files" | "running" }
+  | { id: string; kind: "destroy" | "exec" | "files" | "kill" | "running" }
   | { filePath: string; id: string; kind: "file" }
   | undefined {
   if (pathname === "/v1/sandbox") {
@@ -186,6 +188,7 @@ function route(pathname: string):
   const suffix = match[2] ?? "";
   if (suffix === "") return { id: match[1], kind: "destroy" };
   if (suffix === "exec") return { id: match[1], kind: "exec" };
+  if (suffix === "kill") return { id: match[1], kind: "kill" };
   if (suffix === "files") return { id: match[1], kind: "files" };
   if (suffix === "running") return { id: match[1], kind: "running" };
   if (suffix.startsWith("file/")) {
@@ -207,7 +210,9 @@ function methodAllowed(
   matched: NonNullable<ReturnType<typeof route>>,
   method: string
 ): boolean {
-  if (matched.kind === "create" || matched.kind === "exec") return method === "POST";
+  if (matched.kind === "create" || matched.kind === "exec" || matched.kind === "kill") {
+    return method === "POST";
+  }
   if (matched.kind === "destroy") return method === "DELETE";
   if (matched.kind === "file") return method === "GET" || method === "PUT";
   return method === "GET";
@@ -231,7 +236,7 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
     const scope: SandboxRunScope =
       matched.kind === "create"
         ? "sandbox:create"
-        : matched.kind === "destroy"
+        : matched.kind === "destroy" || matched.kind === "kill"
           ? "sandbox:destroy"
           : matched.kind === "exec"
             ? "sandbox:exec"
@@ -239,8 +244,12 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
               ? "sandbox:status"
               : "sandbox:file";
 
+    let row10RunHash: string | undefined;
     try {
       const authorized = await authorize(request, env, scope, dependencies.nowMs());
+      if (ROW10_RUN_ID.test(authorized.claims.jti)) {
+        row10RunHash = `sha256:${await sha256Hex(authorized.claims.jti)}`;
+      }
       if ("id" in matched) {
         const rejection = validateRequestedSandboxId(authorized.sandboxId, matched.id);
         if (rejection !== undefined) return rejection;
@@ -252,7 +261,9 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
           ? "file"
           : matched.kind === "running"
             ? "status"
-            : matched.kind;
+            : matched.kind === "kill"
+              ? "destroy"
+              : matched.kind;
       const claim = await claimOrReject(guard, authorized.claims, operation);
       if (claim instanceof Response) return claim;
 
@@ -261,7 +272,14 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
         if (!ready) {
           return jsonError(502, "SANDBOX_START_FAILED", "sandbox failed its readiness probe");
         }
-        return Response.json({ id: authorized.sandboxId }, { status: 201 });
+        const providerInstanceHash = await dependencies.getProviderInstanceHash(
+          env,
+          authorized.sandboxId
+        );
+        return Response.json(
+          { id: authorized.sandboxId, provider_instance_hash: providerInstanceHash },
+          { status: 201 }
+        );
       }
 
       if (matched.kind === "running") {
@@ -281,15 +299,25 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
       }
 
       const sandbox = dependencies.getSandbox(env, authorized.sandboxId);
-      if (matched.kind === "destroy") {
-        if (claim.terminal) return new Response(null, { status: 204 });
+      if (matched.kind === "destroy" || matched.kind === "kill") {
+        if (claim.terminal) {
+          return matched.kind === "kill"
+            ? Response.json({ status: "already_terminal", terminal: true })
+            : new Response(null, { status: 204 });
+        }
         try {
           await withTimeout(sandbox.destroy(), DESTROY_TIMEOUT_MS);
           await guard.finishDestroy(authorized.claims);
-          return new Response(null, { status: 204 });
+          return matched.kind === "kill"
+            ? Response.json({ status: "killed", terminal: true })
+            : new Response(null, { status: 204 });
         } catch {
           await guard.abortDestroy(authorized.claims);
-          return jsonError(502, "SANDBOX_DESTROY_FAILED", "sandbox destroy failed");
+          return jsonError(
+            502,
+            matched.kind === "kill" ? "SANDBOX_KILL_FAILED" : "SANDBOX_DESTROY_FAILED",
+            matched.kind === "kill" ? "sandbox kill failed" : "sandbox destroy failed"
+          );
         }
       }
 
@@ -377,6 +405,15 @@ export function createSandboxBridgeHandler(dependencies: BridgeDependencies) {
         kind: matched.kind
       });
       return jsonError(502, "SANDBOX_OPERATION_FAILED", "sandbox operation failed");
+    } finally {
+      if (row10RunHash !== undefined) {
+        console.info({
+          component: "sandbox_bridge",
+          event: "row10_worker_invocation",
+          operation: matched.kind,
+          run_hash: row10RunHash
+        });
+      }
     }
   };
 }

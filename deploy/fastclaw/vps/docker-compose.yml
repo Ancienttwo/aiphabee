@@ -1,0 +1,67 @@
+name: aiphabee-fastclaw-staging
+
+services:
+  fastclaw:
+    image: "aiphabee/fastclaw:${FASTCLAW_IMAGE_TAG:?FASTCLAW_IMAGE_TAG is required}"
+    entrypoint: ["/usr/local/bin/aiphabee-vps-entrypoint"]
+    env_file:
+      - ./fastclaw.env
+    expose:
+      - "18953"
+    depends_on:
+      deterministic-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:18953/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 240s
+    restart: unless-stopped
+    volumes:
+      - fastclaw-data:/data/.fastclaw
+      - ./vps-entrypoint.sh:/usr/local/bin/aiphabee-vps-entrypoint:ro
+
+  deterministic-model:
+    image: node:22-alpine
+    command: ["node", "/app/deterministic-model.mjs"]
+    environment:
+      FASTCLAW_SMOKE_MODEL_PORT: "18081"
+    expose:
+      - "18081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:18081/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    volumes:
+      - ./deterministic-model.mjs:/app/deterministic-model.mjs:ro
+
+  reverse-proxy:
+    container_name: aiphabee-fastclaw-proxy
+    image: caddy:2-alpine
+    depends_on:
+      fastclaw:
+        condition: service_healthy
+    env_file:
+      - ./ingress.env
+    expose:
+      - "80"
+    ports:
+      - "127.0.0.1:28080:80"
+      - "0.0.0.0:443:443/tcp"
+    restart: unless-stopped
+    networks:
+      - default
+      - salesko-ingress
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+volumes:
+  fastclaw-data:
+
+networks:
+  salesko-ingress:
+    external: true
+    name: salesko-sidecar_default
