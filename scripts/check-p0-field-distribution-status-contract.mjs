@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+
+const isMain = process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 const contractPath = "deploy/governance/p0-field-distribution-status.contract.json";
 const p0RightsContractPath = "deploy/gateway/p0-rights-matrix-coverage.contract.json";
 const toolRegistryContractPath = "deploy/tools/registry.contract.json";
+const p0ToolCatalogPath = "deploy/tools/p0-tool-catalog.contract.json";
+const toolRegistrySourcePath = "packages/tool-registry/src/index.ts";
 const gatewaySourcePath = "packages/data-access-gateway/src/index.ts";
 const packageJsonPath = "package.json";
 const trackerPath = "docs/AiphaBee_Sprint_Tracker_v1.0.md";
-const requiredVersion = "2026-06-22.gate0-p0-field-distribution-status.v0";
+const requiredVersion = "2026-07-13.gate0-p0-field-distribution-status.exact-id.v1";
 const requiredDefaultStatus = "default_deny_pending_partner_matrix";
 const requiredDatasetGroups = [
   "security_master",
@@ -37,40 +42,55 @@ const forbiddenTextPatterns = [
   /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u
 ];
 
-const contract = readJson(contractPath);
-const p0RightsContract = readJson(p0RightsContractPath);
-const toolRegistryContract = readJson(toolRegistryContractPath);
-const packageJson = readJson(packageJsonPath);
-const gatewaySource = readText(gatewaySourcePath);
-const tracker = readText(trackerPath);
-const errors = validateContract({
-  contract,
-  gatewaySource,
-  p0RightsContract,
-  packageJson,
-  toolRegistryContract,
-  tracker
-});
+if (isMain) {
+  const contract = readJson(contractPath);
+  const p0RightsContract = readJson(p0RightsContractPath);
+  const toolRegistryContract = readJson(toolRegistryContractPath);
+  const p0ToolCatalog = readJson(p0ToolCatalogPath);
+  const registeredToolNames = parseRegisteredToolNames(readText(toolRegistrySourcePath));
+  const packageJson = readJson(packageJsonPath);
+  const gatewaySource = readText(gatewaySourcePath);
+  const tracker = readText(trackerPath);
+  const errors = validateContract({
+    contract,
+    gatewaySource,
+    p0RightsContract,
+    p0ToolCatalog,
+    packageJson,
+    registeredToolNames,
+    toolRegistryContract,
+    tracker
+  });
 
-if (errors.length > 0) {
+  if (errors.length > 0) {
+    emit({ errors, path: contractPath, status: "invalid_contract" }, 1);
+  }
+
   emit(
     {
-      errors,
-      path: contractPath,
-      status: "invalid_contract"
+      dataset_groups: requiredDatasetGroups.length,
+      p0_rights_scoped_tool_count: contract.required_p0_tool_count,
+      registered_tool_count: registeredToolNames.length,
+      registry_required_tool_count: toolRegistryContract.required_tools.length,
+      status: "ok"
     },
-    1
+    0
   );
 }
 
-emit(
-  {
-    dataset_groups: requiredDatasetGroups.length,
-    p0_tool_count: toolRegistryContract.required_tools.length,
-    status: "ok"
-  },
-  0
-);
+export { validateExactToolIdReconciliation, parseRegisteredToolNames };
+
+function parseRegisteredToolNames(source) {
+  const match = source.match(/export type RegisteredToolName\s*=([\s\S]*?);/u);
+  if (!match) {
+    emit({ path: toolRegistrySourcePath, status: "registered_tool_name_not_found" }, 1);
+  }
+  const names = [...match[1].matchAll(/"([^"]+)"/gu)].map((m) => m[1]);
+  if (names.length === 0) {
+    emit({ path: toolRegistrySourcePath, status: "registered_tool_name_empty" }, 1);
+  }
+  return names;
+}
 
 function readJson(path) {
   try {
@@ -106,7 +126,9 @@ function validateContract({
   contract: value,
   gatewaySource,
   p0RightsContract,
+  p0ToolCatalog,
   packageJson,
+  registeredToolNames,
   toolRegistryContract,
   tracker
 }) {
@@ -140,9 +162,9 @@ function validateContract({
     }
   }
 
-  if (value.required_p0_tool_count !== toolRegistryContract.required_tools.length) {
-    errors.push("required_p0_tool_count must match tool registry required_tools length");
-  }
+  errors.push(
+    ...validateExactToolIdReconciliation(value, p0ToolCatalog, toolRegistryContract, registeredToolNames)
+  );
 
   if (value.default_unconfirmed_status !== requiredDefaultStatus) {
     errors.push(`default_unconfirmed_status must be ${requiredDefaultStatus}`);
@@ -171,6 +193,85 @@ function validateContract({
   errors.push(...validatePackageScript(packageJson));
   errors.push(...validateTrackerSync(tracker));
   errors.push(...validateNoSecrets(value));
+
+  return errors;
+}
+
+function validateExactToolIdReconciliation(value, p0ToolCatalog, toolRegistryContract, registeredToolNames) {
+  const errors = [];
+  const catalog = Array.isArray(p0ToolCatalog?.required_tools) ? p0ToolCatalog.required_tools : null;
+  const registryRequired = Array.isArray(toolRegistryContract?.required_tools) ? toolRegistryContract.required_tools : null;
+  if (!catalog) return ["p0-tool-catalog required_tools must be an array"];
+  if (!registryRequired) return ["tool registry required_tools must be an array"];
+
+  // Layer 1: contract's exact P0 rights-scoped IDs must equal the canonical catalog set.
+  errors.push(...validateExactStringArray(value.required_p0_tool_ids, catalog, "required_p0_tool_ids"));
+
+  // Count stays a derived consistency field; must equal the catalog length and not be bumped.
+  if (value.required_p0_tool_count !== catalog.length) {
+    errors.push(`required_p0_tool_count must equal the canonical P0 rights set size (${catalog.length})`);
+  }
+  if (Array.isArray(value.required_p0_tool_ids) && value.required_p0_tool_count !== value.required_p0_tool_ids.length) {
+    errors.push("required_p0_tool_count must equal required_p0_tool_ids length");
+  }
+
+  // Named, authority-grounded exclusions for every ID above the P0 rights set.
+  const exclusions = Array.isArray(value.non_p0_rights_scoped_tools) ? value.non_p0_rights_scoped_tools : [];
+  const exclusionIds = new Set();
+  for (const [index, entry] of exclusions.entries()) {
+    if (!isRecord(entry) || typeof entry.id !== "string" || entry.id.length === 0) {
+      errors.push(`non_p0_rights_scoped_tools[${index}].id must be a non-empty string`);
+      continue;
+    }
+    if (typeof entry.reason !== "string" || entry.reason.length === 0) {
+      errors.push(`${entry.id}: non_p0_rights_scoped_tools reason must be a non-empty string`);
+    }
+    if (typeof entry.authority !== "string" || entry.authority.length === 0) {
+      errors.push(`${entry.id}: non_p0_rights_scoped_tools authority must be a non-empty string`);
+    }
+    if (exclusionIds.has(entry.id)) {
+      errors.push(`${entry.id}: duplicate non_p0_rights_scoped_tools entry`);
+    }
+    exclusionIds.add(entry.id);
+    // No phantom exclusions: every excluded tool must actually be a registered tool.
+    if (!registeredToolNames.includes(entry.id)) {
+      errors.push(`${entry.id}: non_p0_rights_scoped_tools id is not a RegisteredToolName`);
+    }
+    // An excluded tool must not also be inside the P0 rights set.
+    if (catalog.includes(entry.id)) {
+      errors.push(`${entry.id}: non_p0_rights_scoped_tools id is also in the P0 rights catalog`);
+    }
+  }
+
+  const catalogSet = new Set(catalog);
+  const registrySet = new Set(registryRequired);
+  const registeredSet = new Set(registeredToolNames);
+
+  // Invariant chain: catalog(23) ⊆ registry(24) ⊆ RegisteredToolName(25).
+  const catalogMissingFromRegistry = catalog.filter((id) => !registrySet.has(id)).sort();
+  if (catalogMissingFromRegistry.length > 0) {
+    errors.push(`P0 rights catalog IDs missing from registry required_tools: [${catalogMissingFromRegistry.join(", ")}]`);
+  }
+  const registryMissingFromRegistered = registryRequired.filter((id) => !registeredSet.has(id)).sort();
+  if (registryMissingFromRegistered.length > 0) {
+    errors.push(`registry required_tools missing from RegisteredToolName: [${registryMissingFromRegistered.join(", ")}]`);
+  }
+
+  // Every extra above the P0 rights set must be an explicitly named exclusion.
+  const registryExtras = registryRequired.filter((id) => !catalogSet.has(id)).sort();
+  const registeredExtras = registeredToolNames.filter((id) => !registrySet.has(id)).sort();
+  for (const id of [...registryExtras, ...registeredExtras]) {
+    if (!exclusionIds.has(id)) {
+      errors.push(`unexplained non-P0 tool must be classified in non_p0_rights_scoped_tools: ${id}`);
+    }
+  }
+  // Exclusions must exactly cover the union of extras (no unused exclusion).
+  const extrasUnion = new Set([...registryExtras, ...registeredExtras]);
+  for (const id of exclusionIds) {
+    if (!extrasUnion.has(id)) {
+      errors.push(`${id}: non_p0_rights_scoped_tools entry does not correspond to any registry/registered extra`);
+    }
+  }
 
   return errors;
 }
@@ -293,8 +394,8 @@ function validateToolRegistry(value) {
     errors.push("tool registry must be rights_aware");
   }
 
-  if (!Array.isArray(value.required_tools) || value.required_tools.length !== toolRegistryContract.required_tools.length) {
-    errors.push("tool registry required_tools must match current required tool count");
+  if (!Array.isArray(value.required_tools) || value.required_tools.length === 0) {
+    errors.push("tool registry required_tools must be a non-empty array");
   }
 
   if (value.live_data_access !== false) {

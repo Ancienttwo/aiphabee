@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const contractPath = "deploy/gateway/p0-rights-matrix-coverage.contract.json";
 const databaseContractPath = "deploy/database/migrations.contract.json";
+const p0ToolCatalogPath = "deploy/tools/p0-tool-catalog.contract.json";
 const requiredSurfaces = ["web", "mcp", "export", "enterprise"];
 const requiredDatasetGroups = [
   "security_master",
@@ -121,6 +122,16 @@ function validateContract(value, databaseValue) {
 
   if (value.required_p0_tool_count !== 23) {
     errors.push("required_p0_tool_count must be 23");
+  }
+
+  const catalog = readJson(p0ToolCatalogPath)?.required_tools;
+  if (!Array.isArray(catalog)) {
+    errors.push("p0-tool-catalog required_tools must be an array");
+  } else {
+    errors.push(...validateStringArray(value.required_p0_tool_ids, catalog, "required_p0_tool_ids"));
+    if (Array.isArray(value.required_p0_tool_ids) && value.required_p0_tool_ids.length !== value.required_p0_tool_count) {
+      errors.push("required_p0_tool_ids length must equal required_p0_tool_count");
+    }
   }
 
   if (value.default_rights_status !== "default_deny") {
