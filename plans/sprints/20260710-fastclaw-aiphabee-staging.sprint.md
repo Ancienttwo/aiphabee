@@ -1,6 +1,6 @@
 # Sprint: fastclaw-aiphabee staging persistence
 
-> **Status**: Complete
+> **Status**: Done
 > **Approved**: user `开干`, 2026-07-10
 
 ## Goal

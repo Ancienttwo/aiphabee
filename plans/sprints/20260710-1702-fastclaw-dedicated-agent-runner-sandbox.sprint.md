@@ -1,6 +1,6 @@
 # Sprint: FastClaw Dedicated Agent Runner and Ephemeral Sandbox
 
-> **Status**: Complete
+> **Status**: Done
 > **Slug**: fastclaw-dedicated-agent-runner-sandbox
 > **Created**: 2026-07-10 17:02 +0800
 > **Updated**: 2026-07-11 14:21

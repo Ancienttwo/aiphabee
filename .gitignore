@@ -29,7 +29,33 @@ __pycache__/
 # Generated chart golden-set images (manifest is committed; images rebuild via the generator)
 /runtime/
 
-# BEGIN: claude-runtime-temp (managed by repo-harness)
+# BEGIN: repo-harness generated-runtime
+# Dependencies
+node_modules/
+
+# Project-specific
+artifacts/
+coverage/
+*.tar.gz
+*.tgz
+
+# External references
+_ref/
+.archcontext/
+.codegraph/
+
+# Local operations state
+_ops/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS metadata
+.DS_Store
+
+# Runtime evidence and local agent state
 .claude/settings.local.json
 .claude/.atomic_pending
 .claude/.session-id
@@ -49,6 +75,7 @@ tasks/.current.md.tmp.*
 .ai/harness/checks/post-bash-latest.json
 .ai/harness/events.jsonl
 .ai/harness/archive/
+.ai/harness/backups/
 .ai/harness/failures/latest.jsonl
 .ai/harness/handoff/current.md
 .ai/harness/handoff/resume.md
@@ -64,6 +91,7 @@ tasks/.current.md.tmp.*
 .ai/harness/sprint/
 .ai/harness/worktrees/
 .ai/harness/runs/
+.ai/harness/state/
 .ai/harness/chatgpt/browser-lock.json
 .ai/harness/chatgpt/tmp/
 .ai/harness/chatgpt/sessions/
@@ -74,7 +102,7 @@ tasks/.current.md.tmp.*
 .codex/*
 .claude/.active-plan
 .claude/.plan-state/
-# END: claude-runtime-temp
+# END: repo-harness generated-runtime
 
 # Local data-ingest run state (Scrapy jobdirs, reports, logs) - never commit
 runtime/
