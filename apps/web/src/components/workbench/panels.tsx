@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge, type BadgeTone, Card, Icon } from "../../ds";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
-import { presentError, resolveFinancialFacts, resolveQuoteSnapshot } from "../../lib/api";
+import { presentError, resolveCorporateActions, resolveFinancialFacts, resolveQuoteSnapshot } from "../../lib/api";
 import type {
   AiphaBeeErrorCode,
   AnnouncementSection,
-  CorporateActionsSection,
   DerivedMetricsSection,
+  LiveCorporateActionRow,
   PriceHistorySection,
   QualityState,
   SecurityProfileSection,
@@ -366,12 +366,80 @@ export function AnnouncementsPanel({ section }: { section: AnnouncementSection }
   );
 }
 
-export function CorporateActionsPanel({ section }: { section: CorporateActionsSection }) {
-  const actions = section.timeline?.actions ?? [];
-  if (actions.length === 0) return <EmptyPanel note="该证券暂无公司行动。" />;
+const CORPORATE_ACTIONS_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const CORPORATE_ACTIONS_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/** Client-side display label only, composed from already-promoted numeric
+ * fields (never a substitute for the vendor's own text): buyback rows carry
+ * no vendor summary (no free-text field exists on nq_sharebuyback.daily_data),
+ * so this describes the same terms already rendered as the trailing amount. */
+function describeCorporateAction(action: LiveCorporateActionRow): string {
+  if (action.summary) return action.summary;
+  if (action.actionType === "buyback" && action.terms?.shares !== undefined) {
+    return `场内回购 ${fmt(action.terms.shares, 0)} 股`;
+  }
+  return ACTION_LABEL[action.actionType] ?? action.actionType;
+}
+
+/**
+ * Corporate-actions panel: an independent live query against the
+ * entitlement-gated resolveCorporateActions RPC (FinancialsPanel/QuotePanel
+ * decoupling pattern) -- not driven by the synthetic workbench snapshot's
+ * corporate_actions section, so a denied/held/absent live result never falls
+ * back to synthesized figures. Only dividend/buyback/split/consolidation are
+ * ever populated live; an instrument with no promoted action at all renders
+ * its explicit coverage.reason instead of an empty list.
+ */
+export function CorporateActionsPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: actionsEnv, isLoading } = useQuery({
+    queryKey: ["corporate-actions-live", instrumentId],
+    queryFn: () => resolveCorporateActions(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载公司行动…</p>
+    );
+  }
+
+  if (!actionsEnv || !actionsEnv.ok) {
+    const code = actionsEnv?.error.code;
+    const tone: BadgeTone = (code && CORPORATE_ACTIONS_STATE_TONE[code]) ?? "bearish";
+    const label = (code && CORPORATE_ACTIONS_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = actionsEnv ? presentError(actionsEnv).detail : "公司行动服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>公司行动</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, actions } = actionsEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无公司行动。"} />;
+  }
+  if (!actions || actions.length === 0) return <EmptyPanel note="该证券暂无公司行动。" />;
+
   return (
     <Card padded>
-      <SectionTitle>公司行动</SectionTitle>
+      <SectionTitle>公司行动（{actions.length}）</SectionTitle>
       <div style={{ display: "grid", gap: 10 }}>
         {actions.map((a) => (
           <div
@@ -381,24 +449,27 @@ export function CorporateActionsPanel({ section }: { section: CorporateActionsSe
             <span style={{ minWidth: 0 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Badge tone="ai" variant="soft" size="sm">{ACTION_LABEL[a.actionType] ?? a.actionType}</Badge>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)" }}>{a.summary}</span>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)" }}>{describeCorporateAction(a)}</span>
               </span>
               <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-                除净日 {a.exDate ?? "—"} · 生效 {a.effectiveDate} · {a.status === "confirmed" ? "已确认" : "已公告"}
+                公告 {a.announcementDate} · 生效 {a.effectiveDate}{a.paymentDate ? ` · 派付 ${a.paymentDate}` : ""}
               </span>
             </span>
-            {a.terms.cashAmount !== undefined ? (
+            {a.terms?.cashAmount !== undefined ? (
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
                 {fmt(a.terms.cashAmount)} {a.terms.currency}
               </span>
-            ) : a.terms.ratio !== undefined ? (
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
-                {fmt(a.terms.ratio)}
+            ) : a.terms?.buybackValue !== undefined ? (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
+                {fmt(a.terms.buybackValue, 0)} {a.terms.currency}
               </span>
             ) : null}
           </div>
         ))}
       </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        实时数据 · 派息/回购/拆股/并股
+      </p>
     </Card>
   );
 }

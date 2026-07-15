@@ -31,6 +31,11 @@ import {
   type GetLiveQuoteSnapshotResult,
   type LiveQuoteSnapshotRawRow,
 } from "@aiphabee/market-data";
+import {
+  getLiveCorporateActions,
+  type GetLiveCorporateActionsResult,
+  type LiveCorporateActionsRow,
+} from "@aiphabee/corporate-actions";
 import { Client, type QueryResult } from "pg";
 
 export const AUTHENTICATED_NETQUITY_WEB_RESOLVER_VERSION =
@@ -112,6 +117,17 @@ export const AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS = [
 ] as const;
 const AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELD_SET = new Set<string>(
   AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS,
+);
+export const AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS = [
+  "corporate_actions.actions.buyback",
+  "corporate_actions.actions.consolidation",
+  "corporate_actions.actions.dividend",
+  "corporate_actions.actions.split",
+  "corporate_actions.coverage.reason",
+  "corporate_actions.coverage.status",
+] as const;
+const AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELD_SET = new Set<string>(
+  AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS,
 );
 
 const AUTH_SUBJECT_PATTERN =
@@ -446,6 +462,74 @@ const QUOTE_SNAPSHOT_RECORD_QUERY = `
     AND record.entity_id = $2
   LIMIT 2
 `;
+const CORPORATE_ACTIONS_RIGHTS_QUERY = `
+  SELECT
+    data_entitlement.channel,
+    data_entitlement.dataset,
+    data_entitlement.entitlement_id,
+    data_entitlement.export_allowed,
+    data_entitlement.field_pattern,
+    data_entitlement.rights_policy_version,
+    data_entitlement.source_record_id AS entitlement_source_record_id,
+    data_entitlement.status AS entitlement_status,
+    data_entitlement.time_range_days,
+    workspace_entitlement.source_record_id AS workspace_source_record_id,
+    workspace_entitlement.status AS workspace_status,
+    workspace_entitlement.valid_from,
+    workspace_entitlement.valid_to,
+    workspace_entitlement.workspace_entitlement_id
+  FROM aiphabee_governance.workspace_entitlement workspace_entitlement
+  JOIN aiphabee_governance.data_entitlement data_entitlement
+    ON data_entitlement.entitlement_id = workspace_entitlement.entitlement_id
+  WHERE workspace_entitlement.workspace_id = $1
+    AND workspace_entitlement.subscription_id = $2
+    AND workspace_entitlement.subscription_id IS NOT NULL
+    AND workspace_entitlement.valid_from <= now()
+    AND (workspace_entitlement.valid_to IS NULL OR workspace_entitlement.valid_to > now())
+    AND data_entitlement.dataset = 'corporate_actions'
+    AND data_entitlement.channel = 'web'
+    AND data_entitlement.rights_policy_version = $3
+  ORDER BY data_entitlement.field_pattern, workspace_entitlement.workspace_entitlement_id
+`;
+const CORPORATE_ACTIONS_SNAPSHOT_QUERY = `
+  SELECT
+    snapshot.serving_snapshot_id,
+    snapshot.data_version,
+    snapshot.as_of
+  FROM aiphabee_core.serving_dataset dataset
+  JOIN aiphabee_core.serving_snapshot snapshot
+    ON snapshot.serving_dataset_id = dataset.serving_dataset_id
+  JOIN aiphabee_core.data_version_batch version
+    ON version.data_version = snapshot.data_version
+  WHERE dataset.dataset = 'corporate_actions'
+    AND dataset.default_rights_status = 'approved'
+    AND dataset.rights_policy_version = $1
+    AND snapshot.release_state = 'released'
+    AND snapshot.quality_state = 'PASS'
+    AND snapshot.rights_policy_version = $1
+    AND version.release_state = 'released'
+    AND version.rights_policy_version = $1
+  ORDER BY snapshot.as_of DESC, snapshot.created_at DESC
+  LIMIT 1
+`;
+// LIMIT 2 (not 1): a second row would mean the exact entity_id lookup
+// matched more than one released record, a data integrity failure that
+// getLiveCorporateActions must reject rather than silently narrow to one row.
+const CORPORATE_ACTIONS_RECORD_QUERY = `
+  SELECT
+    record.entity_id,
+    record.source_record_id,
+    snapshot.data_version,
+    record.payload
+  FROM aiphabee_core.serving_record record
+  JOIN aiphabee_core.serving_snapshot snapshot
+    ON snapshot.serving_snapshot_id = record.serving_snapshot_id
+  WHERE record.serving_snapshot_id = $1
+    AND record.entity_type = 'instrument'
+    AND record.quality_state = 'PASS'
+    AND record.entity_id = $2
+  LIMIT 2
+`;
 
 export interface AuthenticatedNetquityResolverBindings {
   AIPHABEE_HYPERDRIVE?: { connectionString?: string };
@@ -494,6 +578,17 @@ export interface AuthenticatedNetquityQuoteSnapshotResolverInput {
 
 export interface AuthenticatedNetquityQuoteSnapshotResolverRpcResult {
   envelope: ResponseEnvelope<GetLiveQuoteSnapshotResult>;
+  status: 200 | 400 | 403 | 404 | 409 | 424 | 500;
+}
+
+export interface AuthenticatedNetquityCorporateActionsResolverInput {
+  authSubject: string;
+  instrumentId: string;
+  requestId: string;
+}
+
+export interface AuthenticatedNetquityCorporateActionsResolverRpcResult {
+  envelope: ResponseEnvelope<GetLiveCorporateActionsResult>;
   status: 200 | 400 | 403 | 404 | 409 | 424 | 500;
 }
 
@@ -1402,6 +1497,222 @@ export async function resolveReleasedNetquityQuoteSnapshot(
   };
 }
 
+// Corporate-actions RPC. Mirrors resolveAuthenticatedNetquityFinancialFacts's
+// authorization chain exactly (same account/context lookup, same
+// entitlement-before-Serving ordering, same exact entity-id lookup, same use
+// of context.rights_policy_version -- not a hardcoded constant, unlike
+// quote_snapshot) but gates on the corporate_actions dataset. A released row
+// may carry either a populated actions array (coverage.status="available")
+// or an explicit coverage.status="unavailable" marker for instruments with
+// no qualifying dividend/buyback/split/consolidation event -- both are still
+// HTTP 200 "found", never a synthesized substitute. Never exposed over a
+// public HTTP route.
+export async function resolveAuthenticatedNetquityCorporateActions(
+  bindings: AuthenticatedNetquityResolverBindings,
+  input: AuthenticatedNetquityCorporateActionsResolverInput,
+): Promise<AuthenticatedNetquityCorporateActionsResolverRpcResult> {
+  const responseAsOf = new Date().toISOString();
+  const validationError = validateCorporateActionsInput(bindings, input, responseAsOf);
+  if (validationError) return validationError;
+
+  const connectionString = bindings.AIPHABEE_HYPERDRIVE?.connectionString?.trim();
+  if (!connectionString) {
+    return errorResult(
+      424,
+      "INTERNAL_ERROR",
+      "staging security authority binding is unavailable",
+      input.requestId,
+      responseAsOf,
+    );
+  }
+
+  const client = new Client({ connectionString });
+  let transactionStarted = false;
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const accountResult = await client.query<AccountLookupRow>(ACCOUNT_LOOKUP_QUERY, [
+      input.authSubject.toLowerCase(),
+    ]);
+    const accountId = accountResult.rows[0]?.account_id;
+    if (!accountId) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "authenticated account is not provisioned",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    await client.query("SELECT set_config('aiphabee.account_id', $1, true)", [accountId]);
+    const contextResult = await client.query<EntitledContextRow>(CONTEXT_QUERY, [accountId]);
+    if (contextResult.rows.length !== 1) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        contextResult.rows.length > 1 ? 409 : 403,
+        "DATA_NOT_LICENSED",
+        contextResult.rows.length > 1
+          ? "multiple entitled workspaces require explicit product selection"
+          : "active workspace subscription is required",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    const context = contextResult.rows[0];
+    const rightsResult = await client.query<RightsRow>(CORPORATE_ACTIONS_RIGHTS_QUERY, [
+      context.workspace_id,
+      context.subscription_id,
+      context.rights_policy_version,
+    ]);
+    if (!hasExactCorporateActionsFieldAuthority(rightsResult.rows)) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web corporate actions field authority is required",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+    const policySource = compilePolicySource(context, rightsResult.rows, responseAsOf);
+    const decision = evaluateDataAccessRequest(
+      {
+        accountId,
+        channel: "web",
+        dataset: "corporate_actions",
+        exportRequested: false,
+        membershipId: context.membership_id,
+        occurredAt: responseAsOf,
+        plan: context.plan_code,
+        qualityState: "PASS",
+        requestId: input.requestId,
+        requestedFields: [...AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS],
+        requestedRows: 1,
+        subscriptionId: context.subscription_id,
+        workspaceId: context.workspace_id,
+      },
+      policySource.policy,
+    );
+    if (
+      decision.status !== "allow" ||
+      decision.deniedFields.length > 0 ||
+      decision.allowedFields.length !== AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS.length
+    ) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web corporate actions fields are not licensed",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    const resolved = await resolveReleasedNetquityCorporateActions(client, {
+      instrumentId: input.instrumentId,
+      requestId: input.requestId,
+      responseAsOf,
+      rightsPolicyVersion: context.rights_policy_version,
+    });
+    await client.query("COMMIT");
+    transactionStarted = false;
+    return resolved;
+  } catch {
+    if (transactionStarted) await client.query("ROLLBACK").catch(() => undefined);
+    return errorResult(
+      500,
+      "INTERNAL_ERROR",
+      "authenticated corporate actions resolution failed",
+      input.requestId,
+      responseAsOf,
+    );
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      return errorResult(
+        500,
+        "INTERNAL_ERROR",
+        "authenticated corporate actions database close failed",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+  }
+}
+
+export async function resolveReleasedNetquityCorporateActions(
+  client: Pick<Client, "query">,
+  input: {
+    instrumentId: string;
+    requestId: string;
+    responseAsOf: string;
+    rightsPolicyVersion: string;
+  },
+): Promise<AuthenticatedNetquityCorporateActionsResolverRpcResult> {
+  const snapshotResult = (await client.query(CORPORATE_ACTIONS_SNAPSHOT_QUERY, [
+    input.rightsPolicyVersion,
+  ])) as QueryResult<SnapshotRow>;
+  const snapshot = snapshotResult.rows[0];
+  if (!snapshot) {
+    return errorResult(
+      409,
+      "DATA_QUALITY_HOLD",
+      "no released corporate_actions snapshot is available",
+      input.requestId,
+      input.responseAsOf,
+    );
+  }
+
+  const snapshotAsOf = normalizeSnapshotAsOf(snapshot.as_of);
+  const recordResult = (await client.query(CORPORATE_ACTIONS_RECORD_QUERY, [
+    snapshot.serving_snapshot_id,
+    input.instrumentId,
+  ])) as QueryResult<LiveCorporateActionsRow>;
+
+  const result = getLiveCorporateActions(
+    {
+      asOf: snapshotAsOf,
+      dataVersion: snapshot.data_version,
+      instrumentId: input.instrumentId,
+    },
+    recordResult.rows,
+  );
+  if (result.status === "not_found") {
+    return {
+      envelope: createErrorEnvelope("NOT_FOUND", "corporate actions were not found", {
+        asOf: result.asOf,
+        dataVersion: result.dataVersion,
+        methodologyVersion: result.methodologyVersion,
+        requestId: input.requestId,
+        usage: result.usage,
+      }),
+      status: 404,
+    };
+  }
+
+  return {
+    envelope: createSuccessEnvelope(result, {
+      asOf: result.asOf,
+      dataVersion: result.dataVersion,
+      methodologyVersion: result.methodologyVersion,
+      provenance: result.provenance,
+      requestId: input.requestId,
+      usage: result.usage,
+    }),
+    status: 200,
+  };
+}
+
 function hasExactFieldAuthority(rows: RightsRow[]): boolean {
   if (rows.some((row) => !AUTHENTICATED_NETQUITY_REQUIRED_FIELD_SET.has(row.field_pattern))) {
     return false;
@@ -1432,6 +1743,14 @@ function hasExactQuoteSnapshotFieldAuthority(rows: RightsRow[]): boolean {
   }
   const representedFields = new Set(rows.map((row) => row.field_pattern));
   return AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.every((field) => representedFields.has(field));
+}
+
+function hasExactCorporateActionsFieldAuthority(rows: RightsRow[]): boolean {
+  if (rows.some((row) => !AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELD_SET.has(row.field_pattern))) {
+    return false;
+  }
+  const representedFields = new Set(rows.map((row) => row.field_pattern));
+  return AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS.every((field) => representedFields.has(field));
 }
 
 function compilePolicySource(
@@ -1543,6 +1862,23 @@ function validateQuoteSnapshotInput(
   input: AuthenticatedNetquityQuoteSnapshotResolverInput,
   asOf: string,
 ): AuthenticatedNetquityQuoteSnapshotResolverRpcResult | undefined {
+  if (bindings.APP_ENV !== "staging") {
+    return errorResult(403, "DATA_NOT_LICENSED", "staging resolver is unavailable", input.requestId, asOf);
+  }
+  if (!AUTH_SUBJECT_PATTERN.test(input.authSubject)) {
+    return errorResult(403, "AUTH_REQUIRED", "authenticated subject is invalid", input.requestId, asOf);
+  }
+  if (!/^hkex_security_\d{5}$/u.test(input.instrumentId)) {
+    return errorResult(400, "SCOPE_DENIED", "instrument id is invalid", input.requestId, asOf);
+  }
+  return undefined;
+}
+
+function validateCorporateActionsInput(
+  bindings: AuthenticatedNetquityResolverBindings,
+  input: AuthenticatedNetquityCorporateActionsResolverInput,
+  asOf: string,
+): AuthenticatedNetquityCorporateActionsResolverRpcResult | undefined {
   if (bindings.APP_ENV !== "staging") {
     return errorResult(403, "DATA_NOT_LICENSED", "staging resolver is unavailable", input.requestId, asOf);
   }

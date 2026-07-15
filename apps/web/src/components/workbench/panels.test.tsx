@@ -5,19 +5,25 @@ import type {
   SecurityProfileSection,
 } from "../../lib/api";
 
-// FinancialsPanel and QuotePanel are intentionally not covered here: they
-// each do their own live useQuery against an entitlement-gated RPC
-// (resolveFinancialFacts / resolveQuoteSnapshot respectively -- CompanyHeader
-// decoupling pattern, apps/web/src/routes/stock/$instrumentId.tsx), so
-// neither can be exercised by prop-driven renderToStaticMarkup like the
-// other synthetic-snapshot panels below. FinancialsPanel's behavior is
-// covered by packages/financial-facts (mapping/validation),
+// FinancialsPanel, QuotePanel and CorporateActionsPanel are intentionally
+// not covered here: they each do their own live useQuery against an
+// entitlement-gated RPC (resolveFinancialFacts / resolveQuoteSnapshot /
+// resolveCorporateActions respectively -- CompanyHeader decoupling pattern,
+// apps/web/src/routes/stock/$instrumentId.tsx), so none of them can be
+// exercised by prop-driven renderToStaticMarkup like the other
+// synthetic-snapshot panels below. FinancialsPanel's behavior is covered by
+// packages/financial-facts (mapping/validation),
 // apps/worker/src/authenticated-netquity-web-resolver.test.ts (RPC
 // authorization chain), and apps/web/src/lib/api/financial-facts.server.test.ts
 // (server-fn boundary). QuotePanel's behavior is covered the same way by
 // packages/market-data, the same worker resolver test file, and
-// apps/web/src/lib/api/quote-snapshot.server.test.ts -- matching
-// CompanyHeader, which also has no direct render test.
+// apps/web/src/lib/api/quote-snapshot.server.test.ts. CorporateActionsPanel's
+// behavior is covered the same way by packages/corporate-actions, the same
+// worker resolver test file, and
+// apps/web/src/lib/api/corporate-actions.server.test.ts -- matching
+// CompanyHeader, which also has no direct render test. AnnouncementsPanel
+// remains synthetic (unchanged, still prop-driven) and is not covered by
+// this corporate-actions cut.
 
 const USAGE = { cached: false, credits: 0, rows: 1 };
 

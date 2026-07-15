@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   CorporateActionAdjustmentError,
   CorporateActionsInputError,
+  GetLiveCorporateActionsReadbackError,
   adjustPriceSeries,
   getCorporateActions,
   getCorporateActionAdjustmentCapabilities,
   getCorporateActionBenchmarkParityCapabilities,
   getCorporateActionsCapabilities,
+  getLiveCorporateActions,
   runCorporateActionBenchmarkParityGate,
-  runSyntheticCorporateActionGolden
+  runSyntheticCorporateActionGolden,
+  type LiveCorporateActionsRow
 } from "./index";
 
 describe("corporate action adjustment engine", () => {
@@ -358,3 +361,458 @@ describe("corporate actions tool scaffold", () => {
     });
   });
 });
+
+describe("live corporate actions resolver", () => {
+  it("maps an available-coverage row into typed, per-type actions", () => {
+    const result = getLiveCorporateActions(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-corporate-actions-test.v1",
+        instrumentId: "hkex_security_00697"
+      },
+      [createLiveCorporateActionsRow()]
+    );
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_corporate_actions");
+    expect(result.liveDataAccess).toBe(true);
+    expect(result.coverage).toEqual({ status: "available" });
+    expect(result.actions).toHaveLength(3);
+    expect(result.actions?.[0]).toEqual({
+      actionId: "corp_action_dividend_00697_918273_cd",
+      actionType: "dividend",
+      announcementDate: "2026-05-27",
+      effectiveDate: "2026-06-11",
+      exDate: "2026-06-11",
+      instrumentId: "hkex_security_00697",
+      paymentDate: "2026-07-02",
+      sourceRecordId: "netquity:dividendinfo.dividendinfo:00697:918273:cd",
+      summary: "Cash Dividend: HKD 0.05",
+      terms: { cashAmount: 0.05, currency: "HKD" }
+    });
+    expect(result.actions?.[1]).toMatchObject({
+      actionType: "buyback",
+      summary: undefined,
+      terms: { buybackValue: 1262874, currency: "HKD", shares: 5052000 }
+    });
+    expect(result.actions?.[2]).toMatchObject({ actionType: "split", terms: undefined });
+    expect(result.provenance).toEqual([
+      expect.objectContaining({
+        source: "netquity-corporate-actions",
+        source_record_id: "netquity:dividendinfo.dividendinfo:00697:918273:cd"
+      }),
+      expect.objectContaining({
+        source: "netquity-corporate-actions",
+        source_record_id: "netquity:sharebuyback.daily_data:00697:2026-06-29"
+      }),
+      expect.objectContaining({
+        source: "netquity-corporate-actions",
+        source_record_id: "netquity:corpact.stocksplit:00697:2026-05-27"
+      })
+    ]);
+    expect(result.usage.rows).toBe(3);
+  });
+
+  it("returns not_found without throwing when no row matches", () => {
+    const result = getLiveCorporateActions(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-corporate-actions-test.v1",
+        instrumentId: "hkex_security_00697"
+      },
+      []
+    );
+
+    expect(result.status).toBe("not_found");
+    expect(result.actions).toBeUndefined();
+    expect(result.coverage).toBeUndefined();
+    expect(result.provenance).toEqual([]);
+    expect(result.usage.rows).toBe(0);
+    expect(result.liveDataAccess).toBe(true);
+  });
+
+  it("requires a non-empty instrument id", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        { asOf: "2026-07-15T00:00:00+08:00", dataVersion: "netquity-corporate-actions-test.v1", instrumentId: "  " },
+        []
+      )
+    ).toThrow(CorporateActionsInputError);
+  });
+
+  it("rejects more than one row for the same instrument id rather than picking one", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [createLiveCorporateActionsRow(), createLiveCorporateActionsRow()]
+      )
+    ).toThrow(GetLiveCorporateActionsReadbackError);
+  });
+
+  it("rejects a row that disagrees with snapshot authority", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...createLiveCorporateActionsRow(), data_version: "other-version" }]
+      )
+    ).toThrowError("row data version does not match the released snapshot");
+  });
+
+  it("rejects an entity id that is not an opaque HKEX security id", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "eq_hk_00697"
+        },
+        [{ ...createLiveCorporateActionsRow(), entity_id: "eq_hk_00697" }]
+      )
+    ).toThrowError("entity id is not an opaque HKEX security id");
+  });
+
+  it("rejects a row for a different instrument id than requested", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [createLiveCorporateActionsRow()]
+      )
+    ).toThrowError("entity id does not match the requested instrument id");
+  });
+
+  it("rejects a source record id that does not match the entity id", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...createLiveCorporateActionsRow(), source_record_id: "netquity:corporate_actions.available:00001" }]
+      )
+    ).toThrow(GetLiveCorporateActionsReadbackError);
+  });
+
+  it("rejects a malformed payload", () => {
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...createLiveCorporateActionsRow(), payload: null }]
+      )
+    ).toThrow(GetLiveCorporateActionsReadbackError);
+  });
+
+  it("rejects a malformed coverage status", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), coverage: { status: "unknown" } };
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("coverage status is malformed");
+  });
+
+  it("rejects payload actions that are not an array", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), actions: {} };
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("payload actions is malformed");
+  });
+
+  it("rejects available coverage with zero actions", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), actions: [] };
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("available coverage must carry at least one action");
+  });
+
+  it("rejects an action type that is not a promoted live type", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 0 ? { ...action, actionType: "rights" } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("action actionType is malformed or not a promoted live action type");
+  });
+
+  it("rejects an actionId that does not match its actionType", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 0 ? { ...action, actionId: "corp_action_buyback_00697_918273_cd" } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("action actionId does not match its actionType");
+  });
+
+  it("rejects a dividend action missing terms.cashAmount", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 0 ? { ...action, terms: { currency: "HKD" } } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("dividend action terms.cashAmount is malformed");
+  });
+
+  it("rejects a dividend action whose terms carry buyback fields", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 0 ? { ...action, terms: { cashAmount: 0.05, currency: "HKD", shares: 100 } } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("dividend action terms must not carry buyback fields");
+  });
+
+  it("rejects a buyback action carrying a fabricated summary", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 1 ? { ...action, summary: "On-market buyback" } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("buyback action must not carry a fabricated summary");
+  });
+
+  it("rejects a split action carrying terms", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 2 ? { ...action, terms: { cashAmount: 1 } } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("split action must not carry terms");
+  });
+
+  it("rejects an action sourceRecordId that does not match its actionType's field pointer", () => {
+    const row = createLiveCorporateActionsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const actions = (payload.actions as Array<Record<string, unknown>>).map((action, index) =>
+      index === 0 ? { ...action, sourceRecordId: "netquity:sharebuyback.daily_data:00697:2026-06-29" } : action
+    );
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, payload: { ...payload, actions } }]
+      )
+    ).toThrowError("action sourceRecordId is not a matching Netquity corporate-actions field pointer");
+  });
+
+  it("maps a zero-event unavailable-coverage row with no fabricated actions", () => {
+    const result = getLiveCorporateActions(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-corporate-actions-test.v1",
+        instrumentId: "hkex_security_00007"
+      },
+      [createUnavailableCorporateActionsRow()]
+    );
+
+    expect(result.status).toBe("found");
+    expect(result.coverage).toEqual({
+      reason:
+        "no dividend, buyback, split, or consolidation event found in nq_dividendinfo/nq_sharebuyback/nq_corpact for this instrument in the current mirrored snapshot",
+      status: "unavailable"
+    });
+    expect(result.actions).toEqual([]);
+    expect(result.provenance).toEqual([
+      expect.objectContaining({ source_record_id: "netquity:corporate_actions.unavailable:00007" })
+    ]);
+    expect(result.usage.rows).toBe(0);
+  });
+
+  it("rejects unavailable coverage that still carries action rows", () => {
+    const row = createUnavailableCorporateActionsRow();
+    const payload = {
+      ...(row.payload as Record<string, unknown>),
+      actions: (createLiveCorporateActionsRow().payload as Record<string, unknown>).actions
+    };
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00007"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("unavailable coverage must not carry action rows");
+  });
+
+  it("rejects unavailable coverage without a reason", () => {
+    const row = createUnavailableCorporateActionsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), coverage: { status: "unavailable" } };
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00007"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("unavailable coverage requires a reason");
+  });
+
+  it("rejects available coverage backed by the corporate_actions-unavailable source record id", () => {
+    const row = createLiveCorporateActionsRow();
+    expect(() =>
+      getLiveCorporateActions(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-corporate-actions-test.v1",
+          instrumentId: "hkex_security_00697"
+        },
+        [{ ...row, source_record_id: "netquity:corporate_actions.unavailable:00697" }]
+      )
+    ).toThrowError("available coverage must use the corporate_actions-available source record id");
+  });
+});
+
+function createLiveCorporateActionsRow(): LiveCorporateActionsRow {
+  return {
+    data_version: "netquity-corporate-actions-test.v1",
+    entity_id: "hkex_security_00697",
+    payload: {
+      actions: [
+        {
+          actionId: "corp_action_dividend_00697_918273_cd",
+          actionType: "dividend",
+          announcementDate: "2026-05-27",
+          effectiveDate: "2026-06-11",
+          exDate: "2026-06-11",
+          paymentDate: "2026-07-02",
+          sourceRecordId: "netquity:dividendinfo.dividendinfo:00697:918273:cd",
+          summary: "Cash Dividend: HKD 0.05",
+          terms: { cashAmount: 0.05, currency: "HKD" }
+        },
+        {
+          actionId: "corp_action_buyback_00697_20260629",
+          actionType: "buyback",
+          announcementDate: "2026-06-29",
+          effectiveDate: "2026-06-29",
+          sourceRecordId: "netquity:sharebuyback.daily_data:00697:2026-06-29",
+          terms: { buybackValue: 1262874, currency: "HKD", shares: 5052000 }
+        },
+        {
+          actionId: "corp_action_split_00697_20260527",
+          actionType: "split",
+          announcementDate: "2026-05-27",
+          effectiveDate: "2026-07-10",
+          exDate: "2026-07-10",
+          sourceRecordId: "netquity:corpact.stocksplit:00697:2026-05-27",
+          summary: "Share Split: 8 - for - 1"
+        }
+      ],
+      coverage: { status: "available" }
+    },
+    source_record_id: "netquity:corporate_actions.available:00697"
+  };
+}
+
+function createUnavailableCorporateActionsRow(): LiveCorporateActionsRow {
+  return {
+    data_version: "netquity-corporate-actions-test.v1",
+    entity_id: "hkex_security_00007",
+    payload: {
+      actions: [],
+      coverage: {
+        reason:
+          "no dividend, buyback, split, or consolidation event found in nq_dividendinfo/nq_sharebuyback/nq_corpact for this instrument in the current mirrored snapshot",
+        status: "unavailable"
+      }
+    },
+    source_record_id: "netquity:corporate_actions.unavailable:00007"
+  };
+}

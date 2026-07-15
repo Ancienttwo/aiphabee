@@ -2,6 +2,7 @@ import { apiCall } from "./client";
 import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } from "./security.functions";
 import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions";
 import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
+import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -40,6 +41,11 @@ export function resolveFinancialFacts(instrumentId: string) {
 /** Gated live EOD quote snapshot for a known instrument id (POST server-fn). */
 export function resolveQuoteSnapshot(instrumentId: string) {
   return resolveAuthenticatedQuoteSnapshot({ data: { instrumentId } });
+}
+
+/** Gated live corporate actions (dividend/buyback/split/consolidation) for a known instrument id (POST server-fn). */
+export function resolveCorporateActions(instrumentId: string) {
+  return resolveAuthenticatedCorporateActions({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

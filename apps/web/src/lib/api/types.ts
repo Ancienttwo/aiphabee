@@ -181,6 +181,59 @@ export interface GetLiveQuoteSnapshotData {
   usage: UsageSummary;
 }
 
+// --- get_corporate_actions (live, packages/corporate-actions) ------------
+// Distinct from the synthetic CorporateActionToolRow/CorporateActionsSection
+// below (workbench snapshot tab): this is the live, Serving-backed shape
+// returned by the resolveCorporateActions RPC. There is no adjustmentImpact
+// (no rights-pinned source for a computed priceAdjustmentFactor -- the
+// vendor tables carry no reinvestmentPrice column at all); only 4 of the 6
+// synthetic CorporateActionToolType values are ever live-promoted (dividend,
+// buyback, split, consolidation). `terms` is independently optional and
+// type-shaped per actionType: dividend carries cashAmount+currency, buyback
+// carries buybackValue+shares+currency, split/consolidation carry no terms
+// at all (no clean structured ratio column in the vendor tables -- their own
+// free-text particulars are promoted verbatim as `summary` instead).
+// `coverage` distinguishes an instrument with no promoted action at all
+// (status "unavailable", actions always []) from one this promotion covers
+// (status "available").
+export interface LiveCorporateActionsCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export interface LiveCorporateActionTerms {
+  buybackValue?: number;
+  cashAmount?: number;
+  currency?: string;
+  shares?: number;
+}
+
+export interface LiveCorporateActionRow {
+  actionId: string;
+  actionType: "buyback" | "consolidation" | "dividend" | "split";
+  announcementDate: string;
+  effectiveDate: string;
+  exDate?: string;
+  instrumentId: string;
+  paymentDate?: string;
+  sourceRecordId: string;
+  summary?: string;
+  terms?: LiveCorporateActionTerms;
+}
+
+export interface GetLiveCorporateActionsData {
+  actions?: LiveCorporateActionRow[];
+  asOf: string;
+  coverage?: LiveCorporateActionsCoverage;
+  dataVersion?: string;
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

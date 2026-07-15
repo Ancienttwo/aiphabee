@@ -1923,3 +1923,468 @@ function roundPrice(value: number): number {
 function withinTolerance(actual: number, expected: number, tolerance: number): boolean {
   return Math.abs(actual - expected) <= tolerance;
 }
+
+// --- Live corporate-actions resolver (netquity-corporate-actions-staging) --
+// Distinct from SYNTHETIC_CORPORATE_ACTIONS above: this is the live,
+// Serving-backed shape returned by the resolveCorporateActions RPC. Brand
+// new types (financial-facts getLiveFinancialFacts pattern), not a reuse of
+// CorporateActionToolRow: CorporateActionToolRow.adjustmentImpact carries a
+// methodology-computed priceAdjustmentFactor that this promotion has no
+// rights-pinned source for (it would require the adjustment engine's own
+// ratio/reinvestmentPrice math, and reinvestmentPrice has no vendor column
+// at all), so it is omitted entirely rather than fabricated. Only 4 of the 6
+// CorporateActionToolType values are ever live-promoted (dividend, buyback,
+// split, consolidation) -- rights and placement have no clean 1:1 vendor
+// source in this cut (see deploy/ingest/netquity-corporate-actions-staging.sql
+// header for the full per-type mapping rationale). `terms` is independently
+// optional and type-shaped per actionType: dividend carries
+// cashAmount+currency, buyback carries buybackValue+shares+currency, and
+// split/consolidation carry no terms at all (their vendor tables have no
+// clean structured ratio column, only a free-text description promoted
+// verbatim as `summary`, so this promotion does not parse/derive a ratio
+// number from that text).
+export const GET_CORPORATE_ACTIONS_LIVE_VERSION =
+  "2026-07-15.netquity-corporate-actions-live.v1";
+
+export type GetLiveCorporateActionsReadbackErrorCode =
+  | "MALFORMED_LIVE_ROW"
+  | "MULTIPLE_ROWS_FOR_INSTRUMENT";
+export type CorporateActionsCoverageStatus = "available" | "unavailable";
+export type LiveCorporateActionType = "buyback" | "consolidation" | "dividend" | "split";
+
+export interface CorporateActionsCoverage {
+  reason?: string;
+  status: CorporateActionsCoverageStatus;
+}
+
+export interface LiveCorporateActionTerms {
+  buybackValue?: number;
+  cashAmount?: number;
+  currency?: string;
+  shares?: number;
+}
+
+/**
+ * One promoted corporate-action event. announcementDate/effectiveDate are
+ * always present (rows missing either are excluded at promotion time, never
+ * backfilled); exDate/paymentDate/summary/terms are independently optional,
+ * present only when the vendor row itself carries that field.
+ */
+export interface LiveCorporateActionRow {
+  actionId: string;
+  actionType: LiveCorporateActionType;
+  announcementDate: string;
+  effectiveDate: string;
+  exDate?: string;
+  instrumentId: string;
+  paymentDate?: string;
+  sourceRecordId: string;
+  summary?: string;
+  terms?: LiveCorporateActionTerms;
+}
+
+export interface LiveCorporateActionsRow {
+  data_version: string;
+  entity_id: string;
+  payload: unknown;
+  source_record_id: string;
+}
+
+export interface GetLiveCorporateActionsInput {
+  asOf: string;
+  dataVersion: string;
+  instrumentId: string;
+}
+
+export interface GetLiveCorporateActionsResult {
+  actions?: LiveCorporateActionRow[];
+  asOf: string;
+  coverage?: CorporateActionsCoverage;
+  dataVersion: string;
+  instrumentId: string;
+  liveDataAccess: true;
+  methodologyVersion: typeof GET_CORPORATE_ACTIONS_LIVE_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  status: "found" | "not_found";
+  toolName: "get_corporate_actions";
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  };
+}
+
+export class GetLiveCorporateActionsReadbackError extends Error {
+  readonly code: GetLiveCorporateActionsReadbackErrorCode;
+
+  constructor(code: GetLiveCorporateActionsReadbackErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const LIVE_CORPORATE_ACTION_TYPES: readonly LiveCorporateActionType[] = [
+  "dividend",
+  "buyback",
+  "split",
+  "consolidation"
+];
+const LIVE_CORPORATE_ACTION_SOURCE_PREFIX: Readonly<Record<LiveCorporateActionType, string>> = {
+  buyback: "netquity:sharebuyback.daily_data:",
+  consolidation: "netquity:corpact.stockcons:",
+  dividend: "netquity:dividendinfo.dividendinfo:",
+  split: "netquity:corpact.stocksplit:"
+};
+
+/**
+ * Exact entity-id corporate-actions lookup against a released Serving
+ * snapshot. `rows` is expected to already be scoped to a single instrument
+ * id by the caller's SQL (WHERE entity_id = $2); more than one row is a data
+ * integrity failure, not silently narrowed. A legitimate zero-row result is
+ * `status: "not_found"`; a row that exists but carries
+ * `coverage.status: "unavailable"` (no dividend/buyback/split/consolidation
+ * event found for this instrument in the current mirrored snapshot) is still
+ * `status: "found"` with an empty `actions` array -- the caller can tell "we
+ * know this instrument and it currently has no corporate actions" apart from
+ * "we have never heard of this instrument".
+ */
+export function getLiveCorporateActions(
+  input: GetLiveCorporateActionsInput,
+  rows: readonly LiveCorporateActionsRow[]
+): GetLiveCorporateActionsResult {
+  const instrumentId = input.instrumentId.trim();
+
+  if (instrumentId.length === 0) {
+    throw new CorporateActionsInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (rows.length > 1) {
+    throw new GetLiveCorporateActionsReadbackError(
+      "MULTIPLE_ROWS_FOR_INSTRUMENT",
+      "corporate actions lookup matched more than one released row for this instrument id"
+    );
+  }
+
+  const dataVersion = requireNonEmptyLiveActionString(input.dataVersion, "snapshot data version");
+  const asOf = requireNonEmptyLiveActionString(input.asOf, "snapshot as-of");
+  const row = rows[0];
+
+  if (row === undefined) {
+    return {
+      asOf,
+      dataVersion,
+      instrumentId,
+      liveDataAccess: true,
+      methodologyVersion: GET_CORPORATE_ACTIONS_LIVE_VERSION,
+      provenance: [],
+      status: "not_found",
+      toolName: "get_corporate_actions",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const mapped = mapLiveCorporateActionsRow({
+    expectedDataVersion: dataVersion,
+    expectedInstrumentId: instrumentId,
+    row
+  });
+
+  return {
+    actions: mapped.actions,
+    asOf,
+    coverage: mapped.coverage,
+    dataVersion,
+    instrumentId,
+    liveDataAccess: true,
+    methodologyVersion: GET_CORPORATE_ACTIONS_LIVE_VERSION,
+    provenance:
+      mapped.actions.length > 0
+        ? mapped.actions.map((action) => ({
+            data_version: dataVersion,
+            methodology_version: GET_CORPORATE_ACTIONS_LIVE_VERSION,
+            source: "netquity-corporate-actions",
+            source_record_id: action.sourceRecordId
+          }))
+        : [
+            {
+              data_version: dataVersion,
+              methodology_version: GET_CORPORATE_ACTIONS_LIVE_VERSION,
+              source: "netquity-corporate-actions",
+              source_record_id: row.source_record_id
+            }
+          ],
+    status: "found",
+    toolName: "get_corporate_actions",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: mapped.actions.length
+    }
+  };
+}
+
+/**
+ * Maps one released `serving_record` row to its coverage marker and actions
+ * array. Kept module-private, matching `mapLiveFinancialFactsRow` in
+ * packages/financial-facts: only the public `getLiveCorporateActions` entry
+ * point is tested/consumed directly.
+ */
+function mapLiveCorporateActionsRow(input: {
+  expectedDataVersion: string;
+  expectedInstrumentId: string;
+  row: LiveCorporateActionsRow;
+}): { actions: LiveCorporateActionRow[]; coverage: CorporateActionsCoverage } {
+  const { row } = input;
+  const dataVersion = requireNonEmptyLiveActionString(row.data_version, "row data version");
+
+  if (dataVersion !== input.expectedDataVersion) {
+    throw malformedLiveActionsRow("row data version does not match the released snapshot");
+  }
+
+  const instrumentId = requireNonEmptyLiveActionString(row.entity_id, "entity id");
+
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) {
+    throw malformedLiveActionsRow("entity id is not an opaque HKEX security id");
+  }
+
+  if (instrumentId !== input.expectedInstrumentId) {
+    throw malformedLiveActionsRow("entity id does not match the requested instrument id");
+  }
+
+  const code = instrumentId.slice("hkex_security_".length);
+  const sourceRecordId = requireNonEmptyLiveActionString(row.source_record_id, "source record id");
+  const expectedAvailableSourceRecordId = `netquity:corporate_actions.available:${code}`;
+  const expectedUnavailableSourceRecordId = `netquity:corporate_actions.unavailable:${code}`;
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId && sourceRecordId !== expectedUnavailableSourceRecordId) {
+    throw malformedLiveActionsRow("source record id is not a matching Netquity corporate-actions record");
+  }
+
+  const payload = requireLiveActionsObject(row.payload, "payload");
+  const coverage = mapLiveCorporateActionsCoverage(payload.coverage);
+  const actionsValue = payload.actions;
+
+  if (!Array.isArray(actionsValue)) {
+    throw malformedLiveActionsRow("payload actions is malformed");
+  }
+
+  if (coverage.status === "unavailable") {
+    if (actionsValue.length > 0) {
+      throw malformedLiveActionsRow("unavailable coverage must not carry action rows");
+    }
+
+    if (sourceRecordId !== expectedUnavailableSourceRecordId) {
+      throw malformedLiveActionsRow("unavailable coverage must use the corporate_actions-unavailable source record id");
+    }
+
+    return { actions: [], coverage };
+  }
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId) {
+    throw malformedLiveActionsRow("available coverage must use the corporate_actions-available source record id");
+  }
+
+  if (actionsValue.length === 0) {
+    throw malformedLiveActionsRow("available coverage must carry at least one action");
+  }
+
+  const actions = actionsValue.map((entry) => mapLiveCorporateActionRow(entry, instrumentId));
+
+  return { actions, coverage };
+}
+
+function mapLiveCorporateActionsCoverage(value: unknown): CorporateActionsCoverage {
+  const coverage = requireLiveActionsObject(value, "coverage");
+  const status = coverage.status;
+
+  if (status !== "available" && status !== "unavailable") {
+    throw malformedLiveActionsRow("coverage status is malformed");
+  }
+
+  if (status === "unavailable") {
+    const reason = coverage.reason;
+
+    if (typeof reason !== "string" || reason.trim().length === 0) {
+      throw malformedLiveActionsRow("unavailable coverage requires a reason");
+    }
+
+    return { reason, status };
+  }
+
+  return { status };
+}
+
+function mapLiveCorporateActionRow(rawAction: unknown, instrumentId: string): LiveCorporateActionRow {
+  const action = requireLiveActionsObject(rawAction, "action");
+  const actionType = action.actionType;
+
+  if (
+    typeof actionType !== "string" ||
+    !(LIVE_CORPORATE_ACTION_TYPES as readonly string[]).includes(actionType)
+  ) {
+    throw malformedLiveActionsRow("action actionType is malformed or not a promoted live action type");
+  }
+
+  const actionId = requireLiveActionsPayloadString(action, "actionId");
+
+  if (!actionId.startsWith(`corp_action_${actionType}_`)) {
+    throw malformedLiveActionsRow("action actionId does not match its actionType");
+  }
+
+  const announcementDate = requireLiveActionsDateString(action, "announcementDate");
+  const effectiveDate = requireLiveActionsDateString(action, "effectiveDate");
+  const exDate = requireOptionalLiveActionsDateString(action, "exDate");
+  const paymentDate = requireOptionalLiveActionsDateString(action, "paymentDate");
+  const sourceRecordId = requireLiveActionsPayloadString(action, "sourceRecordId");
+  const expectedPrefix = LIVE_CORPORATE_ACTION_SOURCE_PREFIX[actionType as LiveCorporateActionType];
+
+  if (!sourceRecordId.startsWith(expectedPrefix)) {
+    throw malformedLiveActionsRow("action sourceRecordId is not a matching Netquity corporate-actions field pointer");
+  }
+
+  const { summary, terms } = mapLiveCorporateActionTypeFields(action, actionType as LiveCorporateActionType);
+
+  return {
+    actionId,
+    actionType: actionType as LiveCorporateActionType,
+    announcementDate,
+    effectiveDate,
+    exDate,
+    instrumentId,
+    paymentDate,
+    sourceRecordId,
+    summary,
+    terms
+  };
+}
+
+/**
+ * `summary` and `terms` are shaped per actionType, not a single loose union:
+ * dividend/split/consolidation always carry the vendor's own free-text
+ * particulars as `summary` (buyback has no vendor text field, so it never
+ * does); dividend carries terms.cashAmount+currency, buyback carries
+ * terms.buybackValue+shares+currency, and split/consolidation carry no terms
+ * at all (no clean structured ratio column -- see the module header).
+ * Mismatches (e.g. a dividend row missing terms.cashAmount, or a split row
+ * carrying terms) fail closed rather than silently coercing.
+ */
+function mapLiveCorporateActionTypeFields(
+  action: Record<string, unknown>,
+  actionType: LiveCorporateActionType
+): { summary?: string; terms?: LiveCorporateActionTerms } {
+  if (actionType === "split" || actionType === "consolidation") {
+    if (action.terms !== undefined) {
+      throw malformedLiveActionsRow(`${actionType} action must not carry terms`);
+    }
+
+    return { summary: requireLiveActionsPayloadString(action, "summary"), terms: undefined };
+  }
+
+  if (actionType === "dividend") {
+    const terms = requireLiveActionsObject(action.terms, "terms");
+    const cashAmount = terms.cashAmount;
+
+    if (typeof cashAmount !== "number" || !Number.isFinite(cashAmount) || cashAmount < 0) {
+      throw malformedLiveActionsRow("dividend action terms.cashAmount is malformed");
+    }
+
+    if (terms.buybackValue !== undefined || terms.shares !== undefined) {
+      throw malformedLiveActionsRow("dividend action terms must not carry buyback fields");
+    }
+
+    const currency = requireLiveActionsPayloadString(terms, "currency");
+
+    return {
+      summary: requireLiveActionsPayloadString(action, "summary"),
+      terms: { cashAmount, currency }
+    };
+  }
+
+  // buyback
+  const terms = requireLiveActionsObject(action.terms, "terms");
+  const buybackValue = terms.buybackValue;
+  const shares = terms.shares;
+
+  if (typeof buybackValue !== "number" || !Number.isFinite(buybackValue) || buybackValue < 0) {
+    throw malformedLiveActionsRow("buyback action terms.buybackValue is malformed");
+  }
+
+  if (typeof shares !== "number" || !Number.isFinite(shares) || shares < 0) {
+    throw malformedLiveActionsRow("buyback action terms.shares is malformed");
+  }
+
+  if (terms.cashAmount !== undefined) {
+    throw malformedLiveActionsRow("buyback action terms must not carry cashAmount");
+  }
+
+  const currency = requireLiveActionsPayloadString(terms, "currency");
+
+  if (action.summary !== undefined) {
+    throw malformedLiveActionsRow("buyback action must not carry a fabricated summary");
+  }
+
+  return { summary: undefined, terms: { buybackValue, currency, shares } };
+}
+
+function malformedLiveActionsRow(message: string): GetLiveCorporateActionsReadbackError {
+  return new GetLiveCorporateActionsReadbackError("MALFORMED_LIVE_ROW", message);
+}
+
+function requireLiveActionsPayloadString(payload: Record<string, unknown>, field: string): string {
+  return requireNonEmptyLiveActionString(payload[field], `payload ${field}`);
+}
+
+function requireLiveActionsDateString(payload: Record<string, unknown>, field: string): string {
+  const value = payload[field];
+
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    throw malformedLiveActionsRow(`action ${field} is malformed`);
+  }
+
+  return value;
+}
+
+function requireOptionalLiveActionsDateString(
+  payload: Record<string, unknown>,
+  field: string
+): string | undefined {
+  const value = payload[field];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    throw malformedLiveActionsRow(`action ${field} is malformed`);
+  }
+
+  return value;
+}
+
+function requireNonEmptyLiveActionString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw malformedLiveActionsRow(`${field} is missing`);
+  }
+
+  return value;
+}
+
+function requireLiveActionsObject(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw malformedLiveActionsRow(`${field} is malformed`);
+  }
+
+  return value as Record<string, unknown>;
+}

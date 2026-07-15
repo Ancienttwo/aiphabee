@@ -1,0 +1,188 @@
+{
+  "version": "2026-07-15.netquity-corporate-actions-staging.v1",
+  "status": "approved_staging_only",
+  "provider": "planetscale_postgres_via_cloudflare_hyperdrive",
+  "environment": "staging",
+  "source": {
+    "datasets": [
+      "nq_basicdata.stock",
+      "nq_corpact.stockcons",
+      "nq_corpact.stocksplit",
+      "nq_dividendinfo.dividendinfo",
+      "nq_sharebuyback.daily_data"
+    ],
+    "source_batch_id": "src_netquity_corporate_actions_e543ecd86216",
+    "data_version": "netquity-corporate-actions-e543ecd86216.v1",
+    "source_as_of": "2026-07-15T00:00:00+08:00",
+    "sha256": "e543ecd862165cfb738b2a89f095da1519e37f0d7b2c2def3b6389d946d167b6",
+    "sha256_method": "sha256 over 5 tables' full unfiltered COPY (ORDER BY code[, additional columns]) WITH (FORMAT CSV) output, each preceded by a 'TABLE:<schema>.<table>' header line, concatenated in fixed alphabetical order: nq_basicdata.stock, nq_corpact.stockcons, nq_corpact.stocksplit, nq_dividendinfo.dividendinfo, nq_sharebuyback.daily_data",
+    "row_count": 20388,
+    "row_count_by_table": {
+      "nq_basicdata.stock": 18036,
+      "nq_corpact.stockcons": 40,
+      "nq_corpact.stocksplit": 3,
+      "nq_dividendinfo.dividendinfo": 1781,
+      "nq_sharebuyback.daily_data": 528
+    },
+    "shares_raw_source_batch_with": null,
+    "reused_from_prior_promotion": false,
+    "reuse_note": "nq_basicdata.stock content overlaps byte-for-byte with the batch already pinned by security_master/security_profile/financial_facts/quote_snapshot, but this promotion's own correctness argument depends on the exact 5-table set it reads together (entity scope x 4 action-source tables), so it mints its own self-contained batch rather than cross-referencing another promotion's pin -- same reasoning quote_snapshot and financial_facts each used for their own batches."
+  },
+  "promotion": {
+    "staging_prerequisite_migrations": [
+      "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "deploy/database/migrations/20260620091000_serving_store_scaffold.sql",
+      "deploy/database/migrations/20260709180000_netquity_mirror_schema.sql"
+    ],
+    "sql": "deploy/ingest/netquity-corporate-actions-staging.sql",
+    "serving_dataset": "corporate_actions",
+    "serving_dataset_id": "serving_dataset_corporate_actions",
+    "serving_dataset_domain": "corporate_action",
+    "serving_dataset_domain_note": "dataset 'corporate_actions' (plural, matching packages/corporate-actions) vs domain 'corporate_action' (singular, exact CHECK match against aiphabee_core.serving_dataset_domain_check) -- the same plural/singular naming mismatch financial_facts already has, not a domain substitution.",
+    "serving_snapshot_id": "serving_corporate_actions_netquity_e543ecd86216_v1",
+    "methodology_version": "2026-07-15.netquity-corporate-actions-promotion.v1",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "release_state": "released",
+    "quality_state": "PASS",
+    "record_entity_type": "instrument",
+    "entity_id_pattern": "hkex_security_<five-digit-code>",
+    "entity_id_aligned_with": "deploy/ingest/netquity-security-resolution-staging.sql",
+    "source_record_id_pattern": "netquity:corporate_actions.available:<five-digit-code> (available) | netquity:corporate_actions.unavailable:<five-digit-code> (unavailable)",
+    "transactional": true,
+    "new_index_required": false,
+    "new_index_required_reason": "entity_id lookup uses the leading prefix of the existing serving_record unique index (serving_snapshot_id, entity_type, entity_id, ...)",
+    "idempotent": true,
+    "row_count_breakdown": {
+      "total_serving_records": 18036,
+      "with_actions_available": 1055,
+      "coverage_unavailable_no_action": 16981,
+      "total_action_rows": 1622,
+      "dividend_action_rows": 1056,
+      "buyback_action_rows": 528,
+      "split_action_rows": 3,
+      "consolidation_action_rows": 35
+    }
+  },
+  "rpc": {
+    "binding": "AIPHABEE_API",
+    "entrypoint": "AuthenticatedNetquityResolver",
+    "method": "resolveCorporateActions",
+    "public_http_exposed": false,
+    "await_required": true,
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "resolver_module": "apps/worker/src/authenticated-netquity-web-resolver.ts",
+    "test_file": "apps/worker/src/authenticated-netquity-web-resolver.test.ts",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "required_app_env": "staging",
+    "authorization_before_binding": true,
+    "latest_released_snapshot_only": true,
+    "entity_id_exact_lookup_only": true,
+    "maximum_rows": 1
+  },
+  "authorization": {
+    "channel": "web",
+    "dataset": "corporate_actions",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "default_rights_status": "default_deny",
+    "entitled_workspace_cardinality": 1,
+    "requested_fields": [
+      "corporate_actions.actions.buyback",
+      "corporate_actions.actions.consolidation",
+      "corporate_actions.actions.dividend",
+      "corporate_actions.actions.split",
+      "corporate_actions.coverage.reason",
+      "corporate_actions.coverage.status"
+    ],
+    "partial_candidate_allowed": false,
+    "api_rights_approved": false,
+    "mcp_rights_approved": false,
+    "export_rights_approved": false
+  },
+  "rights_basis": {
+    "policy_version": "netquity-collaboration-staging.v1",
+    "distinct_from_quote_snapshot": "quote_snapshot deliberately uses its own 'netquity-market-data-staging.v1' policy version because market-data Web distribution rights were confirmed separately; corporate actions have no comparable separate rights determination and are covered by the original Netquity collaboration rights approval already used by security_master/security_profile/financial_facts, so this promotion reuses 'netquity-collaboration-staging.v1' rather than minting a new policy version.",
+    "account_context_independence": "unlike quote_snapshot, resolveCorporateActions filters aiphabee_governance.data_entitlement/aiphabee_core.serving_dataset by context.rights_policy_version (the account's platform.workspace_product_access.policy_version), the same as resolveProfile/resolveFinancialFacts -- no hardcoded policy-version constant is introduced."
+  },
+  "action_type_source_mapping": [
+    { "action_type": "dividend", "vendor_source": "nq_dividendinfo.dividendinfo (catype LIKE '%CD%', dividend leg)", "qualifying_rows": 982 },
+    { "action_type": "dividend", "vendor_source": "nq_dividendinfo.dividendinfo (catype LIKE '%SD%', specialdividend leg)", "qualifying_rows": 74 },
+    { "action_type": "buyback", "vendor_source": "nq_sharebuyback.daily_data (one row per disclosed buyback day)", "qualifying_rows": 528 },
+    { "action_type": "split", "vendor_source": "nq_corpact.stocksplit (termaction <> 'Y', exdate not null)", "qualifying_rows": 3 },
+    { "action_type": "consolidation", "vendor_source": "nq_corpact.stockcons (termaction <> 'Y', exdate not null)", "qualifying_rows": 35 }
+  ],
+  "excluded_from_this_cut": {
+    "dividendinfo_catype_SC": "39 rows, 'Share Consolidation' -- 38 of the 39 are verified byte-identical (code, announcedate, ratio text) to nq_corpact.stockcons rows and are sourced authoritatively from stockcons instead of double-counting a mirrored row from the dividends feed; the 39th, code 8021 (announced 2026-02-06), has a NULL exdate and no corresponding nq_corpact.stockcons row -- an announced-but-not-yet-effective event that exists only in the dividend feed, excluded under the same missing-exdate discipline as dividendinfo_missing_exdate below, not a duplicate.",
+    "dividendinfo_catype_SS": "4 rows, 'Share Subdivision' -- 3 of the 4 are verified byte-identical (code, announcedate, ratio text) to the 3 nq_corpact.stocksplit rows and are sourced authoritatively from stocksplit instead; the 4th, code 2477 (announced 2026-03-25), has a NULL exdate and no corresponding nq_corpact.stocksplit row -- an announced-but-not-yet-effective event that exists only in the dividend feed, excluded under the same missing-exdate discipline as dividendinfo_missing_exdate below, not a duplicate.",
+    "dividendinfo_catype_RS": "36 rows, 'Rights Issue' -- no CorporateActionType enum value in scope for this cut (task-scoped source-table list names only dividend/buyback/split/consolidation); not promoted, not mapped to the existing CorporateActionToolType 'rights' value to avoid expanding scope beyond the named source tables.",
+    "dividendinfo_catype_OD": "20 rows, 'Other Distribution' -- heterogeneous free-text events (assured entitlements, distributions in specie) with no clean 1:1 enum mapping.",
+    "dividendinfo_catype_BS": "1 pure-BS row plus the BS leg of 4 'CD,BS' rows, 'Bonus Share' -- no existing CorporateActionType/CorporateActionToolType value for a non-cash stock dividend; the CD leg of a 'CD,BS' row is still promoted as a dividend action, only the BS leg is skipped.",
+    "dividendinfo_catype_CD_no_dividend": "678 of 1600 'CD' rows are literally 'No Dividend' announcements (dividend column NULL) -- an explicit non-event, not a zero-amount dividend; excluded by the dividend IS NOT NULL filter.",
+    "dividendinfo_missing_exdate": "1 CD-leg row and 3 SD-leg rows have dividend/specialdividend populated but a NULL exdate with no other populated date to use as effectiveDate -- excluded rather than backfilling a synthesized date. Two further dividendinfo rows are NULL-exdate and dividend-feed-only under this same discipline: catype 'SC' code 8021 and catype 'SS' code 2477 (see dividendinfo_catype_SC / dividendinfo_catype_SS above) -- already counted in those two buckets, cross-referenced here only so the exclusion rationale is self-consistent, not double-counted.",
+    "stockcons_terminated": "2 of 40 nq_corpact.stockcons rows have termaction='Y' with a real termdate -- the announced consolidation was later cancelled and never took effect; excluded, not promoted as confirmed.",
+    "stockcons_missing_exdate": "3 further nq_corpact.stockcons rows (termaction='N', announced 2015/2023/2025) have a NULL exdate; excluded rather than backfilling a synthesized effective date.",
+    "capitalraised": "nq_capitalraised.capitalraised (159 rows) is not promoted: methodcode ('RI', 'PL', 'SO', ...) has no decode table anywhere in the mirrored schema. 'PL' superficially resembles the existing CorporateActionToolType 'placement' value, but promoting only 'PL' while leaving 'RI'/'SO'/etc. unlabeled would assert an interpretation of an undocumented 2-character code -- the same category of risk quote_snapshot's promotion explicitly declined for nq_unadjprice2.daily.status.",
+    "other_corpact_tables": "nq_corpact.namechange/mergetakeover/meetingnotice/auditorchange/boardlotchange/... are out of scope for this cut (no corporate-action-type mapping requested)."
+  },
+  "ratio_not_promoted": {
+    "note": "neither nq_corpact.stocksplit nor nq_corpact.stockcons has a numeric ratio column -- the ratio (e.g. '8 - for - 1') exists only inside particulareng/particularchi/particularsim free text. This promotion does not parse/derive a ratio number from that text (would be deriving structured data the vendor never gave in structured form, the same discipline financial_facts applied to free_cash_flow and quote_snapshot applied to nq_unadjprice2.daily.status). The vendor's own particulars text is promoted verbatim as `summary` instead; `terms.ratio` is never populated for split/consolidation live rows."
+  },
+  "entity_scope_choice": {
+    "chosen_pattern": "full_basicdata_universe_with_coverage_marker",
+    "chosen_pattern_source": "quote_snapshot",
+    "rejected_pattern": "sparse_scope_with_not_found_for_absent_codes",
+    "rejected_pattern_source": "financial_facts",
+    "rationale": "financial_facts' Serving scope is only codes present in ANY finreport table (2777 of 18036), because its bank/insurance carve-out needs its own coverage marker distinct from true absence -- there is no comparable 'known but structurally out of scope' bucket for corporate actions (all four source tables are schema-agnostic; any listed instrument could appear in any of them). A corporate action is also a rare, transient event: for the ~16981 remaining real, listed instruments, 'no dividend/buyback/split/consolidation right now' is the default state for nearly the whole market, not an anomaly warranting a 404 not_found the same status code used for 'this instrument id does not exist'. Building the full 18036-instrument universe with an explicit coverage.status=unavailable marker (quote_snapshot's idiom) keeps that distinction, and lets CorporateActionsPanel render a calm EmptyPanel state (matching the pre-promotion synthetic panel's own zero-actions handling) instead of an error card."
+  },
+  "web": {
+    "route": "/stock/$instrumentId",
+    "component": "CorporateActionsPanel",
+    "transport": "tanstack_createServerFn_post",
+    "session_authority": "better_auth_database_session",
+    "decoupled_from_synthetic_snapshot": true,
+    "other_panels_remain_synthetic": true,
+    "announcements_panel_unchanged": true
+  },
+  "failure_statuses": {
+    "wrong_environment": 403,
+    "authorization": 403,
+    "missing_binding": 424,
+    "no_release": 409,
+    "not_found": 404,
+    "database_or_readback": 500
+  },
+  "checker": "scripts/check-netquity-corporate-actions-staging-contract.mjs",
+  "package_script": "npm run check:netquity-corporate-actions-staging",
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret_value": true,
+    "no_vendor_row_payload": true,
+    "counts_versions_tables_and_hashes_only": true
+  },
+  "rollback": {
+    "withdraw_data_version": true,
+    "revoke_entitlement_rows": true,
+    "delete_staging_smoke_secret": false,
+    "redeploy_staging_without_route": false,
+    "delete_raw_mirror": false
+  },
+  "verification": {
+    "scratch_postgres_dry_run": "initdb + full 77-migration apply + pg_dump --data-only restore of nq_basicdata.stock/nq_corpact.stockcons/nq_corpact.stocksplit/nq_dividendinfo.dividendinfo/nq_sharebuyback.daily_data from the local netquity mirror, run twice for idempotency",
+    "spot_checked_instruments": [
+      "hkex_security_00001 (sparse: 1 dividend action, matches the mirror's actual current content)",
+      "hkex_security_00697 (rich: 9 actions -- 1 special-dividend leg + 8 buyback rows)",
+      "hkex_security_00007 (zero-event: coverage.status=unavailable, empty actions array)"
+    ]
+  },
+  "not_claimed": [
+    "public_resolver_cutover",
+    "public_http_route",
+    "production_deploy",
+    "split_or_consolidation_ratio_values",
+    "rights_issue_or_placement_action_types",
+    "capital_raised_promotion",
+    "price_adjustment_engine_integration",
+    "mcp_or_export_access",
+    "daily_promotion_automation"
+  ]
+}
