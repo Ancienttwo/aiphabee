@@ -1,0 +1,111 @@
+<!-- @dsCard group="Netquity 数据" viewport="1360x900" name="港股数据工作台" subtitle="行情 · 董事高管 · SDI 披露 · 股权结构 · 事件 · 财务 · 轮证 — rights-first 的 AI 辅助阅读版" -->
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AiphaBee · 港股数据工作台</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); }
+  button { font: inherit; }
+  table { font: inherit; }
+  .luc svg { width: var(--ic-size, 18px); height: var(--ic-size, 18px); }
+  ::selection { background: var(--honey-200); }
+  .ab-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ab-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ab-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ab-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); }
+  .ab-table-scroll { overflow-x: auto; }
+  @media (max-width: 1080px) {
+    .ab-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ab-split { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .ab-grid-2, .ab-grid-3, .ab-grid-4 { grid-template-columns: 1fr; }
+  }
+  a { color: var(--text-link); text-decoration: none; }
+  a:hover { color: var(--accent-strong); }
+
+  /* ---- 补充语义 token（生产 aiphabee.css 有、DS tokens 缺）---- */
+  :root {
+    --surface-nav: rgba(255, 255, 255, 0.82);
+    --surface-track: var(--neutral-200);
+    --accent-strong: var(--honey-700);
+    --orange-50: #fff7ed;
+    --text-link: var(--ink-700);
+  }
+
+  /* ---- 深色主题（移植自生产 aiphabee.css）---- */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-bg: #0b0f23;
+    --surface-page: #0b0f23;
+    --surface-card: #141a33;
+    --surface-muted: #1c2342;
+    --surface-sunken: #0e1430;
+    --surface-ink: #0b0f23;
+    --surface-nav: rgba(11, 15, 35, 0.82);
+    --surface-track: #2a3354;
+    --surface-honey: rgba(251, 203, 10, 0.10);
+    --text-primary: #f1f5f9;
+    --text-body: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-subtle: #94a3b8;
+    --text-link: var(--honey-400);
+    --accent-strong: var(--honey-400);
+    --honey-50: rgba(251, 203, 10, 0.10);
+    --honey-700: var(--honey-300);
+    --honey-800: var(--honey-200);
+    --green-50: rgba(52, 211, 153, 0.14);
+    --green-600: #34d399;
+    --red-50: rgba(248, 113, 113, 0.14);
+    --red-600: #f87171;
+    --violet-50: rgba(167, 139, 250, 0.16);
+    --violet-600: #a78bfa;
+    --blue-50: rgba(96, 165, 250, 0.14);
+    --blue-500: #60a5fa;
+    --orange-50: rgba(251, 191, 36, 0.14);
+    --border-subtle: #232b47;
+    --border-default: #2d3756;
+    --border-strong: #3a4585;
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.40);
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="data-quote.jsx"></script>
+<script type="text/babel" src="shell.jsx"></script>
+<script type="text/babel" src="quote.jsx"></script>
+<script type="text/babel" src="corp.jsx"></script>
+<script type="text/babel" src="market.jsx"></script>
+<script type="text/babel" src="search.jsx"></script>
+<script type="text/babel" src="directors.jsx"></script>
+<script type="text/babel" src="sdi.jsx"></script>
+<script type="text/babel" src="ownership.jsx"></script>
+<script type="text/babel" src="events.jsx"></script>
+<script type="text/babel" src="financials.jsx"></script>
+<script type="text/babel" src="specimens.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel" data-presets="react">
+  ReactDOM.createRoot(document.getElementById('root')).render(<NqApp />);
+  if (window.lucide) window.lucide.createIcons();
+</script>
+</body>
+</html>
