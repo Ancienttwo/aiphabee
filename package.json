@@ -100,6 +100,7 @@
     "netquity:verify": "node scripts/netquity-mirror/verify.mjs",
     "check:netquity-mirror": "node --test scripts/netquity-mirror/lib.test.mjs && node scripts/netquity-mirror/verify.mjs --self-test",
     "check:netquity-security-resolution-staging": "node scripts/check-netquity-security-resolution-staging-contract.mjs",
+    "check:netquity-security-profile-staging": "node scripts/check-netquity-security-profile-staging-contract.mjs",
     "check:ipo-schema": "node scripts/check-ipo-schema-contract.mjs",
     "check:ipo-etl-manifest": "node scripts/check-ipo-etl-manifest.mjs",
     "check:hkex-news-ingest": "node scripts/check-hkex-news-ingest-contract.mjs",

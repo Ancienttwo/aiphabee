@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge, Button, Card, Icon, MascotState } from "../../ds";
-import { EvidenceCard } from "../../components/evidence";
+import { Badge, type BadgeTone, Button, Card, Icon, MascotState } from "../../ds";
 import {
   AnnouncementsPanel,
   CorporateActionsPanel,
@@ -13,7 +12,8 @@ import {
   QuotePanel,
 } from "../../components/workbench/panels";
 import { Disclaimer } from "../../components/Disclaimer";
-import { getStockSnapshot, presentError } from "../../lib/api";
+import { getStockSnapshot, presentError, resolveSecurityProfile } from "../../lib/api";
+import type { AiphaBeeErrorCode } from "../../lib/api";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
 
 export const Route = createFileRoute("/stock/$instrumentId")({
@@ -62,6 +62,8 @@ function StockWorkbench() {
         <Icon name="arrow-left" size={16} /> 返回搜索
       </button>
 
+      <CompanyHeader instrumentId={instrumentId} />
+
       {isLoading ? (
         <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载工作台快照…</p>
       ) : null}
@@ -80,29 +82,12 @@ function StockWorkbench() {
       {env && env.ok ? (
         (() => {
           const snap = env.data;
-          const profile = snap.security_profile.profile;
           const ready = Object.values(snap.data_quality.section_statuses).filter(
             (s) => s === "found",
           ).length;
           return (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontFamily: "var(--font-display)",
-                    fontSize: "var(--text-3xl)",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {profile ? profile.company.name.zhHant || profile.company.name.en : instrumentId}
-                </h1>
-                {profile ? (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>
-                    {profile.symbol}
-                  </span>
-                ) : null}
                 <Badge
                   tone={snap.status === "ready" ? "bullish" : snap.status === "partial" ? "warning" : "bearish"}
                   variant="soft"
@@ -167,18 +152,6 @@ function StockWorkbench() {
               {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
               {tab === "actions" ? <CorporateActionsPanel section={snap.corporate_actions} /> : null}
 
-              {/* Aggregate snapshot evidence */}
-              <div style={{ marginTop: 20 }}>
-                <EvidenceCard
-                  asOf={env.as_of}
-                  dataVersion={env.data_version}
-                  methodologyVersion={env.methodology_version}
-                  provenance={env.provenance}
-                  usage={env.usage}
-                  label="查看本次快照的聚合证据来源"
-                />
-              </div>
-
               <Disclaimer style={{ marginTop: 24 }} />
             </>
           );
@@ -189,5 +162,97 @@ function StockWorkbench() {
         <MascotState basePath={MASCOT_BP} pose="empty" title="暂无数据" description="未能加载该证券的工作台快照。" />
       ) : null}
     </main>
+  );
+}
+
+const HEADER_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const HEADER_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/**
+ * Company-header identity block: name, symbol, listing status. Sourced from
+ * the live, entitlement-gated resolveProfile RPC — independent of the
+ * synthetic workbench snapshot below it, so a denied/held/absent live
+ * profile never falls back to synthesized identity data. Only this block is
+ * live-backed in this cut; the tab panels below remain synthetic.
+ */
+function CompanyHeader({ instrumentId }: { instrumentId: string }) {
+  const { data: profileEnv, isLoading } = useQuery({
+    queryKey: ["security-profile-live", instrumentId],
+    queryFn: () => resolveSecurityProfile(instrumentId),
+  });
+
+  const headerRowStyle = { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const, marginBottom: 4 };
+  const titleStyle = {
+    margin: 0,
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    color: "var(--text-primary)",
+  };
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", marginBottom: 4 }}>
+        正在加载公司档案…
+      </p>
+    );
+  }
+
+  if (!profileEnv || !profileEnv.ok) {
+    const code = profileEnv?.error.code;
+    const tone: BadgeTone = (code && HEADER_STATE_TONE[code]) ?? "bearish";
+    const label = (code && HEADER_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = profileEnv ? presentError(profileEnv).detail : "公司档案服务暂不可用。";
+    return (
+      <div style={headerRowStyle}>
+        <h1 style={titleStyle}>{instrumentId}</h1>
+        <Badge tone={tone} variant="soft" size="sm" dot>
+          {label}
+        </Badge>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{detail}</span>
+      </div>
+    );
+  }
+
+  const { profile } = profileEnv.data;
+  if (!profile) {
+    return (
+      <div style={headerRowStyle}>
+        <h1 style={titleStyle}>{instrumentId}</h1>
+        <Badge tone="neutral" variant="soft" size="sm" dot>
+          未找到
+        </Badge>
+      </div>
+    );
+  }
+
+  return (
+    <div style={headerRowStyle}>
+      <h1 style={titleStyle}>{profile.name.zhHant || profile.name.en}</h1>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>
+        {profile.symbol}
+      </span>
+      <Badge
+        tone={profile.listingStatus === "listed" ? "bullish" : profile.listingStatus === "suspended" ? "warning" : "bearish"}
+        variant="soft"
+        size="sm"
+      >
+        {profile.listingStatus === "listed" ? "上市" : profile.listingStatus === "suspended" ? "停牌" : "退市"}
+      </Badge>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>
+        {profile.exchange} · {profile.market} · {profile.currency}
+      </span>
+    </div>
   );
 }

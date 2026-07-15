@@ -111,8 +111,10 @@ import {
 } from "./research-agent-lifecycle.js";
 import {
   resolveAuthenticatedNetquitySecurity,
+  resolveAuthenticatedNetquityProfile,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+  type AuthenticatedNetquityProfileResolverInput,
   type AuthenticatedNetquityResolverInput,
 } from "./authenticated-netquity-web-resolver.js";
 import {
@@ -12775,6 +12777,10 @@ export class FastClawRow10Acceptance extends WorkerEntrypoint<WorkerBindings> {
 export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindings> {
   async resolveSecurity(input: AuthenticatedNetquityResolverInput) {
     return resolveAuthenticatedNetquitySecurity(this.env, input);
+  }
+
+  async resolveProfile(input: AuthenticatedNetquityProfileResolverInput) {
+    return resolveAuthenticatedNetquityProfile(this.env, input);
   }
 }
 

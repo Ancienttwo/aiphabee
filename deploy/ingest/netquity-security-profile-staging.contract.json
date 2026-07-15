@@ -1,0 +1,178 @@
+{
+  "version": "2026-07-15.netquity-security-profile-staging.v1",
+  "status": "approved_staging_only",
+  "provider": "planetscale_postgres_via_cloudflare_hyperdrive",
+  "environment": "staging",
+  "source": {
+    "dataset": "nq_basicdata.stock",
+    "source_batch_id": "src_netquity_basicdata_80cfa8bd1c73",
+    "data_version": "netquity-security-profile-80cfa8bd1c73.v1",
+    "source_as_of": "2026-07-11T00:00:00+08:00",
+    "sha256": "80cfa8bd1c737750199ceaf0f8f0bfe5c71d7f3cb074d6ae51da5cb394f8c861",
+    "row_count": 18036,
+    "missing_listing_dates": 62,
+    "status_partition": {
+      "listed": 17555,
+      "suspended": 141,
+      "delisted": 340
+    },
+    "shares_raw_source_batch_with": "deploy/ingest/netquity-security-resolution-staging.sql"
+  },
+  "promotion": {
+    "staging_prerequisite_migrations": [
+      "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "deploy/database/migrations/20260620091000_serving_store_scaffold.sql"
+    ],
+    "sql": "deploy/ingest/netquity-security-profile-staging.sql",
+    "serving_dataset": "security_profile",
+    "serving_dataset_id": "serving_dataset_security_profile",
+    "serving_dataset_domain": "security_master",
+    "serving_snapshot_id": "serving_security_profile_netquity_basicdata_80cfa8bd1c73_v1",
+    "methodology_version": "2026-07-15.netquity-security-profile-promotion.v1",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "release_state": "released",
+    "quality_state": "PASS",
+    "record_entity_type": "instrument",
+    "entity_id_pattern": "hkex_security_<five-digit-code>",
+    "entity_id_aligned_with": "deploy/ingest/netquity-security-resolution-staging.sql",
+    "source_record_id_pattern": "netquity:basicdata.stock:<five-digit-code>",
+    "transactional": true,
+    "new_index_required": false,
+    "new_index_required_reason": "entity_id lookup uses the leading prefix of the existing serving_record unique index (serving_snapshot_id, entity_type, entity_id, ...)",
+    "idempotent": true
+  },
+  "payload_fields": [
+    "symbol",
+    "name.en",
+    "name.zhHant",
+    "name.zhHans",
+    "listingStatus",
+    "lifecycle.listedAt",
+    "lifecycle.delistedAt",
+    "lifecycle.suspendedAt",
+    "listingId",
+    "exchange",
+    "market",
+    "currency"
+  ],
+  "payload_fields_never_populated": {
+    "fields": ["listingId", "lifecycle.suspendedAt"],
+    "reason": "no rights-pinned source column exists in nq_basicdata.stock for these fields (a suspension date would require joining nq_corpact.stocksuspend/stockresume, which is outside this sha256-pinned raw_source_batch); cataloged and entitled for forward compatibility only, never present in any promoted row payload"
+  },
+  "payload_fields_excluded": {
+    "fields": ["industry", "sector"],
+    "reason": "source is nq_compinfo, which is not rights-pinned by any raw_source_batch; excluded from this promotion; toolkit coverage reports 'planned'"
+  },
+  "forbidden_matching": [
+    "fuzzy",
+    "substring",
+    "transliteration",
+    "semantic_inference",
+    "synthetic_fallback"
+  ],
+  "runtime_role": {
+    "role": "aiphabee_runtime_rls",
+    "policy_sql": "deploy/database/roles/netquity-security-serving-staging.sql",
+    "new_grant_required": false,
+    "new_grant_required_reason": "existing GRANT SELECT is table-level over aiphabee_core.serving_dataset/serving_snapshot/serving_record and already covers new rows/datasets in those tables",
+    "schema_usage": [
+      "aiphabee_core"
+    ],
+    "select_tables": [
+      "aiphabee_core.raw_source_batch",
+      "aiphabee_core.data_version_batch",
+      "aiphabee_core.serving_dataset",
+      "aiphabee_core.serving_snapshot",
+      "aiphabee_core.serving_record"
+    ],
+    "raw_schema_usage": false,
+    "writes": false,
+    "schema_create": false,
+    "database_create": false,
+    "superuser": false,
+    "bypassrls": false
+  },
+  "rpc": {
+    "binding": "AIPHABEE_API",
+    "entrypoint": "AuthenticatedNetquityResolver",
+    "method": "resolveProfile",
+    "public_http_exposed": false,
+    "await_required": true,
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "resolver_module": "apps/worker/src/authenticated-netquity-web-resolver.ts",
+    "test_file": "apps/worker/src/authenticated-netquity-web-resolver.test.ts",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "required_app_env": "staging",
+    "authorization_before_binding": true,
+    "latest_released_snapshot_only": true,
+    "entity_id_exact_lookup_only": true,
+    "maximum_rows": 1
+  },
+  "authorization": {
+    "channel": "web",
+    "dataset": "security_profile",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "default_rights_status": "default_deny",
+    "entitled_workspace_cardinality": 1,
+    "requested_fields": [
+      "security_profile.currency",
+      "security_profile.exchange",
+      "security_profile.instrument_id",
+      "security_profile.lifecycle.delisted_at",
+      "security_profile.lifecycle.listed_at",
+      "security_profile.lifecycle.suspended_at",
+      "security_profile.listing_id",
+      "security_profile.listing_status",
+      "security_profile.market",
+      "security_profile.name.en",
+      "security_profile.name.zh_hans",
+      "security_profile.name.zh_hant",
+      "security_profile.symbol"
+    ],
+    "partial_candidate_allowed": false,
+    "api_rights_approved": false,
+    "mcp_rights_approved": false,
+    "export_rights_approved": false
+  },
+  "web": {
+    "route": "/stock/$instrumentId",
+    "component": "CompanyHeader",
+    "transport": "tanstack_createServerFn_post",
+    "session_authority": "better_auth_database_session",
+    "remains_synthetic_outside_header": true
+  },
+  "failure_statuses": {
+    "wrong_environment": 403,
+    "authorization": 403,
+    "missing_binding": 424,
+    "no_release": 409,
+    "not_found": 404,
+    "database_or_readback": 500
+  },
+  "checker": "scripts/check-netquity-security-profile-staging-contract.mjs",
+  "package_script": "npm run check:netquity-security-profile-staging",
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret_value": true,
+    "no_vendor_row_payload": true,
+    "counts_versions_tables_and_hashes_only": true
+  },
+  "rollback": {
+    "withdraw_data_version": true,
+    "revoke_entitlement_rows": true,
+    "delete_staging_smoke_secret": false,
+    "redeploy_staging_without_route": false,
+    "delete_raw_mirror": false
+  },
+  "not_claimed": [
+    "public_resolver_cutover",
+    "public_http_route",
+    "production_deploy",
+    "industry_or_sector_classification",
+    "company_identity_beyond_name",
+    "mcp_or_export_access",
+    "history_or_point_in_time",
+    "daily_promotion"
+  ]
+}

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  GetLiveSecurityProfileReadbackError,
   GetSecurityProfileInputError,
   GetSecurityHistoryInputError,
   ResolveLiveSecurityReadbackError,
   ResolveSecurityInputError,
+  getLiveSecurityProfile,
   getSecurityHistory,
   getSecurityHistoryCapabilities,
   getSecurityProfile,
@@ -12,6 +14,7 @@ import {
   normalizeExactSecurityLookup,
   resolveLiveSecurityRows,
   resolveSecurity,
+  type LiveSecurityProfileRow,
   type ResolveLiveSecurityRow
 } from "./index";
 
@@ -307,6 +310,271 @@ describe("security profile scaffold", () => {
     });
   });
 });
+
+describe("live security profile resolver", () => {
+  it("maps an exact released Serving row without a synthetic company or industry", () => {
+    const result = getLiveSecurityProfile(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        instrumentId: "hkex_security_00001"
+      },
+      [createLiveProfileRow()]
+    );
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_security_profile");
+    expect(result.liveDataAccess).toBe(true);
+    expect(result.profile).toEqual({
+      coverage: {
+        industry: {
+          reason: "industry classification source (nq_compinfo) is not yet rights-pinned for promotion",
+          status: "planned"
+        }
+      },
+      currency: "HKD",
+      exchange: "HKEX",
+      instrumentId: "hkex_security_00001",
+      lifecycle: {
+        delistedAt: undefined,
+        listedAt: "2000-01-01",
+        suspendedAt: undefined
+      },
+      listingId: undefined,
+      listingStatus: "listed",
+      market: "HK",
+      name: {
+        en: "Alpha Holdings Limited",
+        zhHans: "阿尔法控股有限公司",
+        zhHant: "阿爾法控股有限公司"
+      },
+      symbol: "00001.HK"
+    });
+    expect(result.provenance).toEqual([
+      expect.objectContaining({
+        source: "netquity-basicdata",
+        source_record_id: "netquity:basicdata.stock:00001"
+      })
+    ]);
+    expect(result.usage.rows).toBe(1);
+  });
+
+  it("returns not_found without throwing when no row matches", () => {
+    const result = getLiveSecurityProfile(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        instrumentId: "hkex_security_00001"
+      },
+      []
+    );
+
+    expect(result.status).toBe("not_found");
+    expect(result.profile).toBeUndefined();
+    expect(result.provenance).toEqual([]);
+    expect(result.usage.rows).toBe(0);
+    expect(result.liveDataAccess).toBe(true);
+  });
+
+  it("requires a non-empty instrument id", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        { asOf: "2026-07-11T00:00:00+08:00", dataVersion: "netquity-basicdata-test.v1", instrumentId: "  " },
+        []
+      )
+    ).toThrow(GetSecurityProfileInputError);
+  });
+
+  it("rejects more than one row for the same instrument id rather than picking one", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [createLiveProfileRow(), createLiveProfileRow()]
+      )
+    ).toThrow(GetLiveSecurityProfileReadbackError);
+  });
+
+  it("rejects a row that disagrees with snapshot authority", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...createLiveProfileRow(), data_version: "other-version" }]
+      )
+    ).toThrowError("row data version does not match the released snapshot");
+  });
+
+  it("rejects an entity id that is not an opaque HKEX security id", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "eq_hk_00001"
+        },
+        [{ ...createLiveProfileRow(), entity_id: "eq_hk_00001" }]
+      )
+    ).toThrowError("entity id is not an opaque HKEX security id");
+  });
+
+  it("rejects a row for a different instrument id than requested", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00002"
+        },
+        [createLiveProfileRow()]
+      )
+    ).toThrowError("entity id does not match the requested instrument id");
+  });
+
+  it("rejects a source record id that does not match the entity id", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...createLiveProfileRow(), source_record_id: "netquity:basicdata.stock:00002" }]
+      )
+    ).toThrow(GetLiveSecurityProfileReadbackError);
+  });
+
+  it("rejects a malformed payload", () => {
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...createLiveProfileRow(), payload: null }]
+      )
+    ).toThrow(GetLiveSecurityProfileReadbackError);
+  });
+
+  it.each(["symbol", "exchange", "market", "currency"] as const)(
+    "rejects a payload with a missing %s",
+    (field) => {
+      const row = createLiveProfileRow();
+      const payload = { ...(row.payload as Record<string, unknown>) };
+      delete payload[field];
+      expect(() =>
+        getLiveSecurityProfile(
+          {
+            asOf: "2026-07-11T00:00:00+08:00",
+            dataVersion: "netquity-basicdata-test.v1",
+            instrumentId: "hkex_security_00001"
+          },
+          [{ ...row, payload }]
+        )
+      ).toThrow(GetLiveSecurityProfileReadbackError);
+    }
+  );
+
+  it("rejects a payload whose symbol disagrees with the entity id", () => {
+    const row = createLiveProfileRow();
+    const payload = { ...(row.payload as Record<string, unknown>), symbol: "00099.HK" };
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("payload symbol disagrees with the entity id");
+  });
+
+  it("rejects a payload with a malformed listing status", () => {
+    const row = createLiveProfileRow();
+    const payload = { ...(row.payload as Record<string, unknown>), listingStatus: "unknown" };
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrow(GetLiveSecurityProfileReadbackError);
+  });
+
+  it("rejects a payload with a missing name locale", () => {
+    const row = createLiveProfileRow();
+    const name = { ...(row.payload as Record<string, unknown>).name as Record<string, unknown> };
+    delete name.zhHant;
+    const payload = { ...(row.payload as Record<string, unknown>), name };
+    expect(() =>
+      getLiveSecurityProfile(
+        {
+          asOf: "2026-07-11T00:00:00+08:00",
+          dataVersion: "netquity-basicdata-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrow(GetLiveSecurityProfileReadbackError);
+  });
+
+  it("keeps listingId and lifecycle.suspendedAt absent (never synthesized) when not promoted", () => {
+    const result = getLiveSecurityProfile(
+      {
+        asOf: "2026-07-11T00:00:00+08:00",
+        dataVersion: "netquity-basicdata-test.v1",
+        instrumentId: "hkex_security_00003"
+      },
+      [createLiveProfileRow({ code: "00003", listingStatus: "suspended" })]
+    );
+
+    expect(result.profile?.listingId).toBeUndefined();
+    expect(result.profile?.lifecycle.suspendedAt).toBeUndefined();
+    expect(result.profile?.listingStatus).toBe("suspended");
+    expect(result.profile?.coverage.industry.status).toBe("planned");
+  });
+});
+
+function createLiveProfileRow(
+  overrides: {
+    code?: string;
+    listingStatus?: "delisted" | "listed" | "suspended";
+  } = {}
+): LiveSecurityProfileRow {
+  const code = overrides.code ?? "00001";
+
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: `hkex_security_${code}`,
+    payload: {
+      currency: "HKD",
+      exchange: "HKEX",
+      lifecycle: {
+        listedAt: "2000-01-01"
+      },
+      listingStatus: overrides.listingStatus ?? "listed",
+      market: "HK",
+      name: {
+        en: "Alpha Holdings Limited",
+        zhHans: "阿尔法控股有限公司",
+        zhHant: "阿爾法控股有限公司"
+      },
+      symbol: `${code}.HK`
+    },
+    source_record_id: `netquity:basicdata.stock:${code}`
+  };
+}
 
 describe("security history scaffold", () => {
   it("returns point-in-time historical name and industry without latest classification", () => {

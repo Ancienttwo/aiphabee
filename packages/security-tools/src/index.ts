@@ -8,6 +8,8 @@ export const RESOLVE_SECURITY_LIVE_VERSION =
 export const GET_SECURITY_PROFILE_VERSION =
   "2026-06-21.phase1.get-security-profile-tool-scaffold.v0";
 export const GET_SECURITY_PROFILE_DATA_VERSION = "security-profile-synthetic-v0";
+export const GET_SECURITY_PROFILE_LIVE_VERSION =
+  "2026-07-15.netquity-security-profile-live.v1";
 export const GET_SECURITY_HISTORY_VERSION =
   "2026-06-21.phase3.security-history-scaffold.v0";
 export const GET_SECURITY_HISTORY_DATA_VERSION = "security-history-synthetic-v0";
@@ -25,6 +27,9 @@ export type ResolveLiveSecurityReadbackErrorCode =
   | "CANDIDATE_LIMIT_EXCEEDED"
   | "MALFORMED_LIVE_ROW";
 export type GetSecurityProfileInputErrorCode = "INSTRUMENT_ID_REQUIRED";
+export type GetLiveSecurityProfileReadbackErrorCode =
+  | "MALFORMED_LIVE_ROW"
+  | "MULTIPLE_ROWS_FOR_INSTRUMENT";
 export type GetSecurityHistoryInputErrorCode =
   | "AS_OF_REQUIRED"
   | "INSTRUMENT_ID_REQUIRED";
@@ -170,6 +175,62 @@ export interface GetSecurityProfileResult {
   usage: UsageSummary;
 }
 
+export interface LiveSecurityProfileRow {
+  data_version: string;
+  entity_id: string;
+  payload: unknown;
+  source_record_id: string;
+}
+
+export interface GetLiveSecurityProfileInput {
+  asOf: string;
+  dataVersion: string;
+  instrumentId: string;
+}
+
+/**
+ * Company-header profile shape sourced from the Serving Store. Unlike the
+ * synthetic `SecurityProfile`, this has no `company`/top-level `industry`
+ * object: Netquity BasicData has no company-identity or classification
+ * columns, so neither is promoted. `coverage.industry` communicates that gap
+ * explicitly instead of omitting or synthesizing it.
+ */
+export interface LiveSecurityProfile {
+  coverage: {
+    industry: SecurityCoverageItem;
+  };
+  currency: string;
+  exchange: string;
+  instrumentId: string;
+  lifecycle: {
+    delistedAt?: string;
+    listedAt?: string;
+    suspendedAt?: string;
+  };
+  listingId?: string;
+  listingStatus: SecurityListingStatus;
+  market: string;
+  name: {
+    en: string;
+    zhHans: string;
+    zhHant: string;
+  };
+  symbol: string;
+}
+
+export interface GetLiveSecurityProfileResult {
+  asOf: string;
+  dataVersion: string;
+  instrumentId: string;
+  liveDataAccess: true;
+  methodologyVersion: typeof GET_SECURITY_PROFILE_LIVE_VERSION;
+  profile?: LiveSecurityProfile;
+  provenance: ProvenanceRef[];
+  status: GetSecurityProfileStatus;
+  toolName: "get_security_profile";
+  usage: UsageSummary;
+}
+
 export interface SecurityHistoricalName {
   name: {
     en: string;
@@ -272,6 +333,15 @@ export class GetSecurityProfileInputError extends Error {
   readonly code: GetSecurityProfileInputErrorCode;
 
   constructor(code: GetSecurityProfileInputErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export class GetLiveSecurityProfileReadbackError extends Error {
+  readonly code: GetLiveSecurityProfileReadbackErrorCode;
+
+  constructor(code: GetLiveSecurityProfileReadbackErrorCode, message: string) {
     super(message);
     this.code = code;
   }
@@ -811,6 +881,74 @@ export function getSecurityProfileCapabilities() {
   };
 }
 
+/**
+ * Exact entity-id profile lookup against a released Serving snapshot. `rows`
+ * is expected to already be scoped to a single instrument id by the caller's
+ * SQL (WHERE entity_id = $2); more than one row is treated as a data
+ * integrity failure, not silently narrowed. A legitimate zero-row result is
+ * returned as `status: "not_found"`, not thrown — the RPC boundary decides
+ * whether that becomes an HTTP-level NOT_FOUND.
+ */
+export function getLiveSecurityProfile(
+  input: GetLiveSecurityProfileInput,
+  rows: readonly LiveSecurityProfileRow[]
+): GetLiveSecurityProfileResult {
+  const instrumentId = input.instrumentId.trim();
+
+  if (instrumentId.length === 0) {
+    throw new GetSecurityProfileInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (rows.length > 1) {
+    throw new GetLiveSecurityProfileReadbackError(
+      "MULTIPLE_ROWS_FOR_INSTRUMENT",
+      "profile lookup matched more than one released row for this instrument id"
+    );
+  }
+
+  const dataVersion = requireNonEmptyLiveString(input.dataVersion, "snapshot data version");
+  const asOf = requireNonEmptyLiveString(input.asOf, "snapshot as-of");
+  const row = rows[0];
+  const profile =
+    row === undefined
+      ? undefined
+      : mapLiveSecurityProfileRow({
+          expectedDataVersion: dataVersion,
+          expectedInstrumentId: instrumentId,
+          row
+        });
+
+  return {
+    asOf,
+    dataVersion,
+    instrumentId,
+    liveDataAccess: true,
+    methodologyVersion: GET_SECURITY_PROFILE_LIVE_VERSION,
+    profile,
+    provenance:
+      row === undefined
+        ? []
+        : [
+            {
+              data_version: row.data_version,
+              methodology_version: GET_SECURITY_PROFILE_LIVE_VERSION,
+              source: "netquity-basicdata",
+              source_record_id: row.source_record_id
+            }
+          ],
+    status: profile === undefined ? "not_found" : "found",
+    toolName: "get_security_profile",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: profile === undefined ? 0 : 1
+    }
+  };
+}
+
 export function getSecurityHistory(
   input: GetSecurityHistoryInput
 ): GetSecurityHistoryResult {
@@ -1055,6 +1193,111 @@ function mapLiveSecurityRow(input: {
   };
 }
 
+/**
+ * Maps one released `serving_record` row to a `LiveSecurityProfile`. Kept
+ * module-private, matching `mapLiveSecurityRow`: only the public
+ * `getLiveSecurityProfile` entry point is tested/consumed directly.
+ * `listingId` and `lifecycle.suspendedAt` are read only if present (never
+ * populated by the current promotion) and are never fabricated when absent.
+ */
+function mapLiveSecurityProfileRow(input: {
+  expectedDataVersion: string;
+  expectedInstrumentId: string;
+  row: LiveSecurityProfileRow;
+}): LiveSecurityProfile {
+  const { row } = input;
+  const dataVersion = requireNonEmptyLiveString(row.data_version, "row data version", malformedLiveProfileRow);
+
+  if (dataVersion !== input.expectedDataVersion) {
+    throw malformedLiveProfileRow("row data version does not match the released snapshot");
+  }
+
+  const instrumentId = requireNonEmptyLiveString(row.entity_id, "entity id", malformedLiveProfileRow);
+
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) {
+    throw malformedLiveProfileRow("entity id is not an opaque HKEX security id");
+  }
+
+  if (instrumentId !== input.expectedInstrumentId) {
+    throw malformedLiveProfileRow("entity id does not match the requested instrument id");
+  }
+
+  const code = instrumentId.slice("hkex_security_".length);
+  const sourceRecordId = requireNonEmptyLiveString(row.source_record_id, "source record id", malformedLiveProfileRow);
+
+  if (sourceRecordId !== `netquity:basicdata.stock:${code}`) {
+    throw malformedLiveProfileRow(
+      "source record id is not the matching Netquity BasicData stock record"
+    );
+  }
+
+  const payload = requireLiveObject(row.payload, "payload", malformedLiveProfileRow);
+  const symbol = requireLivePayloadString(payload, "symbol", malformedLiveProfileRow);
+  const exchange = requireLivePayloadString(payload, "exchange", malformedLiveProfileRow);
+  const market = requireLivePayloadString(payload, "market", malformedLiveProfileRow);
+  const currency = requireLivePayloadString(payload, "currency", malformedLiveProfileRow);
+
+  if (symbol !== `${code}.HK`) {
+    throw malformedLiveProfileRow("payload symbol disagrees with the entity id");
+  }
+
+  if (exchange !== "HKEX" || market !== "HK") {
+    throw malformedLiveProfileRow("payload exchange or market authority is malformed");
+  }
+
+  const listingStatus = payload.listingStatus;
+
+  if (!isSecurityListingStatus(listingStatus)) {
+    throw malformedLiveProfileRow("payload listing status is malformed");
+  }
+
+  const name = requireLiveObject(payload.name, "payload name", malformedLiveProfileRow);
+  const lifecycle = requireLiveObject(payload.lifecycle, "payload lifecycle", malformedLiveProfileRow);
+  const listingId = optionalLiveString(payload.listingId, "listingId");
+
+  return {
+    coverage: {
+      industry: {
+        reason: "industry classification source (nq_compinfo) is not yet rights-pinned for promotion",
+        status: "planned"
+      }
+    },
+    currency,
+    exchange,
+    instrumentId,
+    lifecycle: {
+      delistedAt: optionalLiveDate(lifecycle.delistedAt, "lifecycle.delistedAt", malformedLiveProfileRow),
+      listedAt: optionalLiveDate(lifecycle.listedAt, "lifecycle.listedAt", malformedLiveProfileRow),
+      suspendedAt: optionalLiveDate(lifecycle.suspendedAt, "lifecycle.suspendedAt", malformedLiveProfileRow)
+    },
+    listingId,
+    listingStatus,
+    market,
+    name: {
+      en: requireLivePayloadString(name, "en", malformedLiveProfileRow),
+      zhHans: requireLivePayloadString(name, "zhHans", malformedLiveProfileRow),
+      zhHant: requireLivePayloadString(name, "zhHant", malformedLiveProfileRow)
+    },
+    symbol
+  };
+}
+
+function malformedLiveProfileRow(message: string): GetLiveSecurityProfileReadbackError {
+  return new GetLiveSecurityProfileReadbackError("MALFORMED_LIVE_ROW", message);
+}
+
+function optionalLiveString(value: unknown, field: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw malformedLiveProfileRow(`payload ${field} is malformed`);
+  }
+
+  return value;
+}
+
 function isSecurityListingStatus(value: unknown): value is SecurityListingStatus {
   return value === "delisted" || value === "listed" || value === "suspended";
 }
@@ -1070,33 +1313,55 @@ function isResolveSecurityMatchReason(value: unknown): value is ResolveSecurityM
   );
 }
 
-function optionalLiveDate(value: unknown, field: string): string | undefined {
+// The four helpers below are shared between mapLiveSecurityRow and
+// mapLiveSecurityProfileRow. Each accepts the caller's error factory (instead
+// of hard-coding malformedLiveRow) so a profile-mapping failure surfaces as
+// GetLiveSecurityProfileReadbackError, not ResolveLiveSecurityReadbackError.
+type LiveRowErrorFactory = (message: string) => Error;
+
+function optionalLiveDate(
+  value: unknown,
+  field: string,
+  onMalformed: LiveRowErrorFactory = malformedLiveRow
+): string | undefined {
   if (value === undefined) {
     return undefined;
   }
 
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
-    throw malformedLiveRow(`payload ${field} is malformed`);
+    throw onMalformed(`payload ${field} is malformed`);
   }
 
   return value;
 }
 
-function requireLivePayloadString(payload: Record<string, unknown>, field: string): string {
-  return requireNonEmptyLiveString(payload[field], `payload ${field}`);
+function requireLivePayloadString(
+  payload: Record<string, unknown>,
+  field: string,
+  onMalformed: LiveRowErrorFactory = malformedLiveRow
+): string {
+  return requireNonEmptyLiveString(payload[field], `payload ${field}`, onMalformed);
 }
 
-function requireNonEmptyLiveString(value: unknown, field: string): string {
+function requireNonEmptyLiveString(
+  value: unknown,
+  field: string,
+  onMalformed: LiveRowErrorFactory = malformedLiveRow
+): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw malformedLiveRow(`${field} is missing`);
+    throw onMalformed(`${field} is missing`);
   }
 
   return value;
 }
 
-function requireLiveObject(value: unknown, field: string): Record<string, unknown> {
+function requireLiveObject(
+  value: unknown,
+  field: string,
+  onMalformed: LiveRowErrorFactory = malformedLiveRow
+): Record<string, unknown> {
   if (!isUnknownRecord(value)) {
-    throw malformedLiveRow(`${field} is malformed`);
+    throw onMalformed(`${field} is malformed`);
   }
 
   return value;

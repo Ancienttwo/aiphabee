@@ -53,6 +53,48 @@ export interface ResolveSecurityData {
   usage: UsageSummary;
 }
 
+// --- get_security_profile (live company header, packages/security-tools) --
+// Distinct from the synthetic SecurityProfile below (workbench snapshot
+// tabs): this is the live Serving-backed shape returned by the
+// resolveProfile RPC. It has no company/top-level industry object (Netquity
+// BasicData has neither); coverage.industry communicates that gap instead of
+// omitting or synthesizing it.
+export interface LiveSecurityProfileCoverageItem {
+  reason?: string;
+  status: "available" | "planned" | "unavailable";
+}
+
+export interface LiveSecurityProfile {
+  coverage: {
+    industry: LiveSecurityProfileCoverageItem;
+  };
+  currency: string;
+  exchange: string;
+  instrumentId: string;
+  lifecycle: {
+    delistedAt?: string;
+    listedAt?: string;
+    suspendedAt?: string;
+  };
+  listingId?: string;
+  listingStatus: "delisted" | "listed" | "suspended";
+  market: string;
+  name: { en: string; zhHans: string; zhHant: string };
+  symbol: string;
+}
+
+export interface GetSecurityProfileData {
+  asOf: string;
+  dataVersion?: string;
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  profile?: LiveSecurityProfile;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

@@ -1,5 +1,5 @@
 import { apiCall } from "./client";
-import { resolveAuthenticatedSecurity } from "./security.functions";
+import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } from "./security.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -23,6 +23,11 @@ import type {
 /** Resolves a free-text query to one or more securities (POST /tools/resolve-security). */
 export function resolveSecurity(query: string, market?: string) {
   return resolveAuthenticatedSecurity({ data: { query, market } });
+}
+
+/** Gated live company-header profile for a known instrument id (POST server-fn). */
+export function resolveSecurityProfile(instrumentId: string) {
+  return resolveAuthenticatedSecurityProfile({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

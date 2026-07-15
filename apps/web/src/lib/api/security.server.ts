@@ -7,7 +7,7 @@ import {
   getAuthenticatedWebIdentitySession,
   type AuthenticatedWebIdentityBindings,
 } from "../auth.server";
-import type { ResolveSecurityData } from "./types";
+import type { GetSecurityProfileData, ResolveSecurityData } from "./types";
 
 export interface SecurityServerInput {
   market?: string;
@@ -32,8 +32,29 @@ export interface SecurityRpcBinding {
   }): Promise<SecurityRpcResult>;
 }
 
+export interface ProfileServerInput {
+  instrumentId: string;
+}
+
+export type ValidatedProfileInput =
+  | { input: ProfileServerInput; valid: true }
+  | { valid: false };
+
+export interface ProfileRpcResult {
+  envelope: ResponseEnvelope<GetSecurityProfileData>;
+  status: number;
+}
+
+export interface ProfileRpcBinding {
+  resolveProfile(input: {
+    authSubject: string;
+    instrumentId: string;
+    requestId: string;
+  }): Promise<ProfileRpcResult>;
+}
+
 export interface AuthenticatedSecurityBindings extends AuthenticatedWebIdentityBindings {
-  AIPHABEE_API?: SecurityRpcBinding;
+  AIPHABEE_API?: SecurityRpcBinding & ProfileRpcBinding;
 }
 
 export type SecuritySessionReader = typeof getAuthenticatedWebIdentitySession;
@@ -61,6 +82,15 @@ export function validateSecurityInput(data: unknown): ValidatedSecurityInput {
     },
     valid: true,
   };
+}
+
+export function validateProfileInput(data: unknown): ValidatedProfileInput {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { valid: false };
+  const record = data as Record<string, unknown>;
+  if (Object.keys(record).some((key) => key !== "instrumentId")) return { valid: false };
+  const instrumentId = typeof record.instrumentId === "string" ? record.instrumentId.trim() : "";
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) return { valid: false };
+  return { input: { instrumentId }, valid: true };
 }
 
 export async function resolveAuthenticatedSecurityRequest(
@@ -112,6 +142,74 @@ export async function resolveAuthenticatedSecurityRequest(
       requestId,
     });
     if (!isSecurityRpcResult(result)) {
+      return {
+        envelope: createErrorEnvelope("INTERNAL_ERROR", "private security response is invalid", {
+          asOf,
+          requestId,
+        }),
+        status: 502,
+      };
+    }
+    return result;
+  } catch {
+    return {
+      envelope: createErrorEnvelope("INTERNAL_ERROR", "private security service call failed", {
+        asOf,
+        requestId,
+      }),
+      status: 502,
+    };
+  }
+}
+
+export async function resolveAuthenticatedProfileRequest(
+  bindings: AuthenticatedSecurityBindings,
+  request: Request,
+  input: ProfileServerInput,
+  readSession: SecuritySessionReader = getAuthenticatedWebIdentitySession,
+): Promise<ProfileRpcResult> {
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const asOf = new Date().toISOString();
+  let session: Awaited<ReturnType<SecuritySessionReader>>;
+  try {
+    session = await readSession(bindings, request.headers);
+  } catch {
+    return {
+      envelope: createErrorEnvelope("INTERNAL_ERROR", "session authority is unavailable", {
+        asOf,
+        requestId,
+      }),
+      status: 502,
+    };
+  }
+  if (!session?.user?.id) {
+    return {
+      envelope: createErrorEnvelope("AUTH_REQUIRED", "authenticated session is required", {
+        asOf,
+        requestId,
+      }),
+      status: 401,
+    };
+  }
+
+  const service = bindings.AIPHABEE_API;
+  if (!service) {
+    return {
+      envelope: createErrorEnvelope("INTERNAL_ERROR", "private security service is unavailable", {
+        asOf,
+        requestId,
+      }),
+      status: 424,
+    };
+  }
+
+  try {
+    const result = await service.resolveProfile({
+      authSubject: canonicalAuthSubject(session.user.id),
+      instrumentId: input.instrumentId,
+      requestId,
+    });
+    if (!isProfileRpcResult(result)) {
       return {
         envelope: createErrorEnvelope("INTERNAL_ERROR", "private security response is invalid", {
           asOf,
@@ -236,5 +334,91 @@ function isSecurityCandidate(value: unknown): boolean {
     ["en", "zhHans", "zhHant"].every(
       (field) => typeof (name as Record<string, unknown>)[field] === "string",
     )
+  );
+}
+
+// Not-found is filtered into an ErrorEnvelope (code NOT_FOUND) by the worker
+// RPC before it reaches here, so a successful (ok: true) envelope always
+// carries status "found" with a well-formed profile.
+function isProfileRpcResult(value: unknown): value is ProfileRpcResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  if (
+    ![200, 400, 403, 404, 409, 424, 500].includes(result.status as number) ||
+    !result.envelope ||
+    typeof result.envelope !== "object"
+  ) return false;
+  const envelope = result.envelope as Record<string, unknown>;
+  if (envelope.ok === false) {
+    const error = envelope.error;
+    return !!error && typeof error === "object" && typeof (error as Record<string, unknown>).code === "string";
+  }
+  if (envelope.ok !== true || !envelope.data || typeof envelope.data !== "object") return false;
+  const data = envelope.data as Record<string, unknown>;
+  if (
+    data.liveDataAccess !== true ||
+    data.toolName !== "get_security_profile" ||
+    data.status !== "found" ||
+    !isNonEmptyString(data.dataVersion) ||
+    !isNonEmptyString(data.methodologyVersion) ||
+    !isNonEmptyString(data.instrumentId) ||
+    !isUsageSummary(data.usage) ||
+    !isLiveProfile(data.profile)
+  ) return false;
+  const provenance = data.provenance;
+  if (
+    !Array.isArray(provenance) ||
+    provenance.length === 0 ||
+    !provenance.every((entry) =>
+      isLiveNetquityProvenance(entry, data.dataVersion as string, data.methodologyVersion as string)
+    )
+  ) return false;
+  const envelopeProvenance = envelope.provenance;
+  return (
+    envelope.data_version === data.dataVersion &&
+    envelope.methodology_version === data.methodologyVersion &&
+    isUsageSummary(envelope.usage) &&
+    Array.isArray(envelopeProvenance) &&
+    envelopeProvenance.length === provenance.length &&
+    envelopeProvenance.every((entry) =>
+      isLiveNetquityProvenance(entry, data.dataVersion as string, data.methodologyVersion as string)
+    )
+  );
+}
+
+function isLiveProfile(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const profile = value as Record<string, unknown>;
+  const name = profile.name;
+  const lifecycle = profile.lifecycle;
+  const coverage = profile.coverage;
+  return (
+    ["currency", "exchange", "instrumentId", "listingStatus", "market", "symbol"].every(
+      (field) => typeof profile[field] === "string",
+    ) &&
+    (profile.listingId === undefined || typeof profile.listingId === "string") &&
+    !!name &&
+    typeof name === "object" &&
+    ["en", "zhHans", "zhHant"].every(
+      (field) => typeof (name as Record<string, unknown>)[field] === "string",
+    ) &&
+    !!lifecycle &&
+    typeof lifecycle === "object" &&
+    ["delistedAt", "listedAt", "suspendedAt"].every((field) => {
+      const fieldValue = (lifecycle as Record<string, unknown>)[field];
+      return fieldValue === undefined || typeof fieldValue === "string";
+    }) &&
+    !!coverage &&
+    typeof coverage === "object" &&
+    isCoverageItem((coverage as Record<string, unknown>).industry)
+  );
+}
+
+function isCoverageItem(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    (item.status === "available" || item.status === "planned" || item.status === "unavailable") &&
+    (item.reason === undefined || typeof item.reason === "string")
   );
 }
