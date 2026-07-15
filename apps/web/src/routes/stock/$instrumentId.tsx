@@ -12,6 +12,7 @@ import {
   PricePanel,
   ProfilePanel,
   QuotePanel,
+  RelatedWarrantsPanel,
   SdiDisclosurePanel,
 } from "../../components/workbench/panels";
 import { Disclaimer } from "../../components/Disclaimer";
@@ -23,13 +24,13 @@ export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
 });
 
-// `sdi`/`directorate`/`ownership`'s statusKey is deliberately undefined:
-// unlike the other seven tabs (each backed by a packages/workbench
-// synthetic section that predates its live cutover), SDI, directorate, and
-// ownership never had a synthetic scaffold anywhere, so there is no
-// StockWorkbenchSection key for their dot to read. The dot stays neutral
-// rather than fabricating a found/not-found state from a key that was never
-// emitted.
+// `sdi`/`directorate`/`ownership`/`warrants`'s statusKey is deliberately
+// undefined: unlike the other seven tabs (each backed by a
+// packages/workbench synthetic section that predates its live cutover),
+// SDI, directorate, ownership, and related-warrants never had a synthetic
+// scaffold anywhere, so there is no StockWorkbenchSection key for their dot
+// to read. The dot stays neutral rather than fabricating a found/not-found
+// state from a key that was never emitted.
 const TABS = [
   { key: "profile", label: "档案", statusKey: "security_profile" },
   { key: "quote", label: "行情", statusKey: "quote_snapshot" },
@@ -41,6 +42,7 @@ const TABS = [
   { key: "sdi", label: "权益披露", statusKey: undefined },
   { key: "directorate", label: "董事高管", statusKey: undefined },
   { key: "ownership", label: "股权结构", statusKey: undefined },
+  { key: "warrants", label: "轮证", statusKey: undefined },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -167,6 +169,7 @@ function StockWorkbench() {
               {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}
               {tab === "directorate" ? <DirectorsPanel instrumentId={instrumentId} /> : null}
               {tab === "ownership" ? <OwnershipPanel instrumentId={instrumentId} /> : null}
+              {tab === "warrants" ? <RelatedWarrantsPanel instrumentId={instrumentId} /> : null}
 
               <Disclaimer style={{ marginTop: 24 }} />
             </>

@@ -464,6 +464,55 @@ export interface GetLiveOwnershipData {
   usage: UsageSummary;
 }
 
+// --- get_related_warrants (live, packages/related-warrants) ---------------
+// Like sdi_disclosure, directorate, and ownership, related_warrants has no
+// synthetic counterpart anywhere in this file or in packages/workbench: it
+// never had a Phase 1 synthetic tool, so this is a genuinely new tab, not a
+// synthetic->live cutover. One bucket per instrument: warrants[]
+// (nq_basicdata.relatedcode joined to nq_basicdata.stock), the list of
+// derivative warrant / CBBC codes associated with this underlying. Every
+// entry shares the identical shape regardless of category; category is
+// promoted as a raw, undecoded relatedcode column key (no reference table
+// for comp_warrant/dp_warrant/dc_warrant/cc_warrant/ce_warrant exists in the
+// mirrored schema -- see
+// deploy/ingest/netquity-related-warrants-staging.contract.json's
+// excluded_from_this_cut.warrant_terms_no_fact_table). `coverage`
+// distinguishes an instrument with no related warrant at all (status
+// "unavailable", warrants absent -- the overwhelming norm) from one this
+// promotion covers (status "available", warrants non-empty).
+export interface RelatedWarrantsCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export type LiveRelatedWarrantCategory = "cc_warrant" | "ce_warrant" | "comp_warrant" | "dc_warrant" | "dp_warrant";
+
+export interface LiveRelatedWarrantName {
+  en: string;
+  zhHans: string;
+  zhHant: string;
+}
+
+export interface LiveRelatedWarrant {
+  category: LiveRelatedWarrantCategory;
+  instrumentId: string;
+  name: LiveRelatedWarrantName;
+  sourceRecordId: string;
+}
+
+export interface GetLiveRelatedWarrantsData {
+  asOf: string;
+  coverage?: RelatedWarrantsCoverage;
+  dataVersion?: string;
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+  warrants?: LiveRelatedWarrant[];
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

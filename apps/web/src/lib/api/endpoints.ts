@@ -6,6 +6,7 @@ import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functi
 import { resolveAuthenticatedSdiDisclosure } from "./sdi-disclosure.functions";
 import { resolveAuthenticatedDirectorate } from "./directorate.functions";
 import { resolveAuthenticatedOwnership } from "./ownership.functions";
+import { resolveAuthenticatedRelatedWarrants } from "./related-warrants.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -64,6 +65,11 @@ export function resolveDirectorate(instrumentId: string) {
 /** Gated live ownership (share capital / free float / substantial-shareholder and cross-holding structure) for a known instrument id (POST server-fn). */
 export function resolveOwnership(instrumentId: string) {
   return resolveAuthenticatedOwnership({ data: { instrumentId } });
+}
+
+/** Gated live related-warrants (per-underlying-instrument list of associated derivative warrant / CBBC codes) for a known instrument id (POST server-fn). */
+export function resolveRelatedWarrants(instrumentId: string) {
+  return resolveAuthenticatedRelatedWarrants({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

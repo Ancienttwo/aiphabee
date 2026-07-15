@@ -10,6 +10,7 @@ import {
   resolveFinancialFacts,
   resolveOwnership,
   resolveQuoteSnapshot,
+  resolveRelatedWarrants,
   resolveSdiDisclosure,
 } from "../../lib/api";
 import type {
@@ -20,6 +21,7 @@ import type {
   LiveDirectorateCapacity,
   LiveDirectorateProfileRow,
   LiveOwnershipHolder,
+  LiveRelatedWarrant,
   LiveSdiDisclosureRow,
   LiveSdiPositionType,
   PriceHistorySection,
@@ -928,6 +930,113 @@ export function OwnershipPanel({ instrumentId }: { instrumentId: string }) {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+const RELATED_WARRANTS_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const RELATED_WARRANTS_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/**
+ * One promoted nq_basicdata.relatedcode link, resolved against
+ * nq_basicdata.stock for its own name. category is rendered as its raw
+ * relatedcode column key (no decode table exists in the mirrored
+ * nq_codetable schema -- see
+ * deploy/ingest/netquity-related-warrants-staging.contract.json -- so unlike
+ * a call/put/bull-bear label, no interpreted meaning is invented here; same
+ * "promote raw, do not decode" discipline OwnershipHolderRow applies to
+ * holder.holderType). No price, change%, expiry, strike, call-level,
+ * premium, or gearing column is rendered -- none of those vendor fields
+ * exist in the current mirror for warrant instruments (see the contract's
+ * excluded_from_this_cut).
+ */
+function RelatedWarrantRow({ warrant }: { warrant: LiveRelatedWarrant }) {
+  return (
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" }}
+    >
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
+        {warrant.instrumentId.replace("hkex_security_", "")}
+      </span>
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)", minWidth: 0, flex: 1 }}>
+        {warrant.name.zhHant || warrant.name.en}
+      </span>
+      <Badge tone="neutral" variant="soft" size="sm">{warrant.category}</Badge>
+    </div>
+  );
+}
+
+/**
+ * Related-warrants (per-underlying-instrument list of associated derivative
+ * warrant / CBBC codes) panel: an independent live query against the
+ * entitlement-gated resolveRelatedWarrants RPC (FinancialsPanel/QuotePanel/
+ * CorporateActionsPanel/SdiDisclosurePanel/DirectorsPanel/OwnershipPanel
+ * decoupling pattern). Like SdiDisclosurePanel/DirectorsPanel/OwnershipPanel,
+ * related_warrants has no synthetic counterpart anywhere in
+ * packages/workbench -- this is a genuinely new tab. Design baseline is
+ * docs/AiphaBee Design System/apps/netquity-workbench/quote.jsx's
+ * NqWarrantsView; only the code/name/category columns this cut's promoted
+ * fields actually carry are rendered (list rendering, not the design
+ * baseline's demo price/expiry/strike/call-level/premium/gearing columns).
+ */
+export function RelatedWarrantsPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: relatedWarrantsEnv, isLoading } = useQuery({
+    queryKey: ["related-warrants-live", instrumentId],
+    queryFn: () => resolveRelatedWarrants(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载相关轮证…</p>
+    );
+  }
+
+  if (!relatedWarrantsEnv || !relatedWarrantsEnv.ok) {
+    const code = relatedWarrantsEnv?.error.code;
+    const tone: BadgeTone = (code && RELATED_WARRANTS_STATE_TONE[code]) ?? "bearish";
+    const label = (code && RELATED_WARRANTS_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = relatedWarrantsEnv ? presentError(relatedWarrantsEnv).detail : "相关轮证服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>相关轮证</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, warrants } = relatedWarrantsEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无相关轮证。"} />;
+  }
+  if (!warrants || warrants.length === 0) return <EmptyPanel note="该证券暂无相关轮证。" />;
+
+  return (
+    <Card padded>
+      <SectionTitle>相关轮证（{warrants.length}）</SectionTitle>
+      <div style={{ display: "grid" }}>
+        {warrants.map((warrant) => (
+          <RelatedWarrantRow key={warrant.sourceRecordId} warrant={warrant} />
+        ))}
+      </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        实时数据 · 与正股关联的衍生权证 / 牛熊证代号（nq_basicdata.relatedcode）· 类型为原始供应商分类，暂未提供行使价/到期日等条款字段
+      </p>
+    </Card>
   );
 }
 

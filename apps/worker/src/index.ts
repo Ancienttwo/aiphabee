@@ -118,6 +118,7 @@ import {
   resolveAuthenticatedNetquitySdiDisclosure,
   resolveAuthenticatedNetquityDirectorate,
   resolveAuthenticatedNetquityOwnership,
+  resolveAuthenticatedNetquityRelatedWarrants,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
   type AuthenticatedNetquityCorporateActionsResolverInput,
@@ -126,6 +127,7 @@ import {
   type AuthenticatedNetquityOwnershipResolverInput,
   type AuthenticatedNetquityProfileResolverInput,
   type AuthenticatedNetquityQuoteSnapshotResolverInput,
+  type AuthenticatedNetquityRelatedWarrantsResolverInput,
   type AuthenticatedNetquityResolverInput,
   type AuthenticatedNetquitySdiDisclosureResolverInput,
 } from "./authenticated-netquity-web-resolver.js";
@@ -12817,6 +12819,10 @@ export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindin
 
   async resolveOwnership(input: AuthenticatedNetquityOwnershipResolverInput) {
     return resolveAuthenticatedNetquityOwnership(this.env, input);
+  }
+
+  async resolveRelatedWarrants(input: AuthenticatedNetquityRelatedWarrantsResolverInput) {
+    return resolveAuthenticatedNetquityRelatedWarrants(this.env, input);
   }
 }
 
