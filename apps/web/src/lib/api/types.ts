@@ -301,6 +301,81 @@ export interface GetLiveSdiDisclosuresData {
   usage: UsageSummary;
 }
 
+// --- get_directorate (live, packages/directorate) -------------------------
+// Like sdi_disclosure, directorate has no synthetic counterpart anywhere in
+// this file or in packages/workbench: it never had a Phase 1 synthetic
+// tool, so this is a genuinely new tab, not a synthetic->live cutover.
+// Every nq_biography.biography row is one director or senior-management
+// person at one company (capacity 'D'|'S', the only two vendor values,
+// promoted verbatim -- no executive/independent-non-executive
+// classification is derived, since that finer distinction exists only as
+// free-text prose inside title.en/chititle and the same prose can describe
+// a person's *other* directorships, not this company's own board
+// classification). age/biography/remuneration/title.en are each
+// independently optional per their own verified population gaps; no
+// appointment/departure date, committee membership, or cross-company
+// person id is promoted (none exists as a vendor column in
+// nq_biography.biography). `coverage` distinguishes an instrument with no
+// promoted biography row at all (status "unavailable", directors always [])
+// from one this promotion covers (status "available").
+export type LiveDirectorateCapacity = "D" | "S";
+
+export interface DirectorateCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export interface LiveDirectorateName {
+  en: string;
+  zhHans: string;
+  zhHant: string;
+}
+
+export interface LiveDirectorateTitle {
+  en?: string;
+  zhHans: string;
+  zhHant: string;
+}
+
+export interface LiveDirectorateBiography {
+  en?: string;
+  zhHans?: string;
+  zhHant?: string;
+}
+
+export interface LiveDirectorateRemuneration {
+  currency?: string;
+  currentAmount?: number;
+  currentYearEnd?: string;
+  previousAmount?: number;
+  previousYearEnd?: string;
+}
+
+export interface LiveDirectorateProfileRow {
+  age?: number;
+  biography?: LiveDirectorateBiography;
+  capacity: LiveDirectorateCapacity;
+  instrumentId: string;
+  name: LiveDirectorateName;
+  profileId: string;
+  remuneration?: LiveDirectorateRemuneration;
+  sourceRecordId: string;
+  title: LiveDirectorateTitle;
+}
+
+export interface GetLiveDirectorateData {
+  asOf: string;
+  coverage?: DirectorateCoverage;
+  dataVersion?: string;
+  directors?: LiveDirectorateProfileRow[];
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

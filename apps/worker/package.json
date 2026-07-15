@@ -19,6 +19,7 @@
     "@aiphabee/corporate-actions": "file:../../packages/corporate-actions",
     "@aiphabee/data-access-gateway": "file:../../packages/data-access-gateway",
     "@aiphabee/data-contracts": "file:../../packages/data-contracts",
+    "@aiphabee/directorate": "file:../../packages/directorate",
     "@aiphabee/document-tools": "file:../../packages/document-tools",
     "@aiphabee/event-timeline": "file:../../packages/event-timeline",
     "@aiphabee/evidence-lineage": "file:../../packages/evidence-lineage",

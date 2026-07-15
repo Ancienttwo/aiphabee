@@ -6,6 +6,7 @@ import { Metric } from "../Metric";
 import {
   presentError,
   resolveCorporateActions,
+  resolveDirectorate,
   resolveFinancialFacts,
   resolveQuoteSnapshot,
   resolveSdiDisclosure,
@@ -15,6 +16,8 @@ import type {
   AnnouncementSection,
   DerivedMetricsSection,
   LiveCorporateActionRow,
+  LiveDirectorateCapacity,
+  LiveDirectorateProfileRow,
   LiveSdiDisclosureRow,
   LiveSdiPositionType,
   PriceHistorySection,
@@ -103,6 +106,11 @@ const SDI_FORM_LABEL: Record<string, string> = {
   "1": "表格 1",
   "2": "表格 2",
   "3A": "表格 3A",
+};
+
+const DIRECTORATE_CAPACITY_LABEL: Record<LiveDirectorateCapacity, string> = {
+  D: "董事",
+  S: "高级管理人员",
 };
 
 // --- panels --------------------------------------------------------------
@@ -629,6 +637,140 @@ export function SdiDisclosurePanel({ instrumentId }: { instrumentId: string }) {
       </div>
       <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
         实时数据 · 大股东及董事权益披露（SFO 第 XV 部）
+      </p>
+    </Card>
+  );
+}
+
+const DIRECTORATE_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const DIRECTORATE_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/** One promoted nq_biography.biography row. Only fields the promotion
+ * actually carries are rendered: age/biography/remuneration are each
+ * independently optional (never backfilled), and no committee tags or
+ * cross-directorship badges are shown -- neither exists as a promoted
+ * field this cut (see
+ * deploy/ingest/netquity-directorate-staging.contract.json's
+ * excluded_from_this_cut). capacity is rendered via a raw-code label map
+ * (director / senior management), not a finer executive/independent
+ * classification: that distinction only exists as free-text prose inside
+ * title and is not derived client-side either. */
+function DirectorateProfileCard({ director }: { director: LiveDirectorateProfileRow }) {
+  const displayTitle = director.title.zhHant || director.title.zhHans || director.title.en;
+  const biographyText = director.biography?.zhHant || director.biography?.en || director.biography?.zhHans;
+  return (
+    <div
+      style={{ padding: "12px 14px", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+        <Badge tone={director.capacity === "D" ? "ai" : "navy"} variant="soft" size="sm">
+          {DIRECTORATE_CAPACITY_LABEL[director.capacity]}
+        </Badge>
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
+          {director.name.zhHant || director.name.en}
+        </span>
+        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>{director.name.en}</span>
+        {director.age !== undefined ? (
+          <span style={{ marginLeft: "auto", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>{director.age} 岁</span>
+        ) : null}
+      </div>
+      <p style={{ margin: "0 0 6px", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>{displayTitle}</p>
+      {biographyText ? (
+        <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", color: "var(--text-muted)", lineHeight: 1.6 }}>
+          {biographyText}
+        </p>
+      ) : null}
+      {director.remuneration ? (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+          <span>薪酬</span>
+          {director.remuneration.currentAmount !== undefined ? (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
+              {fmt(director.remuneration.currentAmount, 0)} {director.remuneration.currency}
+            </span>
+          ) : null}
+          {director.remuneration.previousAmount !== undefined ? (
+            <span>
+              上年度 {fmt(director.remuneration.previousAmount, 0)} {director.remuneration.currency}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Directorate (director / senior-management biography) panel: an
+ * independent live query against the entitlement-gated resolveDirectorate
+ * RPC (FinancialsPanel/QuotePanel/CorporateActionsPanel/SdiDisclosurePanel
+ * decoupling pattern). Like SdiDisclosurePanel, directorate has no
+ * synthetic counterpart anywhere in packages/workbench -- this is a
+ * genuinely new tab, not a synthetic->live cutover. Only fields the
+ * promotion actually carries are rendered.
+ */
+export function DirectorsPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: directorateEnv, isLoading } = useQuery({
+    queryKey: ["directorate-live", instrumentId],
+    queryFn: () => resolveDirectorate(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载董事高管…</p>
+    );
+  }
+
+  if (!directorateEnv || !directorateEnv.ok) {
+    const code = directorateEnv?.error.code;
+    const tone: BadgeTone = (code && DIRECTORATE_STATE_TONE[code]) ?? "bearish";
+    const label = (code && DIRECTORATE_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = directorateEnv ? presentError(directorateEnv).detail : "董事高管服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>董事高管</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, directors } = directorateEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无董事高管记录。"} />;
+  }
+  if (!directors || directors.length === 0) return <EmptyPanel note="该证券暂无董事高管记录。" />;
+
+  const directorCount = directors.filter((d) => d.capacity === "D").length;
+  const seniorManagementCount = directors.length - directorCount;
+
+  return (
+    <Card padded>
+      <SectionTitle>董事高管（{directors.length}）</SectionTitle>
+      <p style={{ margin: "0 0 10px", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        董事 {directorCount} · 高级管理人员 {seniorManagementCount}
+      </p>
+      <div style={{ display: "grid", gap: 10 }}>
+        {directors.map((director) => (
+          <DirectorateProfileCard key={director.profileId} director={director} />
+        ))}
+      </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        实时数据 · 董事及高级管理人员履历（年报披露）
       </p>
     </Card>
   );

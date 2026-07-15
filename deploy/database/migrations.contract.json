@@ -1579,6 +1579,17 @@
       "constraint_only": true,
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260716120000_directorate_domain.sql",
+      "purpose": "Extend aiphabee_core.serving_dataset's domain CHECK constraint with the new 'directorate' value (drop + re-add) for the director/senior-management biography promotion, like sdi_disclosure a Netquity live-promotion slice whose domain has no pre-existing value anywhere in the schema, without creating tables, granting access, or loading data.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [],
+      "constraint_only": true,
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

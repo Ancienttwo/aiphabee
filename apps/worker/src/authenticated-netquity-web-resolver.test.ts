@@ -62,12 +62,14 @@ vi.mock("pg", () => ({
 
 const {
   AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS,
+  AUTHENTICATED_NETQUITY_DIRECTORATE_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_PROFILE_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_SDI_DISCLOSURE_REQUIRED_FIELDS,
   resolveAuthenticatedNetquityCorporateActions,
+  resolveAuthenticatedNetquityDirectorate,
   resolveAuthenticatedNetquityFinancialFacts,
   resolveAuthenticatedNetquityProfile,
   resolveAuthenticatedNetquityQuoteSnapshot,
@@ -1366,6 +1368,224 @@ describe("private authenticated Netquity sdi disclosure resolver", () => {
   });
 });
 
+describe("private authenticated Netquity directorate resolver", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_test" }];
+    pgState.candidateRows = [createDirectorateRecordRow()];
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_DIRECTORATE_REQUIRED_FIELDS.map(createDirectorateRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+  });
+
+  it.each([
+    ["invalid subject", { authSubject: "email@example.com", instrumentId: "hkex_security_00001" }],
+    ["malformed instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "eq_hk_00001" }],
+    ["empty instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "" }],
+  ])("rejects %s before creating a database client", async (_label, input) => {
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, {
+      requestId: "request_test",
+      ...input,
+    });
+
+    expect(result.envelope.ok).toBe(false);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("stays unavailable outside staging before binding access", async () => {
+    let bindingReads = 0;
+    const result = await resolveAuthenticatedNetquityDirectorate(
+      {
+        APP_ENV: "prod",
+        get AIPHABEE_HYPERDRIVE(): { connectionString?: string } | undefined {
+          bindingReads += 1;
+          throw new Error("production binding must not be read");
+        },
+      },
+      directorateValidInput(),
+    );
+
+    expect(result.status).toBe(403);
+    expect(bindingReads).toBe(0);
+  });
+
+  it("returns unavailable for a missing private database binding", async () => {
+    const result = await resolveAuthenticatedNetquityDirectorate(
+      { APP_ENV: "staging" },
+      directorateValidInput(),
+    );
+
+    expect(result.status).toBe(424);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("denies an unmapped account before membership or Serving reads", async () => {
+    pgState.accountRows = [{ account_id: null }];
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each(["no membership", "inactive membership", "expired subscription"])(
+    "denies %s before rights or Serving reads",
+    async () => {
+      pgState.contextRows = [];
+      const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+      expect(result.status).toBe(403);
+      expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+      expect(
+        queryTexts().some((text) => text.includes("from aiphabee_governance.workspace_entitlement")),
+      ).toBe(false);
+      expect(hasServingRead()).toBe(false);
+    },
+  );
+
+  it("fails closed when more than one entitled workspace is active", async () => {
+    pgState.contextRows = [createContextRow(), { ...createContextRow(), workspace_id: "workspace_2" }];
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(409);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("pins field rights to the active product-access policy version", async () => {
+    await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    const rightsQuery = pgState.queries.find((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQuery?.text).toContain("data_entitlement.dataset = 'directorate'");
+    expect(rightsQuery?.text).toContain("data_entitlement.rights_policy_version = $3");
+    expect(rightsQuery?.values).toEqual([
+      "workspace_test",
+      "subscription_test",
+      "netquity-collaboration-staging.v1",
+    ]);
+  });
+
+  it("denies missing exact field rights before the released snapshot query", async () => {
+    pgState.rightsRows = pgState.rightsRows.slice(0, -1);
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("denies wildcard authority even when every exact field row is also present", async () => {
+    pgState.rightsRows.push(createDirectorateRightsRow("directorate.*"));
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("lets a blocked field win over approved rows", async () => {
+    pgState.rightsRows.push({
+      ...createDirectorateRightsRow("directorate.directors.remuneration"),
+      entitlement_id: "entitlement_blocked_remuneration",
+      entitlement_status: "blocked",
+      workspace_entitlement_id: "workspace_entitlement_blocked_remuneration",
+      workspace_status: "blocked",
+    });
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(403);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each([
+    ["mismatched rights policy", { rights_policy_version: "netquity-collaboration-staging.v2" }],
+    ["non-PASS quality", { quality_state: "HOLD" }],
+  ])("fails closed for a released snapshot with %s", async (_label, override) => {
+    pgState.snapshotRows = [{ ...createSnapshotRow(), ...override }];
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+    expect(
+      queryTexts().some((text) => text.includes("from aiphabee_core.serving_record record")),
+    ).toBe(false);
+  });
+
+  it("resolves an entitled instrument id with available directors after rights evaluation", async () => {
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.liveDataAccess).toBe(true);
+      expect(result.envelope.data.coverage).toEqual({ status: "available" });
+      expect(result.envelope.data.directors?.map((director) => director.capacity)).toEqual(["D", "S"]);
+      expect(result.envelope.data.directors?.[0].remuneration?.currentAmount).toBe(53180000);
+    }
+    const texts = queryTexts();
+    expect(texts.findIndex((text) => text.includes("from aiphabee_governance.workspace_entitlement"))).toBeLessThan(
+      texts.findIndex((text) => text.includes("from aiphabee_core.serving_dataset dataset")),
+    );
+  });
+
+  it("resolves an entitled zero-biography instrument id with an unavailable coverage marker, never fabricated directors", async () => {
+    pgState.candidateRows = [createUnavailableDirectorateRecordRow()];
+    const result = await resolveAuthenticatedNetquityDirectorate(
+      bindings,
+      directorateValidInput("hkex_security_01687"),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.coverage?.status).toBe("unavailable");
+      expect(result.envelope.data.directors).toEqual([]);
+    }
+  });
+
+  it("returns 404 NOT_FOUND when no released row matches the instrument id, never a synthetic fallback", async () => {
+    pgState.candidateRows = [];
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(404);
+    expect(errorCode(result)).toBe("NOT_FOUND");
+  });
+
+  it("fails closed on a malformed released row rather than exposing it", async () => {
+    pgState.candidateRows = [{ ...createDirectorateRecordRow(), data_version: "wrong-version" }];
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+  });
+
+  it("returns an explicit failure and closes the client on database error", async () => {
+    pgState.failOn = "from aiphabee_governance.workspace_entitlement";
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("does not return an authorized result when the database client cannot close", async () => {
+    pgState.endFails = true;
+
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, directorateValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+  });
+});
+
 function financialFactsValidInput(instrumentId = "hkex_security_00700") {
   return {
     authSubject: AUTH_SUBJECT,
@@ -1825,6 +2045,96 @@ function createUnavailableSdiDisclosureRecordRow(overrides: Record<string, unkno
       disclosures: [],
     },
     source_record_id: "netquity:sdi_disclosure.unavailable:00007",
+    ...overrides,
+  };
+}
+
+function directorateValidInput(instrumentId = "hkex_security_00001") {
+  return {
+    authSubject: AUTH_SUBJECT,
+    instrumentId,
+    requestId: "request_test",
+  };
+}
+
+function createDirectorateRightsRow(fieldPattern: string) {
+  return {
+    channel: "web",
+    dataset: "directorate",
+    entitlement_id: `entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    entitlement_source_record_id: `source:${fieldPattern}`,
+    entitlement_status: "approved",
+    export_allowed: false,
+    field_pattern: fieldPattern,
+    rights_policy_version: "netquity-collaboration-staging.v1",
+    time_range_days: null,
+    valid_from: "2026-07-10T00:00:00.000Z",
+    valid_to: null,
+    workspace_entitlement_id: `workspace_entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    workspace_source_record_id: `workspace-source:${fieldPattern}`,
+    workspace_status: "approved",
+  };
+}
+
+// Mirrors the real hkex_security_00001 (CK Hutchison Holdings) rows spot-
+// checked via psql against the local netquity mirror: capacity='D' director
+// LI Tzar Kuoi, Victor (chairman, age 61, HKD remuneration) and capacity='S'
+// senior-management CHEUNG Kwan Hoi (Group CFO, no age/biography/
+// remuneration disclosed).
+function createDirectorateRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_00001",
+    payload: {
+      coverage: { status: "available" },
+      directors: [
+        {
+          age: 61,
+          biography: {
+            en: "LI Tzar Kuoi, Victor aged 61, has been a Director of the Company since December 2014.",
+            zhHans: "李泽巨61岁，自2014年12月起出任本公司董事。",
+            zhHant: "李澤鉅61歲，自2014年12月起出任本公司董事。",
+          },
+          capacity: "D",
+          name: { en: "LI Tzar Kuoi, Victor", zhHans: "李泽巨", zhHant: "李澤鉅" },
+          profileId: "directorate_00001_001",
+          remuneration: {
+            currency: "HKD",
+            currentAmount: 53180000,
+            currentYearEnd: "2025-12-31",
+            previousAmount: 51660000,
+            previousYearEnd: "2024-12-31",
+          },
+          sourceRecordId: "netquity:biography.biography:00001:001",
+          title: { en: "Chairman and Executive Director", zhHans: "主席兼执行董事", zhHant: "主席兼執行董事" },
+        },
+        {
+          capacity: "S",
+          name: { en: "CHEUNG Kwan Hoi", zhHans: "张钧海", zhHant: "張鈞海" },
+          profileId: "directorate_00001_002",
+          sourceRecordId: "netquity:biography.biography:00001:002",
+          title: { en: "Group Chief Financial Officer", zhHans: "集团首席财务官", zhHant: "集團首席財務官" },
+        },
+      ],
+    },
+    source_record_id: "netquity:directorate.available:00001",
+    ...overrides,
+  };
+}
+
+function createUnavailableDirectorateRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_01687",
+    payload: {
+      coverage: {
+        reason:
+          "no director or senior-management biography record found in nq_biography.biography for this instrument in the current mirrored snapshot",
+        status: "unavailable",
+      },
+      directors: [],
+    },
+    source_record_id: "netquity:directorate.unavailable:01687",
     ...overrides,
   };
 }

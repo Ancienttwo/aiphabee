@@ -6,6 +6,7 @@ import {
   AnnouncementsPanel,
   CorporateActionsPanel,
   DerivedPanel,
+  DirectorsPanel,
   FinancialsPanel,
   PricePanel,
   ProfilePanel,
@@ -21,12 +22,12 @@ export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
 });
 
-// `sdi`'s statusKey is deliberately undefined: unlike the other seven tabs
-// (each backed by a packages/workbench synthetic section that predates its
-// live cutover), SDI never had a synthetic scaffold anywhere, so there is no
-// StockWorkbenchSection key for its dot to read. The dot stays neutral
-// rather than fabricating a found/not-found state from a key that was never
-// emitted.
+// `sdi`/`directorate`'s statusKey is deliberately undefined: unlike the
+// other seven tabs (each backed by a packages/workbench synthetic section
+// that predates its live cutover), SDI and directorate never had a
+// synthetic scaffold anywhere, so there is no StockWorkbenchSection key for
+// their dot to read. The dot stays neutral rather than fabricating a
+// found/not-found state from a key that was never emitted.
 const TABS = [
   { key: "profile", label: "档案", statusKey: "security_profile" },
   { key: "quote", label: "行情", statusKey: "quote_snapshot" },
@@ -36,6 +37,7 @@ const TABS = [
   { key: "announcements", label: "公告", statusKey: "announcement_search" },
   { key: "actions", label: "公司行动", statusKey: "corporate_actions" },
   { key: "sdi", label: "权益披露", statusKey: undefined },
+  { key: "directorate", label: "董事高管", statusKey: undefined },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -160,6 +162,7 @@ function StockWorkbench() {
               {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
               {tab === "actions" ? <CorporateActionsPanel instrumentId={instrumentId} /> : null}
               {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}
+              {tab === "directorate" ? <DirectorsPanel instrumentId={instrumentId} /> : null}
 
               <Disclaimer style={{ marginTop: 24 }} />
             </>

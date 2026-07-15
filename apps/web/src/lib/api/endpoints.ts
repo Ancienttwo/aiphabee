@@ -4,6 +4,7 @@ import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions"
 import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
 import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functions";
 import { resolveAuthenticatedSdiDisclosure } from "./sdi-disclosure.functions";
+import { resolveAuthenticatedDirectorate } from "./directorate.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -52,6 +53,11 @@ export function resolveCorporateActions(instrumentId: string) {
 /** Gated live SDI (substantial-shareholder / director disclosure of interests) filings for a known instrument id (POST server-fn). */
 export function resolveSdiDisclosure(instrumentId: string) {
   return resolveAuthenticatedSdiDisclosure({ data: { instrumentId } });
+}
+
+/** Gated live directorate (director / senior-management biography) records for a known instrument id (POST server-fn). */
+export function resolveDirectorate(instrumentId: string) {
+  return resolveAuthenticatedDirectorate({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------
