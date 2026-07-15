@@ -106,6 +106,7 @@
     "check:netquity-corporate-actions-staging": "node scripts/check-netquity-corporate-actions-staging-contract.mjs",
     "check:netquity-sdi-disclosure-staging": "node scripts/check-netquity-sdi-disclosure-staging-contract.mjs",
     "check:netquity-directorate-staging": "node scripts/check-netquity-directorate-staging-contract.mjs",
+    "check:netquity-ownership-staging": "node scripts/check-netquity-ownership-staging-contract.mjs",
     "check:ipo-schema": "node scripts/check-ipo-schema-contract.mjs",
     "check:ipo-etl-manifest": "node scripts/check-ipo-etl-manifest.mjs",
     "check:hkex-news-ingest": "node scripts/check-hkex-news-ingest-contract.mjs",

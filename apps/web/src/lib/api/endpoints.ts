@@ -5,6 +5,7 @@ import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
 import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functions";
 import { resolveAuthenticatedSdiDisclosure } from "./sdi-disclosure.functions";
 import { resolveAuthenticatedDirectorate } from "./directorate.functions";
+import { resolveAuthenticatedOwnership } from "./ownership.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -58,6 +59,11 @@ export function resolveSdiDisclosure(instrumentId: string) {
 /** Gated live directorate (director / senior-management biography) records for a known instrument id (POST server-fn). */
 export function resolveDirectorate(instrumentId: string) {
   return resolveAuthenticatedDirectorate({ data: { instrumentId } });
+}
+
+/** Gated live ownership (share capital / free float / substantial-shareholder and cross-holding structure) for a known instrument id (POST server-fn). */
+export function resolveOwnership(instrumentId: string) {
+  return resolveAuthenticatedOwnership({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

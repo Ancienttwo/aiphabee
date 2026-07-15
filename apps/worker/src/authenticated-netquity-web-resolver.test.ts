@@ -64,6 +64,7 @@ const {
   AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_DIRECTORATE_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS,
+  AUTHENTICATED_NETQUITY_OWNERSHIP_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_PROFILE_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_REQUIRED_FIELDS,
@@ -71,6 +72,7 @@ const {
   resolveAuthenticatedNetquityCorporateActions,
   resolveAuthenticatedNetquityDirectorate,
   resolveAuthenticatedNetquityFinancialFacts,
+  resolveAuthenticatedNetquityOwnership,
   resolveAuthenticatedNetquityProfile,
   resolveAuthenticatedNetquityQuoteSnapshot,
   resolveAuthenticatedNetquitySdiDisclosure,
@@ -1586,6 +1588,227 @@ describe("private authenticated Netquity directorate resolver", () => {
   });
 });
 
+describe("private authenticated Netquity ownership resolver", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_test" }];
+    pgState.candidateRows = [createOwnershipRecordRow()];
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_OWNERSHIP_REQUIRED_FIELDS.map(createOwnershipRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+  });
+
+  it.each([
+    ["invalid subject", { authSubject: "email@example.com", instrumentId: "hkex_security_00001" }],
+    ["malformed instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "eq_hk_00001" }],
+    ["empty instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "" }],
+  ])("rejects %s before creating a database client", async (_label, input) => {
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, {
+      requestId: "request_test",
+      ...input,
+    });
+
+    expect(result.envelope.ok).toBe(false);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("stays unavailable outside staging before binding access", async () => {
+    let bindingReads = 0;
+    const result = await resolveAuthenticatedNetquityOwnership(
+      {
+        APP_ENV: "prod",
+        get AIPHABEE_HYPERDRIVE(): { connectionString?: string } | undefined {
+          bindingReads += 1;
+          throw new Error("production binding must not be read");
+        },
+      },
+      ownershipValidInput(),
+    );
+
+    expect(result.status).toBe(403);
+    expect(bindingReads).toBe(0);
+  });
+
+  it("returns unavailable for a missing private database binding", async () => {
+    const result = await resolveAuthenticatedNetquityOwnership(
+      { APP_ENV: "staging" },
+      ownershipValidInput(),
+    );
+
+    expect(result.status).toBe(424);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("denies an unmapped account before membership or Serving reads", async () => {
+    pgState.accountRows = [{ account_id: null }];
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each(["no membership", "inactive membership", "expired subscription"])(
+    "denies %s before rights or Serving reads",
+    async () => {
+      pgState.contextRows = [];
+      const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+      expect(result.status).toBe(403);
+      expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+      expect(
+        queryTexts().some((text) => text.includes("from aiphabee_governance.workspace_entitlement")),
+      ).toBe(false);
+      expect(hasServingRead()).toBe(false);
+    },
+  );
+
+  it("fails closed when more than one entitled workspace is active", async () => {
+    pgState.contextRows = [createContextRow(), { ...createContextRow(), workspace_id: "workspace_2" }];
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(409);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("pins field rights to the active product-access policy version", async () => {
+    await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    const rightsQuery = pgState.queries.find((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQuery?.text).toContain("data_entitlement.dataset = 'ownership'");
+    expect(rightsQuery?.text).toContain("data_entitlement.rights_policy_version = $3");
+    expect(rightsQuery?.values).toEqual([
+      "workspace_test",
+      "subscription_test",
+      "netquity-collaboration-staging.v1",
+    ]);
+  });
+
+  it("denies missing exact field rights before the released snapshot query", async () => {
+    pgState.rightsRows = pgState.rightsRows.slice(0, -1);
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("denies wildcard authority even when every exact field row is also present", async () => {
+    pgState.rightsRows.push(createOwnershipRightsRow("ownership.*"));
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("lets a blocked field win over approved rows", async () => {
+    pgState.rightsRows.push({
+      ...createOwnershipRightsRow("ownership.holders.crossHolding"),
+      entitlement_id: "entitlement_blocked_cross_holding",
+      entitlement_status: "blocked",
+      workspace_entitlement_id: "workspace_entitlement_blocked_cross_holding",
+      workspace_status: "blocked",
+    });
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(403);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each([
+    ["mismatched rights policy", { rights_policy_version: "netquity-collaboration-staging.v2" }],
+    ["non-PASS quality", { quality_state: "HOLD" }],
+  ])("fails closed for a released snapshot with %s", async (_label, override) => {
+    pgState.snapshotRows = [{ ...createSnapshotRow(), ...override }];
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+    expect(
+      queryTexts().some((text) => text.includes("from aiphabee_core.serving_record record")),
+    ).toBe(false);
+  });
+
+  it("resolves an entitled instrument id with available shareCapital/freeFloat/holders after rights evaluation", async () => {
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.liveDataAccess).toBe(true);
+      expect(result.envelope.data.coverage).toEqual({ status: "available" });
+      expect(result.envelope.data.shareCapital?.issuedShares).toBe(3830044500);
+      expect(result.envelope.data.freeFloat?.freeFloatPercent).toBe(69.64);
+      expect(result.envelope.data.holders?.map((holder) => holder.holderType)).toEqual(["I", "F"]);
+    }
+    const texts = queryTexts();
+    expect(texts.findIndex((text) => text.includes("from aiphabee_governance.workspace_entitlement"))).toBeLessThan(
+      texts.findIndex((text) => text.includes("from aiphabee_core.serving_dataset dataset")),
+    );
+  });
+
+  it("resolves an entitled zero-coverage instrument id with an unavailable coverage marker, never fabricated buckets", async () => {
+    pgState.candidateRows = [createUnavailableOwnershipRecordRow()];
+    const result = await resolveAuthenticatedNetquityOwnership(
+      bindings,
+      ownershipValidInput("hkex_security_09999"),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.coverage?.status).toBe("unavailable");
+      expect(result.envelope.data.shareCapital).toBeUndefined();
+      expect(result.envelope.data.freeFloat).toBeUndefined();
+      expect(result.envelope.data.holders).toBeUndefined();
+    }
+  });
+
+  it("returns 404 NOT_FOUND when no released row matches the instrument id, never a synthetic fallback", async () => {
+    pgState.candidateRows = [];
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(404);
+    expect(errorCode(result)).toBe("NOT_FOUND");
+  });
+
+  it("fails closed on a malformed released row rather than exposing it", async () => {
+    pgState.candidateRows = [{ ...createOwnershipRecordRow(), data_version: "wrong-version" }];
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+  });
+
+  it("returns an explicit failure and closes the client on database error", async () => {
+    pgState.failOn = "from aiphabee_governance.workspace_entitlement";
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("does not return an authorized result when the database client cannot close", async () => {
+    pgState.endFails = true;
+
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, ownershipValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+  });
+});
+
 function financialFactsValidInput(instrumentId = "hkex_security_00700") {
   return {
     authSubject: AUTH_SUBJECT,
@@ -2135,6 +2358,109 @@ function createUnavailableDirectorateRecordRow(overrides: Record<string, unknown
       directors: [],
     },
     source_record_id: "netquity:directorate.unavailable:01687",
+    ...overrides,
+  };
+}
+
+function ownershipValidInput(instrumentId = "hkex_security_00001") {
+  return {
+    authSubject: AUTH_SUBJECT,
+    instrumentId,
+    requestId: "request_test",
+  };
+}
+
+function createOwnershipRightsRow(fieldPattern: string) {
+  return {
+    channel: "web",
+    dataset: "ownership",
+    entitlement_id: `entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    entitlement_source_record_id: `source:${fieldPattern}`,
+    entitlement_status: "approved",
+    export_allowed: false,
+    field_pattern: fieldPattern,
+    rights_policy_version: "netquity-collaboration-staging.v1",
+    time_range_days: null,
+    valid_from: "2026-07-10T00:00:00.000Z",
+    valid_to: null,
+    workspace_entitlement_id: `workspace_entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    workspace_source_record_id: `workspace-source:${fieldPattern}`,
+    workspace_status: "approved",
+  };
+}
+
+// Mirrors the real hkex_security_00001 (CK Hutchison Holdings) rows spot-
+// checked via psql against the local netquity mirror: latest
+// nq_issueshare.issueshare row (2026-07-07, issued shares 3,830,044,500),
+// latest nq_freefloatshare2.freefloatshare row (2026-07-06, free float
+// 69.64%), and its top 2 nq_listcompheld.data holders (Li Ka-Shing 30.363%,
+// BlackRock 4.938%, neither a cross-holding).
+function createOwnershipRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_00001",
+    payload: {
+      coverage: { status: "available" },
+      freeFloat: {
+        asOf: "2026-07-06",
+        freeFloatPercent: 69.64,
+        freeFloatShares: 2667112490,
+        issuedShares: 3830044500,
+        nonFreeFloatShares: 1162932010,
+      },
+      holders: [
+        {
+          asOf: "2025-12-31",
+          groupType: "F",
+          heldPercent: 30.363,
+          heldShares: 1162932010,
+          holderId: "ownership_00001_01",
+          holderType: "I",
+          name: { en: "Li Ka-Shing", zhHans: "李嘉诚", zhHant: "李嘉誠" },
+          sourceRecordId: "netquity:listcompheld.data:00001:01",
+          sourceType: "AR",
+        },
+        {
+          asOf: "2026-06-23",
+          groupType: "N",
+          heldPercent: 4.938,
+          heldShares: 189128928,
+          holderId: "ownership_00001_02",
+          holderType: "F",
+          name: { en: "BlackRock, Inc.", zhHans: "贝莱德", zhHant: "貝萊德" },
+          sourceRecordId: "netquity:listcompheld.data:00001:02",
+          sourceType: "SD",
+        },
+      ],
+      shareCapital: {
+        asOf: "2026-07-07",
+        hasSecondaryListing: "N",
+        hkShareClass: "OS",
+        hkShares: 3830044500,
+        isHShare: "N",
+        issuedShares: 3830044500,
+        issuedSharesChange: 0,
+        sharesInCcass: 2555770354,
+        sharesOutsideCcass: 1274274146,
+      },
+    },
+    source_record_id: "netquity:ownership.available:00001",
+    ...overrides,
+  };
+}
+
+function createUnavailableOwnershipRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_09999",
+    payload: {
+      coverage: {
+        reason:
+          "no share capital, free float, or substantial-shareholder/cross-holding record found in nq_issueshare.issueshare, nq_freefloatshare2.freefloatshare, or nq_listcompheld.data for this instrument in the current mirrored snapshot",
+        status: "unavailable",
+      },
+    },
+    source_record_id: "netquity:ownership.unavailable:09999",
     ...overrides,
   };
 }

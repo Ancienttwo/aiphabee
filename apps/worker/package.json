@@ -31,6 +31,7 @@
     "@aiphabee/market-domain-runtime": "file:../../packages/market-domain-runtime",
     "@aiphabee/mcp-runtime": "file:../../packages/mcp-runtime",
     "@aiphabee/observability": "file:../../packages/observability",
+    "@aiphabee/ownership": "file:../../packages/ownership",
     "@aiphabee/partner-runtime": "file:../../packages/partner-runtime",
     "@aiphabee/public-ops": "file:../../packages/public-ops",
     "@aiphabee/research-runtime": "file:../../packages/research-runtime",

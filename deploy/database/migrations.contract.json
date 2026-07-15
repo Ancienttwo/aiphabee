@@ -1590,6 +1590,17 @@
       "constraint_only": true,
       "market_data": false,
       "default_rights_status": "default_deny"
+    },
+    {
+      "file": "deploy/database/migrations/20260716130000_ownership_domain.sql",
+      "purpose": "Extend aiphabee_core.serving_dataset's domain CHECK constraint with the new 'ownership' value (drop + re-add) for the share capital / free float / substantial-shareholder and cross-holding structure promotion, like sdi_disclosure and directorate a Netquity live-promotion slice whose domain has no pre-existing value anywhere in the schema, without creating tables, granting access, or loading data.",
+      "schemas": [
+        "aiphabee_core"
+      ],
+      "tables": [],
+      "constraint_only": true,
+      "market_data": false,
+      "default_rights_status": "default_deny"
     }
   ]
 }

@@ -376,6 +376,94 @@ export interface GetLiveDirectorateData {
   usage: UsageSummary;
 }
 
+// --- get_ownership (live, packages/ownership) -----------------------------
+// Like sdi_disclosure and directorate, ownership has no synthetic
+// counterpart anywhere in this file or in packages/workbench: it never had
+// a Phase 1 synthetic tool, so this is a genuinely new tab, not a
+// synthetic->live cutover. 3 independently optional buckets per instrument:
+// shareCapital (nq_issueshare.issueshare, a current-state object -- not an
+// array), freeFloat (nq_freefloatshare2.freefloatshare, also a current-state
+// object), and holders (nq_listcompheld.data, one entry per
+// substantial-shareholder-or-director holding row). Every listcompheld row
+// is one holding record; a cross-holding is simply the subset where the
+// holder is itself a listed company (holderType 'L') with a resolvable
+// listcode, so each holders[] entry independently optionally carries a
+// crossHolding sub-object instead of a second, duplicate array (see
+// deploy/ingest/netquity-ownership-staging.contract.json's
+// payload_shape_choice). holderType/groupType/sourceType are each promoted
+// as their raw undecoded vendor code (no reference table exists in the
+// mirrored schema), never translated into an interpreted label.
+// `coverage` distinguishes an instrument with no promoted ownership data at
+// all (status "unavailable", all 3 buckets absent) from one this promotion
+// covers (status "available", at least one bucket present).
+export interface OwnershipCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export interface LiveShareCapital {
+  asOf: string;
+  hasSecondaryListing: "N" | "Y";
+  hkShareClass: string;
+  hkShares?: number;
+  isHShare: "N" | "Y";
+  issuedShares: number;
+  issuedSharesChange: number;
+  nonHkShareClass?: string;
+  nonHkShares?: number;
+  preferenceShares?: number;
+  sharesInCcass?: number;
+  sharesOutsideCcass?: number;
+  weightedVotingRightsRatio?: number;
+}
+
+export interface LiveFreeFloat {
+  asOf: string;
+  freeFloatPercent: number;
+  freeFloatShares: number;
+  issuedShares: number;
+  nonFreeFloatShares: number;
+}
+
+export interface LiveOwnershipHolderName {
+  en: string;
+  zhHans: string;
+  zhHant: string;
+}
+
+export interface LiveOwnershipCrossHolding {
+  instrumentId: string;
+}
+
+export interface LiveOwnershipHolder {
+  asOf: string;
+  crossHolding?: LiveOwnershipCrossHolding;
+  groupType: string;
+  heldPercent: number;
+  heldShares: number;
+  holderId: string;
+  holderType: string;
+  instrumentId: string;
+  name: LiveOwnershipHolderName;
+  sourceRecordId: string;
+  sourceType: string;
+}
+
+export interface GetLiveOwnershipData {
+  asOf: string;
+  coverage?: OwnershipCoverage;
+  dataVersion?: string;
+  freeFloat?: LiveFreeFloat;
+  holders?: LiveOwnershipHolder[];
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  shareCapital?: LiveShareCapital;
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

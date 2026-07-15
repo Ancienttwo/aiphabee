@@ -8,6 +8,7 @@ import {
   resolveCorporateActions,
   resolveDirectorate,
   resolveFinancialFacts,
+  resolveOwnership,
   resolveQuoteSnapshot,
   resolveSdiDisclosure,
 } from "../../lib/api";
@@ -18,6 +19,7 @@ import type {
   LiveCorporateActionRow,
   LiveDirectorateCapacity,
   LiveDirectorateProfileRow,
+  LiveOwnershipHolder,
   LiveSdiDisclosureRow,
   LiveSdiPositionType,
   PriceHistorySection,
@@ -773,6 +775,159 @@ export function DirectorsPanel({ instrumentId }: { instrumentId: string }) {
         实时数据 · 董事及高级管理人员履历（年报披露）
       </p>
     </Card>
+  );
+}
+
+const OWNERSHIP_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const OWNERSHIP_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/**
+ * One promoted nq_listcompheld.data row. holderType is rendered as its raw
+ * vendor code (no decode table exists in the mirrored nq_codetable schema --
+ * see deploy/ingest/netquity-ownership-staging.contract.json -- so unlike
+ * DIRECTORATE_CAPACITY_LABEL/SDI_FORM_LABEL, which each had their own
+ * verified basis for a presentational label, no interpreted label is
+ * invented here). crossHolding, when present, is the real cross-holding
+ * edge this cut's design baseline calls for -- rendered as a link-style
+ * annotation (list rendering, not the design baseline's hex-graph
+ * visualization, which this cut does not build).
+ */
+function OwnershipHolderRow({ holder }: { holder: LiveOwnershipHolder }) {
+  return (
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" }}
+    >
+      <Badge tone={holder.crossHolding ? "ai" : "neutral"} variant="soft" size="sm">{holder.holderType}</Badge>
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)", minWidth: 0, flex: 1 }}>
+        {holder.name.zhHant || holder.name.en}
+      </span>
+      {holder.crossHolding ? (
+        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontFamily: "var(--font-mono)" }}>
+          交叉持股 → {holder.crossHolding.instrumentId}
+        </span>
+      ) : null}
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
+        {fmt(holder.heldPercent, 2)}%
+      </span>
+      <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        {fmt(holder.heldShares, 0)} 股 · {holder.asOf}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Ownership (share capital / free float / substantial-shareholder and
+ * cross-holding structure) panel: an independent live query against the
+ * entitlement-gated resolveOwnership RPC (FinancialsPanel/QuotePanel/
+ * CorporateActionsPanel/SdiDisclosurePanel/DirectorsPanel decoupling
+ * pattern). Like SdiDisclosurePanel/DirectorsPanel, ownership has no
+ * synthetic counterpart anywhere in packages/workbench -- this is a
+ * genuinely new tab. shareCapital/freeFloat/holders are each independently
+ * optional; only fields the promotion actually carries are rendered (no
+ * treasury-share or par-value card -- neither is a promoted field this cut,
+ * see contract.json).
+ */
+export function OwnershipPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: ownershipEnv, isLoading } = useQuery({
+    queryKey: ["ownership-live", instrumentId],
+    queryFn: () => resolveOwnership(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载股权结构…</p>
+    );
+  }
+
+  if (!ownershipEnv || !ownershipEnv.ok) {
+    const code = ownershipEnv?.error.code;
+    const tone: BadgeTone = (code && OWNERSHIP_STATE_TONE[code]) ?? "bearish";
+    const label = (code && OWNERSHIP_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = ownershipEnv ? presentError(ownershipEnv).detail : "股权结构服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>股权结构</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, shareCapital, freeFloat, holders } = ownershipEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无股权结构记录。"} />;
+  }
+  if (!shareCapital && !freeFloat && (!holders || holders.length === 0)) {
+    return <EmptyPanel note="该证券暂无股权结构记录。" />;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {shareCapital || freeFloat ? (
+        <Card padded>
+          <SectionTitle>股本与流通</SectionTitle>
+          <div className="ab-grid-3" style={{ gap: 14 }}>
+            {shareCapital ? (
+              <Metric label="已发行股份" value={fmt(shareCapital.issuedShares, 0)} sub={shareCapital.hkShareClass} />
+            ) : null}
+            {freeFloat ? (
+              <Metric label="自由流通比例" value={`${fmt(freeFloat.freeFloatPercent, 2)}%`} sub={`流通 ${fmt(freeFloat.freeFloatShares, 0)} 股`} tone="up" />
+            ) : null}
+            {shareCapital?.hkShares !== undefined ? (
+              <Metric label="香港股份类别股数" value={fmt(shareCapital.hkShares, 0)} />
+            ) : null}
+            {shareCapital?.nonHkShares !== undefined ? (
+              <Metric label="非香港股份类别股数" value={fmt(shareCapital.nonHkShares, 0)} sub={shareCapital.nonHkShareClass} />
+            ) : null}
+            {shareCapital?.sharesInCcass !== undefined ? (
+              <Metric label="中央结算持股" value={fmt(shareCapital.sharesInCcass, 0)} />
+            ) : null}
+            {shareCapital?.sharesOutsideCcass !== undefined ? (
+              <Metric label="中央结算外持股" value={fmt(shareCapital.sharesOutsideCcass, 0)} />
+            ) : null}
+            {shareCapital?.preferenceShares !== undefined ? (
+              <Metric label="优先股" value={fmt(shareCapital.preferenceShares, 0)} />
+            ) : null}
+            {shareCapital?.weightedVotingRightsRatio !== undefined ? (
+              <Metric label="不同投票权比率" value={fmt(shareCapital.weightedVotingRightsRatio, 2)} />
+            ) : null}
+          </div>
+          <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+            实时数据{shareCapital ? ` · 股本截至 ${shareCapital.asOf}` : ""}{freeFloat ? ` · 自由流通截至 ${freeFloat.asOf}` : ""}
+          </p>
+        </Card>
+      ) : null}
+
+      {holders && holders.length > 0 ? (
+        <Card padded>
+          <SectionTitle>持有人及交叉持股（{holders.length}）</SectionTitle>
+          <div style={{ display: "grid" }}>
+            {holders.map((holder) => (
+              <OwnershipHolderRow key={holder.holderId} holder={holder} />
+            ))}
+          </div>
+          <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+            实时数据 · 主要股东及董事权益披露 · 上市公司交叉持股以箭头标注
+          </p>
+        </Card>
+      ) : null}
+    </div>
   );
 }
 

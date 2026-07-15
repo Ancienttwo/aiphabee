@@ -5,11 +5,12 @@ import type {
   SecurityProfileSection,
 } from "../../lib/api";
 
-// FinancialsPanel, QuotePanel, CorporateActionsPanel, SdiDisclosurePanel and
-// DirectorsPanel are intentionally not covered here: they each do their own
-// live useQuery against an entitlement-gated RPC (resolveFinancialFacts /
-// resolveQuoteSnapshot / resolveCorporateActions / resolveSdiDisclosure /
-// resolveDirectorate respectively -- CompanyHeader decoupling pattern,
+// FinancialsPanel, QuotePanel, CorporateActionsPanel, SdiDisclosurePanel,
+// DirectorsPanel, and OwnershipPanel are intentionally not covered here:
+// they each do their own live useQuery against an entitlement-gated RPC
+// (resolveFinancialFacts / resolveQuoteSnapshot / resolveCorporateActions /
+// resolveSdiDisclosure / resolveDirectorate / resolveOwnership respectively
+// -- CompanyHeader decoupling pattern,
 // apps/web/src/routes/stock/$instrumentId.tsx), so none of them can be
 // exercised by prop-driven renderToStaticMarkup like the other
 // synthetic-snapshot panels below. FinancialsPanel's behavior is covered by
@@ -27,7 +28,9 @@ import type {
 // DirectorsPanel's behavior is covered the same way by packages/directorate,
 // the same worker resolver test file, and
 // apps/web/src/lib/api/directorate.server.test.ts -- matching CompanyHeader,
-// which also has no direct render test.
+// which also has no direct render test. OwnershipPanel's behavior is covered
+// the same way by packages/ownership, the same worker resolver test file,
+// and apps/web/src/lib/api/ownership.server.test.ts.
 // AnnouncementsPanel remains synthetic (unchanged, still prop-driven).
 
 const USAGE = { cached: false, credits: 0, rows: 1 };

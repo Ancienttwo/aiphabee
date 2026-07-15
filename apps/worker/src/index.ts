@@ -117,11 +117,13 @@ import {
   resolveAuthenticatedNetquityCorporateActions,
   resolveAuthenticatedNetquitySdiDisclosure,
   resolveAuthenticatedNetquityDirectorate,
+  resolveAuthenticatedNetquityOwnership,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
   type AuthenticatedNetquityCorporateActionsResolverInput,
   type AuthenticatedNetquityDirectorateResolverInput,
   type AuthenticatedNetquityFinancialFactsResolverInput,
+  type AuthenticatedNetquityOwnershipResolverInput,
   type AuthenticatedNetquityProfileResolverInput,
   type AuthenticatedNetquityQuoteSnapshotResolverInput,
   type AuthenticatedNetquityResolverInput,
@@ -12811,6 +12813,10 @@ export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindin
 
   async resolveDirectorate(input: AuthenticatedNetquityDirectorateResolverInput) {
     return resolveAuthenticatedNetquityDirectorate(this.env, input);
+  }
+
+  async resolveOwnership(input: AuthenticatedNetquityOwnershipResolverInput) {
+    return resolveAuthenticatedNetquityOwnership(this.env, input);
   }
 }
 
