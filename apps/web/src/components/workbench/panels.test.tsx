@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FinancialsPanel, ProfilePanel, QuotePanel } from "./panels";
+import { ProfilePanel, QuotePanel } from "./panels";
 import type {
-  FinancialFactsSection,
   QuoteSection,
   SecurityProfileSection,
 } from "../../lib/api";
+
+// FinancialsPanel is intentionally not covered here: it now does its own
+// live useQuery against the entitlement-gated resolveFinancialFacts RPC
+// (CompanyHeader decoupling pattern, apps/web/src/routes/stock/$instrumentId.tsx),
+// so it can no longer be exercised by prop-driven renderToStaticMarkup like
+// the other synthetic-snapshot panels below. Its behavior is covered by
+// packages/financial-facts (mapping/validation),
+// apps/worker/src/authenticated-netquity-web-resolver.test.ts (RPC
+// authorization chain), and apps/web/src/lib/api/financial-facts.server.test.ts
+// (server-fn boundary) -- matching CompanyHeader, which also has no direct
+// render test.
 
 const USAGE = { cached: false, credits: 0, rows: 1 };
 
@@ -46,34 +56,6 @@ const QUOTE: QuoteSection = {
   },
 };
 
-const FINANCIALS: FinancialFactsSection = {
-  status: "found",
-  usage: USAGE,
-  provenance: [],
-  facts: {
-    accountingStandard: "IFRS",
-    currency: "HKD",
-    unit: "thousand",
-    rowCount: 1,
-    totalRows: 1,
-    facts: [
-      {
-        currency: "HKD",
-        metricId: "revenue",
-        periodEnd: "2024-12-31",
-        periodType: "FY",
-        qualityState: "PASS",
-        scale: 1000,
-        sourceRecordId: "src",
-        statementType: "income_statement",
-        unit: "thousand",
-        value: 600000,
-        versionStatus: "latest",
-      },
-    ],
-  },
-};
-
 describe("workbench panels render (SSR)", () => {
   it("ProfilePanel renders company name and symbol", () => {
     const html = renderToStaticMarkup(<ProfilePanel section={PROFILE} />);
@@ -93,11 +75,5 @@ describe("workbench panels render (SSR)", () => {
     const html = renderToStaticMarkup(<QuotePanel section={QUOTE} />);
     expect(html).toContain("448.20");
     expect(html).toContain("延迟 15 分钟");
-  });
-
-  it("FinancialsPanel maps metric ids to labels and groups thousands", () => {
-    const html = renderToStaticMarkup(<FinancialsPanel section={FINANCIALS} />);
-    expect(html).toContain("营业收入");
-    expect(html).toContain("600,000");
   });
 });

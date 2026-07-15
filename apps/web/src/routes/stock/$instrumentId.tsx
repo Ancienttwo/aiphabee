@@ -146,7 +146,7 @@ function StockWorkbench() {
               {/* Active panel */}
               {tab === "profile" ? <ProfilePanel section={snap.security_profile} /> : null}
               {tab === "quote" ? <QuotePanel section={snap.quote_snapshot} /> : null}
-              {tab === "financials" ? <FinancialsPanel section={snap.financial_facts} /> : null}
+              {tab === "financials" ? <FinancialsPanel instrumentId={instrumentId} /> : null}
               {tab === "price" ? <PricePanel section={snap.price_history} /> : null}
               {tab === "derived" ? <DerivedPanel section={snap.derived_metrics} /> : null}
               {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}

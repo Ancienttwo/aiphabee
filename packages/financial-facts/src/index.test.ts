@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   FinancialFactsInputError,
   FinancialRestatementError,
+  GetLiveFinancialFactsReadbackError,
   buildFinancialRestatementTimeline,
   getFinancialFacts,
   getFinancialFactsCapabilities,
   getFinancialRestatementCapabilities,
+  getLiveFinancialFacts,
   runSyntheticFinancialRestatementGolden,
-  selectFinancialStatementAsOf
+  selectFinancialStatementAsOf,
+  type LiveFinancialFactsRow
 } from "./index";
 
 describe("financial restatement engine", () => {
@@ -346,4 +349,379 @@ function runSyntheticFinancialRestatementGoldenFixture() {
       unit: "million"
     }
   ];
+}
+
+describe("live financial facts resolver", () => {
+  it("maps an available-coverage row into typed facts", () => {
+    const result = getLiveFinancialFacts(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-financial-facts-test.v1",
+        instrumentId: "hkex_security_00700"
+      },
+      [createLiveFinancialFactsRow()]
+    );
+
+    expect(result.status).toBe("found");
+    expect(result.toolName).toBe("get_financial_facts");
+    expect(result.liveDataAccess).toBe(true);
+    expect(result.coverage).toEqual({ status: "available" });
+    expect(result.facts).toHaveLength(2);
+    expect(result.facts?.[0]).toEqual({
+      currency: "RMB",
+      instrumentId: "hkex_security_00700",
+      metricId: "revenue",
+      periodEnd: "2025-12-31",
+      periodType: "FY",
+      publishedAt: "2026-03-18T00:00:00+08:00",
+      qualityState: "PASS",
+      scale: 1,
+      sourceRecordId: "netquity:finreport.pla_nb.totalturnover:00700:2025-12-31:F",
+      statementId: "netquity:finreport.stmt:00700:2025-12-31:F",
+      statementType: "income_statement",
+      unit: "unit",
+      value: 751766000000
+    });
+    expect(result.provenance).toEqual([
+      expect.objectContaining({
+        source: "netquity-finreport-nb",
+        source_record_id: "netquity:finreport.pla_nb.totalturnover:00700:2025-12-31:F"
+      }),
+      expect.objectContaining({
+        source: "netquity-finreport-nb",
+        source_record_id: "netquity:finreport.pla_nb.net_prof:00700:2025-12-31:F"
+      })
+    ]);
+    expect(result.usage.rows).toBe(2);
+  });
+
+  it("returns not_found without throwing when no row matches", () => {
+    const result = getLiveFinancialFacts(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-financial-facts-test.v1",
+        instrumentId: "hkex_security_00700"
+      },
+      []
+    );
+
+    expect(result.status).toBe("not_found");
+    expect(result.facts).toBeUndefined();
+    expect(result.coverage).toBeUndefined();
+    expect(result.provenance).toEqual([]);
+    expect(result.usage.rows).toBe(0);
+    expect(result.liveDataAccess).toBe(true);
+  });
+
+  it("requires a non-empty instrument id", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        { asOf: "2026-07-15T00:00:00+08:00", dataVersion: "netquity-financial-facts-test.v1", instrumentId: "  " },
+        []
+      )
+    ).toThrow(FinancialFactsInputError);
+  });
+
+  it("rejects more than one row for the same instrument id rather than picking one", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [createLiveFinancialFactsRow(), createLiveFinancialFactsRow()]
+      )
+    ).toThrow(GetLiveFinancialFactsReadbackError);
+  });
+
+  it("rejects a row that disagrees with snapshot authority", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...createLiveFinancialFactsRow(), data_version: "other-version" }]
+      )
+    ).toThrowError("row data version does not match the released snapshot");
+  });
+
+  it("rejects an entity id that is not an opaque HKEX security id", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "eq_hk_00700"
+        },
+        [{ ...createLiveFinancialFactsRow(), entity_id: "eq_hk_00700" }]
+      )
+    ).toThrowError("entity id is not an opaque HKEX security id");
+  });
+
+  it("rejects a row for a different instrument id than requested", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00001"
+        },
+        [createLiveFinancialFactsRow()]
+      )
+    ).toThrowError("entity id does not match the requested instrument id");
+  });
+
+  it("rejects a source record id that does not match the entity id", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...createLiveFinancialFactsRow(), source_record_id: "netquity:finreport.nb:00001" }]
+      )
+    ).toThrow(GetLiveFinancialFactsReadbackError);
+  });
+
+  it("rejects a malformed payload", () => {
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...createLiveFinancialFactsRow(), payload: null }]
+      )
+    ).toThrow(GetLiveFinancialFactsReadbackError);
+  });
+
+  it("rejects a malformed coverage status", () => {
+    const row = createLiveFinancialFactsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), coverage: { status: "unknown" } };
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("coverage status is malformed");
+  });
+
+  it("rejects payload facts that are not an array", () => {
+    const row = createLiveFinancialFactsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), facts: {} };
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("payload facts is malformed");
+  });
+
+  it.each([
+    "currency",
+    "statementType",
+    "periodEnd",
+    "periodType",
+    "value",
+    "scale",
+    "publishedAt",
+    "qualityState",
+    "statementId",
+    "sourceRecordId"
+  ] as const)("rejects a fact with a missing %s", (field) => {
+    const row = createLiveFinancialFactsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const facts = (payload.facts as Array<Record<string, unknown>>).map((fact, index) => {
+      if (index !== 0) return fact;
+      const clone = { ...fact };
+      delete clone[field];
+      return clone;
+    });
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, payload: { ...payload, facts } }]
+      )
+    ).toThrow(GetLiveFinancialFactsReadbackError);
+  });
+
+  it("rejects a fact whose statementType disagrees with its metricId", () => {
+    const row = createLiveFinancialFactsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const facts = (payload.facts as Array<Record<string, unknown>>).map((fact, index) =>
+      index === 0 ? { ...fact, statementType: "balance_sheet" } : fact
+    );
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, payload: { ...payload, facts } }]
+      )
+    ).toThrowError("fact statementType does not match metricId");
+  });
+
+  it("rejects free_cash_flow even though it is a valid synthetic FinancialFactMetric", () => {
+    const row = createLiveFinancialFactsRow();
+    const payload = row.payload as Record<string, unknown>;
+    const facts = (payload.facts as Array<Record<string, unknown>>).map((fact, index) =>
+      index === 0 ? { ...fact, metricId: "free_cash_flow", statementType: "cash_flow" } : fact
+    );
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, payload: { ...payload, facts } }]
+      )
+    ).toThrowError("fact metricId is malformed or not a promoted live metric");
+  });
+
+  it("maps a bank/insurance unavailable-coverage row with no fabricated facts", () => {
+    const result = getLiveFinancialFacts(
+      {
+        asOf: "2026-07-15T00:00:00+08:00",
+        dataVersion: "netquity-financial-facts-test.v1",
+        instrumentId: "hkex_security_00005"
+      },
+      [createUnavailableFinancialFactsRow()]
+    );
+
+    expect(result.status).toBe("found");
+    expect(result.coverage).toEqual({
+      reason:
+        "reports under the bank/insurance statement schema (pla_b/pla_i/bal_b/bal_i), which is not rights-pinned by this promotion",
+      status: "unavailable"
+    });
+    expect(result.facts).toEqual([]);
+    expect(result.provenance).toEqual([
+      expect.objectContaining({ source_record_id: "netquity:finreport.bank_insurance_excluded:00005" })
+    ]);
+    expect(result.usage.rows).toBe(0);
+  });
+
+  it("rejects unavailable coverage that still carries fact rows", () => {
+    const row = createUnavailableFinancialFactsRow();
+    const payload = {
+      ...(row.payload as Record<string, unknown>),
+      facts: (createLiveFinancialFactsRow().payload as Record<string, unknown>).facts
+    };
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00005"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("unavailable coverage must not carry fact rows");
+  });
+
+  it("rejects unavailable coverage without a reason", () => {
+    const row = createUnavailableFinancialFactsRow();
+    const payload = { ...(row.payload as Record<string, unknown>), coverage: { status: "unavailable" } };
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00005"
+        },
+        [{ ...row, payload }]
+      )
+    ).toThrowError("unavailable coverage requires a reason");
+  });
+
+  it("rejects available coverage backed by the bank/insurance-excluded source record id", () => {
+    const row = createLiveFinancialFactsRow();
+    expect(() =>
+      getLiveFinancialFacts(
+        {
+          asOf: "2026-07-15T00:00:00+08:00",
+          dataVersion: "netquity-financial-facts-test.v1",
+          instrumentId: "hkex_security_00700"
+        },
+        [{ ...row, source_record_id: "netquity:finreport.bank_insurance_excluded:00700" }]
+      )
+    ).toThrowError("available coverage must use the nb source record id");
+  });
+});
+
+function createLiveFinancialFactsRow(): LiveFinancialFactsRow {
+  return {
+    data_version: "netquity-financial-facts-test.v1",
+    entity_id: "hkex_security_00700",
+    payload: {
+      coverage: { status: "available" },
+      facts: [
+        {
+          currency: "RMB",
+          metricId: "revenue",
+          periodEnd: "2025-12-31",
+          periodType: "FY",
+          publishedAt: "2026-03-18T00:00:00+08:00",
+          qualityState: "PASS",
+          scale: 1,
+          sourceRecordId: "netquity:finreport.pla_nb.totalturnover:00700:2025-12-31:F",
+          statementId: "netquity:finreport.stmt:00700:2025-12-31:F",
+          statementType: "income_statement",
+          unit: "unit",
+          value: 751766000000
+        },
+        {
+          currency: "RMB",
+          metricId: "net_income",
+          periodEnd: "2025-12-31",
+          periodType: "FY",
+          publishedAt: "2026-03-18T00:00:00+08:00",
+          qualityState: "PASS",
+          scale: 1,
+          sourceRecordId: "netquity:finreport.pla_nb.net_prof:00700:2025-12-31:F",
+          statementId: "netquity:finreport.stmt:00700:2025-12-31:F",
+          statementType: "income_statement",
+          unit: "unit",
+          value: 224842000000
+        }
+      ]
+    },
+    source_record_id: "netquity:finreport.nb:00700"
+  };
+}
+
+function createUnavailableFinancialFactsRow(): LiveFinancialFactsRow {
+  return {
+    data_version: "netquity-financial-facts-test.v1",
+    entity_id: "hkex_security_00005",
+    payload: {
+      coverage: {
+        reason:
+          "reports under the bank/insurance statement schema (pla_b/pla_i/bal_b/bal_i), which is not rights-pinned by this promotion",
+        status: "unavailable"
+      },
+      facts: []
+    },
+    source_record_id: "netquity:finreport.bank_insurance_excluded:00005"
+  };
 }

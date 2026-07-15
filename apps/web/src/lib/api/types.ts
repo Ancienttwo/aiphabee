@@ -95,6 +95,50 @@ export interface GetSecurityProfileData {
   usage: UsageSummary;
 }
 
+// --- get_financial_facts (live, packages/financial-facts) ----------------
+// Distinct from the synthetic FinancialFactRow/FinancialFactsSection below
+// (workbench snapshot tab): this is the live, Serving-backed shape returned
+// by the resolveFinancialFacts RPC. There is no accountingStandard,
+// companyId, restatementVersion or versionStatus (no rights-pinned source
+// for any of them); scale/unit describe raw unscaled currency amounts, not
+// the synthetic fixtures' million-scale convention. `coverage` distinguishes
+// an instrument that reports under the bank/insurance statement schema
+// (status "unavailable", facts always []) from one this promotion actually
+// covers (status "available").
+export interface LiveFinancialFactsCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export interface LiveFinancialFactRow {
+  currency: string;
+  instrumentId: string;
+  metricId: string;
+  periodEnd: string;
+  periodType: "FY" | "H1";
+  publishedAt: string;
+  qualityState: QualityState;
+  scale: number;
+  sourceRecordId: string;
+  statementId: string;
+  statementType: string;
+  unit: string;
+  value: number;
+}
+
+export interface GetLiveFinancialFactsData {
+  asOf: string;
+  coverage?: LiveFinancialFactsCoverage;
+  dataVersion?: string;
+  facts?: LiveFinancialFactRow[];
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

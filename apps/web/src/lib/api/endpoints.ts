@@ -1,5 +1,6 @@
 import { apiCall } from "./client";
 import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } from "./security.functions";
+import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -28,6 +29,11 @@ export function resolveSecurity(query: string, market?: string) {
 /** Gated live company-header profile for a known instrument id (POST server-fn). */
 export function resolveSecurityProfile(instrumentId: string) {
   return resolveAuthenticatedSecurityProfile({ data: { instrumentId } });
+}
+
+/** Gated live financial facts (non-bank/nb only) for a known instrument id (POST server-fn). */
+export function resolveFinancialFacts(instrumentId: string) {
+  return resolveAuthenticatedFinancialFacts({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

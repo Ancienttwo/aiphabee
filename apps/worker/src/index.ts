@@ -112,8 +112,10 @@ import {
 import {
   resolveAuthenticatedNetquitySecurity,
   resolveAuthenticatedNetquityProfile,
+  resolveAuthenticatedNetquityFinancialFacts,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
+  type AuthenticatedNetquityFinancialFactsResolverInput,
   type AuthenticatedNetquityProfileResolverInput,
   type AuthenticatedNetquityResolverInput,
 } from "./authenticated-netquity-web-resolver.js";
@@ -12781,6 +12783,10 @@ export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindin
 
   async resolveProfile(input: AuthenticatedNetquityProfileResolverInput) {
     return resolveAuthenticatedNetquityProfile(this.env, input);
+  }
+
+  async resolveFinancialFacts(input: AuthenticatedNetquityFinancialFactsResolverInput) {
+    return resolveAuthenticatedNetquityFinancialFacts(this.env, input);
   }
 }
 

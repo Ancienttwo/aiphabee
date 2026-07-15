@@ -1160,3 +1160,402 @@ function withinTolerance(actual: number, expected: number, tolerance: number): b
 function roundValue(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
 }
+
+// --- Live financial facts (Serving Store, non-bank/nb only) --------------
+// Distinct from the synthetic getFinancialFacts above: this is the live,
+// entitlement-gated shape returned by the resolveFinancialFacts RPC, sourced
+// from a Serving Store snapshot promoted by
+// deploy/ingest/netquity-financial-facts-staging.sql. Only 6 of the 7
+// FinancialFactMetric values are ever populated live (free_cash_flow has no
+// rights-pinned single-column vendor mapping); accountingStandard,
+// companyId, restatementVersion and versionStatus have no rights-pinned
+// source at all, so LiveFinancialFactRow omits them entirely rather than
+// inventing a constant -- matching how LiveSecurityProfile
+// (packages/security-tools) omits the synthetic company/top-level industry
+// object instead of fabricating one.
+
+export const GET_FINANCIAL_FACTS_LIVE_VERSION =
+  "2026-07-15.netquity-financial-facts-live.v1";
+
+export type GetLiveFinancialFactsReadbackErrorCode =
+  | "MALFORMED_LIVE_ROW"
+  | "MULTIPLE_ROWS_FOR_INSTRUMENT";
+export type FinancialFactsCoverageStatus = "available" | "unavailable";
+
+export interface FinancialFactsCoverage {
+  reason?: string;
+  status: FinancialFactsCoverageStatus;
+}
+
+/**
+ * One promoted fact. Unlike the synthetic FinancialFactRow, there is no
+ * accountingStandard, companyId, restatementVersion or versionStatus: the
+ * mirrored Netquity schema has no rights-pinned source for any of them, and
+ * this promotion does not carry a restatement lineage (each row is simply
+ * whatever nq_finreport currently has on file for that period). scale is
+ * always 1 and unit is always "unit": vendor columns already contain full,
+ * unscaled currency amounts, unlike the synthetic fixtures' scale=1000000 /
+ * unit="million" convention.
+ */
+export interface LiveFinancialFactRow {
+  currency: string;
+  instrumentId: string;
+  metricId: FinancialFactMetric;
+  periodEnd: string;
+  periodType: "FY" | "H1";
+  publishedAt: string;
+  qualityState: FinancialFactQualityState;
+  scale: number;
+  sourceRecordId: string;
+  statementId: string;
+  statementType: FinancialFactStatementType;
+  unit: string;
+  value: number;
+}
+
+export interface LiveFinancialFactsRow {
+  data_version: string;
+  entity_id: string;
+  payload: unknown;
+  source_record_id: string;
+}
+
+export interface GetLiveFinancialFactsInput {
+  asOf: string;
+  dataVersion: string;
+  instrumentId: string;
+}
+
+export interface GetLiveFinancialFactsResult {
+  asOf: string;
+  coverage?: FinancialFactsCoverage;
+  dataVersion: string;
+  facts?: LiveFinancialFactRow[];
+  instrumentId: string;
+  liveDataAccess: true;
+  methodologyVersion: typeof GET_FINANCIAL_FACTS_LIVE_VERSION;
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
+  status: "found" | "not_found";
+  toolName: "get_financial_facts";
+  usage: {
+    cached: boolean;
+    credits: number;
+    rows: number;
+  };
+}
+
+export class GetLiveFinancialFactsReadbackError extends Error {
+  readonly code: GetLiveFinancialFactsReadbackErrorCode;
+
+  constructor(code: GetLiveFinancialFactsReadbackErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const LIVE_METRIC_STATEMENT_TYPE: Readonly<Record<FinancialFactMetric, FinancialFactStatementType>> = {
+  assets: "balance_sheet",
+  equity: "balance_sheet",
+  free_cash_flow: "cash_flow",
+  liabilities: "balance_sheet",
+  net_income: "income_statement",
+  operating_cash_flow: "cash_flow",
+  revenue: "income_statement"
+};
+const LIVE_PROMOTED_METRICS: readonly FinancialFactMetric[] = [
+  "revenue",
+  "net_income",
+  "assets",
+  "liabilities",
+  "equity",
+  "operating_cash_flow"
+];
+
+/**
+ * Exact entity-id financial-facts lookup against a released Serving
+ * snapshot. `rows` is expected to already be scoped to a single instrument
+ * id by the caller's SQL (WHERE entity_id = $2); more than one row is a data
+ * integrity failure, not silently narrowed. A legitimate zero-row result is
+ * `status: "not_found"`; a row that exists but carries
+ * `coverage.status: "unavailable"` (bank/insurance schema, not promoted) is
+ * still `status: "found"` with an empty `facts` array -- the caller can tell
+ * "we know this instrument and it is out of scope" apart from "we have never
+ * heard of this instrument".
+ */
+export function getLiveFinancialFacts(
+  input: GetLiveFinancialFactsInput,
+  rows: readonly LiveFinancialFactsRow[]
+): GetLiveFinancialFactsResult {
+  const instrumentId = input.instrumentId.trim();
+
+  if (instrumentId.length === 0) {
+    throw new FinancialFactsInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (rows.length > 1) {
+    throw new GetLiveFinancialFactsReadbackError(
+      "MULTIPLE_ROWS_FOR_INSTRUMENT",
+      "financial facts lookup matched more than one released row for this instrument id"
+    );
+  }
+
+  const dataVersion = requireNonEmptyLiveFactString(input.dataVersion, "snapshot data version");
+  const asOf = requireNonEmptyLiveFactString(input.asOf, "snapshot as-of");
+  const row = rows[0];
+
+  if (row === undefined) {
+    return {
+      asOf,
+      dataVersion,
+      instrumentId,
+      liveDataAccess: true,
+      methodologyVersion: GET_FINANCIAL_FACTS_LIVE_VERSION,
+      provenance: [],
+      status: "not_found",
+      toolName: "get_financial_facts",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const mapped = mapLiveFinancialFactsRow({
+    expectedDataVersion: dataVersion,
+    expectedInstrumentId: instrumentId,
+    row
+  });
+
+  return {
+    asOf,
+    coverage: mapped.coverage,
+    dataVersion,
+    facts: mapped.facts,
+    instrumentId,
+    liveDataAccess: true,
+    methodologyVersion: GET_FINANCIAL_FACTS_LIVE_VERSION,
+    provenance:
+      mapped.facts.length > 0
+        ? mapped.facts.map((fact) => ({
+            data_version: dataVersion,
+            methodology_version: GET_FINANCIAL_FACTS_LIVE_VERSION,
+            source: "netquity-finreport-nb",
+            source_record_id: fact.sourceRecordId
+          }))
+        : [
+            {
+              data_version: dataVersion,
+              methodology_version: GET_FINANCIAL_FACTS_LIVE_VERSION,
+              source: "netquity-finreport-nb",
+              source_record_id: row.source_record_id
+            }
+          ],
+    status: "found",
+    toolName: "get_financial_facts",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: mapped.facts.length
+    }
+  };
+}
+
+/**
+ * Maps one released `serving_record` row to its coverage marker and fact
+ * array. Kept module-private, matching `mapLiveSecurityProfileRow` in
+ * packages/security-tools: only the public `getLiveFinancialFacts` entry
+ * point is tested/consumed directly.
+ */
+function mapLiveFinancialFactsRow(input: {
+  expectedDataVersion: string;
+  expectedInstrumentId: string;
+  row: LiveFinancialFactsRow;
+}): { coverage: FinancialFactsCoverage; facts: LiveFinancialFactRow[] } {
+  const { row } = input;
+  const dataVersion = requireNonEmptyLiveFactString(row.data_version, "row data version");
+
+  if (dataVersion !== input.expectedDataVersion) {
+    throw malformedLiveFactsRow("row data version does not match the released snapshot");
+  }
+
+  const instrumentId = requireNonEmptyLiveFactString(row.entity_id, "entity id");
+
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) {
+    throw malformedLiveFactsRow("entity id is not an opaque HKEX security id");
+  }
+
+  if (instrumentId !== input.expectedInstrumentId) {
+    throw malformedLiveFactsRow("entity id does not match the requested instrument id");
+  }
+
+  const code = instrumentId.slice("hkex_security_".length);
+  const sourceRecordId = requireNonEmptyLiveFactString(row.source_record_id, "source record id");
+  const expectedAvailableSourceRecordId = `netquity:finreport.nb:${code}`;
+  const expectedUnavailableSourceRecordId = `netquity:finreport.bank_insurance_excluded:${code}`;
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId && sourceRecordId !== expectedUnavailableSourceRecordId) {
+    throw malformedLiveFactsRow("source record id is not a matching Netquity financial-facts record");
+  }
+
+  const payload = requireLiveFactsObject(row.payload, "payload");
+  const coverage = mapLiveFinancialFactsCoverage(payload.coverage);
+  const factsValue = payload.facts;
+
+  if (!Array.isArray(factsValue)) {
+    throw malformedLiveFactsRow("payload facts is malformed");
+  }
+
+  if (coverage.status === "unavailable") {
+    if (factsValue.length > 0) {
+      throw malformedLiveFactsRow("unavailable coverage must not carry fact rows");
+    }
+
+    if (sourceRecordId !== expectedUnavailableSourceRecordId) {
+      throw malformedLiveFactsRow("unavailable coverage must use the bank/insurance-excluded source record id");
+    }
+
+    return { coverage, facts: [] };
+  }
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId) {
+    throw malformedLiveFactsRow("available coverage must use the nb source record id");
+  }
+
+  const facts = factsValue.map((entry) => mapLiveFinancialFactRow(entry, instrumentId));
+
+  return { coverage, facts };
+}
+
+function mapLiveFinancialFactsCoverage(value: unknown): FinancialFactsCoverage {
+  const coverage = requireLiveFactsObject(value, "coverage");
+  const status = coverage.status;
+
+  if (status !== "available" && status !== "unavailable") {
+    throw malformedLiveFactsRow("coverage status is malformed");
+  }
+
+  if (status === "unavailable") {
+    const reason = coverage.reason;
+
+    if (typeof reason !== "string" || reason.trim().length === 0) {
+      throw malformedLiveFactsRow("unavailable coverage requires a reason");
+    }
+
+    return { reason, status };
+  }
+
+  return { status };
+}
+
+function mapLiveFinancialFactRow(rawFact: unknown, instrumentId: string): LiveFinancialFactRow {
+  const fact = requireLiveFactsObject(rawFact, "fact");
+  const metricId = fact.metricId;
+
+  if (typeof metricId !== "string" || !(LIVE_PROMOTED_METRICS as readonly string[]).includes(metricId)) {
+    throw malformedLiveFactsRow("fact metricId is malformed or not a promoted live metric");
+  }
+
+  const statementType = fact.statementType;
+
+  if (statementType !== "income_statement" && statementType !== "balance_sheet" && statementType !== "cash_flow") {
+    throw malformedLiveFactsRow("fact statementType is malformed");
+  }
+
+  if (LIVE_METRIC_STATEMENT_TYPE[metricId as FinancialFactMetric] !== statementType) {
+    throw malformedLiveFactsRow("fact statementType does not match metricId");
+  }
+
+  const periodEnd = fact.periodEnd;
+
+  if (typeof periodEnd !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(periodEnd)) {
+    throw malformedLiveFactsRow("fact periodEnd is malformed");
+  }
+
+  const periodType = fact.periodType;
+
+  if (periodType !== "FY" && periodType !== "H1") {
+    throw malformedLiveFactsRow("fact periodType is malformed");
+  }
+
+  const value = fact.value;
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw malformedLiveFactsRow("fact value is malformed");
+  }
+
+  const currency = requireLiveFactsPayloadString(fact, "currency");
+  const unit = requireLiveFactsPayloadString(fact, "unit");
+  const scale = fact.scale;
+
+  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
+    throw malformedLiveFactsRow("fact scale is malformed");
+  }
+
+  const publishedAt = fact.publishedAt;
+
+  if (typeof publishedAt !== "string" || Number.isNaN(Date.parse(publishedAt))) {
+    throw malformedLiveFactsRow("fact publishedAt is malformed");
+  }
+
+  const qualityState = fact.qualityState;
+
+  if (qualityState !== "PASS" && qualityState !== "HOLD") {
+    throw malformedLiveFactsRow("fact qualityState is malformed");
+  }
+
+  const statementId = requireLiveFactsPayloadString(fact, "statementId");
+  const sourceRecordId = requireLiveFactsPayloadString(fact, "sourceRecordId");
+
+  if (!sourceRecordId.startsWith("netquity:finreport.")) {
+    throw malformedLiveFactsRow("fact sourceRecordId is not a Netquity financial-facts field pointer");
+  }
+
+  return {
+    currency,
+    instrumentId,
+    metricId: metricId as FinancialFactMetric,
+    periodEnd,
+    periodType,
+    publishedAt,
+    qualityState,
+    scale,
+    sourceRecordId,
+    statementId,
+    statementType,
+    unit,
+    value
+  };
+}
+
+function malformedLiveFactsRow(message: string): GetLiveFinancialFactsReadbackError {
+  return new GetLiveFinancialFactsReadbackError("MALFORMED_LIVE_ROW", message);
+}
+
+function requireLiveFactsPayloadString(payload: Record<string, unknown>, field: string): string {
+  return requireNonEmptyLiveFactString(payload[field], `payload ${field}`);
+}
+
+function requireNonEmptyLiveFactString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw malformedLiveFactsRow(`${field} is missing`);
+  }
+
+  return value;
+}
+
+function requireLiveFactsObject(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw malformedLiveFactsRow(`${field} is malformed`);
+  }
+
+  return value as Record<string, unknown>;
+}

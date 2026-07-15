@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
-import { Badge, Card, Icon } from "../../ds";
+import { useQuery } from "@tanstack/react-query";
+import { Badge, type BadgeTone, Card, Icon } from "../../ds";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
+import { presentError, resolveFinancialFacts } from "../../lib/api";
 import type {
+  AiphaBeeErrorCode,
   AnnouncementSection,
   CorporateActionsSection,
   DerivedMetricsSection,
-  FinancialFactsSection,
   PriceHistorySection,
   QualityState,
   QuoteSection,
@@ -139,16 +141,74 @@ export function QuotePanel({ section }: { section: QuoteSection }) {
   );
 }
 
-export function FinancialsPanel({ section }: { section: FinancialFactsSection }) {
-  const facts = section.facts?.facts ?? [];
-  if (facts.length === 0) return <EmptyPanel note="该证券暂无财务事实。" />;
+const FINANCIAL_FACTS_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const FINANCIAL_FACTS_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/**
+ * Financial facts panel: an independent live query against the
+ * entitlement-gated resolveFinancialFacts RPC (CompanyHeader decoupling
+ * pattern in ../../routes/stock/$instrumentId.tsx) -- not driven by the
+ * synthetic workbench snapshot's financial_facts section, so a
+ * denied/held/absent live result never falls back to synthesized figures.
+ * Only revenue/net_income/assets/liabilities/equity/operating_cash_flow are
+ * ever populated live (non-bank/nb statement schema only); an instrument
+ * that reports under the bank/insurance schema renders its explicit
+ * coverage.reason instead of an empty facts list.
+ */
+export function FinancialsPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: factsEnv, isLoading } = useQuery({
+    queryKey: ["financial-facts-live", instrumentId],
+    queryFn: () => resolveFinancialFacts(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载财务事实…</p>
+    );
+  }
+
+  if (!factsEnv || !factsEnv.ok) {
+    const code = factsEnv?.error.code;
+    const tone: BadgeTone = (code && FINANCIAL_FACTS_STATE_TONE[code]) ?? "bearish";
+    const label = (code && FINANCIAL_FACTS_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = factsEnv ? presentError(factsEnv).detail : "财务事实服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>财务事实</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, facts } = factsEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券的财务报表口径暂未覆盖。"} />;
+  }
+  if (!facts || facts.length === 0) return <EmptyPanel note="该证券暂无财务事实。" />;
+
   return (
     <Card padded>
       <SectionTitle>财务事实</SectionTitle>
       <div style={{ display: "grid", gap: 2 }}>
         {facts.map((row) => (
           <div
-            key={`${row.metricId}-${row.periodEnd}-${row.versionStatus}`}
+            key={`${row.metricId}-${row.periodEnd}-${row.statementId}`}
             style={{
               display: "flex",
               alignItems: "baseline",
@@ -164,7 +224,6 @@ export function FinancialsPanel({ section }: { section: FinancialFactsSection })
               </span>
               <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
                 {row.periodEnd} · {row.periodType}
-                {row.versionStatus === "prior" ? " · 历史重述" : ""}
               </span>
             </span>
             <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -172,7 +231,7 @@ export function FinancialsPanel({ section }: { section: FinancialFactsSection })
                 {fmt(row.value, 0)}
               </span>
               <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
-                {row.unit} {row.currency}
+                {row.currency}
               </span>
               <QualityBadge state={row.qualityState} />
             </span>
@@ -180,7 +239,7 @@ export function FinancialsPanel({ section }: { section: FinancialFactsSection })
         ))}
       </div>
       <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-        会计准则 {section.facts?.accountingStandard} · 单位 {section.facts?.unit}
+        实时数据 · 非银行/保险口径财报
       </p>
     </Card>
   );
