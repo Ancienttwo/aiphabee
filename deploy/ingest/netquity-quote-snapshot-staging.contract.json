@@ -1,0 +1,184 @@
+{
+  "version": "2026-07-15.netquity-quote-snapshot-staging.v1",
+  "status": "approved_staging_only",
+  "provider": "planetscale_postgres_via_cloudflare_hyperdrive",
+  "environment": "staging",
+  "source": {
+    "datasets": [
+      "nq_basicdata.stock",
+      "nq_marketdata.stock",
+      "nq_unadjprice2.daily"
+    ],
+    "source_batch_id": "src_netquity_quote_snapshot_4c37391c8531",
+    "data_version": "netquity-quote-snapshot-4c37391c8531.v1",
+    "source_as_of": "2026-07-15T00:00:00+08:00",
+    "sha256": "4c37391c8531090df0c4f8c232657451ab404c97f7bdcbbe768997744f7138be",
+    "sha256_method": "sha256 over 3 tables' full unfiltered COPY (ORDER BY code[, tradeday]) WITH (FORMAT CSV) output, each preceded by a 'TABLE:<schema>.<table>' header line, concatenated in fixed alphabetical order: nq_basicdata.stock, nq_marketdata.stock, nq_unadjprice2.daily",
+    "row_count": 38367,
+    "row_count_by_table": {
+      "nq_basicdata.stock": 18036,
+      "nq_marketdata.stock": 2836,
+      "nq_unadjprice2.daily": 17495
+    },
+    "shares_raw_source_batch_with": null,
+    "reused_from_prior_promotion": false,
+    "reuse_note": "nq_basicdata.stock content overlaps byte-for-byte with the batch already pinned by security_master/security_profile (src_netquity_basicdata_80cfa8bd1c73), but this promotion's own correctness argument depends on the exact 3-table set it reads together (entity scope x currency x price x shares), so it mints its own self-contained batch rather than cross-referencing another promotion's pin -- same reasoning financial_facts used for its own 7-table batch."
+  },
+  "promotion": {
+    "staging_prerequisite_migrations": [
+      "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "deploy/database/migrations/20260620091000_serving_store_scaffold.sql",
+      "deploy/database/migrations/20260709180000_netquity_mirror_schema.sql"
+    ],
+    "sql": "deploy/ingest/netquity-quote-snapshot-staging.sql",
+    "serving_dataset": "quote_snapshot",
+    "serving_dataset_id": "serving_dataset_quote_snapshot",
+    "serving_dataset_domain": "quote_snapshot",
+    "serving_dataset_domain_note": "dataset and domain are both literally 'quote_snapshot' (exact match against aiphabee_core.serving_dataset_domain_check); unlike financial_facts there is no plural/singular naming mismatch here.",
+    "serving_snapshot_id": "serving_quote_snapshot_netquity_unadjprice2_4c37391c8531_v1",
+    "methodology_version": "2026-07-15.netquity-quote-snapshot-promotion.v1",
+    "rights_policy_version": "netquity-market-data-staging.v1",
+    "release_state": "released",
+    "quality_state": "PASS",
+    "record_entity_type": "instrument",
+    "entity_id_pattern": "hkex_security_<five-digit-code>",
+    "entity_id_aligned_with": "deploy/ingest/netquity-security-resolution-staging.sql",
+    "source_record_id_pattern": "netquity:unadjprice2.daily:<five-digit-code> (available) | netquity:unadjprice2.unavailable:<five-digit-code> (unavailable)",
+    "transactional": true,
+    "new_index_required": false,
+    "new_index_required_reason": "entity_id lookup uses the leading prefix of the existing serving_record unique index (serving_snapshot_id, entity_type, entity_id, ...)",
+    "idempotent": true,
+    "row_count_breakdown": {
+      "total_serving_records": 18036,
+      "with_quote_available": 17495,
+      "coverage_unavailable_no_daily_row": 541,
+      "with_shares_outstanding": 2809,
+      "with_close_price": 15512
+    }
+  },
+  "rpc": {
+    "binding": "AIPHABEE_API",
+    "entrypoint": "AuthenticatedNetquityResolver",
+    "method": "resolveQuoteSnapshot",
+    "public_http_exposed": false,
+    "await_required": true,
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "resolver_module": "apps/worker/src/authenticated-netquity-web-resolver.ts",
+    "test_file": "apps/worker/src/authenticated-netquity-web-resolver.test.ts",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "required_app_env": "staging",
+    "authorization_before_binding": true,
+    "latest_released_snapshot_only": true,
+    "entity_id_exact_lookup_only": true,
+    "maximum_rows": 1
+  },
+  "authorization": {
+    "channel": "web",
+    "dataset": "quote_snapshot",
+    "rights_policy_version": "netquity-market-data-staging.v1",
+    "default_rights_status": "default_deny",
+    "entitled_workspace_cardinality": 1,
+    "requested_fields": [
+      "quote_snapshot.coverage.reason",
+      "quote_snapshot.coverage.status",
+      "quote_snapshot.quote.close",
+      "quote_snapshot.quote.currency",
+      "quote_snapshot.quote.high",
+      "quote_snapshot.quote.low",
+      "quote_snapshot.quote.open",
+      "quote_snapshot.quote.sharesOutstanding",
+      "quote_snapshot.quote.tradeDate",
+      "quote_snapshot.quote.turnover",
+      "quote_snapshot.quote.volume"
+    ],
+    "partial_candidate_allowed": false,
+    "api_rights_approved": false,
+    "mcp_rights_approved": false,
+    "export_rights_approved": false
+  },
+  "rights_basis": {
+    "policy_version": "netquity-market-data-staging.v1",
+    "distinct_from_prior_slices": "security_master/security_profile/financial_facts all use rights_policy_version 'netquity-collaboration-staging.v1'; this promotion deliberately uses a new, distinct value because market-data Web distribution rights were confirmed separately from the original security/financial data rights approval.",
+    "note": "owner 于 2026-07-15 确认 Netquity 合约涵盖行情数据 web 分发",
+    "account_context_independence": "the account's single active platform.workspace_product_access.policy_version stays 'netquity-collaboration-staging.v1' (unchanged, so the 3 existing RPCs are unaffected); resolveQuoteSnapshot filters aiphabee_governance.data_entitlement/aiphabee_core.serving_dataset by the hardcoded NETQUITY_MARKET_DATA_RIGHTS_POLICY_VERSION constant instead of the account-context rights_policy_version, so this dataset's rights basis is independent of -- and does not require any platform.* schema/data change to -- the account's general product-access policy version."
+  },
+  "field_ohlcv_mapping": [
+    { "field": "quote.tradeDate", "vendor_column": "nq_unadjprice2.daily.tradeday", "populated_rows": 17495 },
+    { "field": "quote.currency", "vendor_column": "nq_basicdata.stock.tradecurrency", "populated_rows": 17495 },
+    { "field": "quote.open", "vendor_column": "nq_unadjprice2.daily.open", "populated_rows": 8117 },
+    { "field": "quote.high", "vendor_column": "nq_unadjprice2.daily.high", "populated_rows": 8117 },
+    { "field": "quote.low", "vendor_column": "nq_unadjprice2.daily.low", "populated_rows": 8117 },
+    { "field": "quote.close", "vendor_column": "nq_unadjprice2.daily.close", "populated_rows": 15512 },
+    { "field": "quote.volume", "vendor_column": "nq_unadjprice2.daily.volume", "populated_rows": 17191 },
+    { "field": "quote.turnover", "vendor_column": "nq_unadjprice2.daily.turnover", "populated_rows": 17191 },
+    { "field": "quote.sharesOutstanding", "vendor_column": "nq_marketdata.stock.issue_cap", "populated_rows": 2809 }
+  ],
+  "shares_outstanding_column_choice": {
+    "chosen_column": "nq_marketdata.stock.issue_cap",
+    "rejected_column": "nq_marketdata.stock.total_issue_cap",
+    "verification": "issue_cap * lastprice reproduces nq_marketdata.stock.marketcap (vendor's own derived product) within 1 unit for 2805 of 2808 rows with all 3 values populated; total_issue_cap * lastprice only reproduces marketcap for 2321 of 2808 rows, with billion-scale mismatches on the rest -- total_issue_cap appears to include a different multi-class share mix on some instruments. marketcap itself is not promoted (it is a vendor-computed derived value, not a 1:1 source column)."
+  },
+  "eod_not_realtime": {
+    "single_trade_date": "2026-07-07",
+    "note": "nq_unadjprice2.daily carries exactly one row per code in this mirror, all dated the same trade day. The live type, worker resolver, and every UI surface describe this as a closing price as of that trade date, never as real-time or live-streaming data.",
+    "not_promoted": "the vendor's single-character nq_unadjprice2.daily.status column is deliberately not promoted: its exact business meaning is not documented anywhere in the mirrored schema (status='T', 9017 rows, always has null open/high/low and a real zero volume/turnover, whose precise cause is unverifiable from this table alone), so promoting it risks asserting an unverified interpretation. The coverage/nullable-field representation already conveys the real data truthfully without it."
+  },
+  "nullable_field_semantics": {
+    "note": "within an 'available' record, individual price/volume fields are independently nullable and omitted via jsonb_strip_nulls when the vendor row has them null -- never backfilled, carried forward, or estimated.",
+    "verified_sample_suspended": "status='S' (304 rows) rows have every price/volume field null -- no frozen last price is carried forward for a currently-suspended instrument in this mirror.",
+    "verified_sample_zero_volume": "status='T' (9017 rows) rows always have null open/high/low and a real (non-null) volume/turnover of exactly 0; close is populated for 7346 of them."
+  },
+  "web": {
+    "route": "/stock/$instrumentId",
+    "component": "QuotePanel",
+    "transport": "tanstack_createServerFn_post",
+    "session_authority": "better_auth_database_session",
+    "decoupled_from_synthetic_snapshot": true,
+    "other_panels_remain_synthetic": true,
+    "eod_wording_required": "\"收盘价 · <tradeDate>\", never a real-time/live-price label"
+  },
+  "derived_panel_valuation_unblock": {
+    "attempted": true,
+    "outcome": "not_unblocked_in_this_cut",
+    "clean_input_mapping_confirmed": "market_cap = quote.close * quote.sharesOutstanding is a computable, correctly-typed formula within packages/workbench's existing DERIVED_METRIC_DEFINITIONS/required_inputs framework in principle.",
+    "why_not_wired": "packages/workbench's StockWorkbenchDerivedMetrics/createDerivedMetrics is entirely synthetic-typed (live_data_access: false is a literal type, not just a runtime value) and DerivedPanel is not decoupled from it (still receives `section` from the synthetic snapshot, unlike FinancialsPanel/QuotePanel). Live-enabling it cleanly would require either a new cross-dataset authorization primitive spanning financial_facts + quote_snapshot simultaneously (neither existing entitlement chain grants both together) or a client-side combination of two independently-authorized live queries plus a new exported live-valuation function in packages/workbench -- both are a new architecture pattern with no existing template to mechanically copy, which conflicts with this task's 'replicate the same pattern, do not redesign the route' instruction and is disproportionate risk for a secondary/optional goal on top of the already-large primary quote_snapshot promotion.",
+    "blocked_reason_unchanged": "packages/workbench's 'market_cap_unavailable' blocked_reason is left as-is: it remains accurate for the synthetic-only DerivedPanel code path regardless of this promotion (that path has never had any shares-outstanding source, live or synthetic), so there is nothing stale to correct.",
+    "sharesOutstanding_coverage_caveat": "even if wired, only 2809 of 17495 available quote records (16%) carry sharesOutstanding, so most instruments would remain blocked on 'shares_outstanding_unavailable' regardless."
+  },
+  "failure_statuses": {
+    "wrong_environment": 403,
+    "authorization": 403,
+    "missing_binding": 424,
+    "no_release": 409,
+    "not_found": 404,
+    "database_or_readback": 500
+  },
+  "checker": "scripts/check-netquity-quote-snapshot-staging-contract.mjs",
+  "package_script": "npm run check:netquity-quote-snapshot-staging",
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret_value": true,
+    "no_vendor_row_payload": true,
+    "counts_versions_tables_and_hashes_only": true
+  },
+  "rollback": {
+    "withdraw_data_version": true,
+    "revoke_entitlement_rows": true,
+    "delete_staging_smoke_secret": false,
+    "redeploy_staging_without_route": false,
+    "delete_raw_mirror": false
+  },
+  "not_claimed": [
+    "public_resolver_cutover",
+    "public_http_route",
+    "production_deploy",
+    "real_time_or_intraday_quotes",
+    "price_history_promotion",
+    "vendor_status_field_semantics",
+    "market_cap_or_valuation_derived_metrics",
+    "full_shares_outstanding_coverage",
+    "mcp_or_export_access",
+    "daily_promotion_automation"
+  ]
+}

@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ProfilePanel, QuotePanel } from "./panels";
+import { ProfilePanel } from "./panels";
 import type {
-  QuoteSection,
   SecurityProfileSection,
 } from "../../lib/api";
 
-// FinancialsPanel is intentionally not covered here: it now does its own
-// live useQuery against the entitlement-gated resolveFinancialFacts RPC
-// (CompanyHeader decoupling pattern, apps/web/src/routes/stock/$instrumentId.tsx),
-// so it can no longer be exercised by prop-driven renderToStaticMarkup like
-// the other synthetic-snapshot panels below. Its behavior is covered by
-// packages/financial-facts (mapping/validation),
+// FinancialsPanel and QuotePanel are intentionally not covered here: they
+// each do their own live useQuery against an entitlement-gated RPC
+// (resolveFinancialFacts / resolveQuoteSnapshot respectively -- CompanyHeader
+// decoupling pattern, apps/web/src/routes/stock/$instrumentId.tsx), so
+// neither can be exercised by prop-driven renderToStaticMarkup like the
+// other synthetic-snapshot panels below. FinancialsPanel's behavior is
+// covered by packages/financial-facts (mapping/validation),
 // apps/worker/src/authenticated-netquity-web-resolver.test.ts (RPC
 // authorization chain), and apps/web/src/lib/api/financial-facts.server.test.ts
-// (server-fn boundary) -- matching CompanyHeader, which also has no direct
-// render test.
+// (server-fn boundary). QuotePanel's behavior is covered the same way by
+// packages/market-data, the same worker resolver test file, and
+// apps/web/src/lib/api/quote-snapshot.server.test.ts -- matching
+// CompanyHeader, which also has no direct render test.
 
 const USAGE = { cached: false, credits: 0, rows: 1 };
 
@@ -40,22 +42,6 @@ const PROFILE: SecurityProfileSection = {
   },
 };
 
-const QUOTE: QuoteSection = {
-  status: "found",
-  usage: USAGE,
-  provenance: [],
-  quote: {
-    asOf: "2026-01-07T16:15:00+08:00",
-    currency: "HKD",
-    delay: { minutes: 15, type: "delayed" },
-    exchange: "HKEX",
-    fields: { lastPrice: 448.2, previousClose: 445, change: 3.2, changePercent: 0.72, volume: 12000000, turnover: 5_400_000_000 },
-    marketStatus: "closed",
-    qualityState: "PASS",
-    symbol: "00700.HK",
-  },
-};
-
 describe("workbench panels render (SSR)", () => {
   it("ProfilePanel renders company name and symbol", () => {
     const html = renderToStaticMarkup(<ProfilePanel section={PROFILE} />);
@@ -69,11 +55,5 @@ describe("workbench panels render (SSR)", () => {
       <ProfilePanel section={{ status: "not_found", usage: USAGE, provenance: [] }} />,
     );
     expect(html).toContain("暂无公司档案");
-  });
-
-  it("QuotePanel formats price fields and the delay badge", () => {
-    const html = renderToStaticMarkup(<QuotePanel section={QUOTE} />);
-    expect(html).toContain("448.20");
-    expect(html).toContain("延迟 15 分钟");
   });
 });

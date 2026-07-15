@@ -139,6 +139,48 @@ export interface GetLiveFinancialFactsData {
   usage: UsageSummary;
 }
 
+// --- get_quote_snapshot (live, packages/market-data) ----------------------
+// Distinct from the synthetic QuoteSnapshot/QuoteSection below (workbench
+// snapshot tab): this is the live, Serving-backed shape returned by the
+// resolveQuoteSnapshot RPC. It is end-of-day (EOD) closing data, never
+// real-time or intraday -- there is no "delay"/"marketStatus" session-state
+// concept (unlike the synthetic QuoteSnapshot), only a tradeDate. Every
+// price/volume field besides tradeDate/currency is independently nullable
+// (the vendor row itself may be null); sharesOutstanding is populated for a
+// minority of instruments. `coverage` distinguishes an instrument with no
+// promoted EOD row (status "unavailable", quote always absent) from one
+// this promotion covers (status "available").
+export interface LiveQuoteSnapshotCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export interface LiveQuoteSnapshotRow {
+  close?: number;
+  currency: string;
+  high?: number;
+  instrumentId: string;
+  low?: number;
+  open?: number;
+  sharesOutstanding?: number;
+  tradeDate: string;
+  turnover?: number;
+  volume?: number;
+}
+
+export interface GetLiveQuoteSnapshotData {
+  asOf: string;
+  coverage?: LiveQuoteSnapshotCoverage;
+  dataVersion?: string;
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  quote?: LiveQuoteSnapshotRow;
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

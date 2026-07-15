@@ -1,6 +1,7 @@
 import { apiCall } from "./client";
 import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } from "./security.functions";
 import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions";
+import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -34,6 +35,11 @@ export function resolveSecurityProfile(instrumentId: string) {
 /** Gated live financial facts (non-bank/nb only) for a known instrument id (POST server-fn). */
 export function resolveFinancialFacts(instrumentId: string) {
   return resolveAuthenticatedFinancialFacts({ data: { instrumentId } });
+}
+
+/** Gated live EOD quote snapshot for a known instrument id (POST server-fn). */
+export function resolveQuoteSnapshot(instrumentId: string) {
+  return resolveAuthenticatedQuoteSnapshot({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

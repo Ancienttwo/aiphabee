@@ -63,9 +63,11 @@ vi.mock("pg", () => ({
 const {
   AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_PROFILE_REQUIRED_FIELDS,
+  AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_REQUIRED_FIELDS,
   resolveAuthenticatedNetquityFinancialFacts,
   resolveAuthenticatedNetquityProfile,
+  resolveAuthenticatedNetquityQuoteSnapshot,
   resolveAuthenticatedNetquitySecurity,
 } = await import("./authenticated-netquity-web-resolver");
 
@@ -701,6 +703,227 @@ describe("private authenticated Netquity financial facts resolver", () => {
   });
 });
 
+describe("private authenticated Netquity quote snapshot resolver", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_test" }];
+    pgState.candidateRows = [createQuoteSnapshotRecordRow()];
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.map(createQuoteSnapshotRightsRow);
+    pgState.snapshotRows = [createQuoteSnapshotSnapshotRow()];
+  });
+
+  it.each([
+    ["invalid subject", { authSubject: "email@example.com", instrumentId: "hkex_security_00700" }],
+    ["malformed instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "eq_hk_00700" }],
+    ["empty instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "" }],
+  ])("rejects %s before creating a database client", async (_label, input) => {
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, {
+      requestId: "request_test",
+      ...input,
+    });
+
+    expect(result.envelope.ok).toBe(false);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("stays unavailable outside staging before binding access", async () => {
+    let bindingReads = 0;
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(
+      {
+        APP_ENV: "prod",
+        get AIPHABEE_HYPERDRIVE(): { connectionString?: string } | undefined {
+          bindingReads += 1;
+          throw new Error("production binding must not be read");
+        },
+      },
+      quoteSnapshotValidInput(),
+    );
+
+    expect(result.status).toBe(403);
+    expect(bindingReads).toBe(0);
+  });
+
+  it("returns unavailable for a missing private database binding", async () => {
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(
+      { APP_ENV: "staging" },
+      quoteSnapshotValidInput(),
+    );
+
+    expect(result.status).toBe(424);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("denies an unmapped account before membership or Serving reads", async () => {
+    pgState.accountRows = [{ account_id: null }];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each(["no membership", "inactive membership", "expired subscription"])(
+    "denies %s before rights or Serving reads",
+    async () => {
+      pgState.contextRows = [];
+      const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+      expect(result.status).toBe(403);
+      expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+      expect(
+        queryTexts().some((text) => text.includes("from aiphabee_governance.workspace_entitlement")),
+      ).toBe(false);
+      expect(hasServingRead()).toBe(false);
+    },
+  );
+
+  it("fails closed when more than one entitled workspace is active", async () => {
+    pgState.contextRows = [createContextRow(), { ...createContextRow(), workspace_id: "workspace_2" }];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(409);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("pins field rights to its own hardcoded market-data policy version, independent of the account's product-access policy version", async () => {
+    await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    const rightsQuery = pgState.queries.find((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQuery?.text).toContain("data_entitlement.dataset = 'quote_snapshot'");
+    expect(rightsQuery?.text).toContain("data_entitlement.rights_policy_version = $3");
+    // The account context itself still carries 'netquity-collaboration-staging.v1'
+    // (createContextRow, unchanged) -- this proves quote_snapshot's rights
+    // query uses the hardcoded NETQUITY_MARKET_DATA_RIGHTS_POLICY_VERSION
+    // constant instead, exactly as the contract documents.
+    expect(rightsQuery?.values).toEqual([
+      "workspace_test",
+      "subscription_test",
+      "netquity-market-data-staging.v1",
+    ]);
+  });
+
+  it("denies missing exact field rights before the released snapshot query", async () => {
+    pgState.rightsRows = pgState.rightsRows.slice(0, -1);
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("denies wildcard authority even when every exact field row is also present", async () => {
+    pgState.rightsRows.push(createQuoteSnapshotRightsRow("quote_snapshot.*"));
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("lets a blocked field win over approved rows", async () => {
+    pgState.rightsRows.push({
+      ...createQuoteSnapshotRightsRow("quote_snapshot.quote.close"),
+      entitlement_id: "entitlement_blocked_close",
+      entitlement_status: "blocked",
+      workspace_entitlement_id: "workspace_entitlement_blocked_close",
+      workspace_status: "blocked",
+    });
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(403);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each([
+    ["mismatched rights policy", { rights_policy_version: "netquity-market-data-staging.v2" }],
+    ["non-PASS quality", { quality_state: "HOLD" }],
+  ])("fails closed for a released snapshot with %s", async (_label, override) => {
+    pgState.snapshotRows = [{ ...createQuoteSnapshotSnapshotRow(), ...override }];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+    expect(
+      queryTexts().some((text) => text.includes("from aiphabee_core.serving_record record")),
+    ).toBe(false);
+  });
+
+  it("resolves an entitled instrument id with an available quote after rights evaluation", async () => {
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.liveDataAccess).toBe(true);
+      expect(result.envelope.data.coverage).toEqual({ status: "available" });
+      expect(result.envelope.data.quote).toMatchObject({ close: 461.2, tradeDate: "2026-07-07" });
+    }
+    const texts = queryTexts();
+    expect(texts.findIndex((text) => text.includes("from aiphabee_governance.workspace_entitlement"))).toBeLessThan(
+      texts.findIndex((text) => text.includes("from aiphabee_core.serving_dataset dataset")),
+    );
+  });
+
+  it("resolves an entitled no-daily-row instrument id with an unavailable coverage marker, never a fabricated quote", async () => {
+    pgState.candidateRows = [createUnavailableQuoteSnapshotRecordRow()];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(
+      bindings,
+      quoteSnapshotValidInput("hkex_security_09999"),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.coverage?.status).toBe("unavailable");
+      expect(result.envelope.data.quote).toBeUndefined();
+    }
+  });
+
+  it("returns 404 NOT_FOUND when no released row matches the instrument id, never a synthetic fallback", async () => {
+    pgState.candidateRows = [];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(404);
+    expect(errorCode(result)).toBe("NOT_FOUND");
+  });
+
+  it("fails closed on a malformed released row rather than exposing it", async () => {
+    pgState.candidateRows = [{ ...createQuoteSnapshotRecordRow(), data_version: "wrong-version" }];
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+  });
+
+  it("returns an explicit failure and closes the client on database error", async () => {
+    pgState.failOn = "from aiphabee_governance.workspace_entitlement";
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("does not return an authorized result when the database client cannot close", async () => {
+    pgState.endFails = true;
+
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, quoteSnapshotValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+  });
+});
+
 function financialFactsValidInput(instrumentId = "hkex_security_00700") {
   return {
     authSubject: AUTH_SUBJECT,
@@ -783,6 +1006,82 @@ function createUnavailableFinancialFactsRecordRow(overrides: Record<string, unkn
       facts: [],
     },
     source_record_id: "netquity:finreport.bank_insurance_excluded:00005",
+    ...overrides,
+  };
+}
+
+function quoteSnapshotValidInput(instrumentId = "hkex_security_00700") {
+  return {
+    authSubject: AUTH_SUBJECT,
+    instrumentId,
+    requestId: "request_test",
+  };
+}
+
+function createQuoteSnapshotRightsRow(fieldPattern: string) {
+  return {
+    channel: "web",
+    dataset: "quote_snapshot",
+    entitlement_id: `entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    entitlement_source_record_id: `source:${fieldPattern}`,
+    entitlement_status: "approved",
+    export_allowed: false,
+    field_pattern: fieldPattern,
+    rights_policy_version: "netquity-market-data-staging.v1",
+    time_range_days: null,
+    valid_from: "2026-07-10T00:00:00.000Z",
+    valid_to: null,
+    workspace_entitlement_id: `workspace_entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    workspace_source_record_id: `workspace-source:${fieldPattern}`,
+    workspace_status: "approved",
+  };
+}
+
+function createQuoteSnapshotSnapshotRow() {
+  return {
+    as_of: "2026-07-15T00:00:00.000Z",
+    data_version: "netquity-quote-snapshot-test.v1",
+    quality_state: "PASS",
+    rights_policy_version: "netquity-market-data-staging.v1",
+    serving_snapshot_id: "serving-netquity-quote-snapshot-test-v1",
+  };
+}
+
+function createQuoteSnapshotRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-quote-snapshot-test.v1",
+    entity_id: "hkex_security_00700",
+    payload: {
+      coverage: { status: "available" },
+      quote: {
+        close: 461.2,
+        currency: "HKD",
+        high: 465,
+        low: 458.4,
+        open: 460,
+        sharesOutstanding: 9092370719,
+        tradeDate: "2026-07-07",
+        turnover: 25937523114,
+        volume: 55418434,
+      },
+    },
+    source_record_id: "netquity:unadjprice2.daily:00700",
+    ...overrides,
+  };
+}
+
+function createUnavailableQuoteSnapshotRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-quote-snapshot-test.v1",
+    entity_id: "hkex_security_09999",
+    payload: {
+      coverage: {
+        reason:
+          "no EOD price row exists in nq_unadjprice2.daily for this instrument as of the mirrored snapshot date; nq_unadjprice2.daily does not encode a reason (delisting, an instrument type outside this price feed's coverage, or a vendor coverage gap are all possible and indistinguishable from this table alone)",
+        status: "unavailable",
+      },
+    },
+    source_record_id: "netquity:unadjprice2.unavailable:09999",
     ...overrides,
   };
 }

@@ -113,10 +113,12 @@ import {
   resolveAuthenticatedNetquitySecurity,
   resolveAuthenticatedNetquityProfile,
   resolveAuthenticatedNetquityFinancialFacts,
+  resolveAuthenticatedNetquityQuoteSnapshot,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
   type AuthenticatedNetquityFinancialFactsResolverInput,
   type AuthenticatedNetquityProfileResolverInput,
+  type AuthenticatedNetquityQuoteSnapshotResolverInput,
   type AuthenticatedNetquityResolverInput,
 } from "./authenticated-netquity-web-resolver.js";
 import {
@@ -12787,6 +12789,10 @@ export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindin
 
   async resolveFinancialFacts(input: AuthenticatedNetquityFinancialFactsResolverInput) {
     return resolveAuthenticatedNetquityFinancialFacts(this.env, input);
+  }
+
+  async resolveQuoteSnapshot(input: AuthenticatedNetquityQuoteSnapshotResolverInput) {
+    return resolveAuthenticatedNetquityQuoteSnapshot(this.env, input);
   }
 }
 

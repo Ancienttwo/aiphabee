@@ -965,3 +965,331 @@ function createHistoryProvenance(): ProvenanceRef[] {
     }
   ];
 }
+
+// --- Live quote snapshot (Serving Store) ----------------------------------
+// Distinct from the synthetic getQuoteSnapshot above: this is the live,
+// entitlement-gated shape returned by the resolveQuoteSnapshot RPC, sourced
+// from a Serving Store snapshot promoted by
+// deploy/ingest/netquity-quote-snapshot-staging.sql. It is an
+// end-of-day (EOD) closing snapshot, never real-time or intraday: the
+// mirrored source (nq_unadjprice2.daily) carries exactly one row per
+// instrument for a single trade date. LiveQuoteSnapshotRow therefore has no
+// "delay"/"marketStatus" session-state fields (unlike the synthetic
+// QuoteSnapshot, which models a live/delayed session) -- only a tradeDate,
+// matching how LiveFinancialFactRow (packages/financial-facts) and
+// LiveSecurityProfile (packages/security-tools) each omit synthetic fields
+// with no rights-pinned live source instead of inventing a placeholder.
+// Individual price/volume fields are independently nullable: the vendor row
+// itself is null for many instruments (see the promotion SQL header for
+// verified real examples), and this promotion never backfills or estimates
+// a missing value.
+
+export const GET_QUOTE_SNAPSHOT_LIVE_VERSION =
+  "2026-07-15.netquity-quote-snapshot-live.v1";
+
+export type GetLiveQuoteSnapshotReadbackErrorCode =
+  | "MALFORMED_LIVE_ROW"
+  | "MULTIPLE_ROWS_FOR_INSTRUMENT";
+export type QuoteSnapshotCoverageStatus = "available" | "unavailable";
+
+export interface QuoteSnapshotCoverage {
+  reason?: string;
+  status: QuoteSnapshotCoverageStatus;
+}
+
+/**
+ * One promoted EOD quote. Unlike the synthetic QuoteSnapshot, there is no
+ * "delay"/"marketStatus" (no live session concept for a single frozen daily
+ * row) and no "symbol"/"exchange"/"market" (not rights-pinned by this
+ * promotion; callers already have those from the security_profile RPC for
+ * the same instrumentId). Every field besides tradeDate and currency is
+ * independently optional -- present only when the vendor's own row has a
+ * non-null value for it.
+ */
+export interface LiveQuoteSnapshotRow {
+  close?: number;
+  currency: string;
+  high?: number;
+  instrumentId: string;
+  low?: number;
+  open?: number;
+  sharesOutstanding?: number;
+  tradeDate: string;
+  turnover?: number;
+  volume?: number;
+}
+
+export interface LiveQuoteSnapshotRawRow {
+  data_version: string;
+  entity_id: string;
+  payload: unknown;
+  source_record_id: string;
+}
+
+export interface GetLiveQuoteSnapshotInput {
+  asOf: string;
+  dataVersion: string;
+  instrumentId: string;
+}
+
+export interface GetLiveQuoteSnapshotResult {
+  asOf: string;
+  coverage?: QuoteSnapshotCoverage;
+  dataVersion: string;
+  instrumentId: string;
+  liveDataAccess: true;
+  methodologyVersion: typeof GET_QUOTE_SNAPSHOT_LIVE_VERSION;
+  provenance: ProvenanceRef[];
+  quote?: LiveQuoteSnapshotRow;
+  status: "found" | "not_found";
+  toolName: "get_quote_snapshot";
+  usage: UsageSummary;
+}
+
+export class GetLiveQuoteSnapshotReadbackError extends Error {
+  readonly code: GetLiveQuoteSnapshotReadbackErrorCode;
+
+  constructor(code: GetLiveQuoteSnapshotReadbackErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Exact entity-id quote-snapshot lookup against a released Serving
+ * snapshot. `rows` is expected to already be scoped to a single instrument
+ * id by the caller's SQL (WHERE entity_id = $2); more than one row is a data
+ * integrity failure, not silently narrowed. A legitimate zero-row result is
+ * `status: "not_found"`; a row that exists but carries
+ * `coverage.status: "unavailable"` (no nq_unadjprice2.daily row for this
+ * instrument) is still `status: "found"` with `quote` absent -- the caller
+ * can tell "we know this instrument and have no EOD price for it" apart from
+ * "we have never heard of this instrument".
+ */
+export function getLiveQuoteSnapshot(
+  input: GetLiveQuoteSnapshotInput,
+  rows: readonly LiveQuoteSnapshotRawRow[]
+): GetLiveQuoteSnapshotResult {
+  const instrumentId = input.instrumentId.trim();
+
+  if (instrumentId.length === 0) {
+    throw new QuoteSnapshotInputError(
+      "INSTRUMENT_ID_REQUIRED",
+      "instrument_id is required"
+    );
+  }
+
+  if (rows.length > 1) {
+    throw new GetLiveQuoteSnapshotReadbackError(
+      "MULTIPLE_ROWS_FOR_INSTRUMENT",
+      "quote snapshot lookup matched more than one released row for this instrument id"
+    );
+  }
+
+  const dataVersion = requireNonEmptyLiveQuoteString(input.dataVersion, "snapshot data version");
+  const asOf = requireNonEmptyLiveQuoteString(input.asOf, "snapshot as-of");
+  const row = rows[0];
+
+  if (row === undefined) {
+    return {
+      asOf,
+      dataVersion,
+      instrumentId,
+      liveDataAccess: true,
+      methodologyVersion: GET_QUOTE_SNAPSHOT_LIVE_VERSION,
+      provenance: [],
+      status: "not_found",
+      toolName: "get_quote_snapshot",
+      usage: {
+        cached: false,
+        credits: 0,
+        rows: 0
+      }
+    };
+  }
+
+  const mapped = mapLiveQuoteSnapshotRow({
+    expectedDataVersion: dataVersion,
+    expectedInstrumentId: instrumentId,
+    row
+  });
+
+  return {
+    asOf,
+    coverage: mapped.coverage,
+    dataVersion,
+    instrumentId,
+    liveDataAccess: true,
+    methodologyVersion: GET_QUOTE_SNAPSHOT_LIVE_VERSION,
+    provenance: [
+      {
+        data_version: dataVersion,
+        methodology_version: GET_QUOTE_SNAPSHOT_LIVE_VERSION,
+        source: "netquity-unadjprice2-daily",
+        source_record_id: row.source_record_id
+      }
+    ],
+    quote: mapped.quote,
+    status: "found",
+    toolName: "get_quote_snapshot",
+    usage: {
+      cached: false,
+      credits: 0,
+      rows: mapped.quote === undefined ? 0 : 1
+    }
+  };
+}
+
+/**
+ * Maps one released `serving_record` row to its coverage marker and quote
+ * object. Kept module-private, matching `mapLiveFinancialFactsRow` in
+ * packages/financial-facts: only the public `getLiveQuoteSnapshot` entry
+ * point is tested/consumed directly.
+ */
+function mapLiveQuoteSnapshotRow(input: {
+  expectedDataVersion: string;
+  expectedInstrumentId: string;
+  row: LiveQuoteSnapshotRawRow;
+}): { coverage: QuoteSnapshotCoverage; quote?: LiveQuoteSnapshotRow } {
+  const { row } = input;
+  const dataVersion = requireNonEmptyLiveQuoteString(row.data_version, "row data version");
+
+  if (dataVersion !== input.expectedDataVersion) {
+    throw malformedLiveQuoteRow("row data version does not match the released snapshot");
+  }
+
+  const instrumentId = requireNonEmptyLiveQuoteString(row.entity_id, "entity id");
+
+  if (!/^hkex_security_\d{5}$/u.test(instrumentId)) {
+    throw malformedLiveQuoteRow("entity id is not an opaque HKEX security id");
+  }
+
+  if (instrumentId !== input.expectedInstrumentId) {
+    throw malformedLiveQuoteRow("entity id does not match the requested instrument id");
+  }
+
+  const code = instrumentId.slice("hkex_security_".length);
+  const sourceRecordId = requireNonEmptyLiveQuoteString(row.source_record_id, "source record id");
+  const expectedAvailableSourceRecordId = `netquity:unadjprice2.daily:${code}`;
+  const expectedUnavailableSourceRecordId = `netquity:unadjprice2.unavailable:${code}`;
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId && sourceRecordId !== expectedUnavailableSourceRecordId) {
+    throw malformedLiveQuoteRow("source record id is not a matching Netquity quote-snapshot record");
+  }
+
+  const payload = requireLiveQuoteObject(row.payload, "payload");
+  const coverage = mapLiveQuoteSnapshotCoverage(payload.coverage);
+
+  if (coverage.status === "unavailable") {
+    if ("quote" in payload) {
+      throw malformedLiveQuoteRow("unavailable coverage must not carry a quote object");
+    }
+
+    if (sourceRecordId !== expectedUnavailableSourceRecordId) {
+      throw malformedLiveQuoteRow("unavailable coverage must use the unadjprice2-unavailable source record id");
+    }
+
+    return { coverage };
+  }
+
+  if (sourceRecordId !== expectedAvailableSourceRecordId) {
+    throw malformedLiveQuoteRow("available coverage must use the unadjprice2-daily source record id");
+  }
+
+  const quote = mapLiveQuoteFields(payload.quote, instrumentId);
+
+  return { coverage, quote };
+}
+
+function mapLiveQuoteSnapshotCoverage(value: unknown): QuoteSnapshotCoverage {
+  const coverage = requireLiveQuoteObject(value, "coverage");
+  const status = coverage.status;
+
+  if (status !== "available" && status !== "unavailable") {
+    throw malformedLiveQuoteRow("coverage status is malformed");
+  }
+
+  if (status === "unavailable") {
+    const reason = coverage.reason;
+
+    if (typeof reason !== "string" || reason.trim().length === 0) {
+      throw malformedLiveQuoteRow("unavailable coverage requires a reason");
+    }
+
+    return { reason, status };
+  }
+
+  return { status };
+}
+
+function mapLiveQuoteFields(rawQuote: unknown, instrumentId: string): LiveQuoteSnapshotRow {
+  const quote = requireLiveQuoteObject(rawQuote, "quote");
+  const tradeDate = quote.tradeDate;
+
+  if (typeof tradeDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(tradeDate)) {
+    throw malformedLiveQuoteRow("quote tradeDate is malformed");
+  }
+
+  const currency = requireLiveQuotePayloadString(quote, "currency");
+  const open = requireOptionalLiveQuoteNumber(quote, "open");
+  const high = requireOptionalLiveQuoteNumber(quote, "high");
+  const low = requireOptionalLiveQuoteNumber(quote, "low");
+  const close = requireOptionalLiveQuoteNumber(quote, "close");
+  const volume = requireOptionalLiveQuoteNumber(quote, "volume");
+  const turnover = requireOptionalLiveQuoteNumber(quote, "turnover");
+  const sharesOutstanding = requireOptionalLiveQuoteNumber(quote, "sharesOutstanding");
+
+  return {
+    close,
+    currency,
+    high,
+    instrumentId,
+    low,
+    open,
+    sharesOutstanding,
+    tradeDate,
+    turnover,
+    volume
+  };
+}
+
+function malformedLiveQuoteRow(message: string): GetLiveQuoteSnapshotReadbackError {
+  return new GetLiveQuoteSnapshotReadbackError("MALFORMED_LIVE_ROW", message);
+}
+
+function requireLiveQuotePayloadString(payload: Record<string, unknown>, field: string): string {
+  return requireNonEmptyLiveQuoteString(payload[field], `payload ${field}`);
+}
+
+function requireOptionalLiveQuoteNumber(
+  payload: Record<string, unknown>,
+  field: string
+): number | undefined {
+  const value = payload[field];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw malformedLiveQuoteRow(`quote ${field} is malformed`);
+  }
+
+  return value;
+}
+
+function requireNonEmptyLiveQuoteString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw malformedLiveQuoteRow(`${field} is missing`);
+  }
+
+  return value;
+}
+
+function requireLiveQuoteObject(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw malformedLiveQuoteRow(`${field} is malformed`);
+  }
+
+  return value as Record<string, unknown>;
+}

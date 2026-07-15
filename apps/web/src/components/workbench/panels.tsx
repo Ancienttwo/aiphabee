@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge, type BadgeTone, Card, Icon } from "../../ds";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
-import { presentError, resolveFinancialFacts } from "../../lib/api";
+import { presentError, resolveFinancialFacts, resolveQuoteSnapshot } from "../../lib/api";
 import type {
   AiphaBeeErrorCode,
   AnnouncementSection,
@@ -11,7 +11,6 @@ import type {
   DerivedMetricsSection,
   PriceHistorySection,
   QualityState,
-  QuoteSection,
   SecurityProfileSection,
 } from "../../lib/api";
 
@@ -112,31 +111,89 @@ export function ProfilePanel({ section }: { section: SecurityProfileSection }) {
   );
 }
 
-export function QuotePanel({ section }: { section: QuoteSection }) {
-  const q = section.quote;
-  if (!q) return <EmptyPanel note="该证券暂无行情快照。" />;
-  const f = q.fields;
-  const changeTone = (f.change ?? 0) > 0 ? "up" : (f.change ?? 0) < 0 ? "down" : "default";
+const QUOTE_SNAPSHOT_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const QUOTE_SNAPSHOT_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/**
+ * Quote-snapshot panel: an independent live query against the
+ * entitlement-gated resolveQuoteSnapshot RPC (FinancialsPanel decoupling
+ * pattern) -- not driven by the synthetic workbench snapshot's quote_snapshot
+ * section, so a denied/held/absent live result never falls back to
+ * synthesized figures. This is end-of-day (EOD) closing data, never
+ * real-time or intraday: every price is labeled by its trade date, never
+ * presented as a live/current price. Individual price/volume fields are
+ * independently optional (the promoted vendor row itself may be null for a
+ * given field, e.g. a suspended instrument); an instrument with no promoted
+ * EOD row at all renders its explicit coverage.reason instead of an empty
+ * quote.
+ */
+export function QuotePanel({ instrumentId }: { instrumentId: string }) {
+  const { data: quoteEnv, isLoading } = useQuery({
+    queryKey: ["quote-snapshot-live", instrumentId],
+    queryFn: () => resolveQuoteSnapshot(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载行情快照…</p>
+    );
+  }
+
+  if (!quoteEnv || !quoteEnv.ok) {
+    const code = quoteEnv?.error.code;
+    const tone: BadgeTone = (code && QUOTE_SNAPSHOT_STATE_TONE[code]) ?? "bearish";
+    const label = (code && QUOTE_SNAPSHOT_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = quoteEnv ? presentError(quoteEnv).detail : "行情快照服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>行情快照</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, quote } = quoteEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无可用的收盘行情。"} />;
+  }
+  if (!quote) return <EmptyPanel note="该证券暂无行情快照。" />;
+
   return (
     <Card padded>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <SectionTitle>行情快照</SectionTitle>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Badge tone="info" variant="soft" size="sm">{q.delay.type === "delayed" ? `延迟 ${q.delay.minutes} 分钟` : "收盘价"}</Badge>
-          <QualityBadge state={q.qualityState} />
-        </div>
+        <Badge tone="info" variant="soft" size="sm">收盘价 · {quote.tradeDate}</Badge>
       </div>
       <div className="ab-grid-3" style={{ gap: 14 }}>
-        <Metric label={`最新价 (${q.currency})`} value={fmt(f.lastPrice)} />
-        <Metric label="涨跌" value={fmt(f.change)} tone={changeTone} sub={`${fmt(f.changePercent)}%`} />
-        <Metric label="昨收" value={fmt(f.previousClose)} />
-        <Metric label="成交量" value={fmt(f.volume, 0)} />
-        <Metric label="成交额" value={fmt(f.turnover, 0)} />
-        <Metric label="市场状态" value={q.marketStatus === "closed" ? "收盘" : q.marketStatus === "post_close" ? "收盘后" : q.marketStatus} />
+        <Metric label={`收盘价 (${quote.currency})`} value={fmt(quote.close)} />
+        <Metric label="开盘" value={fmt(quote.open)} />
+        <Metric label="最高" value={fmt(quote.high)} />
+        <Metric label="最低" value={fmt(quote.low)} />
+        <Metric label="成交量" value={fmt(quote.volume, 0)} />
+        <Metric label="成交额" value={fmt(quote.turnover, 0)} />
+        {quote.sharesOutstanding !== undefined ? (
+          <Metric label="已发行股数" value={fmt(quote.sharesOutstanding, 0)} />
+        ) : null}
       </div>
-      <div style={{ marginTop: 12, fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontFamily: "var(--font-mono)" }}>
-        数据截至 {q.asOf}
-      </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        收盘价 · 非实时行情
+      </p>
     </Card>
   );
 }
