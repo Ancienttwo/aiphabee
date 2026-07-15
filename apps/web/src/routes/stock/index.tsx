@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Button, Card, Icon, MascotState } from "../../ds";
+import { Badge, Button, Card, Icon, MascotState } from "../../ds";
 import { AmbiguityResolver } from "../../components/evidence";
 import {
   presentError,
@@ -60,19 +60,24 @@ function StockSearch() {
 
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
-      <h1
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-display)",
-          fontSize: "var(--text-3xl)",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-        }}
-      >
-        个股工作台
-      </h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <h1
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-3xl)",
+            fontWeight: 700,
+            color: "var(--text-primary)",
+          }}
+        >
+          证券搜索
+        </h1>
+        <Badge tone="bullish" variant="soft" size="sm" dot dotShape="hex">
+          已授权 · security_master
+        </Badge>
+      </div>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        输入证券名称或代码（如 <code>腾讯</code> 或 <code>00700.HK</code>）开始研究。
+        以代码、中文名或英文名解析证券（security_master），解析后进入个股工作台。
       </p>
 
       <form
@@ -126,9 +131,12 @@ function StockSearch() {
 
       {!state.loading && !state.error && state.candidates.length === 0 && state.submitted ? (
         <Card padded>
-          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-            “{state.submitted}” 未匹配到证券。试试更完整的名称或代码。
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Icon name="search-x" size={18} color="var(--text-subtle)" />
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+              「{state.submitted}」未匹配到证券。请尝试更完整的名称或代码。
+            </p>
+          </div>
         </Card>
       ) : null}
 
@@ -136,6 +144,7 @@ function StockSearch() {
         <MascotState
           basePath={MASCOT_BP}
           pose="forage"
+          title="输入名称或代码，工蜂开始采集"
           description="输入证券名称或代码，工蜂会为你采集行情、财务、估值与公告。"
         />
       ) : null}

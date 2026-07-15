@@ -1,4 +1,4 @@
-import { Badge, Button } from "../../ds";
+import { Badge, Button, Hexvatar } from "../../ds";
 import type { ResolveSecurityCandidate } from "../../lib/api";
 
 /**
@@ -42,69 +42,108 @@ export function AmbiguityResolver({
     >
       <div
         style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--text-sm)",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          marginBottom: 4,
+          fontSize: "var(--text-2xs)",
+          textTransform: "uppercase",
+          letterSpacing: "var(--tracking-caps)",
+          color: "var(--text-subtle)",
+          fontWeight: 600,
+          marginBottom: 6,
         }}
       >
-        “{query ?? "该查询"}” 匹配到多个证券，请选择
+        「{query ?? "该查询"}」· {candidates.length} 个候选，请选择
       </div>
       <p style={{ margin: "0 0 12px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
         为避免歧义，系统不会替你自动选择。
       </p>
       <div style={{ display: "grid", gap: 8 }}>
-        {candidates.map((c) => (
-          <div
-            key={c.instrumentId}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "10px 12px",
-              borderRadius: "var(--radius-md)",
-              background: "var(--surface-card)",
-              border: "1px solid var(--border-subtle)",
-            }}
-          >
-            <span
+        {candidates.map((c) => {
+          const delisted = c.status === "delisted";
+          const primaryName = c.name.zhHant || c.name.en;
+          const secondaryName = primaryName !== c.name.en ? c.name.en : null;
+          const shortSymbol = c.symbol.split(".")[0];
+          return (
+            <div
+              key={c.instrumentId}
               style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                minWidth: 92,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--surface-card)",
+                border: "1px solid var(--border-subtle)",
+                opacity: delisted ? 0.75 : 1,
               }}
             >
-              {c.symbol}
-            </span>
-            <span style={{ minWidth: 0, flex: 1 }}>
+              <Hexvatar
+                size={40}
+                tone={delisted ? "neutral" : "honey"}
+                icon={
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "var(--text-2xs)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {shortSymbol}
+                  </span>
+                }
+              />
               <span
                 style={{
-                  display: "block",
-                  fontFamily: "var(--font-sans)",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "var(--text-sm)",
+                  fontWeight: 600,
                   color: "var(--text-primary)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  minWidth: 92,
                 }}
               >
-                {c.name.zhHant || c.name.en}
+                {c.symbol}
               </span>
-              <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
-                {c.exchange} · {c.market} · 自 {c.validFrom}
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {primaryName}
+                  </span>
+                  {secondaryName ? (
+                    <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+                      {secondaryName}
+                    </span>
+                  ) : null}
+                  <Badge tone={STATUS_TONE[c.status]} variant="soft" size="sm">
+                    {STATUS_LABEL[c.status]}
+                  </Badge>
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "var(--text-2xs)",
+                    color: "var(--text-subtle)",
+                    marginTop: 3,
+                  }}
+                >
+                  {c.exchange} · {c.market}
+                  {c.validFrom ? <> · 自 {c.validFrom}</> : null}
+                  {delisted && c.validTo ? <> · 至 {c.validTo}</> : null}
+                  {" · 匹配依据 "}
+                  {c.matchReason}
+                </span>
               </span>
-            </span>
-            <Badge tone={STATUS_TONE[c.status]} variant="soft" size="sm">
-              {STATUS_LABEL[c.status]}
-            </Badge>
-            <Button size="sm" variant="outline" onClick={() => onSelect(c)}>
-              选择
-            </Button>
-          </div>
-        ))}
+              <Button size="sm" variant="outline" onClick={() => onSelect(c)}>
+                选择
+              </Button>
+            </div>
+          );
+        })}
       </div>
       {onCancel ? (
         <div style={{ marginTop: 12 }}>

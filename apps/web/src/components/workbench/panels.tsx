@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Badge, Card, Icon } from "../../ds";
-import { EvidenceCard } from "../evidence";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
 import type {
@@ -12,7 +11,6 @@ import type {
   QualityState,
   QuoteSection,
   SecurityProfileSection,
-  WorkbenchSection,
 } from "../../lib/api";
 
 // --- helpers -------------------------------------------------------------
@@ -32,30 +30,6 @@ export function QualityBadge({ state }: { state?: QualityState }) {
     <Badge tone={state === "PASS" ? "bullish" : "warning"} variant="soft" size="sm" dot>
       {state === "PASS" ? "质量通过" : "质量保留"}
     </Badge>
-  );
-}
-
-/** EvidenceCard built from a camelCase upstream-tool section. */
-function SectionEvidence({ section }: { section: WorkbenchSection }) {
-  return (
-    <div style={{ marginTop: 16 }}>
-      <EvidenceCard
-        asOf={section.asOf ?? ""}
-        dataVersion={section.dataVersion}
-        methodologyVersion={section.methodologyVersion}
-        provenance={section.provenance ?? []}
-        usage={section.usage}
-      />
-    </div>
-  );
-}
-
-/** Simple version footer for the two snake_case workbench-native sections. */
-function VersionFooter({ dataVersion, methodologyVersion }: { dataVersion: string; methodologyVersion: string }) {
-  return (
-    <div style={{ marginTop: 14, fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-      data_version {dataVersion} · methodology {methodologyVersion}
-    </div>
   );
 }
 
@@ -132,7 +106,6 @@ export function ProfilePanel({ section }: { section: SecurityProfileSection }) {
       <KV label="行业" value={`${p.industry.sector} / ${p.industry.industry}`} />
       <KV label="上市日期" value={p.lifecycle.listedAt} mono />
       <KV label="英文名" value={p.company.name.en} />
-      <SectionEvidence section={section} />
     </Card>
   );
 }
@@ -162,7 +135,6 @@ export function QuotePanel({ section }: { section: QuoteSection }) {
       <div style={{ marginTop: 12, fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontFamily: "var(--font-mono)" }}>
         数据截至 {q.asOf}
       </div>
-      <SectionEvidence section={section} />
     </Card>
   );
 }
@@ -210,7 +182,6 @@ export function FinancialsPanel({ section }: { section: FinancialFactsSection })
       <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
         会计准则 {section.facts?.accountingStandard} · 单位 {section.facts?.unit}
       </p>
-      <SectionEvidence section={section} />
     </Card>
   );
 }
@@ -246,7 +217,6 @@ export function DerivedPanel({ section }: { section: DerivedMetricsSection }) {
           </div>
         ))}
       </div>
-      <VersionFooter dataVersion={section.data_version} methodologyVersion={section.methodology_version} />
     </Card>
   );
 }
@@ -276,7 +246,6 @@ export function AnnouncementsPanel({ section }: { section: AnnouncementSection }
           </div>
         ))}
       </div>
-      <VersionFooter dataVersion={section.data_version} methodologyVersion={section.methodology_version} />
     </Card>
   );
 }
@@ -314,7 +283,6 @@ export function CorporateActionsPanel({ section }: { section: CorporateActionsSe
           </div>
         ))}
       </div>
-      <SectionEvidence section={section} />
     </Card>
   );
 }
@@ -347,7 +315,6 @@ export function PricePanel({ section }: { section: PriceHistorySection }) {
           );
         })}
       </div>
-      <SectionEvidence section={section} />
     </Card>
   );
 }
