@@ -12,6 +12,7 @@ const paths = {
   securityTools: "packages/security-tools/src/index.ts",
   securityToolsTest: "packages/security-tools/src/index.test.ts",
   worker: "apps/worker/src/index.ts",
+  workerResolver: "apps/worker/src/authenticated-netquity-web-resolver.ts",
   workerTest: "apps/worker/src/netquity-security-resolution-live.test.ts"
 };
 const expected = {
@@ -50,7 +51,7 @@ const errors = [
   ...validatePromotionSql(sources.promotionSql),
   ...validateIndexSql(sources.indexSql),
   ...validateRoleSql(sources.roleSql),
-  ...validateRuntime(sources.worker, sources.workerTest),
+  ...validateRuntime(sources.worker, sources.workerResolver, sources.workerTest),
   ...validateSecurityTools(sources.securityTools, sources.securityToolsTest),
   ...validateEnvironment(env, secrets),
   ...validatePackage(packageJson),
@@ -217,16 +218,17 @@ function validateRoleSql(sql) {
   return errors;
 }
 
-function validateRuntime(worker, workerTest) {
+function validateRuntime(worker, workerResolver, workerTest) {
   const errors = [];
   const routeStart = worker.indexOf("app.post(NETQUITY_SECURITY_RESOLUTION_LIVE_ROUTE");
   const routeEnd = worker.indexOf('app.post("/tools/get-security-profile"', routeStart);
-  const routeSource = worker.slice(routeStart, routeEnd);
 
   if (routeStart < 0 || routeEnd < 0) {
     errors.push("Worker must contain a separately bounded live-smoke route");
     return errors;
   }
+
+  const routeSource = worker.slice(routeStart, routeEnd);
 
   requireText(worker, expected.route, "Worker must name the guarded route", errors);
   requireText(worker, expected.token, "Worker must bind the staging token", errors);
@@ -237,13 +239,18 @@ function validateRuntime(worker, workerTest) {
     "Worker must bound token and query hashing input",
     errors
   );
-  requireText(routeSource, "resolveLiveSecurityRows", "live route must use the live row mapper", errors);
+  // The route used to run the snapshot/candidate queries and the live row
+  // mapper inline; "Activate authenticated Netquity Web resolver" (cb70df5)
+  // extracted that logic into resolveReleasedNetquitySecurity so the same
+  // released-data path can also serve the authenticated Web RPC. The route
+  // now only has to delegate to it correctly.
+  requireText(
+    routeSource,
+    "resolveReleasedNetquitySecurity(",
+    "live route must delegate to the released security resolver",
+    errors
+  );
   requireText(routeSource, 'c.env.APP_ENV !== "staging"', "live route must enforce staging", errors);
-  requireText(routeSource, "NETQUITY_SECURITY_SNAPSHOT_QUERY", "live route must run the snapshot gate", errors);
-  requireText(routeSource, "NETQUITY_SECURITY_CANDIDATE_QUERY", "live route must run the candidate query", errors);
-  requireText(worker, "LIMIT 26", "live route query must read one overflow sentinel", errors);
-  requireText(worker, "snapshot.release_state = 'released'", "live route must gate snapshot release", errors);
-  requireText(worker, "version.release_state = 'released'", "live route must gate data version release", errors);
 
   if (routeSource.includes("resolveSecurity(")) {
     errors.push("live route must never call the synthetic resolver");
@@ -255,6 +262,61 @@ function validateRuntime(worker, workerTest) {
   ) {
     errors.push("live route must authorize before reading Hyperdrive");
   }
+
+  const resolverFnStart = workerResolver.indexOf(
+    "export async function resolveReleasedNetquitySecurity("
+  );
+  const resolverFnEnd = workerResolver.indexOf(
+    "export async function resolveAuthenticatedNetquityProfile(",
+    resolverFnStart
+  );
+  const queryStart = workerResolver.indexOf("const SNAPSHOT_QUERY = ");
+  const queryEnd = workerResolver.indexOf("const PROFILE_RIGHTS_QUERY = ", queryStart);
+
+  if (resolverFnStart < 0 || resolverFnEnd < 0 || queryStart < 0 || queryEnd < 0) {
+    errors.push("Resolver module must contain a separately bounded released security resolver");
+    return errors;
+  }
+
+  const resolverFnSource = workerResolver.slice(resolverFnStart, resolverFnEnd);
+  const querySource = workerResolver.slice(queryStart, queryEnd);
+
+  requireText(
+    resolverFnSource,
+    "resolveLiveSecurityRows",
+    "released security resolver must use the live row mapper",
+    errors
+  );
+  requireText(
+    resolverFnSource,
+    "SNAPSHOT_QUERY",
+    "released security resolver must run the snapshot gate",
+    errors
+  );
+  requireText(
+    resolverFnSource,
+    "CANDIDATE_QUERY",
+    "released security resolver must run the candidate query",
+    errors
+  );
+  requireText(
+    querySource,
+    "LIMIT 26",
+    "released security resolver query must read one overflow sentinel",
+    errors
+  );
+  requireText(
+    querySource,
+    "snapshot.release_state = 'released'",
+    "released security resolver must gate snapshot release",
+    errors
+  );
+  requireText(
+    querySource,
+    "version.release_state = 'released'",
+    "released security resolver must gate data version release",
+    errors
+  );
 
   for (const evidence of [
     "Hyperdrive binding must not be read",
