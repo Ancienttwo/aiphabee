@@ -10,6 +10,7 @@ import {
   PricePanel,
   ProfilePanel,
   QuotePanel,
+  SdiDisclosurePanel,
 } from "../../components/workbench/panels";
 import { Disclaimer } from "../../components/Disclaimer";
 import { getStockSnapshot, presentError, resolveSecurityProfile } from "../../lib/api";
@@ -20,6 +21,12 @@ export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
 });
 
+// `sdi`'s statusKey is deliberately undefined: unlike the other seven tabs
+// (each backed by a packages/workbench synthetic section that predates its
+// live cutover), SDI never had a synthetic scaffold anywhere, so there is no
+// StockWorkbenchSection key for its dot to read. The dot stays neutral
+// rather than fabricating a found/not-found state from a key that was never
+// emitted.
 const TABS = [
   { key: "profile", label: "档案", statusKey: "security_profile" },
   { key: "quote", label: "行情", statusKey: "quote_snapshot" },
@@ -28,6 +35,7 @@ const TABS = [
   { key: "derived", label: "指标", statusKey: "derived_metrics" },
   { key: "announcements", label: "公告", statusKey: "announcement_search" },
   { key: "actions", label: "公司行动", statusKey: "corporate_actions" },
+  { key: "sdi", label: "权益披露", statusKey: undefined },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -106,7 +114,7 @@ function StockWorkbench() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18, overflowX: "auto" }}>
                 {TABS.map((t) => {
                   const active = tab === t.key;
-                  const found = snap.data_quality.section_statuses[t.statusKey] === "found";
+                  const found = t.statusKey !== undefined && snap.data_quality.section_statuses[t.statusKey] === "found";
                   return (
                     <button
                       key={t.key}
@@ -151,6 +159,7 @@ function StockWorkbench() {
               {tab === "derived" ? <DerivedPanel section={snap.derived_metrics} /> : null}
               {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
               {tab === "actions" ? <CorporateActionsPanel instrumentId={instrumentId} /> : null}
+              {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}
 
               <Disclaimer style={{ marginTop: 24 }} />
             </>

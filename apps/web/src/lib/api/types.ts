@@ -234,6 +234,73 @@ export interface GetLiveCorporateActionsData {
   usage: UsageSummary;
 }
 
+// --- get_sdi_disclosures (live, packages/sdi-disclosure) -----------------
+// Unlike the sections above, SDI (disclosure of interests) has no synthetic
+// counterpart anywhere in this file or in packages/workbench: it never had
+// a Phase 1 synthetic tool, so this is a genuinely new tab, not a
+// synthetic->live cutover. Every nq_sdidata.sdi row is one filing, and a
+// single filing can independently carry up to three legally distinct
+// position blocks -- Long Position, Short Position, and Lending Pool --
+// so `disclosures[].positions` nests 1-3 entries per filing rather than a
+// flat per-type array like corporate_actions' `actions`. No nature-of-
+// change category (increase/decrease/passive) or threshold-crossing flag
+// is ever promoted: eventCode is the vendor's own undecoded code, exposed
+// verbatim, never translated into an interpreted label. `coverage`
+// distinguishes an instrument with no promoted filing at all (status
+// "unavailable", disclosures always []) from one this promotion covers
+// (status "available").
+export interface SdiDisclosureCoverage {
+  reason?: string;
+  status: "available" | "unavailable";
+}
+
+export type LiveSdiPositionType = "long" | "pool" | "short";
+
+export interface LiveSdiPosition {
+  currency?: string;
+  eventCode?: string;
+  positionType: LiveSdiPositionType;
+  presentBalancePercent?: number;
+  presentBalanceShares?: number;
+  previousBalancePercent?: number;
+  previousBalanceShares?: number;
+  shares?: number;
+}
+
+export interface LiveSdiHolderName {
+  en: string;
+  zhHans: string;
+  zhHant: string;
+}
+
+export interface LiveSdiDisclosureRow {
+  amendsReferenceNo?: string;
+  disclosureId: string;
+  formType: "1" | "2" | "3A";
+  holderName: LiveSdiHolderName;
+  instrumentId: string;
+  positions: LiveSdiPosition[];
+  referenceNo: string;
+  reportDate: string;
+  shareClass: string;
+  sourceRecordId: string;
+  supersededByReferenceNo?: string;
+  transactionDate: string;
+}
+
+export interface GetLiveSdiDisclosuresData {
+  asOf: string;
+  coverage?: SdiDisclosureCoverage;
+  dataVersion?: string;
+  disclosures?: LiveSdiDisclosureRow[];
+  instrumentId: string;
+  liveDataAccess?: boolean;
+  methodologyVersion?: string;
+  provenance: ProvenanceRef[];
+  status: "found" | "not_found";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

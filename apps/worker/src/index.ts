@@ -115,6 +115,7 @@ import {
   resolveAuthenticatedNetquityFinancialFacts,
   resolveAuthenticatedNetquityQuoteSnapshot,
   resolveAuthenticatedNetquityCorporateActions,
+  resolveAuthenticatedNetquitySdiDisclosure,
   resolveReleasedNetquitySecurity,
   NETQUITY_SECURITY_RIGHTS_POLICY_VERSION,
   type AuthenticatedNetquityCorporateActionsResolverInput,
@@ -122,6 +123,7 @@ import {
   type AuthenticatedNetquityProfileResolverInput,
   type AuthenticatedNetquityQuoteSnapshotResolverInput,
   type AuthenticatedNetquityResolverInput,
+  type AuthenticatedNetquitySdiDisclosureResolverInput,
 } from "./authenticated-netquity-web-resolver.js";
 import {
   calculateReturnsRisk,
@@ -12799,6 +12801,10 @@ export class AuthenticatedNetquityResolver extends WorkerEntrypoint<WorkerBindin
 
   async resolveCorporateActions(input: AuthenticatedNetquityCorporateActionsResolverInput) {
     return resolveAuthenticatedNetquityCorporateActions(this.env, input);
+  }
+
+  async resolveSdiDisclosure(input: AuthenticatedNetquitySdiDisclosureResolverInput) {
+    return resolveAuthenticatedNetquitySdiDisclosure(this.env, input);
   }
 }
 

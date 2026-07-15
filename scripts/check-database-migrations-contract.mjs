@@ -301,6 +301,17 @@ function validateSqlCoverage(migration, sql, errors) {
     migration.functions.length > 0 &&
     Array.isArray(migration.tables) &&
     migration.tables.length === 0;
+  // Symmetric to functionOnlyMigration: a migration that only extends an
+  // existing enum-like CHECK constraint (e.g. adding a new
+  // serving_dataset.domain value) creates no table and defines no function,
+  // so neither existing escape hatch applies. Narrow and explicit: requires
+  // migration.constraint_only === true in the contract AND an actual
+  // `add constraint` statement in the SQL (checked below), not just an
+  // empty tables/functions list.
+  const constraintOnlyMigration =
+    migration.constraint_only === true &&
+    Array.isArray(migration.tables) &&
+    migration.tables.length === 0;
 
   if (!Array.isArray(migration.schemas) || migration.schemas.length === 0) {
     errors.push(`${migration.file} must list at least one schema`);
@@ -308,16 +319,20 @@ function validateSqlCoverage(migration, sql, errors) {
     for (const schema of migration.schemas) {
       if (
         !normalizedSql.includes(`create schema if not exists ${schema.toLowerCase()}`) &&
-        !(functionOnlyMigration && normalizedSql.includes(`${schema.toLowerCase()}.`))
+        !((functionOnlyMigration || constraintOnlyMigration) && normalizedSql.includes(`${schema.toLowerCase()}.`))
       ) {
         errors.push(`${migration.file} must create schema ${schema}`);
       }
     }
   }
 
+  if (constraintOnlyMigration && !normalizedSql.includes("add constraint")) {
+    errors.push(`${migration.file} is marked constraint_only but does not add a constraint`);
+  }
+
   if (
     !Array.isArray(migration.tables) ||
-    (migration.tables.length === 0 && !functionOnlyMigration)
+    (migration.tables.length === 0 && !functionOnlyMigration && !constraintOnlyMigration)
   ) {
     errors.push(`${migration.file} must list at least one table`);
   } else {

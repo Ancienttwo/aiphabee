@@ -3,12 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge, type BadgeTone, Card, Icon } from "../../ds";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
-import { presentError, resolveCorporateActions, resolveFinancialFacts, resolveQuoteSnapshot } from "../../lib/api";
+import {
+  presentError,
+  resolveCorporateActions,
+  resolveFinancialFacts,
+  resolveQuoteSnapshot,
+  resolveSdiDisclosure,
+} from "../../lib/api";
 import type {
   AiphaBeeErrorCode,
   AnnouncementSection,
   DerivedMetricsSection,
   LiveCorporateActionRow,
+  LiveSdiDisclosureRow,
+  LiveSdiPositionType,
   PriceHistorySection,
   QualityState,
   SecurityProfileSection,
@@ -83,6 +91,18 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   results: "业绩",
   dividend: "派息",
   buyback: "回购",
+};
+
+const SDI_POSITION_LABEL: Record<LiveSdiPositionType, string> = {
+  long: "好仓",
+  pool: "借出库存",
+  short: "淡仓",
+};
+
+const SDI_FORM_LABEL: Record<string, string> = {
+  "1": "表格 1",
+  "2": "表格 2",
+  "3A": "表格 3A",
 };
 
 // --- panels --------------------------------------------------------------
@@ -469,6 +489,146 @@ export function CorporateActionsPanel({ instrumentId }: { instrumentId: string }
       </div>
       <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
         实时数据 · 派息/回购/拆股/并股
+      </p>
+    </Card>
+  );
+}
+
+const SDI_DISCLOSURE_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const SDI_DISCLOSURE_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+/** Pure numeric before/after comparison (never an eventCode decode -- no
+ * decode table exists for it): up/flat/down is derived only from the two
+ * already-promoted balance percentages, the same discipline
+ * sdi.jsx's NqSdiDelta component uses. */
+function sdiBalanceTone(before: number | undefined, after: number | undefined): string {
+  if (before === undefined || after === undefined || after === before) return "var(--text-primary)";
+  return after > before ? "var(--green-600)" : "var(--red-600)";
+}
+
+function SdiPositionRow({ position }: { position: LiveSdiDisclosureRow["positions"][number] }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <Badge tone="navy" variant="soft" size="sm">{SDI_POSITION_LABEL[position.positionType]}</Badge>
+      {position.previousBalancePercent !== undefined || position.presentBalancePercent !== undefined ? (
+        <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}>
+          <span style={{ color: "var(--text-subtle)" }}>{fmt(position.previousBalancePercent)}%</span>
+          <Icon name="arrow-right" size={11} />
+          <span style={{ fontWeight: 700, color: sdiBalanceTone(position.previousBalancePercent, position.presentBalancePercent) }}>
+            {fmt(position.presentBalancePercent)}%
+          </span>
+        </span>
+      ) : null}
+      {position.shares !== undefined ? (
+        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+          变动 <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{fmt(position.shares, 0)}</span> 股
+          {position.currency ? ` (${position.currency})` : ""}
+        </span>
+      ) : null}
+      {position.eventCode ? (
+        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>代码 {position.eventCode}</span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * SDI (disclosure of interests) panel: an independent live query against the
+ * entitlement-gated resolveSdiDisclosure RPC (FinancialsPanel/QuotePanel/
+ * CorporateActionsPanel decoupling pattern). Unlike those three, SDI has no
+ * synthetic counterpart anywhere in packages/workbench -- this is a
+ * genuinely new tab, not a synthetic->live cutover. Only fields the
+ * promotion actually carries are rendered: no nature-of-change
+ * (increase/decrease/passive) label and no threshold-crossing flag, because
+ * neither is derivable from the vendor data (see
+ * deploy/ingest/netquity-sdi-disclosure-staging.contract.json). Up/down
+ * coloring on a position's balance percentage is a pure numeric comparison
+ * of the two already-promoted percentages, not a decode of the vendor's own
+ * (undocumented) eventCode.
+ */
+export function SdiDisclosurePanel({ instrumentId }: { instrumentId: string }) {
+  const { data: sdiEnv, isLoading } = useQuery({
+    queryKey: ["sdi-disclosure-live", instrumentId],
+    queryFn: () => resolveSdiDisclosure(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载权益披露…</p>
+    );
+  }
+
+  if (!sdiEnv || !sdiEnv.ok) {
+    const code = sdiEnv?.error.code;
+    const tone: BadgeTone = (code && SDI_DISCLOSURE_STATE_TONE[code]) ?? "bearish";
+    const label = (code && SDI_DISCLOSURE_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = sdiEnv ? presentError(sdiEnv).detail : "权益披露服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>权益披露</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const { coverage, disclosures } = sdiEnv.data;
+  if (coverage?.status === "unavailable") {
+    return <EmptyPanel note={coverage.reason ?? "该证券暂无权益披露记录。"} />;
+  }
+  if (!disclosures || disclosures.length === 0) return <EmptyPanel note="该证券暂无权益披露记录。" />;
+
+  return (
+    <Card padded>
+      <SectionTitle>权益披露（{disclosures.length}）</SectionTitle>
+      <div style={{ display: "grid", gap: 10 }}>
+        {disclosures.map((d) => (
+          <div
+            key={d.disclosureId}
+            style={{ padding: "12px 14px", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-subtle)" }}>
+                {d.reportDate}
+              </span>
+              <Badge tone="ai" variant="soft" size="sm">{SDI_FORM_LABEL[d.formType] ?? d.formType}</Badge>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
+                {d.holderName.zhHant || d.holderName.en}
+              </span>
+              <span style={{ marginLeft: "auto", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+                股份类别 {d.shareClass}
+              </span>
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {d.positions.map((position, index) => (
+                <SdiPositionRow key={`${d.disclosureId}-${position.positionType}-${index}`} position={position} />
+              ))}
+            </div>
+            <p style={{ margin: "8px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+              编号 <span style={{ fontFamily: "var(--font-mono)" }}>{d.referenceNo}</span>
+              {d.amendsReferenceNo ? ` · 修订自 ${d.amendsReferenceNo}` : ""}
+              {d.supersededByReferenceNo ? ` · 已被 ${d.supersededByReferenceNo} 取代` : ""}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        实时数据 · 大股东及董事权益披露（SFO 第 XV 部）
       </p>
     </Card>
   );

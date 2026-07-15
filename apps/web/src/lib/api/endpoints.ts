@@ -3,6 +3,7 @@ import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } fro
 import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions";
 import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
 import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functions";
+import { resolveAuthenticatedSdiDisclosure } from "./sdi-disclosure.functions";
 import type {
   AgentPlan,
   CompareResult,
@@ -46,6 +47,11 @@ export function resolveQuoteSnapshot(instrumentId: string) {
 /** Gated live corporate actions (dividend/buyback/split/consolidation) for a known instrument id (POST server-fn). */
 export function resolveCorporateActions(instrumentId: string) {
   return resolveAuthenticatedCorporateActions({ data: { instrumentId } });
+}
+
+/** Gated live SDI (substantial-shareholder / director disclosure of interests) filings for a known instrument id (POST server-fn). */
+export function resolveSdiDisclosure(instrumentId: string) {
+  return resolveAuthenticatedSdiDisclosure({ data: { instrumentId } });
 }
 
 // --- Agent research plan -------------------------------------------------

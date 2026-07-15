@@ -1,0 +1,196 @@
+{
+  "version": "2026-07-15.netquity-sdi-disclosure-staging.v1",
+  "status": "approved_staging_only",
+  "provider": "planetscale_postgres_via_cloudflare_hyperdrive",
+  "environment": "staging",
+  "source": {
+    "datasets": [
+      "nq_basicdata.stock",
+      "nq_sdidata.dataperiod",
+      "nq_sdidata.sdi"
+    ],
+    "source_batch_id": "src_netquity_sdi_disclosure_cf0fbc789c41",
+    "data_version": "netquity-sdi-disclosure-cf0fbc789c41.v1",
+    "source_as_of": "2026-07-15T00:00:00+08:00",
+    "sha256": "cf0fbc789c41631bc2271f1bdf527c3caf74769aec940b2af15ccb9533fc3ec3",
+    "sha256_method": "sha256 over 3 tables' full unfiltered COPY (ORDER BY <pk>) WITH (FORMAT CSV) output, each preceded by a 'TABLE:<schema>.<table>' header line, concatenated in fixed alphabetical order: nq_basicdata.stock, nq_sdidata.dataperiod, nq_sdidata.sdi",
+    "row_count": 35551,
+    "row_count_by_table": {
+      "nq_basicdata.stock": 18036,
+      "nq_sdidata.dataperiod": 1,
+      "nq_sdidata.sdi": 17514
+    },
+    "shares_raw_source_batch_with": null,
+    "reused_from_prior_promotion": false,
+    "reuse_note": "nq_basicdata.stock content overlaps byte-for-byte with the batch already pinned by security_master/security_profile/financial_facts/quote_snapshot/corporate_actions, but this promotion's own correctness argument depends on the exact 3-table set it reads together (entity scope + the SDI extraction window + the filing stream itself), so it mints its own self-contained batch rather than cross-referencing another promotion's pin -- same reasoning every prior promotion used for its own batch."
+  },
+  "promotion": {
+    "staging_prerequisite_migrations": [
+      "deploy/database/migrations/20260620082000_security_master_raw_snapshot_scaffold.sql",
+      "deploy/database/migrations/20260620091000_serving_store_scaffold.sql",
+      "deploy/database/migrations/20260709180000_netquity_mirror_schema.sql",
+      "deploy/database/migrations/20260715150000_sdi_disclosure_domain.sql"
+    ],
+    "new_migration_required": true,
+    "new_migration_reason": "Unlike the five prior Netquity live-promotion slices (their domain values -- security_master, financial_fact, quote_snapshot, corporate_action -- already existed in aiphabee_core.serving_dataset_domain_check as of 20260625002000_hkex_news_ingest_foundation.sql), no 'sdi_disclosure'/'disclosure_of_interest'/'ownership' domain value existed anywhere in the schema. deploy/database/migrations/20260715150000_sdi_disclosure_domain.sql extends the CHECK constraint (drop + re-add, the same mechanism 20260624001000_ipo_pipeline_foundation.sql and 20260625002000_hkex_news_ingest_foundation.sql each used to add a new domain value) with no table creation, access grant, or data load.",
+    "sql": "deploy/ingest/netquity-sdi-disclosure-staging.sql",
+    "serving_dataset": "sdi_disclosure",
+    "serving_dataset_id": "serving_dataset_sdi_disclosure",
+    "serving_dataset_domain": "sdi_disclosure",
+    "serving_dataset_domain_note": "dataset and domain use the identical value 'sdi_disclosure' (no plural/singular mismatch this cut, unlike corporate_actions/corporate_action or financial_facts/financial_fact): both are new values minted together by this promotion, so no pre-existing naming convention constrained a match.",
+    "serving_snapshot_id": "serving_sdi_disclosure_netquity_cf0fbc789c41_v1",
+    "methodology_version": "2026-07-15.netquity-sdi-disclosure-promotion.v1",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "release_state": "released",
+    "quality_state": "PASS",
+    "record_entity_type": "instrument",
+    "entity_id_pattern": "hkex_security_<five-digit-code>",
+    "entity_id_aligned_with": "deploy/ingest/netquity-security-resolution-staging.sql",
+    "source_record_id_pattern": "netquity:sdi_disclosure.available:<five-digit-code> (available) | netquity:sdi_disclosure.unavailable:<five-digit-code> (unavailable)",
+    "transactional": true,
+    "new_index_required": false,
+    "new_index_required_reason": "entity_id lookup uses the leading prefix of the existing serving_record unique index (serving_snapshot_id, entity_type, entity_id, ...)",
+    "idempotent": true,
+    "row_count_breakdown": {
+      "total_serving_records": 18036,
+      "with_disclosures_available": 1215,
+      "coverage_unavailable_no_filing": 16821,
+      "total_disclosure_rows": 17514,
+      "total_position_rows": 24907,
+      "long_position_rows": 17514,
+      "short_position_rows": 5314,
+      "pool_position_rows": 2079
+    }
+  },
+  "rpc": {
+    "binding": "AIPHABEE_API",
+    "entrypoint": "AuthenticatedNetquityResolver",
+    "method": "resolveSdiDisclosure",
+    "public_http_exposed": false,
+    "await_required": true,
+    "worker_entrypoint": "apps/worker/src/index.ts",
+    "resolver_module": "apps/worker/src/authenticated-netquity-web-resolver.ts",
+    "test_file": "apps/worker/src/authenticated-netquity-web-resolver.test.ts",
+    "hyperdrive_binding": "AIPHABEE_HYPERDRIVE",
+    "required_app_env": "staging",
+    "authorization_before_binding": true,
+    "latest_released_snapshot_only": true,
+    "entity_id_exact_lookup_only": true,
+    "maximum_rows": 1
+  },
+  "authorization": {
+    "channel": "web",
+    "dataset": "sdi_disclosure",
+    "rights_policy_version": "netquity-collaboration-staging.v1",
+    "default_rights_status": "default_deny",
+    "entitled_workspace_cardinality": 1,
+    "requested_fields": [
+      "sdi_disclosure.coverage.reason",
+      "sdi_disclosure.coverage.status",
+      "sdi_disclosure.disclosures.long",
+      "sdi_disclosure.disclosures.pool",
+      "sdi_disclosure.disclosures.short"
+    ],
+    "partial_candidate_allowed": false,
+    "api_rights_approved": false,
+    "mcp_rights_approved": false,
+    "export_rights_approved": false
+  },
+  "rights_basis": {
+    "policy_version": "netquity-collaboration-staging.v1",
+    "distinct_from_quote_snapshot": "quote_snapshot deliberately uses its own 'netquity-market-data-staging.v1' policy version because market-data Web distribution rights were confirmed separately; SDI has no comparable separate rights determination and is covered by the original Netquity collaboration rights approval already used by security_master/security_profile/financial_facts/corporate_actions, so this promotion reuses 'netquity-collaboration-staging.v1' rather than minting a new policy version.",
+    "account_context_independence": "resolveSdiDisclosure filters aiphabee_governance.data_entitlement/aiphabee_core.serving_dataset by context.rights_policy_version (the account's platform.workspace_product_access.policy_version), the same as resolveProfile/resolveFinancialFacts/resolveCorporateActions -- no hardcoded policy-version constant is introduced.",
+    "personal_data_basis": "the substantial shareholder / director name carried by holderName is the statutorily public SFO Part XV disclosure this dataset exists to publish (the same public-monitoring-data basis security_profile already uses for company/director identity), not incidental personal data collected for another purpose; no other personal-data field is promoted (see excluded_from_this_cut.personal_data_columns)."
+  },
+  "field_mapping": [
+    { "promoted_field": "disclosures[].disclosureId", "vendor_source": "derived: 'sdi_disclosure_' || code(5) || '_' || lower(formtype) || '_' || formno", "always_present": true },
+    { "promoted_field": "disclosures[].formType", "vendor_source": "nq_sdidata.sdi.formtype (raw code '1'|'2'|'3A', not translated to an English label)", "always_present": true },
+    { "promoted_field": "disclosures[].referenceNo", "vendor_source": "nq_sdidata.sdi.formno2", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].amendsReferenceNo", "vendor_source": "nq_sdidata.sdi.formno2_a", "always_present": false, "population_rate": "312/17514" },
+    { "promoted_field": "disclosures[].supersededByReferenceNo", "vendor_source": "nq_sdidata.sdi.formno2_s", "always_present": false, "population_rate": "156/17514" },
+    { "promoted_field": "disclosures[].reportDate", "vendor_source": "nq_sdidata.sdi.reportdate", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].transactionDate", "vendor_source": "nq_sdidata.sdi.transdate", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].holderName.en", "vendor_source": "nq_sdidata.sdi.engsubsharename", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].holderName.zhHant", "vendor_source": "nq_sdidata.sdi.chisubsharename", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].holderName.zhHans", "vendor_source": "nq_sdidata.sdi.simsubsharename", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].shareClass", "vendor_source": "nq_sdidata.sdi.sharetype (A|H|O|T|U)", "always_present": true, "population_rate": "17514/17514" },
+    { "promoted_field": "disclosures[].sourceRecordId", "vendor_source": "derived: 'netquity:sdidata.sdi:' || code(5) || ':' || formtype || ':' || formno", "always_present": true },
+    { "promoted_field": "disclosures[].positions[].positionType", "vendor_source": "derived: which of l_/s_/p_ column blocks is populated on the row ('long'|'short'|'pool')", "always_present": true },
+    { "promoted_field": "disclosures[].positions[].eventCode", "vendor_source": "nq_sdidata.sdi.{l,s,p}_eventcode (raw undecoded vendor code)", "always_present": false, "population_rate": "long 16878/17514, short 1270/5314, pool 0/2079" },
+    { "promoted_field": "disclosures[].positions[].shares", "vendor_source": "nq_sdidata.sdi.{l,s,p}_no_of_share", "always_present": false, "population_rate": "long 15108/17514" },
+    { "promoted_field": "disclosures[].positions[].currency", "vendor_source": "nq_sdidata.sdi.{l,s,p}_transcurr", "always_present": false, "population_rate": "long 16878/17514" },
+    { "promoted_field": "disclosures[].positions[].previousBalanceShares", "vendor_source": "nq_sdidata.sdi.{l,s,p}_previousbalshare", "always_present": false, "population_rate": "long 16796/17514" },
+    { "promoted_field": "disclosures[].positions[].previousBalancePercent", "vendor_source": "nq_sdidata.sdi.{l,s,p}_previousbalper", "always_present": false, "population_rate": "long 16796/17514" },
+    { "promoted_field": "disclosures[].positions[].presentBalanceShares", "vendor_source": "nq_sdidata.sdi.{l,s,p}_presentbalshare", "always_present": false, "population_rate": "long 17514/17514, short 5254/5314, pool 2071/2079" },
+    { "promoted_field": "disclosures[].positions[].presentBalancePercent", "vendor_source": "nq_sdidata.sdi.{l,s,p}_presentbalper", "always_present": false, "population_rate": "long 17514/17514, short 5254/5314, pool 2071/2079" },
+    { "promoted_field": "coverage.status", "vendor_source": "derived: 'available' (code has >=1 sdi row) | 'unavailable' (code has 0 sdi rows)", "always_present": true },
+    { "promoted_field": "coverage.reason", "vendor_source": "derived static text, only present when coverage.status = 'unavailable'", "always_present": false }
+  ],
+  "excluded_from_this_cut": {
+    "nature_of_change_category": "l_/s_/p_eventcode has no decode table anywhere in the mirrored schema (68 distinct long-block values, 32 distinct short-block values, 0 pool-block values populated). Promoting a translated 'increase'/'decrease'/'passive' nature-of-change category (the sdi.jsx design fixture's kind/kindZh fields) would assert an interpretation of an undocumented numeric code, the same risk corporate_actions declined for nq_capitalraised.methodcode. The raw eventCode is promoted verbatim (opaque string) instead; no kind/kindZh field is emitted.",
+    "threshold_crossing_flag": "no vendor column encodes a disclosure threshold crossing (e.g. the sdi.jsx design fixture's 'crossing' field, '上穿 30% 披露界线'). Deriving it would require applying an SFO threshold-crossing rule engine to previousBalancePercent/presentBalancePercent after promotion -- interpretation, not 1:1 projection, the same category of derivation corporate_actions declined for split/consolidation ratios. Not promoted; not computed client-side from the promoted percentages either.",
+    "on_exchange_dealing_price": "l_/s_/p_onex_highprice and l_/s_/p_onex_avgprice (on-exchange dealing price stats during the reporting period, ~35-37% populated on the long block) are not promoted this cut: not part of the sdi.jsx design vocabulary this cut targets, and out of scope alongside the two fields below.",
+    "off_exchange_consideration_fields": "l_/s_/p_offex_consshare and l_/s_/p_offex_conscode are not promoted: offex_conscode is a 4-value undocumented code (3101/3102/3103/3104, no decode table anywhere in the mirrored schema); offex_consshare's own populated values (e.g. 84.0411 on a row whose onex_avgprice is 84.0782) numerically resemble a per-share consideration price rather than a literal share count despite its 'consshare' name -- an ambiguity this promotion declines to resolve by guessing a field semantic rather than reading a vendor definition.",
+    "personal_data_columns": "verified: nq_sdidata.sdi's full column set (code, reportdate, transdate, formtype, formno, formno2/formno2_a/formno2_s, chisubsharename/engsubsharename/simsubsharename, sharetype, and the l_/s_/p_ position blocks of eventcode/no_of_share/transcurr/onex_highprice/onex_avgprice/offex_consshare/offex_conscode/previousbalshare/previousbalper/presentbalshare/presentbalper) carries no address, identity-document number, date-of-birth, or contact-detail column. Only the statutorily public holder name (chisubsharename/engsubsharename/simsubsharename) is promoted, matching the task's PII stop condition: no vendor-appended personal-data field exists to exclude."
+  },
+  "entity_scope_choice": {
+    "chosen_pattern": "full_basicdata_universe_with_coverage_marker",
+    "chosen_pattern_source": "quote_snapshot, corporate_actions",
+    "rejected_pattern": "sparse_scope_with_not_found_for_absent_codes",
+    "rejected_pattern_source": "financial_facts",
+    "rationale": "financial_facts' Serving scope is only codes present in ANY finreport table, because its bank/insurance carve-out needs its own coverage marker distinct from true absence -- there is no comparable 'known but structurally out of scope' bucket for SDI (any listed instrument could in principle have a substantial-shareholder/director disclosure). A disclosure-of-interests filing is also a rare, transient event: for the 16821 remaining instruments, 'no filing in the mirrored window' is the default state for the large majority of the market, not an anomaly warranting the 404 not_found status used for 'this instrument id does not exist'. Building the full 18036-instrument universe with an explicit coverage.status=unavailable marker (quote_snapshot/corporate_actions' idiom) keeps that distinction, and lets the new SdiDisclosurePanel render a calm EmptyPanel state instead of an error card."
+  },
+  "web": {
+    "route": "/stock/$instrumentId",
+    "component": "SdiDisclosurePanel",
+    "tab_key": "sdi",
+    "tab_label": "权益披露",
+    "transport": "tanstack_createServerFn_post",
+    "session_authority": "better_auth_database_session",
+    "synthetic_counterpart": "none -- unlike the actions/quote/financials tabs (each decoupled from a pre-existing synthetic packages/workbench section), SDI never had a synthetic scaffold anywhere in packages/workbench: it is a genuinely new tab, not a synthetic->live cutover of an existing one. The tab's status dot therefore has no StockWorkbenchSection key to read and renders neutral rather than a fabricated found/not-found state.",
+    "other_panels_remain_synthetic": true
+  },
+  "failure_statuses": {
+    "wrong_environment": 403,
+    "authorization": 403,
+    "missing_binding": 424,
+    "no_release": 409,
+    "not_found": 404,
+    "database_or_readback": 500
+  },
+  "checker": "scripts/check-netquity-sdi-disclosure-staging-contract.mjs",
+  "package_script": "npm run check:netquity-sdi-disclosure-staging",
+  "safe_output_policy": {
+    "no_database_url": true,
+    "no_password": true,
+    "no_secret_value": true,
+    "no_vendor_row_payload": true,
+    "counts_versions_tables_and_hashes_only": true
+  },
+  "rollback": {
+    "withdraw_data_version": true,
+    "revoke_entitlement_rows": true,
+    "delete_staging_smoke_secret": false,
+    "redeploy_staging_without_route": false,
+    "delete_raw_mirror": false,
+    "revert_domain_migration": "only if no other serving_dataset row ever adopts domain='sdi_disclosure'; otherwise the CHECK constraint extension is additive and safe to leave in place"
+  },
+  "verification": {
+    "scratch_postgres_dry_run": "initdb + full 78-migration apply (including 20260715150000_sdi_disclosure_domain.sql) + pg_dump --data-only restore of nq_basicdata.stock/nq_sdidata.dataperiod/nq_sdidata.sdi from the local netquity mirror, run twice for idempotency",
+    "spot_checked_instruments": [
+      "hkex_security_00001 (CK Hutchison Holdings, code 1: 23 SDI filings in the mirrored window, includes long+short combined rows, e.g. a 2026-06-26 BlackRock Form 2 filing crossing from 4.91%/5.38% long balance)",
+      "hkex_security_<a zero-filing code> (coverage.status=unavailable, empty disclosures array)"
+    ]
+  },
+  "not_claimed": [
+    "public_resolver_cutover",
+    "public_http_route",
+    "production_deploy",
+    "nature_of_change_classification",
+    "threshold_crossing_detection",
+    "on_exchange_dealing_price_fields",
+    "off_exchange_consideration_fields",
+    "mcp_or_export_access",
+    "daily_promotion_automation"
+  ]
+}

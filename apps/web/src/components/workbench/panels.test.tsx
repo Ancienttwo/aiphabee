@@ -5,10 +5,11 @@ import type {
   SecurityProfileSection,
 } from "../../lib/api";
 
-// FinancialsPanel, QuotePanel and CorporateActionsPanel are intentionally
-// not covered here: they each do their own live useQuery against an
-// entitlement-gated RPC (resolveFinancialFacts / resolveQuoteSnapshot /
-// resolveCorporateActions respectively -- CompanyHeader decoupling pattern,
+// FinancialsPanel, QuotePanel, CorporateActionsPanel and SdiDisclosurePanel
+// are intentionally not covered here: they each do their own live useQuery
+// against an entitlement-gated RPC (resolveFinancialFacts /
+// resolveQuoteSnapshot / resolveCorporateActions / resolveSdiDisclosure
+// respectively -- CompanyHeader decoupling pattern,
 // apps/web/src/routes/stock/$instrumentId.tsx), so none of them can be
 // exercised by prop-driven renderToStaticMarkup like the other
 // synthetic-snapshot panels below. FinancialsPanel's behavior is covered by
@@ -20,10 +21,11 @@ import type {
 // apps/web/src/lib/api/quote-snapshot.server.test.ts. CorporateActionsPanel's
 // behavior is covered the same way by packages/corporate-actions, the same
 // worker resolver test file, and
-// apps/web/src/lib/api/corporate-actions.server.test.ts -- matching
-// CompanyHeader, which also has no direct render test. AnnouncementsPanel
-// remains synthetic (unchanged, still prop-driven) and is not covered by
-// this corporate-actions cut.
+// apps/web/src/lib/api/corporate-actions.server.test.ts. SdiDisclosurePanel's
+// behavior is covered the same way by packages/sdi-disclosure, the same
+// worker resolver test file, and apps/web/src/lib/api/sdi-disclosure.server.test.ts
+// -- matching CompanyHeader, which also has no direct render test.
+// AnnouncementsPanel remains synthetic (unchanged, still prop-driven).
 
 const USAGE = { cached: false, credits: 0, rows: 1 };
 

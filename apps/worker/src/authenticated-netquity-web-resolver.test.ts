@@ -66,10 +66,12 @@ const {
   AUTHENTICATED_NETQUITY_PROFILE_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_REQUIRED_FIELDS,
+  AUTHENTICATED_NETQUITY_SDI_DISCLOSURE_REQUIRED_FIELDS,
   resolveAuthenticatedNetquityCorporateActions,
   resolveAuthenticatedNetquityFinancialFacts,
   resolveAuthenticatedNetquityProfile,
   resolveAuthenticatedNetquityQuoteSnapshot,
+  resolveAuthenticatedNetquitySdiDisclosure,
   resolveAuthenticatedNetquitySecurity,
 } = await import("./authenticated-netquity-web-resolver");
 
@@ -1143,6 +1145,227 @@ describe("private authenticated Netquity corporate actions resolver", () => {
   });
 });
 
+describe("private authenticated Netquity sdi disclosure resolver", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_test" }];
+    pgState.candidateRows = [createSdiDisclosureRecordRow()];
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_SDI_DISCLOSURE_REQUIRED_FIELDS.map(createSdiDisclosureRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+  });
+
+  it.each([
+    ["invalid subject", { authSubject: "email@example.com", instrumentId: "hkex_security_00001" }],
+    ["malformed instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "eq_hk_00001" }],
+    ["empty instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "" }],
+  ])("rejects %s before creating a database client", async (_label, input) => {
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, {
+      requestId: "request_test",
+      ...input,
+    });
+
+    expect(result.envelope.ok).toBe(false);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("stays unavailable outside staging before binding access", async () => {
+    let bindingReads = 0;
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(
+      {
+        APP_ENV: "prod",
+        get AIPHABEE_HYPERDRIVE(): { connectionString?: string } | undefined {
+          bindingReads += 1;
+          throw new Error("production binding must not be read");
+        },
+      },
+      sdiDisclosureValidInput(),
+    );
+
+    expect(result.status).toBe(403);
+    expect(bindingReads).toBe(0);
+  });
+
+  it("returns unavailable for a missing private database binding", async () => {
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(
+      { APP_ENV: "staging" },
+      sdiDisclosureValidInput(),
+    );
+
+    expect(result.status).toBe(424);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("denies an unmapped account before membership or Serving reads", async () => {
+    pgState.accountRows = [{ account_id: null }];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each(["no membership", "inactive membership", "expired subscription"])(
+    "denies %s before rights or Serving reads",
+    async () => {
+      pgState.contextRows = [];
+      const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+      expect(result.status).toBe(403);
+      expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+      expect(
+        queryTexts().some((text) => text.includes("from aiphabee_governance.workspace_entitlement")),
+      ).toBe(false);
+      expect(hasServingRead()).toBe(false);
+    },
+  );
+
+  it("fails closed when more than one entitled workspace is active", async () => {
+    pgState.contextRows = [createContextRow(), { ...createContextRow(), workspace_id: "workspace_2" }];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(409);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("pins field rights to the active product-access policy version", async () => {
+    await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    const rightsQuery = pgState.queries.find((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQuery?.text).toContain("data_entitlement.dataset = 'sdi_disclosure'");
+    expect(rightsQuery?.text).toContain("data_entitlement.rights_policy_version = $3");
+    expect(rightsQuery?.values).toEqual([
+      "workspace_test",
+      "subscription_test",
+      "netquity-collaboration-staging.v1",
+    ]);
+  });
+
+  it("denies missing exact field rights before the released snapshot query", async () => {
+    pgState.rightsRows = pgState.rightsRows.slice(0, -1);
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("denies wildcard authority even when every exact field row is also present", async () => {
+    pgState.rightsRows.push(createSdiDisclosureRightsRow("sdi_disclosure.*"));
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("lets a blocked field win over approved rows", async () => {
+    pgState.rightsRows.push({
+      ...createSdiDisclosureRightsRow("sdi_disclosure.disclosures.long"),
+      entitlement_id: "entitlement_blocked_long",
+      entitlement_status: "blocked",
+      workspace_entitlement_id: "workspace_entitlement_blocked_long",
+      workspace_status: "blocked",
+    });
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(403);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each([
+    ["mismatched rights policy", { rights_policy_version: "netquity-collaboration-staging.v2" }],
+    ["non-PASS quality", { quality_state: "HOLD" }],
+  ])("fails closed for a released snapshot with %s", async (_label, override) => {
+    pgState.snapshotRows = [{ ...createSnapshotRow(), ...override }];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+    expect(
+      queryTexts().some((text) => text.includes("from aiphabee_core.serving_record record")),
+    ).toBe(false);
+  });
+
+  it("resolves an entitled instrument id with available disclosures after rights evaluation", async () => {
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.liveDataAccess).toBe(true);
+      expect(result.envelope.data.coverage).toEqual({ status: "available" });
+      expect(result.envelope.data.disclosures?.map((disclosure) => disclosure.formType)).toEqual(["2"]);
+      expect(result.envelope.data.disclosures?.[0].positions.map((position) => position.positionType)).toEqual([
+        "long",
+        "short",
+      ]);
+    }
+    const texts = queryTexts();
+    expect(texts.findIndex((text) => text.includes("from aiphabee_governance.workspace_entitlement"))).toBeLessThan(
+      texts.findIndex((text) => text.includes("from aiphabee_core.serving_dataset dataset")),
+    );
+  });
+
+  it("resolves an entitled zero-filing instrument id with an unavailable coverage marker, never fabricated disclosures", async () => {
+    pgState.candidateRows = [createUnavailableSdiDisclosureRecordRow()];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(
+      bindings,
+      sdiDisclosureValidInput("hkex_security_00007"),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.coverage?.status).toBe("unavailable");
+      expect(result.envelope.data.disclosures).toEqual([]);
+    }
+  });
+
+  it("returns 404 NOT_FOUND when no released row matches the instrument id, never a synthetic fallback", async () => {
+    pgState.candidateRows = [];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(404);
+    expect(errorCode(result)).toBe("NOT_FOUND");
+  });
+
+  it("fails closed on a malformed released row rather than exposing it", async () => {
+    pgState.candidateRows = [{ ...createSdiDisclosureRecordRow(), data_version: "wrong-version" }];
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+  });
+
+  it("returns an explicit failure and closes the client on database error", async () => {
+    pgState.failOn = "from aiphabee_governance.workspace_entitlement";
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("does not return an authorized result when the database client cannot close", async () => {
+    pgState.endFails = true;
+
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, sdiDisclosureValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+  });
+});
+
 function financialFactsValidInput(instrumentId = "hkex_security_00700") {
   return {
     authSubject: AUTH_SUBJECT,
@@ -1513,4 +1736,95 @@ function hasServingRead() {
 
 function errorCode(result: { envelope: ResponseEnvelope<unknown> }) {
   return result.envelope.ok ? undefined : result.envelope.error.code;
+}
+
+function sdiDisclosureValidInput(instrumentId = "hkex_security_00001") {
+  return {
+    authSubject: AUTH_SUBJECT,
+    instrumentId,
+    requestId: "request_test",
+  };
+}
+
+function createSdiDisclosureRightsRow(fieldPattern: string) {
+  return {
+    channel: "web",
+    dataset: "sdi_disclosure",
+    entitlement_id: `entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    entitlement_source_record_id: `source:${fieldPattern}`,
+    entitlement_status: "approved",
+    export_allowed: false,
+    field_pattern: fieldPattern,
+    rights_policy_version: "netquity-collaboration-staging.v1",
+    time_range_days: null,
+    valid_from: "2026-07-10T00:00:00.000Z",
+    valid_to: null,
+    workspace_entitlement_id: `workspace_entitlement_${fieldPattern.replaceAll(".", "_")}`,
+    workspace_source_record_id: `workspace-source:${fieldPattern}`,
+    workspace_status: "approved",
+  };
+}
+
+// Mirrors the real hkex_security_00001 (CK Hutchison Holdings) row spot-
+// checked via psql against the local netquity mirror: a 2026-06-26
+// BlackRock Form 2 filing reporting a long-position change (4.91% ->
+// 5.17%) alongside an unchanged short-position balance (0.06%).
+function createSdiDisclosureRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_00001",
+    payload: {
+      coverage: { status: "available" },
+      disclosures: [
+        {
+          disclosureId: "sdi_disclosure_00001_2_2606260526",
+          formType: "2",
+          holderName: { en: "BlackRock, Inc.", zhHans: "贝莱德", zhHant: "貝萊德" },
+          positions: [
+            {
+              currency: "HKD",
+              eventCode: "1004",
+              positionType: "long",
+              presentBalancePercent: 5.17,
+              presentBalanceShares: 197978928,
+              previousBalancePercent: 4.91,
+              previousBalanceShares: 188109983,
+              shares: 9868945,
+            },
+            {
+              positionType: "short",
+              presentBalancePercent: 0.06,
+              presentBalanceShares: 2385750,
+              previousBalancePercent: 0.06,
+              previousBalanceShares: 2327250,
+            },
+          ],
+          referenceNo: "CS20260626E00526",
+          reportDate: "2026-06-26",
+          shareClass: "O",
+          sourceRecordId: "netquity:sdidata.sdi:00001:2:2606260526",
+          transactionDate: "2026-06-23",
+        },
+      ],
+    },
+    source_record_id: "netquity:sdi_disclosure.available:00001",
+    ...overrides,
+  };
+}
+
+function createUnavailableSdiDisclosureRecordRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data_version: "netquity-basicdata-test.v1",
+    entity_id: "hkex_security_00007",
+    payload: {
+      coverage: {
+        reason:
+          "no substantial-shareholder or director/chief-executive disclosure-of-interests filing found in nq_sdidata.sdi for this instrument in the current mirrored snapshot",
+        status: "unavailable",
+      },
+      disclosures: [],
+    },
+    source_record_id: "netquity:sdi_disclosure.unavailable:00007",
+    ...overrides,
+  };
 }
