@@ -6,25 +6,20 @@ import {
   closeAuthenticatedWebIdentityResources,
   createBackgroundTaskTracker,
   createBetterAuthOptions,
-  hashInvitedEmail,
-  isInvitedEmail,
   parseAuthenticatedWebIdentityBindings,
   type AuthenticatedWebIdentityBindings,
 } from "./auth.server";
-
-const INVITED_EMAIL = "researcher@example.com";
 
 async function validBindings(): Promise<AuthenticatedWebIdentityBindings> {
   return {
     AIPHABEE_AUTH_HYPERDRIVE: {
       connectionString: "postgresql://auth:secret@localhost:5432/aiphabee",
     },
-    AIPHABEE_AUTH_INVITED_EMAIL_SHA256: await hashInvitedEmail(INVITED_EMAIL),
     APP_ENV: "staging",
     BETTER_AUTH_SECRET: "a".repeat(48),
     BETTER_AUTH_URL: "https://aiphabee-web-staging.example.test",
-    GITHUB_CLIENT_ID: "github-client-id",
-    GITHUB_CLIENT_SECRET: "github-client-secret",
+    GOOGLE_CLIENT_ID: "google-client-id",
+    GOOGLE_CLIENT_SECRET: "google-client-secret",
   };
 }
 
@@ -83,12 +78,13 @@ describe("authenticated Web identity configuration", () => {
     expect(pool.end).toHaveBeenCalledOnce();
   });
 
-  it("accepts only the staging authority and normalizes invite hashes", async () => {
+  it("accepts only the staging authority and parses the Google OAuth credentials", async () => {
     const parsed = parseAuthenticatedWebIdentityBindings(await validBindings());
 
     expect(parsed.appEnv).toBe("staging");
     expect(parsed.baseUrl).toBe("https://aiphabee-web-staging.example.test");
-    expect(parsed.invitedEmailSha256).toEqual([await hashInvitedEmail(INVITED_EMAIL)]);
+    expect(parsed.googleClientId).toBe("google-client-id");
+    expect(parsed.googleClientSecret).toBe("google-client-secret");
   });
 
   it("fails closed outside staging", async () => {
@@ -102,11 +98,10 @@ describe("authenticated Web identity configuration", () => {
 
   it.each([
     "AIPHABEE_AUTH_HYPERDRIVE",
-    "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
-    "GITHUB_CLIENT_ID",
-    "GITHUB_CLIENT_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
   ] as const)("fails closed when %s is absent", async (name) => {
     const bindings = await validBindings();
     delete bindings[name];
@@ -114,7 +109,7 @@ describe("authenticated Web identity configuration", () => {
     expect(() => parseAuthenticatedWebIdentityBindings(bindings)).toThrow(AuthConfigurationError);
   });
 
-  it("rejects insecure origins, short secrets, and malformed invite hashes", async () => {
+  it("rejects insecure origins and short secrets", async () => {
     const insecure = await validBindings();
     insecure.BETTER_AUTH_URL = "http://aiphabee-web-staging.example.test";
     expect(() => parseAuthenticatedWebIdentityBindings(insecure)).toThrow(AuthConfigurationError);
@@ -122,12 +117,6 @@ describe("authenticated Web identity configuration", () => {
     const shortSecret = await validBindings();
     shortSecret.BETTER_AUTH_SECRET = "too-short";
     expect(() => parseAuthenticatedWebIdentityBindings(shortSecret)).toThrow(
-      AuthConfigurationError,
-    );
-
-    const malformedInvite = await validBindings();
-    malformedInvite.AIPHABEE_AUTH_INVITED_EMAIL_SHA256 = "not-a-sha256";
-    expect(() => parseAuthenticatedWebIdentityBindings(malformedInvite)).toThrow(
       AuthConfigurationError,
     );
   });
@@ -140,13 +129,6 @@ describe("authenticated Web identity configuration", () => {
     expect(() => canonicalAuthSubject("")).toThrow(AuthConfigurationError);
   });
 
-  it("matches invitations by normalized email hash without exposing email authority", async () => {
-    const invitedHash = await hashInvitedEmail(INVITED_EMAIL);
-
-    await expect(isInvitedEmail(" Researcher@Example.com ", [invitedHash])).resolves.toBe(true);
-    await expect(isInvitedEmail("other@example.com", [invitedHash])).resolves.toBe(false);
-  });
-
   it("builds hardened OAuth, session, token-storage, and rate-limit options", async () => {
     const config = parseAuthenticatedWebIdentityBindings(await validBindings());
     const pool = new Pool({ connectionString: config.connectionString });
@@ -155,12 +137,13 @@ describe("authenticated Web identity configuration", () => {
 
     expect(options.emailAndPassword).toBeUndefined();
     expect(options.trustedOrigins).toEqual([config.baseUrl]);
-    expect(options.socialProviders?.github).toMatchObject({
-      clientId: config.githubClientId,
-      clientSecret: config.githubClientSecret,
+    expect(options.socialProviders?.github).toBeUndefined();
+    expect(options.socialProviders?.google).toMatchObject({
+      clientId: config.googleClientId,
+      clientSecret: config.googleClientSecret,
       disableImplicitSignUp: true,
     });
-    expect(options.socialProviders?.github).not.toHaveProperty("disableSignUp");
+    expect(options.socialProviders?.google).not.toHaveProperty("disableSignUp");
     expect(options.account).toMatchObject({
       encryptOAuthTokens: true,
       storeAccountCookie: false,
@@ -187,7 +170,7 @@ describe("authenticated Web identity configuration", () => {
     await pool.end();
   });
 
-  it("uses the database user-create hook as the invite authority", async () => {
+  it("uses the database user-create hook to require a verified OAuth email, open to any address", async () => {
     const config = parseAuthenticatedWebIdentityBindings(await validBindings());
     const pool = new Pool({ connectionString: config.connectionString });
     const options = createBetterAuthOptions(config, pool);
@@ -196,22 +179,22 @@ describe("authenticated Web identity configuration", () => {
     expect(beforeCreate).toBeTypeOf("function");
     await expect(
       beforeCreate?.(
-        { email: "uninvited@example.com", emailVerified: true } as Parameters<NonNullable<typeof beforeCreate>>[0],
+        { email: "unverified@example.com", emailVerified: false } as Parameters<NonNullable<typeof beforeCreate>>[0],
         {} as Parameters<NonNullable<typeof beforeCreate>>[1],
       ),
     ).rejects.toMatchObject({ status: "FORBIDDEN" });
     await expect(
       beforeCreate?.(
-        { email: INVITED_EMAIL, emailVerified: false } as Parameters<NonNullable<typeof beforeCreate>>[0],
+        { email: "anyone@example.com", emailVerified: true } as Parameters<NonNullable<typeof beforeCreate>>[0],
         {} as Parameters<NonNullable<typeof beforeCreate>>[1],
       ),
-    ).rejects.toMatchObject({ status: "FORBIDDEN" });
+    ).resolves.toMatchObject({ data: { email: "anyone@example.com" } });
     await expect(
       beforeCreate?.(
-        { email: INVITED_EMAIL, emailVerified: true } as Parameters<NonNullable<typeof beforeCreate>>[0],
+        { email: "someone.else@example.com", emailVerified: true } as Parameters<NonNullable<typeof beforeCreate>>[0],
         {} as Parameters<NonNullable<typeof beforeCreate>>[1],
       ),
-    ).resolves.toMatchObject({ data: { email: INVITED_EMAIL } });
+    ).resolves.toMatchObject({ data: { email: "someone.else@example.com" } });
 
     await pool.end();
   });

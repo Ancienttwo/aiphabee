@@ -3,8 +3,8 @@ import {
   type ResponseEnvelope,
 } from "@aiphabee/data-contracts";
 import {
-  canonicalAuthSubject,
   getAuthenticatedWebIdentitySession,
+  resolveWebRequestSubject,
   type AuthenticatedWebIdentityBindings,
 } from "../auth.server";
 import type { GetSecurityProfileData, ResolveSecurityData } from "./types";
@@ -113,15 +113,7 @@ export async function resolveAuthenticatedSecurityRequest(
       status: 502,
     };
   }
-  if (!session?.user?.id) {
-    return {
-      envelope: createErrorEnvelope("AUTH_REQUIRED", "authenticated session is required", {
-        asOf,
-        requestId,
-      }),
-      status: 401,
-    };
-  }
+  const { authSubject } = resolveWebRequestSubject(session);
 
   const service = bindings.AIPHABEE_API;
   if (!service) {
@@ -136,7 +128,7 @@ export async function resolveAuthenticatedSecurityRequest(
 
   try {
     const result = await service.resolveSecurity({
-      authSubject: canonicalAuthSubject(session.user.id),
+      authSubject,
       market: input.market,
       query: input.query,
       requestId,
@@ -182,15 +174,7 @@ export async function resolveAuthenticatedProfileRequest(
       status: 502,
     };
   }
-  if (!session?.user?.id) {
-    return {
-      envelope: createErrorEnvelope("AUTH_REQUIRED", "authenticated session is required", {
-        asOf,
-        requestId,
-      }),
-      status: 401,
-    };
-  }
+  const { authSubject } = resolveWebRequestSubject(session);
 
   const service = bindings.AIPHABEE_API;
   if (!service) {
@@ -205,7 +189,7 @@ export async function resolveAuthenticatedProfileRequest(
 
   try {
     const result = await service.resolveProfile({
-      authSubject: canonicalAuthSubject(session.user.id),
+      authSubject,
       instrumentId: input.instrumentId,
       requestId,
     });

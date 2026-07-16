@@ -14,7 +14,7 @@ export interface ErrorPresentation {
 // Exhaustive over AiphaBeeErrorCode — TS flags any missing/extra code.
 const PRESENTATIONS: Record<AiphaBeeErrorCode, ErrorPresentation> = {
   AMBIGUOUS_SECURITY: { title: "证券存在歧义", detail: "请从候选项中选择一个证券。", action: "ambiguity" },
-  AUTH_REQUIRED: { title: "需要登录", detail: "请登录后继续。登录功能即将上线。", action: "auth" },
+  AUTH_REQUIRED: { title: "需要登录", detail: "请登录后继续。", action: "auth" },
   BUDGET_EXCEEDED: { title: "额度不足", detail: "本次操作所需 credits 超过剩余额度。", action: "budget" },
   DATA_NOT_LICENSED: { title: "数据未授权", detail: "该字段在当前渠道未获授权。", action: "generic" },
   DATA_QUALITY_HOLD: { title: "数据质量保留", detail: "该数据因质量校验暂被保留。", action: "quality" },

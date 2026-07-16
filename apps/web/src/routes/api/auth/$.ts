@@ -19,9 +19,9 @@ async function handleAuthRequest(request: Request) {
   try {
     if (
       request.method === "GET" &&
-      new URL(request.url).pathname === "/api/auth/github/start"
+      new URL(request.url).pathname === "/api/auth/google/start"
     ) {
-      return await startGitHubOAuth(request);
+      return await startGoogleOAuth(request);
     }
     return await handleAuthenticatedWebIdentityRequest(
       env as unknown as AuthenticatedWebIdentityBindings,
@@ -45,7 +45,7 @@ async function handleAuthRequest(request: Request) {
   }
 }
 
-async function startGitHubOAuth(request: Request) {
+async function startGoogleOAuth(request: Request) {
   const origin = new URL(request.url).origin;
   const forwardedHeaders = new Headers({
     "content-type": "application/json",
@@ -62,7 +62,7 @@ async function startGitHubOAuth(request: Request) {
         callbackURL: "/account",
         errorCallbackURL: "/login?error=oauth",
         newUserCallbackURL: "/account",
-        provider: "github",
+        provider: "google",
         requestSignUp: true,
       }),
       headers: forwardedHeaders,
@@ -73,7 +73,7 @@ async function startGitHubOAuth(request: Request) {
   if (!response.ok || !location) return response;
 
   const target = new URL(location);
-  if (target.protocol !== "https:" || target.hostname !== "github.com") {
+  if (target.protocol !== "https:" || target.hostname !== "accounts.google.com") {
     return Response.json(
       { error: "authentication_unavailable" },
       { headers: { "Cache-Control": "no-store" }, status: 503 },

@@ -148,8 +148,7 @@ export function validateStaticImplementation(root = process.cwd()) {
   if (/app\.(?:get|post|all)\([^\n]*AuthenticatedNetquityResolver/u.test(workerIndex)) errors.push("private RPC must not have a public HTTP route");
   expectFragments(errors, webServer, "Web server", [
     "getAuthenticatedWebIdentitySession",
-    "canonicalAuthSubject(session.user.id)",
-    "authenticated session is required",
+    "resolveWebRequestSubject(session)",
     "AIPHABEE_API",
     "await service.resolveSecurity",
     "data.liveDataAccess !== true",
@@ -202,7 +201,7 @@ export function validateStaticImplementation(root = process.cwd()) {
     "unmapped account", "no membership", "expired subscription", "more than one entitled workspace",
     "missing exact field rights", "wildcard authority", "blocked field", "阿爾法控股有限公司", "阿尔法控股有限公司", "Serving reads",
   ]);
-  expectFragments(errors, webTests, "Web tests", ["before reading the private RPC binding", "canonical subject", "service binding is missing", 'it.each(["throws", "malformed"])', "synthetic result", "missing provenance"]);
+  expectFragments(errors, webTests, "Web tests", ["public anonymous sentinel subject", "canonical subject", "service binding is missing", 'it.each(["throws", "malformed"])', "synthetic result", "missing provenance"]);
   if (!migrationContract.migrations?.some((entry) => entry.file === contract.database.migration)) errors.push("migration ledger must register resolver migration");
   if (!bindingContract.bindings?.some((entry) => entry.name === "AIPHABEE_API" && entry.provisioned_environments?.staging === true && entry.provisioned_environments?.production === false)) errors.push("binding contract must register staging-only AIPHABEE_API");
   return errors;

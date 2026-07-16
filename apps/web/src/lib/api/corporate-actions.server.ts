@@ -3,8 +3,8 @@ import {
   type ResponseEnvelope,
 } from "@aiphabee/data-contracts";
 import {
-  canonicalAuthSubject,
   getAuthenticatedWebIdentitySession,
+  resolveWebRequestSubject,
   type AuthenticatedWebIdentityBindings,
 } from "../auth.server";
 import type { GetLiveCorporateActionsData } from "./types";
@@ -73,15 +73,7 @@ export async function resolveAuthenticatedCorporateActionsRequest(
       status: 502,
     };
   }
-  if (!session?.user?.id) {
-    return {
-      envelope: createErrorEnvelope("AUTH_REQUIRED", "authenticated session is required", {
-        asOf,
-        requestId,
-      }),
-      status: 401,
-    };
-  }
+  const { authSubject } = resolveWebRequestSubject(session);
 
   const service = bindings.AIPHABEE_API;
   if (!service) {
@@ -96,7 +88,7 @@ export async function resolveAuthenticatedCorporateActionsRequest(
 
   try {
     const result = await service.resolveCorporateActions({
-      authSubject: canonicalAuthSubject(session.user.id),
+      authSubject,
       instrumentId: input.instrumentId,
       requestId,
     });

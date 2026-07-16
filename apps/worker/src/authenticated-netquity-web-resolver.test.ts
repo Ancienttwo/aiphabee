@@ -2382,6 +2382,237 @@ describe("private authenticated Netquity derived metrics resolver", () => {
   });
 });
 
+// Every resolver above is subject-agnostic: it never branches on the
+// literal authSubject value, only on what
+// platform.resolve_active_account_id_by_auth_subject(text) resolves it to
+// (mocked here purely by pgState.accountRows, which the mock Client.query
+// above returns for ANY "resolve_active_account_id_by_auth_subject" query
+// regardless of the subject text). These tests replay each resolver's
+// happy path with the anonymous public sentinel subject
+// ("better-auth:00000000-0000-4000-8000-000000000000") and
+// account_public_netquity_staging as the resolved account -- the same IDs
+// deploy/account/netquity-public-anonymous-provisioning-staging.sql
+// provisions -- proving that slice needs zero resolver/validateInput/
+// SECURITY DEFINER changes to work.
+const PUBLIC_AUTH_SUBJECT = "better-auth:00000000-0000-4000-8000-000000000000";
+
+describe("public anonymous account (sentinel subject, zero resolver code changes)", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_public_netquity_staging" }];
+    pgState.candidateRows = [];
+    pgState.candidateRowsBySnapshotId = {};
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = [];
+    pgState.rightsRowsByDataset = {};
+    pgState.snapshotRows = [];
+    pgState.snapshotRowsByDataset = {};
+  });
+
+  it("resolves security for the public account", async () => {
+    pgState.candidateRows = [createCandidateRow("00001.HK", "canonical_symbol")];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_REQUIRED_FIELDS.map(createRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquitySecurity(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      query: "00001.HK",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves profile for the public account", async () => {
+    pgState.candidateRows = [createProfileRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_PROFILE_REQUIRED_FIELDS.map(createProfileRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityProfile(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves financial facts for the public account", async () => {
+    pgState.candidateRows = [createFinancialFactsRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS.map(createFinancialFactsRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityFinancialFacts(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00700",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves quote snapshot for the public account", async () => {
+    pgState.candidateRows = [createQuoteSnapshotRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.map(createQuoteSnapshotRightsRow);
+    pgState.snapshotRows = [createQuoteSnapshotSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityQuoteSnapshot(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00700",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves corporate actions for the public account", async () => {
+    pgState.candidateRows = [createCorporateActionsRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_CORPORATE_ACTIONS_REQUIRED_FIELDS.map(createCorporateActionsRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityCorporateActions(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00697",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves sdi disclosure for the public account", async () => {
+    pgState.candidateRows = [createSdiDisclosureRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_SDI_DISCLOSURE_REQUIRED_FIELDS.map(createSdiDisclosureRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquitySdiDisclosure(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves directorate for the public account", async () => {
+    pgState.candidateRows = [createDirectorateRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_DIRECTORATE_REQUIRED_FIELDS.map(createDirectorateRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityDirectorate(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves ownership for the public account", async () => {
+    pgState.candidateRows = [createOwnershipRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_OWNERSHIP_REQUIRED_FIELDS.map(createOwnershipRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityOwnership(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves related warrants for the public account", async () => {
+    pgState.candidateRows = [createRelatedWarrantsRecordRow()];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_RELATED_WARRANTS_REQUIRED_FIELDS.map(createRelatedWarrantsRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquityRelatedWarrants(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+  });
+
+  it("resolves derived metrics for the public account across both dataset gates (dual authorization)", async () => {
+    pgState.rightsRowsByDataset = {
+      financial_facts: AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS.map(createFinancialFactsRightsRow),
+      quote_snapshot: AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.map(createQuoteSnapshotRightsRow),
+    };
+    pgState.snapshotRowsByDataset = {
+      financial_facts: [createSnapshotRow()],
+      quote_snapshot: [createQuoteSnapshotSnapshotRow()],
+    };
+    pgState.candidateRowsBySnapshotId = {
+      "serving-netquity-basicdata-test-v1": [createFinancialFactsRecordRow()],
+      "serving-netquity-quote-snapshot-test-v1": [createQuoteSnapshotRecordRow()],
+    };
+
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, {
+      authSubject: PUBLIC_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00700",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    // Dual-gate: both financial_facts and quote_snapshot rights were
+    // separately queried and both granted -- this is the "two dataset
+    // gates" the provisioning slice's broad workspace_entitlement INSERT
+    // must supply for the public workspace.
+    const rightsQueries = pgState.queries.filter((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQueries).toHaveLength(2);
+    if (result.envelope.ok) {
+      const byId = new Map(result.envelope.data.metrics.map((m) => [m.metric_id, m]));
+      expect(byId.get("net_margin")).toMatchObject({ status: "computed" });
+      expect(byId.get("price_to_sales")).toMatchObject({ status: "computed" });
+    }
+  });
+
+  it("denies a non-sentinel, non-invited subject even with the public workspace fixtures present (no bypass)", async () => {
+    // An arbitrary valid-shaped but unmapped subject: pgState.accountRows
+    // reflects what platform.resolve_active_account_id_by_auth_subject(text)
+    // returns for it (NULL -- no matching platform.account row), exactly as
+    // for any other unrecognized subject. The public workspace's own
+    // fixtures below (rights/snapshot data) being present and valid must
+    // not matter: denial happens at the account-mapping gate, before any
+    // rights or Serving read.
+    pgState.accountRows = [{ account_id: null }];
+    pgState.rightsRows = AUTHENTICATED_NETQUITY_REQUIRED_FIELDS.map(createRightsRow);
+    pgState.snapshotRows = [createSnapshotRow()];
+
+    const result = await resolveAuthenticatedNetquitySecurity(bindings, {
+      authSubject: "better-auth:11111111-1111-4111-8111-111111111111",
+      query: "00001.HK",
+      requestId: "request_test",
+    });
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(
+      queryTexts().some((text) => text.includes("from platform.workspace_membership membership")),
+    ).toBe(false);
+    expect(hasServingRead()).toBe(false);
+  });
+});
+
 function derivedMetricsValidInput(instrumentId = "hkex_security_00700") {
   return {
     authSubject: AUTH_SUBJECT,

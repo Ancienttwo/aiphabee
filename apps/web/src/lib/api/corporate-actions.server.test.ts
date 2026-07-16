@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSuccessEnvelope } from "@aiphabee/data-contracts";
+import { PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
 import {
   resolveAuthenticatedCorporateActionsRequest,
   validateCorporateActionsInput,
@@ -47,25 +48,22 @@ describe("authenticated Web corporate actions server boundary", () => {
     expect(validateCorporateActionsInput({ instrumentId: "hkex_security_1" })).toEqual({ valid: false });
   });
 
-  it("denies an absent session before reading the private RPC binding", async () => {
-    let bindingReads = 0;
-    const bindings = {
-      get AIPHABEE_API() {
-        bindingReads += 1;
-        throw new Error("RPC binding must not be read");
-      },
-    } as unknown as AuthenticatedCorporateActionsBindings;
+  it("resolves the RPC using the public anonymous sentinel subject when no session is present", async () => {
+    const resolveCorporateActions = vi.fn().mockResolvedValue(liveCorporateActionsRpcResult());
     const result = await resolveAuthenticatedCorporateActionsRequest(
-      bindings,
+      { AIPHABEE_API: { resolveCorporateActions } } as unknown as AuthenticatedCorporateActionsBindings,
       request(),
       { instrumentId: "hkex_security_00697" },
       sessionReader(null),
     );
 
-    expect(result.status).toBe(401);
-    expect(result.envelope.ok).toBe(false);
-    if (!result.envelope.ok) expect(result.envelope.error.code).toBe("AUTH_REQUIRED");
-    expect(bindingReads).toBe(0);
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveCorporateActions).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00697",
+      requestId: "request_test",
+    });
   });
 
   it("returns a typed failure when session authority throws before reading RPC", async () => {

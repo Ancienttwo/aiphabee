@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSuccessEnvelope } from "@aiphabee/data-contracts";
+import { PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
 import {
   resolveAuthenticatedRelatedWarrantsRequest,
   validateRelatedWarrantsInput,
@@ -41,25 +42,22 @@ describe("authenticated Web related-warrants server boundary", () => {
     expect(validateRelatedWarrantsInput({ instrumentId: "hkex_security_1" })).toEqual({ valid: false });
   });
 
-  it("denies an absent session before reading the private RPC binding", async () => {
-    let bindingReads = 0;
-    const bindings = {
-      get AIPHABEE_API() {
-        bindingReads += 1;
-        throw new Error("RPC binding must not be read");
-      },
-    } as unknown as AuthenticatedRelatedWarrantsBindings;
+  it("resolves the RPC using the public anonymous sentinel subject when no session is present", async () => {
+    const resolveRelatedWarrants = vi.fn().mockResolvedValue(liveRelatedWarrantsRpcResult());
     const result = await resolveAuthenticatedRelatedWarrantsRequest(
-      bindings,
+      { AIPHABEE_API: { resolveRelatedWarrants } } as unknown as AuthenticatedRelatedWarrantsBindings,
       request(),
       { instrumentId: "hkex_security_00001" },
       sessionReader(null),
     );
 
-    expect(result.status).toBe(401);
-    expect(result.envelope.ok).toBe(false);
-    if (!result.envelope.ok) expect(result.envelope.error.code).toBe("AUTH_REQUIRED");
-    expect(bindingReads).toBe(0);
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveRelatedWarrants).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
   });
 
   it("returns a typed failure when session authority throws before reading RPC", async () => {

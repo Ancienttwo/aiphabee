@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSuccessEnvelope } from "@aiphabee/data-contracts";
+import { PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
 import {
   resolveAuthenticatedQuoteSnapshotRequest,
   validateQuoteSnapshotInput,
@@ -38,25 +39,22 @@ describe("authenticated Web quote snapshot server boundary", () => {
     expect(validateQuoteSnapshotInput({ instrumentId: "hkex_security_1" })).toEqual({ valid: false });
   });
 
-  it("denies an absent session before reading the private RPC binding", async () => {
-    let bindingReads = 0;
-    const bindings = {
-      get AIPHABEE_API() {
-        bindingReads += 1;
-        throw new Error("RPC binding must not be read");
-      },
-    } as unknown as AuthenticatedQuoteSnapshotBindings;
+  it("resolves the RPC using the public anonymous sentinel subject when no session is present", async () => {
+    const resolveQuoteSnapshot = vi.fn().mockResolvedValue(liveQuoteSnapshotRpcResult());
     const result = await resolveAuthenticatedQuoteSnapshotRequest(
-      bindings,
+      { AIPHABEE_API: { resolveQuoteSnapshot } } as unknown as AuthenticatedQuoteSnapshotBindings,
       request(),
       { instrumentId: "hkex_security_00700" },
       sessionReader(null),
     );
 
-    expect(result.status).toBe(401);
-    expect(result.envelope.ok).toBe(false);
-    if (!result.envelope.ok) expect(result.envelope.error.code).toBe("AUTH_REQUIRED");
-    expect(bindingReads).toBe(0);
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveQuoteSnapshot).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00700",
+      requestId: "request_test",
+    });
   });
 
   it("returns a typed failure when session authority throws before reading RPC", async () => {

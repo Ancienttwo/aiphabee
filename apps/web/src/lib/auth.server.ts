@@ -7,7 +7,6 @@ const AUTH_SUBJECT_PREFIX = "better-auth:";
 const AUTH_SESSION_EXPIRES_SECONDS = 7 * 24 * 60 * 60;
 const AUTH_SESSION_UPDATE_SECONDS = 24 * 60 * 60;
 const AUTH_MAX_FIND_MANY_ROWS = 50;
-const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/u;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
@@ -15,7 +14,6 @@ export type AuthConfigurationErrorCode =
   | "AUTH_BINDING_MISSING"
   | "AUTH_ENVIRONMENT_DENIED"
   | "AUTH_IDENTITY_INVALID"
-  | "AUTH_INVITATION_CONFIG_INVALID"
   | "AUTH_OAUTH_CONFIG_MISSING"
   | "AUTH_ORIGIN_INVALID"
   | "AUTH_SECRET_INVALID";
@@ -26,21 +24,19 @@ export interface AuthHyperdriveBinding {
 
 export interface AuthenticatedWebIdentityBindings {
   AIPHABEE_AUTH_HYPERDRIVE?: AuthHyperdriveBinding;
-  AIPHABEE_AUTH_INVITED_EMAIL_SHA256?: string;
   APP_ENV?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 export interface AuthenticatedWebIdentityConfig {
   appEnv: "staging";
   baseUrl: string;
   connectionString: string;
-  githubClientId: string;
-  githubClientSecret: string;
-  invitedEmailSha256: string[];
+  googleClientId: string;
+  googleClientSecret: string;
   secret: string;
 }
 
@@ -72,23 +68,18 @@ export function parseAuthenticatedWebIdentityBindings(
     throw new AuthConfigurationError("AUTH_SECRET_INVALID");
   }
 
-  const githubClientId = bindings.GITHUB_CLIENT_ID?.trim();
-  const githubClientSecret = bindings.GITHUB_CLIENT_SECRET?.trim();
-  if (!githubClientId || !githubClientSecret) {
+  const googleClientId = bindings.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = bindings.GOOGLE_CLIENT_SECRET?.trim();
+  if (!googleClientId || !googleClientSecret) {
     throw new AuthConfigurationError("AUTH_OAUTH_CONFIG_MISSING");
   }
-
-  const invitedEmailSha256 = parseInvitedEmailHashes(
-    bindings.AIPHABEE_AUTH_INVITED_EMAIL_SHA256,
-  );
 
   return {
     appEnv: "staging",
     baseUrl,
     connectionString,
-    githubClientId,
-    githubClientSecret,
-    invitedEmailSha256,
+    googleClientId,
+    googleClientSecret,
     secret,
   };
 }
@@ -100,19 +91,37 @@ export function canonicalAuthSubject(userId: string): string {
   return `${AUTH_SUBJECT_PREFIX}${userId.toLowerCase()}`;
 }
 
-export async function hashInvitedEmail(email: string): Promise<string> {
-  const normalized = normalizeEmail(email);
-  if (normalized.length === 0) {
-    throw new AuthConfigurationError("AUTH_IDENTITY_INVALID");
-  }
-  const bytes = new TextEncoder().encode(normalized);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
+/**
+ * Sentinel auth subject for the anonymous public read layer. It is a
+ * syntactically valid canonical Better Auth subject (passes UUID_PATTERN
+ * above and platform.resolve_active_account_id_by_auth_subject(text)'s own
+ * identical regex), provisioned to a dedicated platform.account/workspace
+ * by deploy/account/netquity-public-anonymous-provisioning-staging.sql --
+ * there is no corresponding aiphabee_auth."user" row and none is required.
+ */
+export const PUBLIC_ANONYMOUS_AUTH_SUBJECT =
+  "better-auth:00000000-0000-4000-8000-000000000000";
+
+export interface WebRequestSubjectResolution {
+  authSubject: string;
+  isPublic: boolean;
 }
 
-export async function isInvitedEmail(email: string, invitedEmailSha256: string[]) {
-  const candidate = await hashInvitedEmail(email);
-  return invitedEmailSha256.includes(candidate);
+/**
+ * Resolves the auth subject a private RPC call should use: the caller's own
+ * canonical subject when a session is present, otherwise the public
+ * anonymous sentinel. This is the only branch point for anonymous access --
+ * the resolver, validateInput, and the SECURITY DEFINER account-resolution
+ * function downstream never know or care which case produced the subject
+ * they were called with.
+ */
+export function resolveWebRequestSubject(
+  session: Awaited<ReturnType<typeof getAuthenticatedWebIdentitySession>>,
+): WebRequestSubjectResolution {
+  if (session?.user?.id) {
+    return { authSubject: canonicalAuthSubject(session.user.id), isPublic: false };
+  }
+  return { authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT, isPublic: true };
 }
 
 export function createBackgroundTaskTracker() {
@@ -201,12 +210,9 @@ export function createBetterAuthOptions(
       user: {
         create: {
           before: async (user) => {
-            if (
-              user.emailVerified !== true ||
-              !(await isInvitedEmail(user.email, config.invitedEmailSha256))
-            ) {
+            if (user.emailVerified !== true) {
               throw new APIError("FORBIDDEN", {
-                message: "Invitation required",
+                message: "Email verification required",
               });
             }
             return { data: user };
@@ -239,11 +245,11 @@ export function createBetterAuthOptions(
       updateAge: AUTH_SESSION_UPDATE_SECONDS,
     },
     socialProviders: {
-      github: {
-        clientId: config.githubClientId,
-        clientSecret: config.githubClientSecret,
+      google: {
+        clientId: config.googleClientId,
+        clientSecret: config.googleClientSecret,
         disableImplicitSignUp: true,
-        scope: ["read:user", "user:email"],
+        scope: ["openid", "email", "profile"],
       },
     },
     telemetry: {
@@ -322,23 +328,4 @@ function normalizeSecureBaseUrl(value: string | undefined): string {
     if (error instanceof AuthConfigurationError) throw error;
     throw new AuthConfigurationError("AUTH_ORIGIN_INVALID");
   }
-}
-
-function parseInvitedEmailHashes(value: string | undefined): string[] {
-  const hashes = [
-    ...new Set(
-      (value ?? "")
-        .split(",")
-        .map((entry) => entry.trim().toLowerCase())
-        .filter(Boolean),
-    ),
-  ];
-  if (hashes.length === 0 || hashes.some((hash) => !SHA256_HEX_PATTERN.test(hash))) {
-    throw new AuthConfigurationError("AUTH_INVITATION_CONFIG_INVALID");
-  }
-  return hashes.sort();
-}
-
-function normalizeEmail(value: string) {
-  return value.trim().toLocaleLowerCase("en-US");
 }

@@ -173,10 +173,12 @@ function validateProviders(value, allowedSecretNames) {
     const expectedWebSecrets = [
       "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
       "BETTER_AUTH_SECRET",
-      "GITHUB_CLIENT_SECRET"
+      "GITHUB_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET"
     ].sort();
     if ([...(webProvider.stores ?? [])].sort().join("\n") !== expectedWebSecrets.join("\n")) {
-      errors.push("cloudflare_web_staging stores must contain exactly the three runtime auth secrets");
+      errors.push("cloudflare_web_staging stores must contain exactly the five runtime auth secrets");
     }
   }
 

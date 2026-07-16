@@ -14,7 +14,7 @@ function Login() {
 
   const signIn = () => {
     setSubmitting(true);
-    window.location.assign("/api/auth/github/start");
+    window.location.assign("/api/auth/google/start");
   };
 
   return (
@@ -25,7 +25,7 @@ function Login() {
         </CardHeader>
         <CardContent>
           <p style={{ marginTop: 0, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            当前仅开放给已邀请的 GitHub 账户。登录只建立产品会话，不自动授予工作区或数据权限。
+            登录用于自选、设置等账户功能；浏览行情与数据无需登录。登录只建立产品会话，不自动授予工作区或数据权限。
           </p>
           {session?.user ? (
             <Link to="/account">已登录，进入账户</Link>
@@ -36,7 +36,7 @@ function Login() {
               disabled={isPending || submitting}
               fullWidth
             >
-              {submitting ? "正在前往 GitHub…" : "使用 GitHub 登录"}
+              {submitting ? "正在前往 Google…" : "使用 Google 登录"}
             </Button>
           )}
         </CardContent>
