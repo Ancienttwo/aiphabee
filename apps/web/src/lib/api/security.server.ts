@@ -3,6 +3,7 @@ import {
   type ResponseEnvelope,
 } from "@aiphabee/data-contracts";
 import {
+  AuthConfigurationError,
   getAuthenticatedWebIdentitySession,
   resolveWebRequestSubject,
   type AuthenticatedWebIdentityBindings,
@@ -104,14 +105,18 @@ export async function resolveAuthenticatedSecurityRequest(
   let session: Awaited<ReturnType<SecuritySessionReader>>;
   try {
     session = await readSession(bindings, request.headers);
-  } catch {
-    return {
-      envelope: createErrorEnvelope("INTERNAL_ERROR", "session authority is unavailable", {
-        asOf,
-        requestId,
-      }),
-      status: 502,
-    };
+  } catch (error) {
+    if (error instanceof AuthConfigurationError && error.code === "AUTH_OAUTH_CONFIG_MISSING") {
+      session = null;
+    } else {
+      return {
+        envelope: createErrorEnvelope("INTERNAL_ERROR", "session authority is unavailable", {
+          asOf,
+          requestId,
+        }),
+        status: 502,
+      };
+    }
   }
   const { authSubject } = resolveWebRequestSubject(session);
 
@@ -165,14 +170,18 @@ export async function resolveAuthenticatedProfileRequest(
   let session: Awaited<ReturnType<SecuritySessionReader>>;
   try {
     session = await readSession(bindings, request.headers);
-  } catch {
-    return {
-      envelope: createErrorEnvelope("INTERNAL_ERROR", "session authority is unavailable", {
-        asOf,
-        requestId,
-      }),
-      status: 502,
-    };
+  } catch (error) {
+    if (error instanceof AuthConfigurationError && error.code === "AUTH_OAUTH_CONFIG_MISSING") {
+      session = null;
+    } else {
+      return {
+        envelope: createErrorEnvelope("INTERNAL_ERROR", "session authority is unavailable", {
+          asOf,
+          requestId,
+        }),
+        status: 502,
+      };
+    }
   }
   const { authSubject } = resolveWebRequestSubject(session);
 

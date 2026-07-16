@@ -281,7 +281,8 @@ function validateDeploymentArtifact(root = process.cwd()) {
     [
       "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
       "BETTER_AUTH_SECRET",
-      "GITHUB_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
     ],
     "deployment artifact required secrets",
   );

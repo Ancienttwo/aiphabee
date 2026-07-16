@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSuccessEnvelope } from "@aiphabee/data-contracts";
-import { PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
+import { AuthConfigurationError, PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
 import {
   resolveAuthenticatedProfileRequest,
   resolveAuthenticatedSecurityRequest,
@@ -66,6 +66,25 @@ describe("authenticated Web security server boundary", () => {
     expect(result.envelope.ok).toBe(false);
     if (!result.envelope.ok) expect(result.envelope.error.code).toBe("INTERNAL_ERROR");
     expect(bindingReads).toBe(0);
+  });
+
+  it("resolves the public anonymous sentinel when the session reader throws AUTH_OAUTH_CONFIG_MISSING", async () => {
+    const resolveSecurity = vi.fn().mockResolvedValue(liveRpcResult());
+    const result = await resolveAuthenticatedSecurityRequest(
+      { AIPHABEE_API: { resolveSecurity } } as unknown as AuthenticatedSecurityBindings,
+      request(),
+      { market: "HK", query: "00001.HK" },
+      vi.fn().mockRejectedValue(new AuthConfigurationError("AUTH_OAUTH_CONFIG_MISSING")),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveSecurity).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      market: "HK",
+      query: "00001.HK",
+      requestId: "request_test",
+    });
   });
 
   it("derives the canonical subject from session and awaits the named RPC", async () => {
@@ -203,6 +222,24 @@ describe("authenticated Web security profile server boundary", () => {
     expect(result.envelope.ok).toBe(false);
     if (!result.envelope.ok) expect(result.envelope.error.code).toBe("INTERNAL_ERROR");
     expect(bindingReads).toBe(0);
+  });
+
+  it("resolves the public anonymous sentinel when the session reader throws AUTH_OAUTH_CONFIG_MISSING", async () => {
+    const resolveProfile = vi.fn().mockResolvedValue(liveProfileRpcResult());
+    const result = await resolveAuthenticatedProfileRequest(
+      { AIPHABEE_API: { resolveProfile } } as unknown as AuthenticatedSecurityBindings,
+      request(),
+      { instrumentId: "hkex_security_00001" },
+      vi.fn().mockRejectedValue(new AuthConfigurationError("AUTH_OAUTH_CONFIG_MISSING")),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveProfile).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00001",
+      requestId: "request_test",
+    });
   });
 
   it("derives the canonical subject from session and awaits the named RPC", async () => {

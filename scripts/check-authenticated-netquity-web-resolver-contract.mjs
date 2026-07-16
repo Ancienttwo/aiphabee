@@ -216,7 +216,7 @@ function validateWebDeploymentArtifact(root = process.cwd()) {
   const service = artifact.services?.find((entry) => entry.binding === "AIPHABEE_API");
   expectEqual(errors, service?.service, "aiphabee-worker-staging", "deployment artifact service");
   expectEqual(errors, service?.entrypoint, "AuthenticatedNetquityResolver", "deployment artifact entrypoint");
-  expectExactArray(errors, [...(artifact.secrets?.required ?? [])].sort(), ["AIPHABEE_AUTH_INVITED_EMAIL_SHA256", "BETTER_AUTH_SECRET", "GITHUB_CLIENT_SECRET"], "deployment artifact secrets");
+  expectExactArray(errors, [...(artifact.secrets?.required ?? [])].sort(), ["AIPHABEE_AUTH_INVITED_EMAIL_SHA256", "BETTER_AUTH_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"], "deployment artifact secrets");
   return errors;
 }
 

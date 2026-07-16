@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSuccessEnvelope } from "@aiphabee/data-contracts";
-import { PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
+import { AuthConfigurationError, PUBLIC_ANONYMOUS_AUTH_SUBJECT } from "../auth.server";
 import {
   resolveAuthenticatedCorporateActionsRequest,
   validateCorporateActionsInput,
@@ -85,6 +85,24 @@ describe("authenticated Web corporate actions server boundary", () => {
     expect(result.envelope.ok).toBe(false);
     if (!result.envelope.ok) expect(result.envelope.error.code).toBe("INTERNAL_ERROR");
     expect(bindingReads).toBe(0);
+  });
+
+  it("resolves the public anonymous sentinel when the session reader throws AUTH_OAUTH_CONFIG_MISSING", async () => {
+    const resolveCorporateActions = vi.fn().mockResolvedValue(liveCorporateActionsRpcResult());
+    const result = await resolveAuthenticatedCorporateActionsRequest(
+      { AIPHABEE_API: { resolveCorporateActions } } as unknown as AuthenticatedCorporateActionsBindings,
+      request(),
+      { instrumentId: "hkex_security_00697" },
+      vi.fn().mockRejectedValue(new AuthConfigurationError("AUTH_OAUTH_CONFIG_MISSING")),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    expect(resolveCorporateActions).toHaveBeenCalledWith({
+      authSubject: PUBLIC_ANONYMOUS_AUTH_SUBJECT,
+      instrumentId: "hkex_security_00697",
+      requestId: "request_test",
+    });
   });
 
   it("derives the canonical subject from session and awaits the named RPC", async () => {

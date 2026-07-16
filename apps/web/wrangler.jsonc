@@ -15,14 +15,14 @@
     "staging": {
       "vars": {
         "APP_ENV": "staging",
-        "BETTER_AUTH_URL": "https://aiphabee-web-staging.metalabs.workers.dev",
-        "GITHUB_CLIENT_ID": "Ov23li4RDf41KAk1K6la"
+        "BETTER_AUTH_URL": "https://aiphabee-web-staging.metalabs.workers.dev"
       },
       "secrets": {
         "required": [
           "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
           "BETTER_AUTH_SECRET",
-          "GITHUB_CLIENT_SECRET"
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET"
         ]
       },
       "hyperdrive": [
