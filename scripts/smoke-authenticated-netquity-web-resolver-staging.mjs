@@ -20,16 +20,37 @@ const publicResolver = await fetch(`${STAGING_API_ORIGIN}/tools/resolve-security
 const publicBody = await publicResolver.json().catch(() => undefined);
 const guessedPrivateRoute = await fetch(`${STAGING_API_ORIGIN}/authenticated-netquity-resolver`, { redirect: "manual" });
 
+// invalid_session_denied has two legitimate shapes on staging, because
+// Google OAuth secrets are runtime-optional there (apps/web/src/lib/
+// auth.server.ts's AUTH_OAUTH_CONFIG_MISSING, mapped to 503 by
+// apps/web/src/routes/api/auth/$.ts): when OAuth is configured, an invalid
+// session cookie reaches session checking and comes back with no identity
+// (200 + null body); when OAuth is not configured, every /api/auth/* call
+// fails closed before it ever reaches session checking (503
+// authentication_unavailable / auth_oauth_config_missing). Both states are
+// distinguished below and both count as "no valid identity"; the boolean
+// collapses to the equivalent invariant an invalid session must never
+// produce a valid identity, so only an unexpected status/body (most of all
+// a 200 with a non-null session) fails it.
+const invalidSessionMode =
+  invalidSession.status === 200 && invalidBody === null
+    ? "session_checked_denied"
+    : invalidSession.status === 503 &&
+        invalidBody?.error === "authentication_unavailable" &&
+        invalidBody?.reason === "auth_oauth_config_missing"
+      ? "oauth_unconfigured_fail_closed"
+      : "unexpected";
+
 const evidence = {
   guessed_private_route_not_found: guessedPrivateRoute.status === 404,
-  invalid_session_denied: invalidSession.status === 200 && invalidBody === null,
+  invalid_session_denied: invalidSessionMode !== "unexpected",
   production_auth_route_not_found: productionAuth.status === 404,
   production_api_unchanged: readWorkerVersion("aiphabee-worker") === EXPECTED_PRODUCTION_API_VERSION,
   production_web_absent: readWorkerAbsent("aiphabee-web"),
   public_resolver_remains_synthetic: publicResolver.status === 200 && publicBody?.ok === true && publicBody?.data?.liveDataAccess === false,
 };
 const passed = Object.values(evidence).every(Boolean);
-console.log(JSON.stringify({ evidence, observed_at: new Date().toISOString(), status: passed ? "preflight_ok" : "preflight_failed" }, null, 2));
+console.log(JSON.stringify({ evidence, invalid_session_mode: invalidSessionMode, observed_at: new Date().toISOString(), status: passed ? "preflight_ok" : "preflight_failed" }, null, 2));
 process.exit(passed ? 0 : 1);
 
 function readWorkerVersion(name) {

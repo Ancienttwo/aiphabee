@@ -15,7 +15,6 @@ import type {
   RuntimeCapabilities,
   ScreenResult,
   SearchAnnouncementsResult,
-  StockWorkbenchSnapshot,
 } from "./types";
 import type {
   IpoCalendarRange,
@@ -85,28 +84,6 @@ export function planAgentRun(prompt: string) {
   return apiCall<AgentPlan>("/agent/runs/plan", {
     method: "POST",
     body: { prompt },
-  });
-}
-
-// --- Stock workbench -----------------------------------------------------
-
-export interface StockSnapshotParams {
-  instrumentId?: string;
-  securityQuery?: string;
-  quoteMode?: string;
-  adjustment?: string;
-}
-
-/** Aggregate individual-stock workbench snapshot (POST /workbench/stock/snapshot). */
-export function getStockSnapshot(params: StockSnapshotParams) {
-  return apiCall<StockWorkbenchSnapshot>("/workbench/stock/snapshot", {
-    method: "POST",
-    body: {
-      adjustment: params.adjustment,
-      instrument_id: params.instrumentId,
-      quote_mode: params.quoteMode,
-      security_query: params.securityQuery,
-    },
   });
 }
 

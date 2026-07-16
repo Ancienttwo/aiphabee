@@ -1,49 +1,54 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge, type BadgeTone, Button, Card, Icon, MascotState } from "../../ds";
+import { Badge, type BadgeTone, Icon } from "../../ds";
 import {
-  AnnouncementsPanel,
   CorporateActionsPanel,
   DerivedPanel,
   DirectorsPanel,
   FinancialsPanel,
   OwnershipPanel,
-  PricePanel,
-  ProfilePanel,
   QuotePanel,
   RelatedWarrantsPanel,
   SdiDisclosurePanel,
 } from "../../components/workbench/panels";
 import { Disclaimer } from "../../components/Disclaimer";
-import { getStockSnapshot, presentError, resolveSecurityProfile } from "../../lib/api";
+import { presentError, resolveSecurityProfile } from "../../lib/api";
 import type { AiphaBeeErrorCode } from "../../lib/api";
-import { MASCOT_BP, SHELL } from "../../lib/ui";
+import { SHELL } from "../../lib/ui";
 import { formatHkSymbol } from "../../lib/format";
 
 export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
 });
 
-// `sdi`/`directorate`/`ownership`/`warrants`'s statusKey is deliberately
-// undefined: unlike the other seven tabs (each backed by a
-// packages/workbench synthetic section that predates its live cutover),
-// SDI, directorate, ownership, and related-warrants never had a synthetic
-// scaffold anywhere, so there is no StockWorkbenchSection key for their dot
-// to read. The dot stays neutral rather than fabricating a found/not-found
-// state from a key that was never emitted.
+// Every tab below runs its own independent, entitlement-gated live RPC
+// query keyed by instrumentId (see QuotePanel/FinancialsPanel/DerivedPanel/
+// CorporateActionsPanel/SdiDisclosurePanel/DirectorsPanel/OwnershipPanel/
+// RelatedWarrantsPanel in ../../components/workbench/panels.tsx). There is
+// no page-level synthetic snapshot anymore, so the tab bar carries no
+// found/not-found status dot -- each panel renders its own loading/denied/
+// empty state once mounted.
+//
+// `profile` (security_profile), `announcements` (announcement_search), and
+// `price` (price_history) are deliberately absent from this list:
+// CompanyHeader below already renders the live profile identity (name/
+// symbol/exchange/market/currency/listing status) unconditionally, and
+// neither announcements nor price-history has a live-wired panel to swap in
+// for the removed synthetic snapshot (no resolveAnnouncements /
+// resolvePriceHistory RPC exists yet). Rather than render synthetic data or
+// promise an undated roadmap item via a placeholder tab, the tabs are
+// dropped; re-add them the same way the eight tabs below were each added,
+// commit by commit, once a live panel exists for that domain.
 const TABS = [
-  { key: "profile", label: "档案", statusKey: "security_profile" },
-  { key: "quote", label: "行情", statusKey: "quote_snapshot" },
-  { key: "financials", label: "财务", statusKey: "financial_facts" },
-  { key: "price", label: "价格", statusKey: "price_history" },
-  { key: "derived", label: "指标", statusKey: "derived_metrics" },
-  { key: "announcements", label: "公告", statusKey: "announcement_search" },
-  { key: "actions", label: "公司行动", statusKey: "corporate_actions" },
-  { key: "sdi", label: "权益披露", statusKey: undefined },
-  { key: "directorate", label: "董事高管", statusKey: undefined },
-  { key: "ownership", label: "股权结构", statusKey: undefined },
-  { key: "warrants", label: "轮证", statusKey: undefined },
+  { key: "quote", label: "行情" },
+  { key: "financials", label: "财务" },
+  { key: "derived", label: "指标" },
+  { key: "actions", label: "公司行动" },
+  { key: "sdi", label: "权益披露" },
+  { key: "directorate", label: "董事高管" },
+  { key: "ownership", label: "股权结构" },
+  { key: "warrants", label: "轮证" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -51,11 +56,7 @@ type TabKey = (typeof TABS)[number]["key"];
 function StockWorkbench() {
   const navigate = useNavigate();
   const { instrumentId } = Route.useParams();
-  const [tab, setTab] = useState<TabKey>("profile");
-  const { data: env, isLoading } = useQuery({
-    queryKey: ["stock-snapshot", instrumentId],
-    queryFn: () => getStockSnapshot({ instrumentId }),
-  });
+  const [tab, setTab] = useState<TabKey>("quote");
 
   return (
     <main style={{ ...SHELL, paddingTop: 24, paddingBottom: 72 }}>
@@ -80,107 +81,53 @@ function StockWorkbench() {
 
       <CompanyHeader instrumentId={instrumentId} />
 
-      {isLoading ? (
-        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载工作台快照…</p>
-      ) : null}
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)", marginBottom: 18 }}>
+        {instrumentId}
+      </div>
 
-      {env && !env.ok ? (
-        <Card padded>
-          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--red-600)" }}>
-            {presentError(env).detail}
-          </p>
-          <p style={{ margin: "8px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-            若后端未启动，请在仓库根运行 <code>npm run dev:worker</code>（端口 8787）。
-          </p>
-        </Card>
-      ) : null}
-
-      {env && env.ok ? (
-        (() => {
-          const snap = env.data;
-          const ready = Object.values(snap.data_quality.section_statuses).filter(
-            (s) => s === "found",
-          ).length;
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18, overflowX: "auto" }}>
+        {TABS.map((t) => {
+          const active = tab === t.key;
           return (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
-                <Badge
-                  tone={snap.status === "ready" ? "bullish" : snap.status === "partial" ? "warning" : "bearish"}
-                  variant="soft"
-                  size="sm"
-                  dot
-                >
-                  {snap.status === "ready" ? "数据就绪" : snap.status === "partial" ? "部分就绪" : "未解析"}
-                </Badge>
-                <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{ready}/7 区块 · 证据 {snap.evidence.provenance_count}</span>
-              </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)", marginBottom: 18 }}>
-                {instrumentId}
-              </div>
-
-              {/* Tab bar */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18, overflowX: "auto" }}>
-                {TABS.map((t) => {
-                  const active = tab === t.key;
-                  const found = t.statusKey !== undefined && snap.data_quality.section_statuses[t.statusKey] === "found";
-                  return (
-                    <button
-                      key={t.key}
-                      type="button"
-                      onClick={() => setTab(t.key)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "7px 14px",
-                        borderRadius: "var(--radius-md)",
-                        cursor: "pointer",
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "var(--text-sm)",
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                        border: "1px solid " + (active ? "var(--honey-500)" : "var(--border-subtle)"),
-                        background: active ? "var(--honey-500)" : "var(--surface-card)",
-                        color: active ? "var(--text-on-honey)" : "var(--text-body)",
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: found ? "var(--green-500)" : "var(--neutral-300)",
-                        }}
-                      />
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active panel */}
-              {tab === "profile" ? <ProfilePanel section={snap.security_profile} /> : null}
-              {tab === "quote" ? <QuotePanel instrumentId={instrumentId} /> : null}
-              {tab === "financials" ? <FinancialsPanel instrumentId={instrumentId} /> : null}
-              {tab === "price" ? <PricePanel section={snap.price_history} /> : null}
-              {tab === "derived" ? <DerivedPanel instrumentId={instrumentId} /> : null}
-              {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
-              {tab === "actions" ? <CorporateActionsPanel instrumentId={instrumentId} /> : null}
-              {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}
-              {tab === "directorate" ? <DirectorsPanel instrumentId={instrumentId} /> : null}
-              {tab === "ownership" ? <OwnershipPanel instrumentId={instrumentId} /> : null}
-              {tab === "warrants" ? <RelatedWarrantsPanel instrumentId={instrumentId} /> : null}
-
-              <Disclaimer style={{ marginTop: 24 }} />
-            </>
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                borderRadius: "var(--radius-md)",
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--text-sm)",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                border: "1px solid " + (active ? "var(--honey-500)" : "var(--border-subtle)"),
+                background: active ? "var(--honey-500)" : "var(--surface-card)",
+                color: active ? "var(--text-on-honey)" : "var(--text-body)",
+              }}
+            >
+              {t.label}
+            </button>
           );
-        })()
-      ) : null}
+        })}
+      </div>
 
-      {!isLoading && !env ? (
-        <MascotState basePath={MASCOT_BP} pose="empty" title="暂无数据" description="未能加载该证券的工作台快照。" />
-      ) : null}
+      {/* Active panel -- each mounts unconditionally and owns its own live
+          query plus loading/denied/empty state; there is no page-level gate. */}
+      {tab === "quote" ? <QuotePanel instrumentId={instrumentId} /> : null}
+      {tab === "financials" ? <FinancialsPanel instrumentId={instrumentId} /> : null}
+      {tab === "derived" ? <DerivedPanel instrumentId={instrumentId} /> : null}
+      {tab === "actions" ? <CorporateActionsPanel instrumentId={instrumentId} /> : null}
+      {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}
+      {tab === "directorate" ? <DirectorsPanel instrumentId={instrumentId} /> : null}
+      {tab === "ownership" ? <OwnershipPanel instrumentId={instrumentId} /> : null}
+      {tab === "warrants" ? <RelatedWarrantsPanel instrumentId={instrumentId} /> : null}
+
+      <Disclaimer style={{ marginTop: 24 }} />
     </main>
   );
 }
@@ -201,10 +148,13 @@ const HEADER_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
 
 /**
  * Company-header identity block: name, symbol, listing status. Sourced from
- * the live, entitlement-gated resolveProfile RPC — independent of the
- * synthetic workbench snapshot below it, so a denied/held/absent live
- * profile never falls back to synthesized identity data. Only this block is
- * live-backed in this cut; the tab panels below remain synthetic.
+ * the live, entitlement-gated resolveProfile RPC — independent of every tab
+ * panel below it (each one runs its own gated live RPC query keyed by
+ * instrumentId), so a denied/held/absent live profile never falls back to
+ * synthesized identity data. There is no longer a page-level synthetic
+ * workbench snapshot gating this route at all: CompanyHeader and every
+ * mounted tab panel are each independently live-backed and render
+ * unconditionally.
  */
 function CompanyHeader({ instrumentId }: { instrumentId: string }) {
   const { data: profileEnv, isLoading } = useQuery({

@@ -7,7 +7,6 @@
  * server packages:
  *   - AgentProgressStreamEvent  -> packages/agent-runtime/src/index.ts
  *   - ResolveSecurity*          -> packages/security-tools/src/index.ts
- *   - StockWorkbenchSnapshot    -> packages/workbench (createStockWorkbenchSnapshot)
  * If the worker changes these, refine here (Phase 2 adds a contract test).
  */
 import type { ProvenanceRef, UsageSummary } from "@aiphabee/data-contracts";
@@ -739,23 +738,6 @@ export interface PriceHistorySection extends WorkbenchSection {
     rows: PriceHistoryRow[];
     totalRows: number;
   };
-}
-
-export interface StockWorkbenchSnapshot {
-  announcement_search: AnnouncementSection;
-  capability?: unknown;
-  corporate_actions: CorporateActionsSection;
-  data_quality: { blocking_statuses: string[]; section_statuses: Record<string, string> };
-  derived_metrics: DerivedMetricsSection;
-  evidence: { provenance_count: number; source_record_ids: string[] };
-  financial_facts: FinancialFactsSection;
-  instrument_id?: string;
-  price_history: PriceHistorySection;
-  quote_snapshot: QuoteSection;
-  security_profile: SecurityProfileSection;
-  status: "blocked_resolution" | "partial" | "ready";
-  version: string;
-  [key: string]: unknown;
 }
 
 // --- module runtime capability probe -------------------------------------
