@@ -103,8 +103,9 @@
 --     platform.workspace_membership and platform.account -- transitively
 --     required for is_workspace_member() to be queryable at all instead of
 --     raising `permission denied for table workspace_membership`, confirmed
---     empirically; and (2) a role-level `aiphabee.account_id` session claim
---     default (see ALTER ROLE ... SET below) pinned to
+--     empirically; and (2) the `aiphabee.account_id` session claim the
+--     apply script sets each session before running any promotion file
+--     (see the Row-level security claim note below), pinned to
 --     account_authenticated_netquity_staging -- the one dedicated staging
 --     account deploy/account/authenticated-netquity-web-resolver-staging.sql
 --     provisions and every one of these 16 files' entitlement chain is
@@ -148,34 +149,101 @@ BEGIN
     SELECT 1 FROM pg_roles WHERE rolname = 'netquity_serving_writer_staging'
   ) THEN
     CREATE ROLE netquity_serving_writer_staging
-      LOGIN;
+      LOGIN NOINHERIT;
   END IF;
 END
 $netquity_serving_writer_role$;
 
-ALTER ROLE netquity_serving_writer_staging
-  NOSUPERUSER
-  NOCREATEDB
-  NOCREATEROLE
-  NOINHERIT
-  NOBYPASSRLS;
+-- CREATEROLE-non-superuser compatibility. Confirmed empirically against
+-- staging: the admin credential that applies this file holds CREATEROLE
+-- but is not itself a superuser. Under PostgreSQL 16's tightened
+-- CREATEROLE semantics, a role may ALTER the SUPERUSER/CREATEDB/
+-- CREATEROLE/BYPASSRLS attribute of *any* role -- including one it just
+-- created itself, and even when the target value already equals that
+-- attribute's current value -- only if it itself already holds that same
+-- attribute; SUPERUSER is the one absolute case, gated for every
+-- non-superuser with no exception. The original single combined statement
+-- here -- `ALTER ROLE netquity_serving_writer_staging NOSUPERUSER
+-- NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;` -- named SUPERUSER
+-- explicitly and failed with `42501 permission denied to alter role:
+-- Only roles with the SUPERUSER attribute may change the SUPERUSER
+-- attribute`, even though this admin had just created the role in the DO
+-- block immediately above and the target value (NOSUPERUSER) was already
+-- that role's default. Local reproduction (a CREATEROLE/NOSUPERUSER
+-- fake-admin role applying this file against a full migration-built
+-- schema it owns) isolated the same failure down to the SUPERUSER clause,
+-- and separately confirmed NOCREATEDB and NOBYPASSRLS trip the identical
+-- `42501` whenever the calling role itself lacks CREATEDB/BYPASSRLS -- so
+-- this file never again names any of SUPERUSER/CREATEDB/CREATEROLE/
+-- BYPASSRLS in an ALTER ROLE, for any value, regardless of which of those
+-- four the real admin credential happens to hold. NOSUPERUSER/NOCREATEDB/
+-- NOCREATEROLE/NOBYPASSRLS are all CREATE ROLE's own defaults when left
+-- unspecified, so the CREATE ROLE branch above never needs to name them
+-- either -- only LOGIN and NOINHERIT are non-default and are declared
+-- directly there instead (declaring a role's own non-special attributes
+-- at CREATE time is unrestricted for any CREATEROLE grantee; LOGIN/
+-- INHERIT are not gated the way SUPERUSER/CREATEDB/CREATEROLE/BYPASSRLS
+-- are, at CREATE or ALTER time). The ALTER immediately below re-asserts
+-- only LOGIN and NOINHERIT, for the idempotent case where the role
+-- already exists; it deliberately does not also re-assert NOBYPASSRLS the
+-- way the sibling `_ops/hyperdrive-apply-worker/platform-runtime-role-
+-- patch.sql` does for `aiphabee_runtime_rls`, because that pattern is
+-- only permission-safe if the connecting admin itself holds BYPASSRLS,
+-- which this file has no way to assume or verify. If the role is ever
+-- left in an unexpected state (e.g. BYPASSRLS granted out-of-band by a
+-- superuser), the readback DO block below still fails the whole apply
+-- closed with a clear exception -- it is unchanged and is the actual
+-- safety net for this invariant, not this ALTER.
+ALTER ROLE netquity_serving_writer_staging LOGIN NOINHERIT;
 
 ALTER ROLE netquity_serving_writer_staging SET search_path TO pg_catalog;
 
--- Row-level security claim default. platform.workspace_subscription and
+-- Row-level security claim. platform.workspace_subscription and
 -- aiphabee_governance.data_entitlement/workspace_entitlement all carry a
 -- SELECT policy gated by platform.is_workspace_member(workspace_id), which
 -- reads platform.current_account_id() = current_setting('aiphabee.account_id',
--- true). Pinning this role's own session default to the one dedicated
--- staging account this entire promotion packet's entitlement chain is
--- scoped to (provisioned by
--- deploy/account/authenticated-netquity-web-resolver-staging.sql) lets
--- those SELECT-gated reads resolve instead of seeing zero rows under a null
--- claim. This is a session default, not an elevated privilege: any role can
--- set an aiphabee.* GUC in its own session, and it has no effect on table-
--- or schema-level ACL checks.
-ALTER ROLE netquity_serving_writer_staging
-  SET aiphabee.account_id = 'account_authenticated_netquity_staging';
+-- true). Every session connecting as this role must set that GUC to the one
+-- dedicated staging account this entire promotion packet's entitlement
+-- chain is scoped to (provisioned by
+-- deploy/account/authenticated-netquity-web-resolver-staging.sql), or those
+-- SELECT-gated reads see zero rows under a null claim.
+--
+-- This used to be a persistent `ALTER ROLE netquity_serving_writer_staging
+-- SET aiphabee.account_id = 'account_authenticated_netquity_staging';`
+-- statement here. Removed -- confirmed against the real staging instance
+-- that it cannot work under the real admin credential, and this is a hard
+-- platform ceiling, not a workaround-able permission gap. `aiphabee.
+-- account_id` is a custom (application-defined, not core- or
+-- extension-registered) GUC, and PostgreSQL only allows a *persistent*
+-- `ALTER ROLE ... SET` on a custom GUC for a superuser, or for a role
+-- explicitly granted `SET` on that specific parameter via `GRANT ... ON
+-- PARAMETER` (itself a superuser-only action). Staging is PlanetScale-
+-- managed PostgreSQL 18.4: the admin credential that applies this file is a
+-- PlanetScale-managed `pscale_api_*` role -- CREATEROLE but not superuser,
+-- confirmed via a direct staging probe (`can_set_param: false,
+-- is_superuser: false`) -- and `pg_parameter_acl` on that instance is
+-- empty (`parameter_acl_count: 0`; nothing has ever been granted, by
+-- anyone). Since granting `SET ON PARAMETER` is itself superuser-only, and
+-- no superuser credential exists on this managed instance for any
+-- operator to run that grant with, there is no admin-channel fix here: the
+-- persistent role default for this GUC is simply unreachable on this
+-- instance, by any credential this pipeline has or could obtain.
+--
+-- The claim is instead set at session scope by the connecting client, once
+-- per session, before running any promotion file -- see
+-- scripts/apply-netquity-staging-promotions.mjs's
+-- ACCOUNT_ID_SESSION_CLAIM constant, issued via `SET aiphabee.account_id =
+-- ...` (session-scoped) rather than `ALTER ROLE ... SET` (persisted to
+-- pg_db_role_setting for future logins). A plain session-level SET of a
+-- custom GUC is unrestricted for any role -- confirmed empirically -- since
+-- it only touches the current backend's in-memory GUC state, never
+-- pg_db_role_setting; like the persistent form it was replacing, it has no
+-- effect on table- or schema-level ACL checks either way. The readback DO
+-- block below accordingly no longer asserts a pg_db_role_setting row for
+-- this GUC -- there deliberately isn't one -- and instead relies on the
+-- apply script always issuing the session SET first, and on the
+-- entitlement/workspace_subscription reads themselves failing closed
+-- (zero rows / RLS denial) if that claim is ever missing.
 
 -- aiphabee_core: Serving Store promotion targets.
 
@@ -371,9 +439,9 @@ WITH CHECK (
 -- is needed here (matching the GRANT layer above, which also grants no
 -- UPDATE on this table to this role). workspace_id/subscription_id are
 -- pinned to the single dedicated staging pairing every one of the 16 files'
--- entitlement chain is scoped to -- the same pairing this role's own
--- `aiphabee.account_id` session default (above) resolves
--- is_workspace_member() against.
+-- entitlement chain is scoped to -- the same pairing the apply script's
+-- session-scoped `aiphabee.account_id` claim (see the Row-level security
+-- claim note above) resolves is_workspace_member() against.
 DROP POLICY IF EXISTS netquity_serving_writer_workspace_entitlement_insert
   ON aiphabee_governance.workspace_entitlement;
 
@@ -531,19 +599,12 @@ BEGIN
     RAISE EXCEPTION 'netquity_serving_writer_staging is missing or has unexpected role attributes';
   END IF;
 
-  -- Row-level security claim default: aiphabee.account_id must be pinned to
-  -- the dedicated staging account so is_workspace_member()-gated SELECT
-  -- policies resolve for this role's own sessions.
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_db_role_setting s
-    JOIN pg_roles r ON r.oid = s.setrole
-    WHERE r.rolname = 'netquity_serving_writer_staging'
-      AND s.setdatabase = 0
-      AND 'aiphabee.account_id=account_authenticated_netquity_staging' = ANY (s.setconfig)
-  ) THEN
-    RAISE EXCEPTION 'netquity_serving_writer_staging is missing its aiphabee.account_id session default';
-  END IF;
+  -- No persistent aiphabee.account_id role default to assert here: this
+  -- role has no reachable persistent default for that GUC on this instance
+  -- (see the comment above the removed ALTER ROLE ... SET statement, near
+  -- the top of this file, for why) -- the apply script sets it at session
+  -- scope on every connection instead. There is deliberately no
+  -- pg_db_role_setting-based readback assertion for it.
 
   -- aiphabee_core: INSERT+SELECT tables (no UPDATE).
   FOREACH target_table IN ARRAY ARRAY[

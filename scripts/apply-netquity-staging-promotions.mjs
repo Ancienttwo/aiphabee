@@ -21,6 +21,22 @@ const contractPath = "deploy/database/netquity-staging-promotions.contract.json"
 const runnerPath = "scripts/apply-netquity-staging-promotions.mjs";
 const checkPackageScript = "check:netquity-staging-promotions";
 const executePackageScript = "netquity:staging:promote";
+// Session-scope value for the aiphabee.account_id RLS claim GUC that
+// platform.is_workspace_member()-gated SELECT policies read (see
+// platform.workspace_subscription and aiphabee_governance.data_entitlement/
+// workspace_entitlement's policies). Literal value carried over from
+// deploy/database/roles/netquity-serving-writer-staging.sql's original
+// `ALTER ROLE netquity_serving_writer_staging SET aiphabee.account_id =
+// 'account_authenticated_netquity_staging';` statement -- that statement is
+// gone from the role SQL (confirmed against staging: a *persistent*
+// ALTER ROLE ... SET on a custom GUC needs either superuser or a
+// superuser-granted `SET ON PARAMETER` privilege, and staging's
+// PlanetScale-managed admin credential has neither, with an empty
+// pg_parameter_acl and no superuser reachable on the instance to grant
+// one). This runner now sets the same value at session scope instead, once
+// per connection, before any promotion file runs -- see the `--command`
+// entry ahead of the `--file` list below.
+const ACCOUNT_ID_SESSION_CLAIM = "account_authenticated_netquity_staging";
 const args = new Set(process.argv.slice(2));
 const execute = args.has("--execute");
 const useKeychain = args.has("--use-keychain");
@@ -117,6 +133,13 @@ const applyResult = await runCommand("psql", [
   "--set",
   "ON_ERROR_STOP=1",
   "--quiet",
+  // Single psql invocation, single connection, one session for all 16
+  // files (see the header comment above): this --command runs once, on
+  // that one connection, before the first --file below. psql executes -c/
+  // --command and -f/--file in the order given on the command line, so
+  // every one of the 16 files sees the claim already set.
+  "--command",
+  `SET aiphabee.account_id = '${ACCOUNT_ID_SESSION_CLAIM}';`,
   ...contract.files.flatMap((file) => ["--file", file])
 ], {
   env: databaseEnv(contract.target, password)
