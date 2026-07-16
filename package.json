@@ -108,6 +108,8 @@
     "check:netquity-directorate-staging": "node scripts/check-netquity-directorate-staging-contract.mjs",
     "check:netquity-ownership-staging": "node scripts/check-netquity-ownership-staging-contract.mjs",
     "check:netquity-related-warrants-staging": "node scripts/check-netquity-related-warrants-staging-contract.mjs",
+    "check:netquity-staging-promotions": "node scripts/apply-netquity-staging-promotions.mjs",
+    "netquity:staging:promote": "node scripts/apply-netquity-staging-promotions.mjs --execute --use-keychain",
     "check:ipo-schema": "node scripts/check-ipo-schema-contract.mjs",
     "check:ipo-etl-manifest": "node scripts/check-ipo-etl-manifest.mjs",
     "check:hkex-news-ingest": "node scripts/check-hkex-news-ingest-contract.mjs",

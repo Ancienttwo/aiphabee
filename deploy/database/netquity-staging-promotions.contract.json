@@ -1,0 +1,75 @@
+{
+  "version": "2026-07-16.netquity-staging-promotions.v0",
+  "status": "guarded_staging_promotion_apply",
+  "provider": "planetscale_postgres",
+  "role_contract": "deploy/database/roles/netquity-serving-writer-staging.sql",
+  "boundary_doc": "docs/governance/aiphabee-planetscale-boundary.md",
+  "runner": "scripts/apply-netquity-staging-promotions.mjs",
+  "package_script_check": "check:netquity-staging-promotions",
+  "package_script_execute": "netquity:staging:promote",
+  "target": {
+    "organization": "chris-fung",
+    "database": "share-staging",
+    "host": "ap-southeast-2.pg.psdb.cloud",
+    "port": 5432,
+    "dbname": "postgres",
+    "user": "netquity_serving_writer_staging.v20dtpdoz3ik",
+    "sslmode": "require"
+  },
+  "target_note": "host/port/dbname match the one PlanetScale connection proxy shared by this organization (seen in deploy/fastclaw/row10-migration-worker.ts's fastclaw_aiphabee_staging.v20dtpdoz3ik staging DSN); the branch-qualifier suffix after the role name is inferred from that same evidence, not independently confirmed for this new role. Verify target.user against the live PlanetScale dashboard for the share-staging branch before first use.",
+  "credential_source": {
+    "source": "macos_keychain",
+    "service": "AiphaBee PlanetScale Postgres chris-fung aiphabee-staging-serving-writer",
+    "account": "netquity_serving_writer_staging.v20dtpdoz3ik"
+  },
+  "execution": {
+    "network": true,
+    "requires_execute_flag": true,
+    "requires_keychain_flag": true,
+    "single_transaction": false,
+    "stop_on_error": true,
+    "forbids_database_create_privilege": true,
+    "applies_schema": false,
+    "applies_data": true
+  },
+  "prerequisites": [
+    "deploy/database/roles/netquity-serving-writer-staging.sql applied (role exists with password set and stored in the credential_source keychain entry)",
+    "deploy/database/migrations/20260709180000_netquity_mirror_schema.sql applied",
+    "deploy/database/migrations through 20260716140000_related_warrants_domain.sql applied (adds sdi_disclosure/directorate/ownership/related_warrants to aiphabee_core.serving_dataset's domain CHECK constraint)",
+    "deploy/account/authenticated-netquity-web-resolver-staging.sql applied (provisions workspace_authenticated_netquity_staging / subscription_authenticated_netquity_staging read by every entitlement file's preflight)"
+  ],
+  "packet": {
+    "file_count": 16,
+    "first_file": "deploy/ingest/netquity-security-profile-staging.sql",
+    "last_file": "deploy/account/netquity-related-warrants-entitlement-staging.sql",
+    "packet_hash": "sha256:50fd0033453aeacdea541fbe222e6662e22c0d3fbd1ee2ed92fc677710445e7c",
+    "total_size_bytes": 259045
+  },
+  "files": [
+    "deploy/ingest/netquity-security-profile-staging.sql",
+    "deploy/ingest/netquity-financial-facts-staging.sql",
+    "deploy/ingest/netquity-quote-snapshot-staging.sql",
+    "deploy/ingest/netquity-corporate-actions-staging.sql",
+    "deploy/ingest/netquity-sdi-disclosure-staging.sql",
+    "deploy/ingest/netquity-directorate-staging.sql",
+    "deploy/ingest/netquity-ownership-staging.sql",
+    "deploy/ingest/netquity-related-warrants-staging.sql",
+    "deploy/account/netquity-security-profile-entitlement-staging.sql",
+    "deploy/account/netquity-financial-facts-entitlement-staging.sql",
+    "deploy/account/netquity-quote-snapshot-entitlement-staging.sql",
+    "deploy/account/netquity-corporate-actions-entitlement-staging.sql",
+    "deploy/account/netquity-sdi-disclosure-entitlement-staging.sql",
+    "deploy/account/netquity-directorate-entitlement-staging.sql",
+    "deploy/account/netquity-ownership-entitlement-staging.sql",
+    "deploy/account/netquity-related-warrants-entitlement-staging.sql"
+  ],
+  "file_order_rationale": "8 ingest files ordered by their own header comments' declared promotion sequence (security_profile -> financial_facts -> quote_snapshot -> corporate_actions -> sdi_disclosure -> directorate -> ownership -> related_warrants), followed by the 8 entitlement files in the same per-domain order. Each file is independently transactional (its own BEGIN...COMMIT plus an internal readback DO block), so a later file's failure does not roll back an earlier file's already-committed and already-verified promotion.",
+  "rls_write_path": "Confirmed by running this exact 16-file, 16-order packet against netquity_serving_writer_staging in a local scratch Postgres seeded with the real netquity mirror: all 16 files (deploy/ingest/*.sql files 1-8, then deploy/account/*-entitlement-staging.sql files 9-16) complete successfully end to end in one run. aiphabee_governance.data_entitlement and aiphabee_governance.workspace_entitlement both have force row level security; deploy/database/roles/netquity-serving-writer-staging.sql adds four role-targeted policies (netquity_serving_writer_entitlement_select, netquity_serving_writer_entitlement_insert, netquity_serving_writer_entitlement_update, netquity_serving_writer_workspace_entitlement_insert, each TO netquity_serving_writer_staging only) so PostgreSQL no longer denies those two tables' SELECT/INSERT/UPDATE commands under FORCE ROW LEVEL SECURITY's zero-policy default-deny. The SELECT policy is required because INSERT ... ON CONFLICT DO UPDATE (data_entitlement's shape) needs SELECT-policy visibility into the row identity even when nothing actually conflicts, which the pre-existing member-scoped SELECT policy cannot supply for a brand-new entitlement_id. netquity_serving_writer_staging still has no BYPASSRLS; the pre-existing member-scoped SELECT policies (data_entitlement_member_read, workspace_entitlement_member_read) are untouched, and the four new policies apply to no other role.",
+  "safe_output_policy": {
+    "never_log_database_url": true,
+    "never_log_password": true,
+    "never_pass_database_url_as_process_argument": true,
+    "emit_counts_and_hashes_only": true,
+    "emit_safe_failure_reason": true
+  }
+}
