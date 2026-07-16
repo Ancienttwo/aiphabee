@@ -126,6 +126,54 @@
         "max_symbols_per_run": 1,
         "max_bars": 500
       }
+    },
+    {
+      "id": "netquity_live_serving",
+      "name": "Netquity Live Data Serving",
+      "status": "staging_nine_domains_synthetic_to_live_writer_role_guarded_public_cutover_not_claimed",
+      "authority_packages": [
+        "packages/security-tools",
+        "packages/financial-facts",
+        "packages/market-data",
+        "packages/corporate-actions",
+        "packages/sdi-disclosure",
+        "packages/directorate",
+        "packages/ownership",
+        "packages/related-warrants",
+        "packages/workbench"
+      ],
+      "mirror_owner": "scripts/netquity-mirror",
+      "private_rpc_owner": "apps/worker/src/authenticated-netquity-web-resolver.ts",
+      "staging_write_role_owner": "deploy/database/roles/netquity-serving-writer-staging.sql",
+      "promotion_domains": [
+        "security_resolution",
+        "security_profile",
+        "financial_facts",
+        "quote_snapshot",
+        "corporate_actions",
+        "sdi_disclosure",
+        "directorate",
+        "ownership",
+        "related_warrants"
+      ],
+      "invariants": {
+        "raw_mirror_ref_source_read_only": true,
+        "raw_mirror_unresolved_domain_fails_closed": true,
+        "staging_promotion_additive_only": true,
+        "staging_writer_role_cannot_run_ddl": true,
+        "staging_promotion_apply_requires_explicit_execute_flag": true,
+        "resolver_public_http_exposed": false,
+        "resolver_authorization_before_binding": true,
+        "resolver_default_rights_status_default_deny": true,
+        "resolver_latest_released_snapshot_only": true,
+        "resolver_entity_id_exact_lookup_only": true,
+        "resolver_maximum_rows_per_domain_call": 1,
+        "derived_metrics_panel_live_via_dual_gate_rpc": true,
+        "derived_metrics_authorization_conjunctive_both_gates_required": true,
+        "derived_metrics_missing_dataset_blocked_not_synthesized": true,
+        "public_resolver_cutover_claimed": false,
+        "production_deploy_claimed": false
+      }
     }
   ]
 }
