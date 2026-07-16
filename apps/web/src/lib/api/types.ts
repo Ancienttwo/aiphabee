@@ -513,6 +513,37 @@ export interface GetLiveRelatedWarrantsData {
   warrants?: LiveRelatedWarrant[];
 }
 
+// --- resolveDerivedMetrics (live, packages/workbench createLiveDerivedMetrics) --
+// Unlike the sections above, this does not gate on its own Serving dataset:
+// resolveDerivedMetrics conjuncts the financial_facts and quote_snapshot Web
+// entitlement gates (both required, no separate "derived metrics"
+// entitlement row exists) and combines their released rows. metrics/
+// definitions reuse the same DerivedMetricValue/DerivedMetricDefinition
+// shapes as the synthetic DerivedMetricsSection below (the live and
+// synthetic per-metric value/definition shapes are identical); only the
+// envelope-level fields around them differ, matching the live vs. synthetic
+// naming split documented below (this is a workbench-native section, so its
+// own top-level fields are snake_case, same as the synthetic
+// DerivedMetricsSection). financial_facts_as_of/quote_as_of/
+// financial_period_end are independently optional -- either input dataset
+// may have no released row for this instrument (404) without failing the
+// whole resolution, so the engine renders a per-metric blocked_reason
+// instead of omitting or fabricating a value. data_version is a composite of
+// whichever source dataset(s) actually contributed ("" when neither did).
+export interface GetLiveDerivedMetricsData {
+  data_version: string;
+  definitions: DerivedMetricDefinition[];
+  financial_facts_as_of?: string;
+  financial_period_end?: string;
+  live_data_access: true;
+  methodology_version: string;
+  metrics: DerivedMetricValue[];
+  provenance: ProvenanceRef[];
+  quote_as_of?: string;
+  status: "blocked" | "computed" | "partial";
+  usage: UsageSummary;
+}
+
 // --- agent progress stream (packages/agent-runtime) ----------------------
 export type AgentProgressStatus = "completed" | "planned" | "started" | "stopped";
 

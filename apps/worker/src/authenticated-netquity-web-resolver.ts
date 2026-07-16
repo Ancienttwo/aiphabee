@@ -56,6 +56,10 @@ import {
   type GetLiveRelatedWarrantsResult,
   type LiveRelatedWarrantsRow,
 } from "@aiphabee/related-warrants";
+import {
+  createLiveDerivedMetrics,
+  type StockWorkbenchLiveDerivedMetrics,
+} from "@aiphabee/workbench";
 import { Client, type QueryResult } from "pg";
 
 export const AUTHENTICATED_NETQUITY_WEB_RESOLVER_VERSION =
@@ -963,6 +967,17 @@ export interface AuthenticatedNetquityRelatedWarrantsResolverInput {
 
 export interface AuthenticatedNetquityRelatedWarrantsResolverRpcResult {
   envelope: ResponseEnvelope<GetLiveRelatedWarrantsResult>;
+  status: 200 | 400 | 403 | 404 | 409 | 424 | 500;
+}
+
+export interface AuthenticatedNetquityDerivedMetricsResolverInput {
+  authSubject: string;
+  instrumentId: string;
+  requestId: string;
+}
+
+export interface AuthenticatedNetquityDerivedMetricsResolverRpcResult {
+  envelope: ResponseEnvelope<StockWorkbenchLiveDerivedMetrics>;
   status: 200 | 400 | 403 | 404 | 409 | 424 | 500;
 }
 
@@ -2938,6 +2953,262 @@ export async function resolveReleasedNetquityRelatedWarrants(
   };
 }
 
+// Derived-metrics RPC. Does not gate on a new "derived metrics" Serving
+// dataset or entitlement row -- there is none, and this promotion registers
+// none. Instead it runs the conjunction of the two gates already used by
+// resolveAuthenticatedNetquityFinancialFacts and
+// resolveAuthenticatedNetquityQuoteSnapshot inside the same
+// account/context/transaction: Gate A (financial_facts, scoped by the
+// account's own context.rights_policy_version) and Gate B (quote_snapshot,
+// scoped by the hardcoded NETQUITY_MARKET_DATA_RIGHTS_POLICY_VERSION,
+// independent of Gate A's policy version -- see that constant's comment).
+// Each gate is enforced exactly as its single-dataset resolver enforces it,
+// neither relaxed for this call; either gate failing denies the whole
+// request with 403 before any Serving row is read. Once both pass, this
+// reuses resolveReleasedNetquityFinancialFacts and
+// resolveReleasedNetquityQuoteSnapshot verbatim, in the same transaction: a
+// 200 from either contributes its released result to packages/workbench's
+// createLiveDerivedMetrics, a 404 (entity absent from that Serving snapshot
+// entirely) contributes undefined for that one dataset without failing the
+// whole request (the engine renders a specific blocked_reason per metric
+// instead of a fabricated value), and any other status (409
+// DATA_QUALITY_HOLD -- no released snapshot for that dataset at all) is
+// propagated verbatim; ErrorEnvelope carries no TData and is a member of
+// ResponseEnvelope<T> for any T, same reasoning as errorResult() below.
+// Never exposed over a public HTTP route.
+export async function resolveAuthenticatedNetquityDerivedMetrics(
+  bindings: AuthenticatedNetquityResolverBindings,
+  input: AuthenticatedNetquityDerivedMetricsResolverInput,
+): Promise<AuthenticatedNetquityDerivedMetricsResolverRpcResult> {
+  const responseAsOf = new Date().toISOString();
+  const validationError = validateDerivedMetricsInput(bindings, input, responseAsOf);
+  if (validationError) return validationError;
+
+  const connectionString = bindings.AIPHABEE_HYPERDRIVE?.connectionString?.trim();
+  if (!connectionString) {
+    return errorResult(
+      424,
+      "INTERNAL_ERROR",
+      "staging security authority binding is unavailable",
+      input.requestId,
+      responseAsOf,
+    );
+  }
+
+  const client = new Client({ connectionString });
+  let transactionStarted = false;
+  try {
+    await client.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    const accountResult = await client.query<AccountLookupRow>(ACCOUNT_LOOKUP_QUERY, [
+      input.authSubject.toLowerCase(),
+    ]);
+    const accountId = accountResult.rows[0]?.account_id;
+    if (!accountId) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "authenticated account is not provisioned",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    await client.query("SELECT set_config('aiphabee.account_id', $1, true)", [accountId]);
+    const contextResult = await client.query<EntitledContextRow>(CONTEXT_QUERY, [accountId]);
+    if (contextResult.rows.length !== 1) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        contextResult.rows.length > 1 ? 409 : 403,
+        "DATA_NOT_LICENSED",
+        contextResult.rows.length > 1
+          ? "multiple entitled workspaces require explicit product selection"
+          : "active workspace subscription is required",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    const context = contextResult.rows[0];
+
+    // Gate A: financial_facts field authority (identical to
+    // resolveAuthenticatedNetquityFinancialFacts's own gate).
+    const financialRightsResult = await client.query<RightsRow>(FINANCIAL_FACTS_RIGHTS_QUERY, [
+      context.workspace_id,
+      context.subscription_id,
+      context.rights_policy_version,
+    ]);
+    if (!hasExactFinancialFactsFieldAuthority(financialRightsResult.rows)) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web financial facts field authority is required",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+    const financialPolicySource = compilePolicySource(context, financialRightsResult.rows, responseAsOf);
+    const financialDecision = evaluateDataAccessRequest(
+      {
+        accountId,
+        channel: "web",
+        dataset: "financial_facts",
+        exportRequested: false,
+        membershipId: context.membership_id,
+        occurredAt: responseAsOf,
+        plan: context.plan_code,
+        qualityState: "PASS",
+        requestId: input.requestId,
+        requestedFields: [...AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS],
+        requestedRows: 1,
+        subscriptionId: context.subscription_id,
+        workspaceId: context.workspace_id,
+      },
+      financialPolicySource.policy,
+    );
+    if (
+      financialDecision.status !== "allow" ||
+      financialDecision.deniedFields.length > 0 ||
+      financialDecision.allowedFields.length !== AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS.length
+    ) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web financial facts fields are not licensed",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    // Gate B: quote_snapshot field authority (identical to
+    // resolveAuthenticatedNetquityQuoteSnapshot's own gate; independent
+    // hardcoded policy version, Gate A above is unaffected by it).
+    const quoteRightsResult = await client.query<RightsRow>(QUOTE_SNAPSHOT_RIGHTS_QUERY, [
+      context.workspace_id,
+      context.subscription_id,
+      NETQUITY_MARKET_DATA_RIGHTS_POLICY_VERSION,
+    ]);
+    if (!hasExactQuoteSnapshotFieldAuthority(quoteRightsResult.rows)) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web quote snapshot field authority is required",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+    const quotePolicySource = compilePolicySource(context, quoteRightsResult.rows, responseAsOf);
+    const quoteDecision = evaluateDataAccessRequest(
+      {
+        accountId,
+        channel: "web",
+        dataset: "quote_snapshot",
+        exportRequested: false,
+        membershipId: context.membership_id,
+        occurredAt: responseAsOf,
+        plan: context.plan_code,
+        qualityState: "PASS",
+        requestId: input.requestId,
+        requestedFields: [...AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS],
+        requestedRows: 1,
+        subscriptionId: context.subscription_id,
+        workspaceId: context.workspace_id,
+      },
+      quotePolicySource.policy,
+    );
+    if (
+      quoteDecision.status !== "allow" ||
+      quoteDecision.deniedFields.length > 0 ||
+      quoteDecision.allowedFields.length !== AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.length
+    ) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return errorResult(
+        403,
+        "DATA_NOT_LICENSED",
+        "exact Web quote snapshot fields are not licensed",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+
+    // Both gates passed. Reuse each dataset's own released-Serving resolver
+    // verbatim, in the same transaction.
+    const financialResolved = await resolveReleasedNetquityFinancialFacts(client, {
+      instrumentId: input.instrumentId,
+      requestId: input.requestId,
+      responseAsOf,
+      rightsPolicyVersion: context.rights_policy_version,
+    });
+    if (!financialResolved.envelope.ok && financialResolved.status !== 404) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return { envelope: financialResolved.envelope, status: financialResolved.status };
+    }
+    const financialFacts = financialResolved.envelope.ok ? financialResolved.envelope.data : undefined;
+
+    const quoteResolved = await resolveReleasedNetquityQuoteSnapshot(client, {
+      instrumentId: input.instrumentId,
+      requestId: input.requestId,
+      responseAsOf,
+      rightsPolicyVersion: NETQUITY_MARKET_DATA_RIGHTS_POLICY_VERSION,
+    });
+    if (!quoteResolved.envelope.ok && quoteResolved.status !== 404) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+      return { envelope: quoteResolved.envelope, status: quoteResolved.status };
+    }
+    const quoteSnapshot = quoteResolved.envelope.ok ? quoteResolved.envelope.data : undefined;
+
+    const result = createLiveDerivedMetrics({ financialFacts, quoteSnapshot });
+    await client.query("COMMIT");
+    transactionStarted = false;
+    return {
+      envelope: createSuccessEnvelope(result, {
+        asOf: responseAsOf,
+        dataVersion: result.data_version,
+        methodologyVersion: result.methodology_version,
+        provenance: result.provenance,
+        requestId: input.requestId,
+        usage: result.usage,
+      }),
+      status: 200,
+    };
+  } catch {
+    if (transactionStarted) await client.query("ROLLBACK").catch(() => undefined);
+    return errorResult(
+      500,
+      "INTERNAL_ERROR",
+      "authenticated derived metrics resolution failed",
+      input.requestId,
+      responseAsOf,
+    );
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      return errorResult(
+        500,
+        "INTERNAL_ERROR",
+        "authenticated derived metrics database close failed",
+        input.requestId,
+        responseAsOf,
+      );
+    }
+  }
+}
+
 function hasExactFieldAuthority(rows: RightsRow[]): boolean {
   if (rows.some((row) => !AUTHENTICATED_NETQUITY_REQUIRED_FIELD_SET.has(row.field_pattern))) {
     return false;
@@ -3204,6 +3475,23 @@ function validateRelatedWarrantsInput(
   input: AuthenticatedNetquityRelatedWarrantsResolverInput,
   asOf: string,
 ): AuthenticatedNetquityRelatedWarrantsResolverRpcResult | undefined {
+  if (bindings.APP_ENV !== "staging") {
+    return errorResult(403, "DATA_NOT_LICENSED", "staging resolver is unavailable", input.requestId, asOf);
+  }
+  if (!AUTH_SUBJECT_PATTERN.test(input.authSubject)) {
+    return errorResult(403, "AUTH_REQUIRED", "authenticated subject is invalid", input.requestId, asOf);
+  }
+  if (!/^hkex_security_\d{5}$/u.test(input.instrumentId)) {
+    return errorResult(400, "SCOPE_DENIED", "instrument id is invalid", input.requestId, asOf);
+  }
+  return undefined;
+}
+
+function validateDerivedMetricsInput(
+  bindings: AuthenticatedNetquityResolverBindings,
+  input: AuthenticatedNetquityDerivedMetricsResolverInput,
+  asOf: string,
+): AuthenticatedNetquityDerivedMetricsResolverRpcResult | undefined {
   if (bindings.APP_ENV !== "staging") {
     return errorResult(403, "DATA_NOT_LICENSED", "staging resolver is unavailable", input.requestId, asOf);
   }

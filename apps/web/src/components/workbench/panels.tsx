@@ -6,6 +6,7 @@ import { Metric } from "../Metric";
 import {
   presentError,
   resolveCorporateActions,
+  resolveDerivedMetrics,
   resolveDirectorate,
   resolveFinancialFacts,
   resolveOwnership,
@@ -16,7 +17,6 @@ import {
 import type {
   AiphaBeeErrorCode,
   AnnouncementSection,
-  DerivedMetricsSection,
   LiveCorporateActionRow,
   LiveDirectorateCapacity,
   LiveDirectorateProfileRow,
@@ -334,11 +334,94 @@ export function FinancialsPanel({ instrumentId }: { instrumentId: string }) {
   );
 }
 
-export function DerivedPanel({ section }: { section: DerivedMetricsSection }) {
+const DERIVED_METRICS_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
+  AUTH_REQUIRED: "info",
+  DATA_NOT_LICENSED: "neutral",
+  DATA_QUALITY_HOLD: "warning",
+  NOT_FOUND: "neutral",
+};
+
+const DERIVED_METRICS_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
+  AUTH_REQUIRED: "需要登录",
+  DATA_NOT_LICENSED: "未获授权",
+  DATA_QUALITY_HOLD: "质量保留",
+  NOT_FOUND: "未找到",
+};
+
+// Per-metric blocked_reason -> honest Chinese copy. Deliberately never says
+// "未获授权": once the envelope itself is ok, the whole derived-metrics
+// feature IS authorized (resolveDerivedMetrics already conjuncts the
+// financial_facts + quote_snapshot Web gates before returning any data) --
+// a blocked metric here is a data-availability gap for this instrument, not
+// a licensing gap.
+const DERIVED_METRIC_BLOCKED_REASON_LABEL: Record<string, string> = {
+  financial_facts_not_found: "该证券暂无财务数据",
+  missing_input: "缺少计算所需的财务输入",
+  negative_denominator: "分母为负，结果不具参考意义",
+  quality_hold: "输入数据质量保留中",
+  quote_unavailable: "该证券暂无可用行情，无法计算市值型指标",
+  shares_outstanding_unavailable: "该证券暂未披露流通股本，无法计算市值型指标",
+  zero_denominator: "分母为零，无法计算",
+};
+
+/**
+ * Derived-metrics panel: an independent live query against the
+ * entitlement-gated resolveDerivedMetrics RPC (FinancialsPanel/QuotePanel
+ * decoupling pattern) -- not driven by the synthetic workbench snapshot's
+ * derived_metrics section, so a denied/held/absent live result never falls
+ * back to synthesized figures. resolveDerivedMetrics conjuncts the
+ * financial_facts and quote_snapshot Web entitlement gates (both required,
+ * no separate "derived metrics" dataset); the badge above the grid reflects
+ * that envelope-level authorization state. Once the envelope is authorized,
+ * each tile renders its own status: a computed value, or the specific
+ * blocked_reason's honest Chinese copy via DERIVED_METRIC_BLOCKED_REASON_LABEL
+ * -- never "未获授权" for a per-metric data gap.
+ */
+export function DerivedPanel({ instrumentId }: { instrumentId: string }) {
+  const { data: derivedEnv, isLoading } = useQuery({
+    queryKey: ["derived-metrics-live", instrumentId],
+    queryFn: () => resolveDerivedMetrics(instrumentId),
+  });
+
+  if (isLoading) {
+    return (
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载派生指标…</p>
+    );
+  }
+
+  if (!derivedEnv || !derivedEnv.ok) {
+    const code = derivedEnv?.error.code;
+    const tone: BadgeTone = (code && DERIVED_METRICS_STATE_TONE[code]) ?? "bearish";
+    const label = (code && DERIVED_METRICS_STATE_LABEL[code]) ?? "暂不可用";
+    const detail = derivedEnv ? presentError(derivedEnv).detail : "派生指标服务暂不可用。";
+    return (
+      <Card padded>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <SectionTitle>派生指标</SectionTitle>
+          <Badge tone={tone} variant="soft" size="sm" dot>
+            {label}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{detail}</p>
+      </Card>
+    );
+  }
+
+  const section = derivedEnv.data;
   const labels = new Map(section.definitions.map((d) => [d.metric_id, d.label]));
+  const asOfParts = [
+    section.financial_period_end ? `财务期末 · ${section.financial_period_end}` : null,
+    section.quote_as_of ? `行情 · ${section.quote_as_of.slice(0, 10)}` : null,
+  ].filter((part): part is string => part !== null);
+
   return (
     <Card padded>
-      <SectionTitle>派生指标</SectionTitle>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+        <SectionTitle>派生指标</SectionTitle>
+        {asOfParts.length > 0 ? (
+          <Badge tone="info" variant="soft" size="sm">{asOfParts.join(" · ")}</Badge>
+        ) : null}
+      </div>
       <div className="ab-grid-2" style={{ gap: 12 }}>
         {section.metrics.map((m) => (
           <div
@@ -350,8 +433,13 @@ export function DerivedPanel({ section }: { section: DerivedMetricsSection }) {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", marginBottom: 4 }}>
-              {labels.get(m.metric_id) ?? m.metric_id}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
+                {labels.get(m.metric_id) ?? m.metric_id}
+              </span>
+              {m.anomaly_flags.includes("currency_mismatch") ? (
+                <Badge tone="warning" variant="soft" size="sm">货币口径不一致</Badge>
+              ) : null}
             </div>
             {m.status === "computed" && m.value !== undefined ? (
               <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--text-primary)" }}>
@@ -359,12 +447,15 @@ export function DerivedPanel({ section }: { section: DerivedMetricsSection }) {
               </div>
             ) : (
               <div style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>
-                暂不可计算（{m.blocked_reason ?? "缺少输入"}）
+                {DERIVED_METRIC_BLOCKED_REASON_LABEL[m.blocked_reason ?? ""] ?? m.blocked_reason ?? "暂不可计算"}
               </div>
             )}
           </div>
         ))}
       </div>
+      <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
+        综合财务事实与收盘行情计算 · 非实时估值
+      </p>
     </Card>
   );
 }

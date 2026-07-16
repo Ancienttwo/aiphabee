@@ -8,13 +8,16 @@ import {
   getFinancialFactsCapabilities,
   type FinancialFactMetric,
   type FinancialFactRow,
-  type GetFinancialFactsResult
+  type GetFinancialFactsResult,
+  type GetLiveFinancialFactsResult,
+  type LiveFinancialFactRow
 } from "@aiphabee/financial-facts";
 import {
   getPriceHistory,
   getPriceHistoryCapabilities,
   getQuoteSnapshot,
   getQuoteSnapshotCapabilities,
+  type GetLiveQuoteSnapshotResult,
   type GetPriceHistoryResult,
   type GetQuoteSnapshotResult,
   type PriceHistoryAdjustment,
@@ -95,6 +98,44 @@ export interface StockWorkbenchDerivedMetrics {
   live_data_access: false;
   methodology_version: typeof STOCK_WORKBENCH_VERSION;
   metrics: StockWorkbenchDerivedMetricValue[];
+  quote_as_of?: string;
+  status: "blocked" | "computed" | "partial";
+  toolName: "stock_workbench_derived_metrics";
+  usage: {
+    cached: false;
+    credits: number;
+    rows: number;
+  };
+}
+
+/**
+ * Live counterpart to StockWorkbenchDerivedMetrics, returned by the
+ * (never-public) resolveDerivedMetrics RPC -- see
+ * authenticated-netquity-web-resolver.ts's conjunctive-gate comment.
+ * Combines two independently field-gated live datasets (financial_facts and
+ * quote_snapshot) through createLiveDerivedMetrics below; neither dataset
+ * requires a new "derived metrics" entitlement registration of its own.
+ * data_version is a composite of whichever source dataset(s) actually
+ * contributed ("" when both are absent -- an honest "nothing was read"
+ * signal, never a fabricated placeholder); provenance concatenates both
+ * sources' own provenance entries verbatim, so a single entry's
+ * data_version/methodology_version describes only its own source, not this
+ * composite.
+ */
+export interface StockWorkbenchLiveDerivedMetrics {
+  data_version: string;
+  definitions: StockWorkbenchDerivedMetricDefinition[];
+  financial_facts_as_of?: string;
+  financial_period_end?: string;
+  live_data_access: true;
+  methodology_version: typeof DERIVED_METRIC_LIVE_FORMULA_VERSION;
+  metrics: StockWorkbenchDerivedMetricValue[];
+  provenance: Array<{
+    data_version: string;
+    methodology_version: string;
+    source: string;
+    source_record_id: string;
+  }>;
   quote_as_of?: string;
   status: "blocked" | "computed" | "partial";
   toolName: "stock_workbench_derived_metrics";
@@ -224,6 +265,8 @@ const DEFAULT_ANNOUNCEMENT_TO = "2026-01-07";
 const DEFAULT_ANNOUNCEMENT_LIMIT = 3;
 const MAX_ANNOUNCEMENT_LIMIT = 3;
 const DERIVED_METRIC_FORMULA_VERSION = "stock-workbench-derived-metrics-v0";
+const DERIVED_METRIC_LIVE_FORMULA_VERSION =
+  "2026-07-16.stock-workbench-derived-metrics-live.v1";
 const DERIVED_METRIC_DEFINITIONS: StockWorkbenchDerivedMetricDefinition[] = [
   {
     anomaly_policy: createDerivedMetricAnomalyPolicy(),
@@ -976,4 +1019,259 @@ function isFinancialFactMetric(value: string): value is FinancialFactMetric {
 
 function roundMetric(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+// --- Live derived metrics (Netquity Serving Store financial_facts +
+// quote_snapshot, non-bank/nb only) ----------------------------------------
+// Distinct from createDerivedMetrics above: this combines the two live,
+// entitlement-gated result shapes (GetLiveFinancialFactsResult,
+// GetLiveQuoteSnapshotResult) rather than the synthetic ones. Each input is
+// independently optional -- the resolveDerivedMetrics RPC passes undefined
+// for whichever dataset had no released row for this instrument at all
+// (404), never a synthesized substitute -- so every branch below degrades to
+// a specific blocked_reason instead of throwing. live financial facts diverge
+// from the synthetic shape in three ways that this engine must honor: facts
+// is a flat LiveFinancialFactRow[] (no nested FinancialFactsDataset
+// wrapper), currency lives on each fact row instead of one dataset-level
+// currency, and there is no restatementVersion (so the fact map below breaks
+// same-period ties by publishedAt instead). Self-contained: only reuses the
+// leaf helpers shared with the synthetic engine (roundMetric, blockMetric,
+// DERIVED_METRIC_DEFINITIONS and its baked-in anomaly_policy);
+// createDerivedMetrics/createBlockedValuationMetric/createProfitabilityMetric/
+// createStockWorkbenchSnapshot are untouched.
+export function createLiveDerivedMetrics(input: {
+  financialFacts?: GetLiveFinancialFactsResult;
+  quoteSnapshot?: GetLiveQuoteSnapshotResult;
+}): StockWorkbenchLiveDerivedMetrics {
+  const facts = createLiveFinancialFactMap(input.financialFacts?.facts ?? []);
+  const sortedFacts = [...(input.financialFacts?.facts ?? [])].sort(liveFinancialFactSortOrder);
+  const metrics = DERIVED_METRIC_DEFINITIONS.map((definition) =>
+    definition.category === "valuation"
+      ? createLiveValuationMetric(definition, facts, input)
+      : createLiveProfitabilityMetric(definition, facts, input.financialFacts)
+  );
+  const computedCount = metrics.filter((metric) => metric.status === "computed").length;
+  const blockedCount = metrics.length - computedCount;
+
+  return {
+    data_version: composeLiveDerivedMetricsDataVersion(input),
+    definitions: DERIVED_METRIC_DEFINITIONS,
+    financial_facts_as_of: input.financialFacts?.asOf,
+    financial_period_end: sortedFacts[0]?.periodEnd,
+    live_data_access: true,
+    methodology_version: DERIVED_METRIC_LIVE_FORMULA_VERSION,
+    metrics,
+    provenance: [
+      ...(input.financialFacts?.provenance ?? []),
+      ...(input.quoteSnapshot?.provenance ?? [])
+    ],
+    quote_as_of: input.quoteSnapshot?.asOf,
+    status: computedCount === 0 ? "blocked" : blockedCount === 0 ? "computed" : "partial",
+    toolName: "stock_workbench_derived_metrics",
+    usage: {
+      cached: false,
+      credits: computedCount > 0 ? 1 : 0,
+      rows: metrics.length
+    }
+  };
+}
+
+// "" (not a fabricated placeholder) when neither input dataset contributed --
+// an honest signal that nothing was actually read for this instrument.
+function composeLiveDerivedMetricsDataVersion(input: {
+  financialFacts?: GetLiveFinancialFactsResult;
+  quoteSnapshot?: GetLiveQuoteSnapshotResult;
+}): string {
+  const parts: string[] = [];
+
+  if (input.financialFacts !== undefined) {
+    parts.push(`financial_facts:${input.financialFacts.dataVersion}`);
+  }
+
+  if (input.quoteSnapshot !== undefined) {
+    parts.push(`quote_snapshot:${input.quoteSnapshot.dataVersion}`);
+  }
+
+  return parts.join("|");
+}
+
+// periodEnd desc, publishedAt desc -- live facts carry no restatementVersion
+// to break same-period ties with (unlike the synthetic engine's
+// createFinancialFactMap), so the most recently published row for that
+// period wins instead.
+function liveFinancialFactSortOrder(left: LiveFinancialFactRow, right: LiveFinancialFactRow): number {
+  const periodOrder = right.periodEnd.localeCompare(left.periodEnd);
+  if (periodOrder !== 0) {
+    return periodOrder;
+  }
+
+  return right.publishedAt.localeCompare(left.publishedAt);
+}
+
+function createLiveFinancialFactMap(
+  facts: readonly LiveFinancialFactRow[]
+): Map<FinancialFactMetric, LiveFinancialFactRow> {
+  const rows = [...facts].sort(liveFinancialFactSortOrder);
+  const byMetric = new Map<FinancialFactMetric, LiveFinancialFactRow>();
+
+  for (const row of rows) {
+    if (!byMetric.has(row.metricId)) {
+      byMetric.set(row.metricId, row);
+    }
+  }
+
+  return byMetric;
+}
+
+function createLiveProfitabilityMetric(
+  definition: StockWorkbenchDerivedMetricDefinition,
+  facts: Map<FinancialFactMetric, LiveFinancialFactRow>,
+  financialFacts: GetLiveFinancialFactsResult | undefined
+): StockWorkbenchDerivedMetricValue {
+  const numerator = facts.get(definition.required_inputs[0] as FinancialFactMetric);
+  const denominator = facts.get(definition.required_inputs[1] as FinancialFactMetric);
+  const base = createLiveMetricBase(definition, [numerator, denominator]);
+
+  if (financialFacts === undefined) {
+    return blockMetric(base, "financial_facts_not_found", []);
+  }
+
+  if (numerator === undefined || denominator === undefined) {
+    return blockMetric(base, "missing_input", []);
+  }
+
+  const qualityFlags = [numerator, denominator]
+    .filter((fact) => fact.qualityState !== "PASS")
+    .map((fact) => `${fact.metricId}_quality_${fact.qualityState.toLowerCase()}`);
+
+  if (qualityFlags.length > 0) {
+    return blockMetric(base, "quality_hold", qualityFlags);
+  }
+
+  if (denominator.value === 0) {
+    return blockMetric(base, "zero_denominator", []);
+  }
+
+  if (denominator.value < 0) {
+    return blockMetric(base, "negative_denominator", []);
+  }
+
+  return {
+    ...base,
+    anomaly_flags: [],
+    inputs: {
+      ...base.inputs,
+      [numerator.metricId]: numerator.value,
+      [denominator.metricId]: denominator.value
+    },
+    status: "computed",
+    value: roundMetric(numerator.value / denominator.value)
+  };
+}
+
+// market_cap = quote.close * quote.sharesOutstanding -- the live promotion
+// this was blocked on (see deploy/ingest/netquity-quote-snapshot-staging
+// .contract.json's derived_panel_valuation_unblock). Blocked-reason ladder,
+// checked in order: financial_facts_not_found (entity absent from
+// financial_facts entirely) -> quote_unavailable (entity absent from
+// quote_snapshot entirely, coverage.status "unavailable", or no close price)
+// -> shares_outstanding_unavailable (quote usable but no share count -- the
+// dominant real-world case, ~84% of available quote rows per the contract's
+// row_count_breakdown) -> missing_input (the specific financial fact this
+// ratio needs was not promoted this period) -> quality_hold -> zero/negative
+// denominator. currency_mismatch is flagged, never blocking, per the shared
+// anomaly_policy baked into DERIVED_METRIC_DEFINITIONS.
+function createLiveValuationMetric(
+  definition: StockWorkbenchDerivedMetricDefinition,
+  facts: Map<FinancialFactMetric, LiveFinancialFactRow>,
+  input: {
+    financialFacts?: GetLiveFinancialFactsResult;
+    quoteSnapshot?: GetLiveQuoteSnapshotResult;
+  }
+): StockWorkbenchDerivedMetricValue {
+  const denominatorMetricId = definition.required_inputs[1] as FinancialFactMetric;
+  const denominator = facts.get(denominatorMetricId);
+  const quote = input.quoteSnapshot?.quote;
+  const base = createLiveMetricBase(definition, [denominator], [
+    input.quoteSnapshot?.provenance[0]?.source_record_id
+  ]);
+  const baseWithQuoteInputs: Omit<StockWorkbenchDerivedMetricValue, "anomaly_flags" | "status"> = {
+    ...base,
+    inputs: {
+      ...base.inputs,
+      ...(quote?.close !== undefined ? { quote_close: quote.close } : {}),
+      ...(quote?.sharesOutstanding !== undefined ? { shares_outstanding: quote.sharesOutstanding } : {}),
+      ...(denominator !== undefined ? { [denominatorMetricId]: denominator.value } : {})
+    }
+  };
+
+  if (input.financialFacts === undefined) {
+    return blockMetric(baseWithQuoteInputs, "financial_facts_not_found", []);
+  }
+
+  if (input.quoteSnapshot === undefined || quote === undefined || quote.close === undefined) {
+    return blockMetric(baseWithQuoteInputs, "quote_unavailable", []);
+  }
+
+  if (quote.sharesOutstanding === undefined) {
+    return blockMetric(baseWithQuoteInputs, "shares_outstanding_unavailable", []);
+  }
+
+  if (denominator === undefined) {
+    return blockMetric(baseWithQuoteInputs, "missing_input", []);
+  }
+
+  const anomalyFlags = quote.currency !== denominator.currency ? ["currency_mismatch"] : [];
+
+  if (denominator.qualityState !== "PASS") {
+    return blockMetric(baseWithQuoteInputs, "quality_hold", [
+      ...anomalyFlags,
+      `${denominator.metricId}_quality_${denominator.qualityState.toLowerCase()}`
+    ]);
+  }
+
+  if (denominator.value === 0) {
+    return blockMetric(baseWithQuoteInputs, "zero_denominator", anomalyFlags);
+  }
+
+  if (denominator.value < 0) {
+    return blockMetric(baseWithQuoteInputs, "negative_denominator", anomalyFlags);
+  }
+
+  const marketCap = roundMetric(quote.close * quote.sharesOutstanding);
+
+  return {
+    ...baseWithQuoteInputs,
+    anomaly_flags: anomalyFlags,
+    inputs: {
+      ...baseWithQuoteInputs.inputs,
+      market_cap: marketCap
+    },
+    status: "computed",
+    value: roundMetric(marketCap / denominator.value)
+  };
+}
+
+function createLiveMetricBase(
+  definition: StockWorkbenchDerivedMetricDefinition,
+  facts: Array<LiveFinancialFactRow | undefined>,
+  extraSourceRecordIds: Array<string | undefined> = []
+): Omit<StockWorkbenchDerivedMetricValue, "anomaly_flags" | "status"> {
+  const knownFacts = facts.filter((fact): fact is LiveFinancialFactRow => fact !== undefined);
+  const sourceRecordIds = Array.from(
+    new Set([
+      ...knownFacts.map((fact) => fact.sourceRecordId),
+      ...extraSourceRecordIds.filter((id): id is string => id !== undefined)
+    ])
+  ).sort();
+
+  return {
+    category: definition.category,
+    formula_version: definition.formula_version,
+    inputs: {},
+    metric_id: definition.metric_id,
+    period_end: knownFacts[0]?.periodEnd,
+    source_record_ids: sourceRecordIds,
+    unit: definition.unit
+  };
 }

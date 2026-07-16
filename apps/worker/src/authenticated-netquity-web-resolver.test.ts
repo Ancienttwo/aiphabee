@@ -1,9 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResponseEnvelope } from "@aiphabee/data-contracts";
 
 const pgState = vi.hoisted(() => ({
   accountRows: [{ account_id: "account_test" }] as Record<string, unknown>[],
   candidateRows: [] as Record<string, unknown>[],
+  // Keyed overrides for the two-gate derived-metrics resolver, which issues
+  // two rights queries and two snapshot/record query pairs (one per
+  // dataset) in a single call -- the generic FROM-clause dispatch below
+  // can't tell those apart by itself. Only ever set by the "derived metrics
+  // resolver" describe block (placed last in this file); every other
+  // describe block leaves these empty, so the dispatcher falls through to
+  // the original single-bucket fields below unchanged.
+  candidateRowsBySnapshotId: {} as Record<string, Record<string, unknown>[]>,
   connectCount: 0,
   constructorCount: 0,
   contextRows: [] as Record<string, unknown>[],
@@ -12,7 +20,9 @@ const pgState = vi.hoisted(() => ({
   failOn: "",
   queries: [] as Array<{ text: string; values: unknown[] }>,
   rightsRows: [] as Record<string, unknown>[],
+  rightsRowsByDataset: {} as Record<string, Record<string, unknown>[]>,
   snapshotRows: [] as Record<string, unknown>[],
+  snapshotRowsByDataset: {} as Record<string, Record<string, unknown>[]>,
 }));
 
 vi.mock("pg", () => ({
@@ -43,16 +53,29 @@ vi.mock("pg", () => ({
         return { rows: pgState.contextRows };
       }
       if (normalized.includes("from aiphabee_governance.workspace_entitlement")) {
+        const dataset = /data_entitlement\.dataset = '([a-z_]+)'/u.exec(normalized)?.[1];
+        if (dataset && pgState.rightsRowsByDataset[dataset] !== undefined) {
+          return { rows: pgState.rightsRowsByDataset[dataset] };
+        }
         return { rows: pgState.rightsRows };
       }
       if (normalized.includes("from aiphabee_core.serving_dataset dataset")) {
+        const dataset = /dataset\.dataset = '([a-z_]+)'/u.exec(normalized)?.[1];
+        const rows =
+          dataset && pgState.snapshotRowsByDataset[dataset] !== undefined
+            ? pgState.snapshotRowsByDataset[dataset]
+            : pgState.snapshotRows;
         return {
-          rows: pgState.snapshotRows.filter(
+          rows: rows.filter(
             (row) => row.rights_policy_version === values[0] && row.quality_state === "PASS",
           ),
         };
       }
       if (normalized.includes("from aiphabee_core.serving_record record")) {
+        const snapshotId = values[0];
+        if (typeof snapshotId === "string" && pgState.candidateRowsBySnapshotId[snapshotId] !== undefined) {
+          return { rows: pgState.candidateRowsBySnapshotId[snapshotId] };
+        }
         return { rows: pgState.candidateRows };
       }
       return { rows: [] };
@@ -71,6 +94,7 @@ const {
   AUTHENTICATED_NETQUITY_REQUIRED_FIELDS,
   AUTHENTICATED_NETQUITY_SDI_DISCLOSURE_REQUIRED_FIELDS,
   resolveAuthenticatedNetquityCorporateActions,
+  resolveAuthenticatedNetquityDerivedMetrics,
   resolveAuthenticatedNetquityDirectorate,
   resolveAuthenticatedNetquityFinancialFacts,
   resolveAuthenticatedNetquityOwnership,
@@ -2031,6 +2055,340 @@ describe("private authenticated Netquity related-warrants resolver", () => {
     expect(pgState.endCount).toBe(1);
   });
 });
+
+// Two-gate conjunction: financial_facts and quote_snapshot are each gated
+// exactly as their own single-dataset resolvers gate them (see
+// resolveAuthenticatedNetquityDerivedMetrics's own comment) -- neither gate
+// is relaxed, and there is no separate "derived metrics" entitlement row.
+// This describe block is deliberately placed last in the file: it is the
+// only one that sets the *ByDataset/*BySnapshotId keyed pgState overrides
+// (see the mock's own comment above), so every earlier describe block keeps
+// running against the original single-bucket fields, completely unaffected.
+describe("private authenticated Netquity derived metrics resolver", () => {
+  beforeEach(() => {
+    pgState.accountRows = [{ account_id: "account_test" }];
+    pgState.candidateRows = [];
+    pgState.candidateRowsBySnapshotId = {
+      "serving-netquity-basicdata-test-v1": [createFinancialFactsRecordRow()],
+      "serving-netquity-quote-snapshot-test-v1": [createQuoteSnapshotRecordRow()],
+    };
+    pgState.connectCount = 0;
+    pgState.constructorCount = 0;
+    pgState.contextRows = [createContextRow()];
+    pgState.endCount = 0;
+    pgState.endFails = false;
+    pgState.failOn = "";
+    pgState.queries = [];
+    pgState.rightsRows = [];
+    pgState.rightsRowsByDataset = {
+      financial_facts: AUTHENTICATED_NETQUITY_FINANCIAL_FACTS_REQUIRED_FIELDS.map(createFinancialFactsRightsRow),
+      quote_snapshot: AUTHENTICATED_NETQUITY_QUOTE_SNAPSHOT_REQUIRED_FIELDS.map(createQuoteSnapshotRightsRow),
+    };
+    pgState.snapshotRows = [];
+    pgState.snapshotRowsByDataset = {
+      financial_facts: [createSnapshotRow()],
+      quote_snapshot: [createQuoteSnapshotSnapshotRow()],
+    };
+  });
+
+  afterEach(() => {
+    pgState.candidateRowsBySnapshotId = {};
+    pgState.rightsRowsByDataset = {};
+    pgState.snapshotRowsByDataset = {};
+  });
+
+  it.each([
+    ["invalid subject", { authSubject: "email@example.com", instrumentId: "hkex_security_00700" }],
+    ["malformed instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "eq_hk_00700" }],
+    ["empty instrument id", { authSubject: AUTH_SUBJECT, instrumentId: "" }],
+  ])("rejects %s before creating a database client", async (_label, input) => {
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, {
+      requestId: "request_test",
+      ...input,
+    });
+
+    expect(result.envelope.ok).toBe(false);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("stays unavailable outside staging before binding access", async () => {
+    let bindingReads = 0;
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(
+      {
+        APP_ENV: "prod",
+        get AIPHABEE_HYPERDRIVE(): { connectionString?: string } | undefined {
+          bindingReads += 1;
+          throw new Error("production binding must not be read");
+        },
+      },
+      derivedMetricsValidInput(),
+    );
+
+    expect(result.status).toBe(403);
+    expect(bindingReads).toBe(0);
+  });
+
+  it("returns unavailable for a missing private database binding", async () => {
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(
+      { APP_ENV: "staging" },
+      derivedMetricsValidInput(),
+    );
+
+    expect(result.status).toBe(424);
+    expect(pgState.constructorCount).toBe(0);
+  });
+
+  it("denies an unmapped account before membership or Serving reads", async () => {
+    pgState.accountRows = [{ account_id: null }];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it.each(["no membership", "inactive membership", "expired subscription"])(
+    "denies %s before rights or Serving reads",
+    async () => {
+      pgState.contextRows = [];
+      const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+      expect(result.status).toBe(403);
+      expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+      expect(hasServingRead()).toBe(false);
+    },
+  );
+
+  it("fails closed when more than one entitled workspace is active", async () => {
+    pgState.contextRows = [createContextRow(), { ...createContextRow(), workspace_id: "workspace_2" }];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(409);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("denies the whole request when only financial_facts rights are granted (Gate B fails)", async () => {
+    pgState.rightsRowsByDataset.quote_snapshot = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    if (!result.envelope.ok) {
+      expect(result.envelope.error.message).toContain("quote snapshot");
+    }
+    expect(hasServingRead()).toBe(false);
+    const rightsQueries = pgState.queries.filter((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQueries).toHaveLength(2);
+  });
+
+  it("denies the whole request when only quote_snapshot rights are granted (Gate A fails first)", async () => {
+    pgState.rightsRowsByDataset.financial_facts = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    if (!result.envelope.ok) {
+      expect(result.envelope.error.message).toContain("financial facts");
+    }
+    expect(hasServingRead()).toBe(false);
+    // Gate A fails before Gate B is even queried.
+    const rightsQueries = pgState.queries.filter((query) =>
+      query.text.toLowerCase().includes("from aiphabee_governance.workspace_entitlement"),
+    );
+    expect(rightsQueries).toHaveLength(1);
+  });
+
+  it("denies the whole request when neither dataset has field rights", async () => {
+    pgState.rightsRowsByDataset = { financial_facts: [], quote_snapshot: [] };
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(403);
+    expect(errorCode(result)).toBe("DATA_NOT_LICENSED");
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("resolves both datasets and computes metrics when both gates are granted", async () => {
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.live_data_access).toBe(true);
+      // The reused createFinancialFactsRecordRow() fixture only carries
+      // revenue/net_income (no assets/equity), so this is "partial", not
+      // fully "computed": exactly the metrics needing only revenue/net_income
+      // resolve, the rest block on missing_input rather than a fabricated
+      // value.
+      expect(result.envelope.data.status).toBe("partial");
+      // createFinancialFactsRecordRow() carries 2 facts (revenue,
+      // net_income) -> 2 financial provenance entries (one per fact) plus 1
+      // quote provenance entry.
+      expect(
+        result.envelope.data.provenance.filter((p) => p.source === "netquity-finreport-nb"),
+      ).toHaveLength(2);
+      expect(
+        result.envelope.data.provenance.filter((p) => p.source === "netquity-unadjprice2-daily"),
+      ).toHaveLength(1);
+      const byId = new Map(result.envelope.data.metrics.map((m) => [m.metric_id, m]));
+      expect(byId.get("net_margin")).toMatchObject({ status: "computed" });
+      expect(byId.get("price_to_sales")).toMatchObject({ status: "computed" });
+      const priceToEarnings = byId.get("price_to_earnings");
+      expect(priceToEarnings?.status).toBe("computed");
+      expect(priceToEarnings?.value).toBeCloseTo((461.2 * 9092370719) / 224842000000, 6);
+      expect(byId.get("return_on_assets")).toMatchObject({ blocked_reason: "missing_input", status: "blocked" });
+      expect(byId.get("return_on_equity")).toMatchObject({ blocked_reason: "missing_input", status: "blocked" });
+      expect(byId.get("price_to_book")).toMatchObject({ blocked_reason: "missing_input", status: "blocked" });
+    }
+  });
+
+  it("passes undefined for financial_facts to the engine on a 404 (never a synthetic fallback), while quote_snapshot still contributes", async () => {
+    pgState.candidateRowsBySnapshotId["serving-netquity-basicdata-test-v1"] = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.financial_facts_as_of).toBeUndefined();
+      expect(result.envelope.data.quote_as_of).toBeDefined();
+      for (const metric of result.envelope.data.metrics) {
+        expect(metric.status).toBe("blocked");
+        expect(metric.blocked_reason).toBe("financial_facts_not_found");
+      }
+    }
+  });
+
+  it("passes undefined for quote_snapshot to the engine on a 404, while financial_facts still contributes and profitability still computes", async () => {
+    // Full 4-metric fact set (unlike the default createFinancialFactsRecordRow()
+    // fixture's revenue/net_income only) so every profitability metric can
+    // resolve here -- this test isolates "quote absent" from "financial fact
+    // absent" instead of conflating the two.
+    pgState.candidateRowsBySnapshotId["serving-netquity-basicdata-test-v1"] = [
+      createFinancialFactsRecordRow({
+        payload: {
+          coverage: { status: "available" },
+          facts: [
+            { currency: "RMB", metricId: "revenue", periodEnd: "2025-12-31", periodType: "FY", publishedAt: "2026-03-18T00:00:00+08:00", qualityState: "PASS", scale: 1, sourceRecordId: "netquity:finreport.pla_nb.totalturnover:00700:2025-12-31:F", statementId: "netquity:finreport.stmt:00700:2025-12-31:F", statementType: "income_statement", unit: "unit", value: 751766000000 },
+            { currency: "RMB", metricId: "net_income", periodEnd: "2025-12-31", periodType: "FY", publishedAt: "2026-03-18T00:00:00+08:00", qualityState: "PASS", scale: 1, sourceRecordId: "netquity:finreport.pla_nb.net_prof:00700:2025-12-31:F", statementId: "netquity:finreport.stmt:00700:2025-12-31:F", statementType: "income_statement", unit: "unit", value: 224842000000 },
+            { currency: "RMB", metricId: "assets", periodEnd: "2025-12-31", periodType: "FY", publishedAt: "2026-03-18T00:00:00+08:00", qualityState: "PASS", scale: 1, sourceRecordId: "netquity:finreport.pla_nb.total_assets:00700:2025-12-31:F", statementId: "netquity:finreport.stmt:00700:2025-12-31:F", statementType: "balance_sheet", unit: "unit", value: 3064000000000 },
+            { currency: "RMB", metricId: "equity", periodEnd: "2025-12-31", periodType: "FY", publishedAt: "2026-03-18T00:00:00+08:00", qualityState: "PASS", scale: 1, sourceRecordId: "netquity:finreport.pla_nb.total_equity:00700:2025-12-31:F", statementId: "netquity:finreport.stmt:00700:2025-12-31:F", statementType: "balance_sheet", unit: "unit", value: 1616000000000 },
+          ],
+        },
+      }),
+    ];
+    pgState.candidateRowsBySnapshotId["serving-netquity-quote-snapshot-test-v1"] = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.status).toBe("partial");
+      expect(result.envelope.data.quote_as_of).toBeUndefined();
+      const profitability = result.envelope.data.metrics.filter((m) => m.category === "profitability");
+      const valuation = result.envelope.data.metrics.filter((m) => m.category === "valuation");
+      for (const metric of profitability) expect(metric.status).toBe("computed");
+      for (const metric of valuation) {
+        expect(metric.status).toBe("blocked");
+        expect(metric.blocked_reason).toBe("quote_unavailable");
+      }
+    }
+  });
+
+  it("surfaces the shares_outstanding_unavailable blocked_reason end-to-end when the quote has a close price but no share count", async () => {
+    pgState.candidateRowsBySnapshotId["serving-netquity-quote-snapshot-test-v1"] = [
+      createQuoteSnapshotRecordRow({
+        payload: {
+          coverage: { status: "available" },
+          quote: {
+            close: 461.2,
+            currency: "HKD",
+            tradeDate: "2026-07-07",
+          },
+        },
+      }),
+    ];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      const priceToEarnings = result.envelope.data.metrics.find((m) => m.metric_id === "price_to_earnings");
+      expect(priceToEarnings).toMatchObject({
+        blocked_reason: "shares_outstanding_unavailable",
+        status: "blocked",
+      });
+    }
+  });
+
+  it("propagates 409 DATA_QUALITY_HOLD when the financial_facts Serving snapshot has no released row, without ever reading quote_snapshot", async () => {
+    pgState.snapshotRowsByDataset.financial_facts = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+    const snapshotQueries = pgState.queries.filter((query) =>
+      query.text.toLowerCase().includes("from aiphabee_core.serving_dataset dataset"),
+    );
+    expect(snapshotQueries).toHaveLength(1);
+  });
+
+  it("propagates 409 DATA_QUALITY_HOLD when the quote_snapshot Serving snapshot has no released row", async () => {
+    pgState.snapshotRowsByDataset.quote_snapshot = [];
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(409);
+    expect(errorCode(result)).toBe("DATA_QUALITY_HOLD");
+  });
+
+  it("never fabricates a market cap or financial fact when both live datasets have no released row at all", async () => {
+    pgState.candidateRowsBySnapshotId = {
+      "serving-netquity-basicdata-test-v1": [],
+      "serving-netquity-quote-snapshot-test-v1": [],
+    };
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(200);
+    expect(result.envelope.ok).toBe(true);
+    if (result.envelope.ok) {
+      expect(result.envelope.data.status).toBe("blocked");
+      expect(result.envelope.data.data_version).toBe("");
+      expect(result.envelope.data.provenance).toEqual([]);
+      for (const metric of result.envelope.data.metrics) {
+        expect(metric.value).toBeUndefined();
+        expect(metric.blocked_reason).toBe("financial_facts_not_found");
+      }
+    }
+  });
+
+  it("returns an explicit failure and closes the client on database error", async () => {
+    pgState.failOn = "from aiphabee_governance.workspace_entitlement";
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+    expect(hasServingRead()).toBe(false);
+  });
+
+  it("does not return an authorized result when the database client cannot close", async () => {
+    pgState.endFails = true;
+
+    const result = await resolveAuthenticatedNetquityDerivedMetrics(bindings, derivedMetricsValidInput());
+
+    expect(result.status).toBe(500);
+    expect(errorCode(result)).toBe("INTERNAL_ERROR");
+    expect(pgState.endCount).toBe(1);
+  });
+});
+
+function derivedMetricsValidInput(instrumentId = "hkex_security_00700") {
+  return {
+    authSubject: AUTH_SUBJECT,
+    instrumentId,
+    requestId: "request_test",
+  };
+}
 
 function financialFactsValidInput(instrumentId = "hkex_security_00700") {
   return {

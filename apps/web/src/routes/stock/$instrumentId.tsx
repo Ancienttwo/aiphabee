@@ -163,7 +163,7 @@ function StockWorkbench() {
               {tab === "quote" ? <QuotePanel instrumentId={instrumentId} /> : null}
               {tab === "financials" ? <FinancialsPanel instrumentId={instrumentId} /> : null}
               {tab === "price" ? <PricePanel section={snap.price_history} /> : null}
-              {tab === "derived" ? <DerivedPanel section={snap.derived_metrics} /> : null}
+              {tab === "derived" ? <DerivedPanel instrumentId={instrumentId} /> : null}
               {tab === "announcements" ? <AnnouncementsPanel section={snap.announcement_search} /> : null}
               {tab === "actions" ? <CorporateActionsPanel instrumentId={instrumentId} /> : null}
               {tab === "sdi" ? <SdiDisclosurePanel instrumentId={instrumentId} /> : null}

@@ -2,6 +2,7 @@ import { apiCall } from "./client";
 import { resolveAuthenticatedSecurity, resolveAuthenticatedSecurityProfile } from "./security.functions";
 import { resolveAuthenticatedFinancialFacts } from "./financial-facts.functions";
 import { resolveAuthenticatedQuoteSnapshot } from "./quote-snapshot.functions";
+import { resolveAuthenticatedDerivedMetrics } from "./derived-metrics.functions";
 import { resolveAuthenticatedCorporateActions } from "./corporate-actions.functions";
 import { resolveAuthenticatedSdiDisclosure } from "./sdi-disclosure.functions";
 import { resolveAuthenticatedDirectorate } from "./directorate.functions";
@@ -45,6 +46,11 @@ export function resolveFinancialFacts(instrumentId: string) {
 /** Gated live EOD quote snapshot for a known instrument id (POST server-fn). */
 export function resolveQuoteSnapshot(instrumentId: string) {
   return resolveAuthenticatedQuoteSnapshot({ data: { instrumentId } });
+}
+
+/** Gated live derived metrics (profitability + valuation, conjoined financial_facts + quote_snapshot gates) for a known instrument id (POST server-fn). */
+export function resolveDerivedMetrics(instrumentId: string) {
+  return resolveAuthenticatedDerivedMetrics({ data: { instrumentId } });
 }
 
 /** Gated live corporate actions (dividend/buyback/split/consolidation) for a known instrument id (POST server-fn). */
