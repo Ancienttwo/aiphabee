@@ -275,17 +275,23 @@ function validateDeploymentArtifact(root = process.cwd()) {
     (binding) => binding.binding === "AIPHABEE_AUTH_HYPERDRIVE",
   );
   expectEqual(errors, authHyperdrive?.id, stagingHyperdriveId, "deployment artifact Hyperdrive");
-  expectExactArray(
-    errors,
-    [...(artifact.secrets?.required ?? [])].sort(),
-    [
-      "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
-      "BETTER_AUTH_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-    ],
-    "deployment artifact required secrets",
-  );
+  // GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are intentionally not asserted as
+  // required here: wrangler's `secrets.required` is a hard `wrangler deploy`
+  // gate with no skip flag, and Google OAuth is runtime-optional (see the
+  // comment on env.staging.secrets in apps/web/wrangler.jsonc). Assert only
+  // the base secrets that must always be present, and guard against the
+  // retired GitHub OAuth provider's secrets regressing back into the gate.
+  const requiredSecrets = artifact.secrets?.required ?? [];
+  for (const name of ["AIPHABEE_AUTH_INVITED_EMAIL_SHA256", "BETTER_AUTH_SECRET"]) {
+    if (!requiredSecrets.includes(name)) {
+      errors.push(`deployment artifact required secrets must include ${name}`);
+    }
+  }
+  for (const name of ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"]) {
+    if (requiredSecrets.includes(name)) {
+      errors.push(`deployment artifact required secrets must not include retired ${name}`);
+    }
+  }
   return errors;
 }
 

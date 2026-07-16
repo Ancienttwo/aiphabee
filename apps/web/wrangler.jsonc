@@ -17,12 +17,21 @@
         "APP_ENV": "staging",
         "BETTER_AUTH_URL": "https://aiphabee-web-staging.metalabs.workers.dev"
       },
+      // GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are intentionally NOT listed as
+      // required below. `wrangler deploy` hard-blocks (no skip flag) when a
+      // required secret is missing remotely, but the runtime treats Google
+      // OAuth as optional: apps/web/src/lib/auth.server.ts throws
+      // AUTH_OAUTH_CONFIG_MISSING only when the login route is hit, which
+      // apps/web/src/routes/api/auth/$.ts maps to a 503 -- anonymous/public
+      // data access does not depend on them. Once real credentials are
+      // onboarded, the runtime reads them straight from the env binding; no
+      // change here is needed. Registration surface (for `wrangler secret
+      // put`) stays in deploy/env/env.schema.json and
+      // deploy/secrets/stores.contract.json.
       "secrets": {
         "required": [
           "AIPHABEE_AUTH_INVITED_EMAIL_SHA256",
-          "BETTER_AUTH_SECRET",
-          "GOOGLE_CLIENT_ID",
-          "GOOGLE_CLIENT_SECRET"
+          "BETTER_AUTH_SECRET"
         ]
       },
       "hyperdrive": [
