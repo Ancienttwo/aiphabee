@@ -15,7 +15,6 @@ function NqSearchView({ go, openStock }) {
     <main style={{ ...NQ_SHELL, padding: '40px 24px 72px', maxWidth: 880 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: 'var(--tracking-tight)' }}>证券搜索</h1>
-        <NqBadge tone="bullish" variant="soft" size="sm" dot dotShape="hex">已授权 · security_master</NqBadge>
       </div>
       <p style={{ margin: '8px 0 20px', fontSize: 'var(--text-base)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
         以代码、中文名或英文名解析港股证券（含退市证券表），随后进入 AI 阅读版或终端模式。
@@ -84,7 +83,7 @@ function NqSearchView({ go, openStock }) {
 
       <div style={{ marginTop: 28 }}>
         <NqRationale>
-          <strong>(a) 搜索与消歧。</strong>唯一「今天就真实可用」的切片，因此不设任何锁态——绿色 hex 点徽章明确宣告已授权范围（security_master），与其余锁定域形成诚实对照。退市证券不是错误态：灰化行 + 「已退市」徽章 + 退市日期与原因，仍可进入有限档案视图，满足数据集内 delisted 表的呈现要求。消歧列表配 AI 阅读解释匹配规则（代码 > 中文简称 > 英文名），把 terminal 式的原始候选表变成可理解的解释，但候选行本身仍保留人工点选。
+          <strong>(a) 搜索与消歧。</strong>唯一「今天就真实可用」的切片，因此不设任何锁态，与其余锁定域形成诚实对照。退市证券不是错误态：灰化行 + 「已退市」徽章 + 退市日期与原因，仍可进入有限档案视图，满足数据集内 delisted 表的呈现要求。消歧列表配 AI 阅读解释匹配规则（代码 > 中文简称 > 英文名），把 terminal 式的原始候选表变成可理解的解释，但候选行本身仍保留人工点选。
         </NqRationale>
       </div>
     </main>

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Badge, Button, Card, Icon, MascotState } from "../../ds";
+import { Button, Card, Icon, MascotState } from "../../ds";
 import { AmbiguityResolver } from "../../components/evidence";
 import {
   presentError,
@@ -72,12 +72,9 @@ function StockSearch() {
         >
           证券搜索
         </h1>
-        <Badge tone="bullish" variant="soft" size="sm" dot dotShape="hex">
-          已授权 · security_master
-        </Badge>
       </div>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        以代码、中文名或英文名解析证券（security_master），解析后进入个股工作台。
+        以代码、中文名或英文名解析证券，解析后进入个股工作台。
       </p>
 
       <form

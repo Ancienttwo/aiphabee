@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "../../ds";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "../../ds";
 import { KV } from "../../components/KV";
 import { Disclaimer } from "../../components/Disclaimer";
 import { useSession } from "../../lib/context/SessionContext";
@@ -65,7 +65,7 @@ function Account() {
         账户
       </h1>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        staging 使用 GitHub OAuth 建立真实会话。工作区、套餐和数据权限不会从会话或邮箱推断。
+        登录建立真实会话，用于自选、设置等账户功能；工作区、套餐和数据权限不会从会话或邮箱推断。
       </p>
 
       <Card style={{ maxWidth: 560 }}>
@@ -80,10 +80,7 @@ function Account() {
               <KV label="名称" value={session.name ?? "—"} />
               <KV label="邮箱" value={session.email ?? "—"} mono />
               <KV label="用户 ID" value={session.userId ?? "—"} mono />
-              <KV
-                label="认证状态"
-                value={<Badge tone="bullish" variant="soft" size="sm">Better Auth 已认证</Badge>}
-              />
+              <KV label="认证状态" value="已登录" />
               <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
                 <Button type="button" variant="outline" onClick={signOut} disabled={action !== "idle"}>
                   退出当前会话

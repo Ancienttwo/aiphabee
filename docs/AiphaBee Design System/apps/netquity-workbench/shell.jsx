@@ -233,7 +233,7 @@ function NqNav({ view, go }) {
           {link('specimens', '状态规范')}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-default)', background: 'var(--surface-card)', fontSize: 'var(--text-xs)', fontWeight: 700, color: plan === 'free' ? 'var(--text-muted)' : 'var(--accent-strong)' }}>
             <NqIcon name={plan === 'free' ? 'lock' : 'unlock'} size={13} />
-            {plan === 'free' ? 'Free（仅搜索已授权）' : plan === 'premium' ? 'Premium' : 'Enterprise'}
+            {plan === 'free' ? 'Free' : plan === 'premium' ? 'Premium' : 'Enterprise'}
           </span>
         </div>
       </div>
