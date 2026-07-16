@@ -754,8 +754,36 @@ export function resolveSecurity(input: ResolveSecurityInput): ResolveSecurityRes
   };
 }
 
+// HKEX instrument codes are numeric, at most 5 digits (the staging
+// promotion's own `code < 0 OR code > 99999` invariant), and the Serving
+// Store's exact-alias promotion pre-computes the bare, 4-digit, and 5-digit
+// zero-padded forms of the code itself -- but only the *5-digit* form of the
+// ".HK"-suffixed and "HK:"-prefixed symbol aliases (see
+// deploy/ingest/netquity-security-resolution-staging.sql's alias_set CTE).
+// A query that pairs a shorter code with either decoration (e.g. "700.HK",
+// matching the market's own minimum-4-digit main-board display convention
+// "0700.HK") would otherwise miss every promoted alias even though the bare
+// "700"/"0700" forms exist. Canonicalizing the digit run to 5 digits here --
+// before the exact-match lookup -- keeps this a pure input normalization: no
+// alias re-promotion, no numeric special-casing upstream in the worker or
+// web validator.
+const HK_CODE_WITH_SUFFIX_PATTERN = /^(\d{1,5})\.hk$/u;
+const HK_CODE_WITH_PREFIX_PATTERN = /^hk:(\d{1,5})$/u;
+
 export function normalizeExactSecurityLookup(value: string): string {
-  return value.trim().toLocaleLowerCase("en-US").replace(/\s+/gu, " ");
+  const collapsed = value.trim().toLocaleLowerCase("en-US").replace(/\s+/gu, " ");
+
+  const suffixMatch = HK_CODE_WITH_SUFFIX_PATTERN.exec(collapsed);
+  if (suffixMatch) {
+    return `${suffixMatch[1].padStart(5, "0")}.hk`;
+  }
+
+  const prefixMatch = HK_CODE_WITH_PREFIX_PATTERN.exec(collapsed);
+  if (prefixMatch) {
+    return `hk:${prefixMatch[1].padStart(5, "0")}`;
+  }
+
+  return collapsed;
 }
 
 export function resolveLiveSecurityRows(

@@ -19,6 +19,7 @@ import { Disclaimer } from "../../components/Disclaimer";
 import { getStockSnapshot, presentError, resolveSecurityProfile } from "../../lib/api";
 import type { AiphaBeeErrorCode } from "../../lib/api";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
+import { formatHkSymbol } from "../../lib/format";
 
 export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
@@ -260,7 +261,7 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
     <div style={headerRowStyle}>
       <h1 style={titleStyle}>{profile.name.zhHant || profile.name.en}</h1>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>
-        {profile.symbol}
+        {formatHkSymbol(profile.symbol)}
       </span>
       <Badge
         tone={profile.listingStatus === "listed" ? "bullish" : profile.listingStatus === "suspended" ? "warning" : "bearish"}

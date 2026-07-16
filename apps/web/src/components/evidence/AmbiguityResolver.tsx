@@ -1,5 +1,6 @@
 import { Badge, Button, Hexvatar } from "../../ds";
 import type { ResolveSecurityCandidate } from "../../lib/api";
+import { formatHkSymbol } from "../../lib/format";
 
 /**
  * Ambiguity resolver (PRD SEC-03). When a security query matches more than one
@@ -60,7 +61,7 @@ export function AmbiguityResolver({
           const delisted = c.status === "delisted";
           const primaryName = c.name.zhHant || c.name.en;
           const secondaryName = primaryName !== c.name.en ? c.name.en : null;
-          const shortSymbol = c.symbol.split(".")[0];
+          const shortSymbol = formatHkSymbol(c.symbol).split(".")[0];
           return (
             <div
               key={c.instrumentId}
@@ -100,7 +101,7 @@ export function AmbiguityResolver({
                   minWidth: 92,
                 }}
               >
-                {c.symbol}
+                {formatHkSymbol(c.symbol)}
               </span>
               <span style={{ minWidth: 0, flex: 1 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

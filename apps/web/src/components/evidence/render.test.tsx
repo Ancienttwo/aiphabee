@@ -62,7 +62,11 @@ describe("evidence primitives render (SSR)", () => {
     const html = renderToStaticMarkup(
       <AmbiguityResolver query="腾讯" candidates={[CANDIDATE]} onSelect={() => {}} />,
     );
-    expect(html).toContain("00700.HK");
+    // Wire payload carries the 5-digit "00700.HK" symbol (see CANDIDATE
+    // above); the UI renders the market's minimum-4-digit main-board
+    // display convention, "0700.HK" (formatHkSymbol).
+    expect(html).toContain("0700.HK");
+    expect(html).not.toContain("00700.HK");
     expect(html).toContain("选择");
   });
 

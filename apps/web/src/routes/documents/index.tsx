@@ -11,6 +11,7 @@ import {
   type SearchAnnouncementsResult,
 } from "../../lib/api";
 import { SHELL } from "../../lib/ui";
+import { formatHkSymbol } from "../../lib/format";
 
 export const Route = createFileRoute("/documents/")({
   component: Documents,
@@ -158,7 +159,7 @@ function ResultCard({ a, active, onOpen }: { a: AnnouncementResultItem; active: 
         </div>
         <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: "var(--text-body)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.summary}</p>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-          <span style={{ fontFamily: "var(--font-mono)" }}>{a.symbol}</span>
+          <span style={{ fontFamily: "var(--font-mono)" }}>{formatHkSymbol(a.symbol)}</span>
           <span style={{ fontFamily: "var(--font-mono)" }}>{a.published_at}</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="file-text" size={11} /> P.{a.evidence_locator.page}</span>
         </div>

@@ -86,7 +86,11 @@ describe("workbench panels render (SSR)", () => {
   it("ProfilePanel renders company name and symbol", () => {
     const html = renderToStaticMarkup(<ProfilePanel section={PROFILE} />);
     expect(html).toContain("騰訊控股有限公司");
-    expect(html).toContain("00700.HK");
+    // Wire payload carries the 5-digit "00700.HK" symbol (see PROFILE
+    // above); the UI renders the market's minimum-4-digit main-board
+    // display convention, "0700.HK" (formatHkSymbol).
+    expect(html).toContain("0700.HK");
+    expect(html).not.toContain("00700.HK");
     expect(html).toContain("Communication Services");
   });
 

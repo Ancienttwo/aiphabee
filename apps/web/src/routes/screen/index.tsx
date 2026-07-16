@@ -5,6 +5,7 @@ import { CostConfirmGate } from "../../components/evidence";
 import { presentError, screenSecurities, type ScreenResult } from "../../lib/api";
 import { fmtNum } from "../../lib/num";
 import { SHELL } from "../../lib/ui";
+import { formatHkSymbol } from "../../lib/format";
 
 export const Route = createFileRoute("/screen/")({
   component: Screen,
@@ -117,7 +118,7 @@ function Screen() {
                   {result.execution_preview.hits.map((h) => (
                     <div key={h.rank} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--text-subtle)", width: 24 }}>#{h.rank}</span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", minWidth: 92 }}>{h.symbol ?? h.instrument_id}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", minWidth: 92 }}>{h.symbol ? formatHkSymbol(h.symbol) : h.instrument_id}</span>
                       <span style={{ flex: 1, fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>命中 {h.score} 项 · {h.why.join("、")}</span>
                     </div>
                   ))}
@@ -127,7 +128,7 @@ function Screen() {
               )}
               {result.execution_preview.rejected_count > 0 ? (
                 <p style={{ margin: "12px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-                  未命中 {result.execution_preview.rejected_count} 项，例如：{result.execution_preview.rejected_rows.slice(0, 3).map((r) => `${r.symbol ?? r.input}（${r.reasons[0]}）`).join("，")}
+                  未命中 {result.execution_preview.rejected_count} 项，例如：{result.execution_preview.rejected_rows.slice(0, 3).map((r) => `${r.symbol ? formatHkSymbol(r.symbol) : r.input}（${r.reasons[0]}）`).join("，")}
                 </p>
               ) : null}
               {result.requires_confirmation_before_live_execution ? (

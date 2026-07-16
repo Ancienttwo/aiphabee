@@ -203,9 +203,33 @@ describe("live security resolver", () => {
     ).toThrowError("row data version does not match the released snapshot");
   });
 
-  it("normalizes only casing and whitespace for exact matching", () => {
+  it("normalizes casing and whitespace for exact matching", () => {
     expect(normalizeExactSecurityLookup("  HK:00001  ")).toBe("hk:00001");
     expect(normalizeExactSecurityLookup("Alpha   Holdings")).toBe("alpha holdings");
+  });
+
+  it("canonicalizes a bare numeric code to itself (matches the promoted bare/4-digit/5-digit code aliases as-is)", () => {
+    expect(normalizeExactSecurityLookup("700")).toBe("700");
+    expect(normalizeExactSecurityLookup("0700")).toBe("0700");
+    expect(normalizeExactSecurityLookup("00700")).toBe("00700");
+  });
+
+  it("zero-pads a short code paired with the .HK suffix or HK: prefix to the promoted 5-digit alias form", () => {
+    expect(normalizeExactSecurityLookup("700.HK")).toBe("00700.hk");
+    expect(normalizeExactSecurityLookup("0700.hk")).toBe("00700.hk");
+    expect(normalizeExactSecurityLookup(" 700.HK ")).toBe("00700.hk");
+    expect(normalizeExactSecurityLookup("HK:700")).toBe("hk:00700");
+    expect(normalizeExactSecurityLookup("hk:0700")).toBe("hk:00700");
+  });
+
+  it("leaves an already-5-digit decorated code and non-code queries unchanged", () => {
+    expect(normalizeExactSecurityLookup("00700.HK")).toBe("00700.hk");
+    expect(normalizeExactSecurityLookup("HK:00700")).toBe("hk:00700");
+    expect(normalizeExactSecurityLookup("14662")).toBe("14662");
+    expect(normalizeExactSecurityLookup("14662.HK")).toBe("14662.hk");
+    expect(normalizeExactSecurityLookup("Tencent Holdings Limited")).toBe(
+      "tencent holdings limited"
+    );
   });
 });
 

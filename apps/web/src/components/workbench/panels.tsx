@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge, type BadgeTone, Card, Icon } from "../../ds";
 import { KV } from "../KV";
 import { Metric } from "../Metric";
+import { formatHkCode, formatHkSymbol } from "../../lib/format";
 import {
   presentError,
   resolveCorporateActions,
@@ -133,7 +134,7 @@ export function ProfilePanel({ section }: { section: SecurityProfileSection }) {
           {p.listingStatus === "listed" ? "上市" : p.listingStatus === "suspended" ? "停牌" : "退市"}
         </Badge>
       </div>
-      <KV label="代码" value={p.symbol} mono />
+      <KV label="代码" value={formatHkSymbol(p.symbol)} mono />
       <KV label="交易所 / 市场" value={`${p.exchange} · ${p.market}`} />
       <KV label="货币" value={p.currency} mono />
       <KV label="行业" value={`${p.industry.sector} / ${p.industry.industry}`} />
@@ -1057,7 +1058,7 @@ function RelatedWarrantRow({ warrant }: { warrant: LiveRelatedWarrant }) {
       style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" }}
     >
       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
-        {warrant.instrumentId.replace("hkex_security_", "")}
+        {formatHkCode(warrant.instrumentId.replace("hkex_security_", ""))}
       </span>
       <span style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)", minWidth: 0, flex: 1 }}>
         {warrant.name.zhHant || warrant.name.en}

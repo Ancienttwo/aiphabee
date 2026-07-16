@@ -4,6 +4,7 @@ import { Badge, Button, Card, Icon } from "../../ds";
 import { compareSecurities, presentError, type CompareResult, type CompareRow } from "../../lib/api";
 import { fmtNum } from "../../lib/num";
 import { SHELL } from "../../lib/ui";
+import { formatHkSymbol } from "../../lib/format";
 
 export const Route = createFileRoute("/compare/")({
   component: Compare,
@@ -17,7 +18,7 @@ const METRICS = [
 ] as const;
 
 function rowName(r: CompareRow): string {
-  return r.symbol ?? r.input;
+  return r.symbol ? formatHkSymbol(r.symbol) : r.input;
 }
 
 function Compare() {
@@ -109,7 +110,7 @@ function Compare() {
                     <td style={td()}>
                       <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>{rowName(r)}</span>
                       {r.status === "blocked_resolution" && r.candidates?.length ? (
-                        <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>歧义：{r.candidates.slice(0, 3).map((c) => c.symbol).join(" / ")}</div>
+                        <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>歧义：{r.candidates.slice(0, 3).map((c) => formatHkSymbol(c.symbol)).join(" / ")}</div>
                       ) : null}
                     </td>
                     {METRICS.map((m) => (
