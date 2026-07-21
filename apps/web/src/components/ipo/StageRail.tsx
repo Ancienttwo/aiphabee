@@ -3,6 +3,7 @@ import { IPOS, STAGES } from "../../data/ipos.fixtures";
 import type { IpoStage } from "../../lib/api/ipo-types";
 import { Eyebrow } from "./Eyebrow";
 import { Mono } from "./Mono";
+import { IPO_STAGE_MESSAGE, useIpoLocale } from "./i18n";
 
 export type StageFilter = IpoStage | "all";
 
@@ -21,6 +22,7 @@ export interface StageRailProps {
 
 /** IPO lifecycle lanes with per-stage counts (the pipeline kanban header). */
 export function StageRail({ active, setActive }: StageRailProps) {
+  const { t } = useIpoLocale();
   return (
     <div
       style={{
@@ -46,7 +48,7 @@ export function StageRail({ active, setActive }: StageRailProps) {
         }}
       >
         <Eyebrow style={{ color: active === "all" ? "var(--honey-700)" : undefined }}>
-          All Pipeline
+          {t("allPipeline")}
         </Eyebrow>
         <div style={{ marginTop: 8, display: "flex", alignItems: "baseline", gap: 6 }}>
           <Mono
@@ -62,7 +64,7 @@ export function StageRail({ active, setActive }: StageRailProps) {
               color: "var(--text-subtle)",
             }}
           >
-            个标的
+            {t("ipoItems")}
           </span>
         </div>
       </button>
@@ -89,7 +91,7 @@ export function StageRail({ active, setActive }: StageRailProps) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Icon name={s.icon as IconName} size={15} color={TONE_COLOR[s.tone]} />
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
-                {s.label}
+                {t(IPO_STAGE_MESSAGE[s.key as IpoStage])}
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>

@@ -9,15 +9,31 @@ export interface UseAgentStream {
   runId: string | null;
 }
 
+export function agentStreamExecutionKey({
+  executionId,
+  prompt,
+}: {
+  executionId: string;
+  locale: string;
+  prompt: string | undefined;
+}): string | null {
+  return prompt ? JSON.stringify([executionId, prompt]) : null;
+}
+
 /**
  * Drives `/agent/runs/stream` for a prompt. Client-only (runs inside an
  * effect), so it never executes during SSR. Re-runs whenever the prompt
  * changes; aborts the in-flight request on unmount or prompt change.
  */
-export function useAgentStream(prompt: string | undefined, locale: string): UseAgentStream {
+export function useAgentStream(
+  prompt: string | undefined,
+  locale: string,
+  executionId: string,
+): UseAgentStream {
   const [events, setEvents] = useState<AgentProgressStreamEvent[]>([]);
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [runId, setRunId] = useState<string | null>(null);
+  const executionKey = agentStreamExecutionKey({ executionId, locale, prompt });
 
   useEffect(() => {
     if (!prompt) {
@@ -54,7 +70,9 @@ export function useAgentStream(prompt: string | undefined, locale: string): UseA
       active = false;
       controller.abort();
     };
-  }, [locale, prompt]);
+    // Locale is intentionally excluded: changing presentation language must
+    // not abort and re-execute an Agent run with a new backend identity.
+  }, [executionKey]);
 
   return { events, status, runId };
 }

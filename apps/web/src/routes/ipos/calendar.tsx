@@ -5,31 +5,31 @@ import { getIpoCalendarMock } from "../../lib/api/ipo-mock";
 import type { IpoCalendarEvent } from "../../lib/api/ipo-types";
 import { Eyebrow, Mono } from "../../components/ipo";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
+import { useIpoLocale, type IpoMessageKey } from "../../components/ipo/i18n";
 
 export const Route = createFileRoute("/ipos/calendar")({
   component: CalendarView,
 });
 
 interface EventCfg {
-  label: string;
-  en: string;
+  label: IpoMessageKey;
   icon: IconName;
   tone: string;
 }
 
 /** Milestone type → label / icon / tone. Covers every `timetable.type` value. */
 const EVENT_CFG: Record<string, EventCfg> = {
-  open: { label: "公开发售开始", en: "Offer Opens", icon: "play", tone: "honey" },
-  close: { label: "公开发售截止", en: "Offer Closes", icon: "flag", tone: "honey" },
-  price: { label: "定价", en: "Pricing", icon: "tag", tone: "info" },
-  allot: { label: "公布分配", en: "Allotment", icon: "check-check", tone: "bullish" },
-  grey: { label: "暗盘交易", en: "Grey Market", icon: "activity", tone: "info" },
-  list: { label: "上市", en: "Listing", icon: "rocket", tone: "bullish" },
-  file: { label: "递交申请", en: "Filing", icon: "file-text", tone: "neutral" },
-  hearing: { label: "通过聆讯", en: "Hearing", icon: "gavel", tone: "neutral" },
-  roadshow: { label: "路演", en: "Roadshow", icon: "presentation", tone: "neutral" },
-  ref: { label: "参考价", en: "Ref Price", icon: "tag", tone: "info" },
-  withdraw: { label: "撤回上市", en: "Withdrawn", icon: "x-circle", tone: "bearish" },
+  open: { label: "eventOpen", icon: "play", tone: "honey" },
+  close: { label: "eventClose", icon: "flag", tone: "honey" },
+  price: { label: "eventPrice", icon: "tag", tone: "info" },
+  allot: { label: "eventAllot", icon: "check-check", tone: "bullish" },
+  grey: { label: "eventGrey", icon: "activity", tone: "info" },
+  list: { label: "eventList", icon: "rocket", tone: "bullish" },
+  file: { label: "eventFile", icon: "file-text", tone: "neutral" },
+  hearing: { label: "eventHearing", icon: "gavel", tone: "neutral" },
+  roadshow: { label: "eventRoadshow", icon: "presentation", tone: "neutral" },
+  ref: { label: "eventRef", icon: "tag", tone: "info" },
+  withdraw: { label: "eventWithdraw", icon: "x-circle", tone: "bearish" },
 };
 
 const TONE_COLOR: Record<string, string> = {
@@ -71,6 +71,7 @@ interface DatedEvent {
 
 function CalendarView() {
   const navigate = useNavigate();
+  const { t } = useIpoLocale();
   const [filter, setFilter] = useState("all");
 
   const res = getIpoCalendarMock();
@@ -92,7 +93,7 @@ function CalendarView() {
 
   return (
     <main style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
-      <Eyebrow style={{ marginBottom: 8 }}>招股时间表 · IPO Calendar</Eyebrow>
+      <Eyebrow style={{ marginBottom: 8 }}>{t("calendarEyebrow")}</Eyebrow>
       <h1
         style={{
           margin: "0 0 8px",
@@ -103,10 +104,10 @@ function CalendarView() {
           letterSpacing: "var(--tracking-tight)",
         }}
       >
-        IPO 日历
+        {t("calendarTitle")}
       </h1>
       <p style={{ margin: "0 0 22px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        跨全部活跃 IPO 的关键里程碑：招股、定价、分配、暗盘、上市、撤回。数据源{" "}
+        {t("calendarDescription")}{" "}
         <Mono size="var(--text-xs)" color="var(--text-body)">
           ipo_timetable_event
         </Mono>
@@ -141,7 +142,7 @@ function CalendarView() {
               {cfg && (
                 <Icon name={cfg.icon} size={13} color={on ? "var(--ink-800)" : TONE_COLOR[cfg.tone]} />
               )}
-              {ty === "all" ? "全部里程碑" : (cfg?.label ?? ty)}
+              {ty === "all" ? t("allMilestones") : cfg ? t(cfg.label) : ty}
             </button>
           );
         })}
@@ -159,8 +160,8 @@ function CalendarView() {
           <MascotState
             basePath={MASCOT_BP}
             pose="empty"
-            title="该里程碑下暂无事件"
-            description="换个里程碑类型，或回到 Pipeline 查看全部标的。"
+            title={t("calendarEmptyTitle")}
+            description={t("calendarEmptyDescription")}
           />
         </div>
       ) : (
@@ -206,7 +207,7 @@ function CalendarView() {
                     {day}
                   </div>
                   <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-                    {g.items.length} 事件
+                    {g.items.length} {t("eventCount")}
                   </div>
                 </div>
                 {/* events */}
@@ -253,9 +254,8 @@ function CalendarView() {
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--text-primary)" }}>
-                                {cfg.label}
+                                {t(cfg.label)}
                               </span>
-                              <Eyebrow>{cfg.en}</Eyebrow>
                             </div>
                             <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", marginTop: 2 }}>
                               {x.e.name} <span style={{ color: "var(--text-subtle)" }}>{x.e.cn}</span> ·{" "}

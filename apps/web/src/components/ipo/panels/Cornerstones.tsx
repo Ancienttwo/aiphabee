@@ -1,6 +1,7 @@
 import { Icon } from "../../../ds";
 import { Mono } from "../Mono";
 import { LockedValue } from "../LockedValue";
+import { useIpoLocale } from "../i18n";
 import type { IpoRecord } from "../../../lib/api/ipo-types";
 
 /**
@@ -9,6 +10,7 @@ import type { IpoRecord } from "../../../lib/api/ipo-types";
  * enterprise (DAT-05 default-deny).
  */
 export function Cornerstones({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   if (!ipo.cornerstones || !ipo.cornerstones.length) {
     return (
       <div
@@ -23,7 +25,7 @@ export function Cornerstones({ ipo }: { ipo: IpoRecord }) {
           color: "var(--text-muted)",
         }}
       >
-        <Icon name="user-x" size={16} /> 该 IPO 未引入基石投资者，需求支撑较弱。
+        <Icon name="user-x" size={16} /> {t("noCornerstones")}
       </div>
     );
   }
@@ -45,7 +47,7 @@ export function Cornerstones({ ipo }: { ipo: IpoRecord }) {
               {c.name}
             </div>
             <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-              禁售 Lock-up {c.lockup}
+              {t("lockup")} {c.lockup}
             </div>
           </div>
           <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -53,7 +55,7 @@ export function Cornerstones({ ipo }: { ipo: IpoRecord }) {
               <Mono size="var(--text-sm)">{c.amount}</Mono>
             </LockedValue>
             <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
-              {c.pct}% of offer
+              {t("offerPercent")}: {c.pct}%
             </div>
           </div>
         </div>

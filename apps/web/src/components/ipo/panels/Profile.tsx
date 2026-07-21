@@ -3,6 +3,7 @@ import { Mono } from "../Mono";
 import { Badge } from "../../../ds";
 import { fmtNum } from "../../../lib/num";
 import type { IpoRecord } from "../../../lib/api/ipo-types";
+import { useIpoLocale } from "../i18n";
 
 /**
  * Company-profile section renderers (vendor fact), ported from
@@ -76,6 +77,7 @@ export function CompanyTable({ ipo }: { ipo: IpoRecord }) {
  * the amount + rate publicly, so no count is rendered here.
  */
 export function AppTiers({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   if (!ipo.applicationTiers) {
     return (
       <div
@@ -87,7 +89,7 @@ export function AppTiers({ ipo }: { ipo: IpoRecord }) {
           color: "var(--text-muted)",
         }}
       >
-        申请档位将在招股启动后公布。
+        {t("applicationTiersPending")}
       </div>
     );
   }
@@ -95,11 +97,11 @@ export function AppTiers({ ipo }: { ipo: IpoRecord }) {
     <div className="ab-table-scroll" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)" }}>
       <div style={{ minWidth: 440 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.2fr 1fr", padding: "8px 14px", background: "var(--surface-muted)" }}>
-        {["手数 Lots", "股数 Shares", "入场金额 HK$", ipo.allotment ? "中签率" : ""].map((h, i) => (
+        {[t("applicationLots"), t("shares"), t("entryAmount"), ipo.allotment ? t("successRate") : ""].map((h, i) => (
           <Eyebrow key={i}>{h}</Eyebrow>
         ))}
       </div>
-      {ipo.applicationTiers.map((t, i) => (
+      {ipo.applicationTiers.map((tier, i) => (
         <div
           key={i}
           style={{
@@ -108,20 +110,20 @@ export function AppTiers({ ipo }: { ipo: IpoRecord }) {
             padding: "10px 14px",
             borderTop: "1px solid var(--border-subtle)",
             alignItems: "center",
-            background: t.hot ? "var(--surface-honey)" : "transparent",
+            background: tier.hot ? "var(--surface-honey)" : "transparent",
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Mono>{t.lots}</Mono>
-            {t.hot && (
+            <Mono>{tier.lots}</Mono>
+            {tier.hot && (
               <Badge tone="honey" size="sm">
-                最热
+                {t("hottest")}
               </Badge>
             )}
           </span>
-          <Mono color="var(--text-body)">{fmtNum(t.shares, 0)}</Mono>
-          <Mono color="var(--text-body)">{fmtNum(t.amount, 0)}</Mono>
-          <Mono color="var(--accent-strong)">{t.rate || "—"}</Mono>
+          <Mono color="var(--text-body)">{fmtNum(tier.shares, 0)}</Mono>
+          <Mono color="var(--text-body)">{fmtNum(tier.amount, 0)}</Mono>
+          <Mono color="var(--accent-strong)">{tier.rate || "—"}</Mono>
         </div>
       ))}
       </div>

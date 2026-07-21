@@ -13,18 +13,18 @@ import { ResponseDepthProvider } from "../lib/context/ResponseDepthContext";
 import { SessionProvider } from "../lib/context/SessionContext";
 import { EntitlementProvider } from "../lib/context/EntitlementContext";
 import { IpoCompareProvider } from "../lib/context/IpoCompareContext";
-import { LocaleProvider } from "../i18n/locale";
+import { LocaleProvider, useLocale } from "../i18n/locale";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AiphaBee · 港股研究 Agent 与 MCP 数据平台" },
+      { title: "AiphaBee · 港股研究 Agent 與 MCP 資料平台" },
       {
         name: "description",
         content:
-          "港股研究操作系统：自然语言研究、个股工作台、比较与筛选、公告研究，每个数字都可追溯证据。Web Agent 与 Remote MCP 双入口。当前为合成数据预览（Gate 0 前）。",
+          "港股研究作業系統：自然語言研究、個股工作台、比較與篩選、公告研究，每個數字都可追溯證據。Web Agent 與 Remote MCP 雙入口。目前為合成資料預覽（Gate 0 前）。",
       },
     ],
     links: [
@@ -69,9 +69,7 @@ function RootComponent() {
                       background: "var(--surface-page)",
                     }}
                   >
-                    <a className="skip-link" href="#main-content">
-                      Skip to main content
-                    </a>
+                    <SkipLink />
                     <NavBar />
                     <div id="main-content" tabIndex={-1} style={{ flex: 1 }}>
                       <Outlet />
@@ -85,6 +83,15 @@ function RootComponent() {
         </LocaleProvider>
       </QueryClientProvider>
     </RootDocument>
+  );
+}
+
+function SkipLink() {
+  const { t } = useLocale();
+  return (
+    <a className="skip-link" href="#main-content">
+      {t("skipToMain")}
+    </a>
   );
 }
 

@@ -11,9 +11,9 @@ import {
   type SectorFilter,
   type StageFilter,
 } from "../../components/ipo";
-import { STAGE_BY } from "../../data/ipos.fixtures";
 import { useIpoCompare } from "../../lib/context/IpoCompareContext";
 import { SHELL } from "../../lib/ui";
+import { IPO_STAGE_MESSAGE, useIpoLocale } from "../../components/ipo/i18n";
 
 export const Route = createFileRoute("/ipos/")({
   component: PipelineView,
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/ipos/")({
  */
 function PipelineView() {
   const navigate = useNavigate();
+  const { t } = useIpoLocale();
   const [stage, setStage] = useState<StageFilter>("all");
   const [sector, setSector] = useState<SectorFilter>("all");
   const [sort, setSort] = useState("sub");
@@ -55,7 +56,7 @@ function PipelineView() {
         }}
       >
         <div>
-          <Eyebrow style={{ marginBottom: 8 }}>港股 IPO · HKEX Research Pipeline</Eyebrow>
+          <Eyebrow style={{ marginBottom: 8 }}>{t("pipelineEyebrow")}</Eyebrow>
           <h1
             style={{
               margin: 0,
@@ -66,7 +67,7 @@ function PipelineView() {
               letterSpacing: "var(--tracking-tight)",
             }}
           >
-            IPO 研究工作台
+            {t("pipelineTitle")}
           </h1>
           <p
             style={{
@@ -77,11 +78,11 @@ function PipelineView() {
               lineHeight: 1.6,
             }}
           >
-            按 IPO 生命周期追踪招股、暗盘、分配与禁售；所有数字均带{" "}
+            {t("pipelineDescriptionPrefix")}{" "}
             <Mono size="var(--text-xs)" color="var(--text-body)">
               as_of
             </Mono>{" "}
-            与数据版本。
+            {t("pipelineDescriptionSuffix")}
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -90,14 +91,14 @@ function PipelineView() {
             icon={<Icon name="calendar" size={16} />}
             onClick={() => navigate({ to: "/ipos/calendar" })}
           >
-            日历 Calendar
+            {t("calendarButton")}
           </Button>
           <Button
             variant="ai"
             icon={<Icon name="git-compare" size={16} />}
             onClick={() => navigate({ to: "/ipos/compare" })}
           >
-            横向比较 {compareIds.length}/5
+            {t("compareButton")} {compareIds.length}/5
           </Button>
         </div>
       </div>
@@ -121,13 +122,12 @@ function PipelineView() {
         }}
       >
         <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-          共{" "}
-          <Mono size="var(--text-sm)">{rows.length}</Mono> 个标的
-          {stage !== "all" ? ` · ${STAGE_BY[stage].label}` : ""}
+          {t("pipelineResultsPrefix")}{" "}
+          <Mono size="var(--text-sm)">{rows.length}</Mono> {t("ipoItems")}
+          {stage !== "all" ? ` · ${t(IPO_STAGE_MESSAGE[stage])}` : ""}
         </span>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>
-          点击行查看研究工作台 ·{" "}
-          <Icon name="git-compare" size={12} /> 加入对比
+          {t("pipelineHint")} <Icon name="git-compare" size={12} />
         </span>
       </div>
 
@@ -160,7 +160,7 @@ function PipelineView() {
           >
             <Icon name="search-x" size={28} color="var(--text-subtle)" />
             <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm)" }}>
-              该筛选下暂无标的，换个条件试试。
+              {t("filterEmpty")}
             </p>
           </div>
         )}

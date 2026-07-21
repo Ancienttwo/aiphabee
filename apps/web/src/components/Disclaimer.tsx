@@ -16,12 +16,6 @@ const base: CSSProperties = {
 export function Disclaimer({ style }: { style?: CSSProperties }) {
   const { t } = useLocale();
   return (
-    <p style={{ ...base, ...style }}>
-      {t("disclaimer")}
-      {" · "}
-      Illustrative mock data, not live market data. AiphaBee provides research
-      and data-interpretation tools and does not give personalized investment
-      advice or buy/sell/hold recommendations.
-    </p>
+    <p style={{ ...base, ...style }}>{t("disclaimer")}</p>
   );
 }

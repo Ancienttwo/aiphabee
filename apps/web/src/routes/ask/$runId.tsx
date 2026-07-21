@@ -37,7 +37,11 @@ function AskRun() {
   const navigate = useNavigate();
   const { runId } = Route.useParams();
   const { q } = Route.useSearch();
-  const { events, status, runId: backendRunId } = useAgentStream(q || undefined, locale);
+  const { events, status, runId: backendRunId } = useAgentStream(
+    q || undefined,
+    locale,
+    runId,
+  );
   const { data: planEnv } = useQuery({
     queryKey: ["agent-plan", q, locale],
     queryFn: () => planAgentRun(q, locale),

@@ -1,8 +1,10 @@
 import { Badge } from "../../../ds";
 import type { IpoTimetableEvent } from "../../../lib/api/ipo-types";
+import { useIpoLocale } from "../i18n";
 
 /** Vertical timetable timeline (vendor fact), ported from `detail-parts.jsx`. */
 export function Timeline({ events }: { events: IpoTimetableEvent[] }) {
+  const { t } = useIpoLocale();
   return (
     <div style={{ position: "relative", paddingLeft: 4 }}>
       {events.map((e, i) => {
@@ -65,7 +67,7 @@ export function Timeline({ events }: { events: IpoTimetableEvent[] }) {
                 </span>
                 {e.active && (
                   <Badge tone="honey" size="sm">
-                    进行中 Now
+                    {t("inProgress")}
                   </Badge>
                 )}
               </div>

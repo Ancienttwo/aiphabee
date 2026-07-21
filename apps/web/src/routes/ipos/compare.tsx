@@ -5,16 +5,21 @@ import { compareIposMock } from "../../lib/api/ipo-mock";
 import { useIpoCompare, IPO_COMPARE_MAX } from "../../lib/context/IpoCompareContext";
 import {
   IPOS,
-  LISTING_TYPE,
   DEMAND_SIGNAL_CFG,
-  SECTOR_LABEL,
-  SENTIMENT_LABEL,
   SENTIMENT_TONE,
 } from "../../data/ipos.fixtures";
 import type { IpoRecord, IpoTerms } from "../../lib/api/ipo-types";
 import { Eyebrow, Mono } from "../../components/ipo";
 import { fmtNum } from "../../lib/num";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
+import {
+  IPO_DEMAND_MESSAGE,
+  IPO_LISTING_TYPE_MESSAGE,
+  IPO_SECTOR_MESSAGE,
+  IPO_SENTIMENT_MESSAGE,
+  useIpoLocale,
+  type IpoMessageKey,
+} from "../../components/ipo/i18n";
 
 export const Route = createFileRoute("/ipos/compare")({
   component: CompareView,
@@ -29,16 +34,20 @@ const COMPARE_COLORS = [
 ];
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
-function offerText(t: IpoTerms): string {
+function offerText(t: IpoTerms, pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh) return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;
-  return "待定";
+  return pending;
 }
 
 interface Metric {
-  label: string;
+  label: IpoMessageKey;
   get: (i: IpoRecord) => number | string | null;
-  fmt: (v: number | string | null, i: IpoRecord) => string;
+  fmt: (
+    v: number | string | null,
+    i: IpoRecord,
+    t: (key: IpoMessageKey) => string,
+  ) => string;
   best: "max" | "min" | null;
   sentiment?: boolean;
   rec?: boolean;
@@ -46,28 +55,28 @@ interface Metric {
 
 /** Metric rows: value extractor + win direction. Signal stays a research signal (non-advice). */
 const METRICS: Metric[] = [
-  { label: "综合评分 Score", get: (i) => i.score, fmt: (v) => String(v), best: "max" },
-  { label: "置信度 Confidence", get: (i) => i.confidence, fmt: (v) => `${v}%`, best: "max" },
-  { label: "公开认购 Subscription", get: (i) => i.live.subPublic, fmt: (v) => (v == null ? "—" : `${v}×`), best: "max" },
-  { label: "招股价 Offer", get: (i) => i.terms.finalPrice ?? i.terms.priceHigh, fmt: (_v, i) => offerText(i.terms), best: null },
-  { label: "入场费 Entry Fee", get: (i) => i.terms.entryFee, fmt: (v) => (v ? `HK$${fmtNum(v as number, 0)}` : "—"), best: "min" },
-  { label: "集资额 Raise", get: (i) => parseFloat(i.terms.raiseHKD) || null, fmt: (_v, i) => i.terms.raiseHKD, best: "max" },
-  { label: "市值 Market Cap", get: (i) => parseFloat(i.terms.mcapHKD) || null, fmt: (_v, i) => i.terms.mcapHKD, best: null },
-  { label: "市盈率 P/E", get: (i) => parseFloat(i.terms.pe) || null, fmt: (_v, i) => i.terms.pe, best: "min" },
-  { label: "基石数量 Cornerstones", get: (i) => i.cornerstones?.length ?? 0, fmt: (v) => `${v} 名`, best: "max" },
+  { label: "metricScore", get: (i) => i.score, fmt: (v) => String(v), best: "max" },
+  { label: "metricConfidence", get: (i) => i.confidence, fmt: (v) => `${v}%`, best: "max" },
+  { label: "metricSubscription", get: (i) => i.live.subPublic, fmt: (v) => (v == null ? "—" : `${v}×`), best: "max" },
+  { label: "metricOffer", get: (i) => i.terms.finalPrice ?? i.terms.priceHigh, fmt: (_v, i, t) => offerText(i.terms, t("pending")), best: null },
+  { label: "metricEntryFee", get: (i) => i.terms.entryFee, fmt: (v) => (v ? `HK$${fmtNum(v as number, 0)}` : "—"), best: "min" },
+  { label: "metricRaise", get: (i) => parseFloat(i.terms.raiseHKD) || null, fmt: (_v, i) => i.terms.raiseHKD, best: "max" },
+  { label: "metricMarketCap", get: (i) => parseFloat(i.terms.mcapHKD) || null, fmt: (_v, i) => i.terms.mcapHKD, best: null },
+  { label: "metricPe", get: (i) => parseFloat(i.terms.pe) || null, fmt: (_v, i) => i.terms.pe, best: "min" },
+  { label: "metricCornerstoneCount", get: (i) => i.cornerstones?.length ?? 0, fmt: (v, _i, t) => `${v} ${t("peopleUnit")}`, best: "max" },
   {
-    label: "基石合计占比 CS %",
+    label: "metricCornerstonePercent",
     get: (i) => (i.cornerstones ?? []).reduce((s, c) => s + (c.pct || 0), 0),
     fmt: (v) => (v ? `${(v as number).toFixed(1)}%` : "—"),
     best: "max",
   },
-  { label: "一手中签率 One-lot", get: (i) => i.live.oneLotRate, fmt: (v) => (v == null ? "待公布" : `${v}%`), best: null },
-  { label: "上市板 Board", get: (i) => i.board, fmt: (_v, i) => i.board, best: null },
-  { label: "行业 Sector", get: (i) => i.sector, fmt: (_v, i) => SECTOR_LABEL[i.sector], best: null },
-  { label: "上市方式 Type", get: (i) => i.listingType, fmt: (_v, i) => LISTING_TYPE[i.listingType].split(" ")[0], best: null },
-  { label: "回拨 Clawback", get: (i) => (i.clawback ? 1 : 0), fmt: (_v, i) => (i.clawback ? "标准回拨" : "无 / NA"), best: null },
-  { label: "市场情绪 Sentiment", get: (i) => i.sentiment, fmt: () => "", best: null, sentiment: true },
-  { label: "研究信号 Signal", get: (i) => i.demandSignal, fmt: () => "", best: null, rec: true },
+  { label: "metricOneLot", get: (i) => i.live.oneLotRate, fmt: (v, _i, t) => (v == null ? t("pendingPublication") : `${v}%`), best: null },
+  { label: "metricBoard", get: (i) => i.board, fmt: (_v, i) => i.board, best: null },
+  { label: "metricSector", get: (i) => i.sector, fmt: (_v, i, t) => t(IPO_SECTOR_MESSAGE[i.sector]), best: null },
+  { label: "metricType", get: (i) => i.listingType, fmt: (_v, i, t) => t(IPO_LISTING_TYPE_MESSAGE[i.listingType]), best: null },
+  { label: "metricClawback", get: (i) => (i.clawback ? 1 : 0), fmt: (_v, i, t) => (i.clawback ? t("standardClawback") : t("noClawback")), best: null },
+  { label: "metricSentiment", get: (i) => i.sentiment, fmt: () => "", best: null, sentiment: true },
+  { label: "metricDemandSignal", get: (i) => i.demandSignal, fmt: () => "", best: null, rec: true },
 ];
 
 function bestIndex(m: Metric, ipos: IpoRecord[]): number {
@@ -88,6 +97,7 @@ function bestIndex(m: Metric, ipos: IpoRecord[]): number {
 
 function CompareView() {
   const navigate = useNavigate();
+  const { locale, t } = useIpoLocale();
   const { ids, toggle, has } = useIpoCompare();
   const res = compareIposMock(ids);
   const selected = res.ok ? res.data.rows : [];
@@ -111,10 +121,10 @@ function CompareView() {
           marginBottom: 16,
         }}
       >
-        <Icon name="arrow-left" size={16} /> 返回 Pipeline
+        <Icon name="arrow-left" size={16} /> {t("backPipeline")}
       </button>
 
-      <Eyebrow style={{ marginBottom: 8 }}>横向比较 · Head-to-head</Eyebrow>
+      <Eyebrow style={{ marginBottom: 8 }}>{t("compareEyebrow")}</Eyebrow>
       <h1
         style={{
           margin: "0 0 8px",
@@ -125,10 +135,10 @@ function CompareView() {
           letterSpacing: "var(--tracking-tight)",
         }}
       >
-        IPO 横向比较
+        {t("compareTitle")}
       </h1>
       <p style={{ margin: "0 0 22px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        选择 2–{IPO_COMPARE_MAX} 个标的，逐指标对比；获胜单元格高亮，工蜂给出描述性裁决（非投资建议）。
+        {t("compareDescription")}
       </p>
 
       {/* selector chips */}
@@ -181,7 +191,7 @@ function CompareView() {
         >
           <Icon name="git-compare" size={30} color="var(--text-subtle)" />
           <p style={{ margin: "12px 0 0", fontSize: "var(--text-sm)" }}>
-            请至少选择 2 个标的进行比较（上方点选，或回到 Pipeline 逐行加入）。
+            {t("compareEmpty")}
           </p>
         </div>
       ) : (
@@ -210,7 +220,7 @@ function CompareView() {
                       minWidth: 150,
                     }}
                   >
-                    <Eyebrow>指标 Metric</Eyebrow>
+                    <Eyebrow>{t("compareMetric")}</Eyebrow>
                   </th>
                   {selected.map((i, idx) => (
                     <th
@@ -244,7 +254,7 @@ function CompareView() {
                         <button
                           type="button"
                           onClick={() => toggle(i.id)}
-                          title="移除"
+                          title={t("remove")}
                           style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--text-subtle)", lineHeight: 0 }}
                         >
                           <Icon name="x" size={14} />
@@ -273,7 +283,7 @@ function CompareView() {
                           fontWeight: 500,
                         }}
                       >
-                        {m.label}
+                        {t(m.label)}
                       </td>
                       {selected.map((i, idx) => {
                         const win = idx === bi;
@@ -281,19 +291,19 @@ function CompareView() {
                         if (m.sentiment) {
                           content = (
                             <Badge tone={SENTIMENT_TONE[i.sentiment]} size="sm" dot>
-                              {SENTIMENT_LABEL[i.sentiment].split(" ")[0]}
+                              {t(IPO_SENTIMENT_MESSAGE[i.sentiment])}
                             </Badge>
                           );
                         } else if (m.rec) {
                           content = (
                             <Badge tone={DEMAND_SIGNAL_CFG[i.demandSignal].tone} variant="solid" size="sm">
-                              {DEMAND_SIGNAL_CFG[i.demandSignal].label.split(" ")[0]}
+                              {t(IPO_DEMAND_MESSAGE[i.demandSignal])}
                             </Badge>
                           );
                         } else {
                           content = (
                             <Mono size="var(--text-sm)" color={win ? "var(--green-700)" : "var(--text-primary)"}>
-                              {m.fmt(m.get(i), i)}
+                              {m.fmt(m.get(i), i, t)}
                             </Mono>
                           );
                         }
@@ -323,23 +333,23 @@ function CompareView() {
           {/* Bee verdict — descriptive research signal, NOT investment advice (Gate-0 / PRD §14.2) */}
           {(() => {
             const winner = selected.reduce((w, x) => (x.score > w.score ? x : w), selected[0]);
-            const sig = DEMAND_SIGNAL_CFG[winner.demandSignal].label.split(" ")[0];
+            const sig = t(IPO_DEMAND_MESSAGE[winner.demandSignal]);
             return (
               <>
                 <BeeNote
                   basePath={MASCOT_BP}
                   pose="insight"
                   tone="navy"
-                  title="工蜂裁决 · Bee Verdict"
+                  title={t("verdictTitle")}
                   action={
                     <Badge tone={DEMAND_SIGNAL_CFG[winner.demandSignal].tone} variant="solid" size="sm">
                       {sig}
                     </Badge>
                   }
                 >
-                  从研究评分与需求强度看，{winner.name}（{winner.ticker}）的综合研究信号在所选
-                  {cols} 个标的中相对更强（评分 {winner.score} · 信号 {sig}）。以上为描述性研究信号，
-                  非投资建议；请结合各自风险摘要与数据版本独立判断。
+                  {locale === "en"
+                    ? `${t("verdictFrom")}, ${winner.name} (${winner.ticker}) ${t("verdictBodyBeforeCount")} ${cols} ${t("verdictBodyAfterCount")} (${t("verdictScore")} ${winner.score} · ${t("verdictSignal")} ${sig}). ${t("verdictDisclaimer")}`
+                    : `${t("verdictFrom")}，${winner.name}（${winner.ticker}）${t("verdictBodyBeforeCount")} ${cols} ${t("verdictBodyAfterCount")}（${t("verdictScore")} ${winner.score} · ${t("verdictSignal")} ${sig}）。${t("verdictDisclaimer")}`}
                 </BeeNote>
                 <Disclaimer style={{ marginTop: 10 }} />
               </>

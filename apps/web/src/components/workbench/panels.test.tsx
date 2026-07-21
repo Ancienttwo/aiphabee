@@ -1,8 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createErrorEnvelope, createSuccessEnvelope } from "@aiphabee/data-contracts";
-import { DerivedPanel, ProfilePanel } from "./panels";
+import {
+  createErrorEnvelope,
+  createSuccessEnvelope,
+} from "@aiphabee/data-contracts";
+import {
+  CorporateActionsPanel,
+  DerivedPanel,
+  DirectorsPanel,
+  FinancialsPanel,
+  OwnershipPanel,
+  ProfilePanel,
+  QuotePanel,
+  RelatedWarrantsPanel,
+  SdiDisclosurePanel,
+} from "./panels";
+import { LocaleProvider, type Locale } from "../../i18n/locale";
 import type {
   DerivedMetricDefinition,
   DerivedMetricValue,
@@ -69,10 +83,22 @@ const PROFILE: SecurityProfileSection = {
   dataVersion: "security-profile-synthetic-v0",
   methodologyVersion: "m-v0",
   profile: {
-    company: { companyId: "co_tencent", country: "CN", name: { en: "Tencent Holdings Ltd.", zhHans: "腾讯控股有限公司", zhHant: "騰訊控股有限公司" } },
+    company: {
+      companyId: "co_tencent",
+      country: "CN",
+      name: {
+        en: "Tencent Holdings Ltd.",
+        zhHans: "腾讯控股有限公司",
+        zhHant: "騰訊控股有限公司",
+      },
+    },
     currency: "HKD",
     exchange: "HKEX",
-    industry: { classificationSystem: "synthetic", industry: "Interactive Media & Services", sector: "Communication Services" },
+    industry: {
+      classificationSystem: "synthetic",
+      industry: "Interactive Media & Services",
+      sector: "Communication Services",
+    },
     instrumentId: "eq_hk_00700",
     lifecycle: { listedAt: "2004-06-16" },
     listingId: "listing_hk_00700",
@@ -84,7 +110,11 @@ const PROFILE: SecurityProfileSection = {
 
 describe("workbench panels render (SSR)", () => {
   it("ProfilePanel renders company name and symbol", () => {
-    const html = renderToStaticMarkup(<ProfilePanel section={PROFILE} />);
+    const html = renderToStaticMarkup(
+      <LocaleProvider>
+        <ProfilePanel section={PROFILE} />
+      </LocaleProvider>,
+    );
     expect(html).toContain("騰訊控股有限公司");
     // Wire payload carries the 5-digit "00700.HK" symbol (see PROFILE
     // above); the UI renders the market's minimum-4-digit main-board
@@ -96,16 +126,70 @@ describe("workbench panels render (SSR)", () => {
 
   it("ProfilePanel degrades gracefully when the profile is absent", () => {
     const html = renderToStaticMarkup(
-      <ProfilePanel section={{ status: "not_found", usage: USAGE, provenance: [] }} />,
+      <LocaleProvider>
+        <ProfilePanel
+          section={{ status: "not_found", usage: USAGE, provenance: [] }}
+        />
+      </LocaleProvider>,
     );
-    expect(html).toContain("暂无公司档案");
+    expect(html).toContain("暫無公司檔案");
+  });
+
+  it.each([
+    ["zh-Hant", "公司檔案", "騰訊控股有限公司"],
+    ["zh-Hans", "公司档案", "腾讯控股有限公司"],
+    ["en", "Company profile", "Tencent Holdings Ltd."],
+  ] as const)(
+    "ProfilePanel localizes panel-owned copy and names for %s",
+    (locale, title, name) => {
+      const html = renderToStaticMarkup(
+        <LocaleProvider initialLocale={locale}>
+          <ProfilePanel section={PROFILE} />
+        </LocaleProvider>,
+      );
+      expect(html).toContain(title);
+      expect(html).toContain(name);
+    },
+  );
+
+  it("localizes every live panel's loading state in English", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider initialLocale="en">
+          <QuotePanel instrumentId="hkex_security_00700" />
+          <FinancialsPanel instrumentId="hkex_security_00700" />
+          <DerivedPanel instrumentId="hkex_security_00700" />
+          <CorporateActionsPanel instrumentId="hkex_security_00700" />
+          <SdiDisclosurePanel instrumentId="hkex_security_00700" />
+          <DirectorsPanel instrumentId="hkex_security_00700" />
+          <OwnershipPanel instrumentId="hkex_security_00700" />
+          <RelatedWarrantsPanel instrumentId="hkex_security_00700" />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(html).toContain("Loading quote snapshot");
+    expect(html).toContain("Loading financial facts");
+    expect(html).toContain("Loading derived metrics");
+    expect(html).toContain("Loading corporate actions");
+    expect(html).toContain("Loading interest disclosures");
+    expect(html).toContain("Loading directors and management");
+    expect(html).toContain("Loading ownership structure");
+    expect(html).toContain("Loading related warrants");
+    expect(html).not.toContain("正在加载");
   });
 });
 
 // --- DerivedPanel: cache-seeded live-query rendering ----------------------
 
 const DERIVED_INSTRUMENT_ID = "hkex_security_00700";
-const DERIVED_META = { asOf: "2026-01-07T16:15:00+08:00", requestId: "req-derived-test" };
+const DERIVED_META = {
+  asOf: "2026-01-07T16:15:00+08:00",
+  requestId: "req-derived-test",
+};
 
 const NET_MARGIN_DEFINITION: DerivedMetricDefinition = {
   category: "profitability",
@@ -156,7 +240,9 @@ function blockedMetric(
   };
 }
 
-function derivedSection(metrics: DerivedMetricValue[]): GetLiveDerivedMetricsData {
+function derivedSection(
+  metrics: DerivedMetricValue[],
+): GetLiveDerivedMetricsData {
   return {
     data_version: "derived-metrics-test-v0",
     definitions: [NET_MARGIN_DEFINITION, PE_DEFINITION],
@@ -177,12 +263,22 @@ function derivedSection(metrics: DerivedMetricValue[]): GetLiveDerivedMetricsDat
  * TanStack Query wires through a useEffect subscription -- never fires, and
  * the cache-seeded envelope is exactly what reaches the markup.
  */
-function renderDerivedPanel(envelope: ResponseEnvelope<GetLiveDerivedMetricsData>): string {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  queryClient.setQueryData(["derived-metrics-live", DERIVED_INSTRUMENT_ID], envelope);
+function renderDerivedPanel(
+  envelope: ResponseEnvelope<GetLiveDerivedMetricsData>,
+  locale: Locale = "zh-Hans",
+): string {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  queryClient.setQueryData(
+    ["derived-metrics-live", DERIVED_INSTRUMENT_ID],
+    envelope,
+  );
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
-      <DerivedPanel instrumentId={DERIVED_INSTRUMENT_ID} />
+      <LocaleProvider initialLocale={locale}>
+        <DerivedPanel instrumentId={DERIVED_INSTRUMENT_ID} />
+      </LocaleProvider>
     </QueryClientProvider>,
   );
 }
@@ -200,7 +296,9 @@ describe("DerivedPanel two-tier rendering (SSR, cache-seeded)", () => {
 
   it("shows the shares_outstanding_unavailable copy for a per-metric gap, and never 未获授权", () => {
     const envelope = createSuccessEnvelope(
-      derivedSection([blockedMetric("price_to_earnings", "shares_outstanding_unavailable")]),
+      derivedSection([
+        blockedMetric("price_to_earnings", "shares_outstanding_unavailable"),
+      ]),
       DERIVED_META,
     );
     const html = renderDerivedPanel(envelope);
@@ -232,5 +330,22 @@ describe("DerivedPanel two-tier rendering (SSR, cache-seeded)", () => {
     const html = renderDerivedPanel(envelope);
     expect(html).toContain("50.0%");
     expect(html).toContain("8.00×");
+  });
+
+  it("localizes panel-owned denial and blocked-reason copy in English", () => {
+    const denial = createErrorEnvelope(
+      "DATA_NOT_LICENSED",
+      "financial_facts and quote_snapshot are not licensed",
+      DERIVED_META,
+    );
+    expect(renderDerivedPanel(denial, "en")).toContain("Not licensed");
+
+    const blocked = createSuccessEnvelope(
+      derivedSection([blockedMetric("price_to_earnings", "zero_denominator")]),
+      DERIVED_META,
+    );
+    const html = renderDerivedPanel(blocked, "en");
+    expect(html).toContain("The denominator is zero");
+    expect(html).not.toContain("未获授权");
   });
 });
