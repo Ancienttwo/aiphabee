@@ -18,25 +18,6 @@ function collectLocalizedText(value: unknown, out: IpoLocalizedText[]): void {
   Object.values(value).forEach((item) => collectLocalizedText(item, out));
 }
 
-function scopedProse(ipo: ReturnType<typeof getIpos>[number]): string[] {
-  return [
-    ipo.tierLabel,
-    ipo.desc,
-    ipo.aiNote,
-    ipo.terms.sharesOffered,
-    ipo.terms.greenshoe,
-    ipo.terms.raiseHKD,
-    ipo.terms.mcapHKD,
-    ipo.terms.nta,
-    ipo.terms.pe,
-    ipo.terms.pb,
-    ipo.profile.overview,
-    ...ipo.profile.risks,
-    ...ipo.profile.advantages,
-    ...ipo.riskSummary.map((risk) => risk.text),
-  ];
-}
-
 describe("IPO locale-keyed fixture contract", () => {
   it("requires a non-empty authoritative value for every supported locale", () => {
     const localized: IpoLocalizedText[] = [];
@@ -48,13 +29,14 @@ describe("IPO locale-keyed fixture contract", () => {
       expect(text.values.en.trim()).not.toBe("");
       expect(text.values["zh-Hans"].trim()).not.toBe("");
       expect(text.values["zh-Hant"].trim()).not.toBe("");
+      expect(CJK.test(text.values.en)).toBe(false);
     }
   });
 
-  it("resolves scoped English prose without Chinese source-language text", () => {
-    for (const ipo of getIpos("en")) {
-      expect(scopedProse(ipo).filter((text) => CJK.test(text))).toEqual([]);
-    }
+  it("fully resolves locale leaves before returning a display payload", () => {
+    const unresolved: IpoLocalizedText[] = [];
+    collectLocalizedText(getIpos("en"), unresolved);
+    expect(unresolved).toEqual([]);
   });
 
   it("selects locale content without changing structural facts", () => {
@@ -71,6 +53,32 @@ describe("IPO locale-keyed fixture contract", () => {
     expect(en[0].profile.overview).toContain("Honeycomb Intelligence");
     expect(zhHant[0].profile.overview).toContain("蜂巢智能");
     expect(zhHans[0].profile.overview).toContain("蜂巢智能");
+  });
+
+  it("selects structured English vendor text across every detail surface", () => {
+    const honeycomb = getIpos("en").find((ipo) => ipo.id === "honeycomb")!;
+    const lotus = getIpos("en").find((ipo) => ipo.id === "lotus")!;
+
+    expect(honeycomb.board).toBe("Main Board");
+    expect(honeycomb.timetable[0].title).toBe("Public offer opens");
+    expect(honeycomb.pools?.[0]).toMatchObject({
+      desc: "Applications ≤ HK$5M",
+      lots: "7,500 lots",
+    });
+    expect(honeycomb.lockup[0]).toMatchObject({
+      type: "Controlling shareholder",
+      shares: "890 million shares",
+    });
+    expect(honeycomb.sponsors[0].role).toBe("Joint sponsor");
+    expect(honeycomb.profile.useOfProceeds[0].label).toBe(
+      "R&D and model training",
+    );
+    expect(honeycomb.profile.company[1]).toEqual({
+      k: "Headquarters",
+      v: "Hong Kong · Singapore",
+    });
+    expect(honeycomb.evidence.source).toBe("HKEX prospectus · HKEXnews");
+    expect(lotus.allotment?.validApps).toBe("186,420 applicants");
   });
 
   it("propagates the requested locale through mock API envelopes", () => {

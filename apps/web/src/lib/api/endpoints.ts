@@ -106,7 +106,9 @@ export function compareSecurities(securities: string[]) {
 }
 
 // --- IPO workbench -------------------------------------------------------
-// Backed by Codex's worker routes (mock-first via ./ipo-mock until live).
+// Live worker contract. It remains locale-blind and must not replace
+// `./ipo-mock` until the worker accepts an exact locale and returns the
+// corresponding resolved payload.
 
 /** Aggregate IPO detail snapshot (POST /workbench/ipo/snapshot). */
 export function getIpoSnapshot(id: string) {

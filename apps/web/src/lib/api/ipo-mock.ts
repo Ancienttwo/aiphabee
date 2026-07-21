@@ -23,8 +23,11 @@ import type {
 
 /**
  * Mock IPO workbench API — serves the illustrative `ipos.fixtures` dataset
- * through the real `@aiphabee/data-contracts` envelope, so swapping to Codex's
- * worker routes (`./endpoints`) later is a one-import change. NOT live data.
+ * through the real `@aiphabee/data-contracts` envelope. NOT live data.
+ *
+ * Locale resolution is intentionally fixture-only. The live worker IPO routes
+ * are locale-blind today, so this module must not be swapped for `./endpoints`
+ * until that contract accepts an exact locale and returns matching content.
  *
  * Provenance reflects the fact/analysis split: vendor facts trace to
  * `netquity_hk_ipo`, AiphaBee analysis to `aiphabee_research`.

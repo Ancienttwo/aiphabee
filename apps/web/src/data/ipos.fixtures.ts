@@ -2,8 +2,8 @@
  * Rich IPO workbench mock dataset + lookups (FP1), adapted from the design
  * prototype `docs/AiphaBee Design System/apps/ipo-workbench/data.jsx`.
  * Illustrative mock only — the real data arrives from Codex's worker inside the
- * shared `ResponseEnvelope<T>`. Narrative and textual offer fields carry an
- * explicit locale map and are selected before entering that envelope.
+ * shared `ResponseEnvelope<T>`. Every user-visible vendor/analysis text field
+ * carries an explicit locale map and is selected before entering that envelope.
  */
 import type { BadgeTone } from "../ds";
 import type {
@@ -31,6 +31,30 @@ function localizedText(
 function localeNeutralText(value: string): IpoLocalizedText {
   return localizedText(value, value, value);
 }
+
+const STRUCTURED_TEXT = {
+  mainBoard: localizedText("主板", "主板", "Main Board"),
+  offerOpens: localizedText("公開發售開始", "公开发售开始", "Public offer opens"),
+  offerCloses: localizedText("公開發售截止", "公开发售截止", "Public offer closes"),
+  pricingDay: localizedText("定價日", "定价日", "Pricing day"),
+  allotmentPublished: localizedText("公布分配結果", "公布分配结果", "Allotment results published"),
+  greyMarket: localizedText("暗盤交易", "暗盘交易", "Grey-market trading"),
+  listingDay: localizedText("上市日", "上市日", "Listing day"),
+  poolA: localizedText("≤ HK$5M 申請", "≤ HK$5M 申请", "Applications ≤ HK$5M"),
+  poolB: localizedText("> HK$5M 申請", "> HK$5M 申请", "Applications > HK$5M"),
+  trigger15To50: localizedText("≥ 15× 且 < 50×", "≥ 15× 且 < 50×", "≥ 15× and < 50×"),
+  trigger50To100: localizedText("≥ 50× 且 < 100×", "≥ 50× 且 < 100×", "≥ 50× and < 100×"),
+  trigger100: localeNeutralText("≥ 100×"),
+  sixMonths: localizedText("六個月", "六个月", "Six months"),
+  controllingShareholder: localizedText("控股股東", "控股股东", "Controlling shareholder"),
+  cornerstoneInvestors: localizedText("基石投資者", "基石投资者", "Cornerstone investors"),
+  jointSponsor: localizedText("聯席保薦人", "联席保荐人", "Joint sponsor"),
+  soleSponsor: localizedText("獨家保薦人", "独家保荐人", "Sole sponsor"),
+  bookrunner: localizedText("賬簿管理人", "账簿管理人", "Bookrunner"),
+  tbd: localizedText("待定", "待定", "TBD"),
+  notApplicable: localizedText("不適用", "不适用", "Not applicable"),
+  prospectusSource: localizedText("HKEX 招股章程 · 聯交所披露易", "HKEX 招股章程 · 联交所披露易", "HKEX prospectus · HKEXnews"),
+} as const;
 
 /* ---------- label maps ---------- */
 export const SECTOR_LABEL = {
@@ -74,7 +98,7 @@ export const IPO_FIXTURES: IpoRecord[] = [
   /* ---- 1. SUBSCRIBING — hot tech, live sub multiple ---- */
   {
     id: 'honeycomb', name: 'Honeycomb Intelligence', cn: '蜂巢智能', ticker: '2769.HK',
-    exchange: 'HKEX', board: '主板 Main', sector: 'tech', listingType: 'normal',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'tech', listingType: 'normal',
     stage: 'subscribing', sentiment: 'bullish', score: 78, confidence: 86, demandSignal: 'solid',
     tierLabel: localizedText('中盤股', '中盘股', 'Mid-cap'),
     desc: localizedText(
@@ -91,26 +115,26 @@ export const IPO_FIXTURES: IpoRecord[] = [
       mcapHKD: localeNeutralText('38.6B'), nta: localeNeutralText('HK$6.85'),
       pe: localeNeutralText('32.4×'), pb: localeNeutralText('5.1×'),
     },
-    subPeriod: { start: 'Jun 18', end: 'Jun 23 12:00' }, listingDate: 'Jun 26, 2026',
-    pricingDate: 'Jun 23, 2026',
-    live: { subPublic: 128.4, subIntl: 6.2, marginDays: '5.5 日', greyChg: null,
+    subPeriod: { start: localeNeutralText('Jun 18'), end: localeNeutralText('Jun 23 12:00') },
+    listingDate: localeNeutralText('Jun 26, 2026'), pricingDate: localeNeutralText('Jun 23, 2026'),
+    live: { subPublic: 128.4, subIntl: 6.2, marginDays: localizedText('5.5 日', '5.5 天', '5.5 days'), greyChg: null,
       validApps: null, oneLotRate: null, headHammer: null, clawbackApplied: null },
     timetable: [
-      { type: 'open', title: '公开发售开始 Offer Opens', at: 'Jun 18 09:00', done: true },
-      { type: 'close', title: '公开发售截止 Offer Closes', at: 'Jun 23 12:00', done: false, active: true },
-      { type: 'price', title: '定价日 Pricing', at: 'Jun 23', done: false },
-      { type: 'allot', title: '公布分配结果 Allotment', at: 'Jun 25', done: false },
-      { type: 'grey', title: '暗盘交易 Grey Market', at: 'Jun 25 16:15', done: false },
-      { type: 'list', title: '上市日 Listing', at: 'Jun 26 09:30', done: false },
+      { type: 'open', title: STRUCTURED_TEXT.offerOpens, at: localeNeutralText('Jun 18 09:00'), done: true },
+      { type: 'close', title: STRUCTURED_TEXT.offerCloses, at: localeNeutralText('Jun 23 12:00'), done: false, active: true },
+      { type: 'price', title: STRUCTURED_TEXT.pricingDay, at: localeNeutralText('Jun 23'), done: false },
+      { type: 'allot', title: STRUCTURED_TEXT.allotmentPublished, at: localeNeutralText('Jun 25'), done: false },
+      { type: 'grey', title: STRUCTURED_TEXT.greyMarket, at: localeNeutralText('Jun 25 16:15'), done: false },
+      { type: 'list', title: STRUCTURED_TEXT.listingDay, at: localeNeutralText('Jun 26 09:30'), done: false },
     ],
     pools: [
-      { name: 'Pool A', desc: '≤ HK$5M 申请', lots: '7,500 手', apps: null },
-      { name: 'Pool B', desc: '> HK$5M 申请', lots: '7,500 手', apps: null },
+      { name: 'Pool A', desc: STRUCTURED_TEXT.poolA, lots: localizedText('7,500 手', '7,500 手', '7,500 lots'), apps: null },
+      { name: 'Pool B', desc: STRUCTURED_TEXT.poolB, lots: localizedText('7,500 手', '7,500 手', '7,500 lots'), apps: null },
     ],
     clawback: [
-      { trigger: '≥ 15× 且 < 50×', publicPct: '30%' },
-      { trigger: '≥ 50× 且 < 100×', publicPct: '40%' },
-      { trigger: '≥ 100×', publicPct: '50%', active: true },
+      { trigger: STRUCTURED_TEXT.trigger15To50, publicPct: localeNeutralText('30%') },
+      { trigger: STRUCTURED_TEXT.trigger50To100, publicPct: localeNeutralText('40%') },
+      { trigger: STRUCTURED_TEXT.trigger100, publicPct: localeNeutralText('50%'), active: true },
     ],
     applicationTiers: [
       { lots: 1, shares: 200, amount: 5009, hot: true },
@@ -121,18 +145,18 @@ export const IPO_FIXTURES: IpoRecord[] = [
     ],
     allotment: null,
     cornerstones: [
-      { name: 'Hillhouse 高瓴', amount: 'HKD 600M', pct: 14.3, lockup: '6 个月' },
-      { name: 'GIC Singapore', amount: 'HKD 420M', pct: 10.0, lockup: '6 个月' },
-      { name: 'Tencent 腾讯', amount: 'HKD 380M', pct: 9.0, lockup: '6 个月' },
+      { name: 'Hillhouse 高瓴', amount: localeNeutralText('HKD 600M'), pct: 14.3, lockup: STRUCTURED_TEXT.sixMonths },
+      { name: 'GIC Singapore', amount: localeNeutralText('HKD 420M'), pct: 10.0, lockup: STRUCTURED_TEXT.sixMonths },
+      { name: 'Tencent 腾讯', amount: localeNeutralText('HKD 380M'), pct: 9.0, lockup: STRUCTURED_TEXT.sixMonths },
     ],
     lockup: [
-      { type: '控股股东 Controlling', endDate: 'Dec 26, 2026', pct: '52.4%', shares: '8.9 亿股' },
-      { type: '基石投资者 Cornerstone', endDate: 'Dec 26, 2026', pct: '33.3%', shares: '0.57 亿股' },
+      { type: STRUCTURED_TEXT.controllingShareholder, endDate: localeNeutralText('Dec 26, 2026'), pct: localeNeutralText('52.4%'), shares: localizedText('8.9 億股', '8.9 亿股', '890 million shares') },
+      { type: STRUCTURED_TEXT.cornerstoneInvestors, endDate: localeNeutralText('Dec 26, 2026'), pct: localeNeutralText('33.3%'), shares: localizedText('0.57 億股', '0.57 亿股', '57 million shares') },
     ],
     sponsors: [
-      { name: 'Morgan Stanley', role: '联席保荐人 Sponsor', rating: 5 },
-      { name: 'CICC 中金公司', role: '联席保荐人 Sponsor', rating: 4.5 },
-      { name: 'Goldman Sachs', role: '账簿管理人 Bookrunner', rating: 4 },
+      { name: 'Morgan Stanley', role: STRUCTURED_TEXT.jointSponsor, rating: 5 },
+      { name: 'CICC 中金公司', role: STRUCTURED_TEXT.jointSponsor, rating: 4.5 },
+      { name: 'Goldman Sachs', role: STRUCTURED_TEXT.bookrunner, rating: 4 },
     ],
     aiNote: localizedText(
       '科技板塊情緒向好，加上優質基石陣容，公開發售 128× 超額認購觸發 50% 回撥上限。定價或落於區間上沿；歷史樣本顯示，此類高倍超購標的一手中籤率通常偏低。',
@@ -151,10 +175,10 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'Honeycomb Intelligence provides AI research infrastructure to asset managers, including multi-model valuation engines, automated due diligence and portfolio risk monitoring. It had 240 paying institutional clients and 128% net revenue retention in the latest financial year.',
       ),
       useOfProceeds: [
-        { pct: 45, label: '研发与模型训练 R&D' },
-        { pct: 25, label: '海外市场拓展 Expansion' },
-        { pct: 20, label: '数据采购与合规 Data & Compliance' },
-        { pct: 10, label: '一般营运资金 Working Capital' },
+        { pct: 45, label: localizedText('研發與模型訓練', '研发与模型训练', 'R&D and model training') },
+        { pct: 25, label: localizedText('海外市場拓展', '海外市场拓展', 'Overseas market expansion') },
+        { pct: 20, label: localizedText('數據採購與合規', '数据采购与合规', 'Data procurement and compliance') },
+        { pct: 10, label: localizedText('一般營運資金', '一般营运资金', 'General working capital') },
       ],
       risks: [
         localizedText('核心客戶集中度較高，前五大客戶貢獻約 41% 收入。', '核心客户集中度较高，前五大客户贡献约 41% 收入。', 'Customer concentration is high, with the top five clients contributing about 41% of revenue.'),
@@ -167,20 +191,20 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('基石陣容涵蓋一線機構，背書效應顯著。', '基石阵容涵盖一线机构，背书效应显著。', 'The cornerstone group includes leading institutions, providing strong validation.'),
       ],
       company: [
-        { k: '成立年份', v: '2018' },
-        { k: '总部', v: '香港 · 新加坡' },
-        { k: '员工人数', v: '约 680 人' },
-        { k: '最近财年净收入', v: 'HK$1.92B' },
-        { k: '净收入留存率', v: '128%' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2018') },
+        { k: localizedText('總部', '总部', 'Headquarters'), v: localizedText('香港 · 新加坡', '香港 · 新加坡', 'Hong Kong · Singapore') },
+        { k: localizedText('員工人數', '员工人数', 'Employees'), v: localizedText('約 680 人', '约 680 人', 'Approximately 680') },
+        { k: localizedText('最近財年淨收入', '最近财年净收入', 'Latest-year net revenue'), v: localeNeutralText('HK$1.92B') },
+        { k: localizedText('淨收入留存率', '净收入留存率', 'Net revenue retention'), v: localeNeutralText('128%') },
       ],
     },
-    evidence: { asOf: 'Jun 23, 2026 11:40 HKT', dataVersion: 'v2026.06.23-3', methodology: 'm-ipo-1.4', source: 'HKEX 招股章程 · 联交所披露易' },
+    evidence: { asOf: 'Jun 23, 2026 11:40 HKT', dataVersion: 'v2026.06.23-3', methodology: 'm-ipo-1.4', source: STRUCTURED_TEXT.prospectusSource },
   },
 
   /* ---- 2. ALLOTTED — win rate + clawback published ---- */
   {
     id: 'lotus', name: 'Lotus Digital Pay', cn: '莲花数科', ticker: '2611.HK',
-    exchange: 'HKEX', board: '主板 Main', sector: 'fintech', listingType: 'normal',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'fintech', listingType: 'normal',
     stage: 'allotted', sentiment: 'bullish', score: 71, confidence: 79, demandSignal: 'solid',
     tierLabel: localizedText('大盤股', '大盘股', 'Large-cap'),
     desc: localizedText(
@@ -197,55 +221,57 @@ export const IPO_FIXTURES: IpoRecord[] = [
       mcapHKD: localeNeutralText('92.1B'), nta: localeNeutralText('HK$9.20'),
       pe: localeNeutralText('27.6×'), pb: localeNeutralText('3.4×'),
     },
-    subPeriod: { start: 'Jun 12', end: 'Jun 17' }, listingDate: 'Jun 23, 2026',
-    pricingDate: 'Jun 17, 2026',
+    subPeriod: { start: localeNeutralText('Jun 12'), end: localeNeutralText('Jun 17') },
+    listingDate: localeNeutralText('Jun 23, 2026'), pricingDate: localeNeutralText('Jun 17, 2026'),
     live: { subPublic: 64.2, subIntl: 4.1, marginDays: null, greyChg: 12.4,
-      validApps: '186,420 户', oneLotRate: 32, headHammer: '6,000 手', clawbackApplied: '40%' },
+      validApps: localizedText('186,420 戶', '186,420 户', '186,420 applicants'), oneLotRate: 32,
+      headHammer: localizedText('6,000 手', '6,000 手', '6,000 lots'), clawbackApplied: localeNeutralText('40%') },
     timetable: [
-      { type: 'open', title: '公开发售开始 Offer Opens', at: 'Jun 12 09:00', done: true },
-      { type: 'close', title: '公开发售截止 Offer Closes', at: 'Jun 17 12:00', done: true },
-      { type: 'price', title: '定价 HK$18.20 上沿定价', at: 'Jun 17', done: true },
-      { type: 'allot', title: '公布分配结果 Allotment', at: 'Jun 20', done: true, active: true },
-      { type: 'grey', title: '暗盘 +12.4% Grey', at: 'Jun 20 16:15', done: true },
-      { type: 'list', title: '上市日 Listing', at: 'Jun 23 09:30', done: false },
+      { type: 'open', title: STRUCTURED_TEXT.offerOpens, at: localeNeutralText('Jun 12 09:00'), done: true },
+      { type: 'close', title: STRUCTURED_TEXT.offerCloses, at: localeNeutralText('Jun 17 12:00'), done: true },
+      { type: 'price', title: localizedText('定價 HK$18.20（區間上沿）', '定价 HK$18.20（区间上沿）', 'Priced at the HK$18.20 top end'), at: localeNeutralText('Jun 17'), done: true },
+      { type: 'allot', title: STRUCTURED_TEXT.allotmentPublished, at: localeNeutralText('Jun 20'), done: true, active: true },
+      { type: 'grey', title: localizedText('暗盤 +12.4%', '暗盘 +12.4%', 'Grey market +12.4%'), at: localeNeutralText('Jun 20 16:15'), done: true },
+      { type: 'list', title: STRUCTURED_TEXT.listingDay, at: localeNeutralText('Jun 23 09:30'), done: false },
     ],
     pools: [
-      { name: 'Pool A', desc: '≤ HK$5M 申请', lots: '11,220 手', apps: '171,300 户' },
-      { name: 'Pool B', desc: '> HK$5M 申请', lots: '11,220 手', apps: '15,120 户' },
+      { name: 'Pool A', desc: STRUCTURED_TEXT.poolA, lots: localizedText('11,220 手', '11,220 手', '11,220 lots'), apps: localizedText('171,300 戶', '171,300 户', '171,300 applicants') },
+      { name: 'Pool B', desc: STRUCTURED_TEXT.poolB, lots: localizedText('11,220 手', '11,220 手', '11,220 lots'), apps: localizedText('15,120 戶', '15,120 户', '15,120 applicants') },
     ],
     clawback: [
-      { trigger: '≥ 15× 且 < 50×', publicPct: '30%' },
-      { trigger: '≥ 50× 且 < 100×', publicPct: '40%', active: true },
-      { trigger: '≥ 100×', publicPct: '50%' },
+      { trigger: STRUCTURED_TEXT.trigger15To50, publicPct: localeNeutralText('30%') },
+      { trigger: STRUCTURED_TEXT.trigger50To100, publicPct: localeNeutralText('40%'), active: true },
+      { trigger: STRUCTURED_TEXT.trigger100, publicPct: localeNeutralText('50%') },
     ],
     applicationTiers: [
-      { lots: 1, shares: 200, amount: 3676, rate: '32%' },
-      { lots: 5, shares: 1000, amount: 18380, rate: '58%' },
-      { lots: 10, shares: 2000, amount: 36760, rate: '85%' },
-      { lots: 20, shares: 4000, amount: 73520, rate: '100%（稳中一手）' },
+      { lots: 1, shares: 200, amount: 3676, rate: localeNeutralText('32%') },
+      { lots: 5, shares: 1000, amount: 18380, rate: localeNeutralText('58%') },
+      { lots: 10, shares: 2000, amount: 36760, rate: localeNeutralText('85%') },
+      { lots: 20, shares: 4000, amount: 73520, rate: localizedText('100%（穩中一手）', '100%（稳中一手）', '100% (at least one lot)') },
     ],
     allotment: {
-      oneLotRate: 32, validApps: '186,420 户', headHammer: '6,000 手',
-      clawbackApplied: '40%', subPublic: 64.2, finalPrice: 18.20,
+      oneLotRate: 32, validApps: localizedText('186,420 戶', '186,420 户', '186,420 applicants'),
+      headHammer: localizedText('6,000 手', '6,000 手', '6,000 lots'),
+      clawbackApplied: localeNeutralText('40%'), subPublic: 64.2, finalPrice: 18.20,
       result: [
-        { lots: 1, applied: '171,300 户', rate: '32%' },
-        { lots: 5, applied: '9,640 户', rate: '58%' },
-        { lots: 10, applied: '3,210 户', rate: '85%' },
-        { lots: 20, applied: '2,270 户', rate: '100%' },
+        { lots: 1, applied: localizedText('171,300 戶', '171,300 户', '171,300 applicants'), rate: localeNeutralText('32%') },
+        { lots: 5, applied: localizedText('9,640 戶', '9,640 户', '9,640 applicants'), rate: localeNeutralText('58%') },
+        { lots: 10, applied: localizedText('3,210 戶', '3,210 户', '3,210 applicants'), rate: localeNeutralText('85%') },
+        { lots: 20, applied: localizedText('2,270 戶', '2,270 户', '2,270 applicants'), rate: localeNeutralText('100%') },
       ],
     },
     cornerstones: [
-      { name: 'Temasek 淡马锡', amount: 'HKD 800M', pct: 11.8, lockup: '6 个月' },
-      { name: 'BlackRock', amount: 'HKD 500M', pct: 7.4, lockup: '6 个月' },
+      { name: 'Temasek 淡马锡', amount: localeNeutralText('HKD 800M'), pct: 11.8, lockup: STRUCTURED_TEXT.sixMonths },
+      { name: 'BlackRock', amount: localeNeutralText('HKD 500M'), pct: 7.4, lockup: STRUCTURED_TEXT.sixMonths },
     ],
     lockup: [
-      { type: '控股股东 Controlling', endDate: 'Dec 23, 2026', pct: '61.2%', shares: '22.9 亿股' },
-      { type: '基石投资者 Cornerstone', endDate: 'Dec 23, 2026', pct: '19.2%', shares: '0.72 亿股' },
+      { type: STRUCTURED_TEXT.controllingShareholder, endDate: localeNeutralText('Dec 23, 2026'), pct: localeNeutralText('61.2%'), shares: localizedText('22.9 億股', '22.9 亿股', '2.29 billion shares') },
+      { type: STRUCTURED_TEXT.cornerstoneInvestors, endDate: localeNeutralText('Dec 23, 2026'), pct: localeNeutralText('19.2%'), shares: localizedText('0.72 億股', '0.72 亿股', '72 million shares') },
     ],
     sponsors: [
-      { name: 'JPMorgan', role: '联席保荐人 Sponsor', rating: 4.5 },
-      { name: 'UBS', role: '账簿管理人 Bookrunner', rating: 4 },
-      { name: 'Huatai 华泰', role: '账簿管理人 Bookrunner', rating: 3.5 },
+      { name: 'JPMorgan', role: STRUCTURED_TEXT.jointSponsor, rating: 4.5 },
+      { name: 'UBS', role: STRUCTURED_TEXT.bookrunner, rating: 4 },
+      { name: 'Huatai 华泰', role: STRUCTURED_TEXT.bookrunner, rating: 3.5 },
     ],
     aiNote: localizedText(
       '上沿 HK$18.20 定價及暗盤 +12.4% 共同反映需求穩健。公開發售 64× 觸發 40% 回撥，一手中籤率 32% 處於中等區間。盈利穩健，自由現金流為正。',
@@ -264,10 +290,10 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'Lotus Digital Pay operates a leading Southeast Asian cross-border payments and digital-wallet network spanning six countries and 42 million monthly active users. Adjusted net profit was HK$2.4B in the latest financial year, up 34% year on year.',
       ),
       useOfProceeds: [
-        { pct: 40, label: '区域扩张与牌照 Licensing' },
-        { pct: 30, label: '技术与风控 Tech & Risk' },
-        { pct: 20, label: '战略并购 M&A' },
-        { pct: 10, label: '营运资金 Working Capital' },
+        { pct: 40, label: localizedText('區域擴張與牌照', '区域扩张与牌照', 'Regional expansion and licences') },
+        { pct: 30, label: localizedText('技術與風控', '技术与风控', 'Technology and risk controls') },
+        { pct: 20, label: localizedText('策略性併購', '战略并购', 'Strategic M&A') },
+        { pct: 10, label: localizedText('營運資金', '营运资金', 'Working capital') },
       ],
       risks: [
         localizedText('多國支付牌照與外匯監管存在政策不確定性。', '多国支付牌照与外汇监管存在政策不确定性。', 'Payment licences and foreign-exchange rules across multiple jurisdictions carry policy uncertainty.'),
@@ -280,20 +306,20 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('淡馬錫與貝萊德的支持增強機構信心。', '淡马锡与贝莱德的支持增强机构信心。', 'Backing from Temasek and BlackRock reinforces institutional confidence.'),
       ],
       company: [
-        { k: '成立年份', v: '2014' },
-        { k: '总部', v: '新加坡' },
-        { k: '覆盖市场', v: '东南亚 6 国' },
-        { k: '月活用户', v: '4,200 万' },
-        { k: '经调整净利润', v: 'HK$2.4B' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2014') },
+        { k: localizedText('總部', '总部', 'Headquarters'), v: localizedText('新加坡', '新加坡', 'Singapore') },
+        { k: localizedText('覆蓋市場', '覆盖市场', 'Markets covered'), v: localizedText('東南亞六國', '东南亚六国', 'Six Southeast Asian countries') },
+        { k: localizedText('月活躍用戶', '月活跃用户', 'Monthly active users'), v: localizedText('4,200 萬', '4,200 万', '42 million') },
+        { k: localizedText('經調整淨利潤', '经调整净利润', 'Adjusted net profit'), v: localeNeutralText('HK$2.4B') },
       ],
     },
-    evidence: { asOf: 'Jun 20, 2026 18:05 HKT', dataVersion: 'v2026.06.20-1', methodology: 'm-ipo-1.4', source: 'HKEX 分配结果公告 · 联交所披露易' },
+    evidence: { asOf: 'Jun 20, 2026 18:05 HKT', dataVersion: 'v2026.06.20-1', methodology: 'm-ipo-1.4', source: localizedText('HKEX 分配結果公告 · 聯交所披露易', 'HKEX 分配结果公告 · 联交所披露易', 'HKEX allotment-results announcement · HKEXnews') },
   },
 
   /* ---- 3. PROCESSING — 18A biotech, post-hearing ---- */
   {
     id: 'pearl', name: 'Pearl River Biotech', cn: '珠江生物', ticker: '—',
-    exchange: 'HKEX', board: '主板 Main', sector: 'health', listingType: '18a',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'health', listingType: '18a',
     stage: 'processing', sentiment: 'cautious', score: 54, confidence: 61, demandSignal: 'neutral',
     tierLabel: localizedText('小盤股', '小盘股', 'Small-cap'),
     desc: localizedText(
@@ -312,34 +338,34 @@ export const IPO_FIXTURES: IpoRecord[] = [
       pe: localizedText('不適用（未盈利）', '不适用（未盈利）', 'N/A (pre-profit)'),
       pb: localizedText('待定', '待定', 'TBD'),
     },
-    subPeriod: { start: '待定', end: '待定' }, listingDate: '待定 TBD',
-    pricingDate: '待定',
+    subPeriod: { start: STRUCTURED_TEXT.tbd, end: STRUCTURED_TEXT.tbd },
+    listingDate: STRUCTURED_TEXT.tbd, pricingDate: STRUCTURED_TEXT.tbd,
     live: { subPublic: null, subIntl: null, marginDays: null, greyChg: null,
       validApps: null, oneLotRate: null, headHammer: null, clawbackApplied: null },
     timetable: [
-      { type: 'file', title: '递交上市申请 A1 Filing', at: 'Apr 02', done: true },
-      { type: 'hearing', title: '通过上市聆讯 Hearing Passed', at: 'Jun 16', done: true, active: true },
-      { type: 'roadshow', title: '路演 / 预路演 Roadshow', at: '待定', done: false },
-      { type: 'open', title: '启动公开发售 Offer Opens', at: '待定', done: false },
-      { type: 'list', title: '预计上市 Listing', at: '待定', done: false },
+      { type: 'file', title: localizedText('遞交上市申請', '递交上市申请', 'Listing application filed'), at: localeNeutralText('Apr 02'), done: true },
+      { type: 'hearing', title: localizedText('通過上市聆訊', '通过上市聆讯', 'Listing hearing passed'), at: localeNeutralText('Jun 16'), done: true, active: true },
+      { type: 'roadshow', title: localizedText('路演／預路演', '路演／预路演', 'Roadshow / pre-roadshow'), at: STRUCTURED_TEXT.tbd, done: false },
+      { type: 'open', title: localizedText('啟動公開發售', '启动公开发售', 'Public offer launch'), at: STRUCTURED_TEXT.tbd, done: false },
+      { type: 'list', title: localizedText('預計上市', '预计上市', 'Expected listing'), at: STRUCTURED_TEXT.tbd, done: false },
     ],
     pools: null,
     clawback: [
-      { trigger: '≥ 15× 且 < 50×', publicPct: '30%' },
-      { trigger: '≥ 50× 且 < 100×', publicPct: '40%' },
-      { trigger: '≥ 100×', publicPct: '50%' },
+      { trigger: STRUCTURED_TEXT.trigger15To50, publicPct: localeNeutralText('30%') },
+      { trigger: STRUCTURED_TEXT.trigger50To100, publicPct: localeNeutralText('40%') },
+      { trigger: STRUCTURED_TEXT.trigger100, publicPct: localeNeutralText('50%') },
     ],
     applicationTiers: null,
     allotment: null,
     cornerstones: [
-      { name: 'Qiming 启明创投', amount: 'HKD 220M（意向）', pct: 20.0, lockup: '6 个月' },
+      { name: 'Qiming 启明创投', amount: localizedText('HKD 220M（意向）', 'HKD 220M（意向）', 'HKD 220M (indicated)'), pct: 20.0, lockup: STRUCTURED_TEXT.sixMonths },
     ],
     lockup: [
-      { type: '控股股东 Controlling', endDate: '上市后 6 个月', pct: '— TBD', shares: '— TBD' },
+      { type: STRUCTURED_TEXT.controllingShareholder, endDate: localizedText('上市後六個月', '上市后六个月', 'Six months after listing'), pct: STRUCTURED_TEXT.tbd, shares: STRUCTURED_TEXT.tbd },
     ],
     sponsors: [
-      { name: 'CICC 中金公司', role: '独家保荐人 Sole Sponsor', rating: 4 },
-      { name: 'CMB Intl 招银国际', role: '账簿管理人 Bookrunner', rating: 3.5 },
+      { name: 'CICC 中金公司', role: STRUCTURED_TEXT.soleSponsor, rating: 4 },
+      { name: 'CMB Intl 招银国际', role: STRUCTURED_TEXT.bookrunner, rating: 3.5 },
     ],
     aiNote: localizedText(
       '這是一家按 18A 規則上市的未盈利生物科技公司，已通過聆訊但招股細節未定。核心管線 II 期數據是關鍵催化因素；招股條款、定價區間與基石陣容尚未公布，需求強度暫時無法測算。',
@@ -358,10 +384,10 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'Pearl River Biotech develops innovative immuno-oncology therapies. Its lead programme, PRB-201, is a PD-L1/VEGF bispecific antibody in Phase II trials. The company has no commercialised product and is applying to list under Chapter 18A.',
       ),
       useOfProceeds: [
-        { pct: 55, label: '核心管线临床 Clinical Trials' },
-        { pct: 25, label: '产能与 CMC' },
-        { pct: 12, label: '管线拓展 Pipeline' },
-        { pct: 8, label: '营运资金 Working Capital' },
+        { pct: 55, label: localizedText('核心管線臨床試驗', '核心管线临床试验', 'Lead-programme clinical trials') },
+        { pct: 25, label: localizedText('產能與 CMC', '产能与 CMC', 'Manufacturing capacity and CMC') },
+        { pct: 12, label: localizedText('管線拓展', '管线拓展', 'Pipeline expansion') },
+        { pct: 8, label: localizedText('營運資金', '营运资金', 'Working capital') },
       ],
       risks: [
         localizedText('核心管線仍處於 II 期，存在臨床失敗與延誤風險。', '核心管线仍处于 II 期，存在临床失败与延误风险。', 'The lead programme remains in Phase II and faces clinical failure and delay risk.'),
@@ -374,20 +400,20 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('已獲啟明創投意向基石支持。', '已获启明创投意向基石支持。', 'Qiming Venture Partners has indicated cornerstone support.'),
       ],
       company: [
-        { k: '成立年份', v: '2019' },
-        { k: '总部', v: '广州' },
-        { k: '核心管线', v: 'PRB-201（II 期）' },
-        { k: '上市规则', v: '主板 18A' },
-        { k: '商业化产品', v: '暂无' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2019') },
+        { k: localizedText('總部', '总部', 'Headquarters'), v: localizedText('廣州', '广州', 'Guangzhou') },
+        { k: localizedText('核心管線', '核心管线', 'Lead programme'), v: localizedText('PRB-201（II 期）', 'PRB-201（II 期）', 'PRB-201 (Phase II)') },
+        { k: localizedText('上市規則', '上市规则', 'Listing rule'), v: localizedText('主板 18A', '主板 18A', 'Main Board Chapter 18A') },
+        { k: localizedText('商業化產品', '商业化产品', 'Commercialised products'), v: localizedText('暫無', '暂无', 'None') },
       ],
     },
-    evidence: { asOf: 'Jun 17, 2026 09:20 HKT', dataVersion: 'v2026.06.17-2', methodology: 'm-ipo-1.4', source: 'HKEX 聆讯后资料集 PHIP · 联交所披露易' },
+    evidence: { asOf: 'Jun 17, 2026 09:20 HKT', dataVersion: 'v2026.06.17-2', methodology: 'm-ipo-1.4', source: localizedText('HKEX 聆訊後資料集 PHIP · 聯交所披露易', 'HKEX 聆讯后资料集 PHIP · 联交所披露易', 'HKEX post-hearing information pack · HKEXnews') },
   },
 
   /* ---- 4. BY INTRODUCTION — no pool / no clawback ---- */
   {
     id: 'meridian', name: 'Meridian Trust REIT', cn: '子午线房托', ticker: '0827.HK',
-    exchange: 'HKEX', board: '主板 Main', sector: 'property', listingType: 'intro',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'property', listingType: 'intro',
     stage: 'grey', sentiment: 'neutral', score: 58, confidence: 68, demandSignal: 'neutral',
     tierLabel: localizedText('中盤股', '中盘股', 'Mid-cap'),
     desc: localizedText(
@@ -404,15 +430,16 @@ export const IPO_FIXTURES: IpoRecord[] = [
       mcapHKD: localeNeutralText('24.0B'), nta: localeNeutralText('HK$25.60'),
       pe: localeNeutralText('—'), pb: localeNeutralText('0.86×'),
     },
-    subPeriod: { start: '不适用', end: '不适用' }, listingDate: 'Jun 24, 2026',
-    pricingDate: 'Jun 23, 2026（参考价）',
+    subPeriod: { start: STRUCTURED_TEXT.notApplicable, end: STRUCTURED_TEXT.notApplicable },
+    listingDate: localeNeutralText('Jun 24, 2026'),
+    pricingDate: localizedText('Jun 23, 2026（參考價）', 'Jun 23, 2026（参考价）', 'Jun 23, 2026 (reference price)'),
     live: { subPublic: null, subIntl: null, marginDays: null, greyChg: null,
       validApps: null, oneLotRate: null, headHammer: null, clawbackApplied: null },
     timetable: [
-      { type: 'file', title: '递交介绍上市申请 Filing', at: 'May 05', done: true },
-      { type: 'hearing', title: '通过上市聆讯 Hearing', at: 'Jun 10', done: true },
-      { type: 'ref', title: '公布参考价 HK$22.00', at: 'Jun 23', done: true, active: true },
-      { type: 'list', title: '介绍方式上市 Listing', at: 'Jun 24 09:30', done: false },
+      { type: 'file', title: localizedText('遞交介紹上市申請', '递交介绍上市申请', 'Introduction-listing application filed'), at: localeNeutralText('May 05'), done: true },
+      { type: 'hearing', title: localizedText('通過上市聆訊', '通过上市聆讯', 'Listing hearing passed'), at: localeNeutralText('Jun 10'), done: true },
+      { type: 'ref', title: localizedText('公布參考價 HK$22.00', '公布参考价 HK$22.00', 'HK$22.00 reference price announced'), at: localeNeutralText('Jun 23'), done: true, active: true },
+      { type: 'list', title: localizedText('以介紹方式上市', '以介绍方式上市', 'Listing by introduction'), at: localeNeutralText('Jun 24 09:30'), done: false },
     ],
     pools: null,
     clawback: null,
@@ -420,11 +447,11 @@ export const IPO_FIXTURES: IpoRecord[] = [
     allotment: null,
     cornerstones: [],
     lockup: [
-      { type: '原股东 Existing Holders', endDate: '无统一锁定', pct: '—', shares: '—' },
+      { type: localizedText('原有單位持有人', '原单位持有人', 'Existing unitholders'), endDate: localizedText('沒有統一禁售期', '没有统一限售期', 'No uniform lock-up'), pct: localeNeutralText('—'), shares: localeNeutralText('—') },
     ],
     sponsors: [
-      { name: 'HSBC 汇丰', role: '上市顾问 Listing Agent', rating: 4 },
-      { name: 'DBS 星展', role: '财务顾问 Adviser', rating: 3.5 },
+      { name: 'HSBC 汇丰', role: localizedText('上市顧問', '上市顾问', 'Listing agent'), rating: 4 },
+      { name: 'DBS 星展', role: localizedText('財務顧問', '财务顾问', 'Financial adviser'), rating: 3.5 },
     ],
     aiNote: localizedText(
       '介紹上市不涉及發行新單位或公開認購，因此沒有一手中籤率。開盤價由市場撮合決定，初期流動性偏低，價格波動可能較大。參考價相對資產淨值有折讓（P/NAV 0.86×）。',
@@ -443,7 +470,7 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'Meridian Trust REIT owns nine high-quality commercial properties in the Greater Bay Area, with 94% occupancy and an estimated 6.2% distribution yield. It is listing by introduction, with no new units issued and no funds raised.',
       ),
       useOfProceeds: [
-        { pct: 100, label: '不适用，介绍上市无募资 N/A' },
+        { pct: 100, label: localizedText('不適用，介紹上市沒有募資', '不适用，介绍上市没有募资', 'Not applicable; no funds raised in a listing by introduction') },
       ],
       risks: [
         localizedText('介紹上市沒有承銷支持，初期成交可能清淡。', '介绍上市没有承销支持，初期成交可能清淡。', 'A listing by introduction has no underwriting support, so initial trading may be thin.'),
@@ -456,20 +483,20 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('分派收益率具吸引力。', '分派收益率具吸引力。', 'The distribution yield is attractive.'),
       ],
       company: [
-        { k: '成立年份', v: '2011' },
-        { k: '物业数量', v: '9 处' },
-        { k: '出租率', v: '94%' },
-        { k: '分派收益率', v: '约 6.2%' },
-        { k: '上市方式', v: '介绍上市 By Introduction' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2011') },
+        { k: localizedText('物業數量', '物业数量', 'Properties'), v: localizedText('九項', '九项', 'Nine') },
+        { k: localizedText('出租率', '出租率', 'Occupancy'), v: localeNeutralText('94%') },
+        { k: localizedText('分派收益率', '分派收益率', 'Distribution yield'), v: localizedText('約 6.2%', '约 6.2%', 'Approximately 6.2%') },
+        { k: localizedText('上市方式', '上市方式', 'Listing method'), v: localizedText('介紹上市', '介绍上市', 'By introduction') },
       ],
     },
-    evidence: { asOf: 'Jun 23, 2026 17:30 HKT', dataVersion: 'v2026.06.23-1', methodology: 'm-ipo-1.4', source: 'HKEX 上市文件 · 联交所披露易' },
+    evidence: { asOf: 'Jun 23, 2026 17:30 HKT', dataVersion: 'v2026.06.23-1', methodology: 'm-ipo-1.4', source: localizedText('HKEX 上市文件 · 聯交所披露易', 'HKEX 上市文件 · 联交所披露易', 'HKEX listing document · HKEXnews') },
   },
 
   /* ---- 5. WITHDRAWN / FAILED ---- */
   {
     id: 'greenfield', name: 'GreenField Energy', cn: '绿野能源', ticker: '—',
-    exchange: 'HKEX', board: '主板 Main', sector: 'energy', listingType: 'normal',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'energy', listingType: 'normal',
     stage: 'withdrawn', sentiment: 'bearish', score: 31, confidence: 64, demandSignal: 'weak',
     tierLabel: localizedText('小盤股', '小盘股', 'Small-cap'),
     desc: localizedText(
@@ -486,18 +513,19 @@ export const IPO_FIXTURES: IpoRecord[] = [
       mcapHKD: localeNeutralText('~5.6B'), nta: localeNeutralText('HK$4.10'),
       pe: localizedText('虧損', '亏损', 'Loss-making'), pb: localeNeutralText('1.5×'),
     },
-    subPeriod: { start: 'Jun 05', end: 'Jun 10（提前截止）' }, listingDate: '已撤回 Withdrawn',
-    pricingDate: '未定价 Not Priced',
+    subPeriod: { start: localeNeutralText('Jun 05'), end: localizedText('Jun 10（提前截止）', 'Jun 10（提前截止）', 'Jun 10 (closed early)') },
+    listingDate: localizedText('已撤回', '已撤回', 'Withdrawn'),
+    pricingDate: localizedText('未定價', '未定价', 'Not priced'),
     live: { subPublic: 0.4, subIntl: 0.3, marginDays: null, greyChg: null,
       validApps: null, oneLotRate: null, headHammer: null, clawbackApplied: null },
     timetable: [
-      { type: 'open', title: '公开发售开始 Offer Opens', at: 'Jun 05 09:00', done: true },
-      { type: 'close', title: '公开发售截止 Offer Closes', at: 'Jun 10 12:00', done: true },
-      { type: 'withdraw', title: '撤回上市申请 Withdrawn', at: 'Jun 11', done: true, active: true, danger: true },
+      { type: 'open', title: STRUCTURED_TEXT.offerOpens, at: localeNeutralText('Jun 05 09:00'), done: true },
+      { type: 'close', title: STRUCTURED_TEXT.offerCloses, at: localeNeutralText('Jun 10 12:00'), done: true },
+      { type: 'withdraw', title: localizedText('撤回上市申請', '撤回上市申请', 'Listing application withdrawn'), at: localeNeutralText('Jun 11'), done: true, active: true, danger: true },
     ],
     pools: [
-      { name: 'Pool A', desc: '≤ HK$5M 申请', lots: '认购不足', apps: '认购不足' },
-      { name: 'Pool B', desc: '> HK$5M 申请', lots: '认购不足', apps: '认购不足' },
+      { name: 'Pool A', desc: STRUCTURED_TEXT.poolA, lots: localizedText('認購不足', '认购不足', 'Undersubscribed'), apps: localizedText('認購不足', '认购不足', 'Undersubscribed') },
+      { name: 'Pool B', desc: STRUCTURED_TEXT.poolB, lots: localizedText('認購不足', '认购不足', 'Undersubscribed'), apps: localizedText('認購不足', '认购不足', 'Undersubscribed') },
     ],
     clawback: null,
     applicationTiers: null,
@@ -505,7 +533,7 @@ export const IPO_FIXTURES: IpoRecord[] = [
     cornerstones: [],
     lockup: [],
     sponsors: [
-      { name: 'Guotai Junan 国泰君安', role: '独家保荐人 Sole Sponsor', rating: 2.5 },
+      { name: 'Guotai Junan 国泰君安', role: STRUCTURED_TEXT.soleSponsor, rating: 2.5 },
     ],
     aiNote: localizedText(
       '行業景氣低迷，公開發售認購不足 1×，發行人在截止後撤回上市。多維研究信號全面偏弱，需求基礎薄弱。',
@@ -524,7 +552,7 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'GreenField Energy manufactures solar modules. Industry overcapacity and price competition pushed it from profit to loss in the latest financial year. Weak, undersubscribed public demand led the issuer to withdraw the listing.',
       ),
       useOfProceeds: [
-        { pct: 100, label: '已撤回，募资计划终止 N/A' },
+        { pct: 100, label: localizedText('已撤回，募資計劃終止', '已撤回，募资计划终止', 'Withdrawn; fundraising plan terminated') },
       ],
       risks: [
         localizedText('行業產能嚴重過剩，組件價格持續下跌。', '行业产能严重过剩，组件价格持续下跌。', 'Severe industry overcapacity continues to drive module prices lower.'),
@@ -536,20 +564,20 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('若行業完成出清，仍存在週期反轉的潛在價值。', '若行业完成出清，仍存在周期反转的潜在价值。', 'If industry capacity clears, there may be upside from a cyclical recovery.'),
       ],
       company: [
-        { k: '成立年份', v: '2016' },
-        { k: '总部', v: '合肥' },
-        { k: '主营', v: '光伏组件制造' },
-        { k: '最近财年', v: '由盈转亏' },
-        { k: '上市状态', v: '已撤回 Withdrawn' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2016') },
+        { k: localizedText('總部', '总部', 'Headquarters'), v: localizedText('合肥', '合肥', 'Hefei') },
+        { k: localizedText('主營業務', '主营业务', 'Primary business'), v: localizedText('光伏組件製造', '光伏组件制造', 'Solar-module manufacturing') },
+        { k: localizedText('最近財年', '最近财年', 'Latest financial year'), v: localizedText('由盈轉虧', '由盈转亏', 'Swung from profit to loss') },
+        { k: localizedText('上市狀態', '上市状态', 'Listing status'), v: localizedText('已撤回', '已撤回', 'Withdrawn') },
       ],
     },
-    evidence: { asOf: 'Jun 11, 2026 10:00 HKT', dataVersion: 'v2026.06.11-1', methodology: 'm-ipo-1.4', source: 'HKEX 撤回公告 · 联交所披露易' },
+    evidence: { asOf: 'Jun 11, 2026 10:00 HKT', dataVersion: 'v2026.06.11-1', methodology: 'm-ipo-1.4', source: localizedText('HKEX 撤回公告 · 聯交所披露易', 'HKEX 撤回公告 · 联交所披露易', 'HKEX withdrawal announcement · HKEXnews') },
   },
 
   /* ---- 6. SUBSCRIBING — consumer, moderate demand ---- */
   {
     id: 'apex', name: 'Apex Coffee Roasters', cn: '顶峰咖啡', ticker: '9699.HK',
-    exchange: 'HKEX', board: '主板 Main', sector: 'consumer', listingType: 'normal',
+    exchange: 'HKEX', board: STRUCTURED_TEXT.mainBoard, sector: 'consumer', listingType: 'normal',
     stage: 'subscribing', sentiment: 'neutral', score: 49, confidence: 55, demandSignal: 'neutral',
     tierLabel: localizedText('中盤股', '中盘股', 'Mid-cap'),
     desc: localizedText(
@@ -566,25 +594,25 @@ export const IPO_FIXTURES: IpoRecord[] = [
       nta: localeNeutralText('HK$5.30'), pe: localeNeutralText('41.2×'),
       pb: localeNeutralText('2.5×'),
     },
-    subPeriod: { start: 'Jun 19', end: 'Jun 24 12:00' }, listingDate: 'Jun 30, 2026',
-    pricingDate: 'Jun 24, 2026',
-    live: { subPublic: 6.8, subIntl: 1.4, marginDays: '4 日', greyChg: null,
+    subPeriod: { start: localeNeutralText('Jun 19'), end: localeNeutralText('Jun 24 12:00') },
+    listingDate: localeNeutralText('Jun 30, 2026'), pricingDate: localeNeutralText('Jun 24, 2026'),
+    live: { subPublic: 6.8, subIntl: 1.4, marginDays: localizedText('四日', '四天', 'Four days'), greyChg: null,
       validApps: null, oneLotRate: null, headHammer: null, clawbackApplied: null },
     timetable: [
-      { type: 'open', title: '公开发售开始 Offer Opens', at: 'Jun 19 09:00', done: true },
-      { type: 'close', title: '公开发售截止 Offer Closes', at: 'Jun 24 12:00', done: false, active: true },
-      { type: 'price', title: '定价日 Pricing', at: 'Jun 24', done: false },
-      { type: 'allot', title: '公布分配结果 Allotment', at: 'Jun 29', done: false },
-      { type: 'list', title: '上市日 Listing', at: 'Jun 30 09:30', done: false },
+      { type: 'open', title: STRUCTURED_TEXT.offerOpens, at: localeNeutralText('Jun 19 09:00'), done: true },
+      { type: 'close', title: STRUCTURED_TEXT.offerCloses, at: localeNeutralText('Jun 24 12:00'), done: false, active: true },
+      { type: 'price', title: STRUCTURED_TEXT.pricingDay, at: localeNeutralText('Jun 24'), done: false },
+      { type: 'allot', title: STRUCTURED_TEXT.allotmentPublished, at: localeNeutralText('Jun 29'), done: false },
+      { type: 'list', title: STRUCTURED_TEXT.listingDay, at: localeNeutralText('Jun 30 09:30'), done: false },
     ],
     pools: [
-      { name: 'Pool A', desc: '≤ HK$5M 申请', lots: '4,500 手', apps: null },
-      { name: 'Pool B', desc: '> HK$5M 申请', lots: '4,500 手', apps: null },
+      { name: 'Pool A', desc: STRUCTURED_TEXT.poolA, lots: localizedText('4,500 手', '4,500 手', '4,500 lots'), apps: null },
+      { name: 'Pool B', desc: STRUCTURED_TEXT.poolB, lots: localizedText('4,500 手', '4,500 手', '4,500 lots'), apps: null },
     ],
     clawback: [
-      { trigger: '≥ 15× 且 < 50×', publicPct: '30%' },
-      { trigger: '≥ 50× 且 < 100×', publicPct: '40%' },
-      { trigger: '≥ 100×', publicPct: '50%' },
+      { trigger: STRUCTURED_TEXT.trigger15To50, publicPct: localeNeutralText('30%') },
+      { trigger: STRUCTURED_TEXT.trigger50To100, publicPct: localeNeutralText('40%') },
+      { trigger: STRUCTURED_TEXT.trigger100, publicPct: localeNeutralText('50%') },
     ],
     applicationTiers: [
       { lots: 1, shares: 200, amount: 2707, hot: true },
@@ -594,14 +622,14 @@ export const IPO_FIXTURES: IpoRecord[] = [
     ],
     allotment: null,
     cornerstones: [
-      { name: 'Hony Capital 弘毅', amount: 'HKD 180M', pct: 7.5, lockup: '6 个月' },
+      { name: 'Hony Capital 弘毅', amount: localeNeutralText('HKD 180M'), pct: 7.5, lockup: STRUCTURED_TEXT.sixMonths },
     ],
     lockup: [
-      { type: '控股股东 Controlling', endDate: 'Dec 30, 2026', pct: '58.0%', shares: '9.1 亿股' },
+      { type: STRUCTURED_TEXT.controllingShareholder, endDate: localeNeutralText('Dec 30, 2026'), pct: localeNeutralText('58.0%'), shares: localizedText('9.1 億股', '9.1 亿股', '910 million shares') },
     ],
     sponsors: [
-      { name: 'Citi 花旗', role: '独家保荐人 Sole Sponsor', rating: 4 },
-      { name: 'CCB Intl 建银国际', role: '账簿管理人 Bookrunner', rating: 3.5 },
+      { name: 'Citi 花旗', role: STRUCTURED_TEXT.soleSponsor, rating: 4 },
+      { name: 'CCB Intl 建银国际', role: STRUCTURED_TEXT.bookrunner, rating: 3.5 },
     ],
     aiNote: localizedText(
       '消費板塊情緒平淡，公開發售認購 6.8×，需求偏冷，而 41× 的市盈率估值偏高。基石支持有限，需求支撐較弱。',
@@ -620,10 +648,10 @@ export const IPO_FIXTURES: IpoRecord[] = [
         'Apex Coffee Roasters operates more than 1,200 speciality coffee shops focused on value-for-money freshly brewed coffee. Revenue grew rapidly in the latest financial year, but net margin remains thin as the company scales.',
       ),
       useOfProceeds: [
-        { pct: 50, label: '门店扩张 Store Expansion' },
-        { pct: 25, label: '供应链与烘焙 Supply Chain' },
-        { pct: 15, label: '品牌与数字化 Brand & Digital' },
-        { pct: 10, label: '营运资金 Working Capital' },
+        { pct: 50, label: localizedText('門店擴張', '门店扩张', 'Store expansion') },
+        { pct: 25, label: localizedText('供應鏈與烘焙', '供应链与烘焙', 'Supply chain and roasting') },
+        { pct: 15, label: localizedText('品牌與數碼化', '品牌与数字化', 'Brand and digital capabilities') },
+        { pct: 10, label: localizedText('營運資金', '营运资金', 'Working capital') },
       ],
       risks: [
         localizedText('門店快速擴張，單店盈利模式仍待驗證。', '门店快速扩张，单店盈利模式仍待验证。', 'Rapid store expansion leaves the profitability of individual stores unproven.'),
@@ -636,14 +664,14 @@ export const IPO_FIXTURES: IpoRecord[] = [
         localizedText('門店網絡快速擴張，品牌認知度提升。', '门店网络快速扩张，品牌认知度提升。', 'The store network is expanding rapidly and brand awareness is improving.'),
       ],
       company: [
-        { k: '成立年份', v: '2017' },
-        { k: '门店数量', v: '1,200+ 家' },
-        { k: '总部', v: '上海' },
-        { k: '净利率', v: '约 6%' },
-        { k: '会员数', v: '3,100 万' },
+        { k: localizedText('成立年份', '成立年份', 'Founded'), v: localeNeutralText('2017') },
+        { k: localizedText('門店數量', '门店数量', 'Stores'), v: localizedText('1,200+ 家', '1,200+ 家', 'More than 1,200') },
+        { k: localizedText('總部', '总部', 'Headquarters'), v: localizedText('上海', '上海', 'Shanghai') },
+        { k: localizedText('淨利率', '净利率', 'Net margin'), v: localizedText('約 6%', '约 6%', 'Approximately 6%') },
+        { k: localizedText('會員數', '会员数', 'Members'), v: localizedText('3,100 萬', '3,100 万', '31 million') },
       ],
     },
-    evidence: { asOf: 'Jun 23, 2026 11:40 HKT', dataVersion: 'v2026.06.23-3', methodology: 'm-ipo-1.4', source: 'HKEX 招股章程 · 联交所披露易' },
+    evidence: { asOf: 'Jun 23, 2026 11:40 HKT', dataVersion: 'v2026.06.23-3', methodology: 'm-ipo-1.4', source: STRUCTURED_TEXT.prospectusSource },
   },
 ];
 

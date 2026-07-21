@@ -476,7 +476,7 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: ResolvedIpoRecord }) {
       );
     case "corporate":
       return (
-        <div className="ab-grid-2" style={{ gap: 22, alignItems: "start" }}>
+        <div className="ab-grid-2 ipo-corporate-grid" style={{ gap: 22, alignItems: "start" }}>
           <Panel icon="building" title={t("companyInfo")}>
             <CompanyTable ipo={ipo} />
           </Panel>
@@ -543,10 +543,11 @@ function BackButton({ onClick }: { onClick: () => void }): ReactNode {
 
 /**
  * IPO research workbench — the 8-tab detail view, ported from the design
- * prototype's `DetailView`. Backed by the `getIpoSnapshotMock` envelope (swaps
- * to Codex's `/workbench/ipo/snapshot` later). Fact layer (vendor, provenance ·
- * netquity_hk_ipo) and analysis layer (aiphabee_research, descriptive non-advice)
- * stay visibly separate; sensitive fields are default-deny via `LockedValue`.
+ * prototype's `DetailView`. Backed by the locale-aware `getIpoSnapshotMock`
+ * envelope; the locale-blind live worker endpoint remains out of scope. Fact
+ * layer (vendor, provenance · netquity_hk_ipo) and analysis layer
+ * (aiphabee_research, descriptive non-advice) stay visibly separate; sensitive
+ * fields are default-deny via `LockedValue`.
  */
 function IpoDetail() {
   const navigate = useNavigate();
