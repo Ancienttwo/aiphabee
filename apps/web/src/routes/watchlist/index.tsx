@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShellPlaceholder } from "../../components/ShellPlaceholder";
 import { getWatchlistRuntime } from "../../lib/api";
+import { useLocale } from "../../i18n/locale";
 
 export const Route = createFileRoute("/watchlist/")({
   component: Watchlist,
 });
 
 function Watchlist() {
+  const { t } = useLocale();
   return (
     <ShellPlaceholder
-      title="观察列表"
-      description="价格、公告与指标提醒；每日 / 每周简报只总结有实质变化的项目，并做去重、频率与静默期控制。"
+      title={t("watchlistTitle")}
+      description={t("watchlistDescription")}
       pose="thinking"
       probe={getWatchlistRuntime}
     />

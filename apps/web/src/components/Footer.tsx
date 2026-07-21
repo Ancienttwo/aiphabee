@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Disclaimer } from "./Disclaimer";
 import { LOGO_MASCOT, SHELL } from "../lib/ui";
+import { useLocale, type MessageKey } from "../i18n/locale";
 
 const QUICK = [
-  { to: "/ask", label: "研究" },
-  { to: "/stock", label: "个股工作台" },
-  { to: "/documents", label: "公告文档" },
-  { to: "/library", label: "研究库" },
-  { to: "/mcp", label: "数据接入 MCP" },
-] as const;
+  { to: "/ask", label: "research" },
+  { to: "/stock", label: "footerStockWorkbench" },
+  { to: "/documents", label: "footerAnnouncementDocuments" },
+  { to: "/library", label: "footerResearchLibrary" },
+  { to: "/mcp", label: "homeActionMcp" },
+] as const satisfies ReadonlyArray<{ to: string; label: MessageKey }>;
 
 const quickLink = {
   fontSize: "var(--text-xs)",
@@ -18,6 +19,7 @@ const quickLink = {
 };
 
 export function Footer() {
+  const { t } = useLocale();
   return (
     <footer
       style={{
@@ -28,7 +30,7 @@ export function Footer() {
       <div style={{ ...SHELL, padding: "40px var(--content-gutter)", textAlign: "center" }}>
         <img src={LOGO_MASCOT} alt="AiphaBee" style={{ height: 44, marginBottom: 12 }} />
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-          © 2026 AiphaBee · 港股研究 Agent 与 MCP 数据平台
+          © 2026 AiphaBee · {t("footerTagline")}
         </p>
         <nav
           style={{
@@ -41,11 +43,11 @@ export function Footer() {
         >
           {QUICK.map((q) => (
             <Link key={q.to} to={q.to} style={quickLink}>
-              {q.label}
+              {t(q.label)}
             </Link>
           ))}
           <Link to="/ipos" style={{ ...quickLink, color: "var(--text-subtle)" }}>
-            IPO Demo（已归档）
+            {t("archivedIpoDemo")}
           </Link>
         </nav>
         <div style={{ maxWidth: 660, margin: "0 auto" }}>

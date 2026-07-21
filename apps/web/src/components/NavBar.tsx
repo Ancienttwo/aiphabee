@@ -3,17 +3,19 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Icon } from "../ds";
 import { NoviceProToggle } from "./evidence";
 import { LOGO_MASCOT, SHELL } from "../lib/ui";
+import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
+import { useLocale, type MessageKey } from "../i18n/locale";
 
-// PRD §5.2 primary navigation. 账户 is reached via the avatar on the right.
+// PRD §5.2 primary navigation. The account page is reached via the avatar.
 const NAV = [
-  { to: "/ask", label: "研究" },
-  { to: "/stock", label: "股票" },
-  { to: "/screen", label: "筛选" },
-  { to: "/compare", label: "比较" },
-  { to: "/watchlist", label: "观察" },
-  { to: "/documents", label: "文档" },
-  { to: "/mcp", label: "数据接入" },
-] as const;
+  { to: "/ask", label: "research" },
+  { to: "/stock", label: "stock" },
+  { to: "/screen", label: "screen" },
+  { to: "/compare", label: "compare" },
+  { to: "/watchlist", label: "watchlist" },
+  { to: "/documents", label: "documents" },
+  { to: "/mcp", label: "mcp" },
+] as const satisfies ReadonlyArray<{ to: string; label: MessageKey }>;
 
 const navLinkBase: CSSProperties = {
   fontFamily: "var(--font-sans)",
@@ -42,6 +44,7 @@ const iconButton: CSSProperties = {
 /** Light/dark toggle. data-theme is set pre-paint by the init script in
  *  __root.tsx; this syncs the displayed icon after hydration and persists. */
 function ThemeToggle() {
+  const { t } = useLocale();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   useEffect(() => {
     const cur = document.documentElement.getAttribute("data-theme");
@@ -61,8 +64,8 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
-      title="切换主题"
+      aria-label={theme === "dark" ? t("themeLight") : t("themeDark")}
+      title={t("theme")}
       style={iconButton}
     >
       <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
@@ -71,6 +74,7 @@ function ThemeToggle() {
 }
 
 export function NavBar() {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
@@ -129,7 +133,7 @@ export function NavBar() {
         <div className="nav-links-desktop" style={{ alignItems: "center", gap: 20, margin: "0 8px" }}>
           {NAV.map((item) => (
             <Link key={item.to} to={item.to} style={linkStyle(item.to)} aria-current={isActive(item.to) ? "page" : undefined}>
-              {item.label}
+              {t(item.label)}
             </Link>
           ))}
         </div>
@@ -138,8 +142,8 @@ export function NavBar() {
           <div className="nav-actions-desktop" style={{ alignItems: "center", gap: 10 }}>
             <button
               type="button"
-              aria-label="搜索证券"
-              title="搜索证券"
+              aria-label={t("searchSecurity")}
+              title={t("searchSecurity")}
               style={iconButton}
               onClick={() => navigate({ to: "/stock" })}
             >
@@ -148,19 +152,20 @@ export function NavBar() {
             <NoviceProToggle />
             <button
               type="button"
-              aria-label="账户"
-              title="账户"
+              aria-label={t("account")}
+              title={t("account")}
               style={iconButton}
               onClick={() => navigate({ to: "/account" })}
             >
               <Icon name="user" size={16} />
             </button>
           </div>
+          <LanguageSwitcher />
           <ThemeToggle />
           <button
             type="button"
             className="nav-hamburger"
-            aria-label="主菜单"
+            aria-label={t("mainMenu")}
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen((o) => !o)}
@@ -176,14 +181,14 @@ export function NavBar() {
           <div style={{ ...SHELL, paddingTop: 8, paddingBottom: 14, display: "flex", flexDirection: "column" }}>
             {NAV.map((item) => (
               <Link key={item.to} to={item.to} className="nav-mobile-link" aria-current={isActive(item.to) ? "page" : undefined}>
-                {item.label}
+                {t(item.label)}
               </Link>
             ))}
             <Link to="/stock" className="nav-mobile-link" aria-current={isActive("/stock") ? "page" : undefined}>
-              个股搜索
+              {t("stockSearch")}
             </Link>
             <Link to="/account" className="nav-mobile-link" aria-current={isActive("/account") ? "page" : undefined}>
-              账户
+              {t("account")}
             </Link>
             <div style={{ paddingTop: 12 }}>
               <NoviceProToggle />

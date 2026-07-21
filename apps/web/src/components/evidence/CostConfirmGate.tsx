@@ -1,4 +1,5 @@
 import { Button, Card, Icon } from "../../ds";
+import { useLocale } from "../../i18n/locale";
 
 /**
  * Cost-confirmation gate (PRD US-W10). High-cost actions (deep reports,
@@ -22,12 +23,13 @@ export function CostConfirmGate({
   onConfirm,
   onCancel,
 }: CostConfirmGateProps) {
+  const { t } = useLocale();
   if (!open) return null;
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="确认本次操作成本"
+      aria-label={t("confirmOperationCost")}
       style={{
         position: "fixed",
         inset: 0,
@@ -56,7 +58,7 @@ export function CostConfirmGate({
               color: "var(--text-primary)",
             }}
           >
-            确认本次操作
+            {t("confirmOperation")}
           </h3>
         </div>
         <div
@@ -69,16 +71,16 @@ export function CostConfirmGate({
             marginBottom: 16,
           }}
         >
-          <Line k="预估成本" v={`${estimatedCredits} credits`} strong />
-          {dataRange ? <Line k="数据范围" v={dataRange} /> : null}
-          {outputDescription ? <Line k="预期输出" v={outputDescription} /> : null}
+          <Line k={t("estimatedCost")} v={`${estimatedCredits} credits`} strong />
+          {dataRange ? <Line k={t("dataRange")} v={dataRange} /> : null}
+          {outputDescription ? <Line k={t("expectedOutput")} v={outputDescription} /> : null}
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Button variant="outline" onClick={onCancel}>
-            取消
+            {t("cancel")}
           </Button>
           <Button variant="primary" onClick={onConfirm}>
-            确认并继续
+            {t("confirmContinue")}
           </Button>
         </div>
       </Card>

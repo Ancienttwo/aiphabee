@@ -14,7 +14,7 @@ export interface UseAgentStream {
  * effect), so it never executes during SSR. Re-runs whenever the prompt
  * changes; aborts the in-flight request on unmount or prompt change.
  */
-export function useAgentStream(prompt: string | undefined): UseAgentStream {
+export function useAgentStream(prompt: string | undefined, locale: string): UseAgentStream {
   const [events, setEvents] = useState<AgentProgressStreamEvent[]>([]);
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [runId, setRunId] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function useAgentStream(prompt: string | undefined): UseAgentStream {
     setStatus("streaming");
 
     streamAgentRun(
-      { prompt },
+      { locale, prompt },
       {
         signal: controller.signal,
         onEvent: (event) => {
@@ -54,7 +54,7 @@ export function useAgentStream(prompt: string | undefined): UseAgentStream {
       active = false;
       controller.abort();
     };
-  }, [prompt]);
+  }, [locale, prompt]);
 
   return { events, status, runId };
 }

@@ -1,35 +1,38 @@
 import type { ReactNode } from "react";
 import { Badge, Card, CardContent, CardHeader, CardTitle, Icon } from "../../ds";
 import type { AgentPlan } from "../../lib/api";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
-const PHASE_LABEL: Record<string, string> = {
-  security_resolution: "证券解析",
-  entitlement_gate: "权限校验",
-  data_retrieval: "数据获取",
-  market_data: "行情数据",
-  fundamentals: "基本面",
-  analysis: "分析计算",
-  answer_generation: "生成答案",
-  evidence_binding: "证据绑定",
+const PHASE_LABEL: Record<string, MessageKey> = {
+  security_resolution: "phaseSecurityResolution",
+  entitlement_gate: "phaseEntitlementGate",
+  data_retrieval: "phaseDataRetrieval",
+  data_fetch: "phaseDataRetrieval",
+  market_data: "phaseMarketData",
+  fundamentals: "phaseFundamentals",
+  analysis: "phaseAnalysis",
+  answer_generation: "phaseAnswerGeneration",
+  answer_contract: "phaseAnswerGeneration",
+  evidence_binding: "phaseEvidenceBinding",
 };
 
-const SECTION_LABEL: Record<string, string> = {
-  direct_answer: "直接回答",
-  data_status: "数据状态",
-  key_evidence: "关键证据",
-  explanation: "解释",
-  next_steps: "后续建议",
-  assumptions: "假设",
-  caveats: "注意事项",
+const SECTION_LABEL: Record<string, MessageKey> = {
+  direct_answer: "sectionDirectAnswer",
+  data_status: "sectionDataStatus",
+  key_evidence: "sectionKeyEvidence",
+  explanation: "sectionExplanation",
+  next_steps: "sectionNextSteps",
+  assumptions: "sectionAssumptions",
+  caveats: "sectionCaveats",
 };
 
-const SOURCE_LABEL: Record<string, string> = {
-  tool_result: "工具结果",
-  deterministic_calculation: "确定性计算",
-  model_memory: "模型记忆",
-  training_data: "训练数据",
-  unverified_prompt: "未验证输入",
-  unstated_source: "未注明来源",
+const SOURCE_LABEL: Record<string, MessageKey> = {
+  tool_result: "sourceToolResult",
+  deterministic_calculation: "sourceCalculation",
+  model_memory: "sourceModelMemory",
+  training_data: "sourceTrainingData",
+  unverified_prompt: "sourceUnverifiedPrompt",
+  unstated_source: "sourceUnstated",
 };
 
 function Pill({ tone, children }: { tone: "ok" | "block" | "neutral"; children: ReactNode }) {
@@ -59,13 +62,14 @@ function Pill({ tone, children }: { tone: "ok" | "block" | "neutral"; children: 
 }
 
 export function ResearchPlanCard({ plan }: { plan: AgentPlan }) {
+  const { t } = useLocale();
   return (
     <Card>
       <CardHeader>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <CardTitle>研究计划</CardTitle>
+          <CardTitle>{t("researchPlan")}</CardTitle>
           <Badge tone="navy" variant="soft" size="sm">
-            {plan.planned_step_count} 步 · 只读
+            {plan.planned_step_count} {t("stepsUnit")} · {t("readOnly")}
           </Badge>
         </div>
       </CardHeader>
@@ -96,7 +100,7 @@ export function ResearchPlanCard({ plan }: { plan: AgentPlan }) {
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
                     {s.public_label}
                   </span>
-                  <Pill tone="neutral">{PHASE_LABEL[s.phase] ?? s.phase}</Pill>
+                  <Pill tone="neutral">{PHASE_LABEL[s.phase] ? t(PHASE_LABEL[s.phase]) : s.phase}</Pill>
                 </span>
                 {s.tool_calls.length > 0 ? (
                   <span style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
@@ -129,47 +133,47 @@ export function ResearchPlanCard({ plan }: { plan: AgentPlan }) {
 }
 
 export function EvidenceContractCard({ plan }: { plan: AgentPlan }) {
+  const { t } = useLocale();
   const struct = plan.answer_evidence_contract.answer_structure;
   const guard = plan.numeric_source_guard;
   return (
     <Card>
       <CardHeader>
-        <CardTitle>证据契约</CardTitle>
+        <CardTitle>{t("evidenceContract")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--text-muted)", marginBottom: 8 }}>
-          答案结构（PRD 8.3）
+          {t("answerStructure")}
         </div>
         <ol style={{ margin: "0 0 16px", paddingLeft: 18, display: "grid", gap: 4 }}>
           {struct.ordered_sections.map((sec) => (
             <li key={sec.section_id} style={{ fontSize: "var(--text-sm)", color: "var(--text-body)" }}>
-              {SECTION_LABEL[sec.section_id] ?? sec.section_id}
-              {sec.required ? null : <span style={{ color: "var(--text-subtle)" }}>（可选）</span>}
+              {SECTION_LABEL[sec.section_id] ? t(SECTION_LABEL[sec.section_id]) : sec.section_id}
+              {sec.required ? null : <span style={{ color: "var(--text-subtle)" }}> ({t("optional")})</span>}
             </li>
           ))}
         </ol>
         <p style={{ margin: "0 0 16px", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-          关键证据 {struct.key_evidence_items.min}–{struct.key_evidence_items.max} 条 · 直接回答{" "}
-          {struct.min_direct_answer_sentences}–{struct.max_direct_answer_sentences} 句
+          {t("keyEvidence")} {struct.key_evidence_items.min}–{struct.key_evidence_items.max} {t("itemsUnit")} · {t("directAnswer")} {struct.min_direct_answer_sentences}–{struct.max_direct_answer_sentences} {t("sentencesUnit")}
         </p>
 
         <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--text-muted)", marginBottom: 8 }}>
-          数字来源守卫
+          {t("numericSourceGuard")}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
           {guard.allowed_sources.map((s) => (
-            <Pill key={s} tone="ok">✓ {SOURCE_LABEL[s] ?? s}</Pill>
+            <Pill key={s} tone="ok">✓ {SOURCE_LABEL[s] ? t(SOURCE_LABEL[s]) : s}</Pill>
           ))}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
           {guard.blocked_sources.map((s) => (
-            <Pill key={s} tone="block">✕ {SOURCE_LABEL[s] ?? s}</Pill>
+            <Pill key={s} tone="block">✕ {SOURCE_LABEL[s] ? t(SOURCE_LABEL[s]) : s}</Pill>
           ))}
         </div>
         <p style={{ margin: 0, fontSize: "var(--text-2xs)", lineHeight: 1.6, color: "var(--text-muted)" }}>
-          每个金融数字必须绑定来源记录或计算引用，否则按{" "}
+          {t("numericGuardPrefix")} {" "}
           <span style={{ fontFamily: "var(--font-mono)", color: "var(--red-600)" }}>{guard.answer_contract.failure_code}</span>{" "}
-          拦截；无法取得的值标注为「{guard.answer_contract.unknown_value_label}」。
+          {t("numericGuardSuffix")} “{guard.answer_contract.unknown_value_label}”.
         </p>
 
         <div
@@ -183,11 +187,11 @@ export function EvidenceContractCard({ plan }: { plan: AgentPlan }) {
             color: "var(--text-muted)",
           }}
         >
-          <span>预算 {plan.budget.max_credits} credits</span>
+          <span>{t("budget")} {plan.budget.max_credits} credits</span>
           <span>·</span>
-          <span>≤{plan.budget.max_steps} 步</span>
+          <span>≤{plan.budget.max_steps} {t("stepsUnit")}</span>
           <span>·</span>
-          <span>≤{plan.budget.max_rows} 行</span>
+          <span>≤{plan.budget.max_rows} {t("rowsUnit")}</span>
         </div>
       </CardContent>
     </Card>

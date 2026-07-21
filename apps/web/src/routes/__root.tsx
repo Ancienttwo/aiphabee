@@ -13,6 +13,7 @@ import { ResponseDepthProvider } from "../lib/context/ResponseDepthContext";
 import { SessionProvider } from "../lib/context/SessionContext";
 import { EntitlementProvider } from "../lib/context/EntitlementContext";
 import { IpoCompareProvider } from "../lib/context/IpoCompareContext";
+import { LocaleProvider } from "../i18n/locale";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -55,31 +56,33 @@ function RootComponent() {
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <ResponseDepthProvider>
-            <EntitlementProvider>
-              <IpoCompareProvider>
-              <div
-                style={{
-                  minHeight: "100vh",
-                  display: "flex",
-                  flexDirection: "column",
-                  background: "var(--surface-page)",
-                }}
-              >
-              <a className="skip-link" href="#main-content">
-                Skip to main content
-              </a>
-              <NavBar />
-              <div id="main-content" tabIndex={-1} style={{ flex: 1 }}>
-                <Outlet />
-              </div>
-              <Footer />
-              </div>
-              </IpoCompareProvider>
-            </EntitlementProvider>
-          </ResponseDepthProvider>
-        </SessionProvider>
+        <LocaleProvider>
+          <SessionProvider>
+            <ResponseDepthProvider>
+              <EntitlementProvider>
+                <IpoCompareProvider>
+                  <div
+                    style={{
+                      minHeight: "100vh",
+                      display: "flex",
+                      flexDirection: "column",
+                      background: "var(--surface-page)",
+                    }}
+                  >
+                    <a className="skip-link" href="#main-content">
+                      Skip to main content
+                    </a>
+                    <NavBar />
+                    <div id="main-content" tabIndex={-1} style={{ flex: 1 }}>
+                      <Outlet />
+                    </div>
+                    <Footer />
+                  </div>
+                </IpoCompareProvider>
+              </EntitlementProvider>
+            </ResponseDepthProvider>
+          </SessionProvider>
+        </LocaleProvider>
       </QueryClientProvider>
     </RootDocument>
   );
@@ -96,6 +99,12 @@ function RootDocument({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{
             __html:
               "(function(){try{var s=localStorage.getItem('aiphabee-theme');var t=s||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var l=localStorage.getItem('aiphabee-locale');if(l==='zh-Hant'||l==='zh-Hans'||l==='en')document.documentElement.lang=l;}catch(e){}})();",
           }}
         />
       </head>

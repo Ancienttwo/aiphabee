@@ -1,6 +1,7 @@
 import { Badge, Button, Hexvatar } from "../../ds";
 import type { ResolveSecurityCandidate } from "../../lib/api";
 import { formatHkSymbol } from "../../lib/format";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 /**
  * Ambiguity resolver (PRD SEC-03). When a security query matches more than one
@@ -20,11 +21,9 @@ const STATUS_TONE = {
   delisted: "bearish",
 } as const;
 
-const STATUS_LABEL = {
-  listed: "上市",
-  suspended: "停牌",
-  delisted: "退市",
-} as const;
+const STATUS_LABEL: Record<ResolveSecurityCandidate["status"], MessageKey> = {
+  listed: "listed", suspended: "suspended", delisted: "delisted",
+};
 
 export function AmbiguityResolver({
   candidates,
@@ -32,6 +31,7 @@ export function AmbiguityResolver({
   onCancel,
   query,
 }: AmbiguityResolverProps) {
+  const { locale, t } = useLocale();
   return (
     <div
       style={{
@@ -51,15 +51,15 @@ export function AmbiguityResolver({
           marginBottom: 6,
         }}
       >
-        「{query ?? "该查询"}」· {candidates.length} 个候选，请选择
+        “{query ?? t("queryFallback")}” · {candidates.length} {t("candidatesSelect")}
       </div>
       <p style={{ margin: "0 0 12px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-        为避免歧义，系统不会替你自动选择。
+        {t("ambiguityNoAutoSelect")}
       </p>
       <div style={{ display: "grid", gap: 8 }}>
         {candidates.map((c) => {
           const delisted = c.status === "delisted";
-          const primaryName = c.name.zhHant || c.name.en;
+          const primaryName = locale === "en" ? c.name.en || c.name.zhHant : locale === "zh-Hans" ? c.name.zhHans || c.name.zhHant : c.name.zhHant || c.name.en;
           const secondaryName = primaryName !== c.name.en ? c.name.en : null;
           const shortSymbol = formatHkSymbol(c.symbol).split(".")[0];
           return (
@@ -121,7 +121,7 @@ export function AmbiguityResolver({
                     </span>
                   ) : null}
                   <Badge tone={STATUS_TONE[c.status]} variant="soft" size="sm">
-                    {STATUS_LABEL[c.status]}
+                    {t(STATUS_LABEL[c.status])}
                   </Badge>
                 </span>
                 <span
@@ -133,14 +133,14 @@ export function AmbiguityResolver({
                   }}
                 >
                   {c.exchange} · {c.market}
-                  {c.validFrom ? <> · 自 {c.validFrom}</> : null}
-                  {delisted && c.validTo ? <> · 至 {c.validTo}</> : null}
-                  {" · 匹配依据 "}
+                  {c.validFrom ? <> · {t("validFrom")} {c.validFrom}</> : null}
+                  {delisted && c.validTo ? <> · {t("validTo")} {c.validTo}</> : null}
+                  {` · ${t("matchReason")} `}
                   {c.matchReason}
                 </span>
               </span>
               <Button size="sm" variant="outline" onClick={() => onSelect(c)}>
-                选择
+                {t("select")}
               </Button>
             </div>
           );
@@ -149,7 +149,7 @@ export function AmbiguityResolver({
       {onCancel ? (
         <div style={{ marginTop: 12 }}>
           <Button size="sm" variant="ghost" onClick={onCancel}>
-            取消
+            {t("cancel")}
           </Button>
         </div>
       ) : null}

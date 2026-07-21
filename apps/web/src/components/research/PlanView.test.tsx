@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { EvidenceContractCard, ResearchPlanCard } from "./PlanView";
 import type { AgentPlan } from "../../lib/api";
+import { LocaleProvider } from "../../i18n/locale";
 
 const PLAN: AgentPlan = {
   actual_tool_execution: false,
@@ -63,20 +64,24 @@ const PLAN: AgentPlan = {
 
 describe("research plan view (SSR)", () => {
   it("ResearchPlanCard lists phased steps with their tools and scopes", () => {
-    const html = renderToStaticMarkup(<ResearchPlanCard plan={PLAN} />);
-    expect(html).toContain("研究计划");
+    const html = renderToStaticMarkup(
+      <LocaleProvider><ResearchPlanCard plan={PLAN} /></LocaleProvider>,
+    );
+    expect(html).toContain("研究計劃");
     expect(html).toContain("Resolve security and time context");
-    expect(html).toContain("证券解析");
+    expect(html).toContain("證券解析");
     expect(html).toContain("resolve_security");
     expect(html).toContain("security:read");
   });
 
   it("EvidenceContractCard shows the answer structure and the numeric guard", () => {
-    const html = renderToStaticMarkup(<EvidenceContractCard plan={PLAN} />);
+    const html = renderToStaticMarkup(
+      <LocaleProvider><EvidenceContractCard plan={PLAN} /></LocaleProvider>,
+    );
     expect(html).toContain("直接回答");
-    expect(html).toContain("关键证据");
-    expect(html).toContain("工具结果"); // allowed source
-    expect(html).toContain("模型记忆"); // blocked source
+    expect(html).toContain("關鍵證據");
+    expect(html).toContain("工具結果"); // allowed source
+    expect(html).toContain("模型記憶"); // blocked source
     expect(html).toContain("UNSOURCED_NUMERIC_CLAIM");
     expect(html).toContain("20 credits");
   });

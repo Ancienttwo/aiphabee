@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 /**
  * Answer-layer label (PRD AGT-06). Every claim in an answer is tagged as one
@@ -7,14 +8,15 @@ import type { CSSProperties } from "react";
  */
 export type AnswerLayer = "fact" | "calculation" | "inference" | "unknown";
 
-const LAYERS: Record<AnswerLayer, { label: string; bg: string; fg: string }> = {
-  fact: { label: "事实", bg: "var(--green-50)", fg: "var(--green-600)" },
-  calculation: { label: "计算", bg: "var(--violet-50)", fg: "var(--violet-600)" },
-  inference: { label: "推断", bg: "var(--honey-50)", fg: "var(--honey-700)" },
-  unknown: { label: "未知", bg: "var(--neutral-100)", fg: "var(--neutral-600)" },
+const LAYERS: Record<AnswerLayer, { label: MessageKey; bg: string; fg: string }> = {
+  fact: { label: "layerFact", bg: "var(--green-50)", fg: "var(--green-600)" },
+  calculation: { label: "layerCalculation", bg: "var(--violet-50)", fg: "var(--violet-600)" },
+  inference: { label: "layerInference", bg: "var(--honey-50)", fg: "var(--honey-700)" },
+  unknown: { label: "layerUnknown", bg: "var(--neutral-100)", fg: "var(--neutral-600)" },
 };
 
 export function AnswerLayerTag({ layer }: { layer: AnswerLayer }) {
+  const { t } = useLocale();
   const l = LAYERS[layer];
   const style: CSSProperties = {
     display: "inline-flex",
@@ -29,8 +31,8 @@ export function AnswerLayerTag({ layer }: { layer: AnswerLayer }) {
     color: l.fg,
   };
   return (
-    <span style={style} title={`答案分层：${l.label}`}>
-      {l.label}
+    <span style={style} title={`${t("answerLayer")}: ${t(l.label)}`}>
+      {t(l.label)}
     </span>
   );
 }

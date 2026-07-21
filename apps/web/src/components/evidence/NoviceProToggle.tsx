@@ -1,20 +1,22 @@
 import { useResponseDepth, type ResponseDepth } from "../../lib/context/ResponseDepthContext";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 /**
  * Novice / Pro segmented toggle (PRD AGT-12). Switching only changes the depth
  * of explanation — the data and evidence behind it are identical in both modes.
  */
-const OPTIONS: { value: ResponseDepth; label: string }[] = [
-  { value: "novice", label: "入门" },
-  { value: "pro", label: "专业" },
+const OPTIONS: { value: ResponseDepth; label: MessageKey }[] = [
+  { value: "novice", label: "novice" },
+  { value: "pro", label: "professional" },
 ];
 
 export function NoviceProToggle() {
+  const { t } = useLocale();
   const { depth, setDepth } = useResponseDepth();
   return (
     <div
       role="radiogroup"
-      aria-label="回答深度"
+      aria-label={t("responseDepth")}
       style={{
         display: "inline-flex",
         padding: 2,
@@ -45,7 +47,7 @@ export function NoviceProToggle() {
               color: active ? "var(--text-on-honey)" : "var(--text-muted)",
             }}
           >
-            {opt.label}
+            {t(opt.label)}
           </button>
         );
       })}

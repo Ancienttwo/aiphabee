@@ -80,10 +80,10 @@ export function resolveRelatedWarrants(instrumentId: string) {
 // --- Agent research plan -------------------------------------------------
 
 /** Pre-execution research plan: phased steps + answer/evidence contract. */
-export function planAgentRun(prompt: string) {
+export function planAgentRun(prompt: string, locale: string) {
   return apiCall<AgentPlan>("/agent/runs/plan", {
     method: "POST",
-    body: { prompt },
+    body: { locale, prompt },
   });
 }
 

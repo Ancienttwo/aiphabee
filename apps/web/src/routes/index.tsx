@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   Button,
   Card,
@@ -9,51 +9,53 @@ import {
   type IconName,
 } from "../ds";
 import { MASCOT_BP, SHELL } from "../lib/ui";
+import { useLocale, type MessageKey } from "../i18n/locale";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
 const QUICK_ACTIONS = [
-  { to: "/ask", label: "研究对话", desc: "用自然语言提问，带证据作答", icon: "message-circle", tone: "honey" },
-  { to: "/stock", label: "个股工作台", desc: "行情 / 财务 / 估值 / 公告", icon: "trending-up", tone: "green" },
-  { to: "/screen", label: "筛选器", desc: "自然语言转结构化条件", icon: "sliders", tone: "violet" },
-  { to: "/compare", label: "比较器", desc: "2–5 只证券统一口径对比", icon: "layers", tone: "honey" },
-  { to: "/documents", label: "公告与文档", desc: "检索原文，定位到段落", icon: "file-text", tone: "green" },
-  { to: "/watchlist", label: "观察列表", desc: "提醒与每日 / 每周简报", icon: "eye", tone: "violet" },
-  { to: "/library", label: "研究库", desc: "保存完整 run 与证据快照", icon: "bookmark", tone: "honey" },
-  { to: "/mcp", label: "数据接入 MCP", desc: "在外部 AI 中调港股工具", icon: "database", tone: "green" },
-] as const;
+  { to: "/ask", label: "homeActionAsk", desc: "homeActionAskDesc", icon: "message-circle", tone: "honey" },
+  { to: "/stock", label: "homeActionStock", desc: "homeActionStockDesc", icon: "trending-up", tone: "green" },
+  { to: "/screen", label: "homeActionScreen", desc: "homeActionScreenDesc", icon: "sliders", tone: "violet" },
+  { to: "/compare", label: "homeActionCompare", desc: "homeActionCompareDesc", icon: "layers", tone: "honey" },
+  { to: "/documents", label: "homeActionDocuments", desc: "homeActionDocumentsDesc", icon: "file-text", tone: "green" },
+  { to: "/watchlist", label: "homeActionWatchlist", desc: "homeActionWatchlistDesc", icon: "eye", tone: "violet" },
+  { to: "/library", label: "homeActionLibrary", desc: "homeActionLibraryDesc", icon: "bookmark", tone: "honey" },
+  { to: "/mcp", label: "homeActionMcp", desc: "homeActionMcpDesc", icon: "database", tone: "green" },
+] as const satisfies ReadonlyArray<{ to: string; label: MessageKey; desc: MessageKey; icon: IconName; tone: HexvatarTone }>;
 
 const EXAMPLES = [
-  "腾讯这三天为什么跌？",
-  "对比腾讯、阿里、美团近三年的毛利率",
-  "筛选市值高于 500 亿、股息率高于 4% 的港股",
-  "汇丰控股最近有哪些重要公告？",
-] as const;
+  "homeExample1",
+  "homeExample2",
+  "homeExample3",
+  "homeExample4",
+] as const satisfies readonly MessageKey[];
 
-const VALUE_PROPS: { icon: IconName; tone: HexvatarTone; title: string; body: ReactNode }[] = [
+const VALUE_PROPS: { icon: IconName; tone: HexvatarTone; title: MessageKey; body: MessageKey }[] = [
   {
     icon: "layers",
     tone: "honey",
-    title: "证据可追溯",
-    body: "每个金融数字都能点开来源记录、数据版本与 as_of 时间，绝不凭空生成。",
+    title: "homeValueEvidence",
+    body: "homeValueEvidenceBody",
   },
   {
     icon: "shield",
     tone: "green",
-    title: "结论分层",
-    body: "事实 / 计算 / 推断 / 未知清晰标注；只给证据强度，不编造可信度分数。",
+    title: "homeValueLayers",
+    body: "homeValueLayersBody",
   },
   {
     icon: "database",
     tone: "violet",
-    title: "Web + MCP 双入口",
-    body: "同一套港股工具，既服务 Web 研究，也通过 Remote MCP 供外部 AI 调用。",
+    title: "homeValueDual",
+    body: "homeValueDualBody",
   },
 ];
 
 function Home() {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
 
@@ -90,7 +92,7 @@ function Home() {
         >
           <Icon name="sparkles" size={15} color="var(--honey-700)" />
           <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--honey-800)" }}>
-            港股研究 Agent · 证据可追溯
+            {t("homeBadge")}
           </span>
         </div>
         <h1
@@ -104,9 +106,9 @@ function Home() {
             color: "var(--text-primary)",
           }}
         >
-          把每个港股结论，
+          {t("homeHeadline1")}
           <br />
-          <span style={{ color: "var(--honey-500)" }}>追溯到它的证据。</span>
+          <span style={{ color: "var(--honey-500)" }}>{t("homeHeadline2")}</span>
         </h1>
         <p
           style={{
@@ -117,7 +119,7 @@ function Home() {
             color: "var(--text-body)",
           }}
         >
-          30+ 年港股标准化数据为底座的研究操作系统。用自然语言提问，得到分层、可验证、可复用的研究结论。
+          {t("homeIntro")}
         </p>
 
         {/* Research prompt */}
@@ -136,8 +138,8 @@ function Home() {
           <input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="例如：腾讯这三天为什么跌？"
-            aria-label="研究问题"
+            placeholder={t("homePromptPlaceholder")}
+            aria-label={t("researchQuestion")}
             style={{
               flex: 1,
               height: 48,
@@ -155,11 +157,13 @@ function Home() {
             size="lg"
             iconRight={<Icon name="arrow-right" size={18} />}
           >
-            开始研究
+            {t("startResearch")}
           </Button>
         </form>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 16 }}>
-          {EXAMPLES.map((q) => (
+          {EXAMPLES.map((key) => {
+            const q = t(key);
+            return (
             <button
               key={q}
               type="button"
@@ -177,7 +181,8 @@ function Home() {
             >
               {q}
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -207,10 +212,10 @@ function Home() {
                   color: "var(--text-primary)",
                 }}
               >
-                {a.label}
+                {t(a.label)}
               </h3>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--text-muted)" }}>
-                {a.desc}
+                {t(a.desc)}
               </p>
             </Card>
           ))}
@@ -242,10 +247,10 @@ function Home() {
                     color: "var(--text-primary)",
                   }}
                 >
-                  {v.title}
+                  {t(v.title)}
                 </h3>
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, color: "var(--text-body)", maxWidth: "62ch" }}>
-                  {v.body}
+                  {t(v.body)}
                 </p>
               </div>
             </div>
