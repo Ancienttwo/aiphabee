@@ -1,6 +1,6 @@
 ---
 name: fast-worker
-description: Fast execution worker on Sonnet 5 at max effort. Handles implementation, tests, refactoring, documentation updates, and mechanical execution of well-scoped tasks. Not for planning, architecture, or high-risk judgment — those go to deep-reasoner or stay with the orchestrator.
+description: Fast execution worker on Sonnet at max effort. Handles implementation, tests, refactoring, documentation updates, and mechanical execution of well-scoped tasks. Not for planning, architecture, or high-risk judgment — those go to deep-reasoner or stay with the orchestrator.
 model: sonnet
 effort: max
 ---
