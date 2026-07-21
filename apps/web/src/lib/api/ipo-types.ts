@@ -4,7 +4,8 @@
  * Mirrors the design prototype's mock record shape
  * (`docs/AiphaBee Design System/apps/ipo-workbench/data.jsx`) — the source of
  * truth for the IPO workbench's fields, lookups, and product semantics. These
- * types describe the `data` payload Codex's worker returns inside the shared
+ * `IpoRecord` is the fixture-authoring contract. `ResolvedIpoRecord` describes
+ * the locale-selected `data` payload returned inside the shared
  * `ResponseEnvelope<T>` (see `./types`, `@aiphabee/data-contracts`).
  *
  * IMPORTANT: this is a NEW, additive contract. The legacy `../../data/ipos.ts`
@@ -23,6 +24,28 @@
  *    account is not entitled (see `LockedValue`).
  */
 import type { BadgeTone } from "../../ds";
+
+/** Locales carried by authoritative IPO fixture prose. */
+export type IpoContentLocale = "zh-Hant" | "zh-Hans" | "en";
+
+/**
+ * One authoritative piece of IPO prose in every supported locale.
+ * Partial locale maps are forbidden: consumers select the requested value
+ * without fallback or machine-generated translation.
+ */
+export interface IpoLocalizedText {
+  readonly kind: "ipo_localized_text";
+  readonly values: Readonly<Record<IpoContentLocale, string>>;
+}
+
+/** Replace locale-keyed prose leaves with the selected display string. */
+export type ResolvedIpoValue<T> = T extends IpoLocalizedText
+  ? string
+  : T extends ReadonlyArray<infer Item>
+    ? ResolvedIpoValue<Item>[]
+    : T extends object
+      ? { [Key in keyof T]: ResolvedIpoValue<T[Key]> }
+      : T;
 
 /** IPO lifecycle stage — the pipeline lanes. */
 export type IpoStage =
@@ -54,7 +77,10 @@ export type IpoSentiment = "bullish" | "cautious" | "neutral" | "bearish";
  */
 export type DemandSignal = "strong" | "solid" | "neutral" | "weak" | "unknown";
 
-/** Offer terms block (vendor fact). `null` numerics = not yet disclosed. */
+/**
+ * Offer terms block (vendor fact). `null` numerics = not yet disclosed;
+ * textual vendor values are authoritative for all supported locales.
+ */
 export interface IpoTerms {
   priceLow: number | null;
   priceHigh: number | null;
@@ -62,15 +88,15 @@ export interface IpoTerms {
   ccy: string;
   entryFee: number | null;
   lotSize: number;
-  sharesOffered: string;
-  greenshoe: string;
+  sharesOffered: IpoLocalizedText;
+  greenshoe: IpoLocalizedText;
   publicPct: number;
   intlPct: number;
-  raiseHKD: string;
-  mcapHKD: string;
-  nta: string;
-  pe: string;
-  pb: string;
+  raiseHKD: IpoLocalizedText;
+  mcapHKD: IpoLocalizedText;
+  nta: IpoLocalizedText;
+  pe: IpoLocalizedText;
+  pb: IpoLocalizedText;
 }
 
 /** Subscription window (string-typed; `不适用` for By Introduction). */
@@ -192,10 +218,10 @@ export interface IpoCompanyFact {
 
 /** Company profile block (vendor fact). */
 export interface IpoProfile {
-  overview: string;
+  overview: IpoLocalizedText;
   useOfProceeds: IpoProceedsSlice[];
-  risks: string[];
-  advantages: string[];
+  risks: IpoLocalizedText[];
+  advantages: IpoLocalizedText[];
   company: IpoCompanyFact[];
 }
 
@@ -205,7 +231,7 @@ export type IpoRiskLevel = "high" | "mid" | "low";
 /** One risk-summary line (analysis layer). */
 export interface IpoRisk {
   level: IpoRiskLevel;
-  text: string;
+  text: IpoLocalizedText;
 }
 
 /**
@@ -220,7 +246,7 @@ export interface IpoEvidence {
 }
 
 /**
- * The canonical IPO workbench record — the detail-snapshot `data` payload.
+ * Canonical locale-keyed IPO fixture record before presentation selection.
  */
 export interface IpoRecord {
   // --- identity (vendor fact) ---
@@ -240,8 +266,8 @@ export interface IpoRecord {
   confidence: number;
   /** Research signal key (descriptive, non-advice). */
   demandSignal: DemandSignal;
-  tierLabel: string;
-  desc: string;
+  tierLabel: IpoLocalizedText;
+  desc: IpoLocalizedText;
 
   // --- schedule (vendor fact) ---
   subPeriod: IpoSubPeriod;
@@ -268,11 +294,14 @@ export interface IpoRecord {
   profile: IpoProfile;
   riskSummary: IpoRisk[];
   /** Research-signal narrative (descriptive, non-advice). */
-  aiNote: string;
+  aiNote: IpoLocalizedText;
 
   // --- evidence ---
   evidence: IpoEvidence;
 }
+
+/** Locale-resolved payload returned by the mock API and rendered by the UI. */
+export type ResolvedIpoRecord = ResolvedIpoValue<IpoRecord>;
 
 // --- lookups (typed shapes for the fixtures' label/config maps) ----------
 
@@ -294,7 +323,7 @@ export interface DemandSignalConfig {
 // --- API payloads (envelope `data` shapes for the new endpoints) ---------
 
 /** Detail snapshot payload (`POST /workbench/ipo/snapshot`). */
-export type IpoSnapshot = IpoRecord;
+export type IpoSnapshot = ResolvedIpoRecord;
 
 /** Filters accepted by `POST /analytics/screen-ipos`. */
 export interface IpoScreenFilters {
@@ -308,7 +337,7 @@ export interface IpoScreenFilters {
 
 /** Screen result payload (`POST /analytics/screen-ipos`). */
 export interface IpoScreenResult {
-  rows: IpoRecord[];
+  rows: ResolvedIpoRecord[];
   rowCount: number;
   filters: IpoScreenFilters;
 }
@@ -316,7 +345,7 @@ export interface IpoScreenResult {
 /** Compare result payload (`POST /analytics/compare-ipos`). */
 export interface IpoCompareResult {
   requested: string[];
-  rows: IpoRecord[];
+  rows: ResolvedIpoRecord[];
   rowCount: number;
 }
 

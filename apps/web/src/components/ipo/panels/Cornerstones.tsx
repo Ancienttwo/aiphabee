@@ -2,14 +2,14 @@ import { Icon } from "../../../ds";
 import { Mono } from "../Mono";
 import { LockedValue } from "../LockedValue";
 import { useIpoLocale } from "../i18n";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 
 /**
  * Cornerstone investors (vendor fact), ported from `detail-parts.jsx`. Empty
  * cornerstone list → weak-demand notice (not a crash). `amount` is gated
  * enterprise (DAT-05 default-deny).
  */
-export function Cornerstones({ ipo }: { ipo: IpoRecord }) {
+export function Cornerstones({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   if (!ipo.cornerstones || !ipo.cornerstones.length) {
     return (

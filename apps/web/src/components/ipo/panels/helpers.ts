@@ -2,10 +2,10 @@
  * Detail-workbench shared helpers, ported from the design prototype
  * (`docs/AiphaBee Design System/apps/ipo-workbench/{pipeline,data}.jsx`).
  */
-import type { IpoTerms } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 
 /** Offer price range / final, or the caller's localized pending label. */
-export function offerText(t: IpoTerms, pending: string): string {
+export function offerText(t: ResolvedIpoRecord["terms"], pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh)
     return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;

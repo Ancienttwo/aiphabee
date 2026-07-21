@@ -27,14 +27,14 @@ export const Route = createFileRoute("/ipos/")({
  */
 function PipelineView() {
   const navigate = useNavigate();
-  const { t } = useIpoLocale();
+  const { locale, t } = useIpoLocale();
   const [stage, setStage] = useState<StageFilter>("all");
   const [sector, setSector] = useState<SectorFilter>("all");
   const [sort, setSort] = useState("sub");
   const [q, setQ] = useState("");
   const { ids: compareIds, toggle: toggleCompare, has } = useIpoCompare();
 
-  const res = screenIposMock({
+  const res = screenIposMock(locale, {
     stage: stage === "all" ? undefined : stage,
     sector: sector === "all" ? undefined : sector,
     q: q || undefined,

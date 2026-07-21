@@ -8,13 +8,14 @@ import type {
   ProvenanceRef,
   SuccessEnvelope,
 } from "@aiphabee/data-contracts";
-import { IPOS, findIpo } from "../../data/ipos.fixtures";
+import { findIpo, getIpos } from "../../data/ipos.fixtures";
 import type {
   IpoCalendarEvent,
   IpoCalendarRange,
   IpoCalendarResult,
   IpoCompareResult,
-  IpoRecord,
+  IpoContentLocale,
+  ResolvedIpoRecord,
   IpoScreenFilters,
   IpoScreenResult,
   IpoSnapshot,
@@ -60,8 +61,9 @@ function mockMeta(requestId: string, rows: number): EnvelopeMeta {
 /** Aggregate detail snapshot for one IPO (mock of `getIpoSnapshot`). */
 export function getIpoSnapshotMock(
   id: string,
+  locale: IpoContentLocale,
 ): SuccessEnvelope<IpoSnapshot> | ErrorEnvelope {
-  const ipo = findIpo(id);
+  const ipo = findIpo(id, locale);
   if (!ipo) {
     return createErrorEnvelope(
       "NOT_FOUND",
@@ -72,11 +74,11 @@ export function getIpoSnapshotMock(
   return createSuccessEnvelope(ipo, mockMeta(`mock-ipo-${id}`, 1));
 }
 
-function subOf(r: IpoRecord): number {
+function subOf(r: ResolvedIpoRecord): number {
   return r.live.subPublic ?? r.allotment?.subPublic ?? -1;
 }
 
-function sortRows(rows: IpoRecord[], sort?: string): IpoRecord[] {
+function sortRows(rows: ResolvedIpoRecord[], sort?: string): ResolvedIpoRecord[] {
   const by = [...rows];
   if (sort === "sub") by.sort((a, b) => subOf(b) - subOf(a));
   else if (sort === "listing")
@@ -87,10 +89,11 @@ function sortRows(rows: IpoRecord[], sort?: string): IpoRecord[] {
 
 /** Filter + sort the IPO pipeline (mock of `screenIpos`). */
 export function screenIposMock(
+  locale: IpoContentLocale,
   filters: IpoScreenFilters = {},
 ): SuccessEnvelope<IpoScreenResult> {
   const q = filters.q?.trim().toLowerCase();
-  let rows = IPOS.filter((r) => {
+  let rows = getIpos(locale).filter((r) => {
     if (filters.stage && r.stage !== filters.stage) return false;
     if (filters.sector && r.sector !== filters.sector) return false;
     if (q && ![r.name, r.cn, r.ticker].some((s) => s.toLowerCase().includes(q)))
@@ -106,11 +109,12 @@ export function screenIposMock(
 
 /** Compare a set of IPOs (mock of `compareIpos`). */
 export function compareIposMock(
+  locale: IpoContentLocale,
   ids: string[],
 ): SuccessEnvelope<IpoCompareResult> {
   const rows = ids
-    .map((id) => findIpo(id))
-    .filter((r): r is IpoRecord => Boolean(r));
+    .map((id) => findIpo(id, locale))
+    .filter((r): r is ResolvedIpoRecord => Boolean(r));
   return createSuccessEnvelope(
     { requested: ids, rows, rowCount: rows.length },
     mockMeta("mock-ipo-compare", rows.length),
@@ -119,9 +123,10 @@ export function compareIposMock(
 
 /** Cross-IPO timetable agenda (mock of `getIpoCalendar`). */
 export function getIpoCalendarMock(
+  locale: IpoContentLocale,
   range: IpoCalendarRange = {},
 ): SuccessEnvelope<IpoCalendarResult> {
-  const events: IpoCalendarEvent[] = IPOS.flatMap((r) =>
+  const events: IpoCalendarEvent[] = getIpos(locale).flatMap((r) =>
     r.timetable.map((ev) => ({
       ipoId: r.id,
       name: r.name,

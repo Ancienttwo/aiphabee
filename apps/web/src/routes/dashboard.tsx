@@ -9,7 +9,7 @@ import {
   StatCard,
 } from "../ds";
 import { MarketSentimentPanel } from "../components/MarketSentimentPanel";
-import { IPOS, SENTIMENT_TONE } from "../data/ipos.fixtures";
+import { getIpos, SENTIMENT_TONE } from "../data/ipos.fixtures";
 import { useLocale, type MessageKey } from "../i18n/locale";
 import type { IpoSector, IpoSentiment } from "../lib/api/ipo-types";
 import { formatMultiple } from "../lib/format";
@@ -38,8 +38,8 @@ const SENTIMENT_MESSAGE: Record<IpoSentiment, MessageKey> = {
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { t } = useLocale();
-  const upcoming = IPOS.filter((ipo) => ipo.stage === "subscribing");
+  const { locale, t } = useLocale();
+  const upcoming = getIpos(locale).filter((ipo) => ipo.stage === "subscribing");
 
   return (
     <main>

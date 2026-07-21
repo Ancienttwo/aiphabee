@@ -4,11 +4,11 @@ import { Disclaimer } from "../../components/Disclaimer";
 import { compareIposMock } from "../../lib/api/ipo-mock";
 import { useIpoCompare, IPO_COMPARE_MAX } from "../../lib/context/IpoCompareContext";
 import {
-  IPOS,
   DEMAND_SIGNAL_CFG,
   SENTIMENT_TONE,
+  getIpos,
 } from "../../data/ipos.fixtures";
-import type { IpoRecord, IpoTerms } from "../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../lib/api/ipo-types";
 import { Eyebrow, Mono } from "../../components/ipo";
 import { fmtNum } from "../../lib/num";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
@@ -34,7 +34,7 @@ const COMPARE_COLORS = [
 ];
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
-function offerText(t: IpoTerms, pending: string): string {
+function offerText(t: ResolvedIpoRecord["terms"], pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh) return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;
   return pending;
@@ -42,10 +42,10 @@ function offerText(t: IpoTerms, pending: string): string {
 
 interface Metric {
   label: IpoMessageKey;
-  get: (i: IpoRecord) => number | string | null;
+  get: (i: ResolvedIpoRecord) => number | string | null;
   fmt: (
     v: number | string | null,
-    i: IpoRecord,
+    i: ResolvedIpoRecord,
     t: (key: IpoMessageKey) => string,
   ) => string;
   best: "max" | "min" | null;
@@ -79,7 +79,7 @@ const METRICS: Metric[] = [
   { label: "metricDemandSignal", get: (i) => i.demandSignal, fmt: () => "", best: null, rec: true },
 ];
 
-function bestIndex(m: Metric, ipos: IpoRecord[]): number {
+function bestIndex(m: Metric, ipos: ResolvedIpoRecord[]): number {
   if (!m.best) return -1;
   let bi = -1;
   let bv = m.best === "max" ? -Infinity : Infinity;
@@ -99,8 +99,9 @@ function CompareView() {
   const navigate = useNavigate();
   const { locale, t } = useIpoLocale();
   const { ids, toggle, has } = useIpoCompare();
-  const res = compareIposMock(ids);
+  const res = compareIposMock(locale, ids);
   const selected = res.ok ? res.data.rows : [];
+  const ipos = getIpos(locale);
   const cols = selected.length;
 
   return (
@@ -143,7 +144,7 @@ function CompareView() {
 
       {/* selector chips */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
-        {IPOS.map((i) => {
+        {ipos.map((i) => {
           const on = has(i.id);
           const full = !on && cols >= IPO_COMPARE_MAX;
           return (

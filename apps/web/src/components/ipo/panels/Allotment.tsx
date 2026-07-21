@@ -3,7 +3,7 @@ import { Eyebrow } from "../Eyebrow";
 import { Mono } from "../Mono";
 import { LockedValue } from "../LockedValue";
 import { useIpoLocale } from "../i18n";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 
 /**
  * Published allotment result (vendor fact), ported from `detail-parts.jsx`.
@@ -11,7 +11,7 @@ import type { IpoRecord } from "../../../lib/api/ipo-types";
  * Sensitive fields gated premium: 頂頭槌 (maximum subscription) + per-tier applicant
  * counts (DAT-05 default-deny).
  */
-export function Allotment({ ipo }: { ipo: IpoRecord }) {
+export function Allotment({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   if (!ipo.allotment) {
     const pending = ipo.stage === "subscribing" || ipo.stage === "processing";

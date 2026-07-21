@@ -2,7 +2,7 @@ import { Eyebrow } from "../Eyebrow";
 import { Mono } from "../Mono";
 import { Badge } from "../../../ds";
 import { fmtNum } from "../../../lib/num";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 import { useIpoLocale } from "../i18n";
 
 /**
@@ -13,7 +13,7 @@ import { useIpoLocale } from "../i18n";
  */
 
 /** Use-of-proceeds horizontal bars. */
-export function Proceeds({ ipo }: { ipo: IpoRecord }) {
+export function Proceeds({ ipo }: { ipo: ResolvedIpoRecord }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {ipo.profile.useOfProceeds.map((u, i) => (
@@ -39,7 +39,7 @@ export function Proceeds({ ipo }: { ipo: IpoRecord }) {
 }
 
 /** Company-info key/value table. */
-export function CompanyTable({ ipo }: { ipo: IpoRecord }) {
+export function CompanyTable({ ipo }: { ipo: ResolvedIpoRecord }) {
   return (
     <div
       className="ab-grid-2"
@@ -76,7 +76,7 @@ export function CompanyTable({ ipo }: { ipo: IpoRecord }) {
  * applicant count (`applied`) is sensitive; the prototype's tier table shows
  * the amount + rate publicly, so no count is rendered here.
  */
-export function AppTiers({ ipo }: { ipo: IpoRecord }) {
+export function AppTiers({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   if (!ipo.applicationTiers) {
     return (
