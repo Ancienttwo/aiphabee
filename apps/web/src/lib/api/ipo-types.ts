@@ -36,14 +36,25 @@ export interface IpoLocalizedText {
   readonly values: Readonly<Record<IpoContentLocale, string>>;
 }
 
+/**
+ * User-visible legal names, trademarks, identifiers, and provenance metadata
+ * whose exact spelling is locale-neutral. Raw display strings are permitted
+ * only on fields explicitly carrying this type.
+ */
+export type IpoLocaleNeutralText = string & {
+  readonly __ipoLocaleNeutralText?: never;
+};
+
 /** Replace locale-keyed prose leaves with the selected display string. */
 export type ResolvedIpoValue<T> = T extends IpoLocalizedText
   ? string
-  : T extends ReadonlyArray<infer Item>
-    ? ResolvedIpoValue<Item>[]
-    : T extends object
-      ? { [Key in keyof T]: ResolvedIpoValue<T[Key]> }
-      : T;
+  : T extends string
+    ? T
+    : T extends ReadonlyArray<infer Item>
+      ? ResolvedIpoValue<Item>[]
+      : T extends object
+        ? { [Key in keyof T]: ResolvedIpoValue<T[Key]> }
+        : T;
 
 /** IPO lifecycle stage — the pipeline lanes. */
 export type IpoStage =
@@ -83,7 +94,7 @@ export interface IpoTerms {
   priceLow: number | null;
   priceHigh: number | null;
   finalPrice: number | null;
-  ccy: string;
+  ccy: IpoLocaleNeutralText;
   entryFee: number | null;
   lotSize: number;
   sharesOffered: IpoLocalizedText;
@@ -132,7 +143,7 @@ export interface IpoTimetableEvent {
 
 /** Public-offer pool. `apps` null until disclosed. */
 export interface IpoPool {
-  name: string;
+  name: IpoLocaleNeutralText;
   desc: IpoLocalizedText;
   lots: IpoLocalizedText;
   apps: IpoLocalizedText | null;
@@ -181,7 +192,7 @@ export interface IpoAllotment {
 
 /** Cornerstone investor. `amount` is sensitive — gate behind enterprise. */
 export interface IpoCornerstone {
-  name: string;
+  name: IpoLocaleNeutralText;
   amount: IpoLocalizedText;
   pct: number;
   lockup: IpoLocalizedText;
@@ -197,7 +208,7 @@ export interface IpoLockup {
 
 /** Sponsor / bookrunner with a 0–5 rating. */
 export interface IpoSponsor {
-  name: string;
+  name: IpoLocaleNeutralText;
   role: IpoLocalizedText;
   rating: number;
 }
@@ -237,9 +248,9 @@ export interface IpoRisk {
  * `Provenance`). `methodology` identifies the analysis-layer model version.
  */
 export interface IpoEvidence {
-  asOf: string;
-  dataVersion: string;
-  methodology: string;
+  asOf: IpoLocaleNeutralText;
+  dataVersion: IpoLocaleNeutralText;
+  methodology: IpoLocaleNeutralText;
   source: IpoLocalizedText;
 }
 
@@ -249,10 +260,10 @@ export interface IpoEvidence {
 export interface IpoRecord {
   // --- identity (vendor fact) ---
   id: string;
-  name: string;
-  cn: string;
-  ticker: string;
-  exchange: string;
+  name: IpoLocaleNeutralText;
+  cn: IpoLocaleNeutralText;
+  ticker: IpoLocaleNeutralText;
+  exchange: IpoLocaleNeutralText;
   board: IpoLocalizedText;
   sector: IpoSector;
   listingType: IpoListingType;
@@ -318,7 +329,10 @@ export interface DemandSignalConfig {
   label: string;
 }
 
-// --- API payloads (envelope `data` shapes for the new endpoints) ---------
+// --- Locale-aware mock payloads ------------------------------------------
+// These are not the locale-blind live worker endpoint shapes. The mock/live
+// boundary remains intentionally non-substitutable until the worker contract
+// accepts an exact locale and returns matching content.
 
 /** Detail snapshot payload (`POST /workbench/ipo/snapshot`). */
 export type IpoSnapshot = ResolvedIpoRecord;

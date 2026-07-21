@@ -18,6 +18,39 @@ function collectLocalizedText(value: unknown, out: IpoLocalizedText[]): void {
   Object.values(value).forEach((item) => collectLocalizedText(item, out));
 }
 
+function collectRawStringPaths(
+  value: unknown,
+  path: string,
+  out: Array<{ path: string; value: string }>,
+): void {
+  if (typeof value === "string") {
+    out.push({ path, value });
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectRawStringPaths(item, `${path}[${index}]`, out),
+    );
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  if ("kind" in value && value.kind === "ipo_localized_text") return;
+  Object.entries(value).forEach(([key, item]) =>
+    collectRawStringPaths(item, path ? `${path}.${key}` : key, out),
+  );
+}
+
+const RAW_STRING_PATH_ALLOWLIST = [
+  /^\[\d+\]\.(id|name|cn|ticker|exchange|sector|listingType|stage|sentiment|demandSignal)$/,
+  /^\[\d+\]\.terms\.ccy$/,
+  /^\[\d+\]\.timetable\[\d+\]\.type$/,
+  /^\[\d+\]\.pools\[\d+\]\.name$/,
+  /^\[\d+\]\.cornerstones\[\d+\]\.name$/,
+  /^\[\d+\]\.sponsors\[\d+\]\.name$/,
+  /^\[\d+\]\.riskSummary\[\d+\]\.level$/,
+  /^\[\d+\]\.evidence\.(asOf|dataVersion|methodology)$/,
+] as const;
+
 describe("IPO locale-keyed fixture contract", () => {
   it("requires a non-empty authoritative value for every supported locale", () => {
     const localized: IpoLocalizedText[] = [];
@@ -30,6 +63,20 @@ describe("IPO locale-keyed fixture contract", () => {
       expect(text.values["zh-Hans"].trim()).not.toBe("");
       expect(text.values["zh-Hant"].trim()).not.toBe("");
       expect(CJK.test(text.values.en)).toBe(false);
+    }
+  });
+
+  it("allows raw display strings only for explicit locale-neutral identities", () => {
+    const raw: Array<{ path: string; value: string }> = [];
+    collectRawStringPaths(IPO_FIXTURES, "", raw);
+
+    expect(raw.length).toBeGreaterThan(0);
+    for (const item of raw) {
+      expect(item.value.trim(), item.path).not.toBe("");
+      expect(
+        RAW_STRING_PATH_ALLOWLIST.some((pattern) => pattern.test(item.path)),
+        item.path,
+      ).toBe(true);
     }
   });
 
