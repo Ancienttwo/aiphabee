@@ -24,13 +24,19 @@ import {
   offerText,
 } from "../../components/ipo/panels";
 import {
-  LISTING_TYPE,
   DEMAND_SIGNAL_CFG,
-  SECTOR_LABEL,
-  SENTIMENT_LABEL,
   SENTIMENT_TONE,
   STAGE_BY,
 } from "../../data/ipos.fixtures";
+import {
+  IPO_DEMAND_MESSAGE,
+  IPO_LISTING_TYPE_MESSAGE,
+  IPO_SECTOR_MESSAGE,
+  IPO_SENTIMENT_MESSAGE,
+  IPO_STAGE_MESSAGE,
+  useIpoLocale,
+  type IpoMessageKey,
+} from "../../components/ipo/i18n";
 import { getIpoSnapshotMock } from "../../lib/api/ipo-mock";
 import {
   useEntitlement,
@@ -47,15 +53,15 @@ export const Route = createFileRoute("/ipos/$ipoId")({
 
 /** The 8 research-workbench tabs (ported from `detail.jsx` `DETAIL_TABS`). */
 const DETAIL_TABS = [
-  ["overview", "概览", "Overview"],
-  ["timetable", "时间表", "Timetable"],
-  ["offering", "发售详情", "Offering"],
-  ["pool", "认购与回拨", "Pool & Clawback"],
-  ["allotment", "配售结果", "Allotment"],
-  ["cornerstone", "基石", "Cornerstone"],
-  ["corporate", "公司资料", "Corporate"],
-  ["lockup", "解禁", "Lock-up"],
-] as const;
+  ["overview", "detailTabOverview"],
+  ["timetable", "detailTabTimetable"],
+  ["offering", "detailTabOffering"],
+  ["pool", "detailTabPool"],
+  ["allotment", "detailTabAllotment"],
+  ["cornerstone", "detailTabCornerstone"],
+  ["corporate", "detailTabCorporate"],
+  ["lockup", "detailTabLockup"],
+] as const satisfies readonly (readonly [string, IpoMessageKey])[];
 
 type TabKey = (typeof DETAIL_TABS)[number][0];
 
@@ -70,6 +76,7 @@ const ST_TONE: Record<string, BadgeTone> = {
 /** Plan toggle (free ⇄ premium ⇄ enterprise) — makes default-deny demonstrable. */
 function PlanToggle() {
   const { plan, setPlan } = useEntitlement();
+  const { t } = useIpoLocale();
   const order: EntitlementPlan[] = ["free", "premium", "enterprise"];
   const next = order[(order.indexOf(plan) + 1) % order.length];
   const active = plan !== "free";
@@ -78,7 +85,7 @@ function PlanToggle() {
     <button
       type="button"
       onClick={() => setPlan(next)}
-      title="切换权限等级（演示字段默认拒绝）"
+      title={t("planToggleTitle")}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -94,13 +101,14 @@ function PlanToggle() {
         color: active ? "var(--violet-600)" : "var(--text-muted)",
       }}
     >
-      <Icon name={active ? "unlock" : "lock"} size={13} /> {label} plan
+      <Icon name={active ? "unlock" : "lock"} size={13} /> {label} {t("plan")}
     </button>
   );
 }
 
 /** Persistent top bar: identity, status, evidence, plan toggle + 6 KPIs. */
 function TopBar({ ipo }: { ipo: IpoRecord }) {
+  const { t: translate } = useIpoLocale();
   const st = STAGE_BY[ipo.stage];
   const t = ipo.terms;
   const live = ipo.live;
@@ -142,7 +150,7 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
             </h1>
             <span style={{ fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>{ipo.cn}</span>
             <Badge tone={ST_TONE[st.tone]} variant="solid" dot dotShape="hex">
-              {st.label} {st.en}
+              {translate(IPO_STAGE_MESSAGE[ipo.stage])}
             </Badge>
           </div>
           <div
@@ -161,13 +169,13 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
             <span>·</span>
             <span>{ipo.board}</span>
             <span>·</span>
-            <span>{SECTOR_LABEL[ipo.sector]}</span>
+            <span>{translate(IPO_SECTOR_MESSAGE[ipo.sector])}</span>
             <span>·</span>
             <Badge tone="navy" variant="outline" size="sm">
-              {LISTING_TYPE[ipo.listingType]}
+              {translate(IPO_LISTING_TYPE_MESSAGE[ipo.listingType])}
             </Badge>
             <Badge tone={SENTIMENT_TONE[ipo.sentiment]} size="sm" dot>
-              {SENTIMENT_LABEL[ipo.sentiment]}
+              {translate(IPO_SENTIMENT_MESSAGE[ipo.sentiment])}
             </Badge>
           </div>
         </div>
@@ -176,7 +184,7 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <PlanToggle />
             <Button size="sm" variant="ai" icon={<Icon name="sparkles" size={15} />}>
-              问问工蜂
+              {translate("askBee")}
             </Button>
           </div>
         </div>
@@ -190,19 +198,19 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
         }}
       >
         <TopKpi
-          label="招股价 Offer"
-          value={offerText(t)}
-          sub={t.finalPrice ? "最终定价" : t.priceLow ? "区间" : ""}
+          label={translate("metricOffer")}
+          value={offerText(t, translate("pending"))}
+          sub={t.finalPrice ? translate("finalPrice") : t.priceLow ? translate("priceRange") : ""}
         />
         <TopKpi
-          label="入场费 Entry"
+          label={translate("metricEntryFee")}
           value={t.entryFee ? `HK$${fmtNum(t.entryFee, 0)}` : "—"}
-          sub={`每手 ${fmtNum(t.lotSize, 0)} 股`}
+          sub={`${translate("perLot")} ${fmtNum(t.lotSize, 0)} ${translate("sharesUnit")}`}
         />
-        <TopKpi label="招股期 Period" value={ipo.subPeriod.start} sub={`至 ${ipo.subPeriod.end}`} />
-        <TopKpi label="上市日 Listing" value={ipo.listingDate.replace(", 2026", "")} />
+        <TopKpi label={translate("offerPeriod")} value={ipo.subPeriod.start} sub={`${translate("to")} ${ipo.subPeriod.end}`} />
+        <TopKpi label={translate("listingDate")} value={ipo.listingDate.replace(", 2026", "")} />
         <TopKpi
-          label={isAllot ? "一手中签率" : "公开认购 Sub"}
+          label={translate(isAllot ? "metricOneLot" : "publicSubscription")}
           value={
             isAllot
               ? `${live.oneLotRate}%`
@@ -219,13 +227,13 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
           }
           sub={
             isAllot
-              ? `回拨 ${live.clawbackApplied ?? "—"}`
+              ? `${translate("metricClawback")} ${live.clawbackApplied ?? "—"}`
               : live.subPublic != null
-                ? "实时 Live"
+                ? translate("live")
                 : ""
           }
         />
-        <TopKpi label="研究评分 Score" value={`${ipo.score}`} tone="var(--accent-strong)" sub={`置信度 ${ipo.confidence}%`} />
+        <TopKpi label={translate("metricScore")} value={`${ipo.score}`} tone="var(--accent-strong)" sub={`${translate("metricConfidence")} ${ipo.confidence}%`} />
       </div>
     </div>
   );
@@ -233,6 +241,7 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
 
 /** Overview right rail: AI signal → risk summary → sponsors → evidence. */
 function RightRail({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   const signal = DEMAND_SIGNAL_CFG[ipo.demandSignal];
   const pose =
     ipo.demandSignal === "weak" ? "risk" : ipo.demandSignal === "strong" ? "success" : "insight";
@@ -242,14 +251,14 @@ function RightRail({ ipo }: { ipo: IpoRecord }) {
         basePath={MASCOT_BP}
         pose={pose}
         tone="honey"
-        title="AiphaBee 研究信号"
+        title={t("researchSignal")}
         action={
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             <Badge tone={signal.tone} variant="solid" size="sm">
-              {signal.label}
+              {t(IPO_DEMAND_MESSAGE[ipo.demandSignal])}
             </Badge>
             <Badge tone="navy" variant="outline" size="sm">
-              置信度 {ipo.confidence}%
+              {t("metricConfidence")} {ipo.confidence}%
             </Badge>
           </div>
         }
@@ -271,20 +280,20 @@ function RightRail({ ipo }: { ipo: IpoRecord }) {
       >
         <Icon name="shield" size={15} color="var(--text-muted)" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: "var(--text-2xs)", lineHeight: 1.55, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text-body)" }}>研究信号 · 非投资建议</strong> 描述性信号由
-          AiphaBee 模型基于已披露事实生成，不构成买卖或持有建议。{" "}
+          <strong style={{ color: "var(--text-body)" }}>{t("researchSignalDisclaimerTitle")}</strong>{" "}
+          {t("researchSignalDisclaimerBody")} {" "}
           <Provenance source="research" methodology={ipo.evidence.methodology} />
         </div>
       </div>
       <Disclaimer />
 
-      <Panel icon="shield-alert" title="风险摘要" en="Risk" accent="var(--red-500)">
+      <Panel icon="shield-alert" title={t("riskSummary")} accent="var(--red-500)">
         {ipo.riskSummary.map((r, i) => (
           <RiskRow key={i} r={r} />
         ))}
       </Panel>
 
-      <Panel icon="users" title="保荐人 / 主要参与方" en="Parties">
+      <Panel icon="users" title={t("parties")}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {ipo.sponsors.map((s, i) => (
             <div
@@ -309,7 +318,7 @@ function RightRail({ ipo }: { ipo: IpoRecord }) {
         </div>
       </Panel>
 
-      <Panel icon="database" title="证据与数据版本" en="Evidence">
+      <Panel icon="database" title={t("evidenceTitle")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(
             [
@@ -364,6 +373,7 @@ function BulletList({ items, icon, color }: { items: string[]; icon: "check-circ
 
 /** Overview tab: left business/advantages/risks/proceeds + analysis right rail. */
 function OverviewTab({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   const p = ipo.profile;
   return (
     <div
@@ -374,20 +384,20 @@ function OverviewTab({ ipo }: { ipo: IpoRecord }) {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        <Panel icon="building-2" title="业务概览" en="Business" right={<Provenance source="vendor" />}>
+        <Panel icon="building-2" title={t("businessOverview")} right={<Provenance source="vendor" />}>
           <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.75, color: "var(--text-body)" }}>
             {p.overview}
           </p>
         </Panel>
         <div className="ab-grid-2" style={{ gap: 22 }}>
-          <Panel icon="trophy" title="竞争优势" en="Advantages" accent="var(--green-600)">
+          <Panel icon="trophy" title={t("competitiveAdvantages")} accent="var(--green-600)">
             <BulletList items={p.advantages} icon="check-circle-2" color="var(--green-600)" />
           </Panel>
-          <Panel icon="alert-triangle" title="风险因素" en="Risks" accent="var(--orange-500)">
+          <Panel icon="alert-triangle" title={t("riskFactors")} accent="var(--orange-500)">
             <BulletList items={p.risks} icon="alert-triangle" color="var(--orange-500)" />
           </Panel>
         </div>
-        <Panel icon="pie-chart" title="所得款项用途" en="Use of Proceeds" right={<Provenance source="vendor" />}>
+        <Panel icon="pie-chart" title={t("useOfProceeds")} right={<Provenance source="vendor" />}>
           <div style={{ maxWidth: 560 }}>
             <Proceeds ipo={ipo} />
           </div>
@@ -400,30 +410,31 @@ function OverviewTab({ ipo }: { ipo: IpoRecord }) {
 
 /** Renders the active tab body. */
 function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   const isAllot = ipo.stage === "allotted";
   switch (tab) {
     case "overview":
       return <OverviewTab ipo={ipo} />;
     case "timetable":
       return (
-        <Panel icon="route" title="时间表" en="Timetable" right={<Provenance source="vendor" />}>
+        <Panel icon="route" title={t("timetable")} right={<Provenance source="vendor" />}>
           <Timeline events={ipo.timetable} />
         </Panel>
       );
     case "offering":
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <Panel icon="file-text" title="发行条款" en="Offer Terms" right={<Provenance source="vendor" />}>
+          <Panel icon="file-text" title={t("offerTerms")} right={<Provenance source="vendor" />}>
             <TermsGrid ipo={ipo} />
           </Panel>
-          <Panel icon="list-ordered" title="申请档位" en="Application Tiers">
+          <Panel icon="list-ordered" title={t("applicationTiers")}>
             <AppTiers ipo={ipo} />
           </Panel>
         </div>
       );
     case "pool":
       return (
-        <Panel icon="layers" title="公开发售 Pool 与回拨" en="Pool & Clawback" right={<Provenance source="vendor" />}>
+        <Panel icon="layers" title={t("poolAndClawback")} right={<Provenance source="vendor" />}>
           <PoolClawback ipo={ipo} />
         </Panel>
       );
@@ -431,16 +442,15 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
       return (
         <Panel
           icon="check-check"
-          title="配售结果"
-          en="Allotment Result"
+          title={t("allotmentResult")}
           right={
             isAllot ? (
               <Badge tone="bullish" size="sm">
-                已公布
+                {t("published")}
               </Badge>
             ) : (
               <Badge tone="neutral" size="sm">
-                待公布
+                {t("pendingPublication")}
               </Badge>
             )
           }
@@ -452,12 +462,11 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
       return (
         <Panel
           icon="gem"
-          title="基石投资者"
-          en="Cornerstone"
+          title={t("cornerstoneInvestors")}
           right={
             ipo.cornerstones && ipo.cornerstones.length ? (
               <Badge tone="neutral" size="sm">
-                敏感字段 · 金额受权限保护
+                {t("sensitiveAmountProtected")}
               </Badge>
             ) : undefined
           }
@@ -468,10 +477,10 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
     case "corporate":
       return (
         <div className="ab-grid-2" style={{ gap: 22, alignItems: "start" }}>
-          <Panel icon="building" title="公司资料" en="Company Info">
+          <Panel icon="building" title={t("companyInfo")}>
             <CompanyTable ipo={ipo} />
           </Panel>
-          <Panel icon="users" title="保荐人 / 主要参与方" en="Parties">
+          <Panel icon="users" title={t("parties")}>
             <div style={{ display: "flex", flexDirection: "column" }}>
               {ipo.sponsors.map((s, i) => (
                 <div
@@ -499,7 +508,7 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
       );
     case "lockup":
       return (
-        <Panel icon="lock" title="禁售期" en="Lock-up" right={<Provenance source="vendor" />}>
+        <Panel icon="lock" title={t("lockupPeriod")} right={<Provenance source="vendor" />}>
           <Lockup ipo={ipo} />
         </Panel>
       );
@@ -509,6 +518,7 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
 }
 
 function BackButton({ onClick }: { onClick: () => void }): ReactNode {
+  const { t } = useIpoLocale();
   return (
     <button
       type="button"
@@ -526,7 +536,7 @@ function BackButton({ onClick }: { onClick: () => void }): ReactNode {
         marginBottom: 16,
       }}
     >
-      <Icon name="arrow-left" size={16} /> 返回 Pipeline
+      <Icon name="arrow-left" size={16} /> {t("backPipeline")}
     </button>
   );
 }
@@ -540,6 +550,7 @@ function BackButton({ onClick }: { onClick: () => void }): ReactNode {
  */
 function IpoDetail() {
   const navigate = useNavigate();
+  const { t } = useIpoLocale();
   const { ipoId } = Route.useParams();
   const [tab, setTab] = useState<TabKey>("overview");
   const env = getIpoSnapshotMock(ipoId);
@@ -557,11 +568,11 @@ function IpoDetail() {
           <MascotState
             basePath={MASCOT_BP}
             pose="empty"
-            title="未找到该标的 · IPO not found"
-            description={`没有 id 为 “${ipoId}” 的 IPO。返回 Pipeline 继续探索其他标的。`}
+            title={t("ipoNotFoundTitle")}
+            description={`${t("ipoNotFoundDescriptionBefore")} “${ipoId}” ${t("ipoNotFoundDescriptionAfter")}`}
           >
             <Button variant="outline" onClick={() => navigate({ to: "/ipos" })}>
-              返回 Pipeline
+              {t("backPipeline")}
             </Button>
           </MascotState>
         </div>
@@ -587,7 +598,7 @@ function IpoDetail() {
           overflowX: "auto",
         }}
       >
-        {DETAIL_TABS.map(([k, cn, en]) => (
+        {DETAIL_TABS.map(([k, labelKey]) => (
           <button
             key={k}
             type="button"
@@ -606,10 +617,7 @@ function IpoDetail() {
               marginBottom: -1,
             }}
           >
-            {cn}{" "}
-            <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontWeight: 500 }}>
-              {en}
-            </span>
+            {t(labelKey)}
           </button>
         ))}
       </div>

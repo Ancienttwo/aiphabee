@@ -1,4 +1,5 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "../../ds";
+import { useLocale } from "../../i18n/locale";
 
 export interface EphemeralOhlcvDisplayBar {
   close: number;
@@ -27,11 +28,12 @@ export function EphemeralOhlcvSignalCard({
   retrievedAt,
   signal,
 }: EphemeralOhlcvSignalCardProps) {
+  const { t } = useLocale();
   return (
     <Card>
       <CardHeader>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <CardTitle>临时公开行情分析</CardTitle>
+          <CardTitle>{t("ephemeralOhlcvTitle")}</CardTitle>
           <Badge tone="navy" variant="soft" size="sm">
             public_observation
           </Badge>
@@ -39,7 +41,7 @@ export function EphemeralOhlcvSignalCard({
       </CardHeader>
       <CardContent>
         <section
-          aria-label="consent"
+          aria-label={t("ephemeralConsentLabel")}
           style={{
             border: "1px solid var(--border-subtle)",
             borderRadius: "var(--radius-md)",
@@ -49,41 +51,40 @@ export function EphemeralOhlcvSignalCard({
           }}
         >
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-body)", lineHeight: 1.6 }}>
-            本次分析使用临时公开数据，最长 24 小时内仅用于本会话跟进；结果属于 public_observation_signal，
-            不是授权行情验证，也不构成投资建议。
+            {t("ephemeralConsentBody")}
           </p>
           <p style={{ margin: "6px 0 0", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
-            获取时间：{retrievedAt} · {delayNotice}
+            {t("ephemeralRetrievedAt")}: {retrievedAt} · {delayNotice}
           </p>
         </section>
 
-        <section aria-label="signal-summary" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-          <SignalMetric label="趋势" value={signal.trend} />
-          <SignalMetric label="动量" value={signal.momentum} />
-          <SignalMetric label="波动" value={signal.volatility} />
-          <SignalMetric label="成交量" value={signal.volume} />
+        <section aria-label={t("ephemeralSignalSummaryLabel")} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
+          <SignalMetric label={t("ephemeralTrend")} value={signal.trend} />
+          <SignalMetric label={t("ephemeralMomentum")} value={signal.momentum} />
+          <SignalMetric label={t("ephemeralVolatility")} value={signal.volatility} />
+          <SignalMetric label={t("ephemeralVolume")} value={signal.volume} />
         </section>
 
         {bars.length > 0 ? (
-          <section aria-label="ohlcv-table" style={{ marginTop: 16 }}>
+          <section aria-label={t("ephemeralOhlcvTableLabel")} style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--text-muted)" }}>
-                OHLCV · public_observation · 获取时间 {retrievedAt}
+                OHLCV · public_observation · {t("ephemeralRetrievedAt")} {retrievedAt}
               </span>
               <Badge tone="warning" variant="soft" size="sm">
-                bounded
+                {t("ephemeralBounded")}
               </Badge>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: "var(--text-2xs)" }}>
                 <thead>
                   <tr style={{ color: "var(--text-subtle)", textAlign: "right" }}>
-                    <th style={{ textAlign: "left", padding: "6px 4px" }}>timestamp</th>
-                    <th style={{ padding: "6px 4px" }}>open</th>
-                    <th style={{ padding: "6px 4px" }}>high</th>
-                    <th style={{ padding: "6px 4px" }}>low</th>
-                    <th style={{ padding: "6px 4px" }}>close</th>
-                    <th style={{ padding: "6px 4px" }}>volume</th>
+                    <th style={{ textAlign: "left", padding: "6px 4px" }}>{t("ephemeralTimestamp")}</th>
+                    <th style={{ padding: "6px 4px" }}>{t("ephemeralOpen")}</th>
+                    <th style={{ padding: "6px 4px" }}>{t("ephemeralHigh")}</th>
+                    <th style={{ padding: "6px 4px" }}>{t("ephemeralLow")}</th>
+                    <th style={{ padding: "6px 4px" }}>{t("ephemeralClose")}</th>
+                    <th style={{ padding: "6px 4px" }}>{t("ephemeralVolume")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,7 +95,7 @@ export function EphemeralOhlcvSignalCard({
                       <td style={{ padding: "6px 4px" }}>{bar.high}</td>
                       <td style={{ padding: "6px 4px" }}>{bar.low}</td>
                       <td style={{ padding: "6px 4px" }}>{bar.close}</td>
-                      <td style={{ padding: "6px 4px" }}>{bar.volume ?? "n/a"}</td>
+                      <td style={{ padding: "6px 4px" }}>{bar.volume ?? t("ephemeralNotAvailable")}</td>
                     </tr>
                   ))}
                 </tbody>

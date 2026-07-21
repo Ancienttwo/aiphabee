@@ -7,12 +7,14 @@ import { Disclaimer } from "../../components/Disclaimer";
 import { useSession } from "../../lib/context/SessionContext";
 import { authClient } from "../../lib/auth-client";
 import { SHELL } from "../../lib/ui";
+import { useLocale } from "../../i18n/locale";
 
 export const Route = createFileRoute("/account/")({
   component: Account,
 });
 
 function Account() {
+  const { t } = useLocale();
   const session = useSession();
   const [action, setAction] = useState<"idle" | "logout" | "revoke">("idle");
   const [actionError, setActionError] = useState<string>();
@@ -24,13 +26,13 @@ function Account() {
       const result = await authClient.signOut();
       if (result.error) {
         setAction("idle");
-        setActionError("退出失败，会话仍保持有效。请重试。");
+        setActionError(t("signOutFailed"));
         return;
       }
       window.location.assign("/login");
     } catch {
       setAction("idle");
-      setActionError("认证服务暂时不可用，会话仍保持有效。");
+      setActionError(t("authUnavailable"));
     }
   };
 
@@ -41,13 +43,13 @@ function Account() {
       const result = await authClient.revokeSessions();
       if (result.error) {
         setAction("idle");
-        setActionError("撤销失败，现有会话未被确认失效。请重试。");
+        setActionError(t("revokeFailed"));
         return;
       }
       window.location.assign("/login");
     } catch {
       setAction("idle");
-      setActionError("认证服务暂时不可用，现有会话未被确认失效。");
+      setActionError(t("revokeUnavailable"));
     }
   };
 
@@ -62,31 +64,31 @@ function Account() {
           color: "var(--text-primary)",
         }}
       >
-        账户
+        {t("accountTitle")}
       </h1>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        登录建立真实会话，用于自选、设置等账户功能；工作区、套餐和数据权限不会从会话或邮箱推断。
+        {t("accountDescription")}
       </p>
 
       <Card style={{ maxWidth: 560 }}>
         <CardHeader>
-          <CardTitle>当前会话</CardTitle>
+          <CardTitle>{t("currentSession")}</CardTitle>
         </CardHeader>
         <CardContent>
           {session.isPending ? (
-            <KV label="认证状态" value="检查中…" />
+            <KV label={t("authStatus")} value={t("checking")} />
           ) : session.isAuthenticated ? (
             <>
-              <KV label="名称" value={session.name ?? "—"} />
-              <KV label="邮箱" value={session.email ?? "—"} mono />
-              <KV label="用户 ID" value={session.userId ?? "—"} mono />
-              <KV label="认证状态" value="已登录" />
+              <KV label={t("name")} value={session.name ?? "—"} />
+              <KV label={t("email")} value={session.email ?? "—"} mono />
+              <KV label={t("userId")} value={session.userId ?? "—"} mono />
+              <KV label={t("authStatus")} value={t("signedIn")} />
               <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
                 <Button type="button" variant="outline" onClick={signOut} disabled={action !== "idle"}>
-                  退出当前会话
+                  {t("signOutSession")}
                 </Button>
                 <Button type="button" variant="danger" onClick={revokeSessions} disabled={action !== "idle"}>
-                  撤销全部会话
+                  {t("revokeAllSessions")}
                 </Button>
               </div>
               {actionError ? (
@@ -97,8 +99,8 @@ function Account() {
             </>
           ) : (
             <>
-              <KV label="认证状态" value="未登录" />
-              <Link to="/login">前往登录</Link>
+              <KV label={t("authStatus")} value={t("signedOut")} />
+              <Link to="/login">{t("goToLogin")}</Link>
             </>
           )}
         </CardContent>

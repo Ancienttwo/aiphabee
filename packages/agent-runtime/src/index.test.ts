@@ -3238,6 +3238,7 @@ describe("agent runtime scaffold", () => {
   it("degrades tool loop planning when tool execution kill switch is tripped", () => {
     const plan = createToolLoopAgentPlan({
       killSwitchReason: "tool provider incident",
+      locale: "en",
       prompt: "Explain 00700.HK revenue and price trend",
       requestId: "req-agent-kill-switch-plan",
       requestedTools: ["resolve_security", "get_quote_snapshot"],
@@ -3985,6 +3986,7 @@ describe("agent runtime scaffold", () => {
 
   it("gracefully stops tool loop plans when the requested step budget is exhausted", () => {
     const plan = createToolLoopAgentPlan({
+      locale: "en",
       maxSteps: 3,
       prompt: "Explain 00700.HK revenue and price trend",
       requestId: "req-agent-plan-budget",
@@ -4042,6 +4044,21 @@ describe("agent runtime scaffold", () => {
         step_id: "step_3"
       })
     ]);
+  });
+
+  it.each([
+    ["zh-Hant", "解析證券與時間範圍"],
+    ["zh-Hans", "解析证券与时间范围"],
+    ["en", "Resolve security and time context"]
+  ] as const)("localizes public tool-loop labels for %s", (locale, expectedLabel) => {
+    const plan = createToolLoopAgentPlan({
+      locale,
+      prompt: "Explain 00700.HK revenue",
+      requestId: `req-agent-plan-locale-${locale}`,
+      requestedTools: ["resolve_security"]
+    });
+
+    expect(plan.steps[0]?.public_label).toBe(expectedLabel);
   });
 
   it("gracefully stops tool loop plans when credit budget is exhausted", () => {

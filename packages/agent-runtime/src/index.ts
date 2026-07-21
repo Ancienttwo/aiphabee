@@ -4673,6 +4673,7 @@ export function createAgentKillSwitchPlan(input: {
 }
 
 export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentToolLoopPlan {
+  const locale = normalizeAgentResponseLocale(input.locale);
   const skeleton = createAgentRunSkeleton(input);
   const preToolCallResolution = createPreToolCallResolution(input);
   const retryPolicy = createRetryPolicy();
@@ -4689,7 +4690,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
             1,
             "answer_contract",
             "answer_contract",
-            "Return safe degraded response while tool execution is disabled",
+            toolLoopPublicLabel(locale, "safe_degraded"),
             [],
             retryPolicy
           )
@@ -4700,12 +4701,12 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
             1,
             "answer_contract",
             "answer_contract",
-            "Request clarification before tool calls",
+            toolLoopPublicLabel(locale, "request_clarification"),
             [],
             retryPolicy
           )
         ]
-      : createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy);
+      : createToolLoopSteps(skeleton.run_context.toolset.tools, retryPolicy, locale);
   const budgetStopPolicy = createBudgetStopPolicy({
     budget: skeleton.run_context.budget,
     retryPolicy,
@@ -4724,7 +4725,7 @@ export function createToolLoopAgentPlan(input: AgentRunSkeletonInput): AgentTool
   });
   const steps =
     budgetStopPolicy.decision.status === "stop_before_execution"
-      ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy)
+      ? createBudgetStoppedSteps(naturalSteps, budgetStopPolicy, retryPolicy, locale)
       : naturalSteps;
   const failureRecoveryPolicy = createFailureRecoveryPolicy({
     steps,
@@ -6981,7 +6982,8 @@ function createAgentRunBudget(input: {
 
 function createToolLoopSteps(
   tools: AgentRunToolContext[],
-  retryPolicy: AgentToolLoopRetryPolicy
+  retryPolicy: AgentToolLoopRetryPolicy,
+  locale: AgentResponseLocale
 ): AgentToolLoopStepPlan[] {
   const steps: AgentToolLoopStepPlan[] = [];
   const resolverTools = tools.filter((tool) => tool.name === "resolve_security");
@@ -6994,20 +6996,20 @@ function createToolLoopSteps(
       tool.name !== "get_data_lineage"
   );
 
-  pushToolStep(steps, "security_resolution", "Resolve security and time context", resolverTools, retryPolicy);
-  pushToolStep(steps, "entitlement_gate", "Check workspace entitlement scope", entitlementTools, retryPolicy);
+  pushToolStep(steps, "security_resolution", toolLoopPublicLabel(locale, "resolve_context"), resolverTools, retryPolicy);
+  pushToolStep(steps, "entitlement_gate", toolLoopPublicLabel(locale, "check_entitlements"), entitlementTools, retryPolicy);
 
   for (const chunk of chunkTools(dataTools, AGENT_RUNTIME_LIMITS.maxParallelTools)) {
-    pushToolStep(steps, "data_fetch", "Fetch read-only tool data", chunk, retryPolicy);
+    pushToolStep(steps, "data_fetch", toolLoopPublicLabel(locale, "fetch_data"), chunk, retryPolicy);
   }
 
-  pushToolStep(steps, "evidence_binding", "Bind source lineage and evidence", evidenceTools, retryPolicy);
+  pushToolStep(steps, "evidence_binding", toolLoopPublicLabel(locale, "bind_evidence"), evidenceTools, retryPolicy);
   steps.push(
     createStep(
       steps.length + 1,
       "answer_contract",
       "answer_contract",
-      "Prepare evidence-bound answer contract",
+      toolLoopPublicLabel(locale, "prepare_answer"),
       [],
       retryPolicy
     )
@@ -7082,7 +7084,8 @@ export function createBudgetStopPolicy(input: {
 function createBudgetStoppedSteps(
   steps: AgentToolLoopStepPlan[],
   budgetStopPolicy: AgentBudgetStopPolicy,
-  retryPolicy: AgentToolLoopRetryPolicy
+  retryPolicy: AgentToolLoopRetryPolicy,
+  locale: AgentResponseLocale
 ): AgentToolLoopStepPlan[] {
   const completedStepIds = new Set(budgetStopPolicy.graceful_stop.completed_step_ids);
   const completedSteps = steps.filter((step) => completedStepIds.has(step.step_id));
@@ -7093,11 +7096,64 @@ function createBudgetStoppedSteps(
       completedSteps.length + 1,
       "answer_contract",
       "answer_contract",
-      "Return graceful budget stop response",
+      toolLoopPublicLabel(locale, "budget_stop"),
       [],
       retryPolicy
     )
   ];
+}
+
+type AgentToolLoopPublicLabelId =
+  | "bind_evidence"
+  | "budget_stop"
+  | "check_entitlements"
+  | "fetch_data"
+  | "prepare_answer"
+  | "request_clarification"
+  | "resolve_context"
+  | "safe_degraded";
+
+const AGENT_TOOL_LOOP_PUBLIC_LABELS: Record<
+  AgentResponseLocale,
+  Record<AgentToolLoopPublicLabelId, string>
+> = {
+  "zh-Hant": {
+    bind_evidence: "綁定來源脈絡與證據",
+    budget_stop: "返回預算停止回應",
+    check_entitlements: "檢查工作區權限範圍",
+    fetch_data: "取得唯讀工具資料",
+    prepare_answer: "準備已綁定證據的答案契約",
+    request_clarification: "在調用工具前要求澄清",
+    resolve_context: "解析證券與時間範圍",
+    safe_degraded: "工具執行停用時返回安全降級回應"
+  },
+  "zh-Hans": {
+    bind_evidence: "绑定来源脉络与证据",
+    budget_stop: "返回预算停止响应",
+    check_entitlements: "检查工作区权限范围",
+    fetch_data: "获取只读工具数据",
+    prepare_answer: "准备已绑定证据的答案契约",
+    request_clarification: "在调用工具前要求澄清",
+    resolve_context: "解析证券与时间范围",
+    safe_degraded: "工具执行停用时返回安全降级响应"
+  },
+  en: {
+    bind_evidence: "Bind source lineage and evidence",
+    budget_stop: "Return graceful budget stop response",
+    check_entitlements: "Check workspace entitlement scope",
+    fetch_data: "Fetch read-only tool data",
+    prepare_answer: "Prepare evidence-bound answer contract",
+    request_clarification: "Request clarification before tool calls",
+    resolve_context: "Resolve security and time context",
+    safe_degraded: "Return safe degraded response while tool execution is disabled"
+  }
+};
+
+function toolLoopPublicLabel(
+  locale: AgentResponseLocale,
+  id: AgentToolLoopPublicLabelId
+): string {
+  return AGENT_TOOL_LOOP_PUBLIC_LABELS[locale][id];
 }
 
 function pushToolStep(

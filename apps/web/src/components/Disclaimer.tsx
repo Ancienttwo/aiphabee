@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useLocale } from "../i18n/locale";
 
 /**
  * Gate-0 compliance disclaimer: illustrative mock data + non-advice notice.
@@ -13,13 +14,8 @@ const base: CSSProperties = {
 };
 
 export function Disclaimer({ style }: { style?: CSSProperties }) {
+  const { t } = useLocale();
   return (
-    <p style={{ ...base, ...style }}>
-      插图用模拟数据，非真实行情；本平台提供研究、分析与数据解读，不构成个性化投资建议或买入/卖出/持有建议，投资决策与风险由用户自行承担。
-      {" · "}
-      Illustrative mock data, not live market data. AiphaBee provides research
-      and data-interpretation tools and does not give personalized investment
-      advice or buy/sell/hold recommendations.
-    </p>
+    <p style={{ ...base, ...style }}>{t("disclaimer")}</p>
   );
 }

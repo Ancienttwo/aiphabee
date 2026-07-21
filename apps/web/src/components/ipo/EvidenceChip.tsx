@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../../ds";
 import type { IpoEvidence } from "../../lib/api/ipo-types";
+import { useIpoLocale } from "./i18n";
 
 export interface EvidenceChipProps {
   ev: IpoEvidence;
@@ -14,6 +15,7 @@ export interface EvidenceChipProps {
  */
 export function EvidenceChip({ ev, compact }: EvidenceChipProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useIpoLocale();
   const rows: [string, string][] = [
     ["as_of", ev.asOf],
     ["data_version", ev.dataVersion],
@@ -42,7 +44,7 @@ export function EvidenceChip({ ev, compact }: EvidenceChipProps) {
         }}
       >
         <Icon name="shield-check" size={12} color="var(--green-600)" />
-        as of {ev.asOf.split(" ").slice(0, 3).join(" ")}
+        {t("evidenceAsOf")} {ev.asOf.split(" ").slice(0, 3).join(" ")}
         <Icon name="chevron-down" size={11} />
       </button>
       {open && (
@@ -71,7 +73,7 @@ export function EvidenceChip({ ev, compact }: EvidenceChipProps) {
               marginBottom: 10,
             }}
           >
-            证据与数据版本 Evidence
+            {t("evidenceTitle")}
           </div>
           {rows.map(([k, v]) => (
             <div
@@ -114,7 +116,7 @@ export function EvidenceChip({ ev, compact }: EvidenceChipProps) {
               lineHeight: 1.5,
             }}
           >
-            所有数字均带来源与版本，default-deny；未授权字段不展示。
+            {t("evidencePolicy")}
           </div>
         </div>
       )}

@@ -1,24 +1,21 @@
 import { Icon } from "../../ds";
 import type { AgentProgressStreamEvent } from "../../lib/api";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 /**
  * Tool-progress stream (PRD AGT-01). Shows the user *what the agent is doing*
  * ("looking up quotes", "reading filings") via each event's public label only —
  * the internal chain of thought and raw tool names are never exposed.
  */
-const FRIENDLY: Record<string, string> = {
-  "run.started": "开始研究",
-  "run.completed": "研究完成",
-  "tool.step.planned": "规划查询步骤",
-  "tool.call.started": "正在调用数据工具",
-  "tool.call.completed": "数据工具已返回",
-  "tool.call.failed": "数据工具调用失败",
-  "run.stopped": "研究已停止",
+const FRIENDLY: Record<string, MessageKey> = {
+  "run.started": "streamRunStarted",
+  "run.completed": "streamRunCompleted",
+  "tool.step.planned": "streamStepPlanned",
+  "tool.call.started": "streamToolStarted",
+  "tool.call.completed": "streamToolCompleted",
+  "tool.call.failed": "streamToolFailed",
+  "run.stopped": "streamRunStopped",
 };
-
-function labelFor(event: AgentProgressStreamEvent): string {
-  return event.payload.public_label ?? FRIENDLY[event.event] ?? "处理中";
-}
 
 function StatusGlyph({ status }: { status: AgentProgressStreamEvent["payload"]["status"] }) {
   if (status === "completed") {
@@ -48,10 +45,13 @@ export function ToolProgressStream({
   events: AgentProgressStreamEvent[];
   streaming?: boolean;
 }) {
+  const { t } = useLocale();
+  const labelFor = (event: AgentProgressStreamEvent) =>
+    event.payload.public_label ?? (FRIENDLY[event.event] ? t(FRIENDLY[event.event]) : t("processing"));
   if (events.length === 0) {
     return (
       <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-        {streaming ? "正在准备研究…" : "暂无工具进度。"}
+        {streaming ? t("preparingResearch") : t("noToolProgress")}
       </p>
     );
   }

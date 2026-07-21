@@ -1,6 +1,6 @@
 ---
 name: deep-reasoner
-description: Architecture research executor on Opus 4.8 at max effort. Use for architecture proposals and research, complex multi-step reasoning, and high-risk analysis — design trade-offs, risky migrations, security-sensitive choices. Returns concise recommendations; the final framework is confirmed by the orchestrator. Not for routine execution; use fast-worker for that.
+description: Architecture research executor on Opus at max effort. Use for architecture proposals and research, complex multi-step reasoning, and high-risk analysis — design trade-offs, risky migrations, security-sensitive choices. Returns concise recommendations; the final framework is confirmed by the orchestrator. Not for routine execution; use fast-worker for that.
 model: opus
 effort: max
 ---

@@ -8,6 +8,7 @@ import {
   type ResolveSecurityCandidate,
 } from "../../lib/api";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
+import { useLocale } from "../../i18n/locale";
 
 export const Route = createFileRoute("/stock/")({
   component: StockSearch,
@@ -28,6 +29,7 @@ const INITIAL: SearchState = {
 };
 
 function StockSearch() {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [state, setState] = useState<SearchState>(INITIAL);
@@ -70,11 +72,11 @@ function StockSearch() {
             color: "var(--text-primary)",
           }}
         >
-          证券搜索
+          {t("securitySearchTitle")}
         </h1>
       </div>
       <p style={{ margin: "8px 0 24px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        以代码、中文名或英文名解析证券，解析后进入个股工作台。
+        {t("securitySearchDescription")}
       </p>
 
       <form
@@ -87,8 +89,8 @@ function StockSearch() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索证券…"
-          aria-label="搜索证券"
+          placeholder={t("securitySearchPlaceholder")}
+          aria-label={t("searchSecurity")}
           style={{
             flex: 1,
             height: 48,
@@ -102,12 +104,12 @@ function StockSearch() {
           }}
         />
         <Button type="submit" size="lg" icon={<Icon name="search" size={18} />}>
-          搜索
+          {t("search")}
         </Button>
       </form>
 
       {state.loading ? (
-        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在解析证券…</p>
+        <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("resolvingSecurity")}</p>
       ) : null}
 
       {state.error ? (
@@ -131,7 +133,7 @@ function StockSearch() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Icon name="search-x" size={18} color="var(--text-subtle)" />
             <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-              「{state.submitted}」未匹配到证券。请尝试更完整的名称或代码。
+              “{state.submitted}” {t("securityNoMatchPrefix")}
             </p>
           </div>
         </Card>
@@ -141,8 +143,8 @@ function StockSearch() {
         <MascotState
           basePath={MASCOT_BP}
           pose="forage"
-          title="输入名称或代码，工蜂开始采集"
-          description="输入证券名称或代码，工蜂会为你采集行情、财务、估值与公告。"
+          title={t("securityEmptyTitle")}
+          description={t("securityEmptyDescription")}
         />
       ) : null}
     </main>

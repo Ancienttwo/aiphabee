@@ -2,7 +2,7 @@ import { Icon } from "../../../ds";
 import { Eyebrow } from "../Eyebrow";
 import { Mono } from "../Mono";
 import { Badge } from "../../../ds";
-import { LISTING_TYPE } from "../../../data/ipos.fixtures";
+import { IPO_LISTING_TYPE_MESSAGE, useIpoLocale } from "../i18n";
 import type { IpoRecord } from "../../../lib/api/ipo-types";
 
 /**
@@ -11,6 +11,7 @@ import type { IpoRecord } from "../../../lib/api/ipo-types";
  * render an explanatory notice rather than crashing.
  */
 export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   if (ipo.listingType === "intro" || !ipo.pools) {
     return (
       <div
@@ -25,11 +26,9 @@ export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
       >
         <Icon name="info" size={18} color="var(--text-muted)" />
         <div style={{ fontSize: "var(--text-sm)", color: "var(--text-body)", lineHeight: 1.55 }}>
-          <strong>{LISTING_TYPE[ipo.listingType].split(" ")[0]}</strong>：本次
-          {ipo.listingType === "intro"
-            ? "以介绍方式上市，无公开发售、无 Pool A/B、无回拨机制"
-            : "尚未启动公开发售，Pool 与回拨待招股时公布"}
-          。
+          <strong>{t(IPO_LISTING_TYPE_MESSAGE[ipo.listingType])}</strong>: {t(
+            ipo.listingType === "intro" ? "introPoolUnavailable" : "poolPending",
+          )}
         </div>
       </div>
     );
@@ -57,15 +56,15 @@ export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
               <div>
-                <Eyebrow>可认购 Lots</Eyebrow>
+                <Eyebrow>{t("availableLots")}</Eyebrow>
                 <div style={{ marginTop: 2 }}>
                   <Mono>{p.lots}</Mono>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <Eyebrow>有效申请</Eyebrow>
+                <Eyebrow>{t("applications")}</Eyebrow>
                 <div style={{ marginTop: 2 }}>
-                  <Mono color="var(--text-body)">{p.apps ?? "招股中"}</Mono>
+                  <Mono color="var(--text-body)">{p.apps ?? t("subscribing")}</Mono>
                 </div>
               </div>
             </div>
@@ -74,7 +73,7 @@ export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
       </div>
       {ipo.clawback && (
         <>
-          <Eyebrow style={{ marginBottom: 8 }}>回拨机制 Clawback</Eyebrow>
+          <Eyebrow style={{ marginBottom: 8 }}>{t("clawbackMechanism")}</Eyebrow>
           <div
             style={{
               border: "1px solid var(--border-subtle)",
@@ -104,15 +103,15 @@ export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
                   }}
                 >
                   {c.active && <Icon name="arrow-right" size={13} color="var(--accent-strong)" />}
-                  公开认购 {c.trigger}
+                  {t("publicSubscription")} {c.trigger}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Mono color={c.active ? "var(--accent-strong)" : "var(--text-primary)"}>
-                    公开占 {c.publicPct}
+                    {t("publicShare")} {c.publicPct}
                   </Mono>
                   {c.active && (
                     <Badge tone="honey" size="sm">
-                      已触发
+                      {t("triggered")}
                     </Badge>
                   )}
                 </span>

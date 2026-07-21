@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Icon } from "../../ds";
+import { useLocale } from "../../i18n/locale";
 import type { ProvenanceRef, UsageSummary } from "../../lib/api";
 
 /**
@@ -49,14 +50,17 @@ function Row({ k, v }: { k: string; v: ReactNode }) {
 
 // Computed only on the client (card opens via interaction), so there is no
 // SSR/hydration time skew.
-function formatDelay(asOf: string): string {
+function formatDelay(
+  asOf: string,
+  units: { minutes: string; hours: string; days: string },
+): string {
   const ms = Date.now() - new Date(asOf).getTime();
   if (!Number.isFinite(ms) || ms < 0) return "—";
   const min = Math.round(ms / 60000);
-  if (min < 60) return `${min} 分钟`;
+  if (min < 60) return `${min} ${units.minutes}`;
   const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr} 小时`;
-  return `${Math.round(hr / 24)} 天`;
+  if (hr < 48) return `${hr} ${units.hours}`;
+  return `${Math.round(hr / 24)} ${units.days}`;
 }
 
 export function EvidenceCard({
@@ -66,9 +70,10 @@ export function EvidenceCard({
   provenance = [],
   usage,
   warnings = [],
-  label = "查看证据来源",
+  label,
 }: EvidenceCardProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useLocale();
   return (
     <div
       style={{
@@ -98,7 +103,7 @@ export function EvidenceCard({
         }}
       >
         <Icon name="layers" size={14} color="var(--accent-strong)" />
-        {label}
+        {label ?? t("viewEvidence")}
         <span
           style={{
             marginLeft: "auto",
@@ -119,22 +124,29 @@ export function EvidenceCard({
             borderTop: "1px solid var(--border-subtle)",
           }}
         >
-          <Row k="数据时间 as_of" v={asOf} />
-          <Row k="数据延迟" v={formatDelay(asOf)} />
-          {dataVersion ? <Row k="数据版本 data_version" v={dataVersion} /> : null}
+          <Row k={t("dataAsOf")} v={asOf} />
+          <Row
+            k={t("dataDelay")}
+            v={formatDelay(asOf, {
+              minutes: t("minutesUnit"),
+              hours: t("hoursUnit"),
+              days: t("daysUnit"),
+            })}
+          />
+          {dataVersion ? <Row k={t("dataVersion")} v={dataVersion} /> : null}
           {methodologyVersion ? (
-            <Row k="方法论 methodology" v={methodologyVersion} />
+            <Row k={t("methodology")} v={methodologyVersion} />
           ) : null}
           {usage ? (
             <Row
-              k="用量 usage"
-              v={`${usage.rows} 行 · ${usage.credits} credits${usage.cached ? " · 缓存" : ""}`}
+              k={t("usage")}
+              v={`${usage.rows} ${t("rowsUnit")} · ${usage.credits} credits${usage.cached ? ` · ${t("cached")}` : ""}`}
             />
           ) : null}
           {provenance.map((p, i) => (
             <Row
               key={`${p.source_record_id}-${i}`}
-              k={`来源 ${p.source}`}
+              k={`${t("source")} ${p.source}`}
               v={`${p.source_record_id} · ${p.data_version}`}
             />
           ))}

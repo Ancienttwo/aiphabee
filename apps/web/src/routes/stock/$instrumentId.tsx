@@ -17,6 +17,7 @@ import { presentError, resolveSecurityProfile } from "../../lib/api";
 import type { AiphaBeeErrorCode } from "../../lib/api";
 import { SHELL } from "../../lib/ui";
 import { formatHkSymbol } from "../../lib/format";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 export const Route = createFileRoute("/stock/$instrumentId")({
   component: StockWorkbench,
@@ -41,19 +42,20 @@ export const Route = createFileRoute("/stock/$instrumentId")({
 // dropped; re-add them the same way the eight tabs below were each added,
 // commit by commit, once a live panel exists for that domain.
 const TABS = [
-  { key: "quote", label: "行情" },
-  { key: "financials", label: "财务" },
-  { key: "derived", label: "指标" },
-  { key: "actions", label: "公司行动" },
-  { key: "sdi", label: "权益披露" },
-  { key: "directorate", label: "董事高管" },
-  { key: "ownership", label: "股权结构" },
-  { key: "warrants", label: "轮证" },
-] as const;
+  { key: "quote", label: "tabQuote" },
+  { key: "financials", label: "tabFinancials" },
+  { key: "derived", label: "tabDerived" },
+  { key: "actions", label: "tabActions" },
+  { key: "sdi", label: "tabSdi" },
+  { key: "directorate", label: "tabDirectorate" },
+  { key: "ownership", label: "tabOwnership" },
+  { key: "warrants", label: "tabWarrants" },
+] as const satisfies ReadonlyArray<{ key: string; label: MessageKey }>;
 
 type TabKey = (typeof TABS)[number]["key"];
 
 function StockWorkbench() {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const { instrumentId } = Route.useParams();
   const [tab, setTab] = useState<TabKey>("quote");
@@ -76,7 +78,7 @@ function StockWorkbench() {
           marginBottom: 14,
         }}
       >
-        <Icon name="arrow-left" size={16} /> 返回搜索
+        <Icon name="arrow-left" size={16} /> {t("backToSearch")}
       </button>
 
       <CompanyHeader instrumentId={instrumentId} />
@@ -87,13 +89,13 @@ function StockWorkbench() {
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18, overflowX: "auto" }}>
-        {TABS.map((t) => {
-          const active = tab === t.key;
+        {TABS.map((tabItem) => {
+          const active = tab === tabItem.key;
           return (
             <button
-              key={t.key}
+              key={tabItem.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => setTab(tabItem.key)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -110,7 +112,7 @@ function StockWorkbench() {
                 color: active ? "var(--text-on-honey)" : "var(--text-body)",
               }}
             >
-              {t.label}
+              {t(tabItem.label)}
             </button>
           );
         })}
@@ -139,11 +141,11 @@ const HEADER_STATE_TONE: Partial<Record<AiphaBeeErrorCode, BadgeTone>> = {
   NOT_FOUND: "neutral",
 };
 
-const HEADER_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
-  AUTH_REQUIRED: "需要登录",
-  DATA_NOT_LICENSED: "未获授权",
-  DATA_QUALITY_HOLD: "质量保留",
-  NOT_FOUND: "未找到",
+const HEADER_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, MessageKey>> = {
+  AUTH_REQUIRED: "authRequired",
+  DATA_NOT_LICENSED: "dataNotLicensed",
+  DATA_QUALITY_HOLD: "dataQualityHold",
+  NOT_FOUND: "notFound",
 };
 
 /**
@@ -157,6 +159,7 @@ const HEADER_STATE_LABEL: Partial<Record<AiphaBeeErrorCode, string>> = {
  * unconditionally.
  */
 function CompanyHeader({ instrumentId }: { instrumentId: string }) {
+  const { locale, t } = useLocale();
   const { data: profileEnv, isLoading } = useQuery({
     queryKey: ["security-profile-live", instrumentId],
     queryFn: () => resolveSecurityProfile(instrumentId),
@@ -174,7 +177,7 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
   if (isLoading) {
     return (
       <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", marginBottom: 4 }}>
-        正在加载公司档案…
+        {t("loadingProfile")}
       </p>
     );
   }
@@ -182,8 +185,8 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
   if (!profileEnv || !profileEnv.ok) {
     const code = profileEnv?.error.code;
     const tone: BadgeTone = (code && HEADER_STATE_TONE[code]) ?? "bearish";
-    const label = (code && HEADER_STATE_LABEL[code]) ?? "暂不可用";
-    const detail = profileEnv ? presentError(profileEnv).detail : "公司档案服务暂不可用。";
+    const label = code && HEADER_STATE_LABEL[code] ? t(HEADER_STATE_LABEL[code]) : t("temporarilyUnavailable");
+    const detail = profileEnv ? presentError(profileEnv).detail : t("profileUnavailable");
     return (
       <div style={headerRowStyle}>
         <h1 style={titleStyle}>{instrumentId}</h1>
@@ -201,7 +204,7 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
       <div style={headerRowStyle}>
         <h1 style={titleStyle}>{instrumentId}</h1>
         <Badge tone="neutral" variant="soft" size="sm" dot>
-          未找到
+          {t("notFound")}
         </Badge>
       </div>
     );
@@ -209,7 +212,7 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
 
   return (
     <div style={headerRowStyle}>
-      <h1 style={titleStyle}>{profile.name.zhHant || profile.name.en}</h1>
+      <h1 style={titleStyle}>{locale === "en" ? profile.name.en || profile.name.zhHant : locale === "zh-Hans" ? profile.name.zhHans || profile.name.zhHant : profile.name.zhHant || profile.name.en}</h1>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--text-muted)" }}>
         {formatHkSymbol(profile.symbol)}
       </span>
@@ -218,7 +221,7 @@ function CompanyHeader({ instrumentId }: { instrumentId: string }) {
         variant="soft"
         size="sm"
       >
-        {profile.listingStatus === "listed" ? "上市" : profile.listingStatus === "suspended" ? "停牌" : "退市"}
+        {profile.listingStatus === "listed" ? t("listed") : profile.listingStatus === "suspended" ? t("suspended") : t("delisted")}
       </Badge>
       <span style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>
         {profile.exchange} · {profile.market} · {profile.currency}

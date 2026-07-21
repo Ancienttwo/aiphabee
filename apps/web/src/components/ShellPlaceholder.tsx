@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Badge, MascotState, type MascotStatePose } from "../ds";
 import { MASCOT_BP, SHELL } from "../lib/ui";
 import type { ResponseEnvelope, RuntimeCapabilities } from "../lib/api";
+import { useLocale } from "../i18n/locale";
 
 /**
  * Shared scaffold for the Phase-1 module shells. Renders the module's header +
@@ -21,10 +22,11 @@ export interface ShellPlaceholderProps {
 }
 
 function CapabilityBadge({ state }: { state: ProbeState }) {
+  const { t } = useLocale();
   const map = {
-    checking: { tone: "neutral", label: "能力检查中…" },
-    online: { tone: "bullish", label: "后端能力在线（合成）" },
-    unavailable: { tone: "warning", label: "后端未连接" },
+    checking: { tone: "neutral", label: t("capabilityChecking") },
+    online: { tone: "bullish", label: t("capabilityOnline") },
+    unavailable: { tone: "warning", label: t("capabilityUnavailable") },
   } as const;
   const m = map[state];
   return (
@@ -38,10 +40,11 @@ export function ShellPlaceholder({
   title,
   description,
   pose = "forage",
-  badge = "即将上线",
+  badge,
   probe,
   children,
 }: ShellPlaceholderProps) {
+  const { t } = useLocale();
   const [state, setState] = useState<ProbeState>("checking");
 
   useEffect(() => {
@@ -72,7 +75,7 @@ export function ShellPlaceholder({
           {title}
         </h1>
         <Badge tone="honey" variant="soft" size="sm">
-          {badge}
+          {badge ?? t("comingSoon")}
         </Badge>
         {probe ? <CapabilityBadge state={state} /> : null}
       </div>
@@ -90,7 +93,7 @@ export function ShellPlaceholder({
       <MascotState
         pose={pose}
         basePath={MASCOT_BP}
-        description="该模块正在建设中，将在后续阶段逐步开放。"
+        description={t("moduleUnderConstruction")}
         style={{ marginTop: 8 }}
       />
       {children}

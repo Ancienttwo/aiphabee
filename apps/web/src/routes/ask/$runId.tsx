@@ -23,6 +23,7 @@ import { EvidenceContractCard, ResearchPlanCard } from "../../components/researc
 import { planAgentRun } from "../../lib/api";
 import { useAgentStream } from "../../lib/useAgentStream";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
+import { useLocale } from "../../i18n/locale";
 
 export const Route = createFileRoute("/ask/$runId")({
   validateSearch: (search: Record<string, unknown>): { q: string } => ({
@@ -32,13 +33,18 @@ export const Route = createFileRoute("/ask/$runId")({
 });
 
 function AskRun() {
+  const { locale, t } = useLocale();
   const navigate = useNavigate();
   const { runId } = Route.useParams();
   const { q } = Route.useSearch();
-  const { events, status, runId: backendRunId } = useAgentStream(q || undefined);
+  const { events, status, runId: backendRunId } = useAgentStream(
+    q || undefined,
+    locale,
+    runId,
+  );
   const { data: planEnv } = useQuery({
-    queryKey: ["agent-plan", q],
-    queryFn: () => planAgentRun(q),
+    queryKey: ["agent-plan", q, locale],
+    queryFn: () => planAgentRun(q, locale),
     enabled: Boolean(q),
   });
   const plan = planEnv?.ok ? planEnv.data : undefined;
@@ -60,11 +66,11 @@ function AskRun() {
         <MascotState
           basePath={MASCOT_BP}
           pose="empty"
-          title="还没有研究问题"
-          description="回到研究对话，输入一个问题开始。"
+          title={t("noResearchQuestion")}
+          description={t("returnAndAsk")}
         >
           <Button variant="outline" onClick={() => navigate({ to: "/ask" })}>
-            去提问
+            {t("askNow")}
           </Button>
         </MascotState>
       </main>
@@ -89,7 +95,7 @@ function AskRun() {
           marginBottom: 14,
         }}
       >
-        <Icon name="arrow-left" size={16} /> 返回研究对话
+        <Icon name="arrow-left" size={16} /> {t("backToResearch")}
       </button>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
@@ -106,12 +112,12 @@ function AskRun() {
         </h1>
         <Badge tone={status === "error" ? "bearish" : "ai"} variant="soft" dot>
           {status === "streaming"
-            ? "研究中"
+            ? t("researching")
             : status === "done"
-              ? "已完成"
+              ? t("completed")
               : status === "error"
-                ? "后端未连接"
-                : "准备中"}
+                ? t("capabilityUnavailable")
+                : t("preparing")}
         </Badge>
       </div>
       <div
@@ -122,8 +128,8 @@ function AskRun() {
           marginBottom: 22,
         }}
       >
-        会话 {runId}
-        {backendRunId ? ` · 后端 run ${backendRunId}` : status === "streaming" ? " · 连接中…" : ""}
+        {t("session")} {runId}
+        {backendRunId ? ` · ${t("backendRun")} ${backendRunId}` : status === "streaming" ? ` · ${t("connecting")}` : ""}
       </div>
 
       <div className="ab-split" style={{ gap: 24, alignItems: "start" }}>
@@ -131,12 +137,12 @@ function AskRun() {
           {plan ? <ResearchPlanCard plan={plan} /> : null}
           <Card>
             <CardHeader>
-              <CardTitle>研究进度</CardTitle>
+              <CardTitle>{t("researchProgress")}</CardTitle>
             </CardHeader>
             <CardContent>
               {status === "error" ? (
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--red-600)" }}>
-                  无法连接后端 Agent。请在仓库根运行 <code>npm run dev:worker</code> 后重试。
+                  {t("agentConnectionFailed")}
                 </p>
               ) : (
                 <ToolProgressStream events={events} streaming={status === "streaming"} />
@@ -146,7 +152,7 @@ function AskRun() {
 
           <Card>
             <CardHeader>
-              <CardTitle>分层作答</CardTitle>
+              <CardTitle>{t("layeredAnswer")}</CardTitle>
             </CardHeader>
             <CardContent>
               <p
@@ -156,14 +162,13 @@ function AskRun() {
                   color: "var(--text-muted)",
                 }}
               >
-                合成预览：以下展示「分层标签 + 证据卡片」的呈现方式。模型作答尚未接入（Gate 0
-                前为合成数据）。
+                {t("syntheticPreview")}
               </p>
               <div style={{ display: "grid", gap: 10 }}>
-                <AnswerLine layer="fact">近三个交易日的收盘价序列来自行情工具。</AnswerLine>
-                <AnswerLine layer="calculation">区间累计涨跌幅为确定性计算结果。</AnswerLine>
-                <AnswerLine layer="inference">与同业对照后的归因属于推断，非因果断言。</AnswerLine>
-                <AnswerLine layer="unknown">具体资金流向在当前数据范围内无法判断。</AnswerLine>
+                <AnswerLine layer="fact">{t("previewFact")}</AnswerLine>
+                <AnswerLine layer="calculation">{t("previewCalculation")}</AnswerLine>
+                <AnswerLine layer="inference">{t("previewInference")}</AnswerLine>
+                <AnswerLine layer="unknown">{t("previewUnknown")}</AnswerLine>
               </div>
               <div style={{ marginTop: 14 }}>
                 <EvidenceCard
@@ -179,7 +184,7 @@ function AskRun() {
                     },
                   ]}
                   usage={{ cached: false, credits: 0, rows: events.length }}
-                  warnings={["合成数据，非真实港股行情。"]}
+                  warnings={[t("syntheticWarning")]}
                 />
               </div>
               <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
@@ -188,11 +193,11 @@ function AskRun() {
                   icon={<Icon name="sparkles" size={16} />}
                   onClick={() => setCostOpen(true)}
                 >
-                  深度研究
+                  {t("deepResearch")}
                 </Button>
                 {deepQueued ? (
                   <span style={{ fontSize: "var(--text-sm)", color: "var(--green-600)" }}>
-                    已确认成本，深度研究将在 Workflow 接入后执行。
+                    {t("deepResearchQueued")}
                   </span>
                 ) : null}
               </div>
@@ -206,13 +211,12 @@ function AskRun() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>证据强度</CardTitle>
+                <CardTitle>{t("evidenceStrength")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <EvidenceStrength strength="indeterminate" />
                 <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-                  合成模式下不评估证据强度。接入 live 数据后，将按来源与一致性给出 强 / 中 / 弱
-                  judgement，而非伪造的可信度百分比。
+                  {t("syntheticStrengthUnavailable")}
                 </p>
               </CardContent>
             </Card>
@@ -225,8 +229,8 @@ function AskRun() {
       <CostConfirmGate
         open={costOpen}
         estimatedCredits={120}
-        dataRange="近 5 年"
-        outputDescription="多步深度报告 + 完整证据索引"
+        dataRange={t("lastFiveYears")}
+        outputDescription={t("deepReportOutput")}
         onConfirm={() => {
           setCostOpen(false);
           setDeepQueued(true);

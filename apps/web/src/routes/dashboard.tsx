@@ -9,7 +9,9 @@ import {
   StatCard,
 } from "../ds";
 import { MarketSentimentPanel } from "../components/MarketSentimentPanel";
-import { IPOS, SECTOR_LABEL, SENTIMENT_LABEL, SENTIMENT_TONE } from "../data/ipos.fixtures";
+import { IPOS, SENTIMENT_TONE } from "../data/ipos.fixtures";
+import { useLocale, type MessageKey } from "../i18n/locale";
+import type { IpoSector, IpoSentiment } from "../lib/api/ipo-types";
 import { formatMultiple } from "../lib/format";
 import { SHELL } from "../lib/ui";
 
@@ -17,8 +19,26 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
+const SECTOR_MESSAGE: Record<IpoSector, MessageKey> = {
+  consumer: "sectorConsumer",
+  energy: "sectorEnergy",
+  fintech: "sectorFintech",
+  health: "sectorHealth",
+  industrial: "sectorIndustrial",
+  property: "sectorProperty",
+  tech: "sectorTech",
+};
+
+const SENTIMENT_MESSAGE: Record<IpoSentiment, MessageKey> = {
+  bearish: "sentimentBearish",
+  bullish: "sentimentBullish",
+  cautious: "sentimentCautious",
+  neutral: "sentimentNeutral",
+};
+
 function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useLocale();
   const upcoming = IPOS.filter((ipo) => ipo.stage === "subscribing");
 
   return (
@@ -37,10 +57,10 @@ function Dashboard() {
                   color: "var(--text-primary)",
                 }}
               >
-                IPO Agent Dashboard
+                {t("dashboardTitle")}
               </h1>
               <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-                欢迎回来！这是您的港股 IPO 市场概览（示例数据）。
+                {t("dashboardWelcome")}
               </p>
             </div>
           </div>
@@ -49,17 +69,17 @@ function Dashboard() {
 
       <div style={{ ...SHELL, padding: "32px var(--content-gutter) 80px" }}>
         <div className="ab-grid-4" style={{ gap: 18 }}>
-          <StatCard label="Active IPOs 招股中" value="12" tone="honey" icon={<Icon name="calendar" size={20} />} />
+          <StatCard label={t("dashboardActiveIpos")} value="12" tone="honey" icon={<Icon name="calendar" size={20} />} />
           <StatCard
-            label="本周上市 This week"
+            label={t("dashboardListingsThisWeek")}
             value="5"
             tone="green"
-            delta="2 vs 上周"
+            delta={t("dashboardVsLastWeek")}
             deltaDirection="up"
             icon={<Icon name="trending-up" size={20} />}
           />
-          <StatCard label="平均超额认购" value="42.8×" tone="violet" icon={<Icon name="layers" size={20} />} />
-          <StatCard label="Watchlist 关注" value="7" tone="blue" icon={<Icon name="star" size={20} />} />
+          <StatCard label={t("dashboardAverageOversubscription")} value="42.8×" tone="violet" icon={<Icon name="layers" size={20} />} />
+          <StatCard label={t("dashboardWatchlist")} value="7" tone="blue" icon={<Icon name="star" size={20} />} />
         </div>
 
         <div
@@ -73,7 +93,7 @@ function Dashboard() {
           <Card>
             <CardHeader>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <CardTitle>本周招股 Upcoming this week</CardTitle>
+                <CardTitle>{t("dashboardUpcomingThisWeek")}</CardTitle>
                 <button
                   onClick={() => navigate({ to: "/ipos" })}
                   style={{
@@ -86,7 +106,7 @@ function Dashboard() {
                     fontFamily: "var(--font-sans)",
                   }}
                 >
-                  View all →
+                  {t("dashboardViewAll")}
                 </button>
               </div>
             </CardHeader>
@@ -118,12 +138,12 @@ function Dashboard() {
                       </span>
                     </div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 2 }}>
-                      {ipo.listingDate} · {SECTOR_LABEL[ipo.sector]}
+                      {ipo.listingDate} · {t(SECTOR_MESSAGE[ipo.sector])}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <Badge tone={SENTIMENT_TONE[ipo.sentiment]} size="sm" dot>
-                      {SENTIMENT_LABEL[ipo.sentiment]}
+                      {t(SENTIMENT_MESSAGE[ipo.sentiment])}
                     </Badge>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>
                       {ipo.live.subPublic != null ? formatMultiple(ipo.live.subPublic) : "—"}

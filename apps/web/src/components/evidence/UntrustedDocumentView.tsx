@@ -1,5 +1,6 @@
 import { Badge } from "../../ds";
 import type { ProvenanceRef } from "../../lib/api";
+import { useLocale } from "../../i18n/locale";
 
 /**
  * Untrusted-document view (PRD DOC-03). Filing / announcement bodies are
@@ -29,6 +30,7 @@ export function UntrustedDocumentView({
   source,
   title,
 }: UntrustedDocumentViewProps) {
+  const { t } = useLocale();
   const safe = sanitizeUntrusted(content);
   return (
     <div
@@ -49,7 +51,7 @@ export function UntrustedDocumentView({
         }}
       >
         <Badge tone="warning" variant="soft" size="sm">
-          不可信内容 · Untrusted
+          {t("untrustedContent")}
         </Badge>
         {title ? (
           <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-body)" }}>
@@ -78,7 +80,7 @@ export function UntrustedDocumentView({
           wordBreak: "break-word",
         }}
       >
-        {safe || "（空文档）"}
+        {safe || t("emptyDocument")}
       </div>
     </div>
   );

@@ -1,8 +1,5 @@
 import { Badge, Icon, type BadgeTone } from "../../ds";
 import {
-  LISTING_TYPE,
-  SECTOR_LABEL,
-  SENTIMENT_LABEL,
   SENTIMENT_TONE,
   STAGE_BY,
 } from "../../data/ipos.fixtures";
@@ -11,13 +8,20 @@ import { fmtNum } from "../../lib/num";
 import { Eyebrow } from "./Eyebrow";
 import { Mono } from "./Mono";
 import { SubPill } from "./SubPill";
+import {
+  IPO_LISTING_TYPE_MESSAGE,
+  IPO_SECTOR_MESSAGE,
+  IPO_SENTIMENT_MESSAGE,
+  IPO_STAGE_MESSAGE,
+  useIpoLocale,
+} from "./i18n";
 
-/** Offer price range / final, or 待定 when undisclosed. */
-function offerText(t: IpoRecord["terms"]): string {
+/** Offer price range / final, or the localized pending label when undisclosed. */
+function offerText(t: IpoRecord["terms"], pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh)
     return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;
-  return "待定";
+  return pending;
 }
 
 const ST_TONE: Record<string, BadgeTone> = {
@@ -37,6 +41,7 @@ export interface IpoRowProps {
 
 /** One dense IPO pipeline row. */
 export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
+  const { t: translate } = useIpoLocale();
   const st = STAGE_BY[ipo.stage];
   const t = ipo.terms;
   const live = ipo.live;
@@ -67,11 +72,11 @@ export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
           </span>
           <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{ipo.cn}</span>
           <Badge tone={ST_TONE[st.tone]} size="sm" dot dotShape="hex">
-            {st.label}
+            {translate(IPO_STAGE_MESSAGE[ipo.stage])}
           </Badge>
           {ipo.listingType !== "normal" && (
             <Badge tone="navy" variant="outline" size="sm">
-              {LISTING_TYPE[ipo.listingType].split(" ")[0]}
+              {translate(IPO_LISTING_TYPE_MESSAGE[ipo.listingType])}
             </Badge>
           )}
         </div>
@@ -80,14 +85,14 @@ export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
             {ipo.ticker}
           </Mono>
           <span>·</span>
-          <span>{SECTOR_LABEL[ipo.sector]}</span>
+          <span>{translate(IPO_SECTOR_MESSAGE[ipo.sector])}</span>
         </div>
       </div>
       {/* offer */}
       <div>
-        <Eyebrow>Offer · 入场费</Eyebrow>
+        <Eyebrow>{translate("offerEntryFee")}</Eyebrow>
         <div style={{ marginTop: 3 }}>
-          <Mono>{offerText(t)}</Mono>
+          <Mono>{offerText(t, translate("pending"))}</Mono>
         </div>
         <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontFamily: "var(--font-mono)" }}>
           {t.entryFee ? `HK$${fmtNum(t.entryFee, 0)}` : "—"}
@@ -95,17 +100,19 @@ export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
       </div>
       {/* listing date */}
       <div>
-        <Eyebrow>Listing 上市日</Eyebrow>
+        <Eyebrow>{translate("listingDate")}</Eyebrow>
         <div style={{ marginTop: 3, fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-body)" }}>
           {ipo.listingDate.replace(", 2026", "")}
         </div>
         <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-          {t.raiseHKD !== "不适用（无新股发行）" ? `集资 ${t.raiseHKD}` : "介绍上市"}
+          {ipo.listingType !== "intro"
+            ? `${translate("rowFundraising")} ${t.raiseHKD}`
+            : translate("introListing")}
         </div>
       </div>
       {/* subscription / win rate */}
       <div>
-        <Eyebrow>{isAllot ? "一手中签率" : "公开认购"}</Eyebrow>
+        <Eyebrow>{isAllot ? translate("metricOneLot") : translate("publicSubscription")}</Eyebrow>
         <div style={{ marginTop: 3 }}>
           {isAllot ? (
             <Mono color={oneLot >= 50 ? "var(--green-600)" : "var(--accent-strong)"}>{oneLot}%</Mono>
@@ -115,18 +122,18 @@ export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
         </div>
         <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
           {isAllot
-            ? `回拨 ${live.clawbackApplied ?? "—"}`
+            ? `${translate("rowClawback")} ${live.clawbackApplied ?? "—"}`
             : live.subPublic != null
-              ? `国际 ${live.subIntl ?? "—"}×`
+              ? `${translate("international")} ${live.subIntl ?? "—"}×`
               : "—"}
         </div>
       </div>
       {/* sentiment + score */}
       <div>
-        <Eyebrow>情绪 · 评分</Eyebrow>
+        <Eyebrow>{translate("rowSentimentScore")}</Eyebrow>
         <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
           <Badge tone={SENTIMENT_TONE[ipo.sentiment]} size="sm" dot>
-            {SENTIMENT_LABEL[ipo.sentiment].split(" ")[0]}
+            {translate(IPO_SENTIMENT_MESSAGE[ipo.sentiment])}
           </Badge>
           <Mono color="var(--accent-strong)">{ipo.score}</Mono>
         </div>
@@ -138,7 +145,7 @@ export function IpoRow({ ipo, onOpen, inCompare, toggleCompare }: IpoRowProps) {
           e.stopPropagation();
           toggleCompare(ipo.id);
         }}
-        title="加入对比"
+        title={translate("addCompare")}
         style={{
           justifySelf: "center",
           width: 30,

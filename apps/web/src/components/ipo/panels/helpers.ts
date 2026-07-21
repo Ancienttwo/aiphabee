@@ -4,12 +4,12 @@
  */
 import type { IpoTerms } from "../../../lib/api/ipo-types";
 
-/** Offer price range / final, or 待定 when undisclosed. */
-export function offerText(t: IpoTerms): string {
+/** Offer price range / final, or the caller's localized pending label. */
+export function offerText(t: IpoTerms, pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh)
     return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;
-  return "待定";
+  return pending;
 }
 
 /** Demand-level colour from the oversubscription multiple (prototype tiers). */

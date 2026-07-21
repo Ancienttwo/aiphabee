@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon } from "../../ds";
-import { SECTOR_LABEL } from "../../data/ipos.fixtures";
 import type { IpoSector } from "../../lib/api/ipo-types";
+import { IPO_SECTOR_MESSAGE, useIpoLocale } from "./i18n";
 
 export type SectorFilter = IpoSector | "all";
 
@@ -13,12 +13,6 @@ export interface FilterBarProps {
   q: string;
   setQ: (s: string) => void;
 }
-
-const SORTS: [string, string][] = [
-  ["sub", "按认购倍数 Subscription"],
-  ["score", "按综合评分 Score"],
-  ["listing", "按上市日 Date"],
-];
 
 function selectEl(
   value: string,
@@ -61,7 +55,16 @@ function selectEl(
 
 /** Search + sector + sort controls for the IPO pipeline. */
 export function FilterBar({ sector, setSector, sort, setSort, q, setQ }: FilterBarProps) {
-  const sectors: [string, string][] = [["all", "全部行业"], ...Object.entries(SECTOR_LABEL)];
+  const { t } = useIpoLocale();
+  const sectors: [string, string][] = [
+    ["all", t("allSectors")],
+    ...Object.entries(IPO_SECTOR_MESSAGE).map(([key, message]) => [key, t(message)] as [string, string]),
+  ];
+  const sorts: [string, string][] = [
+    ["sub", t("sortSubscription")],
+    ["score", t("sortScore")],
+    ["listing", t("sortListing")],
+  ];
   return (
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
       <div
@@ -77,8 +80,8 @@ export function FilterBar({ sector, setSector, sort, setSort, q, setQ }: FilterB
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="搜索 IPO 公司或代码"
-          placeholder="搜索公司 / 代码 Search ticker or name"
+          aria-label={t("searchLabel")}
+          placeholder={t("searchPlaceholder")}
           style={{
             width: "100%",
             padding: "9px 12px 9px 34px",
@@ -92,7 +95,7 @@ export function FilterBar({ sector, setSector, sort, setSort, q, setQ }: FilterB
         />
       </div>
       {selectEl(sector, (v) => setSector(v as SectorFilter), sectors)}
-      {selectEl(sort, setSort, SORTS)}
+      {selectEl(sort, setSort, sorts)}
     </div>
   );
 }

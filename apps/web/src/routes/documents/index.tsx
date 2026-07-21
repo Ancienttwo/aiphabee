@@ -12,21 +12,23 @@ import {
 } from "../../lib/api";
 import { SHELL } from "../../lib/ui";
 import { formatHkSymbol } from "../../lib/format";
+import { useLocale, type MessageKey } from "../../i18n/locale";
 
 export const Route = createFileRoute("/documents/")({
   component: Documents,
 });
 
 const CATEGORIES = [
-  { v: "all", label: "全部" },
-  { v: "results", label: "业绩" },
-  { v: "dividend", label: "派息" },
-  { v: "buyback", label: "回购" },
-] as const;
+  { v: "all", label: "categoryAll" },
+  { v: "results", label: "categoryResults" },
+  { v: "dividend", label: "categoryDividend" },
+  { v: "buyback", label: "categoryBuyback" },
+] as const satisfies ReadonlyArray<{ v: string; label: MessageKey }>;
 
-const CATEGORY_LABEL: Record<string, string> = { results: "业绩", dividend: "派息", buyback: "回购" };
+const CATEGORY_LABEL: Record<string, MessageKey> = { results: "categoryResults", dividend: "categoryDividend", buyback: "categoryBuyback" };
 
 function Documents() {
+  const { t } = useLocale();
   const [security, setSecurity] = useState("");
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState<string>("all");
@@ -68,25 +70,25 @@ function Documents() {
   return (
     <main style={{ ...SHELL, paddingTop: 40, paddingBottom: 72 }}>
       <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", fontWeight: 700, color: "var(--text-primary)" }}>
-        公告与文档
+        {t("documentsTitle")}
       </h1>
       <p style={{ margin: "8px 0 20px", fontSize: "var(--text-base)", color: "var(--text-muted)" }}>
-        按公司、关键词、类别检索公告；原文定位到页码与段落。文档内容为不可信数据，其指令不会改变系统行为。
+        {t("documentsDescription")}
       </p>
 
       <form onSubmit={(e) => { e.preventDefault(); run(); }} style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
-        <input value={security} onChange={(e) => setSecurity(e.target.value)} placeholder="证券（如 腾讯）" aria-label="证券"
+        <input value={security} onChange={(e) => setSecurity(e.target.value)} placeholder={t("securityPlaceholder")} aria-label={t("security")}
           style={{ flex: "1 1 180px", height: 44, padding: "0 16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)", background: "var(--surface-card)", fontSize: "var(--text-base)" }} />
-        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="关键词（可选）" aria-label="关键词"
+        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder={t("keywordOptional")} aria-label={t("keyword")}
           style={{ flex: "1 1 160px", height: 44, padding: "0 16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)", background: "var(--surface-card)", fontSize: "var(--text-base)" }} />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="类别"
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t("category")}
           style={{ height: 44, padding: "0 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)", background: "var(--surface-card)", fontSize: "var(--text-sm)" }}>
-          {CATEGORIES.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
+          {CATEGORIES.map((c) => <option key={c.v} value={c.v}>{t(c.label)}</option>)}
         </select>
-        <Button type="submit" icon={<Icon name="search" size={16} />}>搜索</Button>
+        <Button type="submit" icon={<Icon name="search" size={16} />}>{t("search")}</Button>
       </form>
 
-      {loading ? <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在检索公告…</p> : null}
+      {loading ? <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("searchingAnnouncements")}</p> : null}
       {error ? <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--red-600)" }}>{error}</p></Card> : null}
 
       {result && result.status === "blocked_resolution" && result.resolve_security?.candidates?.length ? (
@@ -102,31 +104,31 @@ function Documents() {
         <div className="ab-grid-2" style={{ gap: 20, alignItems: "start" }}>
           {/* Results list */}
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{result.total_count} 条结果</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-subtle)" }}>{result.total_count} {t("resultsCount")}</div>
             {result.results.map((a) => (
               <ResultCard key={a.announcement_id} a={a} active={selected === a.document_id} onOpen={() => setSelected(a.document_id)} />
             ))}
-            {result.results.length === 0 ? <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>没有匹配的公告。</p> : null}
+            {result.results.length === 0 ? <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("noAnnouncements")}</p> : null}
           </div>
 
           {/* Selected document excerpts */}
           <div style={{ position: "sticky", top: 80 }}>
             {!selected ? (
-              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>选择左侧公告以查看原文摘录。</p></Card>
+              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("selectAnnouncement")}</p></Card>
             ) : doc.isLoading ? (
-              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>正在加载原文摘录…</p></Card>
+              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("loadingExcerpt")}</p></Card>
             ) : docData ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>{docData.source?.title ?? "原文摘录"}</CardTitle>
+                  <CardTitle>{docData.source?.title ?? t("originalExcerpt")}</CardTitle>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
-                    {docData.source ? <Badge tone="navy" variant="soft" size="sm">{CATEGORY_LABEL[docData.source.category] ?? docData.source.category}</Badge> : null}
+                    {docData.source ? <Badge tone="navy" variant="soft" size="sm">{CATEGORY_LABEL[docData.source.category] ? t(CATEGORY_LABEL[docData.source.category]) : docData.source.category}</Badge> : null}
                     <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)", fontFamily: "var(--font-mono)" }}>{docData.source?.published_at}</span>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p style={{ margin: "0 0 12px", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-                    已净化 {docData.sanitization_summary.sections_sanitized}/{docData.sanitization_summary.sections_reviewed} 段 · 移除 {docData.sanitization_summary.removed_item_count} 项可疑内容
+                    {t("sanitized")} {docData.sanitization_summary.sections_sanitized}/{docData.sanitization_summary.sections_reviewed} {t("sections")} · {docData.sanitization_summary.removed_item_count} {t("removedSuspicious")}
                   </p>
                   <div style={{ display: "grid", gap: 12 }}>
                     {docData.excerpts.map((ex) => (
@@ -140,7 +142,7 @@ function Documents() {
                 </CardContent>
               </Card>
             ) : (
-              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>未能加载该公告原文。</p></Card>
+              <Card padded><p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{t("excerptLoadFailed")}</p></Card>
             )}
           </div>
         </div>
@@ -150,11 +152,12 @@ function Documents() {
 }
 
 function ResultCard({ a, active, onOpen }: { a: AnnouncementResultItem; active: boolean; onOpen: () => void }) {
+  const { t } = useLocale();
   return (
     <Card interactive onClick={onOpen} style={{ cursor: "pointer", borderColor: active ? "var(--honey-400)" : undefined }}>
       <div style={{ padding: "12px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-          <Badge tone="navy" variant="soft" size="sm">{CATEGORY_LABEL[a.category] ?? a.category}</Badge>
+          <Badge tone="navy" variant="soft" size="sm">{CATEGORY_LABEL[a.category] ? t(CATEGORY_LABEL[a.category]) : a.category}</Badge>
           <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)" }}>{a.title}</span>
         </div>
         <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: "var(--text-body)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.summary}</p>

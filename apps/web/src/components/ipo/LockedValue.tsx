@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon } from "../../ds";
 import { useEntitlement, type EntitlementTier } from "../../lib/context/EntitlementContext";
+import { useIpoLocale } from "./i18n";
 
 export interface LockedValueProps {
   children: ReactNode;
@@ -16,12 +17,13 @@ export interface LockedValueProps {
  */
 export function LockedValue({ children, tier = "premium", inline }: LockedValueProps) {
   const { isEntitled, setPlan } = useEntitlement();
+  const { t } = useIpoLocale();
   if (isEntitled(tier)) return <>{children}</>;
   return (
     <button
       type="button"
       onClick={() => setPlan(tier)}
-      title={`${tier} 解锁`}
+      title={`${tier} ${t("unlock")}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -39,7 +41,7 @@ export function LockedValue({ children, tier = "premium", inline }: LockedValueP
       }}
     >
       <Icon name="lock" size={11} color="var(--violet-600)" />{" "}
-      {tier === "enterprise" ? "Enterprise" : "Premium"} 解锁
+      {tier === "enterprise" ? "Enterprise" : "Premium"} {t("unlock")}
     </button>
   );
 }

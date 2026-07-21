@@ -23645,6 +23645,7 @@ describe("worker runtime", () => {
     const response = await app.request("/agent/runs/plan", {
       body: JSON.stringify({
         kill_switch_reason: "tool provider incident",
+        locale: "en",
         prompt: "Explain 00700.HK revenue and price trend",
         tool_kill_switch: true,
         tools: ["resolve_security", "get_quote_snapshot"]

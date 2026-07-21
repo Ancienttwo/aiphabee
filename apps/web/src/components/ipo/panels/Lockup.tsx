@@ -1,5 +1,6 @@
 import { Icon } from "../../../ds";
 import { Mono } from "../Mono";
+import { useIpoLocale } from "../i18n";
 import type { IpoRecord } from "../../../lib/api/ipo-types";
 
 /**
@@ -7,6 +8,7 @@ import type { IpoRecord } from "../../../lib/api/ipo-types";
  * Empty list → "无适用禁售期信息" notice (e.g. withdrawn offers).
  */
 export function Lockup({ ipo }: { ipo: IpoRecord }) {
+  const { t } = useIpoLocale();
   if (!ipo.lockup || !ipo.lockup.length) {
     return (
       <div
@@ -18,7 +20,7 @@ export function Lockup({ ipo }: { ipo: IpoRecord }) {
           color: "var(--text-muted)",
         }}
       >
-        无适用禁售期信息。
+        {t("noLockup")}
       </div>
     );
   }
@@ -43,7 +45,7 @@ export function Lockup({ ipo }: { ipo: IpoRecord }) {
                 {l.type}
               </div>
               <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>
-                解禁 Unlock · {l.endDate}
+                {t("unlockDate")} · {l.endDate}
               </div>
             </div>
           </div>
