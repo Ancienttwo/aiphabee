@@ -18,11 +18,7 @@ import type {
 } from "./types";
 import type {
   IpoCalendarRange,
-  IpoCalendarResult,
-  IpoCompareResult,
   IpoScreenFilters,
-  IpoScreenResult,
-  IpoSnapshot,
 } from "./ipo-types";
 
 // --- Security resolution -------------------------------------------------
@@ -106,11 +102,14 @@ export function compareSecurities(securities: string[]) {
 }
 
 // --- IPO workbench -------------------------------------------------------
-// Backed by Codex's worker routes (mock-first via ./ipo-mock until live).
+// Live worker contract. It remains locale-blind and must not replace
+// `./ipo-mock` until the worker accepts an exact locale and returns the
+// corresponding resolved payload.
+type LocaleBlindLiveIpoPayload = unknown;
 
 /** Aggregate IPO detail snapshot (POST /workbench/ipo/snapshot). */
 export function getIpoSnapshot(id: string) {
-  return apiCall<IpoSnapshot>("/workbench/ipo/snapshot", {
+  return apiCall<LocaleBlindLiveIpoPayload>("/workbench/ipo/snapshot", {
     method: "POST",
     body: { ipo_id: id },
   });
@@ -118,7 +117,7 @@ export function getIpoSnapshot(id: string) {
 
 /** Filter the IPO pipeline by lifecycle stage / sector / query (POST /analytics/screen-ipos). */
 export function screenIpos(filters: IpoScreenFilters) {
-  return apiCall<IpoScreenResult>("/analytics/screen-ipos", {
+  return apiCall<LocaleBlindLiveIpoPayload>("/analytics/screen-ipos", {
     method: "POST",
     body: {
       stage: filters.stage,
@@ -131,7 +130,7 @@ export function screenIpos(filters: IpoScreenFilters) {
 
 /** Compare 2–5 IPOs metric-by-metric (POST /analytics/compare-ipos). */
 export function compareIpos(ids: string[]) {
-  return apiCall<IpoCompareResult>("/analytics/compare-ipos", {
+  return apiCall<LocaleBlindLiveIpoPayload>("/analytics/compare-ipos", {
     method: "POST",
     body: { ipo_ids: ids },
   });
@@ -139,7 +138,7 @@ export function compareIpos(ids: string[]) {
 
 /** Cross-IPO timetable agenda (POST /ipos/calendar). */
 export function getIpoCalendar(range?: IpoCalendarRange) {
-  return apiCall<IpoCalendarResult>("/ipos/calendar", {
+  return apiCall<LocaleBlindLiveIpoPayload>("/ipos/calendar", {
     method: "POST",
     body: { from: range?.from, to: range?.to },
   });

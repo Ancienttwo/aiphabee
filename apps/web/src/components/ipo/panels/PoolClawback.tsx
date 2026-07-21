@@ -3,14 +3,14 @@ import { Eyebrow } from "../Eyebrow";
 import { Mono } from "../Mono";
 import { Badge } from "../../../ds";
 import { IPO_LISTING_TYPE_MESSAGE, useIpoLocale } from "../i18n";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 
 /**
  * Public-offer pool + clawback ladder (vendor fact), ported from
  * `detail-parts.jsx`. By-Introduction / not-yet-open offers (`pools` null)
  * render an explanatory notice rather than crashing.
  */
-export function PoolClawback({ ipo }: { ipo: IpoRecord }) {
+export function PoolClawback({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   if (ipo.listingType === "intro" || !ipo.pools) {
     return (

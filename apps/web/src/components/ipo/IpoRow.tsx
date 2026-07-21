@@ -3,7 +3,7 @@ import {
   SENTIMENT_TONE,
   STAGE_BY,
 } from "../../data/ipos.fixtures";
-import type { IpoRecord } from "../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../lib/api/ipo-types";
 import { fmtNum } from "../../lib/num";
 import { Eyebrow } from "./Eyebrow";
 import { Mono } from "./Mono";
@@ -17,7 +17,7 @@ import {
 } from "./i18n";
 
 /** Offer price range / final, or the localized pending label when undisclosed. */
-function offerText(t: IpoRecord["terms"], pending: string): string {
+function offerText(t: ResolvedIpoRecord["terms"], pending: string): string {
   if (t.finalPrice) return `HK$${t.finalPrice.toFixed(2)}`;
   if (t.priceLow && t.priceHigh)
     return `HK$${t.priceLow.toFixed(2)}–${t.priceHigh.toFixed(2)}`;
@@ -33,7 +33,7 @@ const ST_TONE: Record<string, BadgeTone> = {
 };
 
 export interface IpoRowProps {
-  ipo: IpoRecord;
+  ipo: ResolvedIpoRecord;
   onOpen: () => void;
   inCompare: boolean;
   toggleCompare: (id: string) => void;

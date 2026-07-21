@@ -1,4 +1,8 @@
-import type { IpoRisk, IpoRiskLevel } from "../../../lib/api/ipo-types";
+import type {
+  IpoRisk,
+  IpoRiskLevel,
+  ResolvedIpoValue,
+} from "../../../lib/api/ipo-types";
 import { useIpoLocale, type IpoMessageKey } from "../i18n";
 
 const CFG: Record<IpoRiskLevel, [string, string, IpoMessageKey]> = {
@@ -8,7 +12,7 @@ const CFG: Record<IpoRiskLevel, [string, string, IpoMessageKey]> = {
 };
 
 /** One risk-summary line (analysis layer), ported from `detail.jsx` `RiskRow`. */
-export function RiskRow({ r }: { r: IpoRisk }) {
+export function RiskRow({ r }: { r: ResolvedIpoValue<IpoRisk> }) {
   const { t } = useIpoLocale();
   const [color, bg, labelKey] = CFG[r.level];
   return (

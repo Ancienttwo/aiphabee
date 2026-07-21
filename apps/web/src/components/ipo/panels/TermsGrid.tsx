@@ -1,10 +1,10 @@
 import { Mono } from "../Mono";
 import { fmtNum } from "../../../lib/num";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 import { useIpoLocale } from "../i18n";
 
 /** Offer-terms grid (vendor fact), ported from `detail-parts.jsx` `TermsGrid`. */
-export function TermsGrid({ ipo }: { ipo: IpoRecord }) {
+export function TermsGrid({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t: translate } = useIpoLocale();
   const t = ipo.terms;
   const items: [string, string][] = [

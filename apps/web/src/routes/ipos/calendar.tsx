@@ -71,10 +71,10 @@ interface DatedEvent {
 
 function CalendarView() {
   const navigate = useNavigate();
-  const { t } = useIpoLocale();
+  const { locale, t } = useIpoLocale();
   const [filter, setFilter] = useState("all");
 
-  const res = getIpoCalendarMock();
+  const res = getIpoCalendarMock(locale);
   const events = res.ok ? res.data.events : [];
 
   const all: DatedEvent[] = [];

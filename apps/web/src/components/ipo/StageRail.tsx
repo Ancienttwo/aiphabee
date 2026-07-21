@@ -1,5 +1,5 @@
 import { Icon, type IconName } from "../../ds";
-import { IPOS, STAGES } from "../../data/ipos.fixtures";
+import { IPO_FIXTURES, STAGES } from "../../data/ipos.fixtures";
 import type { IpoStage } from "../../lib/api/ipo-types";
 import { Eyebrow } from "./Eyebrow";
 import { Mono } from "./Mono";
@@ -56,7 +56,7 @@ export function StageRail({ active, setActive }: StageRailProps) {
             weight={800}
             color={active === "all" ? "var(--honey-700)" : "var(--text-primary)"}
           >
-            {IPOS.length}
+            {IPO_FIXTURES.length}
           </Mono>
           <span
             style={{
@@ -70,7 +70,7 @@ export function StageRail({ active, setActive }: StageRailProps) {
       </button>
       {STAGES.map((s) => {
         const on = active === s.key;
-        const count = IPOS.filter((i) => i.stage === s.key).length;
+        const count = IPO_FIXTURES.filter((i) => i.stage === s.key).length;
         return (
           <button
             key={s.key}

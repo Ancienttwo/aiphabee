@@ -1,13 +1,13 @@
 import { Icon } from "../../../ds";
 import { Mono } from "../Mono";
 import { useIpoLocale } from "../i18n";
-import type { IpoRecord } from "../../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../../lib/api/ipo-types";
 
 /**
  * Lock-up (禁售期) cohorts (vendor fact), ported from `detail-parts.jsx`.
  * Empty list → "无适用禁售期信息" notice (e.g. withdrawn offers).
  */
-export function Lockup({ ipo }: { ipo: IpoRecord }) {
+export function Lockup({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   if (!ipo.lockup || !ipo.lockup.length) {
     return (

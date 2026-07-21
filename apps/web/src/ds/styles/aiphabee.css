@@ -510,6 +510,10 @@ img { max-width: 100%; }
   align-items: center;
 }
 @media (max-width: 900px) {
+  /* Corporate panels need a full row before the generic two-column utility
+     collapses; localized company facts otherwise have too little room. */
+  .ipo-corporate-grid { grid-template-columns: minmax(0, 1fr); }
+
   .ipo-row {
     grid-template-columns: 1fr 1fr;
     align-items: start;

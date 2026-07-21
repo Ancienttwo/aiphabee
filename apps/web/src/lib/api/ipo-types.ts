@@ -3,14 +3,13 @@
  *
  * Mirrors the design prototype's mock record shape
  * (`docs/AiphaBee Design System/apps/ipo-workbench/data.jsx`) — the source of
- * truth for the IPO workbench's fields, lookups, and product semantics. These
- * types describe the `data` payload Codex's worker returns inside the shared
+ * truth for the IPO workbench's fields, lookups, and product semantics. This
+ * `IpoRecord` is the fixture-authoring contract. `ResolvedIpoRecord` describes
+ * the locale-selected `data` payload returned inside the shared
  * `ResponseEnvelope<T>` (see `./types`, `@aiphabee/data-contracts`).
  *
- * IMPORTANT: this is a NEW, additive contract. The legacy `../../data/ipos.ts`
- * record (also named `IpoRecord`) feeds the existing `/ipos` routes and stays
- * untouched. The two never coexist in one module, so the shared type name is
- * intentional — this is the canonical workbench shape the later phases consume.
+ * IMPORTANT: locale-keyed fixture records never cross the response boundary;
+ * the mock API resolves every textual leaf before returning a payload.
  *
  * Product semantics preserved from the prototype:
  *  - Fact layer vs analysis layer: vendor facts are tagged
@@ -23,6 +22,39 @@
  *    account is not entitled (see `LockedValue`).
  */
 import type { BadgeTone } from "../../ds";
+
+/** Locales carried by authoritative IPO fixture prose. */
+export type IpoContentLocale = "zh-Hant" | "zh-Hans" | "en";
+
+/**
+ * One authoritative piece of IPO prose in every supported locale.
+ * Partial locale maps are forbidden: consumers select the requested value
+ * without fallback or machine-generated translation.
+ */
+export interface IpoLocalizedText {
+  readonly kind: "ipo_localized_text";
+  readonly values: Readonly<Record<IpoContentLocale, string>>;
+}
+
+/**
+ * User-visible legal names, trademarks, identifiers, and provenance metadata
+ * whose exact spelling is locale-neutral. Raw display strings are permitted
+ * only on fields explicitly carrying this type.
+ */
+export type IpoLocaleNeutralText = string & {
+  readonly __ipoLocaleNeutralText?: never;
+};
+
+/** Replace locale-keyed prose leaves with the selected display string. */
+export type ResolvedIpoValue<T> = T extends IpoLocalizedText
+  ? string
+  : T extends string
+    ? T
+    : T extends ReadonlyArray<infer Item>
+      ? ResolvedIpoValue<Item>[]
+      : T extends object
+        ? { [Key in keyof T]: ResolvedIpoValue<T[Key]> }
+        : T;
 
 /** IPO lifecycle stage — the pipeline lanes. */
 export type IpoStage =
@@ -54,29 +86,32 @@ export type IpoSentiment = "bullish" | "cautious" | "neutral" | "bearish";
  */
 export type DemandSignal = "strong" | "solid" | "neutral" | "weak" | "unknown";
 
-/** Offer terms block (vendor fact). `null` numerics = not yet disclosed. */
+/**
+ * Offer terms block (vendor fact). `null` numerics = not yet disclosed;
+ * textual vendor values are authoritative for all supported locales.
+ */
 export interface IpoTerms {
   priceLow: number | null;
   priceHigh: number | null;
   finalPrice: number | null;
-  ccy: string;
+  ccy: IpoLocaleNeutralText;
   entryFee: number | null;
   lotSize: number;
-  sharesOffered: string;
-  greenshoe: string;
+  sharesOffered: IpoLocalizedText;
+  greenshoe: IpoLocalizedText;
   publicPct: number;
   intlPct: number;
-  raiseHKD: string;
-  mcapHKD: string;
-  nta: string;
-  pe: string;
-  pb: string;
+  raiseHKD: IpoLocalizedText;
+  mcapHKD: IpoLocalizedText;
+  nta: IpoLocalizedText;
+  pe: IpoLocalizedText;
+  pb: IpoLocalizedText;
 }
 
-/** Subscription window (string-typed; `不适用` for By Introduction). */
+/** Subscription window with locale-authoritative display values. */
 export interface IpoSubPeriod {
-  start: string;
-  end: string;
+  start: IpoLocalizedText;
+  end: IpoLocalizedText;
 }
 
 /**
@@ -87,20 +122,20 @@ export interface IpoSubPeriod {
 export interface IpoLive {
   subPublic: number | null;
   subIntl: number | null;
-  marginDays: string | null;
+  marginDays: IpoLocalizedText | null;
   greyChg: number | null;
-  validApps: string | null;
+  validApps: IpoLocalizedText | null;
   oneLotRate: number | null;
   /** 頂頭槌 — sensitive; gate behind premium. */
-  headHammer: string | null;
-  clawbackApplied: string | null;
+  headHammer: IpoLocalizedText | null;
+  clawbackApplied: IpoLocalizedText | null;
 }
 
 /** One timetable milestone (vendor fact). */
 export interface IpoTimetableEvent {
   type: string;
-  title: string;
-  at: string;
+  title: IpoLocalizedText;
+  at: IpoLocalizedText;
   done: boolean;
   active?: boolean;
   danger?: boolean;
@@ -108,16 +143,16 @@ export interface IpoTimetableEvent {
 
 /** Public-offer pool. `apps` null until disclosed. */
 export interface IpoPool {
-  name: string;
-  desc: string;
-  lots: string;
-  apps: string | null;
+  name: IpoLocaleNeutralText;
+  desc: IpoLocalizedText;
+  lots: IpoLocalizedText;
+  apps: IpoLocalizedText | null;
 }
 
 /** Clawback ladder tier; `active` marks the triggered band. */
 export interface IpoClawbackTier {
-  trigger: string;
-  publicPct: string;
+  trigger: IpoLocalizedText;
+  publicPct: IpoLocalizedText;
   active?: boolean;
 }
 
@@ -126,18 +161,18 @@ export interface IpoApplicationTier {
   lots: number;
   shares: number;
   amount: number;
-  rate?: string;
+  rate?: IpoLocalizedText;
   hot?: boolean;
   /** Applied applicant count — sensitive; gate behind premium. */
-  applied?: string;
+  applied?: IpoLocalizedText;
 }
 
 /** One row of a published allotment result table. */
 export interface IpoAllotmentRow {
   lots: number;
   /** Applied applicant count — sensitive; gate behind premium. */
-  applied: string;
-  rate: string;
+  applied: IpoLocalizedText;
+  rate: IpoLocalizedText;
 }
 
 /**
@@ -146,10 +181,10 @@ export interface IpoAllotmentRow {
  */
 export interface IpoAllotment {
   oneLotRate: number;
-  validApps: string;
+  validApps: IpoLocalizedText;
   /** 頂頭槌 — sensitive; gate behind premium. */
-  headHammer: string;
-  clawbackApplied: string;
+  headHammer: IpoLocalizedText;
+  clawbackApplied: IpoLocalizedText;
   subPublic: number;
   finalPrice: number;
   result: IpoAllotmentRow[];
@@ -157,45 +192,45 @@ export interface IpoAllotment {
 
 /** Cornerstone investor. `amount` is sensitive — gate behind enterprise. */
 export interface IpoCornerstone {
-  name: string;
-  amount: string;
+  name: IpoLocaleNeutralText;
+  amount: IpoLocalizedText;
   pct: number;
-  lockup: string;
+  lockup: IpoLocalizedText;
 }
 
 /** Lock-up (禁售期) cohort. */
 export interface IpoLockup {
-  type: string;
-  endDate: string;
-  pct: string;
-  shares: string;
+  type: IpoLocalizedText;
+  endDate: IpoLocalizedText;
+  pct: IpoLocalizedText;
+  shares: IpoLocalizedText;
 }
 
 /** Sponsor / bookrunner with a 0–5 rating. */
 export interface IpoSponsor {
-  name: string;
-  role: string;
+  name: IpoLocaleNeutralText;
+  role: IpoLocalizedText;
   rating: number;
 }
 
 /** Use-of-proceeds slice. */
 export interface IpoProceedsSlice {
   pct: number;
-  label: string;
+  label: IpoLocalizedText;
 }
 
 /** Company-info key/value row. */
 export interface IpoCompanyFact {
-  k: string;
-  v: string;
+  k: IpoLocalizedText;
+  v: IpoLocalizedText;
 }
 
 /** Company profile block (vendor fact). */
 export interface IpoProfile {
-  overview: string;
+  overview: IpoLocalizedText;
   useOfProceeds: IpoProceedsSlice[];
-  risks: string[];
-  advantages: string[];
+  risks: IpoLocalizedText[];
+  advantages: IpoLocalizedText[];
   company: IpoCompanyFact[];
 }
 
@@ -205,7 +240,7 @@ export type IpoRiskLevel = "high" | "mid" | "low";
 /** One risk-summary line (analysis layer). */
 export interface IpoRisk {
   level: IpoRiskLevel;
-  text: string;
+  text: IpoLocalizedText;
 }
 
 /**
@@ -213,23 +248,23 @@ export interface IpoRisk {
  * `Provenance`). `methodology` identifies the analysis-layer model version.
  */
 export interface IpoEvidence {
-  asOf: string;
-  dataVersion: string;
-  methodology: string;
-  source: string;
+  asOf: IpoLocaleNeutralText;
+  dataVersion: IpoLocaleNeutralText;
+  methodology: IpoLocaleNeutralText;
+  source: IpoLocalizedText;
 }
 
 /**
- * The canonical IPO workbench record — the detail-snapshot `data` payload.
+ * Canonical locale-keyed IPO fixture record before presentation selection.
  */
 export interface IpoRecord {
   // --- identity (vendor fact) ---
   id: string;
-  name: string;
-  cn: string;
-  ticker: string;
-  exchange: string;
-  board: string;
+  name: IpoLocaleNeutralText;
+  cn: IpoLocaleNeutralText;
+  ticker: IpoLocaleNeutralText;
+  exchange: IpoLocaleNeutralText;
+  board: IpoLocalizedText;
   sector: IpoSector;
   listingType: IpoListingType;
 
@@ -240,13 +275,13 @@ export interface IpoRecord {
   confidence: number;
   /** Research signal key (descriptive, non-advice). */
   demandSignal: DemandSignal;
-  tierLabel: string;
-  desc: string;
+  tierLabel: IpoLocalizedText;
+  desc: IpoLocalizedText;
 
   // --- schedule (vendor fact) ---
   subPeriod: IpoSubPeriod;
-  listingDate: string;
-  pricingDate: string;
+  listingDate: IpoLocalizedText;
+  pricingDate: IpoLocalizedText;
   live: IpoLive;
 
   // --- structured sections (vendor fact) ---
@@ -268,11 +303,14 @@ export interface IpoRecord {
   profile: IpoProfile;
   riskSummary: IpoRisk[];
   /** Research-signal narrative (descriptive, non-advice). */
-  aiNote: string;
+  aiNote: IpoLocalizedText;
 
   // --- evidence ---
   evidence: IpoEvidence;
 }
+
+/** Locale-resolved payload returned by the mock API and rendered by the UI. */
+export type ResolvedIpoRecord = ResolvedIpoValue<IpoRecord>;
 
 // --- lookups (typed shapes for the fixtures' label/config maps) ----------
 
@@ -291,10 +329,13 @@ export interface DemandSignalConfig {
   label: string;
 }
 
-// --- API payloads (envelope `data` shapes for the new endpoints) ---------
+// --- Locale-aware mock payloads ------------------------------------------
+// These are not the locale-blind live worker endpoint shapes. The mock/live
+// boundary remains intentionally non-substitutable until the worker contract
+// accepts an exact locale and returns matching content.
 
 /** Detail snapshot payload (`POST /workbench/ipo/snapshot`). */
-export type IpoSnapshot = IpoRecord;
+export type IpoSnapshot = ResolvedIpoRecord;
 
 /** Filters accepted by `POST /analytics/screen-ipos`. */
 export interface IpoScreenFilters {
@@ -308,7 +349,7 @@ export interface IpoScreenFilters {
 
 /** Screen result payload (`POST /analytics/screen-ipos`). */
 export interface IpoScreenResult {
-  rows: IpoRecord[];
+  rows: ResolvedIpoRecord[];
   rowCount: number;
   filters: IpoScreenFilters;
 }
@@ -316,7 +357,7 @@ export interface IpoScreenResult {
 /** Compare result payload (`POST /analytics/compare-ipos`). */
 export interface IpoCompareResult {
   requested: string[];
-  rows: IpoRecord[];
+  rows: ResolvedIpoRecord[];
   rowCount: number;
 }
 

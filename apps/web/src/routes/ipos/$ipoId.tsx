@@ -45,7 +45,7 @@ import {
 import { fmtNum } from "../../lib/num";
 import { MASCOT_BP, SHELL } from "../../lib/ui";
 import type { BadgeTone } from "../../ds";
-import type { IpoRecord } from "../../lib/api/ipo-types";
+import type { ResolvedIpoRecord } from "../../lib/api/ipo-types";
 
 export const Route = createFileRoute("/ipos/$ipoId")({
   component: IpoDetail,
@@ -107,7 +107,7 @@ function PlanToggle() {
 }
 
 /** Persistent top bar: identity, status, evidence, plan toggle + 6 KPIs. */
-function TopBar({ ipo }: { ipo: IpoRecord }) {
+function TopBar({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t: translate } = useIpoLocale();
   const st = STAGE_BY[ipo.stage];
   const t = ipo.terms;
@@ -240,7 +240,7 @@ function TopBar({ ipo }: { ipo: IpoRecord }) {
 }
 
 /** Overview right rail: AI signal → risk summary → sponsors → evidence. */
-function RightRail({ ipo }: { ipo: IpoRecord }) {
+function RightRail({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   const signal = DEMAND_SIGNAL_CFG[ipo.demandSignal];
   const pose =
@@ -372,7 +372,7 @@ function BulletList({ items, icon, color }: { items: string[]; icon: "check-circ
 }
 
 /** Overview tab: left business/advantages/risks/proceeds + analysis right rail. */
-function OverviewTab({ ipo }: { ipo: IpoRecord }) {
+function OverviewTab({ ipo }: { ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   const p = ipo.profile;
   return (
@@ -409,7 +409,7 @@ function OverviewTab({ ipo }: { ipo: IpoRecord }) {
 }
 
 /** Renders the active tab body. */
-function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
+function TabBody({ tab, ipo }: { tab: TabKey; ipo: ResolvedIpoRecord }) {
   const { t } = useIpoLocale();
   const isAllot = ipo.stage === "allotted";
   switch (tab) {
@@ -476,7 +476,7 @@ function TabBody({ tab, ipo }: { tab: TabKey; ipo: IpoRecord }) {
       );
     case "corporate":
       return (
-        <div className="ab-grid-2" style={{ gap: 22, alignItems: "start" }}>
+        <div className="ab-grid-2 ipo-corporate-grid" style={{ gap: 22, alignItems: "start" }}>
           <Panel icon="building" title={t("companyInfo")}>
             <CompanyTable ipo={ipo} />
           </Panel>
@@ -543,17 +543,18 @@ function BackButton({ onClick }: { onClick: () => void }): ReactNode {
 
 /**
  * IPO research workbench — the 8-tab detail view, ported from the design
- * prototype's `DetailView`. Backed by the `getIpoSnapshotMock` envelope (swaps
- * to Codex's `/workbench/ipo/snapshot` later). Fact layer (vendor, provenance ·
- * netquity_hk_ipo) and analysis layer (aiphabee_research, descriptive non-advice)
- * stay visibly separate; sensitive fields are default-deny via `LockedValue`.
+ * prototype's `DetailView`. Backed by the locale-aware `getIpoSnapshotMock`
+ * envelope; the locale-blind live worker endpoint remains out of scope. Fact
+ * layer (vendor, provenance · netquity_hk_ipo) and analysis layer
+ * (aiphabee_research, descriptive non-advice) stay visibly separate; sensitive
+ * fields are default-deny via `LockedValue`.
  */
 function IpoDetail() {
   const navigate = useNavigate();
-  const { t } = useIpoLocale();
+  const { locale, t } = useIpoLocale();
   const { ipoId } = Route.useParams();
   const [tab, setTab] = useState<TabKey>("overview");
-  const env = getIpoSnapshotMock(ipoId);
+  const env = getIpoSnapshotMock(ipoId, locale);
 
   if (!env.ok) {
     return (

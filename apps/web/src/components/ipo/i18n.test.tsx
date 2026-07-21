@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { LocaleProvider, type Locale } from "../../i18n/locale";
-import { IPOS } from "../../data/ipos.fixtures";
+import { getIpos } from "../../data/ipos.fixtures";
 import { EntitlementProvider } from "../../lib/context/EntitlementContext";
 import { EvidenceChip } from "./EvidenceChip";
 import { FilterBar } from "./FilterBar";
@@ -32,6 +32,7 @@ describe("IPO pipeline i18n", () => {
   );
 
   it("renders pipeline controls and rows in English", () => {
+    const ipos = getIpos("en");
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="en">
         <StageRail active="all" setActive={() => {}} />
@@ -44,7 +45,7 @@ describe("IPO pipeline i18n", () => {
           setQ={() => {}}
         />
         <IpoRow
-          ipo={IPOS[0]}
+          ipo={ipos[0]}
           onOpen={() => {}}
           inCompare={false}
           toggleCompare={() => {}}
@@ -71,10 +72,11 @@ describe("IPO pipeline i18n", () => {
   );
 
   it("renders IPO detail controls and panels in English", () => {
-    const subscribing = IPOS.find((ipo) => ipo.id === "honeycomb")!;
-    const allotted = IPOS.find((ipo) => ipo.id === "lotus")!;
-    const introduction = IPOS.find((ipo) => ipo.id === "meridian")!;
-    const withdrawn = IPOS.find((ipo) => ipo.id === "greenfield")!;
+    const ipos = getIpos("en");
+    const subscribing = ipos.find((ipo) => ipo.id === "honeycomb")!;
+    const allotted = ipos.find((ipo) => ipo.id === "lotus")!;
+    const introduction = ipos.find((ipo) => ipo.id === "meridian")!;
+    const withdrawn = ipos.find((ipo) => ipo.id === "greenfield")!;
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="en">
         <EntitlementProvider>

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Icon } from "../../ds";
-import type { IpoEvidence } from "../../lib/api/ipo-types";
+import type { IpoEvidence, ResolvedIpoValue } from "../../lib/api/ipo-types";
 import { useIpoLocale } from "./i18n";
 
 export interface EvidenceChipProps {
-  ev: IpoEvidence;
+  ev: ResolvedIpoValue<IpoEvidence>;
   compact?: boolean;
 }
 

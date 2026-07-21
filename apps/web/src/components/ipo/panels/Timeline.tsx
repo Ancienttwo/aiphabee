@@ -1,9 +1,12 @@
 import { Badge } from "../../../ds";
-import type { IpoTimetableEvent } from "../../../lib/api/ipo-types";
+import type {
+  IpoTimetableEvent,
+  ResolvedIpoValue,
+} from "../../../lib/api/ipo-types";
 import { useIpoLocale } from "../i18n";
 
 /** Vertical timetable timeline (vendor fact), ported from `detail-parts.jsx`. */
-export function Timeline({ events }: { events: IpoTimetableEvent[] }) {
+export function Timeline({ events }: { events: ResolvedIpoValue<IpoTimetableEvent>[] }) {
   const { t } = useIpoLocale();
   return (
     <div style={{ position: "relative", paddingLeft: 4 }}>

@@ -21,20 +21,21 @@ export const Route = createFileRoute("/ipos/")({
 
 /**
  * IPO pipeline — the lifecycle kanban list. Ported from the design prototype's
- * `PipelineView`, backed by the `screenIposMock` envelope (swaps to Codex's
- * `/analytics/screen-ipos` later). Row click → detail workbench; the compare
- * toggle builds a local selection (the compare page lands in FP4).
+ * `PipelineView`, backed by the locale-aware `screenIposMock` envelope. The live
+ * worker endpoint remains out of scope until it exposes the same exact locale
+ * contract. Row click → detail workbench; the compare toggle builds a local
+ * selection (the compare page lands in FP4).
  */
 function PipelineView() {
   const navigate = useNavigate();
-  const { t } = useIpoLocale();
+  const { locale, t } = useIpoLocale();
   const [stage, setStage] = useState<StageFilter>("all");
   const [sector, setSector] = useState<SectorFilter>("all");
   const [sort, setSort] = useState("sub");
   const [q, setQ] = useState("");
   const { ids: compareIds, toggle: toggleCompare, has } = useIpoCompare();
 
-  const res = screenIposMock({
+  const res = screenIposMock(locale, {
     stage: stage === "all" ? undefined : stage,
     sector: sector === "all" ? undefined : sector,
     q: q || undefined,
