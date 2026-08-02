@@ -38,7 +38,22 @@
         "production_tool_token_mint_wired": false,
         "runner_dispatch_implemented": true,
         "live_model_execution_enabled": false
-      }
+      },
+      "domain": "agent",
+      "architecture_module": "docs/architecture/modules/agent/agent-control-plane.md",
+      "workstream_dir": "tasks/workstreams/agent/agent-control-plane",
+      "lsp_profile": "typescript-lsp",
+      "prefixes": [
+        "packages/agent-runtime"
+      ],
+      "contract_files": {
+        "agents": "packages/agent-runtime/AGENTS.md",
+        "claude": "packages/agent-runtime/CLAUDE.md"
+      },
+      "verification_hints": [
+        "npm run check:agent-run-context",
+        "npm run check:agent-live-tool-loop-smoke"
+      ]
     },
     {
       "id": "fastclaw_personal_runner",
@@ -88,7 +103,10 @@
         "observed_run_usage_attribution_implemented": true,
         "usage_billing_state": "preview",
         "admin_control_contract_implemented": true,
-        "admin_roles": ["owner", "admin"],
+        "admin_roles": [
+          "owner",
+          "admin"
+        ],
         "live_kill_dispatch_wired": true,
         "live_kill_dispatch_implemented": true,
         "posted_billing_enabled": false,
@@ -99,7 +117,27 @@
         "sandbox_terminal_record_sink_implemented": true,
         "production_tool_token_mint_wired": false,
         "runtime_dispatch_implemented": false
-      }
+      },
+      "domain": "agent",
+      "architecture_module": "docs/architecture/modules/agent/fastclaw-personal-runner.md",
+      "workstream_dir": "tasks/workstreams/agent/fastclaw-personal-runner",
+      "lsp_profile": "typescript-lsp",
+      "prefixes": [
+        "packages/agent-runtime/src/fastclaw-agent-runner.ts",
+        "packages/agent-runtime/src/fastclaw-agent-runner.test.ts",
+        "packages/agent-runtime/src/fastclaw-lifecycle.ts",
+        "packages/agent-runtime/src/fastclaw-lifecycle.test.ts",
+        "packages/agent-runtime/src/fastclaw-sandbox-smoke.ts",
+        "packages/agent-runtime/src/fastclaw-sandbox-smoke.test.ts"
+      ],
+      "contract_files": {
+        "agents": "packages/agent-runtime/AGENTS.md",
+        "claude": "packages/agent-runtime/CLAUDE.md"
+      },
+      "verification_hints": [
+        "npm run check:fastclaw-agent-runner",
+        "npm run check:fastclaw-dedicated-agent-provisioning"
+      ]
     },
     {
       "id": "technical_analysis_ephemeral",
@@ -125,7 +163,21 @@
         "research_agent_allowed": true,
         "max_symbols_per_run": 1,
         "max_bars": 500
-      }
+      },
+      "domain": "tools",
+      "architecture_module": "docs/architecture/modules/tools/technical-analysis-ephemeral.md",
+      "workstream_dir": "tasks/workstreams/tools/technical-analysis-ephemeral",
+      "lsp_profile": "typescript-lsp",
+      "prefixes": [
+        "packages/tool-registry"
+      ],
+      "contract_files": {
+        "agents": "packages/tool-registry/AGENTS.md",
+        "claude": "packages/tool-registry/CLAUDE.md"
+      },
+      "verification_hints": [
+        "npm run check:tool-registry"
+      ]
     },
     {
       "id": "netquity_live_serving",
@@ -173,7 +225,30 @@
         "derived_metrics_missing_dataset_blocked_not_synthesized": true,
         "public_resolver_cutover_claimed": false,
         "production_deploy_claimed": false
-      }
+      },
+      "domain": "netquity",
+      "architecture_module": "docs/architecture/modules/netquity/netquity-live-serving.md",
+      "workstream_dir": "tasks/workstreams/netquity/netquity-live-serving",
+      "lsp_profile": "typescript-lsp",
+      "prefixes": [
+        "packages/security-tools",
+        "packages/financial-facts",
+        "packages/market-data",
+        "packages/corporate-actions",
+        "packages/sdi-disclosure",
+        "packages/directorate",
+        "packages/ownership",
+        "packages/related-warrants",
+        "packages/workbench"
+      ],
+      "contract_files": {
+        "agents": "packages/workbench/AGENTS.md",
+        "claude": "packages/workbench/CLAUDE.md"
+      },
+      "verification_hints": [
+        "npm run check:authenticated-netquity-web-resolver",
+        "npm run check:authenticated-netquity-web-resolver-fixtures"
+      ]
     }
   ]
 }
