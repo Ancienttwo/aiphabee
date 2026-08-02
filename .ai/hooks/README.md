@@ -1,3 +1,3 @@
-# Repo-Local Hook Fallback
+# Repo-Local Workflow Helpers
 
-Active hook execution is user-level and central-first. Files under `.ai/hooks/lib/` support repo workflow helpers; full hook runtime scripts are not vendored unless `.ai/harness/policy.json` explicitly sets `hook_source` to `repo`.
+Host events execute through the user-level `repo-harness-hook` typed runtime. Files under `.ai/hooks/lib/` are operator helper libraries only; no repo-local host-event dispatcher or route script is supported.
