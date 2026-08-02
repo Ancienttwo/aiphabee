@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.gate0-p0-field-distribution-status.v0",
+  "version": "2026-07-13.gate0-p0-field-distribution-status.exact-id.v1",
   "status": "local_contract",
   "tracker_item": "Sprint 0.1: field distribution status annotated",
   "source_contract": "deploy/gateway/p0-rights-matrix-coverage.contract.json",
@@ -9,7 +9,44 @@
   "partner_signed_matrix_loaded": false,
   "persistent_writes": false,
   "sql_emitted": false,
+  "required_p0_tool_ids": [
+    "resolve_security",
+    "get_security_profile",
+    "get_market_calendar",
+    "get_quote_snapshot",
+    "get_price_history",
+    "get_corporate_actions",
+    "get_financial_facts",
+    "get_financial_ratios",
+    "search_announcements",
+    "get_announcement",
+    "screen_securities",
+    "compare_securities",
+    "calculate_returns_risk",
+    "get_event_timeline",
+    "get_data_lineage",
+    "get_entitlements",
+    "get_ipo_profile",
+    "search_ipo_calendar",
+    "get_ipo_timetable",
+    "get_ipo_offering",
+    "get_ipo_allotment",
+    "screen_ipos",
+    "compare_ipos"
+  ],
   "required_p0_tool_count": 23,
+  "non_p0_rights_scoped_tools": [
+    {
+      "id": "analyze_public_technical_signal",
+      "reason": "ephemeral public OHLCV / public_observation_signal; Research-only, user-initiated; no market storage, shared cache, or redistribution; dataClasses absent from the 10 partner-licensed dataset groups; registry-required scaffold only",
+      "authority": "docs/spec.md §Ephemeral Public OHLCV Technical Analysis; packages/tool-registry/src/index.ts permissions"
+    },
+    {
+      "id": "parse_chart_image",
+      "reason": "tenant-owned chart image upload; not partner-licensed market data; registered but not registry-required",
+      "authority": "packages/tool-registry/src/index.ts permissions; packages/agent-runtime/src/parse-chart-image"
+    }
+  ],
   "default_unconfirmed_status": "default_deny_pending_partner_matrix",
   "distribution_status_fields": [
     "web_display",

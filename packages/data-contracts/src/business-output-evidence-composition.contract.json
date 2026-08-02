@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "contract_version": "2026-07-13.business-output-evidence-composition.v1",
+  "status": "local_contract",
+  "authority": {
+    "matrix_owner": "@aiphabee/data-contracts",
+    "scope": "cross_owner_composition_only",
+    "runtime_payload_schema": false,
+    "storage_model": false,
+    "channel_semantics_owner": false,
+    "owner_contracts_remain_authoritative": true
+  },
+  "frozen_dependencies": {
+    "error_taxonomy_contract": "2026-07-13.error-taxonomy-reconciliation.v1"
+  },
+  "source_authorities": [
+    {
+      "id": "response_envelope",
+      "owner": "@aiphabee/data-contracts",
+      "path": "packages/data-contracts/src/index.ts",
+      "selectors": [
+        "ProvenanceRef",
+        "SuccessEnvelope",
+        "ErrorEnvelope"
+      ]
+    },
+    {
+      "id": "evidence_lineage",
+      "owner": "@aiphabee/evidence-lineage",
+      "path": "packages/evidence-lineage/src/index.ts",
+      "selectors": [
+        "EvidenceSourceRefPlan",
+        "EvidenceRecordPlan"
+      ]
+    },
+    {
+      "id": "agent_claim_binding",
+      "owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selectors": [
+        "AgentAnswerDraftClaimInput",
+        "AgentAnswerEvidenceCardInput",
+        "AgentAnswerCalculationRefInput"
+      ]
+    },
+    {
+      "id": "answer_evidence_declaration",
+      "owner": "@aiphabee/agent-runtime",
+      "path": "deploy/agent/answer-evidence-contract.contract.json",
+      "selectors": [
+        "required_claim_labels",
+        "evidence_card_required_fields"
+      ]
+    }
+  ],
+  "immutable_identity_sets": {
+    "envelope": [
+      "request_id",
+      "as_of",
+      "data_version",
+      "methodology_version",
+      "provenance"
+    ],
+    "evidence": [
+      "evidence_record_id",
+      "evidence_source_ref_id",
+      "source",
+      "source_record_id",
+      "data_version",
+      "methodology_version"
+    ],
+    "claim": [
+      "claim_id",
+      "label",
+      "evidence_card_ids",
+      "calculation_ids"
+    ],
+    "calculation": [
+      "calculation_id",
+      "methodology_version",
+      "source_record_ids"
+    ],
+    "rights_reference_when_present": [
+      "denial_state",
+      "rights_policy_version"
+    ]
+  },
+  "representative_output_families": [
+    {
+      "id": "direct_factual_observation",
+      "representative_tool": "get_quote_snapshot",
+      "requires": [
+        "canonical_envelope",
+        "evidence_source_refs",
+        "data_version",
+        "methodology_version"
+      ]
+    },
+    {
+      "id": "deterministic_derived_metric",
+      "representative_tool": "get_financial_ratios",
+      "requires": [
+        "evidenced_inputs",
+        "calculation_id",
+        "source_record_ids",
+        "methodology_version",
+        "unit"
+      ]
+    },
+    {
+      "id": "multi_evidence_research_synthesis",
+      "representative_tool": null,
+      "requires": [
+        "claim_ids",
+        "evidence_refs",
+        "limitations",
+        "material_unknowns",
+        "qualitative_evidence_strength"
+      ]
+    }
+  ],
+  "outcome_rules": {
+    "direct_fact_requires_evidence": true,
+    "derived_metric_requires_evidenced_inputs": true,
+    "contradictory_evidence_preserved": true,
+    "material_unknown_requires_missing_reason": true,
+    "partial_output_only_emits_fully_evidenced_claims": true,
+    "evidence_strength_values": [
+      "strong",
+      "medium",
+      "weak",
+      "unknown"
+    ],
+    "confidence_percentages_forbidden": true,
+    "duplicated_evidence_payload_forbidden": true
+  },
+  "channel_projection_rules": {
+    "channels": [
+      "web",
+      "agent",
+      "fastclaw",
+      "mcp"
+    ],
+    "allowed_changes": [
+      "section_order",
+      "locale",
+      "display_label",
+      "protocol_wrapper"
+    ],
+    "identity_mutation": false,
+    "claim_meaning_mutation": false,
+    "denial_state_mutation": false,
+    "fastclaw_final_semantics_owner": false
+  },
+  "failure_map": [
+    {
+      "condition": "missing_or_malformed_required_evidence",
+      "public_error": "DATA_QUALITY_HOLD",
+      "emit_projection": false
+    },
+    {
+      "condition": "dangling_evidence_or_version_mismatch",
+      "public_error": "DATA_QUALITY_HOLD",
+      "emit_projection": false
+    },
+    {
+      "condition": "rights_unlicensed",
+      "public_error": "DATA_NOT_LICENSED",
+      "emit_projection": false
+    },
+    {
+      "condition": "rights_scope_or_channel_denied",
+      "public_error": "SCOPE_DENIED",
+      "emit_projection": false
+    },
+    {
+      "condition": "owner_failure",
+      "public_error": "preserve_row1_identity",
+      "emit_projection": false
+    },
+    {
+      "condition": "unknown_composition_defect",
+      "public_error": "INTERNAL_ERROR",
+      "emit_projection": false
+    }
+  ],
+  "fixture_manifest": [
+    "direct_fact_complete",
+    "derived_metric_complete",
+    "synthesis_contradictory_evidence",
+    "synthesis_material_unknown_partial",
+    "source_unavailable_mcp_generic",
+    "rights_unlicensed_denied",
+    "rights_scope_denied",
+    "missing_or_malformed_evidence_blocked",
+    "channel_identity_mutation_rejected"
+  ],
+  "forbidden_constructs": [
+    "business_output_runtime_dto",
+    "card_catalogue",
+    "duplicate_evidence_record",
+    "alternate_citation_format",
+    "local_evidence_reconstruction",
+    "confidence_percentage",
+    "channel_specific_claim_semantics",
+    "rights_inference_or_activation"
+  ]
+}

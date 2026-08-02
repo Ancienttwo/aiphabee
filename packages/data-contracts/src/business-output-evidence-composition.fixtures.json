@@ -1,0 +1,697 @@
+[
+  {
+    "id": "direct_fact_complete",
+    "family": "direct_factual_observation",
+    "channel": "web",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_direct_fact_complete",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_direct_fact_complete",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_direct_fact_complete",
+          "requestId": "req_direct_fact_complete",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_direct_fact_complete",
+            "evidenceSourceRefId": "ref_direct_fact_complete",
+            "source": "fixture_source",
+            "sourceRecordId": "src_direct_fact_complete",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_direct_fact_complete",
+        "text": "fixture claim direct_fact_complete",
+        "evidenceCardId": "ev_direct_fact_complete",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_direct_fact_complete"
+      },
+      "calculation": null,
+      "rights_reference": null
+    },
+    "projection": {
+      "envelope_identity": {
+        "request_id": "req_direct_fact_complete",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1"
+      },
+      "evidence_record_ids": [
+        "ev_direct_fact_complete"
+      ],
+      "evidence_source_ref_ids": [
+        "ref_direct_fact_complete"
+      ],
+      "source_record_ids": [
+        "src_direct_fact_complete"
+      ],
+      "claim_id": "claim_direct_fact_complete",
+      "calculation_id": null,
+      "denial_state": null,
+      "rights_policy_version": null,
+      "evidence_payload_embedded": false
+    },
+    "expected": {
+      "outcome": "projected",
+      "public_error": null,
+      "emit_projection": true
+    }
+  },
+  {
+    "id": "derived_metric_complete",
+    "family": "deterministic_derived_metric",
+    "channel": "agent",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_derived_metric_complete",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "ratio_formula_v1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_derived_metric_complete",
+            "data_version": "dv1",
+            "methodology_version": "ratio_formula_v1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "ratio_formula_v1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_derived_metric_complete",
+          "requestId": "req_derived_metric_complete",
+          "dataVersion": "dv1",
+          "methodologyVersion": "ratio_formula_v1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_derived_metric_complete",
+            "evidenceSourceRefId": "ref_derived_metric_complete",
+            "source": "fixture_source",
+            "sourceRecordId": "src_derived_metric_complete",
+            "dataVersion": "dv1",
+            "methodologyVersion": "ratio_formula_v1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "calculation",
+        "claimId": "claim_derived_metric_complete",
+        "text": "fixture claim derived_metric_complete",
+        "evidenceCardId": "ev_derived_metric_complete",
+        "calculationId": "calc_derived_metric_complete",
+        "dataVersion": "dv1",
+        "methodologyVersion": "ratio_formula_v1",
+        "sourceRecordId": "src_derived_metric_complete"
+      },
+      "calculation": {
+        "calculation_id": "calc_derived_metric_complete",
+        "methodology_version": "ratio_formula_v1",
+        "source_record_ids": [
+          "src_derived_metric_complete"
+        ],
+        "unit": "ratio"
+      },
+      "rights_reference": null
+    },
+    "projection": {
+      "envelope_identity": {
+        "request_id": "req_derived_metric_complete",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "ratio_formula_v1"
+      },
+      "evidence_record_ids": [
+        "ev_derived_metric_complete"
+      ],
+      "evidence_source_ref_ids": [
+        "ref_derived_metric_complete"
+      ],
+      "source_record_ids": [
+        "src_derived_metric_complete"
+      ],
+      "claim_id": "claim_derived_metric_complete",
+      "calculation_id": "calc_derived_metric_complete",
+      "denial_state": null,
+      "rights_policy_version": null,
+      "evidence_payload_embedded": false
+    },
+    "expected": {
+      "outcome": "projected",
+      "public_error": null,
+      "emit_projection": true
+    }
+  },
+  {
+    "id": "synthesis_contradictory_evidence",
+    "family": "multi_evidence_research_synthesis",
+    "channel": "agent",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_synthesis_contradictory_evidence",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_synthesis_contradictory_evidence",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          },
+          {
+            "source": "fixture_source_2",
+            "source_record_id": "src_contradictory_negative",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_synthesis_contradictory_evidence",
+          "requestId": "req_synthesis_contradictory_evidence",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_synthesis_contradictory_evidence",
+            "evidenceSourceRefId": "ref_synthesis_contradictory_evidence",
+            "source": "fixture_source",
+            "sourceRecordId": "src_synthesis_contradictory_evidence",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          },
+          {
+            "evidenceRecordId": "ev_synthesis_contradictory_evidence",
+            "evidenceSourceRefId": "ref_contradictory_negative",
+            "source": "fixture_source_2",
+            "sourceRecordId": "src_contradictory_negative",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_synthesis_contradictory_evidence",
+        "text": "fixture claim synthesis_contradictory_evidence",
+        "evidenceCardId": "ev_synthesis_contradictory_evidence",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_synthesis_contradictory_evidence"
+      },
+      "calculation": null,
+      "rights_reference": null
+    },
+    "projection": {
+      "envelope_identity": {
+        "request_id": "req_synthesis_contradictory_evidence",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1"
+      },
+      "evidence_record_ids": [
+        "ev_synthesis_contradictory_evidence"
+      ],
+      "evidence_source_ref_ids": [
+        "ref_synthesis_contradictory_evidence",
+        "ref_contradictory_negative"
+      ],
+      "source_record_ids": [
+        "src_synthesis_contradictory_evidence",
+        "src_contradictory_negative"
+      ],
+      "claim_id": "claim_synthesis_contradictory_evidence",
+      "calculation_id": null,
+      "denial_state": null,
+      "rights_policy_version": null,
+      "evidence_payload_embedded": false,
+      "limitations": [
+        "sources disagree"
+      ],
+      "evidence_strength": "medium"
+    },
+    "expected": {
+      "outcome": "projected",
+      "public_error": null,
+      "emit_projection": true
+    }
+  },
+  {
+    "id": "synthesis_material_unknown_partial",
+    "family": "multi_evidence_research_synthesis",
+    "channel": "fastclaw",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_synthesis_material_unknown_partial",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_synthesis_material_unknown_partial",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_synthesis_material_unknown_partial",
+          "requestId": "req_synthesis_material_unknown_partial",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_synthesis_material_unknown_partial",
+            "evidenceSourceRefId": "ref_synthesis_material_unknown_partial",
+            "source": "fixture_source",
+            "sourceRecordId": "src_synthesis_material_unknown_partial",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_synthesis_material_unknown_partial",
+        "text": "fixture claim synthesis_material_unknown_partial",
+        "evidenceCardId": "ev_synthesis_material_unknown_partial",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_synthesis_material_unknown_partial"
+      },
+      "calculation": null,
+      "rights_reference": null
+    },
+    "projection": {
+      "envelope_identity": {
+        "request_id": "req_synthesis_material_unknown_partial",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1"
+      },
+      "evidence_record_ids": [
+        "ev_synthesis_material_unknown_partial"
+      ],
+      "evidence_source_ref_ids": [
+        "ref_synthesis_material_unknown_partial"
+      ],
+      "source_record_ids": [
+        "src_synthesis_material_unknown_partial"
+      ],
+      "claim_id": "claim_synthesis_material_unknown_partial",
+      "calculation_id": null,
+      "denial_state": null,
+      "rights_policy_version": null,
+      "evidence_payload_embedded": false,
+      "material_unknowns": [
+        {
+          "field": "missing_metric",
+          "missing_reason": "authoritative source unavailable"
+        }
+      ],
+      "evidence_strength": "unknown"
+    },
+    "expected": {
+      "outcome": "partial",
+      "public_error": null,
+      "emit_projection": true
+    }
+  },
+  {
+    "id": "source_unavailable_mcp_generic",
+    "family": "direct_factual_observation",
+    "channel": "mcp",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_source_unavailable_mcp_generic",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_source_unavailable_mcp_generic",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_source_unavailable_mcp_generic",
+          "requestId": "req_source_unavailable_mcp_generic",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_source_unavailable_mcp_generic",
+            "evidenceSourceRefId": "ref_source_unavailable_mcp_generic",
+            "source": "fixture_source",
+            "sourceRecordId": "src_source_unavailable_mcp_generic",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_source_unavailable_mcp_generic",
+        "text": "fixture claim source_unavailable_mcp_generic",
+        "evidenceCardId": "ev_source_unavailable_mcp_generic",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_source_unavailable_mcp_generic"
+      },
+      "calculation": null,
+      "rights_reference": null,
+      "owner_failure": {
+        "internal_code": "POINT_IN_TIME_UNAVAILABLE",
+        "row1_mcp_mapping": null
+      }
+    },
+    "projection": null,
+    "expected": {
+      "outcome": "blocked",
+      "public_error": "INTERNAL_ERROR",
+      "emit_projection": false,
+      "retain_internal_error_identity": true
+    }
+  },
+  {
+    "id": "rights_unlicensed_denied",
+    "family": "direct_factual_observation",
+    "channel": "web",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_rights_unlicensed_denied",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_rights_unlicensed_denied",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_rights_unlicensed_denied",
+          "requestId": "req_rights_unlicensed_denied",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_rights_unlicensed_denied",
+            "evidenceSourceRefId": "ref_rights_unlicensed_denied",
+            "source": "fixture_source",
+            "sourceRecordId": "src_rights_unlicensed_denied",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_rights_unlicensed_denied",
+        "text": "fixture claim rights_unlicensed_denied",
+        "evidenceCardId": "ev_rights_unlicensed_denied",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_rights_unlicensed_denied"
+      },
+      "calculation": null,
+      "rights_reference": {
+        "denial_state": "unlicensed",
+        "rights_policy_version": "rp1"
+      }
+    },
+    "projection": null,
+    "expected": {
+      "outcome": "blocked",
+      "public_error": "DATA_NOT_LICENSED",
+      "emit_projection": false
+    }
+  },
+  {
+    "id": "rights_scope_denied",
+    "family": "direct_factual_observation",
+    "channel": "mcp",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_rights_scope_denied",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_rights_scope_denied",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_rights_scope_denied",
+          "requestId": "req_rights_scope_denied",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_rights_scope_denied",
+            "evidenceSourceRefId": "ref_rights_scope_denied",
+            "source": "fixture_source",
+            "sourceRecordId": "src_rights_scope_denied",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_rights_scope_denied",
+        "text": "fixture claim rights_scope_denied",
+        "evidenceCardId": "ev_rights_scope_denied",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_rights_scope_denied"
+      },
+      "calculation": null,
+      "rights_reference": {
+        "denial_state": "scope_denied",
+        "rights_policy_version": "rp1"
+      }
+    },
+    "projection": null,
+    "expected": {
+      "outcome": "blocked",
+      "public_error": "SCOPE_DENIED",
+      "emit_projection": false
+    }
+  },
+  {
+    "id": "missing_or_malformed_evidence_blocked",
+    "family": "direct_factual_observation",
+    "channel": "agent",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_missing_or_malformed_evidence_blocked",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_missing_or_malformed_evidence_blocked",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_missing_or_malformed_evidence_blocked",
+          "requestId": "req_missing_or_malformed_evidence_blocked",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "malformed": true
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_missing_or_malformed_evidence_blocked",
+        "text": "fixture claim missing_or_malformed_evidence_blocked",
+        "evidenceCardId": "ev_missing_or_malformed_evidence_blocked",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_missing_or_malformed_evidence_blocked"
+      },
+      "calculation": null,
+      "rights_reference": null
+    },
+    "projection": null,
+    "expected": {
+      "outcome": "blocked",
+      "public_error": "DATA_QUALITY_HOLD",
+      "emit_projection": false
+    }
+  },
+  {
+    "id": "channel_identity_mutation_rejected",
+    "family": "direct_factual_observation",
+    "channel": "mcp",
+    "non_authoritative_test_fixture": true,
+    "canonical_input": {
+      "envelope": {
+        "request_id": "req_channel_identity_mutation_rejected",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1",
+        "provenance": [
+          {
+            "source": "fixture_source",
+            "source_record_id": "src_channel_identity_mutation_rejected",
+            "data_version": "dv1",
+            "methodology_version": "mv1"
+          }
+        ]
+      },
+      "evidence_record": {
+        "asOf": "2026-07-13T00:00:00Z",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "evidenceRecord": {
+          "evidenceRecordId": "ev_channel_identity_mutation_rejected",
+          "requestId": "req_channel_identity_mutation_rejected",
+          "dataVersion": "dv1",
+          "methodologyVersion": "mv1",
+          "rightsState": "default_deny"
+        },
+        "sourceRefs": [
+          {
+            "evidenceRecordId": "ev_channel_identity_mutation_rejected",
+            "evidenceSourceRefId": "ref_channel_identity_mutation_rejected",
+            "source": "fixture_source",
+            "sourceRecordId": "src_channel_identity_mutation_rejected",
+            "dataVersion": "dv1",
+            "methodologyVersion": "mv1"
+          }
+        ]
+      },
+      "claim": {
+        "label": "fact",
+        "claimId": "claim_channel_identity_mutation_rejected",
+        "text": "fixture claim channel_identity_mutation_rejected",
+        "evidenceCardId": "ev_channel_identity_mutation_rejected",
+        "dataVersion": "dv1",
+        "methodologyVersion": "mv1",
+        "sourceRecordId": "src_channel_identity_mutation_rejected"
+      },
+      "calculation": null,
+      "rights_reference": null
+    },
+    "projection": {
+      "envelope_identity": {
+        "request_id": "req_channel_identity_mutation_rejected",
+        "as_of": "2026-07-13T00:00:00Z",
+        "data_version": "dv1",
+        "methodology_version": "mv1"
+      },
+      "evidence_record_ids": [
+        "ev_channel_identity_mutation_rejected"
+      ],
+      "evidence_source_ref_ids": [
+        "ref_channel_identity_mutation_rejected"
+      ],
+      "source_record_ids": [
+        "src_channel_identity_mutation_rejected"
+      ],
+      "claim_id": "claim_mutated",
+      "calculation_id": null,
+      "denial_state": null,
+      "rights_policy_version": null,
+      "evidence_payload_embedded": false
+    },
+    "expected": {
+      "outcome": "rejected",
+      "public_error": "INTERNAL_ERROR",
+      "emit_projection": false
+    }
+  }
+]

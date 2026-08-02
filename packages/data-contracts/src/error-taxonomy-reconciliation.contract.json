@@ -1,0 +1,4422 @@
+{
+  "schema_version": 1,
+  "contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+  "status": "local_contract",
+  "authority": {
+    "matrix_owner": "@aiphabee/data-contracts",
+    "scope": "cross_owner_reconciliation_only",
+    "owner_types_remain_authoritative": true,
+    "global_runtime_enum": false
+  },
+  "source_sets": [
+    {
+      "source_set_id": "data_contracts_public",
+      "canonical_owner": "@aiphabee/data-contracts",
+      "path": "packages/data-contracts/src/index.ts",
+      "selector": "ERROR_CODES",
+      "source_contract_version": "data-contracts.ERROR_CODES.current",
+      "authority_kind": "closed_const_array",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "AUTH_REQUIRED",
+        "DATA_NOT_LICENSED",
+        "SCOPE_DENIED",
+        "DATA_QUALITY_HOLD",
+        "AMBIGUOUS_SECURITY",
+        "SYMBOL_AMBIGUOUS",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS",
+        "POINT_IN_TIME_UNAVAILABLE",
+        "NOT_FOUND",
+        "RATE_LIMITED",
+        "BUDGET_EXCEEDED",
+        "MODEL_PROVIDER_NOT_CONFIGURED",
+        "UPSTREAM_STALE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "source_set_id": "mcp_public",
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "path": "packages/mcp-runtime/src/index.ts",
+      "selector": "MCP_STANDARD_ERROR_CODES",
+      "source_contract_version": "2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "authority_kind": "closed_const_array",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "AUTH_REQUIRED",
+        "SCOPE_DENIED",
+        "DATA_NOT_LICENSED",
+        "SYMBOL_AMBIGUOUS",
+        "OUT_OF_RANGE",
+        "TOO_MANY_ROWS",
+        "RATE_LIMITED",
+        "BUDGET_EXCEEDED",
+        "UPSTREAM_STALE",
+        "DATA_QUALITY_HOLD",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "source_set_id": "mcp_private",
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "path": "packages/mcp-runtime/src/index.ts",
+      "selector": "McpRuntimeInputErrorCode",
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "authority_kind": "closed_type_union",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "API_KEY_ID_REQUIRED",
+        "API_KEY_NAME_REQUIRED",
+        "AUTHORIZATION_CODE_REQUIRED",
+        "CLIENT_ID_REQUIRED",
+        "CODE_CHALLENGE_METHOD_UNSUPPORTED",
+        "CODE_CHALLENGE_REQUIRED",
+        "CODE_VERIFIER_REQUIRED",
+        "CREDENTIAL_KIND_REQUIRED",
+        "CREDENTIAL_REFERENCE_REQUIRED",
+        "CREDENTIAL_STATUS_REQUIRED",
+        "CREDENTIAL_STATUS_UNSUPPORTED",
+        "CONNECTION_OR_TOKEN_REQUIRED",
+        "INVALID_API_KEY_ROTATION_DAYS",
+        "INVALID_CODE_CHALLENGE",
+        "INVALID_IP_ALLOWLIST",
+        "INVALID_REDIRECT_URI",
+        "MCP_CREDENTIAL_REVOKED",
+        "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+        "ORIGIN_NOT_ALLOWED",
+        "ORIGIN_REQUIRED",
+        "RAW_API_KEY_FORBIDDEN",
+        "REDIRECT_URI_REQUIRED",
+        "SCOPE_REQUIRED",
+        "TOOL_NAME_REQUIRED",
+        "TOOL_ARGUMENT_REQUIRED",
+        "TOOL_ARGUMENT_UNSUPPORTED",
+        "TOOL_ARGUMENTS_OBJECT_REQUIRED",
+        "TOOL_CURSOR_INVALID",
+        "TOOL_LIMIT_EXCEEDED",
+        "TOOL_LIMIT_INVALID",
+        "TOOL_NOT_REGISTERED",
+        "TOOL_SCOPE_REQUIRED",
+        "TOOL_TIME_RANGE_EXCEEDED",
+        "TOOL_TIME_RANGE_INVALID",
+        "UNSUPPORTED_SCOPE",
+        "UNSUPPORTED_METHOD"
+      ]
+    },
+    {
+      "source_set_id": "agent_runtime_input",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selector": "AgentRuntimeInputErrorCode",
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "authority_kind": "closed_type_union",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "CONTEXT_REQUIRED",
+        "INVALID_CHANNEL",
+        "INVALID_MODEL_TIER",
+        "PROMPT_REQUIRED",
+        "STEP_LIMIT_OUT_OF_RANGE",
+        "UNREGISTERED_TOOL"
+      ]
+    },
+    {
+      "source_set_id": "agent_recovery_retryable",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selector": "AgentFailureRecoveryRetryableErrorClass",
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "authority_kind": "closed_type_union",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "NETWORK_RESET",
+        "RATE_LIMITED",
+        "TOOL_TIMEOUT",
+        "UPSTREAM_5XX"
+      ]
+    },
+    {
+      "source_set_id": "agent_recovery_non_retryable",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selector": "AgentFailureRecoveryNonRetryableErrorClass",
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "authority_kind": "closed_type_union",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "INVALID_INPUT",
+        "OUT_OF_RANGE",
+        "SCOPE_DENIED",
+        "TOO_MANY_ROWS"
+      ]
+    },
+    {
+      "source_set_id": "fastclaw_runner_private",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/fastclaw-agent-runner.ts",
+      "selector": "FastClawAgentRunnerFailureCode",
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "authority_kind": "closed_type_union",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "FASTCLAW_RUNNER_INVALID_REQUEST",
+        "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
+        "FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED",
+        "FASTCLAW_SANDBOX_AUTHORIZATION_FAILED",
+        "FASTCLAW_RUN_CANCELLED",
+        "FASTCLAW_RUN_TIMEOUT",
+        "FASTCLAW_RUN_BUDGET_EXCEEDED",
+        "FASTCLAW_TOOL_DENIED",
+        "FASTCLAW_TRANSPORT_FAILED",
+        "FASTCLAW_POST_CHECK_DENIED"
+      ]
+    },
+    {
+      "source_set_id": "tool_registry_declared",
+      "canonical_owner": "@aiphabee/tool-registry",
+      "path": "packages/tool-registry/src/index.ts",
+      "selector": "REGISTERED_TOOLS[*].schema.standardErrorCodes",
+      "source_contract_version": "tool-registry.current",
+      "authority_kind": "per_tool_declaration",
+      "extraction": "typescript_ast_exact_selector",
+      "open_string_codes_allowed": false,
+      "codes": [
+        "AMBIGUOUS_SECURITY",
+        "AUTHORIZED_CLAIM_BLOCKED",
+        "BACKGROUND_REFRESH_BLOCKED",
+        "BATCH_FETCH_NOT_ALLOWED",
+        "DATA_NOT_LICENSED",
+        "DATA_QUALITY_HOLD",
+        "FULL_MARKET_SCAN_BLOCKED",
+        "GENERIC_AGENT_TOOL_DENIED",
+        "NOT_FOUND",
+        "OUT_OF_RANGE",
+        "POINT_IN_TIME_UNAVAILABLE",
+        "PROVIDER_UNAVAILABLE",
+        "RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+        "RAW_OHLCV_PERSISTENCE_BLOCKED",
+        "SCOPE_DENIED",
+        "SYMBOL_AMBIGUOUS",
+        "TOO_MANY_ROWS",
+        "USER_INITIATION_REQUIRED"
+      ]
+    }
+  ],
+  "excluded_source_sets": [
+    {
+      "source_set_id": "agent_sandbox_backend",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selector": "SandboxBackendFailureCode",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "backend operation outcomes are not response error taxonomy"
+    },
+    {
+      "source_set_id": "agent_sandbox_kill_reason",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/index.ts",
+      "selector": "SandboxKillReason",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "terminal kill reasons are lifecycle audit states"
+    },
+    {
+      "source_set_id": "fastclaw_lifecycle",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/fastclaw-lifecycle.ts",
+      "selector": "FastClawLifecycleErrorCode",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "operator lifecycle client errors are not public run errors"
+    },
+    {
+      "source_set_id": "fastclaw_sandbox_smoke",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/fastclaw-sandbox-smoke.ts",
+      "selector": "FastClawSandboxSmokeErrorCode",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "operator smoke errors are acceptance evidence only"
+    },
+    {
+      "source_set_id": "parse_chart_image_open_error_string",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/parse-chart-image/types.ts",
+      "selector": "error_code: string | null",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "open untrusted strings must use unknown fail-closed policy"
+    },
+    {
+      "source_set_id": "durable_handoff",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/durable-memory-artifact-handoff.ts",
+      "selector": "DurableHandoffErrorCode",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "internal artifact transfer errors are owned by the durable handoff boundary and are not public run errors"
+    },
+    {
+      "source_set_id": "chart_image_upload",
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "path": "packages/agent-runtime/src/parse-chart-image/image-store.ts",
+      "selector": "ChartImageUploadErrorCode",
+      "disposition": "explicitly_out_of_scope",
+      "reason": "upload validation errors belong to the image intake boundary and are not shared runtime taxonomy"
+    }
+  ],
+  "entries": [
+    {
+      "identity": "error:AMBIGUOUS_SECURITY",
+      "code": "AMBIGUOUS_SECURITY",
+      "source_set_ids": [
+        "data_contracts_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "AMBIGUOUS_SECURITY",
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/data-contracts",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:API_KEY_ID_REQUIRED",
+      "code": "API_KEY_ID_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:API_KEY_NAME_REQUIRED",
+      "code": "API_KEY_NAME_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:AUTH_REQUIRED",
+      "code": "AUTH_REQUIRED",
+      "source_set_ids": [
+        "data_contracts_public",
+        "mcp_public"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "authentication",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "AUTH_REQUIRED",
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:AUTHORIZATION_CODE_REQUIRED",
+      "code": "AUTHORIZATION_CODE_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:AUTHORIZED_CLAIM_BLOCKED",
+      "code": "AUTHORIZED_CLAIM_BLOCKED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "policy",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:BACKGROUND_REFRESH_BLOCKED",
+      "code": "BACKGROUND_REFRESH_BLOCKED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "policy",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:BATCH_FETCH_NOT_ALLOWED",
+      "code": "BATCH_FETCH_NOT_ALLOWED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "policy",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:BUDGET_EXCEEDED",
+      "code": "BUDGET_EXCEEDED",
+      "source_set_ids": [
+        "data_contracts_public",
+        "mcp_public"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "limit",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "BUDGET_EXCEEDED",
+        "mcp": "BUDGET_EXCEEDED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CLIENT_ID_REQUIRED",
+      "code": "CLIENT_ID_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CODE_CHALLENGE_METHOD_UNSUPPORTED",
+      "code": "CODE_CHALLENGE_METHOD_UNSUPPORTED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CODE_CHALLENGE_REQUIRED",
+      "code": "CODE_CHALLENGE_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CODE_VERIFIER_REQUIRED",
+      "code": "CODE_VERIFIER_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CONNECTION_OR_TOKEN_REQUIRED",
+      "code": "CONNECTION_OR_TOKEN_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CONTEXT_REQUIRED",
+      "code": "CONTEXT_REQUIRED",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "CONTEXT_REQUIRED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CREDENTIAL_KIND_REQUIRED",
+      "code": "CREDENTIAL_KIND_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CREDENTIAL_REFERENCE_REQUIRED",
+      "code": "CREDENTIAL_REFERENCE_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CREDENTIAL_STATUS_REQUIRED",
+      "code": "CREDENTIAL_STATUS_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:CREDENTIAL_STATUS_UNSUPPORTED",
+      "code": "CREDENTIAL_STATUS_UNSUPPORTED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:DATA_NOT_LICENSED",
+      "code": "DATA_NOT_LICENSED",
+      "source_set_ids": [
+        "agent_recovery_non_retryable",
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "authorization",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "DATA_NOT_LICENSED",
+        "mcp": "DATA_NOT_LICENSED",
+        "agent_event": "DATA_NOT_LICENSED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:DATA_QUALITY_HOLD",
+      "code": "DATA_QUALITY_HOLD",
+      "source_set_ids": [
+        "agent_recovery_non_retryable",
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "DATA_QUALITY_HOLD",
+        "mcp": "DATA_QUALITY_HOLD",
+        "agent_event": "DATA_QUALITY_HOLD"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
+      "code": "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_DEDICATED_IDENTITY_UNAVAILABLE"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_POST_CHECK_DENIED",
+      "code": "FASTCLAW_POST_CHECK_DENIED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_POST_CHECK_DENIED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED",
+      "code": "FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "authorization",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_RESEARCH_ENTITLEMENT_REQUIRED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_RUN_BUDGET_EXCEEDED",
+      "code": "FASTCLAW_RUN_BUDGET_EXCEEDED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "limit",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_RUN_BUDGET_EXCEEDED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_RUN_CANCELLED",
+      "code": "FASTCLAW_RUN_CANCELLED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_RUN_CANCELLED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_RUN_TIMEOUT",
+      "code": "FASTCLAW_RUN_TIMEOUT",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_RUN_TIMEOUT"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_RUNNER_INVALID_REQUEST",
+      "code": "FASTCLAW_RUNNER_INVALID_REQUEST",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_RUNNER_INVALID_REQUEST"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_SANDBOX_AUTHORIZATION_FAILED",
+      "code": "FASTCLAW_SANDBOX_AUTHORIZATION_FAILED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "authorization",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_SANDBOX_AUTHORIZATION_FAILED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_TOOL_DENIED",
+      "code": "FASTCLAW_TOOL_DENIED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_TOOL_DENIED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FASTCLAW_TRANSPORT_FAILED",
+      "code": "FASTCLAW_TRANSPORT_FAILED",
+      "source_set_ids": [
+        "fastclaw_runner_private"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "FASTCLAW_TRANSPORT_FAILED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": null,
+            "field": "FastClawRunnerFailure.retryable"
+          }
+        ]
+      },
+      "source_contract_version": "fastclaw-agent-runner.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:FULL_MARKET_SCAN_BLOCKED",
+      "code": "FULL_MARKET_SCAN_BLOCKED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "limit",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:GENERIC_AGENT_TOOL_DENIED",
+      "code": "GENERIC_AGENT_TOOL_DENIED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "authorization",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INTERNAL_ERROR",
+      "code": "INTERNAL_ERROR",
+      "source_set_ids": [
+        "data_contracts_public",
+        "mcp_public"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "system",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "INTERNAL_ERROR",
+        "mcp": "INTERNAL_ERROR",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": false,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_API_KEY_ROTATION_DAYS",
+      "code": "INVALID_API_KEY_ROTATION_DAYS",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_CHANNEL",
+      "code": "INVALID_CHANNEL",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "INVALID_CHANNEL"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_CODE_CHALLENGE",
+      "code": "INVALID_CODE_CHALLENGE",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_INPUT",
+      "code": "INVALID_INPUT",
+      "source_set_ids": [
+        "agent_recovery_non_retryable"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "INVALID_INPUT"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_IP_ALLOWLIST",
+      "code": "INVALID_IP_ALLOWLIST",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_MODEL_TIER",
+      "code": "INVALID_MODEL_TIER",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "INVALID_MODEL_TIER"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:INVALID_REDIRECT_URI",
+      "code": "INVALID_REDIRECT_URI",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:MCP_CREDENTIAL_REVOKED",
+      "code": "MCP_CREDENTIAL_REVOKED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authentication",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "AUTH_REQUIRED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.AUTH_REQUIRED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+      "code": "MCP_REDISTRIBUTION_RIGHTS_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "DATA_NOT_LICENSED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.DATA_NOT_LICENSED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:MODEL_PROVIDER_NOT_CONFIGURED",
+      "code": "MODEL_PROVIDER_NOT_CONFIGURED",
+      "source_set_ids": [
+        "data_contracts_public"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "system",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "MODEL_PROVIDER_NOT_CONFIGURED",
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/data-contracts",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:NETWORK_RESET",
+      "code": "NETWORK_RESET",
+      "source_set_ids": [
+        "agent_recovery_retryable"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "NETWORK_RESET"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": true,
+            "field": "AgentFailureRecoveryRetryableErrorClass"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:NOT_FOUND",
+      "code": "NOT_FOUND",
+      "source_set_ids": [
+        "data_contracts_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "NOT_FOUND",
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/data-contracts",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:ORIGIN_NOT_ALLOWED",
+      "code": "ORIGIN_NOT_ALLOWED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:ORIGIN_REQUIRED",
+      "code": "ORIGIN_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:OUT_OF_RANGE",
+      "code": "OUT_OF_RANGE",
+      "source_set_ids": [
+        "agent_recovery_non_retryable",
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "limit",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "OUT_OF_RANGE",
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": "OUT_OF_RANGE"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:POINT_IN_TIME_UNAVAILABLE",
+      "code": "POINT_IN_TIME_UNAVAILABLE",
+      "source_set_ids": [
+        "data_contracts_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "POINT_IN_TIME_UNAVAILABLE",
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/data-contracts",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:PROMPT_REQUIRED",
+      "code": "PROMPT_REQUIRED",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "PROMPT_REQUIRED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:PROVIDER_UNAVAILABLE",
+      "code": "PROVIDER_UNAVAILABLE",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:RATE_LIMITED",
+      "code": "RATE_LIMITED",
+      "source_set_ids": [
+        "agent_recovery_retryable",
+        "data_contracts_public",
+        "mcp_public"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "limit",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "RATE_LIMITED",
+        "mcp": "RATE_LIMITED",
+        "agent_event": "RATE_LIMITED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": true,
+            "field": "AgentFailureRecoveryRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:RAW_API_KEY_FORBIDDEN",
+      "code": "RAW_API_KEY_FORBIDDEN",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+      "code": "RAW_OHLCV_BATCH_EXPORT_BLOCKED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "policy",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:RAW_OHLCV_PERSISTENCE_BLOCKED",
+      "code": "RAW_OHLCV_PERSISTENCE_BLOCKED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "policy",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:REDIRECT_URI_REQUIRED",
+      "code": "REDIRECT_URI_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:SCOPE_DENIED",
+      "code": "SCOPE_DENIED",
+      "source_set_ids": [
+        "agent_recovery_non_retryable",
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "authorization",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "SCOPE_DENIED",
+        "mcp": "SCOPE_DENIED",
+        "agent_event": "SCOPE_DENIED"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:SCOPE_REQUIRED",
+      "code": "SCOPE_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:STEP_LIMIT_OUT_OF_RANGE",
+      "code": "STEP_LIMIT_OUT_OF_RANGE",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "limit",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "STEP_LIMIT_OUT_OF_RANGE"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:SYMBOL_AMBIGUOUS",
+      "code": "SYMBOL_AMBIGUOUS",
+      "source_set_ids": [
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "SYMBOL_AMBIGUOUS",
+        "mcp": "SYMBOL_AMBIGUOUS",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOO_MANY_ROWS",
+      "code": "TOO_MANY_ROWS",
+      "source_set_ids": [
+        "agent_recovery_non_retryable",
+        "data_contracts_public",
+        "mcp_public",
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "limit",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "TOO_MANY_ROWS",
+        "mcp": "TOO_MANY_ROWS",
+        "agent_event": "TOO_MANY_ROWS"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": "AgentFailureRecoveryNonRetryableErrorClass"
+          },
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current + data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0 + tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_ARGUMENT_REQUIRED",
+      "code": "TOOL_ARGUMENT_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_ARGUMENT_UNSUPPORTED",
+      "code": "TOOL_ARGUMENT_UNSUPPORTED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_ARGUMENTS_OBJECT_REQUIRED",
+      "code": "TOOL_ARGUMENTS_OBJECT_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_CURSOR_INVALID",
+      "code": "TOOL_CURSOR_INVALID",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_LIMIT_EXCEEDED",
+      "code": "TOOL_LIMIT_EXCEEDED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "TOO_MANY_ROWS",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.TOO_MANY_ROWS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_LIMIT_INVALID",
+      "code": "TOOL_LIMIT_INVALID",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_NAME_REQUIRED",
+      "code": "TOOL_NAME_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_NOT_REGISTERED",
+      "code": "TOOL_NOT_REGISTERED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_SCOPE_REQUIRED",
+      "code": "TOOL_SCOPE_REQUIRED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_TIME_RANGE_EXCEEDED",
+      "code": "TOOL_TIME_RANGE_EXCEEDED",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_TIME_RANGE_INVALID",
+      "code": "TOOL_TIME_RANGE_INVALID",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:TOOL_TIMEOUT",
+      "code": "TOOL_TIMEOUT",
+      "source_set_ids": [
+        "agent_recovery_retryable"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "TOOL_TIMEOUT"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": true,
+            "field": "AgentFailureRecoveryRetryableErrorClass"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:UNREGISTERED_TOOL",
+      "code": "UNREGISTERED_TOOL",
+      "source_set_ids": [
+        "agent_runtime_input"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "validation",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "UNREGISTERED_TOOL"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.AgentRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:UNSUPPORTED_METHOD",
+      "code": "UNSUPPORTED_METHOD",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "limit",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "OUT_OF_RANGE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.OUT_OF_RANGE.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:UNSUPPORTED_SCOPE",
+      "code": "UNSUPPORTED_SCOPE",
+      "source_set_ids": [
+        "mcp_private"
+      ],
+      "canonical_owner": "@aiphabee/mcp-runtime",
+      "producer_owner": "@aiphabee/mcp-runtime",
+      "semantic_category": "authorization",
+      "exposure": "mapped_public",
+      "channel_mapping": {
+        "web": null,
+        "mcp": "SCOPE_DENIED",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "mapped_public_recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.SCOPE_DENIED.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "mcp-runtime.McpRuntimeInputErrorCode.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:UPSTREAM_5XX",
+      "code": "UPSTREAM_5XX",
+      "source_set_ids": [
+        "agent_recovery_retryable"
+      ],
+      "canonical_owner": "@aiphabee/agent-runtime",
+      "producer_owner": "@aiphabee/agent-runtime",
+      "semantic_category": "system",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": "UPSTREAM_5XX"
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/agent-runtime",
+            "semantics": "retryable",
+            "value": true,
+            "field": "AgentFailureRecoveryRetryableErrorClass"
+          }
+        ]
+      },
+      "source_contract_version": "agent-runtime.failure-recovery.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:UPSTREAM_STALE",
+      "code": "UPSTREAM_STALE",
+      "source_set_ids": [
+        "data_contracts_public",
+        "mcp_public"
+      ],
+      "canonical_owner": "@aiphabee/data-contracts",
+      "producer_owner": "@aiphabee/data-contracts",
+      "semantic_category": "data",
+      "exposure": "shared_public",
+      "channel_mapping": {
+        "web": "UPSTREAM_STALE",
+        "mcp": "UPSTREAM_STALE",
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/mcp-runtime",
+            "semantics": "recoverable",
+            "value": true,
+            "field": "MCP_STANDARD_ERROR_DEFINITIONS.recoverable"
+          }
+        ]
+      },
+      "source_contract_version": "data-contracts.ERROR_CODES.current + 2026-06-21.phase2.mcp-standard-error-codes-scaffold.v0",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "owner_defined_public_constant",
+        "public_detail_allowlist": [
+          "category",
+          "client_action",
+          "mcp_error_version",
+          "recoverable",
+          "request_id",
+          "retry_after_required",
+          "source_record_id"
+        ],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    },
+    {
+      "identity": "error:USER_INITIATION_REQUIRED",
+      "code": "USER_INITIATION_REQUIRED",
+      "source_set_ids": [
+        "tool_registry_declared"
+      ],
+      "canonical_owner": "@aiphabee/tool-registry",
+      "producer_owner": "@aiphabee/tool-registry",
+      "semantic_category": "authorization",
+      "exposure": "internal_only",
+      "channel_mapping": {
+        "web": null,
+        "mcp": null,
+        "agent_event": null
+      },
+      "retry": {
+        "policies": [
+          {
+            "authority": "@aiphabee/tool-registry",
+            "semantics": "retryable",
+            "value": false,
+            "field": null
+          }
+        ]
+      },
+      "source_contract_version": "tool-registry.current",
+      "matrix_contract_version": "2026-07-13.error-taxonomy-reconciliation.v1",
+      "redaction": {
+        "public_message_policy": "not_public",
+        "public_detail_allowlist": [],
+        "internal_audit_fields": [
+          "request_id",
+          "source_set_id",
+          "raw_internal_code",
+          "owner_contract_version"
+        ],
+        "forbidden_public_fields": [
+          "raw_exception_message",
+          "provider_identity",
+          "credential_material",
+          "sandbox_detail",
+          "runner_detail"
+        ],
+        "emit_raw_internal_code_publicly": false
+      }
+    }
+  ],
+  "unknown_policy": {
+    "public_code": "INTERNAL_ERROR",
+    "public_message_policy": "route_owned_generic_constant",
+    "public_retryable": false,
+    "mapping_method": "explicit_exact_lookup_only",
+    "retain_internal_audit_identity": true,
+    "internal_audit_fields": [
+      "request_id",
+      "source_set_id",
+      "raw_internal_code",
+      "owner_contract_version"
+    ],
+    "emit_raw_internal_code_publicly": false,
+    "semantic_fallback": false
+  },
+  "versioning_policy": {
+    "owner_private_addition": "additive_with_same_change_matrix_update",
+    "public_code_or_mapping_retry_redaction_change": "breaking_owner_version_change",
+    "rename_or_remove": "breaking_no_alias",
+    "missing_source_or_matrix_entry": "fail_closed"
+  },
+  "compatibility_aliases": [],
+  "non_authoritative_inputs": [
+    {
+      "input": "planning_pack_seventeen_error_list",
+      "disposition": "rejected",
+      "reason": "not_repository_authority"
+    }
+  ]
+}
